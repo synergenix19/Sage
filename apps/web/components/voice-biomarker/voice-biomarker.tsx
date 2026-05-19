@@ -31,6 +31,7 @@ export function VoiceBiomarker() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timerRef.current!)
+          timerRef.current = null
           if (mountedRef.current) stopRecording()
           return 0
         }
@@ -40,7 +41,10 @@ export function VoiceBiomarker() {
   }
 
   function stopRecording() {
-    if (timerRef.current) clearInterval(timerRef.current)
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
     setPhase('analysing')
     // Simulate analysis delay
     setTimeout(() => {
@@ -49,6 +53,10 @@ export function VoiceBiomarker() {
   }
 
   function reset() {
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
     setPhase('idle')
     setCountdown(30)
   }
