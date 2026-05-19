@@ -6,6 +6,7 @@ import { cn } from '@cdai/ui'
 const TABS = [
   { href: '/chat', label: 'Chat', labelAr: 'محادثة' },
   { href: '/progress', label: 'Progress', labelAr: 'تقدمي' },
+  { href: '/biomarker', label: 'Voice', labelAr: 'صوت' },
 ]
 
 export function TabBar() {
