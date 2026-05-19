@@ -405,3 +405,22 @@ def test_output_gate_arabic_response_is_translated():
         result = output_gate_node(state)
     assert result["response"] == "أسمعك. يبدو هذا صعباً للغاية."
     mock_translate.assert_called_once_with("I hear you. That sounds incredibly hard.")
+
+# Task 12B: low_confidence_respond node
+from sage_poc.nodes.low_confidence_respond import low_confidence_respond_node
+
+def test_low_confidence_respond_with_mocked_llm():
+    state = make_state(
+        message_en="I don't know... maybe",
+        primary_intent="general_chat",
+        intent_confidence=0.4,
+        conversation_history=[],
+    )
+    mock_llm = MagicMock()
+    mock_llm.invoke.return_value = MagicMock(
+        content="I want to make sure I understand — could you tell me a bit more about what's on your mind?"
+    )
+    result = low_confidence_respond_node(state, llm=mock_llm)
+    assert result["response_en"] is not None
+    assert "low_confidence_respond" in result["path"]
+    assert result.get("step_instruction") is None
