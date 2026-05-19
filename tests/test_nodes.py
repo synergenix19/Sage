@@ -580,21 +580,21 @@ def test_evaluate_step_policy_unknown_step_id_returns_stay():
     assert result["skill_complete"] is False
 
 
-# P1-6: Ollama translation fallback
-def test_translate_to_english_falls_back_on_ollama_error():
-    """When Ollama is down, translate_to_english returns the original text."""
+# P1-6: OpenRouter translation fallback (Ollama replaced by OpenRouter for translation)
+def test_translate_to_english_falls_back_on_api_error():
+    """When OpenRouter is unavailable, translate_to_english returns the original text."""
     from sage_poc.language import translate_to_english
-    with patch("sage_poc.language.ollama.Client") as mock_client_cls:
-        mock_client_cls.return_value.chat.side_effect = ConnectionError("Ollama not running")
+    with patch("sage_poc.llm.get_responder") as mock_get_responder:
+        mock_get_responder.return_value.invoke.side_effect = ConnectionError("API not available")
         result = translate_to_english("أريد الموت")
     assert result == "أريد الموت"
 
 
-def test_translate_to_arabic_falls_back_on_ollama_error():
-    """When Ollama is down, translate_to_arabic returns the original text (English fallback)."""
+def test_translate_to_arabic_falls_back_on_api_error():
+    """When OpenRouter is unavailable, translate_to_arabic returns the original text (English fallback)."""
     from sage_poc.language import translate_to_arabic
-    with patch("sage_poc.language.ollama.Client") as mock_client_cls:
-        mock_client_cls.return_value.chat.side_effect = ConnectionError("Ollama not running")
+    with patch("sage_poc.llm.get_responder") as mock_get_responder:
+        mock_get_responder.return_value.invoke.side_effect = ConnectionError("API not available")
         result = translate_to_arabic("That sounds really hard.")
     assert result == "That sounds really hard."
 

@@ -1,9 +1,6 @@
 import re
 
-import ollama
 from langdetect import detect_langs, LangDetectException
-
-from sage_poc.config import TRANSLATION_MODEL, OLLAMA_BASE_URL
 
 # Languages that use the Latin script and may be confused with English by
 # langdetect on short inputs. We treat these as English when text contains no
@@ -54,48 +51,44 @@ def detect_language(text: str | None) -> str:
 
 
 def translate_to_english(text: str) -> str:
-    """Translate *text* to English using the configured Ollama model.
+    """Translate *text* to English via OpenRouter.
 
-    Falls back to the original text if Ollama is unavailable so that the
+    Falls back to the original text if the API is unavailable so that the
     English-language crisis keyword filter still runs on the raw input.
     """
     try:
-        client = ollama.Client(host=OLLAMA_BASE_URL)
-        response = client.chat(
-            model=TRANSLATION_MODEL,
-            messages=[{
-                "role": "user",
-                "content": (
-                    "Translate the following text to English. "
-                    "Return ONLY the translation, nothing else:\n\n"
-                    f"{text}"
-                ),
-            }],
-        )
-        return response["message"]["content"].strip()
+        from sage_poc.llm import get_responder
+        llm = get_responder()
+        response = llm.invoke([{
+            "role": "user",
+            "content": (
+                "Translate the following text to English. "
+                "Return ONLY the translation, nothing else:\n\n"
+                f"{text}"
+            ),
+        }])
+        return response.content.strip()
     except Exception:
         return text
 
 
 def translate_to_arabic(text: str) -> str:
-    """Translate *text* to Modern Standard Arabic using the configured Ollama model.
+    """Translate *text* to Modern Standard Arabic via OpenRouter.
 
-    Falls back to the original English text if Ollama is unavailable so the
+    Falls back to the original English text if the API is unavailable so the
     user receives a response rather than a crash.
     """
     try:
-        client = ollama.Client(host=OLLAMA_BASE_URL)
-        response = client.chat(
-            model=TRANSLATION_MODEL,
-            messages=[{
-                "role": "user",
-                "content": (
-                    "Translate the following text to Modern Standard Arabic. "
-                    "Return ONLY the Arabic translation, nothing else:\n\n"
-                    f"{text}"
-                ),
-            }],
-        )
-        return response["message"]["content"].strip()
+        from sage_poc.llm import get_responder
+        llm = get_responder()
+        response = llm.invoke([{
+            "role": "user",
+            "content": (
+                "Translate the following text to Modern Standard Arabic. "
+                "Return ONLY the Arabic translation, nothing else:\n\n"
+                f"{text}"
+            ),
+        }])
+        return response.content.strip()
     except Exception:
         return text
