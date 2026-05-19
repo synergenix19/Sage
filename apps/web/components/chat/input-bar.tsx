@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { cn } from '@cdai/ui'
 
 interface InputBarProps {
@@ -12,6 +12,10 @@ export function InputBar({ onSend, disabled }: InputBarProps) {
   const [listening, setListening] = useState(false)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null)
+
+  useEffect(() => {
+    return () => { recognitionRef.current?.abort() }
+  }, [])
 
   function startVoice() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

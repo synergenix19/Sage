@@ -22,7 +22,7 @@ interface SdkMessage {
 interface Props {
   initialSession: ChatSession | null
   userName: string
-  userId: string
+  userId: string // passed by chat/page.tsx; available for future API auth or analytics
 }
 
 // Custom streaming chat hook. The /api/chat route returns a raw text stream via
