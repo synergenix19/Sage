@@ -1,0 +1,17 @@
+{
+  "root": true,
+  "extends": ["next/core-web-vitals"],
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["../../apps/web/**", "../apps/web/**"],
+            "message": "packages/* must not import from apps/web — dependency flows tenant → theme → ui → web only."
+          }
+        ]
+      }
+    ]
+  }
+}
