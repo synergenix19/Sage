@@ -311,3 +311,71 @@ def test_knowledge_lookup_embedded_phrase():
 def test_knowledge_lookup_no_match_returns_none():
     result = lookup_knowledge("I feel sad today")
     assert result is None
+
+
+# Task 11: freeflow_respond node
+from sage_poc.nodes.freeflow_respond import freeflow_respond_node, compose_prompt
+
+def test_compose_prompt_with_skill_instruction():
+    state = make_state(
+        message_en="I don't know... everything is my fault.",
+        primary_intent="new_skill",
+        step_instruction="Goal: identify thought. Technique: Socratic questioning. Tone: warm.",
+        conversation_history=[],
+        emotional_intensity=6,
+    )
+    prompt = compose_prompt(state)
+    assert "wellness" in prompt.lower() or "companion" in prompt.lower()  # L0
+    assert "socratic" in prompt.lower() or "identify thought" in prompt.lower()  # L3
+    assert "everything is my fault" in prompt
+
+def test_compose_prompt_without_skill_instruction():
+    state = make_state(
+        message_en="Hello, how are you?",
+        primary_intent="general_chat",
+        step_instruction=None,
+        conversation_history=[],
+        emotional_intensity=3,
+    )
+    prompt = compose_prompt(state)
+    assert "wellness" in prompt.lower() or "companion" in prompt.lower()
+
+def test_compose_prompt_blended_intent_injects_knowledge():
+    state = make_state(
+        message_en="I feel hopeless. Also, what is CBT?",
+        primary_intent="new_skill",
+        secondary_intent="info_request",
+        step_instruction=None,
+        conversation_history=[],
+        emotional_intensity=5,
+    )
+    prompt = compose_prompt(state)
+    assert "blended" in prompt.lower() or "info_request" in prompt.lower()
+    assert "cognitive behavioral" in prompt.lower()  # knowledge snippet injected
+
+def test_compose_prompt_clinical_flag_injects_adaptation():
+    state = make_state(
+        message_en="I've been drinking to cope",
+        primary_intent="general_chat",
+        step_instruction=None,
+        conversation_history=[],
+        emotional_intensity=5,
+        clinical_flags=["substance_use"],
+    )
+    prompt = compose_prompt(state)
+    assert "motivational interviewing" in prompt.lower()
+    assert "judge" in prompt.lower()  # "do not judge"
+
+def test_freeflow_respond_with_mocked_llm():
+    state = make_state(
+        message_en="I keep thinking I'm a failure.",
+        step_instruction="Goal: identify the thought. Technique: Socratic questioning.",
+        conversation_history=[],
+        emotional_intensity=6,
+        engagement=7,
+    )
+    mock_llm = MagicMock()
+    mock_llm.invoke.return_value = MagicMock(content="That sounds really hard. When you say you feel like a failure, what specifically are you telling yourself?")
+    result = freeflow_respond_node(state, llm=mock_llm)
+    assert result["response_en"] is not None
+    assert "freeflow_respond" in result["path"]
