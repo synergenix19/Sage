@@ -5,12 +5,20 @@ import { useOnboardingStore } from '@/lib/stores/onboarding-store'
 import { createClient } from '@/lib/supabase/client'
 
 export function Personalising() {
-  const { answers, reset } = useOnboardingStore()
+  const { reset } = useOnboardingStore()
   const [failed, setFailed] = useState(false)
   const router = useRouter()
   const failTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const mountedRef = useRef(true)
+
+  useEffect(() => {
+    return () => { mountedRef.current = false }
+  }, [])
 
   async function persist() {
+    // Read answers at call time — safe against Zustand async rehydration
+    const { answers } = useOnboardingStore.getState()
+
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/sign-in'); return }
@@ -27,16 +35,30 @@ export function Personalising() {
       onboarding_step: 6,
     })
 
-    if (error) { setFailed(true); return }
-    // Clear the fail timer before navigating — prevents setFailed on an unmounted component
+    if (error) {
+      if (mountedRef.current) setFailed(true)
+      return
+    }
     clearTimeout(failTimerRef.current!)
     reset()
     router.push('/chat')
   }
 
+  function retry() {
+    setFailed(false)
+    // Re-arm the 8-second failsafe for the retry attempt
+    clearTimeout(failTimerRef.current!)
+    failTimerRef.current = setTimeout(() => {
+      if (mountedRef.current) setFailed(true)
+    }, 8000)
+    persist()
+  }
+
   useEffect(() => {
     const startTimer = setTimeout(() => persist(), 400)
-    failTimerRef.current = setTimeout(() => setFailed(true), 8000)
+    failTimerRef.current = setTimeout(() => {
+      if (mountedRef.current) setFailed(true)
+    }, 8000)
     return () => { clearTimeout(startTimer); clearTimeout(failTimerRef.current!) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -44,10 +66,10 @@ export function Personalising() {
     return (
       <div className="flex flex-col items-center gap-4 text-center">
         <p className="text-sm text-[var(--color-text-secondary)]">
-          We&apos;re having trouble setting things up — tap to try again.
+          We're having trouble setting things up — tap to try again.
         </p>
         <button
-          onClick={() => { setFailed(false); persist() }}
+          onClick={retry}
           className="min-h-[44px] text-sm text-[var(--color-primary)] underline px-4"
         >
           Try again
@@ -60,7 +82,7 @@ export function Personalising() {
     <div className="flex flex-col items-center gap-6 text-center">
       <div className="h-16 w-16 rounded-full bg-[var(--color-surface-tinted)] animate-pulse" />
       <p className="text-sm text-[var(--color-text-secondary)]">
-        Personalising your experience&hellip;
+        Personalising your experience…
       </p>
     </div>
   )
