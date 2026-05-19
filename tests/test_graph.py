@@ -93,6 +93,8 @@ def test_cbt_full_3_step_progression_e2e():
         conversation_history=r1["conversation_history"],
         emotional_intensity=r1.get("emotional_intensity", 6),
         engagement=r1.get("engagement", 7),
+        turn_count=r1.get("turn_count", 0),
+        clinical_flags=r1.get("clinical_flags", []),
     ))
     assert r2["executed_step_id"] == "explore_distortion"
     assert r2["active_step_id"] == "balanced_thought"
@@ -104,6 +106,8 @@ def test_cbt_full_3_step_progression_e2e():
         conversation_history=r2["conversation_history"],
         emotional_intensity=r2.get("emotional_intensity", 5),
         engagement=r2.get("engagement", 7),
+        turn_count=r2.get("turn_count", 0),
+        clinical_flags=r2.get("clinical_flags", []),
     ))
     assert r3["executed_step_id"] == "balanced_thought"
     assert r3["active_skill_id"] is None
@@ -169,6 +173,8 @@ def test_session_full_lifecycle_e2e():
         conversation_history=r2["conversation_history"],
         emotional_intensity=r2.get("emotional_intensity", 6),
         engagement=r2.get("engagement", 7),
+        turn_count=r2.get("turn_count", 0),
+        clinical_flags=r2.get("clinical_flags", []),
     ))
     assert r3["executed_step_id"] == "explore_distortion"
     assert r3["active_step_id"] == "balanced_thought"
@@ -182,6 +188,8 @@ def test_session_full_lifecycle_e2e():
         conversation_history=r3["conversation_history"],
         emotional_intensity=r3.get("emotional_intensity", 5),
         engagement=r3.get("engagement", 7),
+        turn_count=r3.get("turn_count", 0),
+        clinical_flags=r3.get("clinical_flags", []),
     ))
     assert r4["executed_step_id"] == "balanced_thought"
     assert r4["active_skill_id"] is None  # skill complete, cleared
@@ -193,6 +201,8 @@ def test_session_full_lifecycle_e2e():
         conversation_history=r4["conversation_history"],
         emotional_intensity=r4.get("emotional_intensity", 4),
         engagement=r4.get("engagement", 7),
+        turn_count=r4.get("turn_count", 0),
+        clinical_flags=r4.get("clinical_flags", []),
     ))
     assert r5["active_skill_id"] is None
     assert r5["response"] is not None
@@ -242,3 +252,180 @@ def test_crisis_english_user_gets_english_response():
     assert result["active_skill_id"] is None
     assert result["turn_count"] == 1
     assert len(result["conversation_history"]) == 2
+
+
+# Arabic crisis response content verification
+
+def test_arabic_crisis_response_contains_correct_hotline_number():
+    """800 4673 (800-HOPE) must be in the Arabic response — it is the verified UAE crisis line."""
+    from sage_poc.graph import CRISIS_RESPONSE_AR
+    assert "800 4673" in CRISIS_RESPONSE_AR or "800-4673" in CRISIS_RESPONSE_AR, \
+        "Arabic crisis response must include the verified 800-HOPE number"
+
+
+def test_arabic_crisis_response_contains_emergency_number():
+    """999 (UAE emergency, 24/7) must be present as fallback."""
+    from sage_poc.graph import CRISIS_RESPONSE_AR
+    assert "999" in CRISIS_RESPONSE_AR, \
+        "Arabic crisis response must include 999 (UAE 24/7 emergency line)"
+
+
+def test_arabic_crisis_response_excludes_us_only_988():
+    """988 is a US domestic line — unreachable from UAE. Must not appear."""
+    from sage_poc.graph import CRISIS_RESPONSE_AR
+    assert "988" not in CRISIS_RESPONSE_AR, \
+        "Arabic crisis response must NOT include 988 — it is a US-only number, unreachable from UAE"
+
+
+def test_arabic_crisis_response_excludes_incorrect_service_name():
+    """'توازن' (Tawazun) is not a UAE crisis service — the correct name is 800-HOPE / مساندة."""
+    from sage_poc.graph import CRISIS_RESPONSE_AR
+    assert "توازن" not in CRISIS_RESPONSE_AR, \
+        "Arabic crisis response must NOT use 'توازن' — no UAE crisis service by this name exists"
+
+
+def test_arabic_crisis_response_ends_with_not_alone():
+    """'أنت لست وحدك' (you are not alone) is culturally resonant closing phrase — must be present."""
+    from sage_poc.graph import CRISIS_RESPONSE_AR
+    assert "أنت لست وحدك" in CRISIS_RESPONSE_AR, \
+        "Arabic crisis response must include 'أنت لست وحدك' — verified culturally appropriate closing"
+
+
+def test_arabic_crisis_response_centers_safety_not_ai_anxiety():
+    """'سلامتك' (your safety) is the correct focus — 'قلق' (my anxiety) should not be the lead."""
+    from sage_poc.graph import CRISIS_RESPONSE_AR
+    assert "سلامتك" in CRISIS_RESPONSE_AR, \
+        "Response should center user's safety ('سلامتك'), not the AI's emotional state"
+    assert CRISIS_RESPONSE_AR.startswith("أنا قلق") is False, \
+        "Response must not lead with 'أنا قلق' — centers AI's anxiety, not user's wellbeing"
+
+
+# Gulf-dialect keyword coverage
+
+def test_khaleeji_want_to_die_abi():
+    """أبي أموت — UAE/Khaleeji 'I want to die' (abi = I want) must trigger crisis."""
+    from sage_poc.nodes.safety_check import _contains_crisis
+    flags = _contains_crisis("أبي أموت الليلة")
+    assert len(flags) > 0, "Khaleeji 'أبي أموت' must trigger crisis detection"
+
+
+def test_khaleeji_want_to_die_abgha():
+    """أبغى أموت — Khaleeji/Saudi-Gulf variant of 'I want to die' must trigger crisis."""
+    from sage_poc.nodes.safety_check import _contains_crisis
+    flags = _contains_crisis("أبغى أموت، ما أقدر أكمل")
+    assert len(flags) > 0, "Khaleeji 'أبغى أموت' must trigger crisis detection"
+
+
+def test_khaleeji_end_my_life():
+    """أبي أنهي حياتي — Gulf 'I want to end my life' must trigger crisis."""
+    from sage_poc.nodes.safety_check import _contains_crisis
+    flags = _contains_crisis("أبي أنهي حياتي")
+    assert len(flags) > 0, "Khaleeji 'أبي أنهي حياتي' must trigger crisis detection"
+
+
+def test_levantine_expat_self_harm():
+    """بدي أقتل حالي — Levantine 'I want to kill myself' (common Syrian/Lebanese expats in UAE)."""
+    from sage_poc.nodes.safety_check import _contains_crisis
+    flags = _contains_crisis("بدي أقتل حالي")
+    assert len(flags) > 0, "Levantine 'بدي أقتل حالي' must trigger crisis detection"
+
+
+def test_indirect_gulf_euphemism_sleep_not_wake():
+    """ياريت أنام ولا أصحى — 'I wish I'd sleep and not wake up' — passive ideation euphemism."""
+    from sage_poc.nodes.safety_check import _contains_crisis
+    flags = _contains_crisis("ياريت أنام ولا أصحى")
+    assert len(flags) > 0, "Passive ideation euphemism 'ياريت أنام ولا أصحى' must trigger crisis"
+
+
+def test_indirect_gulf_soul_tired():
+    """نفسي تعبت — 'My soul is tired' — clinically significant indirect Gulf ideation phrase."""
+    from sage_poc.nodes.safety_check import _contains_crisis
+    flags = _contains_crisis("نفسي تعبت، ما أبي أكمل")
+    assert len(flags) > 0, "Indirect idiom 'نفسي تعبت' must trigger crisis detection"
+
+
+def test_indirect_gulf_no_reason_to_live():
+    """ما عندي سبب أعيش — Gulf 'I have no reason to live'."""
+    from sage_poc.nodes.safety_check import _contains_crisis
+    flags = _contains_crisis("ما عندي سبب أعيش")
+    assert len(flags) > 0, "Gulf phrase 'ما عندي سبب أعيش' must trigger crisis detection"
+
+
+def test_indirect_gulf_life_not_worth_it():
+    """الحياة ما تسوى — 'Life isn't worth it' — hopelessness marker."""
+    from sage_poc.nodes.safety_check import _contains_crisis
+    flags = _contains_crisis("الحياة ما تسوى")
+    assert len(flags) > 0, "Gulf hopelessness phrase 'الحياة ما تسوى' must trigger crisis detection"
+
+
+def test_araglish_want_to_mat():
+    """'want to mat' — Araglish phonetic blend for مات (died); 'I want to die'."""
+    from sage_poc.nodes.safety_check import _contains_crisis
+    flags = _contains_crisis("wallah I just want to mat, I'm so done")
+    assert len(flags) > 0, "Araglish 'want to mat' must trigger crisis detection"
+
+
+def test_araglish_wallah_want_to_die():
+    """'wallah I want to die' — Araglish sworn statement of suicidal ideation."""
+    from sage_poc.nodes.safety_check import _contains_crisis
+    flags = _contains_crisis("wallah I want to die")
+    assert len(flags) > 0, "Araglish 'wallah I want to die' must trigger crisis detection"
+
+
+def test_arabizi_abi_amoot():
+    """'abi amoot' — romanized Arabizi for أبي أموت ('I want to die' in Gulf dialect)."""
+    from sage_poc.nodes.safety_check import _contains_crisis
+    flags = _contains_crisis("ana ta3ban, abi amoot")
+    assert len(flags) > 0, "Arabizi 'abi amoot' must trigger crisis detection"
+
+
+def test_msa_explicit_suicide_still_detected():
+    """MSA أريد أن أقتل نفسي — explicit suicide statement still detected after keyword expansion."""
+    from sage_poc.nodes.safety_check import _contains_crisis
+    flags = _contains_crisis("أريد أن أقتل نفسي")
+    assert len(flags) > 0, "MSA explicit suicidal statement must still be detected"
+
+
+def test_neutral_arabic_does_not_trigger():
+    """Arabic neutral messages must not generate false-positive crisis flags."""
+    from sage_poc.nodes.safety_check import _contains_crisis
+    flags = _contains_crisis("أنا متعب من العمل اليوم، أحتاج إلى نوم")
+    assert len(flags) == 0, "Neutral Arabic ('I'm tired from work, I need sleep') must not trigger crisis"
+
+
+def test_crisis_keywords_covers_minimum_arabic_phrases():
+    """CRISIS_KEYWORDS must contain at least 10 Arabic entries after Gulf-dialect expansion."""
+    from sage_poc.nodes.safety_check import CRISIS_KEYWORDS
+    arabic_entries = [kw for kw in CRISIS_KEYWORDS if any(ord(c) > 0x0600 for c in kw)]
+    assert len(arabic_entries) >= 10, \
+        f"Expected ≥10 Arabic crisis keywords after Gulf-dialect expansion, got {len(arabic_entries)}"
+
+
+# English crisis response content verification (NEW-1 fix — mirrors Arabic test suite)
+
+def test_english_crisis_response_contains_correct_hotline_number():
+    """800 4673 (800-HOPE) must be in the English response — it is the verified UAE crisis line."""
+    from sage_poc.graph import CRISIS_RESPONSE
+    assert "800 4673" in CRISIS_RESPONSE or "800-4673" in CRISIS_RESPONSE, \
+        "English crisis response must include the verified 800-HOPE number"
+
+
+def test_english_crisis_response_contains_emergency_number():
+    """999 (UAE emergency, 24/7) must be present as fallback."""
+    from sage_poc.graph import CRISIS_RESPONSE
+    assert "999" in CRISIS_RESPONSE, \
+        "English crisis response must include 999 (UAE 24/7 emergency line)"
+
+
+def test_english_crisis_response_excludes_us_only_988():
+    """988 is a US domestic line — unreachable from UAE. Must not appear."""
+    from sage_poc.graph import CRISIS_RESPONSE
+    assert "988" not in CRISIS_RESPONSE, \
+        "English crisis response must NOT include 988 — it is a US-only number, unreachable from UAE"
+
+
+def test_english_crisis_response_excludes_incorrect_service_name():
+    """'Tawazun' is not a UAE crisis service. Must not appear in the English response."""
+    from sage_poc.graph import CRISIS_RESPONSE
+    assert "Tawazun" not in CRISIS_RESPONSE and "tawazun" not in CRISIS_RESPONSE.lower(), \
+        "English crisis response must NOT reference 'Tawazun' — no UAE crisis service by this name exists"

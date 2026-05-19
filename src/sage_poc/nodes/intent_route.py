@@ -31,6 +31,14 @@ def build_intent_prompt(state: SageState) -> str:
     return f"{active}{history_block}\n\nUser message: {state['message_en']}"
 
 
+def _safe_int(value, default: int) -> int:
+    """Parse LLM output to int, tolerating floats and non-numeric strings."""
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return default
+
+
 def intent_route_node(state: SageState, llm=None) -> dict:
     if llm is None:
         llm = get_classifier()
@@ -43,13 +51,16 @@ def intent_route_node(state: SageState, llm=None) -> dict:
 
     # Extract JSON — handle models that wrap in markdown fences
     match = re.search(r'\{.*\}', raw, re.DOTALL)
-    data = json.loads(match.group(0)) if match else {}
+    try:
+        data = json.loads(match.group(0)) if match else {}
+    except json.JSONDecodeError:
+        data = {}
 
     return {
         "primary_intent": data.get("primary_intent", "general_chat"),
         "secondary_intent": data.get("secondary_intent"),
         "intent_confidence": float(data.get("intent_confidence", 0.5)),
-        "emotional_intensity": int(data.get("emotional_intensity", 5)),
-        "engagement": int(data.get("engagement", 5)),
+        "emotional_intensity": _safe_int(data.get("emotional_intensity"), 5),
+        "engagement": _safe_int(data.get("engagement"), 5),
         "path": state["path"] + ["intent_route"],
     }

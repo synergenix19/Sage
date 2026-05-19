@@ -38,7 +38,12 @@ def main():
     state = make_initial_state()
 
     while True:
-        user_input = input("You: ").strip()
+        try:
+            user_input = input("You: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print("\nGoodbye.")
+            break
+
         if user_input.lower() in ("quit", "exit", "q"):
             break
         if not user_input:
@@ -46,7 +51,15 @@ def main():
 
         state["raw_message"] = user_input
 
-        result = graph.invoke(state)
+        try:
+            result = graph.invoke(state)
+        except KeyboardInterrupt:
+            print("\nGoodbye.")
+            break
+        except Exception as e:
+            print(f"\n[ERROR] {e}")
+            print("Sage: Something went wrong processing your message. Please try again.")
+            continue
 
         print(f"\nSage: {result['response']}")
         print(f"[Path: {' → '.join(result['path'])}]")
@@ -74,6 +87,7 @@ def main():
             "turn_count": result.get("turn_count", 0),
             "engagement": result.get("engagement", 7),
             "emotional_intensity": result.get("emotional_intensity", 5),
+            "clinical_flags": result.get("clinical_flags", []),  # P1-3: carry forward across turns
         }
 
 

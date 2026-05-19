@@ -1,4 +1,5 @@
 # src/sage_poc/nodes/skill_executor.py
+import re
 from sage_poc.state import SageState
 from sage_poc.skills.schema import Skill, load_skill
 
@@ -10,11 +11,29 @@ _OPERATOR_MAP = {
     "==": lambda a, b: a == b,
 }
 
-# L1 escalation: user wants to stop the skill
+# L1 escalation: user wants to stop the skill.
+# Single-word triggers ("stop", "leave") are omitted intentionally — they produce false positives
+# when embedded in unrelated phrases ("can't stop thinking", "can't leave my house").
+# Multi-word phrases provide the necessary specificity.
 L1_EXIT_PHRASES = [
-    "stop", "quit", "don't want to", "enough", "leave", "exit",
-    "not doing this", "change the subject", "talk about something else",
-    "let's stop", "i want to stop",
+    # Single-word (low false-positive risk — rare in therapeutic context with different meaning)
+    "quit",
+    "exit",
+    # Multi-word — context-specific enough that substring matching is safe
+    # Removed: "don't want to" (fires on "I don't want to burden you")
+    # Removed: "want to stop" (fires on "I want to stop feeling anxious")
+    # Removed: "please stop" (fires on "please stop being so harsh on yourself")
+    "not doing this",
+    "change the subject",
+    "talk about something else",
+    "let's stop",
+    "i want to stop this",
+    "i want to quit",
+    "want to leave this",
+    "want to quit",
+    "can we stop",
+    "i'm done with this",
+    "i am done with this",
 ]
 
 
@@ -22,7 +41,8 @@ def check_escalation(message_en: str, clinical_flags: list[str]) -> dict | None:
     """Evaluates escalation matrix before step_policy. Returns escalation dict or None."""
     message_lower = message_en.lower()
 
-    # L1: user requests to stop
+    # L1: user requests to stop — substring match is safe here because all phrases are
+    # multi-word or low-ambiguity single words; "stop" and "leave" removed (see L1_EXIT_PHRASES)
     if any(phrase in message_lower for phrase in L1_EXIT_PHRASES):
         return {
             "level": "L1",
@@ -77,7 +97,14 @@ def evaluate_step_policy(
             }
 
     # No rule fired — check completion_criteria before advancing
-    step = next(s for s in skill.steps if s.step_id == current_step_id)
+    step = next((s for s in skill.steps if s.step_id == current_step_id), None)
+    if step is None:
+        return {
+            "action": "stay",
+            "instruction": f"[Step '{current_step_id}' not found in skill — holding position]",
+            "next_step_id": current_step_id,
+            "skill_complete": False,
+        }
     step_instruction = (
         f"Goal: {step.goal}. "
         f"Technique: {step.technique}. "

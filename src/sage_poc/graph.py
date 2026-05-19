@@ -14,17 +14,20 @@ from sage_poc.nodes.output_gate import output_gate_node
 
 CRISIS_RESPONSE = (
     "I'm really concerned about what you've shared. "
-    "Please reach out to a crisis line immediately — "
-    "in the UAE: Tawazun 800-HOPE (4673), or international: 988 (US). "
+    "Please reach out to a crisis line now — "
+    "in the UAE: 800 4673 (800-HOPE), or emergency: 999. "
     "You don't have to face this alone."
+    # 800-HOPE verified correct UAE number; "Tawazun" removed (no UAE service by this name);
+    # 988 removed (US-only, unreachable from UAE); 999 added (24/7 UAE emergency)
 )
 
 CRISIS_RESPONSE_AR = (
-    "أنا قلق جداً على ما شاركته. "
-    "يُرجى التواصل مع خط الأزمات فوراً — "
-    "في الإمارات: توازن 800-4673، أو الرقم الدولي: 988. "
+    "أنا مهتم جداً بسلامتك وبما شاركته معي. "
+    "أرجوك تواصل مع خط دعم الصحة النفسية الآن — "
+    "في الإمارات: 800 4673 (800-HOPE)، أو رقم الطوارئ: 999. "
     "أنت لست وحدك."
-    # NOTE: Arabic text requires native Gulf-Arabic speaker review before go-live
+    # 800-HOPE verified correct UAE number; 988 removed (US-only, unreachable from UAE);
+    # "توازن" removed (no UAE service by this name); 999 added (24/7 UAE emergency)
 )
 
 

@@ -4,10 +4,36 @@ from sage_poc.state import SageState
 from sage_poc.language import detect_language, translate_to_english
 
 CRISIS_KEYWORDS = [
+    # English
     "kill myself", "want to die", "end my life", "suicide", "suicidal",
     "hurt myself", "self-harm", "cut myself", "overdose", "no reason to live",
     "better off dead", "can't go on", "not worth living",
-    "أريد الموت", "انتحار", "أنهي حياتي", "أؤذي نفسي",
+    "want to disappear", "don't want to be here", "thinking of ending it",
+    "no reason to live", "i'm a burden",
+    "don't want to be alive", "end it all",
+    # Araglish / Arabizi (UAE code-switching patterns)
+    "want to mat",        # phonetic blend: مات (māt) = died
+    "wallah i want to die",
+    "abi amoot",          # Arabizi: أبي أموت
+    "khalas i give up",
+    # Arabic — MSA
+    "أريد الموت", "أريد أن أموت", "انتحار", "أنهي حياتي", "أؤذي نفسي",
+    "أفكر في الانتحار", "أريد أن أقتل نفسي", "أتمنى الموت",
+    # Arabic — Gulf/Khaleeji dialect (أبي/أبغى/ودي = "I want")
+    "أبي أموت", "أبغى أموت", "ودي أموت",
+    "أبي أنهي حياتي", "أبغى أنهي حياتي",
+    "أبي أخلص من حياتي",
+    "أبي أجرح نفسي", "أبغى أجرح نفسي",
+    "بدي أقتل حالي",     # Levantine (Syrian/Lebanese expats common in UAE)
+    # Arabic — indirect Gulf euphemisms for death/giving up (راحة = "rest")
+    "ياريت أنام ولا أصحى",   # "I wish I'd sleep and not wake up"
+    "نفسي تعبت",              # "My soul is tired" — clinically significant indirect ideation
+    "ما أقدر أكمل",           # "I can't continue"
+    "ما عندي سبب أعيش",      # "I have no reason to live"
+    "مافي فايدة",             # "No use/no point" — Gulf dialect negation
+    "حياتي خلصت",            # "My life is finished/over"
+    "الحياة ما تسوى",        # "Life isn't worth it"
+    "ما عاد قادر",            # "I can no longer cope"
 ]
 
 CLINICAL_KEYWORD_SETS: dict[str, list[str]] = {
@@ -35,7 +61,8 @@ CLINICAL_KEYWORD_SETS: dict[str, list[str]] = {
 
 
 def _contains_crisis(text: str) -> list[str]:
-    text_lower = text.lower()
+    # P2-6: strip ZWSP (U+200B) — can be injected between characters to defeat substring matching
+    text_lower = text.replace("​", "").lower()
     return [kw for kw in CRISIS_KEYWORDS if kw.lower() in text_lower]
 
 

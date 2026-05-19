@@ -28,13 +28,34 @@ _CLINICAL_ADAPTATIONS = {
 }
 
 
-def compose_prompt(state: SageState) -> str:
-    parts = [f"SYSTEM: {PERSONA}"]
+def compose_prompt(state: SageState) -> tuple[str, str]:
+    """Return (system_str, user_str) for proper role-separated LLM invocation.
+
+    system_str: static behavioral guidance (persona + clinical adaptations).
+    user_str:   dynamic contextual content (history, intent, skill instruction,
+                knowledge snippet, current user message).
+    """
+    # --- System role: persona + clinical behavioral constraints ---
+    system_parts = [PERSONA]
+
+    clinical = state.get("clinical_flags", [])
+    if clinical:
+        adaptations = [_CLINICAL_ADAPTATIONS[f] for f in clinical if f in _CLINICAL_ADAPTATIONS]
+        if adaptations:
+            system_parts.append(
+                "\nCLINICAL ADAPTATIONS (follow these strictly):\n"
+                + "\n".join(f"- {a}" for a in adaptations)
+            )
+
+    system_str = "\n".join(system_parts)
+
+    # --- User role: context + current turn ---
+    user_parts = []
 
     if state["conversation_history"]:
         history = state["conversation_history"][-4:]
         history_text = "\n".join(f"{m['role'].upper()}: {m['content']}" for m in history)
-        parts.append(f"\nCONVERSATION HISTORY:\n{history_text}")
+        user_parts.append(f"CONVERSATION HISTORY:\n{history_text}")
 
     intent = state.get("primary_intent") or "general_chat"
     secondary = state.get("secondary_intent")
@@ -42,37 +63,36 @@ def compose_prompt(state: SageState) -> str:
     intent_line = f"INTENT: {intent}"
     if secondary:
         intent_line += f" + {secondary} (blended)"
-    parts.append(f"\n{intent_line} | Emotional intensity: {intensity}/10")
+    user_parts.append(f"{intent_line} | Emotional intensity: {intensity}/10")
 
     if state.get("step_instruction"):
-        parts.append(f"\nSKILL INSTRUCTION:\n{state['step_instruction']}")
+        user_parts.append(f"SKILL INSTRUCTION:\n{state['step_instruction']}")
 
-    if state.get("secondary_intent") == "info_request":
+    # P2-8: inject knowledge for primary OR secondary info_request intent
+    intent_set = {state.get("primary_intent"), state.get("secondary_intent")}
+    if "info_request" in intent_set:
         snippet = lookup_knowledge(state["message_en"])
         if snippet:
-            parts.append(
-                f"\nKNOWLEDGE (weave naturally into your response if relevant):\n{snippet}"
+            user_parts.append(
+                f"KNOWLEDGE (weave naturally into your response if relevant):\n{snippet}"
             )
 
-    clinical = state.get("clinical_flags", [])
-    if clinical:
-        adaptations = [_CLINICAL_ADAPTATIONS[f] for f in clinical if f in _CLINICAL_ADAPTATIONS]
-        if adaptations:
-            parts.append(
-                "\nCLINICAL ADAPTATIONS (follow these strictly):\n"
-                + "\n".join(f"- {a}" for a in adaptations)
-            )
+    user_parts.append(f"USER: {state['message_en']}")
+    user_str = "\n\n".join(user_parts)
 
-    parts.append(f"\nUSER: {state['message_en']}\n\nSAGE:")
-    return "\n".join(parts)
+    return system_str, user_str
 
 
 def freeflow_respond_node(state: SageState, llm=None) -> dict:
     if llm is None:
         llm = get_responder()
 
-    prompt = compose_prompt(state)
-    response = llm.invoke(prompt).content.strip()
+    system_str, user_str = compose_prompt(state)
+    messages = [
+        {"role": "system", "content": system_str},
+        {"role": "user", "content": user_str},
+    ]
+    response = llm.invoke(messages).content.strip()
 
     return {
         "response_en": response,

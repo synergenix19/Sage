@@ -1,7 +1,7 @@
 import re
 
 import ollama
-from langdetect import detect, detect_langs, LangDetectException
+from langdetect import detect_langs, LangDetectException
 
 from sage_poc.config import TRANSLATION_MODEL, OLLAMA_BASE_URL
 
@@ -17,25 +17,35 @@ _LATIN_SCRIPT_LANGS = {
     "so", "ha", "mg", "st", "ht",
 }
 
+# P2-5: Unicode bidirectional and directional formatting marks that can
+# corrupt langdetect results and must be stripped before detection.
+_DIRECTIONAL_MARKS = re.compile(r'[‎‏‪-‮⁦-⁩]')
 
-def detect_language(text: str) -> str:
-    """Detect the language of *text*.
+
+def detect_language(text: str | None) -> str:
+    """Detect the language of *text*, returning "en" as a safe default.
+
+    Handles None and empty input (P2-4). Strips Unicode directional marks
+    before detection (P2-5) — these can corrupt langdetect on RTL text.
 
     Arabic Unicode block presence overrides langdetect to handle code-switching
     (mixed Arabic/English messages are classified as Arabic).
 
     For pure Latin-script text, langdetect is unreliable on short inputs and
-    may return codes like "so" (Somali) for English phrases.  We fall back to
-    "en" whenever the detected code is not a CJK or Arabic language and the
-    text contains only Latin-script characters.
+    may return codes like "so" (Somali) for English phrases. Falls back to
+    "en" whenever the detected code is a known Latin-script language and the
+    text is pure ASCII/Latin.
     """
+    if not text:
+        return "en"
+
+    text = _DIRECTIONAL_MARKS.sub('', text)
+
     if re.search(r'[؀-ۿ]', text):
         return "ar"
     try:
         langs = detect_langs(text)
         top = langs[0]
-        # If the highest-probability language is a known Latin-script language
-        # and the text is pure ASCII/Latin, treat it as English.
         if top.lang in _LATIN_SCRIPT_LANGS and not re.search(r'[^\x00-\x7F]', text):
             return "en"
         return top.lang
@@ -44,34 +54,48 @@ def detect_language(text: str) -> str:
 
 
 def translate_to_english(text: str) -> str:
-    """Translate *text* to English using the configured Ollama model."""
-    client = ollama.Client(host=OLLAMA_BASE_URL)
-    response = client.chat(
-        model=TRANSLATION_MODEL,
-        messages=[{
-            "role": "user",
-            "content": (
-                "Translate the following text to English. "
-                "Return ONLY the translation, nothing else:\n\n"
-                f"{text}"
-            ),
-        }],
-    )
-    return response["message"]["content"].strip()
+    """Translate *text* to English using the configured Ollama model.
+
+    Falls back to the original text if Ollama is unavailable so that the
+    English-language crisis keyword filter still runs on the raw input.
+    """
+    try:
+        client = ollama.Client(host=OLLAMA_BASE_URL)
+        response = client.chat(
+            model=TRANSLATION_MODEL,
+            messages=[{
+                "role": "user",
+                "content": (
+                    "Translate the following text to English. "
+                    "Return ONLY the translation, nothing else:\n\n"
+                    f"{text}"
+                ),
+            }],
+        )
+        return response["message"]["content"].strip()
+    except Exception:
+        return text
 
 
 def translate_to_arabic(text: str) -> str:
-    """Translate *text* to Modern Standard Arabic using the configured Ollama model."""
-    client = ollama.Client(host=OLLAMA_BASE_URL)
-    response = client.chat(
-        model=TRANSLATION_MODEL,
-        messages=[{
-            "role": "user",
-            "content": (
-                "Translate the following text to Modern Standard Arabic. "
-                "Return ONLY the Arabic translation, nothing else:\n\n"
-                f"{text}"
-            ),
-        }],
-    )
-    return response["message"]["content"].strip()
+    """Translate *text* to Modern Standard Arabic using the configured Ollama model.
+
+    Falls back to the original English text if Ollama is unavailable so the
+    user receives a response rather than a crash.
+    """
+    try:
+        client = ollama.Client(host=OLLAMA_BASE_URL)
+        response = client.chat(
+            model=TRANSLATION_MODEL,
+            messages=[{
+                "role": "user",
+                "content": (
+                    "Translate the following text to Modern Standard Arabic. "
+                    "Return ONLY the Arabic translation, nothing else:\n\n"
+                    f"{text}"
+                ),
+            }],
+        )
+        return response["message"]["content"].strip()
+    except Exception:
+        return text
