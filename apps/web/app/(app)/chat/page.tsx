@@ -17,11 +17,15 @@ export default async function ChatPage() {
 
   let activeSession = sessions?.[0] ?? null
   if (!activeSession) {
-    const { data: newSession } = await supabase
+    const { data: newSession, error: insertError } = await supabase
       .from('chat_sessions')
       .insert({ user_id: user.id })
       .select()
       .single()
+
+    if (insertError || !newSession) {
+      throw new Error('Failed to create chat session')
+    }
     activeSession = newSession
   }
 
