@@ -47,7 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#ffffff" />
       </head>
-      <body className="bg-[var(--color-surface)] text-[var(--color-text-primary)] antialiased">
+      <body className="bg-[var(--color-surface)] text-[var(--color-text-primary)] font-body antialiased">
         <InstallPrompt />
         <SwUpdateBanner />
         <Providers initialLocale={locale}>{children}</Providers>
