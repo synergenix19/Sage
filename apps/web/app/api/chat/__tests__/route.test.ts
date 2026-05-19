@@ -15,7 +15,9 @@ vi.mock('@/lib/supabase/server', () => ({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: { name: null } }),
-      update: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      }),
     }),
   }),
 }))

@@ -34,6 +34,10 @@ export async function POST(req: Request) {
     sessionId: string
   }
 
+  if (!sessionId || !messages?.length) {
+    return new Response('Bad Request', { status: 400 })
+  }
+
   const lastMessage = messages[messages.length - 1]?.content ?? ''
   const intent = await classifyIntent(lastMessage)
   const systemPrompt = (intent === 'knowledge' ? KNOWLEDGE_SYSTEM : EMOTIONAL_SYSTEM) + CRISIS_SYSTEM_ADDITION
@@ -52,38 +56,44 @@ export async function POST(req: Request) {
     system: systemPrompt,
     messages: messages.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
     onFinish: async ({ text }) => {
-      // Persist AI response
-      const isCrisis = text.startsWith(CRISIS_SIGNAL)
-      const content = isCrisis ? text.replace(CRISIS_SIGNAL + '\n', '') : text
-      await supabase.from('messages').insert({
-        session_id: sessionId,
-        role: isCrisis ? 'crisis' : 'ai',
-        content,
-        intent,
-      })
+      try {
+        const supabase = await createClient()
 
-      // Name session after first exchange if unnamed
-      const { data: session } = await supabase
-        .from('chat_sessions')
-        .select('name')
-        .eq('id', sessionId)
-        .single()
-
-      if (session && !session.name) {
-        const { text: sessionName } = await generateText({
-          model: openrouter(CLASSIFIER_MODEL),
-          prompt: `Give this conversation a short title (3-5 words, no quotes):\n\nUser: "${lastMessage}"`,
-          maxOutputTokens: 15,
+        // Persist AI response
+        const isCrisis = text.startsWith(CRISIS_SIGNAL)
+        const content = isCrisis ? text.replace(CRISIS_SIGNAL, '').trimStart() : text
+        await supabase.from('messages').insert({
+          session_id: sessionId,
+          role: isCrisis ? 'crisis' : 'ai',
+          content,
+          intent,
         })
-        await supabase.from('chat_sessions')
-          .update({ name: sessionName.trim(), updated_at: new Date().toISOString() })
-          .eq('id', sessionId)
-      }
 
-      // POST-PILOT: Add mood scoring and insight generation here.
-      // For pilot, all progress data comes from lib/demo-seed.ts.
-      // Real path: score mood 1-5 via a generateText call on the full exchange,
-      // insert to mood_scores table; generate a brief insight and insert to session_insights.
+        // Name session after first exchange if unnamed
+        const { data: session } = await supabase
+          .from('chat_sessions')
+          .select('name')
+          .eq('id', sessionId)
+          .single()
+
+        if (session && !session.name) {
+          const { text: sessionName } = await generateText({
+            model: openrouter(CLASSIFIER_MODEL),
+            prompt: `Give this conversation a short title (3-5 words, no quotes):\n\nUser: "${lastMessage}"`,
+            maxOutputTokens: 15,
+          })
+          await supabase.from('chat_sessions')
+            .update({ name: sessionName.trim(), updated_at: new Date().toISOString() })
+            .eq('id', sessionId)
+        }
+
+        // POST-PILOT: Add mood scoring and insight generation here.
+        // For pilot, all progress data comes from lib/demo-seed.ts.
+        // Real path: score mood 1-5 via a generateText call on the full exchange,
+        // insert to mood_scores table; generate a brief insight and insert to session_insights.
+      } catch (err) {
+        console.error('[chat/onFinish] persistence failed:', err)
+      }
     },
   })
 
