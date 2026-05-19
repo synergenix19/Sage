@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from sage_poc.state import SageState
 from sage_poc.language import translate_to_arabic
 
@@ -16,7 +16,7 @@ def output_gate_node(state: SageState) -> dict:
     path = state["path"] + ["output_gate"]
 
     audit = {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "turn": state["turn_count"],
         "path": path,
         "detected_language": lang,
