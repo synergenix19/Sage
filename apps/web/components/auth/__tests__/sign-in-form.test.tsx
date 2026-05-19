@@ -18,7 +18,8 @@ vi.mock('next/navigation', () => ({
 
 describe('SignInForm', () => {
   beforeEach(() => {
-    mockSignIn.mockClear()
+    mockSignIn.mockReset()
+    mockSignIn.mockResolvedValue({ error: null })
   })
 
   it('shows validation error when email is empty', async () => {
