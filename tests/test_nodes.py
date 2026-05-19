@@ -140,3 +140,24 @@ def test_intent_route_classifies_exit_skill():
     )
     result = intent_route_node(state, llm=mock_llm)
     assert result["primary_intent"] == "exit_skill"
+
+
+from sage_poc.nodes.skill_select import skill_select_node
+
+def test_selects_cbt_for_negative_thought():
+    state = make_state(
+        message_en="I keep thinking I'm a failure, it's always my fault",
+        primary_intent="new_skill",
+    )
+    result = skill_select_node(state)
+    assert result["active_skill_id"] == "cbt_thought_record"
+    assert result["active_step_id"] == "identify_thought"
+    assert "skill_select" in result["path"]
+
+def test_no_skill_for_general_chat():
+    state = make_state(
+        message_en="What is the weather like?",
+        primary_intent="new_skill",
+    )
+    result = skill_select_node(state)
+    assert result["active_skill_id"] is None
