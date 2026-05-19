@@ -135,3 +135,67 @@ def test_escalation_l1_exit_mid_skill():
     assert result["active_skill_id"] is None
     assert result.get("escalation_triggered", {}).get("level") == "L1"
     assert result["response"] is not None
+
+
+@pytest.mark.slow
+def test_session_full_lifecycle_e2e():
+    """Full session: greeting → CBT skill (3 steps) → completion → freeflow. One connected flow."""
+    from sage_poc.graph import build_graph
+    graph = build_graph()
+
+    # Turn 1: Greeting — general chat, no skill
+    r1 = graph.invoke(make_e2e_state("Hello, I have been feeling really overwhelmed lately"))
+    assert r1["is_safe"] is True
+    assert r1["active_skill_id"] is None
+    assert r1["response"] is not None
+    print(f"\n[LIFECYCLE] Turn 1 (greeting) path: {r1['path']}")
+
+    # Turn 2: Skill trigger — message > 10 words so completion_criteria allows first step to advance
+    r2 = graph.invoke(make_e2e_state(
+        "I keep thinking that everything is my fault, always, and I cannot shake it",
+        conversation_history=r1["conversation_history"],
+        emotional_intensity=6, engagement=7,
+    ))
+    assert r2["active_skill_id"] == "cbt_thought_record"
+    assert r2["executed_step_id"] == "identify_thought"
+    assert r2["active_step_id"] == "explore_distortion"
+    print(f"[LIFECYCLE] Turn 2 (skill start) executed: {r2['executed_step_id']} → next: {r2['active_step_id']}")
+
+    # Turn 3: User responds to identify_thought prompt (> 10 words → advances)
+    r3 = graph.invoke(make_e2e_state(
+        "I tell myself that I am worthless and that nothing good will ever happen to me",
+        active_skill_id=r2["active_skill_id"],
+        active_step_id=r2["active_step_id"],
+        conversation_history=r2["conversation_history"],
+        emotional_intensity=r2.get("emotional_intensity", 6),
+        engagement=r2.get("engagement", 7),
+    ))
+    assert r3["executed_step_id"] == "explore_distortion"
+    assert r3["active_step_id"] == "balanced_thought"
+    print(f"[LIFECYCLE] Turn 3 (step 2) executed: {r3['executed_step_id']} → next: {r3['active_step_id']}")
+
+    # Turn 4: User responds to explore_distortion → skill complete
+    r4 = graph.invoke(make_e2e_state(
+        "My friend said something kind to me yesterday and maybe I am not all bad after all",
+        active_skill_id=r3["active_skill_id"],
+        active_step_id=r3["active_step_id"],
+        conversation_history=r3["conversation_history"],
+        emotional_intensity=r3.get("emotional_intensity", 5),
+        engagement=r3.get("engagement", 7),
+    ))
+    assert r4["executed_step_id"] == "balanced_thought"
+    assert r4["active_skill_id"] is None  # skill complete, cleared
+    print(f"[LIFECYCLE] Turn 4 (skill complete) path: {r4['path']}")
+
+    # Turn 5: Back to freeflow — no active skill
+    r5 = graph.invoke(make_e2e_state(
+        "Thank you so much, that really helped me think differently about things",
+        conversation_history=r4["conversation_history"],
+        emotional_intensity=r4.get("emotional_intensity", 4),
+        engagement=r4.get("engagement", 7),
+    ))
+    assert r5["active_skill_id"] is None
+    assert r5["response"] is not None
+    assert "skill_select" not in r5["path"]
+    print(f"[LIFECYCLE] Turn 5 (freeflow close) path: {r5['path']}")
+    print("\n[LIFECYCLE] Full session lifecycle confirmed.")
