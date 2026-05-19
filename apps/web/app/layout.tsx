@@ -35,11 +35,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const cookieStore = await cookies()
   const locale = (cookieStore.get('cdai-locale')?.value ?? 'en') as Locale
   const dir = locale === 'ar' ? 'rtl' : 'ltr'
-  const fontClass = locale === 'ar' ? ibmPlexArabic.variable : jakartaSans.variable
   const cssVars = cssVarsString(tenant.brand)
 
   return (
-    <html lang={locale} dir={dir} className={fontClass}>
+    <html lang={locale} dir={dir} className={`${jakartaSans.variable} ${ibmPlexArabic.variable}`}>
       <head>
         <style dangerouslySetInnerHTML={{ __html: cssVars }} />
         <link rel="apple-touch-icon" href="/icons/icon-180.png" />

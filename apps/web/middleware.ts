@@ -23,8 +23,16 @@ export async function middleware(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession()
 
   // Unauthenticated → sign-in (skip auth routes themselves)
-  if (!session && !AUTH_PATHS.some(p => pathname.startsWith(p))) {
-    return NextResponse.redirect(new URL('/sign-in', request.url))
+  if (!session) {
+    if (pathname.startsWith('/api/')) {
+      return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    if (!AUTH_PATHS.some(p => pathname.startsWith(p))) {
+      return NextResponse.redirect(new URL('/sign-in', request.url))
+    }
   }
 
   // Root redirect
@@ -50,9 +58,9 @@ export async function middleware(request: NextRequest) {
       !pathname.startsWith('/onboarding') &&
       profile && !profile.onboarding_complete
     ) {
-      return NextResponse.redirect(
-        new URL(`/onboarding/step-${profile.onboarding_step}`, request.url)
-      )
+      const step = profile.onboarding_step
+      const target = step && step > 0 ? `/onboarding/step-${step}` : '/onboarding/step-1'
+      return NextResponse.redirect(new URL(target, request.url))
     }
   }
 
