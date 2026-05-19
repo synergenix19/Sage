@@ -23,9 +23,11 @@ export function InstallPrompt() {
   if (!promptEvent) return null
 
   async function handleInstall() {
-    await promptEvent!.prompt()
-    const { outcome } = await promptEvent!.userChoice
-    if (outcome === 'accepted') setPromptEvent(null)
+    if (!promptEvent) return
+    await promptEvent.prompt()
+    await promptEvent.userChoice
+    // Clear regardless of outcome — prompt() can only be called once per event
+    setPromptEvent(null)
   }
 
   return (

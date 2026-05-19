@@ -6,18 +6,29 @@ export function SwUpdateBanner() {
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return
+    let cleanupFn: (() => void) | undefined
+
     // IMPORTANT: Use serviceWorker.ready (NOT register()) — Serwist auto-registers
-    navigator.serviceWorker.ready.then((registration) => {
-      if (registration.waiting) setWaitingWorker(registration.waiting)
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing
-        newWorker?.addEventListener('statechange', () => {
+    navigator.serviceWorker.ready.then((reg) => {
+      if (reg.waiting) {
+        setWaitingWorker(reg.waiting)
+        return
+      }
+      const onUpdateFound = () => {
+        const newWorker = reg.installing
+        if (!newWorker) return
+        const onStateChange = () => {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
             setWaitingWorker(newWorker)
           }
-        })
-      })
+        }
+        newWorker.addEventListener('statechange', onStateChange)
+      }
+      reg.addEventListener('updatefound', onUpdateFound)
+      cleanupFn = () => reg.removeEventListener('updatefound', onUpdateFound)
     })
+
+    return () => cleanupFn?.()
   }, [])
 
   if (!waitingWorker) return null

@@ -20,3 +20,9 @@ self.addEventListener('fetch', (event: FetchEvent) => {
     )
   }
 })
+
+self.addEventListener('message', (event: ExtendableMessageEvent) => {
+  if ((event.data as { type?: string } | null)?.type === 'SKIP_WAITING') {
+    void (self as unknown as ServiceWorkerGlobalScope).skipWaiting()
+  }
+})
