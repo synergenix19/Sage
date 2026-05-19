@@ -161,3 +161,136 @@ def test_no_skill_for_general_chat():
     )
     result = skill_select_node(state)
     assert result["active_skill_id"] is None
+
+
+from sage_poc.nodes.skill_executor import skill_executor_node, evaluate_step_policy
+
+def test_evaluate_step_policy_high_intensity_triggers_validate_only():
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("cbt_thought_record")
+    action = evaluate_step_policy(
+        skill=skill,
+        current_step_id="identify_thought",
+        emotional_intensity=9,
+        engagement=6,
+    )
+    assert action["action"] == "validate_only"
+    assert "validate" in action["instruction"].lower() or "distress" in action["instruction"].lower()
+
+def test_evaluate_step_policy_normal_intensity_advances_to_next_step():
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("cbt_thought_record")
+    action = evaluate_step_policy(
+        skill=skill,
+        current_step_id="identify_thought",
+        emotional_intensity=5,
+        engagement=6,
+    )
+    assert action["action"] == "advance"
+    assert "goal" in action["instruction"].lower()
+    assert action["next_step_id"] == "explore_distortion"
+    assert not action.get("skill_complete")
+
+def test_evaluate_step_policy_last_step_marks_skill_complete():
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("cbt_thought_record")
+    action = evaluate_step_policy(
+        skill=skill,
+        current_step_id="balanced_thought",
+        emotional_intensity=5,
+        engagement=7,
+    )
+    assert action["action"] == "complete"
+    assert action["skill_complete"] is True
+
+def test_recovery_from_validate_only_override():
+    """High intensity pauses progression; normal intensity resumes on the SAME step."""
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("cbt_thought_record")
+
+    # Turn N: intensity 9 → validate_only fires, step stays at identify_thought
+    high = evaluate_step_policy(
+        skill=skill, current_step_id="identify_thought",
+        emotional_intensity=9, engagement=7,
+    )
+    assert high["action"] == "validate_only"
+    assert high["next_step_id"] == "identify_thought"  # held in place
+
+    # Turn N+1: intensity drops to 5 → no rule fires, advance to explore_distortion
+    normal = evaluate_step_policy(
+        skill=skill, current_step_id="identify_thought",
+        emotional_intensity=5, engagement=7,
+    )
+    assert normal["action"] == "advance"
+    assert normal["next_step_id"] == "explore_distortion"  # resumes
+
+def test_evaluate_step_policy_low_engagement_triggers_check_in():
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("cbt_thought_record")
+    action = evaluate_step_policy(
+        skill=skill,
+        current_step_id="explore_distortion",
+        emotional_intensity=4,
+        engagement=2,
+    )
+    assert action["action"] == "check_in"
+
+def test_skill_executor_node_produces_instruction():
+    # message_en must be > 10 words for completion_criteria to allow advancement
+    state = make_state(
+        message_en="I don't know what to do, everything is always my fault.",
+        active_skill_id="cbt_thought_record",
+        active_step_id="identify_thought",
+        emotional_intensity=6,
+        engagement=7,
+    )
+    result = skill_executor_node(state)
+    assert result["step_instruction"] is not None
+    assert len(result["step_instruction"]) > 20
+    assert result["executed_step_id"] == "identify_thought"
+    assert result["active_step_id"] == "explore_distortion"
+    assert result["escalation_triggered"] is None
+    assert "skill_executor" in result["path"]
+
+def test_completion_criteria_short_response_holds_step():
+    """Short user response (≤ 10 words) holds the step — proves the hook exists."""
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("cbt_thought_record")
+    action = evaluate_step_policy(
+        skill=skill,
+        current_step_id="identify_thought",
+        emotional_intensity=5,
+        engagement=7,
+        message_en="okay",  # 1 word — too short to advance
+    )
+    assert action["action"] == "stay"
+    assert action["next_step_id"] == "identify_thought"  # held in place
+    assert not action["skill_complete"]
+
+def test_skill_executor_l1_exit_when_user_wants_to_stop():
+    state = make_state(
+        message_en="I don't want to do this anymore, let's stop.",
+        active_skill_id="cbt_thought_record",
+        active_step_id="explore_distortion",
+        emotional_intensity=5,
+        engagement=3,
+        clinical_flags=[],
+    )
+    result = skill_executor_node(state)
+    assert result["escalation_triggered"]["level"] == "L1"
+    assert result["active_skill_id"] is None  # skill exited
+    assert result["executed_step_id"] == "explore_distortion"
+
+def test_skill_executor_l2_flag_on_clinical_signal():
+    state = make_state(
+        message_en="I've been drinking every night to cope",
+        active_skill_id="cbt_thought_record",
+        active_step_id="identify_thought",
+        emotional_intensity=6,
+        engagement=6,
+        clinical_flags=["substance_use"],
+    )
+    result = skill_executor_node(state)
+    assert result["escalation_triggered"]["level"] == "L2"
+    # Skill stays active for L2 (flag only, not exit)
+    assert result["active_skill_id"] == "cbt_thought_record"
