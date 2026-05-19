@@ -1,3 +1,5 @@
+'use client'
+
 interface Alert {
   id: string
   userId: string

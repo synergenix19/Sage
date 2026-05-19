@@ -1,27 +1,26 @@
 'use client'
 import dynamic from 'next/dynamic'
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+} from 'recharts'
 
-// Dynamically import Recharts components to avoid SSR bundle issues
-const LineChart = dynamic(
-  () => import('recharts').then((m) => m.LineChart),
-  { ssr: false }
-)
-const Line = dynamic(() => import('recharts').then((m) => m.Line), { ssr: false })
-const BarChart = dynamic(() => import('recharts').then((m) => m.BarChart), { ssr: false })
-const Bar = dynamic(() => import('recharts').then((m) => m.Bar), { ssr: false })
-const XAxis = dynamic(() => import('recharts').then((m) => m.XAxis), { ssr: false })
-const YAxis = dynamic(() => import('recharts').then((m) => m.YAxis), { ssr: false })
-const Tooltip = dynamic(() => import('recharts').then((m) => m.Tooltip), { ssr: false })
-const ResponsiveContainer = dynamic(
-  () => import('recharts').then((m) => m.ResponsiveContainer),
-  { ssr: false }
-)
+// Static imports keep all Recharts sub-components in the same React context as
+// their parent chart root. The exported components are wrapped with dynamic
+// ssr:false so Next.js skips server-rendering chart output (which relies on
+// browser APIs for sizing), while the internals share context correctly.
 
 interface MoodTrendChartProps {
   data: Array<{ date: string; avg: number }>
 }
 
-export function MoodTrendChart({ data }: MoodTrendChartProps) {
+function MoodTrendChartImpl({ data }: MoodTrendChartProps) {
   return (
     <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
       <h2 className="mb-4 text-base font-semibold text-[var(--color-text-primary)]">
@@ -69,7 +68,7 @@ interface TopTopicsChartProps {
   data: Array<{ topic: string; count: number }>
 }
 
-export function TopTopicsChart({ data }: TopTopicsChartProps) {
+function TopTopicsChartImpl({ data }: TopTopicsChartProps) {
   return (
     <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
       <h2 className="mb-4 text-base font-semibold text-[var(--color-text-primary)]">
@@ -107,3 +106,13 @@ export function TopTopicsChart({ data }: TopTopicsChartProps) {
     </div>
   )
 }
+
+export const MoodTrendChart = dynamic(
+  () => Promise.resolve(MoodTrendChartImpl),
+  { ssr: false }
+)
+
+export const TopTopicsChart = dynamic(
+  () => Promise.resolve(TopTopicsChartImpl),
+  { ssr: false }
+)

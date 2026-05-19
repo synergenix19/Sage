@@ -23,7 +23,7 @@ export function AdminSidebar() {
       </div>
       <nav className="flex flex-col gap-1">
         {NAV_LINKS.map((link) => {
-          const active = link.exact ? pathname === link.href : pathname.startsWith(link.href)
+          const active = link.exact ? pathname === link.href : pathname === link.href || pathname.startsWith(link.href + '/')
           return (
             <Link
               key={link.href}
