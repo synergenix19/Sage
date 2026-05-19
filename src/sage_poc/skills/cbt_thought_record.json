@@ -1,0 +1,75 @@
+{
+  "skill_id": "cbt_thought_record",
+  "skill_name": "CBT Thought Record",
+  "skill_type": "structured",
+  "evidence_base": "Beck (1979); NICE CG159",
+  "target_presentations": [
+    "negative thoughts", "self-blame", "cognitive distortions",
+    "catastrophizing", "failure", "worthless", "always my fault"
+  ],
+  "steps": [
+    {
+      "step_id": "identify_thought",
+      "goal": "Help the user identify and clearly articulate the specific negative thought",
+      "technique": "Socratic questioning",
+      "tone": "warm, curious, non-judgmental",
+      "examples": [
+        "What specific thought is going through your mind right now?",
+        "When you say you feel like a failure, what exactly are you telling yourself?",
+        "Can you put that thought into one sentence — what is the thought saying about you?"
+      ]
+    },
+    {
+      "step_id": "explore_distortion",
+      "goal": "Gently explore the evidence for and against the negative thought",
+      "technique": "Thought challenging",
+      "tone": "warm, collaborative, curious",
+      "examples": [
+        "What evidence do you have that supports this thought? And what evidence goes against it?",
+        "If a close friend told you this about themselves, what would you say to them?",
+        "Is there another way to look at this situation?"
+      ]
+    },
+    {
+      "step_id": "balanced_thought",
+      "goal": "Help the user construct a more balanced, realistic perspective",
+      "technique": "Cognitive restructuring",
+      "tone": "encouraging, collaborative, hopeful",
+      "examples": [
+        "Taking all of this into account, what would be a more balanced way of looking at this?",
+        "What would be a fairer, more realistic thought to replace the original one?",
+        "How does this new perspective feel compared to the original thought?"
+      ]
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
+      "action": "validate_only",
+      "instruction": "The user is highly distressed. Validate their emotion fully and do NOT challenge the thought yet. Stay warm and present. Return to normal step next turn.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "step": "ANY"
+      },
+      "action": "check_in",
+      "instruction": "The user seems disengaged. Gently check in — ask if they'd like to continue, take a different approach, or simply talk.",
+      "next_step_id": "current"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit skill gracefully if user requests to stop",
+    "L2": "Add clinician_review flag if trauma or substance mention detected",
+    "L3": "Exit immediately to crisis protocol if any crisis signal",
+    "L4": "Trigger human handoff if 3+ crises detected in last 30 days"
+  }
+}
