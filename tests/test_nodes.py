@@ -84,3 +84,59 @@ def test_araglish_code_switching():
     result = safety_check_node(state)
     assert result["detected_language"] == "ar"
     assert result["is_safe"] is True
+
+
+from unittest.mock import patch, MagicMock
+from sage_poc.nodes.intent_route import intent_route_node, build_intent_prompt
+
+def test_intent_prompt_contains_message():
+    state = make_state(message_en="I feel like everything is my fault, always", active_skill_id=None)
+    prompt = build_intent_prompt(state)
+    assert "everything is my fault" in prompt
+    assert "active_skill_id" in prompt.lower() or "no active skill" in prompt.lower()
+
+def test_intent_route_with_mocked_llm():
+    state = make_state(
+        message_en="I keep thinking I'm a failure",
+        active_skill_id=None,
+        conversation_history=[],
+    )
+    mock_llm = MagicMock()
+    mock_llm.invoke.return_value = MagicMock(
+        content='{"primary_intent": "new_skill", "emotional_intensity": 7, "engagement": 6, "intent_confidence": 0.9}'
+    )
+    result = intent_route_node(state, llm=mock_llm)
+    assert result["primary_intent"] == "new_skill"
+    assert result["emotional_intensity"] == 7
+    assert result["engagement"] == 6
+    assert result["intent_confidence"] == 0.9
+    assert "intent_route" in result["path"]
+
+def test_intent_route_skill_continuation():
+    state = make_state(
+        message_en="Hmm, I think maybe it was partly my fault but not entirely",
+        active_skill_id="cbt_thought_record",
+        active_step_id="identify_thought",
+        conversation_history=[{"role": "assistant", "content": "What thought is going through your mind?"}],
+    )
+    mock_llm = MagicMock()
+    mock_llm.invoke.return_value = MagicMock(
+        content='{"primary_intent": "skill_continuation", "emotional_intensity": 5, "engagement": 7, "intent_confidence": 0.85}'
+    )
+    result = intent_route_node(state, llm=mock_llm)
+    assert result["primary_intent"] == "skill_continuation"
+    assert result["engagement"] == 7
+
+def test_intent_route_classifies_exit_skill():
+    state = make_state(
+        message_en="I don't want to do this anymore, can we stop?",
+        active_skill_id="cbt_thought_record",
+        active_step_id="explore_distortion",
+        conversation_history=[],
+    )
+    mock_llm = MagicMock()
+    mock_llm.invoke.return_value = MagicMock(
+        content='{"primary_intent": "exit_skill", "emotional_intensity": 4, "engagement": 3, "intent_confidence": 0.88}'
+    )
+    result = intent_route_node(state, llm=mock_llm)
+    assert result["primary_intent"] == "exit_skill"
