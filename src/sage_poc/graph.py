@@ -1,3 +1,6 @@
+import json
+from datetime import datetime, timezone
+
 from langgraph.graph import StateGraph, END
 from langgraph.graph.state import CompiledStateGraph
 from sage_poc.state import SageState
@@ -16,13 +19,48 @@ CRISIS_RESPONSE = (
     "You don't have to face this alone."
 )
 
+CRISIS_RESPONSE_AR = (
+    "أنا قلق جداً على ما شاركته. "
+    "يُرجى التواصل مع خط الأزمات فوراً — "
+    "في الإمارات: توازن 800-4673، أو الرقم الدولي: 988. "
+    "أنت لست وحدك."
+    # NOTE: Arabic text requires native Gulf-Arabic speaker review before go-live
+)
+
 
 def _crisis_response_node(state: SageState) -> dict:
+    lang = state.get("detected_language", "en")
+    response = CRISIS_RESPONSE_AR if lang == "ar" else CRISIS_RESPONSE
+
+    path = state["path"] + ["crisis_response"]
+
+    # P1-4: Audit log — crisis turns previously produced no trail
+    audit = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "event": "CRISIS_RESPONSE",
+        "turn": state.get("turn_count"),
+        "detected_language": lang,
+        "crisis_flags": state.get("crisis_flags", []),
+        "clinical_flags": state.get("clinical_flags", []),
+        "active_skill_cleared": state.get("active_skill_id"),
+    }
+    print(f"\n[AUDIT:CRISIS] {json.dumps(audit, indent=2)}")
+
+    # P1-5: Append crisis exchange to history so next turn has context
+    history = state.get("conversation_history", []) + [
+        {"role": "user", "content": state.get("message_en", state.get("raw_message", ""))},
+        {"role": "assistant", "content": CRISIS_RESPONSE},  # always store EN for history
+    ]
+
     return {
         "is_safe": False,
-        "response": CRISIS_RESPONSE,
+        "active_skill_id": None,   # P0-B: clear skill — never resume CBT after crisis
+        "active_step_id": None,
+        "response": response,      # P0-A: language-appropriate
         "response_en": CRISIS_RESPONSE,
-        "path": state["path"] + ["crisis_response"],
+        "path": path,
+        "conversation_history": history,
+        "turn_count": state.get("turn_count", 0) + 1,
     }
 
 

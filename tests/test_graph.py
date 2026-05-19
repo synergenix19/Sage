@@ -199,3 +199,46 @@ def test_session_full_lifecycle_e2e():
     assert "skill_select" not in r5["path"]
     print(f"[LIFECYCLE] Turn 5 (freeflow close) path: {r5['path']}")
     print("\n[LIFECYCLE] Full session lifecycle confirmed.")
+
+
+# Sprint 1 — crisis path remediation tests
+
+def test_crisis_clears_active_skill_and_returns_arabic_when_ar_detected():
+    """P0-A + P0-B: Arabic crisis gets Arabic response; skill cleared."""
+    import sys; sys.path.insert(0, 'src')
+    from sage_poc.graph import _crisis_response_node, CRISIS_RESPONSE_AR
+    state = make_e2e_state(
+        "أريد الموت",
+        detected_language="ar",
+        active_skill_id="cbt_thought_record",
+        active_step_id="explore_distortion",
+        turn_count=2,
+        conversation_history=[{"role": "user", "content": "hi"}, {"role": "assistant", "content": "hello"}],
+    )
+    result = _crisis_response_node(state)
+    # P0-A: Arabic response
+    assert result["response"] == CRISIS_RESPONSE_AR, "Arabic user must receive Arabic crisis response"
+    # P0-B: skill cleared
+    assert result["active_skill_id"] is None, "Skill must be cleared on crisis"
+    assert result["active_step_id"] is None, "Step must be cleared on crisis"
+    # P1-5: history updated
+    assert len(result["conversation_history"]) == 4, "Crisis exchange must be appended to history"
+    assert result["turn_count"] == 3, "Turn count must increment on crisis"
+    # P1-4: audit fields present (spot check)
+    assert "crisis_response" in result["path"]
+
+def test_crisis_english_user_gets_english_response():
+    """English crisis user gets English response."""
+    import sys; sys.path.insert(0, 'src')
+    from sage_poc.graph import _crisis_response_node, CRISIS_RESPONSE
+    state = make_e2e_state(
+        "I want to kill myself",
+        detected_language="en",
+        turn_count=0,
+        conversation_history=[],
+    )
+    result = _crisis_response_node(state)
+    assert result["response"] == CRISIS_RESPONSE
+    assert result["active_skill_id"] is None
+    assert result["turn_count"] == 1
+    assert len(result["conversation_history"]) == 2
