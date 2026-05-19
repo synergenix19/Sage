@@ -1,4 +1,5 @@
 from langgraph.graph import StateGraph, END
+from langgraph.graph.state import CompiledStateGraph
 from sage_poc.state import SageState
 from sage_poc.nodes.safety_check import safety_check_node
 from sage_poc.nodes.intent_route import intent_route_node
@@ -50,7 +51,7 @@ def _route_after_skill_select(state: SageState) -> str:
     return "skill_executor" if state.get("active_skill_id") else "freeflow"
 
 
-def build_graph() -> StateGraph:
+def build_graph() -> CompiledStateGraph:
     graph = StateGraph(SageState)
 
     graph.add_node("safety_check", safety_check_node)
