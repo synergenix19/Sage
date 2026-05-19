@@ -11,4 +11,4 @@ if (!resolved) {
 }
 
 export const tenant: TenantConfig = resolved
-export type { TenantConfig } from './types'
+export type { TenantConfig, TenantBrand, TenantCapabilities, TenantCopy } from './types'
