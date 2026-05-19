@@ -379,3 +379,29 @@ def test_freeflow_respond_with_mocked_llm():
     result = freeflow_respond_node(state, llm=mock_llm)
     assert result["response_en"] is not None
     assert "freeflow_respond" in result["path"]
+
+
+# Task 12: output_gate node
+from sage_poc.nodes.output_gate import output_gate_node
+
+def test_output_gate_english_passthrough():
+    state = make_state(
+        detected_language="en",
+        response_en="That sounds really difficult. What thought is coming up for you?",
+        path=["safety_check", "intent_route", "skill_select", "skill_executor", "freeflow_respond"],
+    )
+    result = output_gate_node(state)
+    assert result["response"] == "That sounds really difficult. What thought is coming up for you?"
+    assert "output_gate" in result["path"]
+
+def test_output_gate_arabic_response_is_translated():
+    state = make_state(
+        detected_language="ar",
+        response_en="I hear you. That sounds incredibly hard.",
+        path=["safety_check", "intent_route"],
+    )
+    with patch("sage_poc.nodes.output_gate.translate_to_arabic") as mock_translate:
+        mock_translate.return_value = "أسمعك. يبدو هذا صعباً للغاية."
+        result = output_gate_node(state)
+    assert result["response"] == "أسمعك. يبدو هذا صعباً للغاية."
+    mock_translate.assert_called_once_with("I hear you. That sounds incredibly hard.")
