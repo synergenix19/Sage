@@ -109,7 +109,7 @@ def _set_gate_path_node(state: SageState) -> dict:
     """Intermediate node: stamps gate_path from primary_intent before output_gate."""
     intent = state.get("primary_intent", "standard")
     gate_path = intent if intent in ("scope_refusal", "jailbreak") else "standard"
-    return {"gate_path": gate_path}
+    return {"gate_path": gate_path, "path": state["path"] + ["gate_path_set"]}
 
 
 def _route_after_skill_select(state: SageState) -> str:

@@ -606,6 +606,7 @@ def test_e2e_scope_refusal_routes_to_gate_and_bypasses_llm():
     assert "800" not in response and "999" not in response and "988" not in response, \
         "scope_refusal response must not include crisis resources"
     path = result.get("path", [])
+    assert "gate_path_set" in path, f"gate_path_set must be in execution path; got {path}"
     assert "output_gate" in path, f"output_gate must be in execution path; got {path}"
     assert "freeflow_respond" not in path, "scope_refusal path must bypass freeflow_respond"
 
@@ -641,6 +642,7 @@ def test_e2e_clean_jailbreak_routes_to_gate_and_reasserts_persona():
     # gate_path_set does not append its name to path (only stamps gate_path),
     # so routing is verified by gate_path value and freeflow absence
     path = result.get("path", [])
+    assert "gate_path_set" in path, f"gate_path_set must be in execution path; got {path}"
     assert "output_gate" in path, f"output_gate must be in execution path; got {path}"
     assert "freeflow_respond" not in path, \
         "jailbreak path must bypass freeflow_respond entirely"
@@ -703,13 +705,9 @@ def test_e2e_scope_refusal_distinct_from_crisis_response():
     assert SCOPE_REFUSAL_RESPONSE != CRISIS_RESPONSE, \
         "scope_refusal and crisis responses must be distinct"
 
-    # scope_refusal must not contain crisis hotline numbers
-    # Check specific UAE crisis hotline formats (not bare "800" which could match anything)
-    assert "800-4673" not in SCOPE_REFUSAL_RESPONSE  # 800-HOPE crisis line
-    assert "800 4673" not in SCOPE_REFUSAL_RESPONSE
-    assert "800-4888" not in SCOPE_REFUSAL_RESPONSE  # CDA mental health
-    assert "800 4888" not in SCOPE_REFUSAL_RESPONSE
-    assert "999" not in SCOPE_REFUSAL_RESPONSE         # UAE emergency
+    # scope_refusal must not contain bare crisis hotline numbers
+    assert "800" not in SCOPE_REFUSAL_RESPONSE
+    assert "999" not in SCOPE_REFUSAL_RESPONSE
 
 
 @pytest.mark.slow
