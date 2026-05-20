@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { cn } from '@cdai/ui'
 
 // BeforeInstallPromptEvent is not in the standard TS DOM lib
@@ -9,33 +9,51 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const DISMISSED_KEY = 'cdai-install-dismissed'
+export const FIRST_CHAT_EVENT = 'sage:first-chat-complete'
 
 export function InstallPrompt() {
-  const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null)
+  const promptRef = useRef<BeforeInstallPromptEvent | null>(null)
+  const [showBanner, setShowBanner] = useState(false)
 
   useEffect(() => {
     if (localStorage.getItem(DISMISSED_KEY)) return
-    const handler = (e: Event) => {
-      e.preventDefault()
-      setPromptEvent(e as BeforeInstallPromptEvent)
+
+    function tryShow() {
+      if (promptRef.current) setShowBanner(true)
     }
-    window.addEventListener('beforeinstallprompt', handler)
-    return () => window.removeEventListener('beforeinstallprompt', handler)
+
+    const installHandler = (e: Event) => {
+      e.preventDefault()
+      promptRef.current = e as BeforeInstallPromptEvent
+      // Only reveal if first chat already happened (e.g. browser fires event late)
+      if (localStorage.getItem(FIRST_CHAT_EVENT)) tryShow()
+    }
+    window.addEventListener('beforeinstallprompt', installHandler)
+
+    // Show when the chat interface signals first completed exchange
+    window.addEventListener(FIRST_CHAT_EVENT, tryShow)
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', installHandler)
+      window.removeEventListener(FIRST_CHAT_EVENT, tryShow)
+    }
   }, [])
+
+  const promptEvent = showBanner ? promptRef.current : null
 
   if (!promptEvent) return null
 
   function handleDismiss() {
     localStorage.setItem(DISMISSED_KEY, '1')
-    setPromptEvent(null)
+    setShowBanner(false)
   }
 
   async function handleInstall() {
-    if (!promptEvent) return
-    await promptEvent.prompt()
-    await promptEvent.userChoice
+    if (!promptRef.current) return
+    await promptRef.current.prompt()
+    await promptRef.current.userChoice
     // Clear regardless of outcome — prompt() can only be called once per event
-    setPromptEvent(null)
+    setShowBanner(false)
   }
 
   return (

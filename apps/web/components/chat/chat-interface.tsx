@@ -1,6 +1,7 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { mapSdkRole, type ChatSession, type MessageRole } from '@cdai/types'
+import { FIRST_CHAT_EVENT } from '@/components/pwa/install-prompt'
 import { ChatHeader } from './chat-header'
 import { MessageBubble } from './message-bubble'
 import { CrisisCard } from './crisis-card'
@@ -137,11 +138,22 @@ function useStreamingChat(sessionId: string | undefined) {
 
 export function ChatInterface({ initialSession, userName }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
+  const hasSignaledInstall = useRef(false)
   const { messages, append, isLoading, error, reload } = useStreamingChat(initialSession?.id)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
+
+  // Signal install prompt after first completed assistant response
+  useEffect(() => {
+    if (hasSignaledInstall.current || isLoading || error) return
+    if (messages.some((m) => m.role === 'assistant' && m.content.length > 0)) {
+      hasSignaledInstall.current = true
+      localStorage.setItem(FIRST_CHAT_EVENT, '1')
+      window.dispatchEvent(new Event(FIRST_CHAT_EVENT))
+    }
+  }, [isLoading, error, messages])
 
   function handleSend(text: string) {
     append({ role: 'user', content: text })

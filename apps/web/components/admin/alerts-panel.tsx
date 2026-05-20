@@ -3,6 +3,7 @@
 interface Alert {
   id: string
   userId: string
+  district?: string
   timestamp: string
   severity: 'high' | 'medium'
 }
@@ -36,6 +37,9 @@ export function AlertsPanel({ alerts }: AlertsPanelProps) {
               />
               <span className="flex-1 truncate text-sm text-[var(--color-text-primary)]">
                 {alert.userId}
+                {alert.district && (
+                  <span className="ms-2 text-xs text-[var(--color-text-secondary)]">· {alert.district}</span>
+                )}
               </span>
               <span className="text-xs text-[var(--color-text-secondary)]">
                 {new Date(alert.timestamp).toLocaleString()}

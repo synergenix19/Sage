@@ -9,6 +9,8 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  Cell,
+  LabelList,
 } from 'recharts'
 
 // Static imports keep all Recharts sub-components in the same React context as
@@ -107,6 +109,61 @@ function TopTopicsChartImpl({ data }: TopTopicsChartProps) {
   )
 }
 
+interface DistrictStressChartProps {
+  data: Array<{ district: string; index: number }>
+}
+
+function districtColor(index: number): string {
+  if (index >= 65) return '#C0392B' // crisis
+  if (index >= 50) return '#E67E22' // warning amber
+  return '#4A7C59'                  // primary green
+}
+
+function DistrictStressChartImpl({ data }: DistrictStressChartProps) {
+  const sorted = [...data].sort((a, b) => b.index - a.index)
+  return (
+    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 lg:col-span-2">
+      <h2 className="mb-4 text-base font-semibold text-[var(--color-text-primary)]">
+        District Stress Index
+      </h2>
+      <div className="h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={sorted} layout="vertical" margin={{ top: 0, right: 48, bottom: 0, left: 8 }}>
+            <XAxis type="number" domain={[0, 100]} hide />
+            <YAxis
+              type="category"
+              dataKey="district"
+              width={96}
+              tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }}
+              tickLine={false}
+              axisLine={false}
+            />
+            <Tooltip
+              contentStyle={{
+                background: 'var(--color-surface)',
+                border: '1px solid var(--color-border)',
+                borderRadius: '8px',
+                fontSize: '12px',
+              }}
+              formatter={(v: number) => [`${v}`, 'Stress index']}
+            />
+            <Bar dataKey="index" radius={[0, 4, 4, 0]}>
+              {sorted.map((entry) => (
+                <Cell key={entry.district} fill={districtColor(entry.index)} />
+              ))}
+              <LabelList
+                dataKey="index"
+                position="right"
+                style={{ fontSize: 11, fill: 'var(--color-text-secondary)' }}
+              />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  )
+}
+
 export const MoodTrendChart = dynamic(
   () => Promise.resolve(MoodTrendChartImpl),
   { ssr: false }
@@ -114,5 +171,10 @@ export const MoodTrendChart = dynamic(
 
 export const TopTopicsChart = dynamic(
   () => Promise.resolve(TopTopicsChartImpl),
+  { ssr: false }
+)
+
+export const DistrictStressChart = dynamic(
+  () => Promise.resolve(DistrictStressChartImpl),
   { ssr: false }
 )

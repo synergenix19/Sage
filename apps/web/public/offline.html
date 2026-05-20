@@ -5,15 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Offline — غير متصل</title>
   <style>
-    body { font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #fff; }
+    body { font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #F9F8F6; }
     .card { text-align: center; padding: 2rem; max-width: 360px; }
-    .ar { direction: rtl; margin-top: 1rem; }
-    button { margin-top: 1.5rem; padding: 0.75rem 1.5rem; border: none; border-radius: 999px; background: #6750a4; color: #fff; font-size: 1rem; cursor: pointer; min-height: 44px; }
+    .logo { width: 64px; height: 64px; border-radius: 50%; background: #4A7C59; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; }
+    .en { color: #1C2B1E; font-size: 1rem; margin: 0; }
+    .ar { direction: rtl; margin-top: 0.75rem; color: #6B7280; font-size: 0.9rem; }
+    button { margin-top: 1.5rem; padding: 0.75rem 2rem; border: none; border-radius: 999px; background: #4A7C59; color: #fff; font-size: 1rem; cursor: pointer; min-height: 44px; }
+    button:active { opacity: 0.85; }
   </style>
 </head>
 <body>
   <div class="card">
-    <p>You're offline — please check your connection.</p>
+    <div class="logo">
+      <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <text x="18" y="26" font-family="serif" font-size="24" font-weight="bold" fill="#F9F8F6" text-anchor="middle">S</text>
+      </svg>
+    </div>
+    <p class="en">You're offline — please check your connection.</p>
     <p class="ar">أنت غير متصل — يرجى التحقق من اتصالك</p>
     <button onclick="window.location.reload()">Try again / حاول مرة أخرى</button>
   </div>
