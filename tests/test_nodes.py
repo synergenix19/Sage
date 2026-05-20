@@ -164,6 +164,29 @@ def test_no_skill_for_general_chat():
     assert result["active_skill_id"] is None
 
 
+def test_selects_cbt_for_my_fault_phrasing():
+    """RT-4: 'everything is my fault' must activate CBT — 'my fault' substring fix."""
+    state = make_state(
+        message_en="I keep thinking everything is my fault, always",
+        primary_intent="new_skill",
+    )
+    result = skill_select_node(state)
+    assert result["active_skill_id"] == "cbt_thought_record", \
+        "RT-4: 'my fault' phrasing must activate cbt_thought_record"
+    assert result["active_step_id"] == "identify_thought"
+
+
+def test_selects_cbt_for_blame_myself():
+    """'I always blame myself for everything' must activate CBT via 'blame myself' keyword."""
+    state = make_state(
+        message_en="I always blame myself for everything that goes wrong",
+        primary_intent="new_skill",
+    )
+    result = skill_select_node(state)
+    assert result["active_skill_id"] == "cbt_thought_record", \
+        "'blame myself' must activate cbt_thought_record"
+
+
 from sage_poc.nodes.skill_executor import skill_executor_node, evaluate_step_policy
 
 def test_evaluate_step_policy_high_intensity_triggers_validate_only():
