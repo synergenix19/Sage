@@ -17,7 +17,6 @@ CRISIS_KEYWORDS = [
     # this adds the "wish" variant. _contains_crisis lowercases before matching,
     # so "wish I could disappear" catches all capitalisation forms.
     "nothing matters anymore",
-    "everyone would be better off without me",
     "better off without me",
     "no point in living",
     "wish I could disappear",

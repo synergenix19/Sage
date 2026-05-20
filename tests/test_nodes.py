@@ -638,10 +638,10 @@ def test_passive_si_nothing_matters_anymore():
 
 
 def test_passive_si_everyone_better_off_without_me():
-    """'everyone would be better off without me' — passive SI, must trigger crisis."""
+    """'better off without me' — passive SI, must trigger crisis."""
     from sage_poc.nodes.safety_check import _contains_crisis
     flags = _contains_crisis("I keep thinking everyone would be better off without me")
-    assert len(flags) > 0, "'everyone would be better off without me' must trigger crisis"
+    assert len(flags) > 0, "'better off without me' must trigger crisis"
 
 
 def test_passive_si_no_point_in_living():
@@ -673,6 +673,7 @@ def test_passive_si_gulf_arabic_ma_fi_faida_spaced():
     state = make_state(raw_message="ما في فايدة من اي شي في حياتي")
     result = safety_check_node(state)
     assert result["is_safe"] is False
+    assert result["detected_language"] == "ar"
 
 
 # P2-6: ZWSP normalization — U+200B between characters must not defeat keyword detection
