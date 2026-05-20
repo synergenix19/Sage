@@ -73,7 +73,12 @@ def test_english_crisis_message_stops_at_safety():
 
 @pytest.mark.slow
 def test_english_skill_routing_e2e():
-    """New skill intent: routes through skill_select → executor → respond."""
+    """New skill intent: routes through skill_select → executor → respond.
+
+    Step advancement is intensity-dependent: if the LLM assesses emotional_intensity > 7
+    (clinically accurate for high-distress language), the validate_only policy holds the step.
+    This test verifies routing and skill activation — not per-turn step sequence.
+    """
     from sage_poc.graph import build_graph
     graph = build_graph()
     result = graph.invoke(make_e2e_state("I keep thinking everything is my fault, always", emotional_intensity=6))
@@ -81,54 +86,75 @@ def test_english_skill_routing_e2e():
     assert "skill_select" in result["path"]
     assert result["active_skill_id"] == "cbt_thought_record"
     assert result["executed_step_id"] == "identify_thought"
-    assert result["active_step_id"] == "explore_distortion"
+    # validate_only may hold at identify_thought (intensity > 7) or advance — both are correct
+    assert result["active_step_id"] in ("identify_thought", "explore_distortion")
     assert result["step_instruction"] is not None
     assert result["response"] is not None
     print(f"\n[TEST] Path: {result['path']}")
     print(f"[TEST] Step used: {result['executed_step_id']} → next: {result['active_step_id']}")
-    print(f"[TEST] Response: {result['response']}")
 
 
 @pytest.mark.slow
 def test_cbt_full_3_step_progression_e2e():
-    """Full CBT thought record: 3 turns, advances through all steps, skill clears on completion."""
+    """CBT thought record: all 3 steps execute in order, skill clears on completion.
+
+    The validate_only policy may hold a step when the LLM assesses emotional_intensity > 7.
+    This is correct clinical behavior — the system sits with the user rather than pushing
+    cognitive restructuring under high distress. Steps may therefore span more than 3 turns.
+
+    Behavioral contract asserted:
+      - Skill activates on the first CBT-triggering message
+      - identify_thought → explore_distortion → balanced_thought execute in that order
+      - Skill clears (active_skill_id=None) once balanced_thought completes
+    """
     from sage_poc.graph import build_graph
     graph = build_graph()
 
-    r1 = graph.invoke(make_e2e_state(
+    # Turn 1: trigger the skill
+    result = graph.invoke(make_e2e_state(
         "I keep thinking that everything is my fault, always, and I cannot escape it",
         emotional_intensity=6,
     ))
-    assert r1["active_skill_id"] == "cbt_thought_record"
-    assert r1["executed_step_id"] == "identify_thought"
-    assert r1["active_step_id"] == "explore_distortion"
+    assert result["active_skill_id"] == "cbt_thought_record", \
+        "Skill must activate on CBT-triggering message"
+    assert result["executed_step_id"] == "identify_thought", \
+        "First step is always identify_thought"
 
-    r2 = graph.invoke(make_e2e_state(
-        "I tell myself I'm worthless and that nothing will ever change",
-        active_skill_id=r1["active_skill_id"],
-        active_step_id=r1["active_step_id"],
-        conversation_history=r1["conversation_history"],
-        emotional_intensity=r1.get("emotional_intensity", 6),
-        engagement=r1.get("engagement", 7),
-        turn_count=r1.get("turn_count", 0),
-        clinical_flags=r1.get("clinical_flags", []),
-    ))
-    assert r2["executed_step_id"] == "explore_distortion"
-    assert r2["active_step_id"] == "balanced_thought"
+    executed_steps = [result["executed_step_id"]]
 
-    r3 = graph.invoke(make_e2e_state(
-        "My friend said something kind yesterday... maybe I'm not totally worthless",
-        active_skill_id=r2["active_skill_id"],
-        active_step_id=r2["active_step_id"],
-        conversation_history=r2["conversation_history"],
-        emotional_intensity=r2.get("emotional_intensity", 5),
-        engagement=r2.get("engagement", 7),
-        turn_count=r2.get("turn_count", 0),
-        clinical_flags=r2.get("clinical_flags", []),
-    ))
-    assert r3["executed_step_id"] == "balanced_thought"
-    assert r3["active_skill_id"] is None
-    print(f"\n[TEST] Full CBT path T3: {r3['path']}")
+    # Continuation messages in realistic clinical order.
+    # Uses carry_state so intensity/engagement track from the previous LLM assessment.
+    continuation_messages = [
+        "I guess the thought is that I keep letting people down at work",
+        "My colleague mentioned something kind about my work recently",
+        "Maybe I have been too hard on myself — things are not always my fault",
+        "I can see there are times when things go wrong for reasons outside my control",
+        "That feels more balanced, yes",
+    ]
+
+    for msg in continuation_messages:
+        if result["active_skill_id"] is None:
+            break
+        result = graph.invoke(carry_state(result, msg))
+        if result.get("executed_step_id"):
+            executed_steps.append(result["executed_step_id"])
+
+    assert result["active_skill_id"] is None, (
+        f"Skill must clear after full progression; "
+        f"stuck at step '{result.get('active_step_id')}' after {len(executed_steps)} turns"
+    )
+
+    # All 3 steps must appear in executed order (deduplicated)
+    seen = list(dict.fromkeys(executed_steps))  # preserves first-occurrence order
+    assert "identify_thought" in seen, "identify_thought must be executed"
+    assert "explore_distortion" in seen, "explore_distortion must be executed"
+    assert "balanced_thought" in seen, "balanced_thought must be executed"
+    assert seen.index("identify_thought") < seen.index("explore_distortion"), \
+        "identify_thought must precede explore_distortion"
+    assert seen.index("explore_distortion") < seen.index("balanced_thought"), \
+        "explore_distortion must precede balanced_thought"
+
+    print(f"\n[TEST] CBT step sequence ({len(executed_steps)} turns): {executed_steps}")
 
 
 @pytest.mark.slow
@@ -160,7 +186,17 @@ def test_escalation_l1_exit_mid_skill():
 
 @pytest.mark.slow
 def test_session_full_lifecycle_e2e():
-    """Full session: greeting → CBT skill (3 steps) → completion → freeflow. One connected flow."""
+    """Full session: greeting → CBT skill (all 3 steps) → completion → freeflow.
+
+    The validate_only policy may hold a step when LLM assesses emotional_intensity > 7 —
+    correct clinical behavior under high distress. The skill progression therefore spans
+    a variable number of turns. This test asserts the behavioral contract:
+
+      1. Greeting routes to freeflow with no skill active
+      2. CBT-triggering message activates the skill and runs identify_thought
+      3. All 3 steps eventually execute in order and the skill clears
+      4. A post-completion message routes to freeflow with no active skill
+    """
     from sage_poc.graph import build_graph
     graph = build_graph()
 
@@ -171,7 +207,7 @@ def test_session_full_lifecycle_e2e():
     assert r1["response"] is not None
     print(f"\n[LIFECYCLE] Turn 1 (greeting) path: {r1['path']}")
 
-    # Turn 2: Skill trigger — message > 10 words so completion_criteria allows first step to advance
+    # Turn 2: Skill trigger — identify_thought always runs first
     r2 = graph.invoke(make_e2e_state(
         "I keep thinking that everything is my fault, always, and I cannot shake it",
         conversation_history=r1["conversation_history"],
@@ -179,52 +215,54 @@ def test_session_full_lifecycle_e2e():
     ))
     assert r2["active_skill_id"] == "cbt_thought_record"
     assert r2["executed_step_id"] == "identify_thought"
-    assert r2["active_step_id"] == "explore_distortion"
+    # validate_only may hold at identify_thought (intensity > 7) or advance — both correct
+    assert r2["active_step_id"] in ("identify_thought", "explore_distortion")
     print(f"[LIFECYCLE] Turn 2 (skill start) executed: {r2['executed_step_id']} → next: {r2['active_step_id']}")
 
-    # Turn 3: User responds to identify_thought prompt (> 10 words → advances)
-    r3 = graph.invoke(make_e2e_state(
+    # Turns 3+: continue until skill completes.
+    # validate_only may add extra turns when the user is highly distressed — clinically correct.
+    skill_progression_messages = [
         "I tell myself that I am worthless and that nothing good will ever happen to me",
-        active_skill_id=r2["active_skill_id"],
-        active_step_id=r2["active_step_id"],
-        conversation_history=r2["conversation_history"],
-        emotional_intensity=r2.get("emotional_intensity", 6),
-        engagement=r2.get("engagement", 7),
-        turn_count=r2.get("turn_count", 0),
-        clinical_flags=r2.get("clinical_flags", []),
-    ))
-    assert r3["executed_step_id"] == "explore_distortion"
-    assert r3["active_step_id"] == "balanced_thought"
-    print(f"[LIFECYCLE] Turn 3 (step 2) executed: {r3['executed_step_id']} → next: {r3['active_step_id']}")
-
-    # Turn 4: User responds to explore_distortion → skill complete
-    r4 = graph.invoke(make_e2e_state(
         "My friend said something kind to me yesterday and maybe I am not all bad after all",
-        active_skill_id=r3["active_skill_id"],
-        active_step_id=r3["active_step_id"],
-        conversation_history=r3["conversation_history"],
-        emotional_intensity=r3.get("emotional_intensity", 5),
-        engagement=r3.get("engagement", 7),
-        turn_count=r3.get("turn_count", 0),
-        clinical_flags=r3.get("clinical_flags", []),
-    ))
-    assert r4["executed_step_id"] == "balanced_thought"
-    assert r4["active_skill_id"] is None  # skill complete, cleared
-    print(f"[LIFECYCLE] Turn 4 (skill complete) path: {r4['path']}")
+        "I can see that I may have been judging myself too harshly",
+        "That feels more fair, yes — I have done some things well",
+    ]
 
-    # Turn 5: Back to freeflow — no active skill
-    r5 = graph.invoke(make_e2e_state(
+    current = r2
+    executed_steps = [r2["executed_step_id"]]
+
+    for msg in skill_progression_messages:
+        if current["active_skill_id"] is None:
+            break
+        current = graph.invoke(carry_state(current, msg))
+        if current.get("executed_step_id"):
+            executed_steps.append(current["executed_step_id"])
+        print(f"[LIFECYCLE] Skill turn executed: {current.get('executed_step_id')} → next: {current.get('active_step_id')}")
+
+    r_skill_done = current
+    assert r_skill_done["active_skill_id"] is None, (
+        f"Skill must complete within {len(skill_progression_messages)+1} turns; "
+        f"stuck at '{r_skill_done.get('active_step_id')}'"
+    )
+
+    # All 3 steps must appear in the execution sequence in the correct order
+    seen = list(dict.fromkeys(executed_steps))
+    assert "identify_thought" in seen
+    assert "explore_distortion" in seen
+    assert "balanced_thought" in seen
+    assert seen.index("identify_thought") < seen.index("explore_distortion")
+    assert seen.index("explore_distortion") < seen.index("balanced_thought")
+    print(f"[LIFECYCLE] Skill complete. Step sequence: {seen}")
+
+    # Post-completion: back to freeflow — no active skill, no skill nodes in path
+    r_freeflow = graph.invoke(carry_state(
+        r_skill_done,
         "Thank you so much, that really helped me think differently about things",
-        conversation_history=r4["conversation_history"],
-        emotional_intensity=r4.get("emotional_intensity", 4),
-        engagement=r4.get("engagement", 7),
-        turn_count=r4.get("turn_count", 0),
-        clinical_flags=r4.get("clinical_flags", []),
     ))
-    assert r5["active_skill_id"] is None
-    assert r5["response"] is not None
-    assert "skill_select" not in r5["path"]
-    print(f"[LIFECYCLE] Turn 5 (freeflow close) path: {r5['path']}")
+    assert r_freeflow["active_skill_id"] is None
+    assert r_freeflow["response"] is not None
+    assert "skill_select" not in r_freeflow["path"]
+    print(f"[LIFECYCLE] Post-completion freeflow path: {r_freeflow['path']}")
     print("\n[LIFECYCLE] Full session lifecycle confirmed.")
 
 
