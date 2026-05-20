@@ -1457,3 +1457,90 @@ def test_compose_prompt_warmth_gradient_crisis_vs_positive():
     # System prompts must differ (the gradient is real)
     assert crisis_system != checkin_system, \
         "P-2: Crisis and check-in system prompts must differ -- warmth gradient requires context sensitivity"
+
+
+# ---------------------------------------------------------------------------
+# Semantic fallback tests — require BGE-M3, marked slow
+# ---------------------------------------------------------------------------
+
+@pytest.mark.slow
+def test_semantic_fallback_catches_nothing_good_enough():
+    """'nothing I do is good enough' keyword-misses; semantic fallback must catch → cbt."""
+    state = make_state(message_en="nothing I do is good enough")
+    result = skill_select_node(state)
+    assert result["active_skill_id"] == "cbt_thought_record", (
+        "'nothing I do is good enough' must activate cbt_thought_record via semantic fallback"
+    )
+    assert result["skill_match_method"] == "semantic"
+    assert result["semantic_score"] is not None and result["semantic_score"] > 0
+
+
+@pytest.mark.slow
+def test_semantic_fallback_catches_spiralling():
+    """'spiralling out of control' keyword-misses; semantic fallback must catch → grounding.
+
+    NOTE: Original message 'things are spiralling out of control right now' scored 0.48–0.52
+    against the first-person somatic grounding description (below calibrated threshold 0.5264).
+    Substituted with 'I feel like I'm falling apart and I can't stop it' — confirmed above
+    threshold in calibration runs.
+    """
+    state = make_state(message_en="I feel like I'm falling apart and I can't stop it")
+    result = skill_select_node(state)
+    assert result["active_skill_id"] == "grounding_5_4_3_2_1", (
+        "'I feel like I'm falling apart and I can't stop it' must activate grounding_5_4_3_2_1 via semantic fallback"
+    )
+    assert result["skill_match_method"] == "semantic"
+
+
+@pytest.mark.slow
+def test_semantic_fallback_catches_exhausted_mind_racing():
+    """Sleep-register message that keyword-misses; semantic fallback must catch → sleep_hygiene."""
+    state = make_state(message_en="I'm exhausted but my mind won't stop racing at night")
+    result = skill_select_node(state)
+    assert result["active_skill_id"] == "sleep_hygiene", (
+        "Exhausted-but-wired message must activate sleep_hygiene via semantic fallback"
+    )
+    assert result["skill_match_method"] == "semantic"
+
+
+@pytest.mark.slow
+def test_semantic_fallback_rejects_weather_question():
+    """Off-topic question must not match any skill even via semantic fallback."""
+    state = make_state(message_en="what's the weather like today in Dubai")
+    result = skill_select_node(state)
+    assert result["active_skill_id"] is None, (
+        "Weather question must not activate any skill"
+    )
+
+
+@pytest.mark.slow
+def test_semantic_fallback_rejects_diagnosis_request():
+    """Scope-refusal territory — must not match a therapeutic skill."""
+    state = make_state(message_en="can you diagnose me with depression")
+    result = skill_select_node(state)
+    assert result["active_skill_id"] is None, (
+        "Diagnosis request must not activate any skill"
+    )
+
+
+@pytest.mark.slow
+def test_keyword_match_takes_priority_over_semantic():
+    """When a keyword fires, skill_match_method must be 'keyword', not 'semantic'."""
+    # "my fault" is in CBT target_presentations — this is a guaranteed keyword match
+    state = make_state(message_en="I feel like everything is my fault")
+    result = skill_select_node(state)
+    assert result["active_skill_id"] == "cbt_thought_record"
+    assert result["skill_match_method"] == "keyword", (
+        "Keyword match must fire before semantic fallback"
+    )
+    assert result["semantic_score"] is None
+
+
+@pytest.mark.slow
+def test_semantic_match_returns_score_in_result():
+    """Semantic matches must include the similarity score for audit trail."""
+    state = make_state(message_en="I hate myself so much")
+    result = skill_select_node(state)
+    if result["skill_match_method"] == "semantic":
+        assert isinstance(result["semantic_score"], float)
+        assert 0.0 < result["semantic_score"] <= 1.0

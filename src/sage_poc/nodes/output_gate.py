@@ -43,6 +43,8 @@ def output_gate_node(state: SageState) -> dict:
             "detected_language": lang,
             "primary_intent": state.get("primary_intent"),
             "active_skill": state.get("active_skill_id"),
+            "skill_match_method": state.get("skill_match_method"),
+            "semantic_score": state.get("semantic_score"),
             "executed_step": state.get("executed_step_id"),
             "next_step": state.get("active_step_id"),
             "emotional_intensity": state.get("emotional_intensity"),
