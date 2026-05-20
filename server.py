@@ -29,6 +29,8 @@ class Message(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[Message]
+    # session_id is received from the client but intentionally not stored in SageState.
+    # The graph has no concept of sessions; conversation persistence is the frontend's responsibility.
     session_id: str
 
 
@@ -75,7 +77,13 @@ async def _stream_words(text: str) -> AsyncGenerator[bytes, None]:
 
 
 async def _stream_response(state: dict) -> AsyncGenerator[bytes, None]:
-    result = await asyncio.to_thread(_graph.invoke, state)
+    try:
+        result = await asyncio.to_thread(_graph.invoke, state)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error("[sage/graph] invoke failed: %s", exc)
+        yield b"[[SERVER_ERROR]]"
+        return
     response = result.get("response") or ""
     is_safe = result.get("is_safe", True)
     if not is_safe:
