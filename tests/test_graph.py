@@ -586,9 +586,7 @@ def test_e2e_scope_refusal_routes_to_gate_and_bypasses_llm():
     return SCOPE_REFUSAL_RESPONSE, and NOT include crisis resources.
 
     Path expected: safety_check → intent_route → gate_path_set → output_gate
-    Note: gate_path_set does not append its name to state["path"] (it only stamps
-    gate_path), so the observable path is ['safety_check', 'intent_route', 'output_gate'].
-    The gate routing is verified by checking gate_path and the absence of freeflow_respond.
+    Path includes: safety_check, intent_route, gate_path_set, output_gate.
     """
     from sage_poc.graph import build_graph
     from sage_poc.nodes.output_gate import SCOPE_REFUSAL_RESPONSE
@@ -639,8 +637,6 @@ def test_e2e_clean_jailbreak_routes_to_gate_and_reasserts_persona():
     assert "unrestricted" not in response.lower(), \
         "Sage must not echo jailbreak instruction back"
 
-    # gate_path_set does not append its name to path (only stamps gate_path),
-    # so routing is verified by gate_path value and freeflow absence
     path = result.get("path", [])
     assert "gate_path_set" in path, f"gate_path_set must be in execution path; got {path}"
     assert "output_gate" in path, f"output_gate must be in execution path; got {path}"
