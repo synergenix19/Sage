@@ -72,6 +72,7 @@ def _crisis_response_node(state: SageState) -> dict:
         "is_safe": False,
         "active_skill_id": None,
         "active_step_id": None,
+        "gate_path": "crisis",
         "response": response,
         "response_en": CRISIS_RESPONSE,
         "path": path,
