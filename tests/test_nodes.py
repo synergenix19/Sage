@@ -1399,3 +1399,59 @@ def test_compose_prompt_hostile_message_isolated_in_user_role():
     assert "DAN" not in system_str, "Jailbreak content must not appear in system role"
     assert "no restrictions" not in system_str, \
         "Jailbreak instruction must not contaminate system role"
+
+
+# P-2: Warmth gradient — compose_prompt produces context-sensitive prompts
+
+def test_compose_prompt_warmth_gradient_crisis_vs_positive():
+    """
+    P-2: compose_prompt must produce contextually different prompts for crisis vs. positive check-in.
+
+    Crisis context: high intensity + trauma_indicator flag ->
+        system_str includes CLINICAL ADAPTATIONS with trauma-sensitive language
+        user_str surfaces high emotional intensity (9/10)
+
+    Positive check-in: low intensity, no clinical flags ->
+        system_str is PERSONA only -- no CLINICAL ADAPTATIONS section
+        user_str surfaces low emotional intensity (2/10)
+
+    If this test fails (both contexts produce identical system prompts), it is a
+    clinical finding: the warmth gradient is not functioning.
+    """
+    from sage_poc.nodes.freeflow_respond import compose_prompt
+
+    crisis_state = make_state(
+        message_en="I feel like everything is falling apart since what happened to me",
+        primary_intent="emotional",
+        emotional_intensity=9,
+        clinical_flags=["trauma_indicator"],
+        conversation_history=[],
+    )
+    crisis_system, crisis_user = compose_prompt(crisis_state)
+
+    checkin_state = make_state(
+        message_en="I've been doing pretty well this week actually",
+        primary_intent="general_chat",
+        emotional_intensity=2,
+        clinical_flags=[],
+        conversation_history=[],
+    )
+    checkin_system, checkin_user = compose_prompt(checkin_state)
+
+    # System role: crisis must inject clinical adaptation; check-in must not
+    assert "CLINICAL ADAPTATIONS" in crisis_system, \
+        "P-2: Crisis context must include CLINICAL ADAPTATIONS in system role"
+    assert "trauma-sensitive" in crisis_system.lower(), \
+        "P-2: trauma_indicator flag must inject trauma-sensitive language into system role"
+    assert "CLINICAL ADAPTATIONS" not in checkin_system, \
+        "P-2: Positive check-in must not include CLINICAL ADAPTATIONS (no flags present)"
+
+    # User role: intensity signal must differ meaningfully between contexts
+    assert "9/10" in crisis_user, \
+        "P-2: Crisis context must surface high emotional intensity (9/10) in user role"
+    assert "2/10" in checkin_user, \
+        "P-2: Positive check-in must surface low emotional intensity (2/10) in user role"
+
+    # System prompts must differ (the gradient is real)
+    assert crisis_system != checkin_system, \
+        "P-2: Crisis and check-in system prompts must differ -- warmth gradient requires context sensitivity"
