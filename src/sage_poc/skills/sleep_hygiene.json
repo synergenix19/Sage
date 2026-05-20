@@ -67,7 +67,7 @@
   ],
   "escalation_matrix": {
     "L1": "Exit skill gracefully if user requests to stop",
-    "L2": "Add clinician_review flag if medication mention detected (e.g. sleeping pills dosage)",
+    "L2": "Add clinician_review flag if trauma, substance use, or medication mention detected",
     "L3": "Exit immediately to crisis protocol if any crisis signal",
     "L4": "Trigger human handoff if 3+ crises detected in last 30 days"
   }

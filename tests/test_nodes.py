@@ -1094,3 +1094,100 @@ def test_selects_sleep_hygiene_for_insomnia_keyword():
     )
     result = skill_select_node(state)
     assert result["active_skill_id"] == "sleep_hygiene"
+
+
+# S-2: Extended step_policy tests for new skills
+
+def test_grounding_high_intensity_triggers_validate_only():
+    """Grounding skill: intensity > 8 triggers validate_only (threshold is 8, not 7)."""
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("grounding_5_4_3_2_1")
+    result = evaluate_step_policy(
+        skill=skill,
+        current_step_id="see_5",
+        emotional_intensity=9,
+        engagement=6,
+    )
+    assert result["action"] == "validate_only"
+    assert result["next_step_id"] == "see_5"  # held in place
+
+
+def test_grounding_intensity_8_does_not_trigger_validate_only():
+    """Grounding skill: intensity == 8 does NOT trigger validate_only (operator is >, not >=)."""
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("grounding_5_4_3_2_1")
+    result = evaluate_step_policy(
+        skill=skill,
+        current_step_id="see_5",
+        emotional_intensity=8,
+        engagement=7,
+        message_en="I can see my desk, my lamp, my hands, the window, and the door.",
+    )
+    # Should advance (intensity == 8 does not satisfy > 8)
+    assert result["action"] == "advance"
+    assert result["next_step_id"] == "touch_4"
+
+
+def test_grounding_skill_advances_through_all_5_steps():
+    """Grounding skill: 5 sequential advances from see_5 → touch_4 → hear_3 → smell_2 → taste_1 → complete."""
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("grounding_5_4_3_2_1")
+    step_sequence = ["see_5", "touch_4", "hear_3", "smell_2", "taste_1"]
+    expected_next = ["touch_4", "hear_3", "smell_2", "taste_1", None]
+    long_response = "I can describe many things I notice in my environment right now in detail."
+
+    for step_id, expected_next_id in zip(step_sequence, expected_next):
+        result = evaluate_step_policy(
+            skill=skill,
+            current_step_id=step_id,
+            emotional_intensity=4,
+            engagement=7,
+            message_en=long_response,
+        )
+        if expected_next_id is None:
+            assert result["action"] == "complete", \
+                f"taste_1 must complete the skill; got action={result['action']!r}"
+            assert result["skill_complete"] is True
+        else:
+            assert result["action"] == "advance", \
+                f"Step {step_id} must advance; got action={result['action']!r}"
+            assert result["next_step_id"] == expected_next_id, \
+                f"After {step_id} expected {expected_next_id}, got {result['next_step_id']!r}"
+
+
+def test_sleep_hygiene_high_intensity_triggers_validate_only():
+    """Sleep hygiene skill: intensity > 7 triggers validate_only (lower threshold than grounding)."""
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("sleep_hygiene")
+    result = evaluate_step_policy(
+        skill=skill,
+        current_step_id="assess_sleep",
+        emotional_intensity=9,
+        engagement=6,
+    )
+    assert result["action"] == "validate_only"
+    assert result["next_step_id"] == "assess_sleep"  # held in place
+
+
+def test_sleep_hygiene_advances_through_3_steps():
+    """Sleep hygiene skill: 3 sequential advances from assess_sleep → share_guidance → barriers_and_next_step → complete."""
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("sleep_hygiene")
+    step_sequence = ["assess_sleep", "share_guidance", "barriers_and_next_step"]
+    expected_next = ["share_guidance", "barriers_and_next_step", None]
+    long_response = "I have been struggling with sleep for a while and I notice many things about my routine that could improve."
+
+    for step_id, expected_next_id in zip(step_sequence, expected_next):
+        result = evaluate_step_policy(
+            skill=skill,
+            current_step_id=step_id,
+            emotional_intensity=4,
+            engagement=7,
+            message_en=long_response,
+        )
+        if expected_next_id is None:
+            assert result["action"] == "complete"
+            assert result["skill_complete"] is True
+        else:
+            assert result["action"] == "advance"
+            assert result["next_step_id"] == expected_next_id
