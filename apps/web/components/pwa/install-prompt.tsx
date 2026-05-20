@@ -8,10 +8,13 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
+const DISMISSED_KEY = 'cdai-install-dismissed'
+
 export function InstallPrompt() {
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null)
 
   useEffect(() => {
+    if (localStorage.getItem(DISMISSED_KEY)) return
     const handler = (e: Event) => {
       e.preventDefault()
       setPromptEvent(e as BeforeInstallPromptEvent)
@@ -21,6 +24,11 @@ export function InstallPrompt() {
   }, [])
 
   if (!promptEvent) return null
+
+  function handleDismiss() {
+    localStorage.setItem(DISMISSED_KEY, '1')
+    setPromptEvent(null)
+  }
 
   async function handleInstall() {
     if (!promptEvent) return
@@ -41,7 +49,7 @@ export function InstallPrompt() {
       </p>
       <div className="flex gap-2">
         <button
-          onClick={() => setPromptEvent(null)}
+          onClick={handleDismiss}
           className="min-h-[44px] px-3 text-sm text-[var(--color-text-secondary)]"
         >
           Later

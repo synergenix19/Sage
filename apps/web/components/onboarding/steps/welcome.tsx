@@ -10,7 +10,7 @@ export function Welcome() {
 
   function next() {
     setStep(2)
-    router.push('/onboarding/step-2')
+    router.push('/step-2')
   }
 
   return (

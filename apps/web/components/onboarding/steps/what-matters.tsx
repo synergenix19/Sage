@@ -18,7 +18,7 @@ export function WhatMatters() {
     setAnswer('wellnessQ1', q1)
     setAnswer('wellnessQ2', q2)
     setStep(6)
-    router.push('/onboarding/step-6')
+    router.push('/step-6')
   }
 
   return (

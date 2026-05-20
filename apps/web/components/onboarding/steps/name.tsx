@@ -13,7 +13,7 @@ export function Name() {
     if (!value.trim()) return
     setAnswer('name', value.trim())
     setStep(4)
-    router.push('/onboarding/step-4')
+    router.push('/step-4')
   }
 
   return (

@@ -53,13 +53,14 @@ export async function middleware(request: NextRequest) {
       return new NextResponse(null, { status: 403 })
     }
 
+    const isOnboardingStep = /^\/step-[1-6]$/.test(pathname)
     if (
       !pathname.startsWith('/admin') &&
-      !pathname.startsWith('/onboarding') &&
+      !isOnboardingStep &&
       profile && !profile.onboarding_complete
     ) {
       const step = profile.onboarding_step
-      const target = step && step > 0 ? `/onboarding/step-${step}` : '/onboarding/step-1'
+      const target = step && step > 0 ? `/step-${step}` : '/step-1'
       return NextResponse.redirect(new URL(target, request.url))
     }
   }

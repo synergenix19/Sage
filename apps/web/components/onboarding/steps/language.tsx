@@ -19,7 +19,7 @@ export function Language() {
     document.cookie = `cdai-locale=${locale};path=/;max-age=31536000;SameSite=Lax;Secure`
     setStep(3)
     // Reload to flip dir immediately, then navigate
-    window.location.href = '/onboarding/step-3'
+    window.location.href = '/step-3'
   }
 
   return (

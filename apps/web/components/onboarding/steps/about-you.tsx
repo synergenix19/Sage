@@ -23,7 +23,7 @@ export function AboutYou() {
     setAnswer('ageRange', age)
     setAnswer('role', role)
     setStep(5)
-    router.push('/onboarding/step-5')
+    router.push('/step-5')
   }
 
   return (
