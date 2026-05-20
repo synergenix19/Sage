@@ -87,6 +87,62 @@ def test_araglish_code_switching():
     assert result["is_safe"] is True
 
 
+# C-2: Arabic/English code-switching detection
+
+def test_code_switching_english_with_arabic_word_classified_as_arabic():
+    """English sentence containing Arabic script must detect as Arabic (existing behaviour)."""
+    state = make_state(raw_message="I feel بخير, things might get better")
+    result = safety_check_node(state)
+    assert result["detected_language"] == "ar", \
+        "Arabic Unicode in English sentence must classify as Arabic"
+
+
+def test_code_switching_arabic_with_english_word_stays_arabic():
+    """Arabic sentence with an English word embedded must classify as Arabic."""
+    state = make_state(raw_message="أنا تعبان وما أقدر أكمل الـ work")
+    result = safety_check_node(state)
+    assert result["detected_language"] == "ar", \
+        "Predominantly Arabic sentence with an English word must classify as Arabic"
+
+
+@pytest.mark.slow
+def test_code_switching_arabizi_safe_classified_correctly():
+    """
+    Arabizi (romanised Arabic): safe message must be processed without triggering crisis.
+    Arabizi classifies as English by langdetect — this is acceptable behaviour.
+    """
+    state = make_state(raw_message="ana moo zain, bas wallah tamam, lazem ashtaqel")
+    result = safety_check_node(state)
+    assert result["detected_language"] in ("en", "ar"), \
+        "Arabizi must classify as either English or Arabic — not unknown"
+    assert result["is_safe"] is True, \
+        "Arabizi safe message must not trigger crisis"
+
+
+@pytest.mark.slow
+def test_code_switching_arabizi_crisis_detected_via_english_path():
+    """
+    Arabizi crisis phrase 'abi amoot' (CRISIS_KEYWORDS line 26) triggers crisis
+    even when processed through the English path (Arabizi classifies as English).
+    Message uses ONLY 'abi amoot' — no English crisis phrase — to isolate this keyword.
+    """
+    state = make_state(raw_message="ana tamam, bas abi amoot")  # "I'm okay, but I want to die"
+    result = safety_check_node(state)
+    assert result["is_safe"] is False, \
+        "Arabizi crisis phrase 'abi amoot' must trigger crisis detection"
+    assert len(result["crisis_flags"]) > 0
+
+
+def test_english_only_message_not_classified_as_arabic():
+    """Pure English message must not be misclassified as Arabic."""
+    state = make_state(raw_message="I've been feeling really anxious lately about work")
+    result = safety_check_node(state)
+    assert result["detected_language"] == "en", \
+        "English-only message must classify as English"
+    assert result["message_en"] == "I've been feeling really anxious lately about work", \
+        "English message must not be passed through translation"
+
+
 from unittest.mock import patch, MagicMock
 from sage_poc.nodes.intent_route import intent_route_node, build_intent_prompt
 
