@@ -54,11 +54,10 @@ def test_chat_returns_text_for_valid_message():
 def test_chat_graph_error_returns_sentinel(monkeypatch):
     import server as srv
 
-    async def _raise_astream(state, version):
+    async def _raise_ainvoke(state):
         raise RuntimeError("simulated graph failure")
-        yield  # make this an async generator
 
-    monkeypatch.setattr(srv, "_graph", type("G", (), {"astream_events": staticmethod(_raise_astream)})())
+    monkeypatch.setattr(srv, "_graph", type("G", (), {"ainvoke": staticmethod(_raise_ainvoke)})())
     client = get_client()
     res = client.post("/chat", json={
         "messages": [{"role": "user", "content": "hello"}],
@@ -66,6 +65,42 @@ def test_chat_graph_error_returns_sentinel(monkeypatch):
     })
     assert res.status_code == 200
     assert "[[SERVER_ERROR]]" in res.text
+
+
+def test_chat_response_headers_present():
+    # Crisis path: keyword match, no LLM call — fast test.
+    client = get_client()
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "I want to end it all"}],
+        "session_id": "test-session",
+    })
+    assert res.status_code == 200
+    assert "x-sage-model" in res.headers
+    assert "x-sage-node-path" in res.headers
+
+
+def test_chat_body_has_no_meta_sentinel():
+    # Metadata must never appear in the body stream — only in headers.
+    client = get_client()
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "I want to end it all"}],
+        "session_id": "test-session",
+    })
+    assert res.status_code == 200
+    assert "[[META:" not in res.text
+
+
+def test_chat_node_path_header_is_valid_json_array():
+    client = get_client()
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "I want to end it all"}],
+        "session_id": "test-session",
+    })
+    import json
+    path = json.loads(res.headers["x-sage-node-path"])
+    assert isinstance(path, list)
+    assert len(path) > 0
+    assert all(isinstance(n, str) for n in path)
 
 
 def test_freeflow_node_is_coroutine():
@@ -88,3 +123,109 @@ def test_chat_arabic_crisis_message_has_signal():
     assert res.text.startswith("[[CRISIS_DETECTED]]")
     # The Arabic crisis response should NOT be the error sentinel
     assert "[[SERVER_ERROR]]" not in res.text
+
+
+def test_all_audit_headers_present():
+    """All 8 metadata headers must be present on every response, including crisis paths."""
+    client = get_client()
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "I want to end it all"}],
+        "session_id": "test-session",
+    })
+    assert res.status_code == 200
+    for header in [
+        "x-sage-model", "x-sage-node-path",
+        "x-sage-skill-id", "x-sage-step-id", "x-sage-gate-path",
+        "x-sage-crisis-flags", "x-sage-clinical-flags", "x-sage-emotional-intensity",
+    ]:
+        assert header in res.headers, f"Missing header: {header}"
+
+
+def test_crisis_path_crisis_flags_non_empty():
+    """Crisis keyword match → x-sage-crisis-flags is a non-empty JSON array."""
+    import json as _json
+    client = get_client()
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "I want to end it all"}],
+        "session_id": "test-session",
+    })
+    flags = _json.loads(res.headers["x-sage-crisis-flags"])
+    assert isinstance(flags, list)
+    assert len(flags) > 0
+
+
+def test_crisis_path_gate_path_and_no_skill():
+    """Crisis responses: gate_path='crisis', skill_id and step_id empty."""
+    client = get_client()
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "I want to end it all"}],
+        "session_id": "test-session",
+    })
+    assert res.headers.get("x-sage-gate-path") == "crisis"
+    assert res.headers.get("x-sage-skill-id") == ""
+    assert res.headers.get("x-sage-step-id") == ""
+
+
+def test_skill_response_audit_headers(monkeypatch):
+    """Skill-path response: skill_id and step_id populated, crisis_flags empty."""
+    import server as srv
+    import json as _json
+
+    async def _mock_skill(state):
+        return {
+            "path": ["safety_check", "intent_route", "skill_select", "skill_executor", "output_gate"],
+            "is_safe": True,
+            "response": "Let's try this together.",
+            "active_skill_id": "cbt_thought_record",
+            "executed_step_id": "step_1",
+            "gate_path": "standard",
+            "crisis_flags": [],
+            "clinical_flags": [],
+            "emotional_intensity": 7,
+        }
+
+    monkeypatch.setattr(srv, "_graph", type("G", (), {"ainvoke": staticmethod(_mock_skill)})())
+    client = get_client()
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "I want to try a CBT exercise"}],
+        "session_id": "test",
+    })
+    assert res.status_code == 200
+    assert res.headers.get("x-sage-skill-id") == "cbt_thought_record"
+    assert res.headers.get("x-sage-step-id") == "step_1"
+    assert res.headers.get("x-sage-gate-path") == "standard"
+    assert _json.loads(res.headers["x-sage-crisis-flags"]) == []
+    assert _json.loads(res.headers["x-sage-clinical-flags"]) == []
+    assert res.headers.get("x-sage-emotional-intensity") == "7"
+
+
+def test_freeflow_response_audit_headers(monkeypatch):
+    """Freeflow response: skill_id/step_id empty, clinical_flags and intensity populated."""
+    import server as srv
+    import json as _json
+
+    async def _mock_freeflow(state):
+        return {
+            "path": ["safety_check", "intent_route", "freeflow_respond", "output_gate"],
+            "is_safe": True,
+            "response": "That sounds really hard.",
+            "active_skill_id": None,
+            "executed_step_id": None,
+            "gate_path": "standard",
+            "crisis_flags": [],
+            "clinical_flags": ["trauma_indicator"],
+            "emotional_intensity": 8,
+        }
+
+    monkeypatch.setattr(srv, "_graph", type("G", (), {"ainvoke": staticmethod(_mock_freeflow)})())
+    client = get_client()
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "I feel overwhelmed by everything"}],
+        "session_id": "test",
+    })
+    assert res.status_code == 200
+    assert res.headers.get("x-sage-skill-id") == ""
+    assert res.headers.get("x-sage-step-id") == ""
+    assert res.headers.get("x-sage-gate-path") == "standard"
+    assert _json.loads(res.headers["x-sage-clinical-flags"]) == ["trauma_indicator"]
+    assert res.headers.get("x-sage-emotional-intensity") == "8"
