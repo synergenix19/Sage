@@ -33,6 +33,7 @@ class Skill(BaseModel):
     skill_type: str
     evidence_base: str
     target_presentations: list[str]
+    semantic_description: str = ""   # rich description for embedding-based skill matching
     steps: list[SkillStep]
     step_policy: list[StepPolicyRule]
     escalation_matrix: dict[str, str]

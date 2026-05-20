@@ -22,6 +22,8 @@ def make_initial_state() -> SageState:
         "active_step_id": None,
         "executed_step_id": None,
         "step_instruction": None,
+        "skill_match_method": None,
+        "semantic_score": None,
         "escalation_triggered": None,
         "gate_path": None,
         "response_en": None,

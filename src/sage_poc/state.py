@@ -25,6 +25,8 @@ class SageState(TypedDict):
     active_step_id: Optional[str]      # step the NEXT turn will start from
     executed_step_id: Optional[str]    # step whose instruction was used THIS turn (for audit)
     step_instruction: Optional[str]
+    skill_match_method: Optional[str]   # "keyword" | "semantic" | None
+    semantic_score: Optional[float]     # cosine similarity if semantic match
     escalation_triggered: Optional[dict]  # {"level": "L1"|"L2", "reason": str, "action": str}
 
     gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak"]]
