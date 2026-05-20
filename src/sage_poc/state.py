@@ -29,7 +29,7 @@ class SageState(TypedDict):
     semantic_score: Optional[float]     # cosine similarity if semantic match
     escalation_triggered: Optional[dict]  # {"level": "L1"|"L2", "reason": str, "action": str}
 
-    gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak"]]
+    gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak", "crisis"]]
 
     response_en: Optional[str]
     response: Optional[str]
