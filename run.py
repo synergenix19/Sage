@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import asyncio
 import sys
 from sage_poc.graph import build_graph
 from sage_poc.state import SageState
@@ -53,7 +54,7 @@ def main():
         state["raw_message"] = user_input
 
         try:
-            result = graph.invoke(state)
+            result = asyncio.run(graph.ainvoke(state))
         except KeyboardInterrupt:
             print("\nGoodbye.")
             break
