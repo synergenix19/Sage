@@ -202,7 +202,8 @@ def test_session_full_lifecycle_e2e():
     graph = build_graph()
 
     # Turn 1: Greeting — general chat, no skill
-    r1 = asyncio.run(graph.ainvoke(make_e2e_state("Hello, I have been feeling really overwhelmed lately")))
+    # Note: avoid words in skill target_presentations (overwhelmed→grounding, insomnia→sleep, etc.)
+    r1 = asyncio.run(graph.ainvoke(make_e2e_state("Hello, I just wanted to talk to someone today")))
     assert r1["is_safe"] is True
     assert r1["active_skill_id"] is None
     assert r1["response"] is not None
