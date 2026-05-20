@@ -1028,3 +1028,37 @@ def test_l1_does_not_fire_on_false_positive_messages(message):
     result = skill_executor_node(state)
     assert result.get("escalation_triggered") is None, \
         f"False-positive phrase '{message}' must not trigger L1"
+
+
+# Task 2 (S-1a): Grounding 5-4-3-2-1 skill tests
+
+def test_grounding_skill_schema_is_valid():
+    """grounding_5_4_3_2_1 JSON must load and validate against Skill schema."""
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("grounding_5_4_3_2_1")
+    assert skill.skill_id == "grounding_5_4_3_2_1"
+    assert len(skill.steps) == 5  # 5-4-3-2-1 has 5 sense steps
+    assert len(skill.target_presentations) >= 3
+    assert all(len(s.examples) >= 2 for s in skill.steps)
+
+
+def test_selects_grounding_for_panic_phrasing():
+    """'I'm having a panic attack' must activate grounding skill."""
+    state = make_state(
+        message_en="I'm having a panic attack right now, I can't breathe",
+        primary_intent="new_skill",
+    )
+    result = skill_select_node(state)
+    assert result["active_skill_id"] == "grounding_5_4_3_2_1", \
+        "Panic attack phrasing must activate grounding skill"
+    assert result["active_step_id"] == "see_5"
+
+
+def test_selects_grounding_for_overwhelmed_phrasing():
+    """'I feel completely overwhelmed' must activate grounding skill."""
+    state = make_state(
+        message_en="I feel completely overwhelmed, my head is spinning",
+        primary_intent="new_skill",
+    )
+    result = skill_select_node(state)
+    assert result["active_skill_id"] == "grounding_5_4_3_2_1"

@@ -1,0 +1,93 @@
+{
+  "skill_id": "grounding_5_4_3_2_1",
+  "skill_name": "5-4-3-2-1 Grounding",
+  "skill_type": "structured",
+  "evidence_base": "Linehan (1993); DBT Skills Training Manual",
+  "target_presentations": [
+    "panic attack", "panic", "overwhelmed", "dissociated", "dissociation",
+    "can't breathe", "heart racing", "spinning", "grounding", "anxious right now",
+    "anxiety attack", "feel disconnected", "not real", "losing control"
+  ],
+  "steps": [
+    {
+      "step_id": "see_5",
+      "goal": "Anchor the user in their environment by naming 5 things they can see",
+      "technique": "Sensory grounding — sight",
+      "tone": "calm, slow, gently directive",
+      "examples": [
+        "Let's slow things down together. Can you look around and tell me five things you can see right now — anything at all?",
+        "I'm right here with you. Start simple — what are five things your eyes can land on in this moment?"
+      ]
+    },
+    {
+      "step_id": "touch_4",
+      "goal": "Deepen physical grounding by naming 4 things the user can physically feel",
+      "technique": "Sensory grounding — touch",
+      "tone": "calm, reassuring, present",
+      "examples": [
+        "Good. Now — four things you can physically feel or touch. Maybe the surface under you, your clothes, the temperature of the air.",
+        "You're doing really well. Now notice four things you can feel with your hands or body right now."
+      ]
+    },
+    {
+      "step_id": "hear_3",
+      "goal": "Shift attention to sound to further interrupt the panic cycle",
+      "technique": "Sensory grounding — hearing",
+      "tone": "calm, steady, unhurried",
+      "examples": [
+        "Three things you can hear. It might be something in the room, outside, even your own breathing.",
+        "Listen carefully — what are three sounds you can make out right now, however faint?"
+      ]
+    },
+    {
+      "step_id": "smell_2",
+      "goal": "Engage the olfactory sense to complete the sensory circuit",
+      "technique": "Sensory grounding — smell",
+      "tone": "gentle, exploratory",
+      "examples": [
+        "Two things you can smell. If nothing comes to mind, you can get up and smell something nearby — coffee, a book, your clothes.",
+        "Can you notice two smells? Even very subtle ones count."
+      ]
+    },
+    {
+      "step_id": "taste_1",
+      "goal": "Complete the 5-4-3-2-1 sequence and check in on the user's state",
+      "technique": "Sensory grounding — taste / integration",
+      "tone": "warm, encouraging, checking in",
+      "examples": [
+        "Last one — one thing you can taste. Even if it's just the inside of your mouth. Then take a slow breath and tell me how you're feeling now.",
+        "One taste — and then let's pause and take a breath together. How are you feeling compared to when we started?"
+      ]
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 8,
+        "step": "ANY"
+      },
+      "action": "validate_only",
+      "instruction": "The user is in acute distress. Do NOT advance the exercise. Slow down, validate, and stay present. Repeat the current step's prompt in simpler language next turn.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "step": "ANY"
+      },
+      "action": "check_in",
+      "instruction": "The user seems disengaged or unable to focus. Gently check in — is this exercise helping? Would they prefer to just breathe together or talk?",
+      "next_step_id": "current"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit skill gracefully if user requests to stop — grounding is voluntary",
+    "L2": "Add clinician_review flag if trauma or substance mention detected during exercise",
+    "L3": "Exit immediately to crisis protocol if any crisis signal",
+    "L4": "Trigger human handoff if 3+ crises detected in last 30 days"
+  }
+}
