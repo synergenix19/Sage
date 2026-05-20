@@ -63,6 +63,7 @@ def output_gate_node(state: SageState) -> dict:
 
     return {
         "response": final_response,
+        "gate_path": gate_path or "standard",
         "path": path,
         "turn_count": state["turn_count"] + 1,
         "conversation_history": state["conversation_history"] + [
