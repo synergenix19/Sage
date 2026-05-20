@@ -3,6 +3,7 @@ from typing import TypedDict, Optional, Literal
 Intent = Literal[
     "skill_continuation", "new_skill", "general_chat",
     "crisis", "info_request", "exit_skill",
+    "scope_refusal", "jailbreak",
 ]
 
 class SageState(TypedDict):
@@ -25,6 +26,8 @@ class SageState(TypedDict):
     executed_step_id: Optional[str]    # step whose instruction was used THIS turn (for audit)
     step_instruction: Optional[str]
     escalation_triggered: Optional[dict]  # {"level": "L1"|"L2", "reason": str, "action": str}
+
+    gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak"]]
 
     response_en: Optional[str]
     response: Optional[str]

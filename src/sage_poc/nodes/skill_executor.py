@@ -12,28 +12,25 @@ _OPERATOR_MAP = {
 }
 
 # L1 escalation: user wants to stop the skill.
-# Single-word triggers ("stop", "leave") are omitted intentionally — they produce false positives
-# when embedded in unrelated phrases ("can't stop thinking", "can't leave my house").
-# Multi-word phrases provide the necessary specificity.
+# Bare single words ("stop", "quit", "leave") excluded: too many false positives in therapeutic
+# contexts ("I can't stop thinking", "I want to quit smoking", "can't leave my house").
+# System-internal vocabulary ("exercise", "skill") also excluded: users don't know those terms.
+# All phrases below are natural exit language validated against the clinical audit false-positive set.
 L1_EXIT_PHRASES = [
-    # Single-word (low false-positive risk — rare in therapeutic context with different meaning)
-    "quit",
-    "exit",
-    # Multi-word — context-specific enough that substring matching is safe
-    # Removed: "don't want to" (fires on "I don't want to burden you")
-    # Removed: "want to stop" (fires on "I want to stop feeling anxious")
-    # Removed: "please stop" (fires on "please stop being so harsh on yourself")
+    "i don't want to do this anymore",
+    "don't want to do this anymore",
+    "not doing this anymore",
     "not doing this",
-    "change the subject",
+    "can we do something else",
+    "can we talk about something else",
     "talk about something else",
-    "let's stop",
+    "change the subject",
+    "let's move on",
+    "let's stop this",
     "i want to stop this",
-    "i want to quit",
+    "i'm done",
+    "i am done",
     "want to leave this",
-    "want to quit",
-    "can we stop",
-    "i'm done with this",
-    "i am done with this",
 ]
 
 

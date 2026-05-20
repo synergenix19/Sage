@@ -16,6 +16,7 @@ def make_full_state(**overrides) -> dict:
         "intent_confidence": 1.0, "emotional_intensity": 5, "engagement": 7,
         "active_skill_id": None, "active_step_id": None, "executed_step_id": None,
         "step_instruction": None, "escalation_triggered": None,
+        "gate_path": None,
         "response_en": None, "response": None, "path": [], "turn_count": 0,
         "conversation_history": [],
     }
@@ -59,6 +60,10 @@ def test_route_after_safety(is_safe, expected_route):
 
     # exit_skill with no active skill → freeflow (nothing to exit)
     ("exit_skill",         0.88, None,                "freeflow"),
+
+    # Boundary-violation intents bypass skill_select and freeflow_respond
+    ("scope_refusal",      0.9,  None,                "gate"),
+    ("jailbreak",          0.95, None,                "gate"),
 ])
 def test_route_after_intent(primary_intent, confidence, active_skill, expected_route):
     state = make_full_state(

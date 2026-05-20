@@ -51,14 +51,14 @@ def detect_language(text: str | None) -> str:
 
 
 def translate_to_english(text: str) -> str:
-    """Translate *text* to English via OpenRouter.
+    """Translate *text* to English.
 
     Falls back to the original text if the API is unavailable so that the
     English-language crisis keyword filter still runs on the raw input.
     """
     try:
-        from sage_poc.llm import get_responder
-        llm = get_responder()
+        from sage_poc.llm import get_translator
+        llm = get_translator()
         response = llm.invoke([{
             "role": "user",
             "content": (
@@ -73,14 +73,14 @@ def translate_to_english(text: str) -> str:
 
 
 def translate_to_arabic(text: str) -> str:
-    """Translate *text* to Modern Standard Arabic via OpenRouter.
+    """Translate *text* to Modern Standard Arabic.
 
     Falls back to the original English text if the API is unavailable so the
     user receives a response rather than a crash.
     """
     try:
-        from sage_poc.llm import get_responder
-        llm = get_responder()
+        from sage_poc.llm import get_translator
+        llm = get_translator()
         response = llm.invoke([{
             "role": "user",
             "content": (

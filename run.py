@@ -22,6 +22,7 @@ def make_initial_state() -> SageState:
         "executed_step_id": None,
         "step_instruction": None,
         "escalation_triggered": None,
+        "gate_path": None,
         "response_en": None,
         "response": None,
         "path": [],

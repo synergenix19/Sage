@@ -11,6 +11,7 @@ from sage_poc.nodes.skill_select import skill_select_node
 from sage_poc.nodes.skill_executor import skill_executor_node
 from sage_poc.nodes.freeflow_respond import freeflow_respond_node
 from sage_poc.nodes.output_gate import output_gate_node
+from sage_poc.config import AUDIT_LOG_ENABLED
 
 CRISIS_RESPONSE = (
     "I'm really concerned about what you've shared. "
@@ -30,6 +31,19 @@ CRISIS_RESPONSE_AR = (
     # "توازن" removed (no UAE service by this name); 999 added (24/7 UAE emergency)
 )
 
+# For E5-type queries: user is asking about resources proactively, not in acute crisis.
+# Richer list than the acute crisis response; no "immediate danger" framing.
+CRISIS_RESPONSE_EXTENDED = (
+    "Here are crisis and mental health resources in the UAE:\n"
+    "- CDA Mental Health Support: 800-4888\n"
+    "- National Lifeline (Estijaba): 800-HOPE (800-4673)\n"
+    "- Emergency Services: 999\n"
+    "- Al Amal Psychiatric Hospital: in-person psychiatric support\n"
+    "- Lighthouse Arabia, Camali Clinic, American Center for Psychiatry and Neurology: "
+    "therapy in Dubai\n\n"
+    "If you're in immediate danger, please call 999 or go to your nearest emergency room."
+)
+
 
 def _crisis_response_node(state: SageState) -> dict:
     lang = state.get("detected_language", "en")
@@ -37,29 +51,28 @@ def _crisis_response_node(state: SageState) -> dict:
 
     path = state["path"] + ["crisis_response"]
 
-    # P1-4: Audit log — crisis turns previously produced no trail
-    audit = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "event": "CRISIS_RESPONSE",
-        "turn": state.get("turn_count"),
-        "detected_language": lang,
-        "crisis_flags": state.get("crisis_flags", []),
-        "clinical_flags": state.get("clinical_flags", []),
-        "active_skill_cleared": state.get("active_skill_id"),
-    }
-    print(f"\n[AUDIT:CRISIS] {json.dumps(audit, indent=2)}")
+    if AUDIT_LOG_ENABLED:
+        audit = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "event": "CRISIS_RESPONSE",
+            "turn": state.get("turn_count"),
+            "detected_language": lang,
+            "crisis_flags": state.get("crisis_flags", []),
+            "clinical_flags": state.get("clinical_flags", []),
+            "active_skill_cleared": state.get("active_skill_id"),
+        }
+        print(f"\n[AUDIT:CRISIS] {json.dumps(audit, indent=2)}")
 
-    # P1-5: Append crisis exchange to history so next turn has context
     history = state.get("conversation_history", []) + [
         {"role": "user", "content": state.get("message_en", state.get("raw_message", ""))},
-        {"role": "assistant", "content": CRISIS_RESPONSE},  # always store EN for history
+        {"role": "assistant", "content": CRISIS_RESPONSE},
     ]
 
     return {
         "is_safe": False,
-        "active_skill_id": None,   # P0-B: clear skill — never resume CBT after crisis
+        "active_skill_id": None,
         "active_step_id": None,
-        "response": response,      # P0-A: language-appropriate
+        "response": response,
         "response_en": CRISIS_RESPONSE,
         "path": path,
         "conversation_history": history,
@@ -77,6 +90,10 @@ def _route_after_intent(state: SageState) -> str:
 
     if intent == "crisis":
         return "crisis"
+    if intent == "scope_refusal":
+        return "gate"
+    if intent == "jailbreak":
+        return "gate"
     if confidence < 0.6:
         return "low_confidence"
     if intent == "exit_skill":
@@ -86,6 +103,13 @@ def _route_after_intent(state: SageState) -> str:
     if intent == "skill_continuation" and state.get("active_skill_id"):
         return "skill_executor"
     return "freeflow"
+
+
+def _set_gate_path_node(state: SageState) -> dict:
+    """Intermediate node: stamps gate_path from primary_intent before output_gate."""
+    intent = state.get("primary_intent", "standard")
+    gate_path = intent if intent in ("scope_refusal", "jailbreak") else "standard"
+    return {"gate_path": gate_path}
 
 
 def _route_after_skill_select(state: SageState) -> str:
@@ -103,6 +127,7 @@ def build_graph() -> CompiledStateGraph:
     graph.add_node("freeflow_respond", freeflow_respond_node)
     graph.add_node("output_gate", output_gate_node)
     graph.add_node("crisis_response", _crisis_response_node)
+    graph.add_node("gate_path_set", _set_gate_path_node)
 
     graph.set_entry_point("safety_check")
 
@@ -118,7 +143,9 @@ def build_graph() -> CompiledStateGraph:
         "freeflow": "freeflow_respond",
         "crisis": "crisis_response",
         "low_confidence": "low_confidence_respond",
+        "gate": "gate_path_set",
     })
+    graph.add_edge("gate_path_set", "output_gate")
     graph.add_edge("low_confidence_respond", "output_gate")
 
     graph.add_conditional_edges("skill_select", _route_after_skill_select, {
