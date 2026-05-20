@@ -52,7 +52,7 @@ def test_english_general_chat_e2e():
     """English general chat: safety → intent → freeflow → output. No skill."""
     from sage_poc.graph import build_graph
     graph = build_graph()
-    result = graph.invoke(make_e2e_state("Hello, I just wanted to check in."))
+    result = asyncio.run(graph.ainvoke(make_e2e_state("Hello, I just wanted to check in.")))
     assert result["is_safe"] is True
     assert result["response"] is not None
     assert "safety_check" in result["path"]
@@ -82,7 +82,7 @@ def test_english_skill_routing_e2e():
     """
     from sage_poc.graph import build_graph
     graph = build_graph()
-    result = graph.invoke(make_e2e_state("I keep thinking everything is my fault, always", emotional_intensity=6))
+    result = asyncio.run(graph.ainvoke(make_e2e_state("I keep thinking everything is my fault, always", emotional_intensity=6)))
     assert result["is_safe"] is True
     assert "skill_select" in result["path"]
     assert result["active_skill_id"] == "cbt_thought_record"
@@ -112,10 +112,10 @@ def test_cbt_full_3_step_progression_e2e():
     graph = build_graph()
 
     # Turn 1: trigger the skill
-    result = graph.invoke(make_e2e_state(
+    result = asyncio.run(graph.ainvoke(make_e2e_state(
         "I keep thinking that everything is my fault, always, and I cannot escape it",
         emotional_intensity=6,
-    ))
+    )))
     assert result["active_skill_id"] == "cbt_thought_record", \
         "Skill must activate on CBT-triggering message"
     assert result["executed_step_id"] == "identify_thought", \
@@ -136,7 +136,7 @@ def test_cbt_full_3_step_progression_e2e():
     for msg in continuation_messages:
         if result["active_skill_id"] is None:
             break
-        result = graph.invoke(carry_state(result, msg))
+        result = asyncio.run(graph.ainvoke(carry_state(result, msg)))
         if result.get("executed_step_id"):
             executed_steps.append(result["executed_step_id"])
 
@@ -163,7 +163,7 @@ def test_clinical_flag_detected_in_e2e():
     """Substance use message passes crisis check but sets clinical_flags."""
     from sage_poc.graph import build_graph
     graph = build_graph()
-    result = graph.invoke(make_e2e_state("I've been drinking heavily every night to cope with the stress"))
+    result = asyncio.run(graph.ainvoke(make_e2e_state("I've been drinking heavily every night to cope with the stress")))
     assert result["is_safe"] is True
     assert "substance_use" in result.get("clinical_flags", [])
     assert result["response"] is not None
@@ -174,12 +174,12 @@ def test_escalation_l1_exit_mid_skill():
     """User says stop mid-skill: executor L1 fires, skill clears, graceful close generated."""
     from sage_poc.graph import build_graph
     graph = build_graph()
-    result = graph.invoke(make_e2e_state(
+    result = asyncio.run(graph.ainvoke(make_e2e_state(
         "I don't want to do this anymore, can we stop please",
         active_skill_id="cbt_thought_record",
         active_step_id="explore_distortion",
         emotional_intensity=5,
-    ))
+    )))
     assert result["active_skill_id"] is None
     assert result.get("escalation_triggered", {}).get("level") == "L1"
     assert result["response"] is not None
@@ -202,18 +202,18 @@ def test_session_full_lifecycle_e2e():
     graph = build_graph()
 
     # Turn 1: Greeting — general chat, no skill
-    r1 = graph.invoke(make_e2e_state("Hello, I have been feeling really overwhelmed lately"))
+    r1 = asyncio.run(graph.ainvoke(make_e2e_state("Hello, I have been feeling really overwhelmed lately")))
     assert r1["is_safe"] is True
     assert r1["active_skill_id"] is None
     assert r1["response"] is not None
     print(f"\n[LIFECYCLE] Turn 1 (greeting) path: {r1['path']}")
 
     # Turn 2: Skill trigger — identify_thought always runs first
-    r2 = graph.invoke(make_e2e_state(
+    r2 = asyncio.run(graph.ainvoke(make_e2e_state(
         "I keep thinking that everything is my fault, always, and I cannot shake it",
         conversation_history=r1["conversation_history"],
         emotional_intensity=6, engagement=7,
-    ))
+    )))
     assert r2["active_skill_id"] == "cbt_thought_record"
     assert r2["executed_step_id"] == "identify_thought"
     # validate_only may hold at identify_thought (intensity > 7) or advance — both correct
@@ -235,7 +235,7 @@ def test_session_full_lifecycle_e2e():
     for msg in skill_progression_messages:
         if current["active_skill_id"] is None:
             break
-        current = graph.invoke(carry_state(current, msg))
+        current = asyncio.run(graph.ainvoke(carry_state(current, msg)))
         if current.get("executed_step_id"):
             executed_steps.append(current["executed_step_id"])
         print(f"[LIFECYCLE] Skill turn executed: {current.get('executed_step_id')} → next: {current.get('active_step_id')}")
@@ -256,10 +256,10 @@ def test_session_full_lifecycle_e2e():
     print(f"[LIFECYCLE] Skill complete. Step sequence: {seen}")
 
     # Post-completion: back to freeflow — no active skill, no skill nodes in path
-    r_freeflow = graph.invoke(carry_state(
+    r_freeflow = asyncio.run(graph.ainvoke(carry_state(
         r_skill_done,
         "Thank you so much, that really helped me think differently about things",
-    ))
+    )))
     assert r_freeflow["active_skill_id"] is None
     assert r_freeflow["response"] is not None
     assert "skill_select" not in r_freeflow["path"]
