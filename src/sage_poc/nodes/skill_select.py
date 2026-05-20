@@ -3,7 +3,7 @@ from sage_poc.state import SageState
 from sage_poc.skills.schema import load_skill
 
 # All available skills — in production this comes from the CMS
-SKILL_REGISTRY = ["cbt_thought_record", "grounding_5_4_3_2_1"]
+SKILL_REGISTRY = ["cbt_thought_record", "grounding_5_4_3_2_1", "sleep_hygiene"]
 
 # Pre-load skills at module init so we're not reading JSON on every request
 _SKILLS = {sid: load_skill(sid) for sid in SKILL_REGISTRY}

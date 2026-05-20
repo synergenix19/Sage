@@ -1062,3 +1062,35 @@ def test_selects_grounding_for_overwhelmed_phrasing():
     )
     result = skill_select_node(state)
     assert result["active_skill_id"] == "grounding_5_4_3_2_1"
+
+
+def test_sleep_hygiene_skill_schema_is_valid():
+    """sleep_hygiene JSON must load and validate against Skill schema."""
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("sleep_hygiene")
+    assert skill.skill_id == "sleep_hygiene"
+    assert len(skill.steps) == 3
+    assert len(skill.target_presentations) >= 3
+    assert all(len(s.examples) >= 2 for s in skill.steps)
+
+
+def test_selects_sleep_hygiene_for_insomnia_phrasing():
+    """'I can't sleep at night' must activate sleep_hygiene skill."""
+    state = make_state(
+        message_en="I can't sleep at night, I lie awake for hours",
+        primary_intent="new_skill",
+    )
+    result = skill_select_node(state)
+    assert result["active_skill_id"] == "sleep_hygiene", \
+        "'can't sleep' phrasing must activate sleep_hygiene skill"
+    assert result["active_step_id"] == "assess_sleep"
+
+
+def test_selects_sleep_hygiene_for_insomnia_keyword():
+    """'I have insomnia' must activate sleep_hygiene skill."""
+    state = make_state(
+        message_en="I've been struggling with insomnia for months",
+        primary_intent="new_skill",
+    )
+    result = skill_select_node(state)
+    assert result["active_skill_id"] == "sleep_hygiene"

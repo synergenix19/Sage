@@ -1,0 +1,74 @@
+{
+  "skill_id": "sleep_hygiene",
+  "skill_name": "Sleep Hygiene",
+  "skill_type": "structured",
+  "evidence_base": "Walker (2017); NHS Sleep Hygiene Guidelines; CBT-I principles",
+  "target_presentations": [
+    "can't sleep", "insomnia", "sleep problems", "sleeping badly",
+    "lie awake", "lying awake", "sleep issues", "trouble sleeping",
+    "not sleeping", "poor sleep", "sleep deprived", "no sleep",
+    "waking up", "can't fall asleep"
+  ],
+  "steps": [
+    {
+      "step_id": "assess_sleep",
+      "goal": "Understand the user's specific sleep pattern and what's most disruptive",
+      "technique": "Collaborative assessment — open questions",
+      "tone": "curious, warm, non-judgmental",
+      "examples": [
+        "Tell me more about your sleep — is it hard to fall asleep, or do you wake up and can't get back to sleep, or both?",
+        "How long has this been going on? And what does a typical night look like for you — walk me through it."
+      ]
+    },
+    {
+      "step_id": "share_guidance",
+      "goal": "Share 2-3 evidence-based sleep hygiene principles most relevant to what the user described",
+      "technique": "Psychoeducation with motivational framing",
+      "tone": "informative but conversational — not prescriptive or preachy",
+      "examples": [
+        "One thing that really helps a lot of people is keeping the same wake-up time every day — even weekends. It anchors your body clock. Does that feel possible for you?",
+        "Screens before bed are sneaky — the blue light delays melatonin. Even dimming your phone or switching to a reading app can make a difference. Is that something you'd try?"
+      ]
+    },
+    {
+      "step_id": "barriers_and_next_step",
+      "goal": "Identify one realistic change the user is willing to try this week, and acknowledge barriers",
+      "technique": "Motivational interviewing — change talk",
+      "tone": "collaborative, realistic, encouraging",
+      "examples": [
+        "Out of everything we talked about — what's one small thing that feels doable this week? Even if it's tiny.",
+        "What's the biggest thing getting in the way of better sleep for you? Sometimes knowing the barrier is more useful than any tip."
+      ]
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
+      "action": "validate_only",
+      "instruction": "The user is highly distressed. Do not proceed with sleep information. Validate the exhaustion and emotional weight first. Return to assessment next turn.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "step": "ANY"
+      },
+      "action": "check_in",
+      "instruction": "User seems disengaged. Check in — is talking about sleep helpful right now, or would they prefer emotional support instead?",
+      "next_step_id": "current"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit skill gracefully if user requests to stop",
+    "L2": "Add clinician_review flag if medication mention detected (e.g. sleeping pills dosage)",
+    "L3": "Exit immediately to crisis protocol if any crisis signal",
+    "L4": "Trigger human handoff if 3+ crises detected in last 30 days"
+  }
+}
