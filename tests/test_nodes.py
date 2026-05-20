@@ -771,7 +771,7 @@ def test_khaleeji_real_crisis_phrase_still_fires():
 
 
 @pytest.mark.slow
-def test_khaleeji_indirect_ideation_ma_aad_qadir():
+def test_khaleeji_indirect_ideation_yadkhalni_min_haldunya():
     """'ما عاد قادر' (I can no longer cope) — already in CRISIS_KEYWORDS, must still fire."""
     state = make_state(raw_message="تعبت من الحياة، ما عاد قادر")
     result = safety_check_node(state)
