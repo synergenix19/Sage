@@ -22,6 +22,7 @@ interface SdkMessage {
 
 interface Props {
   initialSession: ChatSession | null
+  initialMessages?: SdkMessage[]
   userName: string
   userId: string // passed by chat/page.tsx; available for future API auth or analytics
 }
@@ -31,8 +32,8 @@ interface Props {
 // `@ai-sdk/react` (not installed) and expects a UI-message stream from
 // `toUIMessageStreamResponse()`. To avoid changing the route contract or adding
 // a dep, we consume the raw text stream directly.
-function useStreamingChat(sessionId: string | undefined) {
-  const [messages, setMessages] = useState<SdkMessage[]>([])
+function useStreamingChat(sessionId: string | undefined, initialMessages: SdkMessage[] = []) {
+  const [messages, setMessages] = useState<SdkMessage[]>(initialMessages)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -136,10 +137,10 @@ function useStreamingChat(sessionId: string | undefined) {
   return { messages, append, isLoading, error, reload }
 }
 
-export function ChatInterface({ initialSession, userName }: Props) {
+export function ChatInterface({ initialSession, initialMessages = [], userName }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const hasSignaledInstall = useRef(false)
-  const { messages, append, isLoading, error, reload } = useStreamingChat(initialSession?.id)
+  const { messages, append, isLoading, error, reload } = useStreamingChat(initialSession?.id, initialMessages)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
