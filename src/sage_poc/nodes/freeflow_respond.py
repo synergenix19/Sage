@@ -87,7 +87,7 @@ def compose_prompt(state: SageState) -> tuple[str, str]:
     return system_str, user_str
 
 
-def freeflow_respond_node(state: SageState, llm=None) -> dict:
+async def freeflow_respond_node(state: SageState, llm=None) -> dict:
     if llm is None:
         llm = get_responder()
 
@@ -96,7 +96,12 @@ def freeflow_respond_node(state: SageState, llm=None) -> dict:
         {"role": "system", "content": system_str},
         {"role": "user", "content": user_str},
     ]
-    response = llm.invoke(messages).content.strip()
+
+    chunks: list[str] = []
+    async for chunk in llm.astream(messages):
+        if chunk.content:
+            chunks.append(chunk.content)
+    response = "".join(chunks).strip()
 
     return {
         "response_en": response,

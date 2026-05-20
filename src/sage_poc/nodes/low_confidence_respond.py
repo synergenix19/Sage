@@ -9,7 +9,7 @@ _SYSTEM = (
 )
 
 
-def low_confidence_respond_node(state: SageState, llm=None) -> dict:
+async def low_confidence_respond_node(state: SageState, llm=None) -> dict:
     if llm is None:
         llm = get_responder()
 
@@ -17,7 +17,12 @@ def low_confidence_respond_node(state: SageState, llm=None) -> dict:
         {"role": "system", "content": _SYSTEM},
         {"role": "user", "content": state["message_en"]},
     ]
-    response = llm.invoke(messages).content.strip()
+
+    chunks: list[str] = []
+    async for chunk in llm.astream(messages):
+        if chunk.content:
+            chunks.append(chunk.content)
+    response = "".join(chunks).strip()
 
     return {
         "response_en": response,

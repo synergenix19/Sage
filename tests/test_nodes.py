@@ -385,8 +385,9 @@ def test_compose_prompt_clinical_flag_injects_adaptation():
     assert "motivational interviewing" in system_str.lower()
     assert "judge" in system_str.lower()  # "do not judge" — in system behavioral guidance
 
-def test_freeflow_respond_with_mocked_llm():
-    """freeflow_respond calls llm.invoke with [{role:system,...},{role:user,...}] message list."""
+@pytest.mark.asyncio
+async def test_freeflow_respond_with_mocked_llm():
+    """freeflow_respond calls llm.astream with [{role:system,...},{role:user,...}] message list."""
     state = make_state(
         message_en="I keep thinking I'm a failure.",
         step_instruction="Goal: identify the thought. Technique: Socratic questioning.",
@@ -394,14 +395,20 @@ def test_freeflow_respond_with_mocked_llm():
         emotional_intensity=6,
         engagement=7,
     )
+    _captured_args = []
+
+    async def _fake_astream(messages):
+        _captured_args.append(messages)
+        yield MagicMock(content="That sounds really hard. When you say you feel like a failure, what specifically are you telling yourself?")
+
     mock_llm = MagicMock()
-    mock_llm.invoke.return_value = MagicMock(content="That sounds really hard. When you say you feel like a failure, what specifically are you telling yourself?")
-    result = freeflow_respond_node(state, llm=mock_llm)
+    mock_llm.astream = _fake_astream
+    result = await freeflow_respond_node(state, llm=mock_llm)
     assert result["response_en"] is not None
     assert "freeflow_respond" in result["path"]
     # Verify the LLM was called with a proper message list (not a raw string)
-    call_args = mock_llm.invoke.call_args[0][0]
-    assert isinstance(call_args, list), "llm.invoke must be called with a message list"
+    call_args = _captured_args[0]
+    assert isinstance(call_args, list), "llm.astream must be called with a message list"
     roles = [m["role"] for m in call_args]
     assert roles == ["system", "user"], "Message list must have exactly [system, user] roles"
 
@@ -434,18 +441,23 @@ def test_output_gate_arabic_response_is_translated():
 # Task 12B: low_confidence_respond node
 from sage_poc.nodes.low_confidence_respond import low_confidence_respond_node
 
-def test_low_confidence_respond_with_mocked_llm():
+@pytest.mark.asyncio
+async def test_low_confidence_respond_with_mocked_llm():
     state = make_state(
         message_en="I don't know... maybe",
         primary_intent="general_chat",
         intent_confidence=0.4,
         conversation_history=[],
     )
+
+    async def _fake_astream(messages):
+        yield MagicMock(
+            content="I want to make sure I understand — could you tell me a bit more about what's on your mind?"
+        )
+
     mock_llm = MagicMock()
-    mock_llm.invoke.return_value = MagicMock(
-        content="I want to make sure I understand — could you tell me a bit more about what's on your mind?"
-    )
-    result = low_confidence_respond_node(state, llm=mock_llm)
+    mock_llm.astream = _fake_astream
+    result = await low_confidence_respond_node(state, llm=mock_llm)
     assert result["response_en"] is not None
     assert "low_confidence_respond" in result["path"]
     assert result.get("step_instruction") is None

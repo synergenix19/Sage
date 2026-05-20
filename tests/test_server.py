@@ -1,5 +1,8 @@
+import inspect
 import pytest
 from fastapi.testclient import TestClient
+from sage_poc.nodes.freeflow_respond import freeflow_respond_node
+from sage_poc.nodes.low_confidence_respond import low_confidence_respond_node
 
 
 def get_client():
@@ -50,9 +53,12 @@ def test_chat_returns_text_for_valid_message():
 
 def test_chat_graph_error_returns_sentinel(monkeypatch):
     import server as srv
-    def _raise(state):
+
+    async def _raise_astream(state, version):
         raise RuntimeError("simulated graph failure")
-    monkeypatch.setattr(srv, "_graph", type("G", (), {"invoke": staticmethod(_raise)})())
+        yield  # make this an async generator
+
+    monkeypatch.setattr(srv, "_graph", type("G", (), {"astream_events": staticmethod(_raise_astream)})())
     client = get_client()
     res = client.post("/chat", json={
         "messages": [{"role": "user", "content": "hello"}],
@@ -60,3 +66,11 @@ def test_chat_graph_error_returns_sentinel(monkeypatch):
     })
     assert res.status_code == 200
     assert res.text.startswith("[[SERVER_ERROR]]")
+
+
+def test_freeflow_node_is_coroutine():
+    assert inspect.iscoroutinefunction(freeflow_respond_node)
+
+
+def test_low_confidence_node_is_coroutine():
+    assert inspect.iscoroutinefunction(low_confidence_respond_node)

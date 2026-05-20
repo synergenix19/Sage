@@ -5,6 +5,7 @@ from collections.abc import AsyncGenerator
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from langdetect import detect as _langdetect, LangDetectException
 from pydantic import BaseModel
 
 from sage_poc.graph import build_graph
@@ -20,6 +21,7 @@ app.add_middleware(
 _graph = build_graph()
 
 CRISIS_SIGNAL = "[[CRISIS_DETECTED]]"
+_STREAMING_NODES = frozenset({"freeflow_respond", "low_confidence_respond"})
 
 
 class Message(BaseModel):
@@ -29,8 +31,8 @@ class Message(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[Message]
-    # session_id is received from the client but intentionally not stored in SageState.
-    # The graph has no concept of sessions; conversation persistence is the frontend's responsibility.
+    # session_id is received from the client but intentionally not stored in SageState —
+    # the graph has no concept of sessions; persistence is the frontend's responsibility.
     session_id: str
 
 
@@ -76,20 +78,78 @@ async def _stream_words(text: str) -> AsyncGenerator[bytes, None]:
         await asyncio.sleep(0.025)
 
 
+async def _stream_events(state: dict) -> AsyncGenerator[bytes, None]:
+    """Real token streaming for English via graph.astream_events.
+
+    Accumulates on_chain_end output dicts to reconstruct final state for
+    hardcoded paths (crisis / scope_refusal / jailbreak) that emit no
+    on_chat_model_stream events.
+    """
+    streamed = False
+    accumulated_output: dict = {}
+
+    async for event in _graph.astream_events(state, version="v2"):
+        etype = event["event"]
+
+        if etype == "on_chat_model_stream":
+            node = event["metadata"].get("langgraph_node", "")
+            if node in _STREAMING_NODES:
+                content = event["data"]["chunk"].content or ""
+                if content:
+                    streamed = True
+                    yield content.encode()
+
+        elif etype == "on_chain_end":
+            out = event["data"].get("output")
+            if isinstance(out, dict):
+                # Accumulate all node outputs; later nodes overwrite earlier keys.
+                # output_gate (last node) sets the final "response" — correct by graph order.
+                accumulated_output.update(out)
+
+    if not streamed:
+        response = accumulated_output.get("response") or ""
+        is_safe = accumulated_output.get("is_safe", True)
+        if not is_safe:
+            yield (CRISIS_SIGNAL + "\n").encode()
+        async for chunk in _stream_words(response):
+            yield chunk
+
+
 async def _stream_response(state: dict) -> AsyncGenerator[bytes, None]:
+    # Pre-detect language for streaming-path routing only. safety_check_node (Node 1)
+    # re-detects authoritatively using the same langdetect library and handles edge cases
+    # (directional mark stripping, Arabic Unicode block override, code-switching). Do NOT
+    # remove Node 1's detection — these serve different purposes: this chooses the
+    # streaming strategy; Node 1 sets the pipeline language for all downstream nodes.
     try:
-        result = await asyncio.to_thread(_graph.invoke, state)
-    except Exception as exc:
-        import logging
-        logging.getLogger(__name__).error("[sage/graph] invoke failed: %s", exc)
-        yield b"[[SERVER_ERROR]]"
-        return
-    response = result.get("response") or ""
-    is_safe = result.get("is_safe", True)
-    if not is_safe:
-        yield (CRISIS_SIGNAL + "\n").encode()
-    async for chunk in _stream_words(response):
-        yield chunk
+        is_arabic = _langdetect(state["raw_message"]) == "ar"
+    except LangDetectException:
+        is_arabic = False
+
+    if is_arabic:
+        # Arabic requires output_gate_node's translation to complete before streaming.
+        # Run sync invoke in a thread, then word-delay stream the final translated response.
+        try:
+            result = await asyncio.to_thread(_graph.invoke, state)
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).error("[sage/graph] invoke failed: %s", exc)
+            yield b"[[SERVER_ERROR]]"
+            return
+        response = result.get("response") or ""
+        is_safe = result.get("is_safe", True)
+        if not is_safe:
+            yield (CRISIS_SIGNAL + "\n").encode()
+        async for chunk in _stream_words(response):
+            yield chunk
+    else:
+        try:
+            async for chunk in _stream_events(state):
+                yield chunk
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).error("[sage/graph] astream_events failed: %s", exc)
+            yield b"[[SERVER_ERROR]]"
 
 
 @app.post("/chat")
