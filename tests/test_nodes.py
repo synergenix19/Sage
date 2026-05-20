@@ -347,6 +347,90 @@ def test_completion_criteria_short_response_holds_step():
     assert action["next_step_id"] == "identify_thought"  # held in place
     assert not action["skill_complete"]
 
+
+# R-5: Completion signal calibration tests
+
+def test_completion_criteria_11_words_advances():
+    """11-word response must cross the > 10 word threshold and allow advancement."""
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("cbt_thought_record")
+    result = evaluate_step_policy(
+        skill=skill,
+        current_step_id="identify_thought",
+        emotional_intensity=5,
+        engagement=7,
+        message_en="I think the thought is that I am not good enough.",
+    )
+    assert result["action"] == "advance", \
+        "11-word response must cross completion threshold and advance"
+
+
+def test_completion_criteria_10_words_holds():
+    """Exactly 10 words does NOT satisfy > 10 — step must hold."""
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("cbt_thought_record")
+    result = evaluate_step_policy(
+        skill=skill,
+        current_step_id="identify_thought",
+        emotional_intensity=5,
+        engagement=7,
+        message_en="I feel like a failure every single day always now.",
+    )
+    assert result["action"] == "stay", \
+        "10-word response must not cross > 10 threshold"
+    assert result["next_step_id"] == "identify_thought"
+
+
+def test_completion_criteria_empty_message_advances():
+    """Empty message_en (first turn, no user input yet) must pass criteria and deliver instruction."""
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("cbt_thought_record")
+    result = evaluate_step_policy(
+        skill=skill,
+        current_step_id="identify_thought",
+        emotional_intensity=5,
+        engagement=7,
+        message_en="",
+    )
+    assert result["action"] == "advance", \
+        "Empty message (first turn) must advance so skill instruction is delivered"
+
+
+def test_completion_criteria_single_word_holds():
+    """Single word 'okay' must not advance — 1 word does not satisfy > 10."""
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("cbt_thought_record")
+    result = evaluate_step_policy(
+        skill=skill,
+        current_step_id="identify_thought",
+        emotional_intensity=5,
+        engagement=7,
+        message_en="okay",
+    )
+    assert result["action"] == "stay", \
+        "Single-word response must not advance"
+
+
+def test_completion_criteria_heuristic_limitation_documented():
+    """
+    KNOWN LIMITATION: A short but genuinely engaged response ('I feel worthless')
+    will NOT advance — the word count heuristic cannot assess engagement quality.
+    This test documents the limitation without asserting it as a bug.
+    """
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("cbt_thought_record")
+    result = evaluate_step_policy(
+        skill=skill,
+        current_step_id="identify_thought",
+        emotional_intensity=5,
+        engagement=7,
+        message_en="I feel worthless.",
+    )
+    assert result["action"] == "stay", \
+        "KNOWN LIMITATION: Short meaningful response holds step (word-count heuristic)"
+    assert result["next_step_id"] == "identify_thought"
+
+
 def test_skill_executor_l1_exit_when_user_wants_to_stop():
     state = make_state(
         message_en="I don't want to do this anymore, let's stop.",
