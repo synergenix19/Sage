@@ -19,6 +19,7 @@ def make_full_state(**overrides) -> dict:
         "gate_path": None,
         "response_en": None, "response": None, "path": [], "turn_count": 0,
         "conversation_history": [],
+        "skill_match_method": None, "semantic_score": None,
     }
     return {**defaults, **overrides}
 
