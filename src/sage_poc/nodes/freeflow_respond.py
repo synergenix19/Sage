@@ -99,7 +99,7 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
 
     chunks: list[str] = []
     async for chunk in llm.astream(messages):
-        if chunk.content:
+        if isinstance(chunk.content, str) and chunk.content:
             chunks.append(chunk.content)
     response = "".join(chunks).strip()
 

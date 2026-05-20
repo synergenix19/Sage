@@ -65,7 +65,7 @@ def test_chat_graph_error_returns_sentinel(monkeypatch):
         "session_id": "test",
     })
     assert res.status_code == 200
-    assert res.text.startswith("[[SERVER_ERROR]]")
+    assert "[[SERVER_ERROR]]" in res.text
 
 
 def test_freeflow_node_is_coroutine():
@@ -74,3 +74,17 @@ def test_freeflow_node_is_coroutine():
 
 def test_low_confidence_node_is_coroutine():
     assert inspect.iscoroutinefunction(low_confidence_respond_node)
+
+
+def test_chat_arabic_crisis_message_has_signal():
+    # Arabic crisis keyword "أريد الموت" (I want to die) — triggers keyword match,
+    # no LLM call needed. Fast test.
+    client = get_client()
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "أريد الموت"}],
+        "session_id": "test-session",
+    })
+    assert res.status_code == 200
+    assert res.text.startswith("[[CRISIS_DETECTED]]")
+    # The Arabic crisis response should NOT be the error sentinel
+    assert "[[SERVER_ERROR]]" not in res.text

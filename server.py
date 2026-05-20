@@ -1,5 +1,6 @@
 from __future__ import annotations
 import asyncio
+import logging
 from collections.abc import AsyncGenerator
 
 from fastapi import FastAPI, HTTPException
@@ -94,7 +95,8 @@ async def _stream_events(state: dict) -> AsyncGenerator[bytes, None]:
         if etype == "on_chat_model_stream":
             node = event["metadata"].get("langgraph_node", "")
             if node in _STREAMING_NODES:
-                content = event["data"]["chunk"].content or ""
+                chunk_obj = event["data"]["chunk"]
+                content = chunk_obj.content if isinstance(chunk_obj.content, str) else ""
                 if content:
                     streamed = True
                     yield content.encode()
@@ -130,11 +132,10 @@ async def _stream_response(state: dict) -> AsyncGenerator[bytes, None]:
         # Arabic requires output_gate_node's translation to complete before streaming.
         # Run sync invoke in a thread, then word-delay stream the final translated response.
         try:
-            result = await asyncio.to_thread(_graph.invoke, state)
+            result = await _graph.ainvoke(state)
         except Exception as exc:
-            import logging
             logging.getLogger(__name__).error("[sage/graph] invoke failed: %s", exc)
-            yield b"[[SERVER_ERROR]]"
+            yield b"\n[[SERVER_ERROR]]"
             return
         response = result.get("response") or ""
         is_safe = result.get("is_safe", True)
@@ -147,9 +148,8 @@ async def _stream_response(state: dict) -> AsyncGenerator[bytes, None]:
             async for chunk in _stream_events(state):
                 yield chunk
         except Exception as exc:
-            import logging
             logging.getLogger(__name__).error("[sage/graph] astream_events failed: %s", exc)
-            yield b"[[SERVER_ERROR]]"
+            yield b"\n[[SERVER_ERROR]]"
 
 
 @app.post("/chat")
