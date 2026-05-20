@@ -72,9 +72,10 @@ function useStreamingChat(sessionId: string | undefined, initialMessages: SdkMes
           const { done, value } = await reader.read()
           if (done) break
           accumulated += decoder.decode(value, { stream: true })
-          const snapshot = accumulated
+          // Strip trailing [[META:...]] sentinel (persist-only, never shown to user)
+          const displayContent = accumulated.replace(/\[\[META:.*?\]\]$/s, '')
           setMessages((curr) =>
-            curr.map((m) => (m.id === assistantId ? { ...m, content: snapshot } : m))
+            curr.map((m) => (m.id === assistantId ? { ...m, content: displayContent } : m))
           )
         }
         accumulated += decoder.decode() // flush trailing multi-byte sequence

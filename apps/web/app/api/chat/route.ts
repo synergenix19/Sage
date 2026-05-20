@@ -43,6 +43,7 @@ export async function POST(req: Request) {
     intent,
   })
 
+  const sageStart = Date.now()
   const sageRes = await fetch(`${SAGE_API_URL}/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -68,12 +69,27 @@ export async function POST(req: Request) {
         if (done) break
         accumulated += decoder.decode(value, { stream: true })
       }
-      accumulated += decoder.decode() // flush: releases any buffered incomplete multi-byte sequence
+      accumulated += decoder.decode()
+      const latencyMs = Date.now() - sageStart
 
       if (accumulated.includes('[[SERVER_ERROR]]')) {
-        // Partial content + error sentinel — don't persist garbage to the database
         console.error('[chat/persist] server error sentinel received, skipping persist')
       } else {
+        // Parse and strip trailing [[META:{...}]] sentinel emitted by the Sage backend.
+        // Format: [[META:{"path":[...],"model":"..."}]]
+        let sageModel: string | null = null
+        let sageNodePath: string[] | null = null
+        const metaIdx = accumulated.lastIndexOf('[[META:')
+        if (metaIdx !== -1) {
+          try {
+            const metaJson = accumulated.slice(metaIdx + 7, accumulated.lastIndexOf(']]'))
+            const meta = JSON.parse(metaJson) as { path?: string[]; model?: string }
+            sageModel    = meta.model    ?? null
+            sageNodePath = meta.path     ?? null
+          } catch { /* malformed sentinel — ignore */ }
+          accumulated = accumulated.slice(0, metaIdx)
+        }
+
         const isCrisis = accumulated.startsWith(CRISIS_SIGNAL)
         const content = isCrisis
           ? accumulated.slice(CRISIS_SIGNAL.length).trimStart()
@@ -81,9 +97,12 @@ export async function POST(req: Request) {
 
         await supabase.from('messages').insert({
           session_id: sessionId,
-          role: isCrisis ? 'crisis' : 'ai',
+          role:       isCrisis ? 'crisis' : 'ai',
           content,
           intent,
+          model:      sageModel,
+          latency_ms: latencyMs,
+          node_path:  sageNodePath,
         })
       }
 
@@ -104,8 +123,6 @@ export async function POST(req: Request) {
           .eq('id', sessionId)
       }
       // POST-PILOT: Add mood scoring and insight generation here.
-      // Real path: score mood 1-5 via a generateText call on the full exchange,
-      // insert to mood_scores table; generate a brief insight and insert to session_insights.
     } catch (err) {
       console.error('[chat/persist] failed:', err)
     }
