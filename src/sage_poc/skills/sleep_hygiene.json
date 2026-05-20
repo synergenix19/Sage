@@ -4,10 +4,10 @@
   "skill_type": "structured",
   "evidence_base": "Walker (2017); NHS Sleep Hygiene Guidelines; CBT-I principles",
   "target_presentations": [
-    "can't sleep", "insomnia", "sleep problems", "sleeping badly",
+    "can't sleep", "cant sleep", "insomnia", "sleep problems", "sleeping badly",
     "lie awake", "lying awake", "sleep issues", "trouble sleeping",
     "not sleeping", "poor sleep", "sleep deprived", "no sleep",
-    "waking up", "can't fall asleep"
+    "waking up", "can't fall asleep", "cant fall asleep"
   ],
   "semantic_description": "Trouble sleeping at night. Lying in bed unable to fall asleep. Lying awake in the dark for hours. Exhausted but the mind won't stop racing the moment the lights go off and the head hits the pillow — thoughts spinning, ruminating, replaying the day, planning tomorrow, churning, won't switch off. Waking up at three in the morning and not being able to get back to sleep. Tossing, turning, staring at the ceiling, watching the clock. Tired all day but wide awake at night. Bedtime, bedroom, pillow, duvet, alarm clock, three a.m. The body wants to rest but rest will not come. A recurring nighttime pattern of broken sleep, exhaustion, and a mind that won't quiet down at bedtime.",
   "steps": [
