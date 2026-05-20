@@ -1,5 +1,6 @@
 from __future__ import annotations
 import asyncio
+import json
 import logging
 from collections.abc import AsyncGenerator
 
@@ -10,6 +11,7 @@ from langdetect import detect as _langdetect, LangDetectException
 from pydantic import BaseModel
 
 from sage_poc.graph import build_graph
+from sage_poc.config import RESPONDER_MODEL
 
 app = FastAPI(title="SageAI API")
 app.add_middleware(
@@ -22,6 +24,7 @@ app.add_middleware(
 _graph = build_graph()
 
 CRISIS_SIGNAL = "[[CRISIS_DETECTED]]"
+META_SIGNAL   = "[[META:"          # closed by "]]" — parsed by the Next.js persist handler
 _STREAMING_NODES = frozenset({"freeflow_respond", "low_confidence_respond"})
 
 
@@ -73,6 +76,11 @@ def _build_state(req: ChatRequest) -> dict:
     }
 
 
+def _meta_chunk(path: list[str]) -> bytes:
+    """Trailing metadata sentinel read by the Next.js persist handler."""
+    return (META_SIGNAL + json.dumps({"path": path, "model": RESPONDER_MODEL}) + "]]").encode()
+
+
 async def _stream_words(text: str) -> AsyncGenerator[bytes, None]:
     for word in text.split():
         yield (word + " ").encode()
@@ -116,6 +124,8 @@ async def _stream_events(state: dict) -> AsyncGenerator[bytes, None]:
         async for chunk in _stream_words(response):
             yield chunk
 
+    yield _meta_chunk(accumulated_output.get("path") or [])
+
 
 async def _stream_response(state: dict) -> AsyncGenerator[bytes, None]:
     # Pre-detect language for streaming-path routing only. safety_check_node (Node 1)
@@ -143,6 +153,7 @@ async def _stream_response(state: dict) -> AsyncGenerator[bytes, None]:
             yield (CRISIS_SIGNAL + "\n").encode()
         async for chunk in _stream_words(response):
             yield chunk
+        yield _meta_chunk(result.get("path") or [])
     else:
         try:
             async for chunk in _stream_events(state):
