@@ -1541,6 +1541,8 @@ def test_semantic_match_returns_score_in_result():
     """Semantic matches must include the similarity score for audit trail."""
     state = make_state(message_en="I hate myself so much")
     result = skill_select_node(state)
-    if result["skill_match_method"] == "semantic":
-        assert isinstance(result["semantic_score"], float)
-        assert 0.0 < result["semantic_score"] <= 1.0
+    assert result["skill_match_method"] == "semantic", (
+        "'I hate myself so much' must reach semantic fallback — 'hate' is not a keyword"
+    )
+    assert isinstance(result["semantic_score"], float)
+    assert 0.0 < result["semantic_score"] <= 1.0
