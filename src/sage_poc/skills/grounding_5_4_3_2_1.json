@@ -8,6 +8,7 @@
     "can't breathe", "heart racing", "spinning", "grounding", "anxious right now",
     "anxiety attack", "feel disconnected", "not real", "losing control"
   ],
+  "semantic_description": "This skill is for someone who needs to come back to the present moment right now — feeling like things are spiralling out of control, like they cannot handle the intensity of what they are feeling, or like they are losing their grip. It helps in moments of acute distress where emotions feel like too much all at once, where the person feels flooded and cannot think straight, or where they need something immediate rather than a longer conversation. Suitable when the distress is happening right now, not as a reflection on the past.",
   "steps": [
     {
       "step_id": "see_5",
