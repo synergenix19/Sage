@@ -8,7 +8,7 @@
     "catastrophizing", "failure", "worthless", "always my fault",
     "my fault", "blame myself", "i'm a burden", "everything is my fault"
   ],
-  "semantic_description": "This skill is for someone caught in relentless self-criticism — feeling like nothing they do is ever good enough, that they always mess things up, that every mistake proves something fundamentally wrong with them. It helps with the kind of thinking where one setback becomes proof of total failure, where the person can't stop replaying what they did wrong, or where they feel like a disappointment to everyone around them. Suitable when the user expresses harsh self-judgment, distorted self-perception, or a sense of shame they can't shake.",
+  "semantic_description": "This skill is for someone caught in relentless self-criticism — feeling like nothing they do is ever good enough, that they always mess things up, that every mistake proves something fundamentally wrong with them. It helps with the kind of thinking where one setback becomes proof of total failure, where the person can't stop replaying what they did wrong, or where they feel like a disappointment to everyone around them. Suitable when the user expresses harsh self-judgment, a feeling that there is something fundamentally broken about who they are, or a sense of shame they can't shake.",
   "steps": [
     {
       "step_id": "identify_thought",

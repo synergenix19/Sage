@@ -9,7 +9,7 @@
     "not sleeping", "poor sleep", "sleep deprived", "no sleep",
     "waking up", "can't fall asleep"
   ],
-  "semantic_description": "This skill is for someone whose relationship with sleep has broken down — lying in bed exhausted but unable to rest, mind racing when they finally get a moment to themselves, dragging through the day because nights don't restore them. It addresses the pattern of being tired all day but wide awake at night, the frustration of desperately wanting sleep but being unable to get it, and the habits or thoughts that get in the way of a good night. Suitable when poor sleep is a recurring pattern affecting daily life, not a single bad night.",
+  "semantic_description": "This skill is for someone whose relationship with sleep has broken down — lying in bed exhausted but unable to rest, mind racing when they finally get a moment to themselves, dragging through the day because nights don't restore them. It addresses the pattern of being tired all day but wide awake at night, the frustration of desperately wanting sleep but being unable to get it, and the habits or thoughts that get in the way of a good night. Suitable when disrupted rest has become a pattern that drains daily life, not a single bad night.",
   "steps": [
     {
       "step_id": "assess_sleep",
