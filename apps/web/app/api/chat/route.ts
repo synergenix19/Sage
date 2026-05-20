@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   }
 
   const lastMessage = messages[messages.length - 1]?.content ?? ''
-  const intent = await classifyIntent(lastMessage)
+  const intent = await classifyIntent(lastMessage).catch(() => 'emotional' as Intent)
 
   const supabase = await createClient()
   await supabase.from('messages').insert({
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
           model: openrouter(CLASSIFIER_MODEL),
           prompt: `Give this conversation a short title (3-5 words, no quotes):\n\nUser: "${lastMessage}"`,
           maxOutputTokens: 15,
-        })
+        }).catch(() => ({ text: lastMessage.slice(0, 30) }))
         await supabase.from('chat_sessions')
           .update({ name: sessionName.trim(), updated_at: new Date().toISOString() })
           .eq('id', sessionId)
