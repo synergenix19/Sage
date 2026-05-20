@@ -673,6 +673,57 @@ def test_crisis_keyword_with_zwsp_still_detected():
     assert len(flags) > 0, "ZWSP between words must not defeat crisis keyword detection"
 
 
+# SF-6: False-positive tests — metaphorical language must NOT trigger crisis
+
+def test_false_positive_dying_of_laughter():
+    """'dying of laughter' is idiomatic — must not trigger crisis."""
+    state = make_state(raw_message="I was literally dying of laughter watching that video")
+    result = safety_check_node(state)
+    assert result["is_safe"] is True, \
+        "'dying of laughter' is idiomatic and must not trigger crisis detection"
+    assert result["crisis_flags"] == []
+
+
+def test_false_positive_work_is_killing_me():
+    """'this work is killing me' is workplace idiom — must not trigger crisis."""
+    state = make_state(raw_message="This project is killing me, I've been working non-stop")
+    result = safety_check_node(state)
+    assert result["is_safe"] is True, \
+        "'this work is killing me' is idiomatic and must not trigger crisis detection"
+    assert result["crisis_flags"] == []
+
+
+def test_false_positive_could_kill_for_coffee():
+    """'I could kill for a coffee' is hyperbolic idiom — must not trigger crisis."""
+    state = make_state(raw_message="I could kill for a coffee right now, I'm so tired")
+    result = safety_check_node(state)
+    assert result["is_safe"] is True, \
+        "'could kill for a coffee' is idiomatic and must not trigger crisis detection"
+    assert result["crisis_flags"] == []
+
+
+@pytest.mark.slow
+def test_false_positive_gulf_arabic_frustration_idiom():
+    """'الله ياخذني من هالدنيا' is a Gulf frustration expression, NOT active ideation."""
+    state = make_state(raw_message="الله ياخذني من هالدنيا، الشغل ما يخلص")
+    result = safety_check_node(state)
+    # DOCUMENTATION TEST — intentionally no assert on is_safe True/False.
+    #
+    # "الله ياخذني من هالدنيا" is genuinely ambiguous in Gulf Arabic: it ranges from
+    # exasperated venting ("God take me from this world, work never ends") to indirect
+    # passive ideation depending on context and affect. The Sage safety architecture
+    # uses OR-fusion (any signal → crisis path), so a false positive here is clinically
+    # defensible — over-caution is safer than under-caution for passive SI.
+    #
+    # A future engineer must NOT "fix" this by adding assert is_safe is True.
+    # The correct resolution is clinical calibration, not code suppression.
+    # Leave this test as a behaviour snapshot for the clinical reviewer.
+    assert "is_safe" in result, "safety_check_node must always return is_safe"
+    assert "crisis_flags" in result, "safety_check_node must always return crisis_flags"
+    # Print outcome for clinical audit trail (visible in pytest -s output)
+    print(f"\n[CLINICAL-AUDIT] 'الله ياخذني من هالدنيا' → is_safe={result['is_safe']}, flags={result['crisis_flags']}")
+
+
 # NEW-2: L1 false-positive regression tests — overly broad phrases removed
 
 def test_l1_does_not_fire_on_dont_want_to_burden_you():
