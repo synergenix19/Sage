@@ -54,12 +54,9 @@ export async function middleware(request: NextRequest) {
     }
 
     const isOnboardingStep = /^\/step-[1-6]$/.test(pathname)
-    if (
-      !pathname.startsWith('/admin') &&
-      !isOnboardingStep &&
-      profile && !profile.onboarding_complete
-    ) {
-      const step = profile.onboarding_step
+    const needsOnboarding = !profile || !profile.onboarding_complete
+    if (!pathname.startsWith('/admin') && !isOnboardingStep && needsOnboarding) {
+      const step = profile?.onboarding_step
       const target = step && step > 0 ? `/step-${step}` : '/step-1'
       return NextResponse.redirect(new URL(target, request.url))
     }
