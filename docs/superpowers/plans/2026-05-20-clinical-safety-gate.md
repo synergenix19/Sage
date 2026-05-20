@@ -116,8 +116,15 @@ In the Arabic Gulf/Khaleeji block, add after `"أبي أخلص من حياتي"`
 
 ```python
     # Gulf Arabic passive SI / escape ideation (SF-1)
-    "ابغى أختفي",              # Gulf: "I want to disappear"
-    "أبغى أختفي",              # same with أبغى prefix
+    # NOTE (production): Arabic matching is exact Unicode codepoint comparison —
+    # .lower() is a no-op for Arabic. Alef variants (أ / ا / إ / ٱ) are NOT
+    # normalised before matching. Both spellings of "I want to disappear" are
+    # listed explicitly to cover the two most common Alef-hamza prefix forms.
+    # A production deployment should add alef-normalization (strip hamza diacritics
+    # to bare alef ا before keyword comparison) to catch all orthographic variants.
+    # For the POC, covering both spellings explicitly is the correct pragmatic choice.
+    "ابغى أختفي",              # Gulf: "I want to disappear" (bare alef prefix)
+    "أبغى أختفي",              # same — alef-hamza-above prefix
     "ما في فايدة من اي شي",    # spaced Gulf variant of مافي فايدة
     "ما في فائدة",             # MSA spaced variant
 ```
@@ -325,7 +332,14 @@ print('English match:', result_en)
 "
 ```
 
-If `"can't go on"` matches "ما أقدر أكمل" translation — this is clinically ambiguous. Do NOT remove "can't go on" from CRISIS_KEYWORDS. Instead, document the false-positive pattern in a comment in `safety_check.py` for clinical review.
+If the LLM translation triggers a keyword match (e.g. "I'm tired of everything" → matches "nothing matters anymore", or "I can't go on" translation of "ما أقدر أكمل"):
+
+**Do NOT remove the keyword and do NOT try to fix it in code.** The correct resolution is:
+1. Convert the failing assertion from `assert result["is_safe"] is True` to a documentation-style test (no is_safe assertion; add `print(f"[CLINICAL-AUDIT] ...")` for audit trail visibility) — matching the pattern used for `test_false_positive_gulf_arabic_frustration_idiom` in Task 2.
+2. Add an inline comment in `safety_check.py` naming the phrase and documenting the false-positive pattern.
+3. Flag it as a **TD3 calibration issue** (v7 §8 — crisis taxonomy review). TD3's explicit purpose is to adjudicate borderline phrases; this is exactly the kind of case it owns.
+
+The safety architecture uses OR-fusion (any signal → crisis path), so a false positive here is clinically defensible — over-caution is safer than under-caution for passive SI. Do not sacrifice keyword coverage to make a unit test pass.
 
 - [ ] **Step 3: Run all slow C-1 tests**
 
@@ -466,11 +480,12 @@ def test_e2e_jailbreak_with_crisis_content_routes_to_crisis_or_jailbreak():
             f"If jailbreak path taken, response must reassert Sage identity; got: {response!r}"
 
 
-@pytest.mark.slow
 def test_e2e_scope_refusal_distinct_from_crisis_response():
     """
     scope_refusal response must be substantively different from crisis_response.
     This guards against the gate falling through to crisis handling incorrectly.
+
+    No LLM call — compares two string constants only. Runs in the fast suite.
     """
     from sage_poc.nodes.output_gate import SCOPE_REFUSAL_RESPONSE
     from sage_poc.graph import CRISIS_RESPONSE
