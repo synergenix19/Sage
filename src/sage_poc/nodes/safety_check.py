@@ -34,8 +34,15 @@ CRISIS_KEYWORDS = [
     "أبي أنهي حياتي", "أبغى أنهي حياتي",
     "أبي أخلص من حياتي",
     # Gulf Arabic passive SI / escape ideation (SF-1)
-    "ابغى أختفي",              # Gulf: "I want to disappear"
-    "أبغى أختفي",              # same with أبغى prefix
+    # NOTE (production): Arabic matching is exact Unicode codepoint comparison —
+    # .lower() is a no-op for Arabic. Alef variants (أ / ا / إ / ٱ) are NOT
+    # normalised before matching. Both spellings of "I want to disappear" are
+    # listed explicitly to cover the two most common Alef-hamza prefix forms.
+    # A production deployment should add alef-normalization (strip hamza diacritics
+    # to bare alef ا before keyword comparison) to catch all orthographic variants.
+    # For the POC, covering both spellings explicitly is the correct pragmatic choice.
+    "ابغى أختفي",              # Gulf: "I want to disappear" (bare alef prefix)
+    "أبغى أختفي",              # same — alef-hamza-above prefix
     "ما في فايدة من اي شي",    # spaced Gulf variant of مافي فايدة
     "ما في فائدة",             # MSA spaced variant
     "أبي أجرح نفسي", "أبغى أجرح نفسي",
