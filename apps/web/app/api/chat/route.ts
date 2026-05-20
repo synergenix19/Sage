@@ -57,6 +57,22 @@ export async function POST(req: Request) {
     return new Response('Upstream error', { status: 502 })
   }
 
+  // Metadata is in response headers — never in the body stream.
+  const sageModel    = sageRes.headers.get('X-Sage-Model')
+  const skillId      = sageRes.headers.get('X-Sage-Skill-Id') || null
+  const stepId       = sageRes.headers.get('X-Sage-Step-Id') || null
+  const gatePath     = sageRes.headers.get('X-Sage-Gate-Path') || null
+
+  let sageNodePath:   string[] | null = null
+  let crisisFlags:    string[] | null = null
+  let clinicalFlags:  string[] | null = null
+  try { sageNodePath  = JSON.parse(sageRes.headers.get('X-Sage-Node-Path')       || '[]') } catch {}
+  try { crisisFlags   = JSON.parse(sageRes.headers.get('X-Sage-Crisis-Flags')    || '[]') } catch {}
+  try { clinicalFlags = JSON.parse(sageRes.headers.get('X-Sage-Clinical-Flags')  || '[]') } catch {}
+
+  const intensityStr      = sageRes.headers.get('X-Sage-Emotional-Intensity')
+  const emotionalIntensity = intensityStr ? (parseInt(intensityStr, 10) || null) : null
+
   const [clientStream, persistStream] = sageRes.body.tee()
 
   void (async () => {
@@ -75,34 +91,25 @@ export async function POST(req: Request) {
       if (accumulated.includes('[[SERVER_ERROR]]')) {
         console.error('[chat/persist] server error sentinel received, skipping persist')
       } else {
-        // Parse and strip trailing [[META:{...}]] sentinel emitted by the Sage backend.
-        // Format: [[META:{"path":[...],"model":"..."}]]
-        let sageModel: string | null = null
-        let sageNodePath: string[] | null = null
-        const metaIdx = accumulated.lastIndexOf('[[META:')
-        if (metaIdx !== -1) {
-          try {
-            const metaJson = accumulated.slice(metaIdx + 7, accumulated.lastIndexOf(']]'))
-            const meta = JSON.parse(metaJson) as { path?: string[]; model?: string }
-            sageModel    = meta.model    ?? null
-            sageNodePath = meta.path     ?? null
-          } catch { /* malformed sentinel — ignore */ }
-          accumulated = accumulated.slice(0, metaIdx)
-        }
-
         const isCrisis = accumulated.startsWith(CRISIS_SIGNAL)
         const content = isCrisis
           ? accumulated.slice(CRISIS_SIGNAL.length).trimStart()
           : accumulated
 
         await supabase.from('messages').insert({
-          session_id: sessionId,
-          role:       isCrisis ? 'crisis' : 'ai',
+          session_id:          sessionId,
+          role:                isCrisis ? 'crisis' : 'ai',
           content,
           intent,
-          model:      sageModel,
-          latency_ms: latencyMs,
-          node_path:  sageNodePath,
+          model:               sageModel,
+          latency_ms:          latencyMs,
+          node_path:           sageNodePath,
+          skill_id:            skillId,
+          step_id:             stepId,
+          gate_path:           gatePath,
+          crisis_flags:        crisisFlags,
+          clinical_flags:      clinicalFlags,
+          emotional_intensity: emotionalIntensity,
         })
       }
 
