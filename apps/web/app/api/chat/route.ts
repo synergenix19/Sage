@@ -66,9 +66,12 @@ export async function POST(req: Request) {
   let sageNodePath:   string[] | null = null
   let crisisFlags:    string[] | null = null
   let clinicalFlags:  string[] | null = null
-  try { sageNodePath  = JSON.parse(sageRes.headers.get('X-Sage-Node-Path')       || '[]') } catch {}
-  try { crisisFlags   = JSON.parse(sageRes.headers.get('X-Sage-Crisis-Flags')    || '[]') } catch {}
-  try { clinicalFlags = JSON.parse(sageRes.headers.get('X-Sage-Clinical-Flags')  || '[]') } catch {}
+  const _rawNodePath    = sageRes.headers.get('X-Sage-Node-Path')
+  const _rawCrisisFlags = sageRes.headers.get('X-Sage-Crisis-Flags')
+  const _rawClinFlags   = sageRes.headers.get('X-Sage-Clinical-Flags')
+  try { sageNodePath  = _rawNodePath    ? JSON.parse(_rawNodePath)    : null } catch {}
+  try { crisisFlags   = _rawCrisisFlags ? JSON.parse(_rawCrisisFlags) : null } catch {}
+  try { clinicalFlags = _rawClinFlags   ? JSON.parse(_rawClinFlags)   : null } catch {}
 
   const intensityStr      = sageRes.headers.get('X-Sage-Emotional-Intensity')
   const emotionalIntensity = intensityStr ? (parseInt(intensityStr, 10) || null) : null
