@@ -292,7 +292,7 @@ git commit -m "feat(skills): add 5-4-3-2-1 grounding skill and register in SKILL
 
 ### Task 3: S-1b — Create sleep hygiene skill
 
-**Context:** Sleep psychoeducation is a standalone 3-step skill: assess sleep pattern → provide evidence-based sleep hygiene guidance → reflect on barriers and next steps. Target presentations: sleep complaints, insomnia, can't sleep. Uses motivational interviewing tone (not prescriptive).
+**Context:** Sleep hygiene is a 3-step structured skill: assess sleep pattern → provide evidence-based sleep hygiene guidance → reflect on barriers and next steps. Target presentations: sleep complaints, insomnia, can't sleep. Uses motivational interviewing tone (not prescriptive). `skill_type` is "structured" (not "psychoeducation") because the type field controls executor routing — multi-step skills use "structured" per v7 §9.1 regardless of clinical taxonomy.
 
 **Files:**
 - Create: `src/sage_poc/skills/sleep_hygiene.json`
@@ -353,7 +353,7 @@ Create `src/sage_poc/skills/sleep_hygiene.json`:
 {
   "skill_id": "sleep_hygiene",
   "skill_name": "Sleep Hygiene",
-  "skill_type": "psychoeducation",
+  "skill_type": "structured",
   "evidence_base": "Walker (2017); NHS Sleep Hygiene Guidelines; CBT-I principles",
   "target_presentations": [
     "can't sleep", "insomnia", "sleep problems", "sleeping badly",
