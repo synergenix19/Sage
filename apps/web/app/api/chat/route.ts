@@ -68,6 +68,7 @@ export async function POST(req: Request) {
         if (done) break
         accumulated += decoder.decode(value, { stream: true })
       }
+      accumulated += decoder.decode() // flush: releases any buffered incomplete multi-byte sequence
 
       const isCrisis = accumulated.startsWith(CRISIS_SIGNAL)
       const content = isCrisis
@@ -97,6 +98,9 @@ export async function POST(req: Request) {
           .update({ name: sessionName.trim(), updated_at: new Date().toISOString() })
           .eq('id', sessionId)
       }
+      // POST-PILOT: Add mood scoring and insight generation here.
+      // Real path: score mood 1-5 via a generateText call on the full exchange,
+      // insert to mood_scores table; generate a brief insight and insert to session_insights.
     } catch (err) {
       console.error('[chat/persist] failed:', err)
     }
