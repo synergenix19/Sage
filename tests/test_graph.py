@@ -1,3 +1,4 @@
+import asyncio
 import pytest
 from unittest.mock import patch, MagicMock
 
@@ -722,7 +723,7 @@ def test_e2e_standard_path_routes_through_freeflow():
     from sage_poc.graph import build_graph
     graph = build_graph()
     state = make_e2e_state("I've been feeling a bit stressed about work lately.")
-    result = graph.invoke(state)
+    result = asyncio.run(graph.ainvoke(state))
 
     gate_path = result.get("gate_path")
     assert gate_path is None or gate_path == "standard", \
