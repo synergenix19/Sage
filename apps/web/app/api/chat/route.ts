@@ -70,17 +70,22 @@ export async function POST(req: Request) {
       }
       accumulated += decoder.decode() // flush: releases any buffered incomplete multi-byte sequence
 
-      const isCrisis = accumulated.startsWith(CRISIS_SIGNAL)
-      const content = isCrisis
-        ? accumulated.slice(CRISIS_SIGNAL.length).trimStart()
-        : accumulated
+      if (accumulated.includes('[[SERVER_ERROR]]')) {
+        // Partial content + error sentinel — don't persist garbage to the database
+        console.error('[chat/persist] server error sentinel received, skipping persist')
+      } else {
+        const isCrisis = accumulated.startsWith(CRISIS_SIGNAL)
+        const content = isCrisis
+          ? accumulated.slice(CRISIS_SIGNAL.length).trimStart()
+          : accumulated
 
-      await supabase.from('messages').insert({
-        session_id: sessionId,
-        role: isCrisis ? 'crisis' : 'ai',
-        content,
-        intent,
-      })
+        await supabase.from('messages').insert({
+          session_id: sessionId,
+          role: isCrisis ? 'crisis' : 'ai',
+          content,
+          intent,
+        })
+      }
 
       const { data: session } = await supabase
         .from('chat_sessions')

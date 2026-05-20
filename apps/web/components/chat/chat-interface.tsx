@@ -75,6 +75,13 @@ function useStreamingChat(sessionId: string | undefined) {
             curr.map((m) => (m.id === assistantId ? { ...m, content: snapshot } : m))
           )
         }
+        accumulated += decoder.decode() // flush trailing multi-byte sequence
+
+        if (accumulated.includes('[[SERVER_ERROR]]')) {
+          // Drop the placeholder and surface the error — lets the retry UI appear
+          setMessages((curr) => curr.filter((m) => m.id !== assistantId))
+          setError(new Error('Sage is having trouble responding. Please try again.'))
+        }
       } catch (err) {
         if ((err as Error).name === 'AbortError') return
         setError(err as Error)
