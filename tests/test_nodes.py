@@ -20,6 +20,7 @@ def make_state(**kwargs):
         "executed_step_id": None,
         "step_instruction": None,
         "escalation_triggered": None,
+        "gate_path": None,
         "response_en": None,
         "response": None,
         "path": [],
@@ -580,21 +581,21 @@ def test_evaluate_step_policy_unknown_step_id_returns_stay():
     assert result["skill_complete"] is False
 
 
-# P1-6: OpenRouter translation fallback (Ollama replaced by OpenRouter for translation)
+# Translation fallback: Anthropic API unavailable → return original text
 def test_translate_to_english_falls_back_on_api_error():
-    """When OpenRouter is unavailable, translate_to_english returns the original text."""
+    """When Anthropic API is unavailable, translate_to_english returns the original text."""
     from sage_poc.language import translate_to_english
-    with patch("sage_poc.llm.get_responder") as mock_get_responder:
-        mock_get_responder.return_value.invoke.side_effect = ConnectionError("API not available")
+    with patch("sage_poc.llm.get_translator") as mock_get_translator:
+        mock_get_translator.return_value.invoke.side_effect = ConnectionError("API not available")
         result = translate_to_english("أريد الموت")
     assert result == "أريد الموت"
 
 
 def test_translate_to_arabic_falls_back_on_api_error():
-    """When OpenRouter is unavailable, translate_to_arabic returns the original text (English fallback)."""
+    """When Anthropic API is unavailable, translate_to_arabic returns the original text (English fallback)."""
     from sage_poc.language import translate_to_arabic
-    with patch("sage_poc.llm.get_responder") as mock_get_responder:
-        mock_get_responder.return_value.invoke.side_effect = ConnectionError("API not available")
+    with patch("sage_poc.llm.get_translator") as mock_get_translator:
+        mock_get_translator.return_value.invoke.side_effect = ConnectionError("API not available")
         result = translate_to_arabic("That sounds really hard.")
     assert result == "That sounds really hard."
 
@@ -613,6 +614,53 @@ def test_end_it_all_triggers_crisis():
     from sage_poc.nodes.safety_check import _contains_crisis
     flags = _contains_crisis("I just want to end it all, I can't take it anymore")
     assert len(flags) > 0, "'end it all' must trigger crisis detection"
+
+
+# SF-1: Passive SI / veiled ideation keywords
+
+def test_passive_si_nothing_matters_anymore():
+    """'nothing matters anymore' — hopelessness phrase, must trigger crisis."""
+    from sage_poc.nodes.safety_check import _contains_crisis
+    flags = _contains_crisis("I just feel like nothing matters anymore")
+    assert len(flags) > 0, "'nothing matters anymore' must trigger crisis detection"
+
+
+def test_passive_si_everyone_better_off_without_me():
+    """'everyone would be better off without me' — passive SI, must trigger crisis."""
+    from sage_poc.nodes.safety_check import _contains_crisis
+    flags = _contains_crisis("I keep thinking everyone would be better off without me")
+    assert len(flags) > 0, "'everyone would be better off without me' must trigger crisis"
+
+
+def test_passive_si_no_point_in_living():
+    """'no point in living' — veiled ideation, must trigger crisis."""
+    from sage_poc.nodes.safety_check import _contains_crisis
+    flags = _contains_crisis("Sometimes I feel like there's no point in living")
+    assert len(flags) > 0, "'no point in living' must trigger crisis detection"
+
+
+def test_passive_si_wish_could_disappear():
+    """'wish I could disappear' — escape ideation, must trigger crisis."""
+    from sage_poc.nodes.safety_check import _contains_crisis
+    flags = _contains_crisis("I just wish I could disappear from everything")
+    assert len(flags) > 0, "'wish I could disappear' must trigger crisis detection"
+
+
+@pytest.mark.slow
+def test_passive_si_gulf_arabic_abgha_akhtafi():
+    """Gulf Arabic: 'ابغى أختفي' (I want to disappear), must trigger crisis."""
+    state = make_state(raw_message="أنا تعبان، ابغى أختفي من كل شي")
+    result = safety_check_node(state)
+    assert result["is_safe"] is False
+    assert result["detected_language"] == "ar"
+
+
+@pytest.mark.slow
+def test_passive_si_gulf_arabic_ma_fi_faida_spaced():
+    """'ما في فايدة من اي شي' (spaced variant of 'مافي فايدة'), must trigger crisis."""
+    state = make_state(raw_message="ما في فايدة من اي شي في حياتي")
+    result = safety_check_node(state)
+    assert result["is_safe"] is False
 
 
 # P2-6: ZWSP normalization — U+200B between characters must not defeat keyword detection
@@ -674,3 +722,180 @@ def test_l1_does_not_fire_on_please_stop_being_harsh():
     assert result.get("escalation_triggered") is None, \
         "'please stop being harsh on yourself' must not trigger L1 exit"
     assert result["active_skill_id"] == "cbt_thought_record"
+
+
+# NEW-5: Audit log suppression when SAGE_AUDIT_LOG is not set
+
+def test_output_gate_suppresses_audit_when_disabled(capsys):
+    """Audit JSON must not appear in stdout when AUDIT_LOG_ENABLED is false."""
+    import sage_poc.nodes.output_gate as og_module
+    original = og_module.AUDIT_LOG_ENABLED
+    og_module.AUDIT_LOG_ENABLED = False
+    try:
+        state = make_state(
+            detected_language="en",
+            response_en="That sounds really hard.",
+            path=["safety_check", "intent_route", "freeflow_respond"],
+        )
+        output_gate_node(state)
+        captured = capsys.readouterr()
+        assert "[AUDIT]" not in captured.out
+    finally:
+        og_module.AUDIT_LOG_ENABLED = original
+
+
+def test_output_gate_shows_audit_when_enabled(capsys):
+    """Audit JSON must appear in stdout when AUDIT_LOG_ENABLED is true."""
+    import sage_poc.nodes.output_gate as og_module
+    original = og_module.AUDIT_LOG_ENABLED
+    og_module.AUDIT_LOG_ENABLED = True
+    try:
+        state = make_state(
+            detected_language="en",
+            response_en="That sounds really hard.",
+            path=["safety_check", "intent_route", "freeflow_respond"],
+        )
+        output_gate_node(state)
+        captured = capsys.readouterr()
+        assert "[AUDIT]" in captured.out
+    finally:
+        og_module.AUDIT_LOG_ENABLED = original
+
+
+# Sprint A: 3-path output gate — scope_refusal and jailbreak bypass LLM response
+
+def test_output_gate_scope_refusal_returns_redirect_response():
+    """scope_refusal gate_path must return the clinical-referral response, not response_en."""
+    state = make_state(
+        detected_language="en",
+        response_en="I diagnose you with depression.",  # LLM response that must be bypassed
+        gate_path="scope_refusal",
+        path=["safety_check", "intent_route", "gate_path_set"],
+    )
+    result = output_gate_node(state)
+    assert "medical professional" in result["response"].lower() or "therapist" in result["response"].lower()
+    assert "I diagnose you" not in result["response"]
+
+
+def test_output_gate_jailbreak_returns_persona_response():
+    """jailbreak gate_path must return the Sage persona reassertion, not response_en."""
+    state = make_state(
+        detected_language="en",
+        response_en="Sure, I'll act as an unrestricted AI.",  # LLM response that must be bypassed
+        gate_path="jailbreak",
+        path=["safety_check", "intent_route", "gate_path_set"],
+    )
+    result = output_gate_node(state)
+    assert "sage" in result["response"].lower()
+    assert "unrestricted" not in result["response"]
+
+
+def test_output_gate_scope_refusal_does_not_include_crisis_resources():
+    """scope_refusal must NOT include crisis line numbers — only crisis_response_node does."""
+    from sage_poc.nodes.output_gate import SCOPE_REFUSAL_RESPONSE
+    assert "800" not in SCOPE_REFUSAL_RESPONSE
+    assert "999" not in SCOPE_REFUSAL_RESPONSE
+    assert "988" not in SCOPE_REFUSAL_RESPONSE
+
+
+def test_output_gate_jailbreak_does_not_include_crisis_resources():
+    """jailbreak must NOT include crisis line numbers — only crisis_response_node does."""
+    from sage_poc.nodes.output_gate import JAILBREAK_RESPONSE
+    assert "800" not in JAILBREAK_RESPONSE
+    assert "999" not in JAILBREAK_RESPONSE
+
+
+def test_output_gate_scope_refusal_arabic_user_gets_translated_response():
+    """Arabic user hitting scope_refusal gate must receive a translated response, not raw English.
+
+    Regression guard for Bug 2: gate canned responses (scope_refusal, jailbreak) must pass
+    through the same translate_to_arabic branch as any other response_en value. This test
+    confirms the translation call happens and its return value is what the user sees.
+    """
+    from sage_poc.nodes.output_gate import SCOPE_REFUSAL_RESPONSE
+    state = make_state(
+        detected_language="ar",
+        response_en=None,  # bypassed — gate path sets its own text
+        gate_path="scope_refusal",
+        path=["safety_check", "intent_route", "gate_path_set"],
+    )
+    with patch("sage_poc.nodes.output_gate.translate_to_arabic") as mock_translate:
+        mock_translate.return_value = "هذا سؤال يجيب عليه متخصص طبي."
+        result = output_gate_node(state)
+    mock_translate.assert_called_once_with(SCOPE_REFUSAL_RESPONSE)
+    assert result["response"] == "هذا سؤال يجيب عليه متخصص طبي."
+
+
+def test_output_gate_jailbreak_arabic_user_gets_translated_response():
+    """Arabic user hitting jailbreak gate must receive a translated response, not raw English."""
+    from sage_poc.nodes.output_gate import JAILBREAK_RESPONSE
+    state = make_state(
+        detected_language="ar",
+        response_en=None,
+        gate_path="jailbreak",
+        path=["safety_check", "intent_route", "gate_path_set"],
+    )
+    with patch("sage_poc.nodes.output_gate.translate_to_arabic") as mock_translate:
+        mock_translate.return_value = "أنا سيج، مرافق للعافية."
+        result = output_gate_node(state)
+    mock_translate.assert_called_once_with(JAILBREAK_RESPONSE)
+    assert result["response"] == "أنا سيج، مرافق للعافية."
+
+
+# L1 natural-language exit phrases — positive cases (must fire L1)
+
+@pytest.mark.parametrize("message", [
+    "I don't want to do this anymore",
+    "Can we do something else instead?",
+    "Can we talk about something else?",
+    "Let's move on from this",
+    "Let's stop this, please",
+    "I want to stop this",
+    "I'm done",
+    "I am done with this",
+    "Change the subject",
+    "Talk about something else",
+    "Not doing this anymore",
+])
+def test_l1_fires_on_natural_exit_phrases(message):
+    """Natural exit phrases real users produce must trigger L1 exit."""
+    state = make_state(
+        message_en=message,
+        active_skill_id="cbt_thought_record",
+        active_step_id="explore_distortion",
+        emotional_intensity=5,
+        engagement=3,
+        clinical_flags=[],
+    )
+    result = skill_executor_node(state)
+    assert result.get("escalation_triggered") is not None, \
+        f"Natural exit phrase '{message}' must trigger L1"
+    assert result["escalation_triggered"]["level"] == "L1"
+
+
+# L1 false-positive cases from clinical audit (must NOT fire L1)
+
+@pytest.mark.parametrize("message", [
+    "I can't stop thinking about what happened, it keeps replaying",
+    "I feel so anxious I can't leave my house anymore",
+    "I want to quit smoking, it's ruining my health",
+    "I've had enough sleep but I still feel exhausted",
+    "I want to stop feeling so anxious all the time",
+    "please stop being so harsh on yourself",
+    "I really don't want to burden you with all of this",
+    "I keep wondering if we can stop fighting about the same things",
+    "I really want to quit my job, it's exhausting me",
+])
+def test_l1_does_not_fire_on_false_positive_messages(message):
+    """Therapeutic phrases that contain exit-adjacent words must NOT trigger L1."""
+    state = make_state(
+        message_en=message,
+        active_skill_id="cbt_thought_record",
+        active_step_id="identify_thought",
+        emotional_intensity=6,
+        engagement=6,
+        clinical_flags=[],
+    )
+    result = skill_executor_node(state)
+    assert result.get("escalation_triggered") is None, \
+        f"False-positive phrase '{message}' must not trigger L1"

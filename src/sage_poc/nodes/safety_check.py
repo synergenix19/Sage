@@ -11,6 +11,16 @@ CRISIS_KEYWORDS = [
     "want to disappear", "don't want to be here", "thinking of ending it",
     "no reason to live", "i'm a burden",
     "don't want to be alive", "end it all",
+    # Passive SI / veiled ideation (SF-1)
+    # Note: substring match is phrase-level — "wish I could disappear" will not
+    # match on "disappear" alone. "want to disappear" is already present above;
+    # this adds the "wish" variant. _contains_crisis lowercases before matching,
+    # so "wish I could disappear" catches all capitalisation forms.
+    "nothing matters anymore",
+    "everyone would be better off without me",
+    "better off without me",
+    "no point in living",
+    "wish I could disappear",
     # Araglish / Arabizi (UAE code-switching patterns)
     "want to mat",        # phonetic blend: مات (māt) = died
     "wallah i want to die",
@@ -23,6 +33,11 @@ CRISIS_KEYWORDS = [
     "أبي أموت", "أبغى أموت", "ودي أموت",
     "أبي أنهي حياتي", "أبغى أنهي حياتي",
     "أبي أخلص من حياتي",
+    # Gulf Arabic passive SI / escape ideation (SF-1)
+    "ابغى أختفي",              # Gulf: "I want to disappear"
+    "أبغى أختفي",              # same with أبغى prefix
+    "ما في فايدة من اي شي",    # spaced Gulf variant of مافي فايدة
+    "ما في فائدة",             # MSA spaced variant
     "أبي أجرح نفسي", "أبغى أجرح نفسي",
     "بدي أقتل حالي",     # Levantine (Syrian/Lebanese expats common in UAE)
     # Arabic — indirect Gulf euphemisms for death/giving up (راحة = "rest")
@@ -61,8 +76,9 @@ CLINICAL_KEYWORD_SETS: dict[str, list[str]] = {
 
 
 def _contains_crisis(text: str) -> list[str]:
-    # P2-6: strip ZWSP (U+200B) — can be injected between characters to defeat substring matching
-    text_lower = text.replace("​", "").lower()
+    # P2-6: strip ZWSP and other invisible Unicode (U+200B/C/D, U+FEFF) — can be injected
+    # between characters to defeat substring matching. Use escape sequences, not literal chars.
+    text_lower = re.sub(r'[​‌‍﻿]', '', text).lower()
     return [kw for kw in CRISIS_KEYWORDS if kw.lower() in text_lower]
 
 
