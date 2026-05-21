@@ -268,3 +268,25 @@ def test_crisis_response_node_sets_crisis_occurred_flag():
     hints = typing.get_type_hints(SageState)
     assert "crisis_occurred_this_session" in hints, "SageState must include crisis_occurred_this_session"
     assert "distress_trajectory" in hints, "SageState must include distress_trajectory"
+
+
+def test_post_crisis_session_injection_fires_on_subsequent_safe_turn():
+    """After a crisis turn, subsequent safe turns must get post-crisis LLM guidance."""
+    state = _freeflow_state(
+        message_en="I feel a bit better today",
+        crisis_occurred_this_session=True,  # prior turn triggered crisis
+    )
+    system_str, _ = compose_prompt(state)
+    assert "POST-CRISIS" in system_str or "crisis" in system_str.lower(), (
+        "Post-crisis injection must appear in system prompt when crisis_occurred_this_session=True"
+    )
+
+
+def test_post_crisis_injection_absent_on_normal_session():
+    """Without a prior crisis turn, post-crisis injection must NOT fire."""
+    state = _freeflow_state(
+        message_en="I feel anxious today",
+        crisis_occurred_this_session=False,
+    )
+    system_str, _ = compose_prompt(state)
+    assert "POST-CRISIS" not in system_str
