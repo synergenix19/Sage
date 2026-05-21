@@ -52,6 +52,14 @@ export interface MoodScore {
   createdAt: string
 }
 
+export interface MessageFeedback {
+  id: string
+  messageId: string
+  userId: string
+  value: 1 | -1
+  createdAt: string
+}
+
 // Maps Vercel AI SDK role strings to internal MessageRole.
 // The SDK uses 'assistant'; our type uses 'ai'. Handles all four roles with a safe fallback.
 export function mapSdkRole(sdkRole: string): MessageRole {
