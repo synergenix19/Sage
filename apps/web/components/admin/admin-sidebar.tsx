@@ -4,11 +4,11 @@ import { cn } from '@cdai/ui'
 import { tenant } from '@cdai/tenant'
 
 const SECTIONS = [
-  { id: 'overview',        label: 'Overview'  },
-  { id: 'mood-trend',      label: 'Mood Trend' },
-  { id: 'top-topics',      label: 'Topics'    },
-  { id: 'district-stress', label: 'Districts' },
-  { id: 'alerts',          label: 'Alerts'    },
+  { id: 'clinical-safety',    label: 'Clinical Safety'    },
+  { id: 'system-performance', label: 'System Performance' },
+  { id: 'response-quality',   label: 'Response Quality'   },
+  { id: 'intelligence',       label: 'Intelligence'       },
+  { id: 'population',         label: 'Population'         },
 ]
 
 export function AdminSidebar() {
