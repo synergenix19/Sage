@@ -63,6 +63,7 @@ def _crisis_response_node(state: SageState) -> dict:
         "path": path,
         "conversation_history": history,
         "turn_count": state.get("turn_count", 0) + 1,
+        "crisis_occurred_this_session": True,
     }
 
 

@@ -15,6 +15,9 @@ class SageState(TypedDict):
     crisis_flags: list[str]
     clinical_flags: list[str]   # substance_use, trauma_indicator, eating_concern, medication_mention
 
+    crisis_occurred_this_session: bool         # set True by crisis_response node; persists for session
+    distress_trajectory: list[int]             # rolling window of emotional_intensity scores for cumulative distress
+
     primary_intent: Optional[Intent]
     secondary_intent: Optional[Intent]  # blended intent — e.g. "info_request" alongside "new_skill"
     intent_confidence: float

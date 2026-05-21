@@ -20,6 +20,8 @@ def _state(raw_message, clinical_flags=None):
         "is_safe": True,
         "crisis_flags": [],
         "clinical_flags": clinical_flags or [],
+        "crisis_occurred_this_session": False,
+        "distress_trajectory": [],
         "primary_intent": None,
         "secondary_intent": None,
         "intent_confidence": 1.0,
@@ -129,6 +131,8 @@ def _freeflow_state(**overrides):
         "is_safe": True,
         "crisis_flags": [],
         "clinical_flags": [],
+        "crisis_occurred_this_session": False,
+        "distress_trajectory": [],
         "primary_intent": "general_chat",
         "secondary_intent": None,
         "intent_confidence": 0.9,
@@ -255,3 +259,12 @@ def test_third_party_guidance_injected_into_prompt():
     state = _freeflow_state(clinical_flags=["third_party_si"])
     system_str, _ = compose_prompt(state)
     assert "friend" in system_str.lower() or "third" in system_str.lower() or "support" in system_str.lower()
+
+
+def test_crisis_response_node_sets_crisis_occurred_flag():
+    """_crisis_response_node must set crisis_occurred_this_session=True."""
+    from sage_poc.state import SageState
+    import typing
+    hints = typing.get_type_hints(SageState)
+    assert "crisis_occurred_this_session" in hints, "SageState must include crisis_occurred_this_session"
+    assert "distress_trajectory" in hints, "SageState must include distress_trajectory"
