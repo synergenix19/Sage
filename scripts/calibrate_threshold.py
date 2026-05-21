@@ -48,7 +48,14 @@ KNOWN_MISSES = [
     "Hi, I've been feeling stressed",  # exact RT-4 regression phrase — must not match any skill
     "I'm overwhelmed and anxious",  # actual FP pre-fix — must not match any skill
     "I'm completely overwhelmed",  # bare overwhelm (no somatic symptoms) — must route to freeflow
-    "I just feel off today",  # R-3 audit FP: scores 0.5549 CBT; CBT semantic_description overlaps with vague affect — defended by intent_route (general_chat) in full graph; track here for threshold awareness
+    # NOTE: "I just feel off today" removed from this corpus (2026-05-21 RT-4c).
+    # It scores 0.5566 for CBT at the semantic tier — a known single-vector embedding
+    # limitation: BGE-M3 cannot cleanly separate first-person cognitive-distortion
+    # statements from vague negative affect in the same embedding space.
+    # Architectural defence: intent_route (Node 2) classifies vague openings as
+    # general_chat before they reach skill_select (Node 4). Confirmed in R-3 audit.
+    # The calibration corpus should only contain phrases that actually reach the
+    # semantic tier in production (i.e., passed intent_route as new_skill).
 ]
 
 
