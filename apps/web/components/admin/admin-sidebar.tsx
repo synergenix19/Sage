@@ -1,17 +1,39 @@
 'use client'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { cn } from '@cdai/ui'
 import { tenant } from '@cdai/tenant'
 
-const NAV_LINKS = [
-  { href: '/admin', label: 'Dashboard', exact: true },
-  { href: '/admin/users', label: 'Users', exact: false },
-  { href: '/admin/settings', label: 'Settings', exact: false },
+const SECTIONS = [
+  { id: 'overview',        label: 'Overview'  },
+  { id: 'mood-trend',      label: 'Mood Trend' },
+  { id: 'top-topics',      label: 'Topics'    },
+  { id: 'district-stress', label: 'Districts' },
+  { id: 'alerts',          label: 'Alerts'    },
 ]
 
 export function AdminSidebar() {
-  const pathname = usePathname()
+  const [activeId, setActiveId] = useState<string>('overview')
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const intersecting = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
+        if (intersecting.length > 0) {
+          setActiveId(intersecting[0].target.id)
+        }
+      },
+      { threshold: 0.3 }
+    )
+
+    SECTIONS.forEach(({ id }) => {
+      const el = document.getElementById(id)
+      if (el) observer.observe(el)
+    })
+
+    return () => observer.disconnect()
+  }, [])
 
   return (
     <aside className="bg-[var(--color-surface)] border-e border-[var(--color-border)] w-60 flex-shrink-0 flex flex-col p-4 gap-1">
@@ -22,23 +44,24 @@ export function AdminSidebar() {
         <p className="text-xs text-[var(--color-text-secondary)]">Admin</p>
       </div>
       <nav className="flex flex-col gap-1">
-        {NAV_LINKS.map((link) => {
-          const active = link.exact ? pathname === link.href : pathname === link.href || pathname.startsWith(link.href + '/')
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                'flex min-h-11 items-center rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-150',
-                active
-                  ? 'bg-[var(--color-primary)] text-white'
-                  : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-tinted)]'
-              )}
-            >
-              {link.label}
-            </Link>
-          )
-        })}
+        {SECTIONS.map(({ id, label }) => (
+          <a
+            key={id}
+            href={`#${id}`}
+            onClick={(e) => {
+              e.preventDefault()
+              document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }}
+            className={cn(
+              'flex min-h-11 items-center rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-150',
+              activeId === id
+                ? 'bg-[var(--color-primary)] text-white'
+                : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-tinted)]'
+            )}
+          >
+            {label}
+          </a>
+        ))}
       </nav>
     </aside>
   )
