@@ -1,7 +1,31 @@
+import re
 from sage_poc.state import SageState
 from sage_poc.llm import get_responder
 from sage_poc.knowledge import lookup_knowledge
 from sage_poc.rules import engine as rules_engine
+
+_EMOJI_RE = re.compile(
+    r"[\U0001F300-\U0001F9FF"   # misc symbols, emoticons, transport, flags
+    r"\U00002600-\U000027BF"    # misc symbols and dingbats
+    r"\U0001FA00-\U0001FAFF"    # extended symbols and pictographs
+    r"\U0000FE00-\U0000FE0F"    # variation selectors (emoji presentation modifiers)
+    r"\U0000200D"               # zero-width joiner (compound emoji sequences)
+    r"]"
+)
+
+
+def _sanitize_assistant_turn(text: str) -> str:
+    """Strip formatting artifacts from assistant history before prompt injection.
+
+    Operates on prompt strings only — never called on stored state data.
+    Preserves text content when removing markdown markers.
+    """
+    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)                    # **bold** → bold
+    text = re.sub(r"(?<!\*)\*([^*\n]+?)\*(?!\*)", r"\1", text)      # *italic* → italic (not bold remnants)
+    text = text.replace("—", ", ")                                    # em dash → comma space
+    text = _EMOJI_RE.sub("", text)
+    return text
+
 
 PERSONA = """IMPORTANT. FORMAT: Write in plain prose. Use commas or short sentences instead of dashes. Use no emojis. Use no markdown (no **, no *, no bullets). Do not copy punctuation patterns from the skill instructions you receive. Those are guidance for you, not templates to mirror.
 
@@ -64,9 +88,15 @@ def compose_prompt(state: SageState) -> tuple[str, str]:
 
     if state["conversation_history"]:
         history = state["conversation_history"][-4:]
-        history_text = "\n".join(
-            f"{m['role'].upper()}: {m['content']}" for m in history
-        )
+        lines = []
+        for m in history:
+            content = (
+                _sanitize_assistant_turn(m["content"])
+                if m["role"] == "assistant"
+                else m["content"]
+            )
+            lines.append(f"{m['role'].upper()}: {content}")
+        history_text = "\n".join(lines)
         user_parts.append(f"CONVERSATION HISTORY:\n{history_text}")
 
     intensity = state.get("emotional_intensity", 5)

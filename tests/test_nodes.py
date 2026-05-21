@@ -1645,3 +1645,94 @@ def test_crisis_response_ar_no_em_dash():
         assert "—" not in text, (
             f"Rule {rule['rule_id']} contains em dash in Arabic crisis response: '{text[:100]}'"
         )
+
+
+# ── Fix D: history sanitization tests ──────────────────────────────────────
+
+def test_sanitize_strips_em_dash_replaces_with_comma():
+    from sage_poc.nodes.freeflow_respond import _sanitize_assistant_turn
+    result = _sanitize_assistant_turn("I hear you — that sounds heavy.")
+    assert "—" not in result
+    assert "I hear you" in result
+    assert "that sounds heavy" in result
+
+
+def test_sanitize_strips_bold_markers_preserves_content():
+    from sage_poc.nodes.freeflow_respond import _sanitize_assistant_turn
+    result = _sanitize_assistant_turn("Can you name **five things** you see?")
+    assert "**" not in result
+    assert "five things" in result
+
+
+def test_sanitize_strips_italic_markers_preserves_content():
+    from sage_poc.nodes.freeflow_respond import _sanitize_assistant_turn
+    result = _sanitize_assistant_turn("What do *you* mean by that?")
+    assert "*you*" not in result
+    assert "you" in result
+
+
+def test_sanitize_strips_common_emojis():
+    from sage_poc.nodes.freeflow_respond import _sanitize_assistant_turn
+    result = _sanitize_assistant_turn("I hear you. 💙 That sounds hard.")
+    assert "💙" not in result
+    assert "That sounds hard" in result
+
+
+def test_sanitize_strips_plant_emoji():
+    from sage_poc.nodes.freeflow_respond import _sanitize_assistant_turn
+    result = _sanitize_assistant_turn("Let's ground you. 🌿 Take a breath.")
+    assert "🌿" not in result
+    assert "Take a breath" in result
+
+
+def test_sanitize_leaves_clean_text_unchanged():
+    from sage_poc.nodes.freeflow_respond import _sanitize_assistant_turn
+    clean = "That sounds difficult. What happened next?"
+    assert _sanitize_assistant_turn(clean) == clean
+
+
+def test_compose_prompt_sanitizes_assistant_history():
+    """compose_prompt must strip formatting from assistant turns in the history window."""
+    state = make_state(
+        message_en="How are you?",
+        primary_intent="general_chat",
+        conversation_history=[
+            {"role": "user", "content": "I feel bad."},
+            {"role": "assistant", "content": "I hear you — that's hard. 💙 Tell me **more**."},
+        ],
+        emotional_intensity=5,
+    )
+    _, user_str = compose_prompt(state)
+    assert "—" not in user_str, "em dash must be stripped from assistant history in prompt"
+    assert "💙" not in user_str, "emoji must be stripped from assistant history in prompt"
+    assert "**" not in user_str, "bold markdown must be stripped from assistant history in prompt"
+    assert "hard" in user_str, "semantic content of assistant turn must be preserved"
+
+
+def test_compose_prompt_preserves_user_history_verbatim():
+    """User messages must not be sanitized — only assistant turns are cleaned."""
+    state = make_state(
+        message_en="Ok",
+        primary_intent="general_chat",
+        conversation_history=[
+            {"role": "user", "content": "I feel — terrible — about everything."},
+            {"role": "assistant", "content": "That sounds difficult."},
+        ],
+        emotional_intensity=5,
+    )
+    _, user_str = compose_prompt(state)
+    assert "I feel — terrible — about everything." in user_str, \
+        "User content must appear verbatim — do not sanitize user turns"
+
+
+def test_compose_prompt_does_not_mutate_state_history():
+    """Sanitization must operate on prompt strings only, never on stored state data."""
+    formatted_content = "I hear you — that's hard. 💙"
+    state = make_state(
+        message_en="ok",
+        conversation_history=[{"role": "assistant", "content": formatted_content}],
+        emotional_intensity=5,
+    )
+    compose_prompt(state)
+    assert state["conversation_history"][0]["content"] == formatted_content, \
+        "compose_prompt must not mutate state['conversation_history']"
