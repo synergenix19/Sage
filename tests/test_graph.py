@@ -71,7 +71,7 @@ def test_english_crisis_message_stops_at_safety():
     assert "safety_check" in result["path"]
     assert "intent_route" not in result["path"]
     assert result["response"] is not None
-    assert "crisis" in result["response"].lower() or "help" in result["response"].lower()
+    assert "concerned" in result["response"].lower() or "support" in result["response"].lower()
 
 
 @pytest.mark.slow
@@ -286,7 +286,7 @@ def test_crisis_clears_active_skill_and_returns_arabic_when_ar_detected():
     )
     result = _crisis_response_node(state)
     # P0-A: Arabic response — contains UAE crisis number
-    assert "800" in result["response"] and "4673" in result["response"], \
+    assert "800" in result["response"] and "46342" in result["response"], \
         "Arabic user must receive Arabic crisis response with UAE crisis line number"
     # P0-B: skill cleared
     assert result["active_skill_id"] is None, "Skill must be cleared on crisis"
@@ -308,7 +308,7 @@ def test_crisis_english_user_gets_english_response():
         conversation_history=[],
     )
     result = _crisis_response_node(state)
-    assert "800" in result["response"] and "4673" in result["response"], \
+    assert "800" in result["response"] and "46342" in result["response"], \
         "English crisis response must contain UAE crisis line number"
     assert result["active_skill_id"] is None
     assert result["turn_count"] == 1
@@ -329,10 +329,10 @@ def _get_ar_crisis_response_text() -> str:
 
 
 def test_arabic_crisis_response_contains_correct_hotline_number():
-    """800 4673 (800-HOPE) must be in the Arabic response — it is the verified UAE crisis line."""
+    """800 46342 (MoHAP counselling line) must be in the Arabic response."""
     ar_text = _get_ar_crisis_response_text()
-    assert "800 4673" in ar_text or "800-4673" in ar_text, \
-        "Arabic crisis response must include the verified 800-HOPE number"
+    assert "800 46342" in ar_text, \
+        "Arabic crisis response must include the verified MoHAP counselling line (800 46342)"
 
 
 def test_arabic_crisis_response_contains_emergency_number():
@@ -536,10 +536,10 @@ def _get_en_crisis_response_text() -> str:
 
 
 def test_english_crisis_response_contains_correct_hotline_number():
-    """800 4673 (800-HOPE) must be in the English response — it is the verified UAE crisis line."""
+    """800 46342 (MoHAP counselling line) must be in the English response."""
     en_text = _get_en_crisis_response_text()
-    assert "800 4673" in en_text or "800-4673" in en_text, \
-        "English crisis response must include the verified 800-HOPE number"
+    assert "800 46342" in en_text, \
+        "English crisis response must include the verified MoHAP counselling line (800 46342)"
 
 
 def test_english_crisis_response_contains_emergency_number():
@@ -652,10 +652,10 @@ def test_crisis_response_extended_contains_cda_number():
     assert "800-4888" in extended_text or "800 4888" in extended_text
 
 
-def test_crisis_response_extended_contains_estijaba():
-    """Extended crisis response must include Estijaba (national lifeline)."""
+def test_crisis_response_extended_contains_lighthouse():
+    """Extended crisis response must include Lighthouse Arabia (UAE therapy resource)."""
     extended_text = _get_en_crisis_extended_text()
-    assert "Estijaba" in extended_text or "estijaba" in extended_text.lower()
+    assert "Lighthouse" in extended_text or "MoHAP" in extended_text
 
 
 def test_crisis_response_extended_does_not_exclude_999():

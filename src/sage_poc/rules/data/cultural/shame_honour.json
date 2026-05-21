@@ -20,7 +20,7 @@
         "target": "system",
         "layer": "L5",
         "priority": 1,
-        "content": "SHAME CONTEXT (this turn): The user has expressed shame (cultural: عيب/عار) specifically. Apply your collectivist framing baseline. Add: in Gulf culture, shame functions as a social bond signal, not only personal failure. It signals awareness of collective standards and relational consequences. Do NOT push the user to simply overcome or dismiss it. Help them find a path that honours both their integrity and their relationships."
+        "content": "SHAME CONTEXT (this turn): The user has expressed shame (cultural: عيب/عار). Apply your collectivist framing baseline. In Gulf culture, shame is a social bond signal, not only personal failure. Do NOT push the user to simply overcome or dismiss it. Help them find a path that honours both their integrity and their relationships."
       }
     }
   ]

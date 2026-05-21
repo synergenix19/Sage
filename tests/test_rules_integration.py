@@ -102,7 +102,7 @@ def test_crisis_content_en_returns_uae_number():
     result = rules_engine.evaluate("crisis_content", {"language": "en", "crisis_level": "acute"})
     assert result.fired
     text = result.fired[0].action["response_text"]
-    assert "800" in text and "4673" in text
+    assert "800" in text and "46342" in text
 
 
 def test_crisis_content_ar_returns_arabic_text():
@@ -117,7 +117,7 @@ def test_crisis_content_extended_returns_resource_list():
     assert result.fired
     resources = result.fired[0].action.get("resources", [])
     names = [r["name"] for r in resources]
-    assert any("Estijaba" in n or "HOPE" in n for n in names)
+    assert any("MoHAP" in n or "Lighthouse" in n for n in names)
 
 
 # ── freeflow_respond compose_prompt via Rules Service ────────────────────────
@@ -522,6 +522,32 @@ def test_existing_cultural_rules_unaffected_by_schema_change():
     assert "ISLAMIC" in system_str or "sabr" in system_str or "ibtila" in system_str, (
         "Existing CU-IS-001 must still fire after schema change (backward compat)"
     )
+
+
+def test_no_em_dashes_in_any_clinical_flag_adaptation():
+    """All PI-CF-* rules must have no em dashes in their content — prevents prompt mirroring."""
+    import json, pathlib
+    data = json.loads(pathlib.Path(
+        "src/sage_poc/rules/data/prompt_injection/clinical_flag_adaptations.json"
+    ).read_text(encoding="utf-8"))
+    for rule in data["rules"]:
+        content = rule["action"].get("content", "")
+        assert "—" not in content, (
+            f"{rule['rule_id']} action.content contains an em dash — "
+            "rule content is injected into the LLM system prompt and causes em-dash mirroring"
+        )
+
+
+def test_all_cultural_rules_use_layer_l5():
+    """Every cultural rule must inject at L5 — prevents layer drift from L2 contamination."""
+    import json, pathlib
+    for path in sorted(pathlib.Path("src/sage_poc/rules/data/cultural").glob("*.json")):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        for rule in data["rules"]:
+            layer = rule["action"].get("layer", "MISSING")
+            assert layer == "L5", (
+                f"{rule['rule_id']} in {path.name} has layer={layer!r}, expected 'L5'"
+            )
 
 
 def test_code_switch_rule_fires_alongside_islamic_rule():

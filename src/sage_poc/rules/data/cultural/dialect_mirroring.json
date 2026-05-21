@@ -19,7 +19,7 @@
         "target": "system",
         "layer": "L5",
         "priority": 2,
-        "content": "DIALECT (this turn): The user is writing in Khaleeji Gulf Arabic dialect. Mirror their dialect in your Arabic responses. Do NOT respond in formal Modern Standard Arabic (MSA). Use natural Khaleeji vocabulary and register. Prefer 'وايد' over 'كثير', 'زين' over 'حسن', 'شلون' over 'كيف حالك'. Match the warmth and naturalness of the user's conversational register."
+        "content": "DIALECT (this turn): The user is writing in Khaleeji Gulf Arabic dialect. Mirror their dialect in your Arabic responses. Use natural Khaleeji vocabulary and register. Prefer 'وايد' over 'كثير', 'زين' over 'حسن', 'شلون' over 'كيف حالك'. Match the warmth and naturalness of the user's conversational register."
       }
     }
   ]

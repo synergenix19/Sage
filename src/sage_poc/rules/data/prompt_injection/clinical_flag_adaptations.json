@@ -83,7 +83,7 @@
       "action": {
         "type": "inject",
         "target": "system",
-        "content": "CLINICAL ADAPTATION (domestic situation): The user has disclosed a domestic safety concern. Prioritise immediate safety. Do NOT advise leaving without safety planning — this can increase risk in some situations. Do NOT challenge or minimise their account. UAE resources if needed: Dubai Foundation for Women and Children (800111), Ewaa Shelters. Focus on safety, autonomy, and connection to support."
+        "content": "CLINICAL ADAPTATION (domestic situation): The user has disclosed a domestic safety concern. Prioritise immediate safety. Do NOT advise leaving without safety planning, as this can increase risk in some situations. Do NOT challenge or minimise their account. UAE resources if needed: Dubai Foundation for Women and Children (800111), Ewaa Shelters. Focus on safety, autonomy, and connection to support."
       }
     }
   ]

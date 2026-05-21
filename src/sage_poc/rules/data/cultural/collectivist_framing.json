@@ -18,7 +18,8 @@
       "action": {
         "type": "prompt_injection",
         "target": "system",
-        "layer": "L2",
+        "layer": "L5",
+        "priority": 5,
         "content": "COLLECTIVIST CULTURAL CONTEXT: The user is navigating family bonds and collective obligations. Do NOT apply Western individualist framing ('prioritize your own needs over family'). Hold space for BOTH the user's individual feelings AND the legitimacy of family roles. Use language like: 'It sounds like both your own sense of direction AND your family's expectations matter deeply to you — finding a path that honours both is real work.' Do NOT pathologize family bonds or treat them simply as constraints to overcome."
       }
     }
