@@ -1364,6 +1364,7 @@ def test_persona_opens_with_important_format_directive():
         "Format directive must precede persona description for correct model weighting."
     )
 
+
 def test_persona_contains_anti_mirroring_clause():
     """L0 must explicitly name the skill instruction source to suppress mirroring."""
     from sage_poc.nodes.freeflow_respond import PERSONA
@@ -1393,10 +1394,9 @@ def test_persona_wrong_example_contains_em_dash_and_emoji():
 def test_persona_has_no_duplicate_style_block():
     """Old mid-prompt 'Style:' block must be removed — replaced by IMPORTANT block at top."""
     from sage_poc.nodes.freeflow_respond import PERSONA
-    occurrences = PERSONA.count("no em dashes")
-    assert occurrences <= 1, (
-        f"'no em dashes' appears {occurrences} times — remove the old inline Style: block, "
-        "it is now replaced by the IMPORTANT directive at the top."
+    assert PERSONA.count("Style:") == 0, (
+        "Found a 'Style:' block in PERSONA — it must be removed; "
+        "format rules now live in the IMPORTANT directive at the top."
     )
 
 
