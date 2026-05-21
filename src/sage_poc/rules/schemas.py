@@ -70,6 +70,7 @@ class FiredRule:
     rule_id: str
     version: str
     action: dict
+    suppressed: bool = False
 
 
 @dataclass
@@ -78,11 +79,19 @@ class EvalResult:
 
     @property
     def actions(self) -> list[dict]:
-        return [r.action for r in self.fired]
+        return [
+            r.action for r in self.fired
+            if not r.suppressed and r.action.get("type") != "crisis_suppress"
+        ]
 
     @property
     def fired_ids(self) -> list[str]:
         return [r.rule_id for r in self.fired]
 
+    @property
+    def suppressed_rules(self) -> list["FiredRule"]:
+        return [r for r in self.fired if r.suppressed]
+
     def __bool__(self) -> bool:
-        return len(self.fired) > 0
+        """True if any NON-suppressed rule fired. Use fired_ids for full audit."""
+        return any(not r.suppressed for r in self.fired)

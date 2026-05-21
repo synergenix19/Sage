@@ -119,3 +119,49 @@ def test_eval_result_with_fired_rules():
     assert result.actions[0]["flag_id"] == "si_explicit"
     assert result.fired_ids == ["TEST-001"]
     assert bool(result) is True
+
+
+def test_fired_rule_suppressed_defaults_false():
+    from sage_poc.rules.schemas import FiredRule
+    r = FiredRule(rule_id="X", version="1.0.0", action={"type": "crisis_flag"})
+    assert r.suppressed is False
+
+
+def test_eval_result_actions_excludes_suppressed():
+    from sage_poc.rules.schemas import FiredRule, EvalResult
+    active = FiredRule(rule_id="A", version="1.0.0", action={"type": "crisis_flag", "flag_id": "si_explicit"})
+    suppressed = FiredRule(rule_id="B", version="1.0.0", action={"type": "crisis_flag", "flag_id": "si_passive"}, suppressed=True)
+    result = EvalResult(fired=[active, suppressed])
+    assert len(result.actions) == 1
+    assert result.actions[0]["flag_id"] == "si_explicit"
+
+
+def test_eval_result_actions_excludes_crisis_suppress_type():
+    from sage_poc.rules.schemas import FiredRule, EvalResult
+    suppress_mech = FiredRule(rule_id="FPE-1", version="1.0.0", action={"type": "crisis_suppress", "suppresses": ["si_passive"]})
+    result = EvalResult(fired=[suppress_mech])
+    assert result.actions == []
+
+
+def test_eval_result_suppressed_rules_property():
+    from sage_poc.rules.schemas import FiredRule, EvalResult
+    r1 = FiredRule(rule_id="A", version="1.0.0", action={"type": "crisis_flag"}, suppressed=True)
+    r2 = FiredRule(rule_id="B", version="1.0.0", action={"type": "crisis_flag"})
+    result = EvalResult(fired=[r1, r2])
+    assert len(result.suppressed_rules) == 1
+    assert result.suppressed_rules[0].rule_id == "A"
+
+
+def test_fired_ids_includes_suppressed_for_audit():
+    from sage_poc.rules.schemas import FiredRule, EvalResult
+    r = FiredRule(rule_id="SUPPRESSED", version="1.0.0", action={"type": "crisis_flag"}, suppressed=True)
+    result = EvalResult(fired=[r])
+    assert "SUPPRESSED" in result.fired_ids  # audit trail must preserve suppressed rule IDs
+
+
+def test_eval_result_bool_false_when_all_suppressed():
+    from sage_poc.rules.schemas import FiredRule, EvalResult
+    r = FiredRule(rule_id="A", version="1.0.0", action={"type": "crisis_flag"}, suppressed=True)
+    result = EvalResult(fired=[r])
+    assert bool(result) is False
+    assert len(result.fired_ids) == 1  # audit trail still has it
