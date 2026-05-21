@@ -891,16 +891,26 @@ If Option B is approved: add one guidance line to `INTENT_SYSTEM` in `intent_rou
 
 ---
 
-### Open question for clinical reviewer
+### Open question for clinical reviewer — RESOLVED (2026-05-22)
 
-Before Option B can be approved, confirm: does `post_crisis_check_in`'s `escalation_matrix` contain a rule that re-routes to crisis if the user expresses new explicit harm language during the check-in steps? If not, that rule must be added to the skill JSON before Option B is clinically safe.
+**Confirmed at the JSON level:** `post_crisis_check_in.json` already contains the required escalation entry:
+
+```json
+"escalation_matrix": {
+  "L3": "Exit immediately to crisis protocol if any new crisis signal"
+}
+```
+
+The engineering prerequisite for Option B is satisfied. The skill can re-escalate from within the check-in flow if the user expresses new explicit harm language. No additional skill changes are required before Option B can be approved.
+
+**The clinical reviewer's decision is now a single question:** should `intent_route` respect `crisis_state == "monitoring"` and defer to S7's classification, or should it retain the right to re-escalate independently? There is no open engineering dependency on either answer.
 
 ---
 
 ### Sign-off
 
 - [ ] **Option A — re-escalate on continued distress in monitoring state** — intent_route retains current behaviour — _[Reviewer name, Date]_
-- [ ] **Option B — hold in check-in flow** — implement INTENT_SYSTEM guidance line — confirm `post_crisis_check_in` escalation_matrix covers new harm language — _[Reviewer name, Date]_
+- [ ] **Option B — hold in check-in flow** — implement INTENT_SYSTEM guidance line — _[Reviewer name, Date]_
 - [ ] **Neither — alternative approach:** _[specify]_
 
 ---
