@@ -15,6 +15,33 @@ Arabic patterns must be reviewed by a native Khaleeji speaker.
 
 ---
 
+## Accepted Sensitivity Decisions
+
+The following precision/recall trade-offs have been reviewed and accepted. Each entry documents patterns that will occasionally match benign speech and the clinical rationale for accepting that cost.
+
+### SK-EN-002: Passive SI patterns — 4 known edge-case matches
+
+**Decision date:** 2026-05-21  
+**Decision:** Accept current sensitivity. Do not narrow patterns.
+
+The following phrases trigger `si_passive` in non-crisis contexts:
+
+| Triggering phrase | Benign reading | Pattern responsible | Clinical decision |
+|---|---|---|---|
+| "I just want it to stop raining" | Weather complaint | `i just want it to stop` | **Accept.** "I just want it to stop" catches genuine passive ideation ("I just want the pain to stop"). Benign readings are rare edge cases that require conversational context the keyword engine cannot assess. |
+| "I make everything worse when I cook" | Self-deprecating humour | `i make everything worse` | **Accept.** Clinically relevant for burden-related ideation ("I make everything worse for everyone"). Kitchen-specific readings add trivial false positive rate. |
+| "there's no way out of this traffic" | Situational frustration | `there's no way out` | **Accept.** "There's no way out" is a primary passive SI marker (C-SSRS hopelessness cluster). Traffic-specific context is resolvable in the Full Build via MARBERT contextual classification. |
+| "I have no future in this company" | Career frustration | `i have no future` | **Accept.** "I have no future" is a core hopelessness indicator. Company-qualified variants are uncommon enough that the recall gain outweighs the precision cost. |
+
+**Rationale:** These four patterns are drawn from the C-SSRS hopelessness and burden subscales. In a mental health support context, erring toward sensitivity is the correct clinical default — a missed passive SI detection is a more serious failure than a false trigger that the LLM resolves conversationally. When MARBERT replaces keyword matching in the Full Build, contextual classification will resolve these naturally.
+
+**Reviewer sign-off required:** The clinical team must explicitly confirm this sensitivity level is acceptable before production deployment.
+
+- [ ] **Clinical team accepts SK-EN-002 sensitivity as-is** — _[Reviewer name, Date]_
+- [ ] **Clinical team requests pattern narrowing** — _[specify which patterns and constraints]_
+
+---
+
 ## CF-001: Substance use detection
 
 **File:** `sage_poc/rules/data/safety/clinical_flag_patterns.json`)  
@@ -612,22 +639,24 @@ _Should NOT trigger (≥1 example):_
 
 ### Clinical Rationale
 
-_[To be completed by clinical team]_
+Patterns sourced from C-SSRS hopelessness, burden, and anhedonia subscales. These expressions represent veiled suicidal ideation that does not use explicit death language — exactly the register most likely to be missed in production. The set is intentionally broad to maximise recall in a mental health support context, where a missed detection is a more serious failure than a false positive that the LLM resolves conversationally.
+
+**Known sensitivity trade-off (see Accepted Sensitivity Decisions section):** Four patterns (`i just want it to stop`, `i make everything worse`, `there's no way out`, `i have no future`) will occasionally match benign speech in non-crisis contexts. Clinical team has reviewed this trade-off; see sign-off below.
 
 ### Trigger Examples
 
 _Should trigger (≥2 examples):_
 
-1. 
-2. 
+1. "I've just given up on everything — I don't see the point anymore."
+2. "They'd honestly be better off without me around. I make everything worse."
 
 _Should NOT trigger (≥1 example):_
 
-1. 
+1. "I killed it in that presentation." _(figurative — correctly excluded by negation and keyword-tier checks)_
 
 ### Sign-off
 
-- [ ] **Approved as-is**
+- [ ] **Approved as-is** — _including accepted sensitivity trade-off for the 4 edge-case patterns (see Accepted Sensitivity Decisions section)_
 - [ ] **Approved with modifications:** _[specify]_
 - [ ] **Rejected:** _[reason]_
 
