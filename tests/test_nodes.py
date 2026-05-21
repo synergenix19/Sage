@@ -1,6 +1,6 @@
 # tests/test_nodes.py
 import pytest
-from sage_poc.nodes.safety_check import safety_check_node, CRISIS_KEYWORDS
+from sage_poc.nodes.safety_check import safety_check_node
 
 def make_state(**kwargs):
     defaults = {
@@ -47,7 +47,11 @@ def test_crisis_english_message():
     assert len(result["crisis_flags"]) > 0
 
 def test_crisis_keywords_list_not_empty():
-    assert len(CRISIS_KEYWORDS) >= 5
+    """Rules Service must have at least 5 active safety rules loaded."""
+    from sage_poc.rules.loader import get_rules
+    rules = get_rules("safety")
+    crisis_rules = [r for r in rules if r.action.get("type") == "crisis_flag"]
+    assert len(crisis_rules) >= 5
 
 def test_clinical_flag_substance_use():
     state = make_state(raw_message="I've been drinking heavily every night to cope")
@@ -780,47 +784,47 @@ def test_translate_to_arabic_falls_back_on_api_error():
 # P1-1 residual: missing CRISIS_KEYWORDS — "don't want to be alive" and "end it all"
 
 def test_dont_want_to_be_alive_triggers_crisis():
-    """'don't want to be alive' was absent from CRISIS_KEYWORDS — must now trigger crisis."""
-    from sage_poc.nodes.safety_check import _contains_crisis
-    flags = _contains_crisis("I just don't want to be alive anymore")
-    assert len(flags) > 0, "'don't want to be alive' must trigger crisis detection"
+    """'don't want to be alive' must trigger crisis detection via Rules Service."""
+    result = safety_check_node(make_state(raw_message="I just don't want to be alive anymore"))
+    assert result["is_safe"] is False, "'don't want to be alive' must trigger crisis detection"
+    assert len(result["crisis_flags"]) > 0
 
 
 def test_end_it_all_triggers_crisis():
-    """'end it all' was absent from CRISIS_KEYWORDS — must now trigger crisis."""
-    from sage_poc.nodes.safety_check import _contains_crisis
-    flags = _contains_crisis("I just want to end it all, I can't take it anymore")
-    assert len(flags) > 0, "'end it all' must trigger crisis detection"
+    """'end it all' must trigger crisis detection via Rules Service."""
+    result = safety_check_node(make_state(raw_message="I just want to end it all, I can't take it anymore"))
+    assert result["is_safe"] is False, "'end it all' must trigger crisis detection"
+    assert len(result["crisis_flags"]) > 0
 
 
 # SF-1: Passive SI / veiled ideation keywords
 
 def test_passive_si_nothing_matters_anymore():
     """'nothing matters anymore' — hopelessness phrase, must trigger crisis."""
-    from sage_poc.nodes.safety_check import _contains_crisis
-    flags = _contains_crisis("I just feel like nothing matters anymore")
-    assert len(flags) > 0, "'nothing matters anymore' must trigger crisis detection"
+    result = safety_check_node(make_state(raw_message="I just feel like nothing matters anymore"))
+    assert result["is_safe"] is False, "'nothing matters anymore' must trigger crisis detection"
+    assert len(result["crisis_flags"]) > 0
 
 
 def test_passive_si_everyone_better_off_without_me():
     """'better off without me' — passive SI, must trigger crisis."""
-    from sage_poc.nodes.safety_check import _contains_crisis
-    flags = _contains_crisis("I keep thinking everyone would be better off without me")
-    assert len(flags) > 0, "'better off without me' must trigger crisis"
+    result = safety_check_node(make_state(raw_message="I keep thinking everyone would be better off without me"))
+    assert result["is_safe"] is False, "'better off without me' must trigger crisis"
+    assert len(result["crisis_flags"]) > 0
 
 
 def test_passive_si_no_point_in_living():
     """'no point in living' — veiled ideation, must trigger crisis."""
-    from sage_poc.nodes.safety_check import _contains_crisis
-    flags = _contains_crisis("Sometimes I feel like there's no point in living")
-    assert len(flags) > 0, "'no point in living' must trigger crisis detection"
+    result = safety_check_node(make_state(raw_message="Sometimes I feel like there's no point in living"))
+    assert result["is_safe"] is False, "'no point in living' must trigger crisis detection"
+    assert len(result["crisis_flags"]) > 0
 
 
 def test_passive_si_wish_could_disappear():
     """'wish I could disappear' — escape ideation, must trigger crisis."""
-    from sage_poc.nodes.safety_check import _contains_crisis
-    flags = _contains_crisis("I just wish I could disappear from everything")
-    assert len(flags) > 0, "'wish I could disappear' must trigger crisis detection"
+    result = safety_check_node(make_state(raw_message="I just wish I could disappear from everything"))
+    assert result["is_safe"] is False, "'wish I could disappear' must trigger crisis detection"
+    assert len(result["crisis_flags"]) > 0
 
 
 @pytest.mark.slow
@@ -845,10 +849,10 @@ def test_passive_si_gulf_arabic_ma_fi_faida_spaced():
 
 def test_crisis_keyword_with_zwsp_still_detected():
     """ZWSP (U+200B) injected into a crisis keyword must not defeat detection."""
-    from sage_poc.nodes.safety_check import _contains_crisis
     # "want​to​die" — ZWSP between words
-    flags = _contains_crisis("I want​ to die right now")
-    assert len(flags) > 0, "ZWSP between words must not defeat crisis keyword detection"
+    result = safety_check_node(make_state(raw_message="I want​ to die right now"))
+    assert result["is_safe"] is False, "ZWSP between words must not defeat crisis keyword detection"
+    assert len(result["crisis_flags"]) > 0
 
 
 # SF-6: False-positive tests — metaphorical language must NOT trigger crisis

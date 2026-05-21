@@ -361,103 +361,152 @@ def test_arabic_crisis_response_centers_safety_not_ai_anxiety():
 
 # Gulf-dialect keyword coverage
 
+def _make_graph_state(raw_message):
+    """Minimal state dict for safety_check_node calls in graph tests."""
+    return {
+        "raw_message": raw_message,
+        "detected_language": "en",
+        "message_en": raw_message,
+        "is_safe": True,
+        "crisis_flags": [],
+        "clinical_flags": [],
+        "primary_intent": None,
+        "secondary_intent": None,
+        "intent_confidence": 1.0,
+        "emotional_intensity": 5,
+        "engagement": 5,
+        "active_skill_id": None,
+        "active_step_id": None,
+        "executed_step_id": None,
+        "step_instruction": None,
+        "skill_match_method": None,
+        "semantic_score": None,
+        "escalation_triggered": None,
+        "gate_path": None,
+        "response_en": None,
+        "response": None,
+        "path": [],
+        "turn_count": 0,
+        "conversation_history": [],
+    }
+
+
 def test_khaleeji_want_to_die_abi():
     """أبي أموت — UAE/Khaleeji 'I want to die' (abi = I want) must trigger crisis."""
-    from sage_poc.nodes.safety_check import _contains_crisis
-    flags = _contains_crisis("أبي أموت الليلة")
-    assert len(flags) > 0, "Khaleeji 'أبي أموت' must trigger crisis detection"
+    from sage_poc.nodes.safety_check import safety_check_node
+    result = safety_check_node(_make_graph_state("أبي أموت الليلة"))
+    assert result["is_safe"] is False, "Khaleeji 'أبي أموت' must trigger crisis detection"
+    assert len(result["crisis_flags"]) > 0
 
 
 def test_khaleeji_want_to_die_abgha():
     """أبغى أموت — Khaleeji/Saudi-Gulf variant of 'I want to die' must trigger crisis."""
-    from sage_poc.nodes.safety_check import _contains_crisis
-    flags = _contains_crisis("أبغى أموت، ما أقدر أكمل")
-    assert len(flags) > 0, "Khaleeji 'أبغى أموت' must trigger crisis detection"
+    from sage_poc.nodes.safety_check import safety_check_node
+    result = safety_check_node(_make_graph_state("أبغى أموت، ما أقدر أكمل"))
+    assert result["is_safe"] is False, "Khaleeji 'أبغى أموت' must trigger crisis detection"
+    assert len(result["crisis_flags"]) > 0
 
 
 def test_khaleeji_end_my_life():
     """أبي أنهي حياتي — Gulf 'I want to end my life' must trigger crisis."""
-    from sage_poc.nodes.safety_check import _contains_crisis
-    flags = _contains_crisis("أبي أنهي حياتي")
-    assert len(flags) > 0, "Khaleeji 'أبي أنهي حياتي' must trigger crisis detection"
+    from sage_poc.nodes.safety_check import safety_check_node
+    result = safety_check_node(_make_graph_state("أبي أنهي حياتي"))
+    assert result["is_safe"] is False, "Khaleeji 'أبي أنهي حياتي' must trigger crisis detection"
+    assert len(result["crisis_flags"]) > 0
 
 
 def test_levantine_expat_self_harm():
     """بدي أقتل حالي — Levantine 'I want to kill myself' (common Syrian/Lebanese expats in UAE)."""
-    from sage_poc.nodes.safety_check import _contains_crisis
-    flags = _contains_crisis("بدي أقتل حالي")
-    assert len(flags) > 0, "Levantine 'بدي أقتل حالي' must trigger crisis detection"
+    from sage_poc.nodes.safety_check import safety_check_node
+    result = safety_check_node(_make_graph_state("بدي أقتل حالي"))
+    assert result["is_safe"] is False, "Levantine 'بدي أقتل حالي' must trigger crisis detection"
+    assert len(result["crisis_flags"]) > 0
 
 
 def test_indirect_gulf_euphemism_sleep_not_wake():
     """ياريت أنام ولا أصحى — 'I wish I'd sleep and not wake up' — passive ideation euphemism."""
-    from sage_poc.nodes.safety_check import _contains_crisis
-    flags = _contains_crisis("ياريت أنام ولا أصحى")
-    assert len(flags) > 0, "Passive ideation euphemism 'ياريت أنام ولا أصحى' must trigger crisis"
+    from sage_poc.nodes.safety_check import safety_check_node
+    result = safety_check_node(_make_graph_state("ياريت أنام ولا أصحى"))
+    assert result["is_safe"] is False, "Passive ideation euphemism 'ياريت أنام ولا أصحى' must trigger crisis"
+    assert len(result["crisis_flags"]) > 0
 
 
 def test_indirect_gulf_soul_tired():
     """نفسي تعبت — 'My soul is tired' — clinically significant indirect Gulf ideation phrase."""
-    from sage_poc.nodes.safety_check import _contains_crisis
-    flags = _contains_crisis("نفسي تعبت، ما أبي أكمل")
-    assert len(flags) > 0, "Indirect idiom 'نفسي تعبت' must trigger crisis detection"
+    from sage_poc.nodes.safety_check import safety_check_node
+    result = safety_check_node(_make_graph_state("نفسي تعبت، ما أبي أكمل"))
+    assert result["is_safe"] is False, "Indirect idiom 'نفسي تعبت' must trigger crisis detection"
+    assert len(result["crisis_flags"]) > 0
 
 
 def test_indirect_gulf_no_reason_to_live():
     """ما عندي سبب أعيش — Gulf 'I have no reason to live'."""
-    from sage_poc.nodes.safety_check import _contains_crisis
-    flags = _contains_crisis("ما عندي سبب أعيش")
-    assert len(flags) > 0, "Gulf phrase 'ما عندي سبب أعيش' must trigger crisis detection"
+    from sage_poc.nodes.safety_check import safety_check_node
+    result = safety_check_node(_make_graph_state("ما عندي سبب أعيش"))
+    assert result["is_safe"] is False, "Gulf phrase 'ما عندي سبب أعيش' must trigger crisis detection"
+    assert len(result["crisis_flags"]) > 0
 
 
 def test_indirect_gulf_life_not_worth_it():
     """الحياة ما تسوى — 'Life isn't worth it' — hopelessness marker."""
-    from sage_poc.nodes.safety_check import _contains_crisis
-    flags = _contains_crisis("الحياة ما تسوى")
-    assert len(flags) > 0, "Gulf hopelessness phrase 'الحياة ما تسوى' must trigger crisis detection"
+    from sage_poc.nodes.safety_check import safety_check_node
+    result = safety_check_node(_make_graph_state("الحياة ما تسوى"))
+    assert result["is_safe"] is False, "Gulf hopelessness phrase 'الحياة ما تسوى' must trigger crisis detection"
+    assert len(result["crisis_flags"]) > 0
 
 
 def test_araglish_want_to_mat():
     """'want to mat' — Araglish phonetic blend for مات (died); 'I want to die'."""
-    from sage_poc.nodes.safety_check import _contains_crisis
-    flags = _contains_crisis("wallah I just want to mat, I'm so done")
-    assert len(flags) > 0, "Araglish 'want to mat' must trigger crisis detection"
+    from sage_poc.nodes.safety_check import safety_check_node
+    result = safety_check_node(_make_graph_state("wallah I just want to mat, I'm so done"))
+    assert result["is_safe"] is False, "Araglish 'want to mat' must trigger crisis detection"
+    assert len(result["crisis_flags"]) > 0
 
 
 def test_araglish_wallah_want_to_die():
     """'wallah I want to die' — Araglish sworn statement of suicidal ideation."""
-    from sage_poc.nodes.safety_check import _contains_crisis
-    flags = _contains_crisis("wallah I want to die")
-    assert len(flags) > 0, "Araglish 'wallah I want to die' must trigger crisis detection"
+    from sage_poc.nodes.safety_check import safety_check_node
+    result = safety_check_node(_make_graph_state("wallah I want to die"))
+    assert result["is_safe"] is False, "Araglish 'wallah I want to die' must trigger crisis detection"
+    assert len(result["crisis_flags"]) > 0
 
 
 def test_arabizi_abi_amoot():
     """'abi amoot' — romanized Arabizi for أبي أموت ('I want to die' in Gulf dialect)."""
-    from sage_poc.nodes.safety_check import _contains_crisis
-    flags = _contains_crisis("ana ta3ban, abi amoot")
-    assert len(flags) > 0, "Arabizi 'abi amoot' must trigger crisis detection"
+    from sage_poc.nodes.safety_check import safety_check_node
+    result = safety_check_node(_make_graph_state("ana ta3ban, abi amoot"))
+    assert result["is_safe"] is False, "Arabizi 'abi amoot' must trigger crisis detection"
+    assert len(result["crisis_flags"]) > 0
 
 
 def test_msa_explicit_suicide_still_detected():
     """MSA أريد أن أقتل نفسي — explicit suicide statement still detected after keyword expansion."""
-    from sage_poc.nodes.safety_check import _contains_crisis
-    flags = _contains_crisis("أريد أن أقتل نفسي")
-    assert len(flags) > 0, "MSA explicit suicidal statement must still be detected"
+    from sage_poc.nodes.safety_check import safety_check_node
+    result = safety_check_node(_make_graph_state("أريد أن أقتل نفسي"))
+    assert result["is_safe"] is False, "MSA explicit suicidal statement must still be detected"
+    assert len(result["crisis_flags"]) > 0
 
 
 def test_neutral_arabic_does_not_trigger():
     """Arabic neutral messages must not generate false-positive crisis flags."""
-    from sage_poc.nodes.safety_check import _contains_crisis
-    flags = _contains_crisis("أنا متعب من العمل اليوم، أحتاج إلى نوم")
-    assert len(flags) == 0, "Neutral Arabic ('I'm tired from work, I need sleep') must not trigger crisis"
+    from sage_poc.nodes.safety_check import safety_check_node
+    result = safety_check_node(_make_graph_state("أنا متعب من العمل اليوم، أحتاج إلى نوم"))
+    assert result["is_safe"] is True, "Neutral Arabic ('I'm tired from work, I need sleep') must not trigger crisis"
+    assert len(result["crisis_flags"]) == 0
 
 
 def test_crisis_keywords_covers_minimum_arabic_phrases():
-    """CRISIS_KEYWORDS must contain at least 10 Arabic entries after Gulf-dialect expansion."""
-    from sage_poc.nodes.safety_check import CRISIS_KEYWORDS
-    arabic_entries = [kw for kw in CRISIS_KEYWORDS if any(ord(c) > 0x0600 for c in kw)]
-    assert len(arabic_entries) >= 10, \
-        f"Expected ≥10 Arabic crisis keywords after Gulf-dialect expansion, got {len(arabic_entries)}"
+    """Rules Service must have at least 10 active Arabic-language safety rules."""
+    from sage_poc.rules.loader import get_rules
+    rules = get_rules("safety")
+    arabic_crisis_patterns = []
+    for r in rules:
+        if r.action.get("type") == "crisis_flag":
+            arabic_crisis_patterns.extend(
+                p for p in r.patterns if any(ord(c) > 0x0600 for c in p)
+            )
+    assert len(arabic_crisis_patterns) >= 10, \
+        f"Expected ≥10 Arabic crisis patterns after Gulf-dialect expansion, got {len(arabic_crisis_patterns)}"
 
 
 # English crisis response content verification (NEW-1 fix — mirrors Arabic test suite)
