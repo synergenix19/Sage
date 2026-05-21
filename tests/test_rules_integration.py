@@ -176,6 +176,33 @@ def test_clinical_adaptation_substance_injected_from_flag():
     assert "motivational interviewing" in system_str.lower() or "substance" in system_str.lower()
 
 
+@pytest.mark.parametrize("flag,expected_keyword", [
+    ("trauma_indicator", "trauma"),
+    ("eating_concern", "body"),
+    ("medication_mention", "prescriber"),
+])
+def test_clinical_adaptation_injected_per_flag(flag, expected_keyword):
+    state = _freeflow_state(clinical_flags=[flag])
+    system_str, _ = compose_prompt(state)
+    assert expected_keyword in system_str.lower(), (
+        f"Expected {expected_keyword!r} in system prompt for {flag}"
+    )
+
+
+def test_collectivist_framing_fires_on_arabic_keyword():
+    """Arabic عيب (shame) in raw_message triggers collectivist injection even when
+    the English translation does not contain a matching keyword."""
+    state = _freeflow_state(
+        message_en="I feel pressured",
+        raw_message="أحس بالعيب",
+        detected_language="ar",
+    )
+    system_str, _ = compose_prompt(state)
+    assert "COLLECTIVIST" in system_str, (
+        "Collectivist framing must fire on Arabic keyword عيب even without matching English translation"
+    )
+
+
 def test_secondary_intent_dialectical_framing_injected():
     state = _freeflow_state(
         primary_intent="new_skill",

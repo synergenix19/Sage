@@ -18,6 +18,14 @@ def test_strip_invisible_removes_zwnj():
     assert strip_invisible("don‌t") == "dont"
 
 
+def test_strip_invisible_removes_rtl_mark():
+    assert strip_invisible("want‏to die") == "wantto die"
+
+
+def test_strip_invisible_removes_ltr_mark():
+    assert strip_invisible("want‎to die") == "wantto die"
+
+
 def test_strip_arabic_diacritics_removes_fatha():
     # fatha U+064E on alef
     assert strip_arabic_diacritics("أَ") == "أ"

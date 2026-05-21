@@ -65,6 +65,19 @@ def test_zwsp_bypass_still_detected():
     assert any(a.get("type") == "crisis_flag" for a in result.actions)
 
 
+# ── Arabizi (Gulf English) SI ────────────────────────────────────────────────
+
+@pytest.mark.parametrize("text", [
+    "wallah i want to die",
+    "abi amoot",
+    "khalas i give up",
+])
+def test_arabizi_si_triggers_crisis(text):
+    result = engine.evaluate("safety", {"text_en": text, "language": "en"})
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert crisis_actions, f"Expected crisis flag for Arabizi: {text!r}"
+
+
 # ── Arabic explicit SI ───────────────────────────────────────────────────────
 
 @pytest.mark.parametrize("arabic_text", [

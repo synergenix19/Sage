@@ -3,8 +3,8 @@ import unicodedata
 
 
 def strip_invisible(text: str) -> str:
-    """Remove ZWSP (U+200B), ZWNJ (U+200C), ZWJ (U+200D), BOM (U+FEFF)."""
-    return re.sub(r'[​‌‍﻿]', '', text)
+    """Remove ZWSP/ZWNJ/ZWJ (U+200B–U+200D), LTR/RTL marks (U+200E–U+200F), BOM (U+FEFF)."""
+    return re.sub(r'[​-‏﻿]', '', text)
 
 
 def strip_arabic_diacritics(text: str) -> str:

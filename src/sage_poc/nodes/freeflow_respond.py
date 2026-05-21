@@ -57,8 +57,10 @@ def compose_prompt(state: SageState) -> tuple[str, str]:
     system_parts = [PERSONA]
 
     # Cultural injections (Islamic framing, collectivist framing)
+    # Pass raw_message as text_ar when language=="ar" so Arabic trigger keywords are reachable
     cultural_result = rules_engine.evaluate("cultural", {
         "text": message_en,
+        "text_ar": state.get("raw_message") if language == "ar" else None,
         "language": language,
     })
     for action in cultural_result.actions:

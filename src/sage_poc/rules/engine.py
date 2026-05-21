@@ -103,17 +103,31 @@ def _eval_cultural(rules: list[CulturalRule], context: dict) -> EvalResult:
     Accumulate all cultural rules whose trigger_keywords appear in the message text.
 
     context keys:
-      text (str)      — user message (English)
-      language (str)  — "en" | "ar"
+      text (str)           — user message (English)
+      text_ar (str | None) — original Arabic text (if language == "ar")
+      language (str)       — "en" | "ar"
     """
     text_lower = normalize_text(context.get("text", ""))
+    text_ar = context.get("text_ar") or ""
+    norm_ar = normalize_arabic(text_ar) if text_ar else ""
     language = context.get("language", "en")
 
     result = EvalResult()
     for rule in rules:
         if rule.language not in ("any", language):
             continue
-        if any(kw.lower() in text_lower for kw in rule.trigger_keywords):
+        matched = False
+        for kw in rule.trigger_keywords:
+            is_arabic_kw = any('؀' <= ch <= 'ۿ' for ch in kw)
+            if is_arabic_kw:
+                if norm_ar and normalize_arabic(kw) in norm_ar:
+                    matched = True
+                    break
+            else:
+                if kw.lower() in text_lower:
+                    matched = True
+                    break
+        if matched:
             result.fired.append(FiredRule(
                 rule_id=rule.rule_id,
                 version=rule.version,

@@ -131,7 +131,7 @@ def test_cultural_rule_no_match():
 
 def test_cultural_rule_language_filter():
     rules = [_cultural_rule("C1", ["الله"], language="ar")]
-    ctx = {"text": "الله يساعدني", "language": "ar"}
+    ctx = {"text": "", "text_ar": "الله يساعدني", "language": "ar"}
     result = engine._eval_cultural(rules, ctx)
     assert "C1" in result.fired_ids
 
