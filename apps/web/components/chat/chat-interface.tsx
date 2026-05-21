@@ -18,6 +18,7 @@ interface SdkMessage {
   id: string
   role: SdkRole
   content: string
+  supabaseId?: string  // Supabase UUID from X-Sage-Ai-Message-Id header
 }
 
 interface Props {
@@ -73,6 +74,8 @@ export function useStreamingChat(sessionId: string | undefined, initialMessages:
           throw new Error(`Chat request failed: ${res.status}`)
         }
 
+        const aiSupabaseId = res.headers.get('X-Sage-Ai-Message-Id') ?? undefined
+
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
         let accumulated = ''
@@ -92,6 +95,13 @@ export function useStreamingChat(sessionId: string | undefined, initialMessages:
           // Drop the placeholder and surface the error — lets the retry UI appear
           setMessages((curr) => curr.filter((m) => m.id !== assistantId))
           setError(new Error('Sage is having trouble responding. Please try again.'))
+        } else {
+          // Stream complete — attach the Supabase message UUID for the feedback flow.
+          if (aiSupabaseId) {
+            setMessages((curr) =>
+              curr.map((m) => (m.id === assistantId ? { ...m, supabaseId: aiSupabaseId } : m))
+            )
+          }
         }
       } catch (err) {
         if ((err as Error).name === 'AbortError') return
@@ -185,6 +195,18 @@ export function ChatInterface({ initialSession, initialMessages = [], userName }
     append({ role: 'user', content: text })
   }
 
+  async function handleFeedback(messageId: string, value: 1 | -1) {
+    try {
+      await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId, value }),
+      })
+    } catch {
+      // feedback is best-effort — do not surface errors to the user
+    }
+  }
+
   return (
     <div className="flex h-full flex-col">
       <ChatHeader session={initialSession} />
@@ -212,6 +234,8 @@ export function ChatInterface({ initialSession, initialMessages = [], userName }
                   sessionId: initialSession?.id ?? '',
                   createdAt: '',
                 }}
+                supabaseId={m.supabaseId}
+                onFeedback={handleFeedback}
               />
             )
           })

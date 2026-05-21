@@ -1,8 +1,15 @@
 import { cn } from '@cdai/ui'
 import type { ChatMessage } from '@cdai/types'
+import { FeedbackButtons } from './feedback-buttons'
 
-export function MessageBubble({ message }: { message: ChatMessage }) {
-  if (message.role === 'crisis') return null // rendered by CrisisCard separately
+interface Props {
+  message: ChatMessage
+  supabaseId?: string
+  onFeedback?: (messageId: string, value: 1 | -1) => void
+}
+
+export function MessageBubble({ message, supabaseId, onFeedback }: Props) {
+  if (message.role === 'crisis') return null
   if (message.role === 'system') {
     return (
       <div className="mx-auto w-full max-w-xs rounded-xl border border-[var(--color-border)] px-4 py-2 text-center text-xs text-[var(--color-text-secondary)]">
@@ -13,7 +20,7 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
 
   const isUser = message.role === 'user'
   return (
-    <div className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
+    <div className={cn('flex flex-col', isUser ? 'items-end' : 'items-start')}>
       <div
         className={cn(
           'max-w-[78%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
@@ -24,6 +31,9 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
       >
         {message.content}
       </div>
+      {!isUser && supabaseId && onFeedback && (
+        <FeedbackButtons messageId={supabaseId} onFeedback={onFeedback} />
+      )}
     </div>
   )
 }
