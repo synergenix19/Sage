@@ -2018,3 +2018,41 @@ def test_intent_route_panic_somatic_returns_new_skill_not_crisis():
         "Somatic panic must be new_skill (→ grounding), not crisis. safety_check is the authoritative crisis detector."
     assert result["primary_intent"] != "crisis", \
         "intent_route must not re-escalate somatic distress to crisis after safety_check passed the message"
+
+
+# Task 3: S7 post-crisis classifier integration
+
+def test_s7_not_called_when_crisis_state_is_none():
+    """S7 classifier must be skipped when crisis_state is 'none'."""
+    state = make_state(raw_message="I feel okay", crisis_state="none")
+    result = safety_check_node(state)
+    assert result["s7_result"] is None
+    assert result["s7_method"] is None
+
+
+def test_s7_called_when_crisis_state_is_monitoring():
+    """S7 classifier must fire when crisis_state is 'monitoring'."""
+    state = make_state(
+        raw_message="thank you, feeling much better",
+        crisis_state="monitoring",
+    )
+    result = safety_check_node(state)
+    assert result["s7_result"] == "RECOVERING"
+    assert result["s7_method"] == "keyword"
+
+
+def test_s7_monitoring_still_distressed_keyword():
+    state = make_state(
+        raw_message="nothing has changed, I still feel the same",
+        crisis_state="monitoring",
+    )
+    result = safety_check_node(state)
+    assert result["s7_result"] == "STILL_DISTRESSED"
+    assert result["s7_method"] == "keyword"
+
+
+def test_safety_check_returns_crisis_state_unchanged():
+    """safety_check_node passes crisis_state through unchanged."""
+    state = make_state(raw_message="I feel okay", crisis_state="monitoring")
+    result = safety_check_node(state)
+    assert result["crisis_state"] == "monitoring"

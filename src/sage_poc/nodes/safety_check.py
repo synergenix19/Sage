@@ -2,6 +2,7 @@ import re
 from sage_poc.state import SageState
 from sage_poc.language import detect_language, translate_to_english
 from sage_poc.rules import engine as rules_engine
+from sage_poc.nodes.post_crisis_classifier import evaluate_s7
 
 _HAS_ARABIC_RE = re.compile(r'[؀-ۿ]')
 _HAS_LATIN_RE = re.compile(r'[A-Za-z]')
@@ -68,6 +69,13 @@ def safety_check_node(state: SageState) -> dict:
     extra = ["escalating_distress"] if escalating else []
     all_clinical = list(set(new_clinical_flags + third_party_flags + extra + persisted))
 
+    crisis_state = state.get("crisis_state", "none")
+    s7_result: str | None = None
+    s7_method: str | None = None
+
+    if crisis_state == "monitoring":
+        s7_result, s7_method = evaluate_s7(message_en)
+
     return {
         "detected_language": lang,
         "message_en": message_en,
@@ -76,5 +84,8 @@ def safety_check_node(state: SageState) -> dict:
         "clinical_flags": all_clinical,
         "distress_trajectory": trajectory,
         "code_switching": code_switching,
+        "crisis_state": crisis_state,
+        "s7_result": s7_result,
+        "s7_method": s7_method,
         "path": state["path"] + ["safety_check"],
     }
