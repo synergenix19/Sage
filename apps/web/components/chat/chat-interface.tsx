@@ -218,7 +218,7 @@ export function ChatInterface({ initialSession, initialMessages = [], userName }
       </div>
 
       {pinnedCrisis !== null && (
-        <div className="px-0 py-2">
+        <div className="py-2">
           <CrisisCard content={pinnedCrisis} />
         </div>
       )}
