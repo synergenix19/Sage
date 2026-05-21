@@ -1653,6 +1653,7 @@ def test_sanitize_strips_em_dash_replaces_with_comma():
     from sage_poc.nodes.freeflow_respond import _sanitize_assistant_turn
     result = _sanitize_assistant_turn("I hear you — that sounds heavy.")
     assert "—" not in result
+    assert ", " in result
     assert "I hear you" in result
     assert "that sounds heavy" in result
 

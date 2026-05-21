@@ -9,7 +9,7 @@ _EMOJI_RE = re.compile(
     r"\U00002600-\U000027BF"    # misc symbols and dingbats
     r"\U0001FA00-\U0001FAFF"    # extended symbols and pictographs
     r"\U0000FE00-\U0000FE0F"    # variation selectors (emoji presentation modifiers)
-    r"\U0000200D"               # zero-width joiner (compound emoji sequences)
+    r"\U0000200D"               # zero-width joiner (stripped individually; base emoji caught by ranges above)
     r"]"
 )
 
