@@ -1617,3 +1617,31 @@ def test_semantic_match_returns_score_in_result():
     )
     assert isinstance(result["semantic_score"], float)
     assert 0.0 < result["semantic_score"] <= 1.0
+
+
+# Task 2: Fix C — Remove Em Dash From Crisis Rules JSON
+
+def test_crisis_response_en_no_em_dash():
+    """English crisis rules must not contain em dash — bypasses output_gate format check."""
+    import json
+    from pathlib import Path
+    path = Path(__file__).parent.parent / "src/sage_poc/rules/data/crisis_content/en_uae.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    for rule in data["rules"]:
+        text = rule["action"]["response_text"]
+        assert "—" not in text, (
+            f"Rule {rule['rule_id']} contains em dash. Crisis responses bypass output_gate "
+            f"so must be clean at the source. Offending text: '{text[:100]}'"
+        )
+
+def test_crisis_response_ar_no_em_dash():
+    """Arabic crisis rules must not contain em dash."""
+    import json
+    from pathlib import Path
+    path = Path(__file__).parent.parent / "src/sage_poc/rules/data/crisis_content/ar_uae.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    for rule in data["rules"]:
+        text = rule["action"]["response_text"]
+        assert "—" not in text, (
+            f"Rule {rule['rule_id']} contains em dash in Arabic crisis response: '{text[:100]}'"
+        )

@@ -13,7 +13,7 @@
       "crisis_level": "acute",
       "action": {
         "type": "crisis_response",
-        "response_text": "I'm really concerned about what you've shared. Please reach out to a crisis line now — in the UAE: 800 4673 (800-HOPE), or emergency: 999. You don't have to face this alone.",
+        "response_text": "I'm really concerned about what you've shared. Please reach out to a crisis line now. In the UAE: 800 4673 (800-HOPE), or emergency: 999. You don't have to face this alone.",
         "resources": [
           {"name": "National Lifeline (Estijaba)", "number": "800-4673", "available": "24/7"},
           {"name": "Emergency Services", "number": "999", "available": "24/7"}
