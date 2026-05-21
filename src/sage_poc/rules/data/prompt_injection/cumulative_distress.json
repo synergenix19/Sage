@@ -1,0 +1,22 @@
+{
+  "category": "prompt_injection",
+  "rules": [
+    {
+      "rule_id": "PI-CD-001",
+      "version": "1.0.0",
+      "category": "prompt_injection",
+      "authored_by": "sage-rules-team",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Cumulative distress adaptation — sustained high emotional intensity across multiple turns",
+      "trigger_type": "flag_present",
+      "trigger_value": "escalating_distress",
+      "trigger_keywords": [],
+      "action": {
+        "type": "inject",
+        "target": "system",
+        "content": "CUMULATIVE DISTRESS: This user has shown sustained high emotional intensity across multiple turns. Acknowledge the ongoing difficulty, explore what has been weighing on them, and gently assess whether professional support has been considered. Avoid introducing new topics."
+      }
+    }
+  ]
+}

@@ -290,3 +290,30 @@ def test_post_crisis_injection_absent_on_normal_session():
     )
     system_str, _ = compose_prompt(state)
     assert "POST-CRISIS" not in system_str
+
+
+# ── Cumulative distress heuristic ────────────────────────────────────────────
+
+def test_escalating_distress_flag_set_after_streak():
+    """3 consecutive turns at intensity ≥6 must set escalating_distress clinical flag."""
+    state = _state("I can't cope anymore")
+    state["distress_trajectory"] = [7, 8]   # two prior high-intensity turns
+    state["emotional_intensity"] = 7         # this turn (one-turn lag: previous turn's score)
+    result = safety_check_node(state)
+    assert "escalating_distress" in result["clinical_flags"]
+
+
+def test_escalating_distress_flag_absent_below_floor():
+    """Scores below floor (< 6) must NOT trigger escalating_distress."""
+    state = _state("I feel okay today")
+    state["distress_trajectory"] = [3, 4]
+    state["emotional_intensity"] = 3
+    result = safety_check_node(state)
+    assert "escalating_distress" not in result["clinical_flags"]
+
+
+def test_cumulative_distress_injection_fires_on_flag():
+    """PI-CD-001 must inject cumulative distress guidance when escalating_distress flag is present."""
+    state = _freeflow_state(clinical_flags=["escalating_distress"])
+    system_str, _ = compose_prompt(state)
+    assert "CUMULATIVE DISTRESS" in system_str or "distress" in system_str.lower()
