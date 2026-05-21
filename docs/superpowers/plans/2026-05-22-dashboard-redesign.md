@@ -23,6 +23,7 @@
 | `cdai/apps/web/components/admin/admin-dashboard.tsx` | Create | Client component: receives data, handles highlight state |
 | `cdai/apps/web/components/admin/admin-sidebar.tsx` | Modify | Update nav sections to match new panels |
 | `cdai/apps/web/components/admin/charts.tsx` | Modify | Add IntentBarChart, FeedbackRatioCard, SkillUsageChart |
+| `cdai/apps/web/components/admin/metric-card.tsx` | Modify | Add `variant` prop for semantic color encoding (default / alert / ok) |
 | `cdai/apps/web/components/admin/system-performance.tsx` | Create | Latency trend + intent distribution panel |
 | `cdai/apps/web/components/admin/clinical-safety.tsx` | Create | Crisis count + clinical flags panel |
 | `cdai/apps/web/components/admin/response-quality.tsx` | Create | Feedback ratio + gate path panel |
@@ -497,10 +498,37 @@ git commit -m "feat(admin): add typed Supabase query functions for all 4 admin p
 
 - [ ] **Step 1: Append new chart implementations to charts.tsx**
 
-Append to the end of `cdai/apps/web/components/admin/charts.tsx` (before the final dynamic exports, add these new implementations, then add dynamic exports at the bottom):
+Append to the end of `cdai/apps/web/components/admin/charts.tsx` (before the final dynamic exports, add these new implementations, then add dynamic exports at the bottom).
+
+First, ensure `Cell` is imported from recharts at the top of the file. Add it to the existing import line if not present:
+
+```typescript
+// Ensure Cell is in the recharts import at the top of charts.tsx — used by IntentBarChart.
+// Example existing import (edit to match actual):
+// import { ResponsiveContainer, LineChart, Line, ... } from 'recharts'
+// Add: Cell
+```
+
+Then append the new implementations:
 
 ```typescript
 // -- New chart implementations for admin panels --
+
+// Semantic color assignment for each intent category.
+// Therapeutic intents: green range. Learning: brand teal. Crisis: red.
+// Policy/exit intents: amber/gray — present but not primary concern.
+const INTENT_COLORS: Record<string, string> = {
+  skill_continuation: '#4A7C59',  // primary green — active therapeutic engagement
+  new_skill:          '#2D6B6B',  // secondary teal — exploring
+  general_chat:       '#6B9E7A',  // light green — open support
+  info_request:       '#3B82F6',  // blue — learning / informational
+  emotional:          '#8B5CF6',  // purple — emotional processing
+  crisis:             '#DC2626',  // red — immediate attention
+  exit_skill:         '#9CA3AF',  // gray — disengagement
+  scope_refusal:      '#D97706',  // amber — out-of-scope
+  jailbreak:          '#D97706',  // amber — policy violation
+  unknown:            '#9CA3AF',  // gray fallback
+}
 
 interface IntentBarChartProps {
   data: Array<{ intent: string; count: number }>
@@ -518,7 +546,14 @@ function IntentBarChartImpl({ data }: IntentBarChartProps) {
             <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }} tickLine={false} axisLine={false} />
             <YAxis type="category" dataKey="intent" width={120} tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }} tickLine={false} axisLine={false} />
             <Tooltip contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '8px', fontSize: '12px' }} />
-            <Bar dataKey="count" fill="var(--color-primary)" radius={[0, 4, 4, 0]} />
+            <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+              {data.map((entry) => (
+                <Cell
+                  key={entry.intent}
+                  fill={INTENT_COLORS[entry.intent] ?? INTENT_COLORS.unknown}
+                />
+              ))}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -642,12 +677,53 @@ git commit -m "feat(admin): add IntentBarChart, LatencyLineChart, FlagBarChart, 
 ### Task A4: Create 4 admin panel components
 
 **Files:**
+- Modify: `cdai/apps/web/components/admin/metric-card.tsx`
 - Create: `cdai/apps/web/components/admin/system-performance.tsx`
 - Create: `cdai/apps/web/components/admin/clinical-safety.tsx`
 - Create: `cdai/apps/web/components/admin/response-quality.tsx`
 - Create: `cdai/apps/web/components/admin/conversation-intelligence.tsx`
 
-- [ ] **Step 1: Create system-performance.tsx**
+- [ ] **Step 1: Add variant prop to MetricCard**
+
+Replace the full content of `cdai/apps/web/components/admin/metric-card.tsx`:
+
+```typescript
+// variant='default' — standard informational metric (borders + neutral colors)
+// variant='alert'   — critical metric requiring immediate attention (red tint)
+// variant='ok'      — affirming metric (green tint, e.g. zero crisis events)
+type MetricVariant = 'default' | 'alert' | 'ok'
+
+interface MetricCardProps {
+  label: string
+  value: string | number
+  subtext?: string
+  variant?: MetricVariant
+}
+
+const variantStyles: Record<MetricVariant, string> = {
+  default: 'border-[var(--color-border)] bg-[var(--color-surface)]',
+  alert:   'border-[var(--color-crisis)] bg-[var(--color-crisis)]/5',
+  ok:      'border-[var(--color-primary)] bg-[var(--color-surface-tinted)]',
+}
+
+const variantValueStyles: Record<MetricVariant, string> = {
+  default: 'text-[var(--color-text-primary)]',
+  alert:   'text-[var(--color-crisis)]',
+  ok:      'text-[var(--color-primary)]',
+}
+
+export function MetricCard({ label, value, subtext, variant = 'default' }: MetricCardProps) {
+  return (
+    <div className={`rounded-2xl border p-5 ${variantStyles[variant]}`}>
+      <p className="text-sm text-[var(--color-text-secondary)]">{label}</p>
+      <p className={`mt-1 text-3xl font-bold ${variantValueStyles[variant]}`}>{value}</p>
+      {subtext && <p className="mt-1 text-xs text-[var(--color-text-secondary)]">{subtext}</p>}
+    </div>
+  )
+}
+```
+
+- [ ] **Step 2: Create system-performance.tsx**
 
 Create `cdai/apps/web/components/admin/system-performance.tsx`:
 
@@ -685,7 +761,7 @@ export function SystemPerformancePanel({ overview, data }: Props) {
 }
 ```
 
-- [ ] **Step 2: Create clinical-safety.tsx**
+- [ ] **Step 3: Create clinical-safety.tsx**
 
 Create `cdai/apps/web/components/admin/clinical-safety.tsx`:
 
@@ -697,16 +773,25 @@ import type { ClinicalSafetyData } from '@/lib/admin-queries'
 export function ClinicalSafetyPanel({ data }: { data: ClinicalSafetyData }) {
   return (
     <div className="space-y-4">
+      {/* Affirming zero-crisis state: silence is ambiguous, confirmation is not */}
+      {data.crisisThisWeek === 0 && (
+        <div className="flex items-center gap-2.5 rounded-2xl border border-[var(--color-primary)] bg-[var(--color-surface-tinted)] px-4 py-3">
+          <div className="h-2 w-2 flex-shrink-0 rounded-full bg-[var(--color-primary)]" />
+          <p className="text-sm font-medium text-[var(--color-primary)]">No crisis events this week</p>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-4">
         <MetricCard
           label="Crisis Events (7d)"
           value={data.crisisThisWeek}
           subtext="Messages flagged as crisis"
+          variant={data.crisisThisWeek > 0 ? 'alert' : 'ok'}
         />
         <MetricCard
           label="Clinical Escalations (7d)"
           value={data.escalationsThisWeek}
           subtext="Turns with clinical flags"
+          variant={data.escalationsThisWeek > 0 ? 'alert' : 'default'}
         />
       </div>
       <FlagBarChart data={data.flagDistribution} />
@@ -715,7 +800,7 @@ export function ClinicalSafetyPanel({ data }: { data: ClinicalSafetyData }) {
 }
 ```
 
-- [ ] **Step 3: Create response-quality.tsx**
+- [ ] **Step 4: Create response-quality.tsx**
 
 Create `cdai/apps/web/components/admin/response-quality.tsx`:
 
@@ -745,6 +830,30 @@ export function ResponseQualityPanel({ data }: { data: ResponseQualityData }) {
           <MetricCard key={gatePath} label={`Gate: ${gatePath}`} value={count} subtext="AI turns this week" />
         ))}
       </div>
+
+      {/* Ratio strip: encodes positive/negative sentiment at a glance */}
+      {data.totalFeedback > 0 && thumbsUpPct !== null && (
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+          <p className="mb-3 text-sm font-medium text-[var(--color-text-primary)]">
+            Feedback sentiment
+          </p>
+          <div className="flex h-2.5 overflow-hidden rounded-full bg-[var(--color-border)]">
+            <div
+              className="h-full rounded-l-full bg-[var(--color-primary)] transition-all duration-500"
+              style={{ width: `${thumbsUpPct}%` }}
+            />
+            <div
+              className="h-full bg-[var(--color-crisis)]"
+              style={{ width: `${100 - thumbsUpPct}%` }}
+            />
+          </div>
+          <div className="mt-2 flex justify-between text-xs text-[var(--color-text-secondary)]">
+            <span>{thumbsUpPct}% positive</span>
+            <span>{100 - thumbsUpPct}% needs improvement</span>
+          </div>
+        </div>
+      )}
+
       {data.totalFeedback === 0 && (
         <p className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 text-sm text-[var(--color-text-secondary)]">
           No feedback submitted yet. Feedback buttons appear below AI messages after the trace-and-feedback plan is deployed.
@@ -755,7 +864,7 @@ export function ResponseQualityPanel({ data }: { data: ResponseQualityData }) {
 }
 ```
 
-- [ ] **Step 4: Create conversation-intelligence.tsx**
+- [ ] **Step 5a: Create conversation-intelligence.tsx**
 
 Create `cdai/apps/web/components/admin/conversation-intelligence.tsx`:
 
@@ -795,16 +904,17 @@ export function ConversationIntelligencePanel({ data }: { data: ConversationInte
 }
 ```
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 cd /Users/knowledgebase/Documents/Sage/cdai
 git add \
+  apps/web/components/admin/metric-card.tsx \
   apps/web/components/admin/system-performance.tsx \
   apps/web/components/admin/clinical-safety.tsx \
   apps/web/components/admin/response-quality.tsx \
   apps/web/components/admin/conversation-intelligence.tsx
-git commit -m "feat(admin): add 4 analysis panel components (System Performance, Clinical Safety, Response Quality, Intelligence)"
+git commit -m "feat(admin): add 4 analysis panel components with semantic MetricCard variant, zero-crisis affirming state, and feedback ratio strip"
 ```
 
 ---
@@ -1397,12 +1507,15 @@ Replace the full content of `cdai/apps/web/components/progress/mood-chart.tsx`:
 
 ```typescript
 'use client'
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import {
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  ReferenceLine, defs, linearGradient, stop
+} from 'recharts'
 import { Card } from '@cdai/ui'
 import type { MoodPoint } from '@/lib/progress-queries'
 
-// Scale: 0 = Low (intensity 10), 2.5 = Okay (intensity 5), 5 = Great (intensity 0/1).
-// Derived from the inversion formula: 5 - (emotional_intensity / 2).
+// Scale: 0 = Low (emotional_intensity 10), 2.5 = Okay (5), 5 = Great (near 0).
+// Derived from inversion: 5 - (emotional_intensity / 2).
 const MOOD_LABELS: Record<number, string> = { 0: 'Low', 2.5: 'Okay', 5: 'Great' }
 
 function formatDay(isoDay: string) {
@@ -1420,12 +1533,15 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
   const point = payload[0]
   const mood = point.value
   const session = point.payload?.sessionName
+  // Round to nearest 0.5 for label lookup
+  const rounded = Math.round((mood ?? 0) * 2) / 2
+  const moodLabel = MOOD_LABELS[rounded as keyof typeof MOOD_LABELS] ?? mood?.toFixed(1)
 
   return (
     <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs shadow">
       <p className="font-medium">{label}</p>
-      <p>Mood: {MOOD_LABELS[Math.round((mood ?? 0) * 2) / 2 as keyof typeof MOOD_LABELS] ?? mood}</p>
-      {session && <p className="text-[var(--color-text-secondary)]">{session}</p>}
+      <p>Feeling: <span className="font-medium text-[var(--color-text-primary)]">{moodLabel}</span></p>
+      {session && <p className="mt-0.5 text-[var(--color-text-secondary)]">{session}</p>}
     </div>
   )
 }
@@ -1441,8 +1557,8 @@ export function MoodChart({ points }: { points: MoodPoint[] }) {
     return (
       <Card>
         <p className="mb-3 text-sm font-medium">Mood this week</p>
-        <p className="text-xs text-[var(--color-text-secondary)]">
-          Your mood trend will appear after a few conversations.
+        <p className="text-sm text-[var(--color-text-secondary)]">
+          Your mood over time will appear here. Start a conversation to begin tracking.
         </p>
       </Card>
     )
@@ -1451,40 +1567,52 @@ export function MoodChart({ points }: { points: MoodPoint[] }) {
   return (
     <Card>
       <p className="mb-3 text-sm font-medium">Mood this week</p>
-      <ResponsiveContainer width="100%" height={120}>
-        <LineChart data={last7}>
-          <XAxis dataKey="day" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+      <ResponsiveContainer width="100%" height={130}>
+        <AreaChart data={last7} margin={{ top: 4, right: 4, bottom: 0, left: -8 }}>
+          <defs>
+            {/* Gradient fill: solid at the line, transparent at the baseline */}
+            <linearGradient id="moodAreaGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%"  stopColor="#4A7C59" stopOpacity={0.25} />
+              <stop offset="95%" stopColor="#4A7C59" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          {/* Subtle reference line at Okay threshold (2.5) */}
+          <ReferenceLine y={2.5} stroke="var(--color-border)" strokeDasharray="3 3" />
+          <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'var(--color-text-secondary)' }} axisLine={false} tickLine={false} />
           <YAxis
             domain={[0, 5]}
             ticks={[0, 2.5, 5]}
             tickFormatter={(v) => MOOD_LABELS[v as number] ?? ''}
-            tick={{ fontSize: 10 }}
+            tick={{ fontSize: 10, fill: 'var(--color-text-secondary)' }}
             axisLine={false}
             tickLine={false}
             width={36}
           />
           <Tooltip content={<CustomTooltip />} />
-          <Line
+          <Area
             type="monotone"
             dataKey="score"
-            stroke="var(--color-primary)"
+            stroke="#4A7C59"
             strokeWidth={2}
-            dot={{ fill: 'var(--color-primary)', r: 3 }}
-            activeDot={{ r: 5 }}
+            fill="url(#moodAreaGradient)"
+            dot={{ fill: '#4A7C59', r: 3, strokeWidth: 0 }}
+            activeDot={{ r: 5, fill: '#4A7C59', strokeWidth: 0 }}
           />
-        </LineChart>
+        </AreaChart>
       </ResponsiveContainer>
     </Card>
   )
 }
 ```
 
+Note: `AreaChart`, `Area`, `ReferenceLine` are all in Recharts v2 which is already installed. The `defs` and `linearGradient` are standard SVG elements rendered as JSX — Recharts renders them inside its SVG context.
+
 - [ ] **Step 2: Commit**
 
 ```bash
 cd /Users/knowledgebase/Documents/Sage/cdai
 git add apps/web/components/progress/mood-chart.tsx
-git commit -m "feat(progress): update MoodChart to accept MoodPoint[], add session name tooltip"
+git commit -m "feat(progress): upgrade MoodChart to AreaChart with gradient fill and Okay threshold line"
 ```
 
 ---
@@ -1596,12 +1724,14 @@ export default function ProgressPage() {
           {data.clinicalFlags.length > 0 && (
             <div className="space-y-2">
               {data.clinicalFlags.map(({ flag, copy }) => (
-                <p
+                // Warm tinted background + primary text: sensitive copy deserves
+                // legible, warm treatment — not grayed-out like a secondary notice.
+                <div
                   key={flag}
-                  className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-xs text-[var(--color-text-secondary)]"
+                  className="rounded-xl border border-[var(--color-surface-tinted)] bg-[var(--color-surface-tinted)] px-4 py-3"
                 >
-                  {copy}
-                </p>
+                  <p className="text-xs leading-relaxed text-[var(--color-text-primary)]">{copy}</p>
+                </div>
               ))}
             </div>
           )}
