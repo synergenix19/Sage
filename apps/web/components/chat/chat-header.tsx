@@ -4,6 +4,7 @@ import type { ChatSession } from '@cdai/types'
 import { tenant } from '@cdai/tenant'
 import { HistoryPanel } from './history-panel'
 import { SettingsPanel } from './settings-panel'
+import { LanguageToggle } from '@/components/auth/language-toggle'
 
 export function ChatHeader({ session }: { session: ChatSession | null }) {
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -27,6 +28,7 @@ export function ChatHeader({ session }: { session: ChatSession | null }) {
           >
             🕐
           </button>
+          <LanguageToggle />
           <button
             onClick={() => setSettingsOpen(true)}
             className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full hover:bg-[var(--color-surface-tinted)]"
