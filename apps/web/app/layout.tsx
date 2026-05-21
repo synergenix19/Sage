@@ -40,7 +40,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const cssVars = cssVarsString(tenant.brand)
 
   return (
-    <html lang={locale} dir={dir} className={`${jakartaSans.variable} ${ibmPlexArabic.variable}`}>
+    <html lang={locale} dir={dir} className={locale === 'ar' ? ibmPlexArabic.variable : jakartaSans.variable}>
       <head>
         <style dangerouslySetInnerHTML={{ __html: cssVars }} />
         <link rel="apple-touch-icon" href="/icons/icon-180.png" />
