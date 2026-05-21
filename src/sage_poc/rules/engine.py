@@ -1,6 +1,7 @@
 from __future__ import annotations
 from sage_poc.rules.schemas import (
     SafetyRule, CrisisContentRule, CulturalRule, PromptInjectionRule,
+    CulturalOutputRule,
     EvalResult, FiredRule,
 )
 from sage_poc.rules.loader import get_rules
@@ -213,11 +214,60 @@ def _eval_prompt_injection(rules: list[PromptInjectionRule], context: dict) -> E
     return result
 
 
+def _eval_cultural_output(rules: list[CulturalOutputRule], context: dict) -> EvalResult:
+    """
+    Evaluate post-generation cultural output rules.
+
+    Fires when a rule's condition is met AND the response violates the check type:
+      blocklist          -- any pattern found in response -> violation
+      allowlist_required -- no pattern found in response -> violation
+
+    context keys:
+      response_text (str)         -- generated English response text
+      message_en (str)            -- original user message in English
+      clinical_flags (list[str])  -- active clinical flags from state
+    """
+    response_text = normalize_text(context.get("response_text", ""))
+    if not response_text:
+        return EvalResult()
+    message_en = normalize_text(context.get("message_en", ""))
+    clinical_flags: list[str] = context.get("clinical_flags", [])
+
+    result = EvalResult()
+    for rule in rules:
+        condition_met = False
+        if rule.condition_type == "always":
+            condition_met = True
+        elif rule.condition_type == "keyword_in_message":
+            condition_met = any(kw.lower() in message_en for kw in rule.condition_keywords)
+        elif rule.condition_type == "flag_present":
+            condition_met = rule.condition_value in clinical_flags
+
+        if not condition_met:
+            continue
+
+        violated = False
+        if rule.check_type == "blocklist":
+            violated = any(p.lower() in response_text for p in rule.patterns)
+        elif rule.check_type == "allowlist_required":
+            violated = not any(p.lower() in response_text for p in rule.patterns)
+
+        if violated:
+            result.fired.append(FiredRule(
+                rule_id=rule.rule_id,
+                version=rule.version,
+                action=rule.action,
+            ))
+
+    return result
+
+
 _EVAL_DISPATCH = {
     "safety": _eval_safety,
     "crisis_content": _eval_crisis_content,
     "cultural": _eval_cultural,
     "prompt_injection": _eval_prompt_injection,
+    "cultural_output": _eval_cultural_output,
 }
 
 

@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from sage_poc.rules.schemas import (
     SafetyRule, CrisisContentRule, CulturalRule, PromptInjectionRule,
+    CulturalOutputRule,
 )
 
 _RULE_MODELS: dict[str, type] = {
@@ -10,6 +11,7 @@ _RULE_MODELS: dict[str, type] = {
     "crisis_content": CrisisContentRule,
     "cultural": CulturalRule,
     "prompt_injection": PromptInjectionRule,
+    "cultural_output": CulturalOutputRule,
 }
 
 _DATA_DIR = Path(__file__).parent / "data"

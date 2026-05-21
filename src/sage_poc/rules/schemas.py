@@ -67,6 +67,23 @@ class PromptInjectionRule(BaseModel):
     action: dict
 
 
+class CulturalOutputRule(BaseModel):
+    rule_id: str
+    version: str = "1.0.0"
+    category: Literal["cultural_output"]
+    authored_by: str = "sage_clinics"
+    approved_by: str | None = None
+    effective_date: str
+    active: bool = True
+    description: str = ""
+    check_type: Literal["blocklist", "allowlist_required"]
+    condition_type: Literal["always", "keyword_in_message", "flag_present"]
+    condition_keywords: list[str] = []
+    condition_value: str | None = None
+    patterns: list[str]
+    action: dict
+
+
 @dataclass
 class FiredRule:
     rule_id: str
