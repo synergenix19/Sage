@@ -72,8 +72,7 @@ function useStreamingChat(sessionId: string | undefined, initialMessages: SdkMes
           const { done, value } = await reader.read()
           if (done) break
           accumulated += decoder.decode(value, { stream: true })
-          // Strip trailing [[META:...]] sentinel (persist-only, never shown to user)
-          const displayContent = accumulated.replace(/\[\[META:.*?\]\]$/s, '')
+          const displayContent = accumulated
           setMessages((curr) =>
             curr.map((m) => (m.id === assistantId ? { ...m, content: displayContent } : m))
           )
