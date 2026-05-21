@@ -51,11 +51,11 @@ def test_evaluate_cultural_output_unknown_category_raises():
         rules_engine.evaluate("nonexistent_category", {})
 
 
-def test_evaluate_cultural_output_empty_rules_returns_empty_result():
-    """evaluate('cultural_output', ...) with no rule files returns empty EvalResult."""
+def test_evaluate_cultural_output_no_violations_on_neutral_input():
+    """evaluate('cultural_output', ...) returns empty EvalResult when no rules fire."""
     result = rules_engine.evaluate("cultural_output", {
-        "response_text": "you should prioritize yourself",
-        "message_en": "I feel pressured by my family",
+        "response_text": "It sounds like you are going through a lot right now.",
+        "message_en": "I feel overwhelmed by work deadlines",
         "clinical_flags": [],
     })
     assert result.fired == []
@@ -299,3 +299,49 @@ def test_cuo_is_001_known_limitation_secular_patience_clears_allowlist():
     fired_ids = [r.rule_id for r in result.fired]
     # Documents current behaviour — CUO-IS-001 does NOT fire because "patience" is in patterns
     assert "CUO-IS-001" not in fired_ids
+
+
+# ── CUO-FA-001 ───────────────────────────────────────────────────────────────
+
+def test_cuo_fa_001_fires_when_family_context_and_individualist_response():
+    """CUO-FA-001 must fire when family context + individualist dismissal phrase in response."""
+    result = rules_engine.evaluate("cultural_output", {
+        "response_text": "It sounds hard. Remember, you need to put yourself first and set boundaries with your family.",
+        "message_en": "My parents expect me to give up my career",
+        "clinical_flags": [],
+    })
+    assert "CUO-FA-001" in [r.rule_id for r in result.fired], (
+        "CUO-FA-001 must fire on 'put yourself first' when family context present"
+    )
+
+
+def test_cuo_fa_001_fires_on_you_owe_them_nothing():
+    """CUO-FA-001 must fire on 'you owe them nothing' dismissal."""
+    result = rules_engine.evaluate("cultural_output", {
+        "response_text": "You owe them nothing. Your own happiness matters most.",
+        "message_en": "I feel guilty about letting my family down",
+        "clinical_flags": [],
+    })
+    assert "CUO-FA-001" in [r.rule_id for r in result.fired]
+
+
+def test_cuo_fa_001_absent_without_family_context():
+    """CUO-FA-001 must NOT fire when message has no family keywords."""
+    result = rules_engine.evaluate("cultural_output", {
+        "response_text": "You need to put yourself first and prioritize your own needs.",
+        "message_en": "I feel really overwhelmed by work",
+        "clinical_flags": [],
+    })
+    assert "CUO-FA-001" not in [r.rule_id for r in result.fired], (
+        "CUO-FA-001 must not fire without family context, even if individualist phrase present"
+    )
+
+
+def test_cuo_fa_001_absent_when_response_is_balanced():
+    """CUO-FA-001 must NOT fire when response is balanced (no individualist dismissal phrases)."""
+    result = rules_engine.evaluate("cultural_output", {
+        "response_text": "It sounds like you're trying to hold a lot of things at once, your own needs and the expectations of people you love.",
+        "message_en": "My parents expect me to give up my career",
+        "clinical_flags": [],
+    })
+    assert "CUO-FA-001" not in [r.rule_id for r in result.fired]
