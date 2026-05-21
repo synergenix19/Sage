@@ -1,0 +1,27 @@
+{
+  "category": "cultural",
+  "rules": [
+    {
+      "rule_id": "CU-RR-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Inject Ramadan/religious timing context: fasting fatigue is a cultural norm, not a clinical symptom",
+      "category": "cultural",
+      "trigger_keywords": [
+        "ramadan", "رمضان", "fasting", "صيام", "صوم",
+        "iftar", "إفطار", "suhoor", "سحور",
+        "eid", "عيد", "laylat al-qadr", "ليلة القدر"
+      ],
+      "language": "any",
+      "action": {
+        "type": "prompt_injection",
+        "target": "system",
+        "layer": "L5",
+        "priority": 4,
+        "content": "RAMADAN CONTEXT (this turn): The user has referenced Ramadan or religious fasting. During Ramadan, fatigue, sleep disruption, irritability, and reduced concentration are expected cultural norms from fasting and night worship, not necessarily clinical symptoms. Do NOT pathologise these as signs of depression or anxiety without additional context. Acknowledge the spiritual significance. If symptoms appear severe or distress seems beyond what the user describes as normal for them, gently explore whether further support would help."
+      }
+    }
+  ]
+}

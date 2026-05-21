@@ -381,3 +381,30 @@ def test_shame_framing_absent_for_generic_sad():
     state = _freeflow_state(message_en="I feel sad and hopeless today")
     system_str, _ = compose_prompt(state)
     assert "social bond" not in system_str.lower()
+
+
+def test_ramadan_framing_fires_on_ramadan_keyword():
+    """CU-RR-001 must inject Ramadan context when 'Ramadan' or 'fasting' detected."""
+    state = _freeflow_state(message_en="I'm exhausted and irritable during Ramadan")
+    system_str, _ = compose_prompt(state)
+    assert "ramadan" in system_str.lower() or "fasting" in system_str.lower(), (
+        "CU-RR-001 must inject Ramadan framing for 'Ramadan' keyword"
+    )
+
+
+def test_ramadan_framing_fires_on_arabic_ramadan():
+    """CU-RR-001 must fire on Arabic رمضان keyword via text_ar path."""
+    state = _freeflow_state(
+        raw_message="رمضان هذه السنة متعب جداً",
+        message_en="Ramadan this year is very tiring",
+        detected_language="ar",
+    )
+    system_str, _ = compose_prompt(state)
+    assert "ramadan" in system_str.lower() or "fasting" in system_str.lower()
+
+
+def test_ramadan_framing_absent_without_keyword():
+    """CU-RR-001 must NOT fire for generic tiredness without Ramadan/fasting keywords."""
+    state = _freeflow_state(message_en="I'm exhausted and can't sleep")
+    system_str, _ = compose_prompt(state)
+    assert "ramadan" not in system_str.lower()
