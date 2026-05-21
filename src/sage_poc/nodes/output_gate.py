@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from sage_poc.state import SageState
 from sage_poc.language import translate_to_arabic
 from sage_poc.config import AUDIT_LOG_ENABLED
+from sage_poc.rules import engine as rules_engine
 
 SCOPE_REFUSAL_RESPONSE = (
     "That's a question better answered by a medical professional or licensed therapist. "
@@ -39,6 +40,19 @@ def output_gate_node(state: SageState) -> dict:
         response_en = JAILBREAK_RESPONSE
     else:
         response_en = state["response_en"] or ""
+
+    # Cultural output validation — audit-only, non-blocking
+    if gate_path not in ("scope_refusal", "jailbreak"):
+        cultural_violations = rules_engine.evaluate("cultural_output", {
+            "response_text": response_en,
+            "message_en": state.get("message_en", ""),
+            "clinical_flags": state.get("clinical_flags", []),
+        })
+        for rule in cultural_violations.fired:
+            print(
+                f"\n[CULTURAL OUTPUT VIOLATION] {rule.rule_id} v{rule.version}: "
+                f"{rule.action.get('message', rule.action.get('type', ''))}"
+            )
 
     violations = _FORMAT_VIOLATIONS.findall(response_en)
     if violations:

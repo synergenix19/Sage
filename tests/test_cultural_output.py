@@ -180,3 +180,67 @@ def test_eval_cultural_output_empty_response_returns_no_violations():
     assert result.fired == [], (
         "Empty response_text must not trigger allowlist_required -- generation failure, not policy violation"
     )
+
+
+# ── Task 2: output_gate wiring ───────────────────────────────────────────────
+
+def test_output_gate_calls_cultural_output_evaluate(monkeypatch):
+    """output_gate_node must call rules_engine.evaluate('cultural_output', ...) for standard path."""
+    from sage_poc.nodes.output_gate import output_gate_node
+    from sage_poc.rules import engine as rules_engine
+
+    calls = []
+    original_evaluate = rules_engine.evaluate
+
+    def mock_evaluate(category, context):
+        calls.append((category, context))
+        return original_evaluate(category, context)
+
+    monkeypatch.setattr(rules_engine, "evaluate", mock_evaluate)
+
+    state = {
+        "gate_path": None,
+        "detected_language": "en",
+        "path": [],
+        "response_en": "That makes sense. How are you feeling about it?",
+        "message_en": "I feel anxious",
+        "clinical_flags": [],
+        "turn_count": 0,
+        "conversation_history": [],
+    }
+    output_gate_node(state)
+
+    cultural_output_calls = [c for c in calls if c[0] == "cultural_output"]
+    assert len(cultural_output_calls) == 1, "output_gate_node must call evaluate('cultural_output', ...) once"
+    ctx = cultural_output_calls[0][1]
+    assert ctx["response_text"] == "That makes sense. How are you feeling about it?"
+    assert ctx["message_en"] == "I feel anxious"
+    assert ctx["clinical_flags"] == []
+
+
+def test_output_gate_skips_cultural_output_for_scope_refusal(monkeypatch):
+    """Scope refusal path must skip cultural output evaluation — fixed response, not LLM-generated."""
+    from sage_poc.nodes.output_gate import output_gate_node
+    from sage_poc.rules import engine as rules_engine
+
+    calls = []
+    original_evaluate = rules_engine.evaluate
+
+    def mock_evaluate(category, context):
+        calls.append(category)
+        return original_evaluate(category, context)
+
+    monkeypatch.setattr(rules_engine, "evaluate", mock_evaluate)
+
+    state = {
+        "gate_path": "scope_refusal",
+        "detected_language": "en",
+        "path": [],
+        "response_en": None,
+        "message_en": "diagnose me",
+        "clinical_flags": [],
+        "turn_count": 0,
+        "conversation_history": [],
+    }
+    output_gate_node(state)
+    assert "cultural_output" not in calls
