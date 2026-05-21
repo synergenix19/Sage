@@ -13,6 +13,8 @@ export function buildCssVars(brand: TenantBrand): Record<string, string> {
     '--color-crisis':         brand.colors.crisis,
     '--font-body':            `'${brand.fonts.body}', sans-serif`,
     '--font-arabic':          `'${brand.fonts.arabic}', sans-serif`,
+    '--focus-ring-color':     brand.colors.primary,
+    '--focus-ring-offset':    '2px',
   }
 }
 

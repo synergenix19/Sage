@@ -15,8 +15,8 @@ describe('buildCssVars', () => {
     expect(vars['--font-arabic']).toContain('IBM Plex Arabic')
   })
 
-  it('produces one var per brand color key (9 colors + 2 fonts = 11)', () => {
+  it('produces one var per brand color key (9 colors + 2 fonts + 2 focus = 13)', () => {
     const vars = buildCssVars(sage.brand)
-    expect(Object.keys(vars)).toHaveLength(11)
+    expect(Object.keys(vars)).toHaveLength(13)
   })
 })
