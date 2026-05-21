@@ -5,6 +5,7 @@ import { Name } from '@/components/onboarding/steps/name'
 import { AboutYou } from '@/components/onboarding/steps/about-you'
 import { WhatMatters } from '@/components/onboarding/steps/what-matters'
 import { Personalising } from '@/components/onboarding/steps/personalising'
+import { StepGuard } from '@/components/onboarding/step-guard'
 
 const STEPS = ['step-1', 'step-2', 'step-3', 'step-4', 'step-5', 'step-6']
 const STEP_COMPONENTS = [Welcome, Language, Name, AboutYou, WhatMatters, Personalising]
@@ -16,7 +17,11 @@ export default async function OnboardingStepPage({ params }: Props) {
   const idx = STEPS.indexOf(step)
   if (idx === -1) notFound()
   const StepComponent = STEP_COMPONENTS[idx]
-  return <StepComponent />
+  return (
+    <StepGuard pageStep={idx + 1}>
+      <StepComponent />
+    </StepGuard>
+  )
 }
 
 export function generateStaticParams() {
