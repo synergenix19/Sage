@@ -1979,3 +1979,37 @@ def test_intent_route_blended_specific_plus_affect_returns_new_skill():
     result = intent_route_node(state, llm=mock_llm)
     assert result["primary_intent"] == "new_skill", \
         "Blended message with specific symptom must be new_skill (§6.4 dual-intent path)"
+
+
+def test_intent_route_panic_somatic_returns_new_skill_not_crisis():
+    """'I'm panicking, my heart is racing, I can't breathe' — somatic panic, NOT crisis.
+    Somatic distress (panic, racing heart, hyperventilation) is a grounding new_skill target.
+    Crisis at intent_route is reserved for explicit harm language.
+    safety_check is the authoritative crisis detector — intent_route must not re-escalate
+    somatic distress to crisis after safety_check already passed the message as safe.
+    """
+    import json
+    from unittest.mock import MagicMock
+    from sage_poc.nodes.intent_route import intent_route_node
+    mock_llm = MagicMock()
+    mock_llm.invoke.return_value = MagicMock(
+        content=json.dumps({
+            "primary_intent": "new_skill",
+            "secondary_intent": None,
+            "emotional_intensity": 9,
+            "engagement": 6,
+            "intent_confidence": 0.90
+        })
+    )
+    state = {
+        "raw_message": "I'm panicking, my heart is racing, I can't breathe",
+        "message_en": "I'm panicking, my heart is racing, I can't breathe",
+        "active_skill_id": None,
+        "conversation_history": [],
+        "path": ["safety_check"],
+    }
+    result = intent_route_node(state, llm=mock_llm)
+    assert result["primary_intent"] == "new_skill", \
+        "Somatic panic must be new_skill (→ grounding), not crisis. safety_check is the authoritative crisis detector."
+    assert result["primary_intent"] != "crisis", \
+        "intent_route must not re-escalate somatic distress to crisis after safety_check passed the message"
