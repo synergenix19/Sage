@@ -1708,10 +1708,10 @@ def test_semantic_fallback_catches_spiralling():
 @pytest.mark.slow
 def test_semantic_fallback_catches_exhausted_mind_racing():
     """Sleep-register message that keyword-misses; semantic fallback must catch → sleep_hygiene."""
-    state = make_state(message_en="I'm exhausted but my mind won't stop racing at night")
+    state = make_state(message_en="my brain just won't let me rest when it's dark")
     result = skill_select_node(state)
     assert result["active_skill_id"] == "sleep_hygiene", (
-        "Exhausted-but-wired message must activate sleep_hygiene via semantic fallback"
+        "Sleep difficulty described without any keyword substring must activate sleep_hygiene via semantic fallback"
     )
     assert result["skill_match_method"] == "semantic"
 
@@ -1752,10 +1752,10 @@ def test_keyword_match_takes_priority_over_semantic():
 @pytest.mark.slow
 def test_semantic_match_returns_score_in_result():
     """Semantic matches must include the similarity score for audit trail."""
-    state = make_state(message_en="I hate myself so much")
+    state = make_state(message_en="I just have this constant voice telling me I'm terrible")
     result = skill_select_node(state)
     assert result["skill_match_method"] == "semantic", (
-        "'I hate myself so much' must reach semantic fallback — 'hate' is not a keyword"
+        "Self-critical cognition without keyword phrasing must reach semantic fallback"
     )
     assert isinstance(result["semantic_score"], float)
     assert 0.0 < result["semantic_score"] <= 1.0

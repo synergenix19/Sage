@@ -24,16 +24,16 @@ KNOWN_HITS = [
     # CBT — none of these contain a CBT keyword
     ("nothing I do is good enough", "cbt_thought_record"),
     ("I always mess everything up", "cbt_thought_record"),
-    ("I hate myself so much", "cbt_thought_record"),
+    ("I just have this constant voice telling me I'm terrible", "cbt_thought_record"),  # replaced "I hate myself so much" — moved to keyword tier (Task C)
     ("I feel like such a disappointment to everyone", "cbt_thought_record"),
     ("why can't I just be normal", "cbt_thought_record"),
     # Grounding — none of these contain a grounding keyword
     ("my heart is pounding so hard and I feel faint", "grounding_5_4_3_2_1"),
-    ("I feel like I'm dissociating", "grounding_5_4_3_2_1"),
+    ("everything around me seems far away", "grounding_5_4_3_2_1"),  # replaced "I feel like I'm dissociating" — moved to keyword tier (Task C)
     ("I feel completely overwhelmed, my head is spinning", "grounding_5_4_3_2_1"),
     # Sleep — none of these contain a sleep keyword
     ("I am exhausted but my mind will not stop racing at bedtime", "sleep_hygiene"),
-    ("I am tired all day but wide awake at night", "sleep_hygiene"),
+    ("my brain just won't let me rest when it's dark", "sleep_hygiene"),  # replaced "I am tired all day but wide awake at night" — moved to keyword tier (Task C)
 ]
 
 # Messages that should NOT match any skill
