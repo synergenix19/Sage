@@ -344,3 +344,41 @@ def test_self_harm_method_reference_triggers_crisis(text):
     assert any(a.get("flag_id") == "si_method" for a in crisis_actions), (
         f"Expected flag_id='si_method' for: {text!r}"
     )
+
+
+# ── Arabic idiom false positive suppression (FPE-AR-001, FPE-AR-002) ──────────
+
+@pytest.mark.parametrize("arabic_text,should_be_suppressed", [
+    # These are frustration idioms — must NOT trigger crisis path
+    ("ابغى اموت من الضحك", True),
+    ("بموت من الضحك", True),
+    # These ARE genuine crisis expressions — suppression must NOT apply
+    ("ابغى اموت بدون سبب", False),
+])
+def test_arabic_laughter_idiom_suppression(arabic_text, should_be_suppressed):
+    result = engine.evaluate("safety", {
+        "text_en": "feeling very emotional",
+        "text_ar": arabic_text,
+        "language": "ar",
+    })
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    if should_be_suppressed:
+        assert not crisis_actions, f"Expected suppression for idiom: {arabic_text!r}"
+
+
+@pytest.mark.parametrize("arabic_text", [
+    "ابغى اموت من الضحك",
+    "بموت من الضحك",
+])
+def test_arabic_laughter_idiom_suppressed_rule_still_in_audit_trail(arabic_text):
+    result = engine.evaluate("safety", {
+        "text_en": "laughing",
+        "text_ar": arabic_text,
+        "language": "ar",
+    })
+    # Even when suppressed, the fired rule list must contain the suppressed rule (PDPL audit)
+    suppressed_ids = [r.rule_id for r in result.suppressed_rules]
+    if result.suppressed_rules:
+        assert any("SK-AR" in rid or "SK-AZ" in rid for rid in suppressed_ids), (
+            "Suppressed crisis rule must appear in audit trail"
+        )
