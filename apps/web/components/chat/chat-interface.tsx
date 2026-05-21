@@ -144,14 +144,16 @@ export function ChatInterface({ initialSession, initialMessages = [], userName }
   const hasSignaledInstall = useRef(false)
   const { messages, append, isLoading, error, reload } = useStreamingChat(initialSession?.id, initialMessages)
 
-  // Derive the most recent crisis message content for the pinned card.
-  // The inline render in the message list remains for context; this pin
-  // ensures the card is always visible regardless of scroll position.
-  // Post-Gitex: extract into useMemo if pagination/virtual-scroll is added.
+  // Pin the crisis card only while the last assistant message is still a crisis.
+  // Once the user receives a normal reply the crisis is considered addressed
+  // for this turn and the pin is cleared.
   const pinnedCrisis = (() => {
     for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === 'assistant' && messages[i].content.startsWith(CRISIS_SIGNAL)) {
-        return messages[i].content.replace(CRISIS_SIGNAL, '').trimStart()
+      if (messages[i].role === 'assistant') {
+        if (messages[i].content.startsWith(CRISIS_SIGNAL)) {
+          return messages[i].content.replace(CRISIS_SIGNAL, '').trimStart()
+        }
+        return null
       }
     }
     return null

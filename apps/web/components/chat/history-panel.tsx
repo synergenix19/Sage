@@ -66,6 +66,15 @@ export function HistoryPanel({ open, onClose }: { open: boolean; onClose: () => 
 
   return (
     <ResponsivePanel open={open} onClose={onClose} title="Past conversations">
+      <button
+        onClick={() => {
+          router.push('/chat?new=1')
+          onClose()
+        }}
+        className="mb-4 flex w-full min-h-[44px] items-center justify-center gap-2 rounded-full bg-[var(--color-primary)] px-4 text-sm font-medium text-white hover:bg-[var(--color-primary-dark)]"
+      >
+        + New conversation
+      </button>
       {loading && (
         <p className="text-sm text-[var(--color-text-secondary)]">Loading…</p>
       )}

@@ -17,12 +17,12 @@ export default async function ChatPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/sign-in')
 
-  const { session: sessionParam } = await searchParams
+  const { session: sessionParam, new: newSession } = await searchParams
 
   let activeSession = null
 
   // If a specific session is requested, load it (verify ownership)
-  if (sessionParam) {
+  if (sessionParam && !newSession) {
     const { data } = await supabase
       .from('chat_sessions')
       .select('*')
@@ -32,8 +32,8 @@ export default async function ChatPage({
     activeSession = data ?? null
   }
 
-  // Fall back to most recently updated session
-  if (!activeSession) {
+  // Fall back to most recently updated session (skip if forcing new)
+  if (!activeSession && !newSession) {
     const { data: sessions } = await supabase
       .from('chat_sessions')
       .select('*')
