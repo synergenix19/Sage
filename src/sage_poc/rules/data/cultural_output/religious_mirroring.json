@@ -1,0 +1,31 @@
+{
+  "category": "cultural_output",
+  "rules": [
+    {
+      "rule_id": "CUO-IS-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Warn when user used Islamic vocabulary but response contains no Islamic vocabulary, mirroring may have failed",
+      "category": "cultural_output",
+      "check_type": "allowlist_required",
+      "condition_type": "keyword_in_message",
+      "condition_keywords": [
+        "allah", "الله", "inshallah", "إن شاء الله",
+        "alhamdulillah", "الحمد لله", "mashallah", "subhanallah", "bismillah"
+      ],
+      "condition_value": null,
+      "patterns": [
+        "allah", "الله", "sabr", "tawakkul", "ibtila",
+        "inshallah", "إن شاء الله", "alhamdulillah", "الحمد لله",
+        "mashallah", "subhanallah", "bismillah", "patience", "perseverance"
+      ],
+      "action": {
+        "type": "audit_warn",
+        "severity": "medium",
+        "message": "User used Islamic vocabulary but response contains no Islamic vocabulary, cultural mirroring may have failed."
+      }
+    }
+  ]
+}

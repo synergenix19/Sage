@@ -244,3 +244,40 @@ def test_output_gate_skips_cultural_output_for_scope_refusal(monkeypatch):
     }
     output_gate_node(state)
     assert "cultural_output" not in calls
+
+
+# ── CUO-IS-001 ───────────────────────────────────────────────────────────────
+
+def test_cuo_is_001_fires_when_islamic_input_but_secular_response():
+    """CUO-IS-001 must fire when user used 'allah' but response contains no Islamic vocabulary."""
+    result = rules_engine.evaluate("cultural_output", {
+        "response_text": "That sounds really difficult. How are you coping with it?",
+        "message_en": "I feel like allah has abandoned me",
+        "clinical_flags": [],
+    })
+    fired_ids = [r.rule_id for r in result.fired]
+    assert "CUO-IS-001" in fired_ids, (
+        "CUO-IS-001 must fire when Islamic keyword in message but no Islamic vocab in response"
+    )
+
+
+def test_cuo_is_001_passes_when_response_mirrors_islamic_vocab():
+    """CUO-IS-001 must NOT fire when response includes Islamic vocabulary."""
+    result = rules_engine.evaluate("cultural_output", {
+        "response_text": "The concept of sabr can help, patient perseverance through difficulty is honoured.",
+        "message_en": "I feel like allah has abandoned me",
+        "clinical_flags": [],
+    })
+    fired_ids = [r.rule_id for r in result.fired]
+    assert "CUO-IS-001" not in fired_ids
+
+
+def test_cuo_is_001_does_not_fire_without_islamic_input():
+    """CUO-IS-001 must NOT fire when the user's message has no Islamic keywords."""
+    result = rules_engine.evaluate("cultural_output", {
+        "response_text": "That sounds really difficult. How are you coping with it?",
+        "message_en": "I feel so alone and hopeless",
+        "clinical_flags": [],
+    })
+    fired_ids = [r.rule_id for r in result.fired]
+    assert "CUO-IS-001" not in fired_ids
