@@ -32,7 +32,8 @@ interface Props {
 // `@ai-sdk/react` (not installed) and expects a UI-message stream from
 // `toUIMessageStreamResponse()`. To avoid changing the route contract or adding
 // a dep, we consume the raw text stream directly.
-function useStreamingChat(sessionId: string | undefined, initialMessages: SdkMessage[] = []) {
+// Exported for testability only — not part of the public component API.
+export function useStreamingChat(sessionId: string | undefined, initialMessages: SdkMessage[] = []) {
   const [messages, setMessages] = useState<SdkMessage[]>(initialMessages)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
@@ -87,8 +88,9 @@ function useStreamingChat(sessionId: string | undefined, initialMessages: SdkMes
       } catch (err) {
         if ((err as Error).name === 'AbortError') return
         setError(err as Error)
-        // Drop the empty placeholder assistant message on failure.
-        setMessages((curr) => curr.filter((m) => m.id !== assistantId || m.content.length > 0))
+        // Discard the assistant message entirely on any failure — partial content
+        // must never be shown. v7 output_gate: un-gated partial content must not display.
+        setMessages((curr) => curr.filter((m) => m.id !== assistantId))
       } finally {
         setIsLoading(false)
         abortRef.current = null
