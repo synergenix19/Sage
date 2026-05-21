@@ -180,6 +180,14 @@ def test_clinical_adaptation_substance_injected_from_flag():
     assert "motivational interviewing" in system_str.lower() or "substance" in system_str.lower()
 
 
+def test_substance_use_uae_legal_context_injected():
+    state = _freeflow_state(clinical_flags=["substance_use"])
+    system_str, _ = compose_prompt(state)
+    assert "legal" in system_str.lower() or "uae" in system_str.lower(), (
+        "PI-CF-001 must include UAE legal context for substance use"
+    )
+
+
 @pytest.mark.parametrize("flag,expected_keyword", [
     ("trauma_indicator", "trauma"),
     ("eating_concern", "body"),
