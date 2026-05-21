@@ -1,0 +1,27 @@
+{
+  "category": "cultural",
+  "rules": [
+    {
+      "rule_id": "CU-RG-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Inject generic spiritual framing for universal religious language (non-Islam-specific)",
+      "category": "cultural",
+      "trigger_keywords": [
+        "god", "faith", "prayer", "pray", "religious", "spiritual", "religion",
+        "worship", "church", "temple", "synagogue", "divine", "blessing",
+        "scripture", "bible", "torah", "hindu", "sikh", "buddhist"
+      ],
+      "language": "any",
+      "action": {
+        "type": "prompt_injection",
+        "target": "system",
+        "layer": "L5",
+        "priority": 6,
+        "content": "RELIGIOUS/SPIRITUAL CONTEXT (this turn): The user is framing their experience through faith or spirituality. Affirm their spiritual perspective without projecting a specific tradition. Do NOT impose Islamic-specific framing unless the user has specifically referenced Islam. Do NOT pathologise or minimise religious or spiritual belief or practice."
+      }
+    }
+  ]
+}

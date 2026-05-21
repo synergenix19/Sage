@@ -334,3 +334,21 @@ def test_cumulative_distress_injection_fires_on_flag():
     state = _freeflow_state(clinical_flags=["escalating_distress"])
     system_str, _ = compose_prompt(state)
     assert "CUMULATIVE DISTRESS" in system_str
+
+
+def test_islamic_framing_absent_for_generic_prayer():
+    """'I pray to God every day' must NOT inject Islamic framing (no allah/quran etc)."""
+    state = _freeflow_state(message_en="I pray to God every day")
+    system_str, _ = compose_prompt(state)
+    assert "sabr" not in system_str and "ibtila" not in system_str and "tawakkul" not in system_str, (
+        "Generic prayer without Islamic keywords must not trigger CU-IS-001"
+    )
+
+
+def test_generic_religious_framing_fires_on_god_keyword():
+    """Generic spiritual framing (CU-RG-001) must fire for universal religious language."""
+    state = _freeflow_state(message_en="I pray to God every day")
+    system_str, _ = compose_prompt(state)
+    assert "spiritual" in system_str.lower() or "faith" in system_str.lower() or "religious" in system_str.lower(), (
+        "CU-RG-001 must inject generic religious context for 'god'/'prayer' keywords"
+    )
