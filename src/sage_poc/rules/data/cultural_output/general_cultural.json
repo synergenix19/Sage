@@ -1,0 +1,33 @@
+{
+  "category": "cultural_output",
+  "rules": [
+    {
+      "rule_id": "CUO-GC-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Always-active blocklist for culturally inappropriate content in UAE/Gulf context",
+      "category": "cultural_output",
+      "check_type": "blocklist",
+      "condition_type": "always",
+      "condition_keywords": [],
+      "condition_value": null,
+      "patterns": [
+        "dating apps",
+        "hook up",
+        "hookup",
+        "premarital sex",
+        "pork",
+        "bringing home the bacon",
+        "pig out",
+        "happy hour"
+      ],
+      "action": {
+        "type": "audit_warn",
+        "severity": "medium",
+        "message": "Response may contain culturally inappropriate content for UAE/Gulf Khaleeji context."
+      }
+    }
+  ]
+}

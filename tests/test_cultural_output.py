@@ -345,3 +345,79 @@ def test_cuo_fa_001_absent_when_response_is_balanced():
         "clinical_flags": [],
     })
     assert "CUO-FA-001" not in [r.rule_id for r in result.fired]
+
+
+# ── CUO-SU-001 ───────────────────────────────────────────────────────────────
+
+def test_cuo_su_001_fires_on_harm_reduction_with_substance_flag():
+    """CUO-SU-001 must fire when response contains harm-reduction language + substance_use flag."""
+    result = rules_engine.evaluate("cultural_output", {
+        "response_text": "Harm reduction strategies like using clean needles can help keep you safer.",
+        "message_en": "I've been using drugs to cope",
+        "clinical_flags": ["substance_use"],
+    })
+    assert "CUO-SU-001" in [r.rule_id for r in result.fired], (
+        "CUO-SU-001 must fire on 'harm reduction' when substance_use flag active"
+    )
+
+
+def test_cuo_su_001_fires_on_moderate_use_language():
+    """CUO-SU-001 must fire on 'moderate use' framing."""
+    result = rules_engine.evaluate("cultural_output", {
+        "response_text": "Some people find that moderate use of alcohol helps them relax.",
+        "message_en": "I drink to deal with stress",
+        "clinical_flags": ["substance_use"],
+    })
+    assert "CUO-SU-001" in [r.rule_id for r in result.fired]
+
+
+def test_cuo_su_001_absent_without_substance_flag():
+    """CUO-SU-001 must NOT fire when substance_use flag is not active."""
+    result = rules_engine.evaluate("cultural_output", {
+        "response_text": "Harm reduction approaches can sometimes be helpful.",
+        "message_en": "I'm struggling",
+        "clinical_flags": [],
+    })
+    assert "CUO-SU-001" not in [r.rule_id for r in result.fired]
+
+
+def test_cuo_su_001_absent_for_clean_substance_response():
+    """CUO-SU-001 must NOT fire when substance_use flag active but response is clean."""
+    result = rules_engine.evaluate("cultural_output", {
+        "response_text": "It sounds like the substance is helping you manage some really difficult feelings. What emotions does it help with?",
+        "message_en": "I drink to deal with stress",
+        "clinical_flags": ["substance_use"],
+    })
+    assert "CUO-SU-001" not in [r.rule_id for r in result.fired]
+
+
+# ── CUO-GC-001 ───────────────────────────────────────────────────────────────
+
+def test_cuo_gc_001_fires_on_western_dating_language():
+    """CUO-GC-001 must fire when response references dating apps in a UAE cultural context."""
+    result = rules_engine.evaluate("cultural_output", {
+        "response_text": "Maybe trying dating apps could help you feel more connected.",
+        "message_en": "I feel so lonely",
+        "clinical_flags": [],
+    })
+    assert "CUO-GC-001" in [r.rule_id for r in result.fired]
+
+
+def test_cuo_gc_001_fires_on_pork_idiom():
+    """CUO-GC-001 must fire on pork-related idioms inappropriate in Islamic context."""
+    result = rules_engine.evaluate("cultural_output", {
+        "response_text": "You could say he's bringing home the bacon with that job.",
+        "message_en": "My husband works very hard",
+        "clinical_flags": [],
+    })
+    assert "CUO-GC-001" in [r.rule_id for r in result.fired]
+
+
+def test_cuo_gc_001_absent_for_appropriate_response():
+    """CUO-GC-001 must NOT fire for culturally appropriate responses."""
+    result = rules_engine.evaluate("cultural_output", {
+        "response_text": "That sounds really isolating. What kinds of connection have felt meaningful to you in the past?",
+        "message_en": "I feel so lonely",
+        "clinical_flags": [],
+    })
+    assert "CUO-GC-001" not in [r.rule_id for r in result.fired]

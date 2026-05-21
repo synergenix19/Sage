@@ -1,0 +1,35 @@
+{
+  "category": "cultural_output",
+  "rules": [
+    {
+      "rule_id": "CUO-SU-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Warn when response contains harm-reduction language inappropriate for UAE legal context when substance_use flag active",
+      "category": "cultural_output",
+      "check_type": "blocklist",
+      "condition_type": "flag_present",
+      "condition_keywords": [],
+      "condition_value": "substance_use",
+      "patterns": [
+        "harm reduction",
+        "needle exchange",
+        "safe injection",
+        "moderate use",
+        "recreational use",
+        "cannabis is",
+        "marijuana is",
+        "alcohol is legal",
+        "drinking in moderation",
+        "using safely"
+      ],
+      "action": {
+        "type": "audit_warn",
+        "severity": "high",
+        "message": "Response may contain substance-related language inappropriate for UAE legal context, harm reduction framing detected with substance_use flag active."
+      }
+    }
+  ]
+}
