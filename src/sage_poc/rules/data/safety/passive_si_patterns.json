@@ -1,0 +1,54 @@
+{
+  "category": "safety",
+  "rules": [
+    {
+      "rule_id": "SK-EN-002",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "English passive SI and veiled ideation",
+      "category": "safety",
+      "match_type": "keyword",
+      "patterns": [
+        "nothing matters anymore",
+        "better off without me",
+        "everyone would be better off",
+        "no point in living",
+        "wish i could disappear",
+        "no reason to live",
+        "i'm a burden",
+        "there's no point in living",
+        "i have no reason to live",
+        "i wish i could disappear"
+      ],
+      "language": "en",
+      "modifiers": ["negation_check"],
+      "action": {"type": "crisis_flag", "flag_id": "si_passive"}
+    },
+    {
+      "rule_id": "SK-AR-002",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Arabic passive SI and escape ideation (Gulf dialect, alef-normalized)",
+      "category": "safety",
+      "match_type": "keyword",
+      "patterns": [
+        "ياريت انام ولا اصحى",
+        "نفسي تعبت",
+        "ما اقدر اكمل",
+        "ما عندي سبب اعيش",
+        "مافي فايدة",
+        "ما في فايدة من اي شي",
+        "حياتي خلصت",
+        "الحياة ما تسوى",
+        "ما عاد قادر"
+      ],
+      "language": "ar",
+      "modifiers": [],
+      "action": {"type": "crisis_flag", "flag_id": "si_passive"}
+    }
+  ]
+}

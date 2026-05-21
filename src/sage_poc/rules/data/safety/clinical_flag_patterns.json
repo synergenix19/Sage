@@ -1,0 +1,77 @@
+{
+  "category": "safety",
+  "rules": [
+    {
+      "rule_id": "CF-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Substance use detection",
+      "category": "safety",
+      "match_type": "keyword",
+      "patterns": [
+        "drinking", "drunk", "alcohol", "alcoholism", "liquor", "beer", "wine",
+        "drugs", "drug use", "cocaine", "heroin", "marijuana", "weed",
+        "using pills", "numb the pain", "cope with drink",
+        "كحول", "مخدرات", "حبوب مخدرة", "مدمن"
+      ],
+      "language": "any",
+      "modifiers": [],
+      "action": {"type": "clinical_flag", "flag_id": "substance_use"}
+    },
+    {
+      "rule_id": "CF-002",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Trauma indicator detection",
+      "category": "safety",
+      "match_type": "keyword",
+      "patterns": [
+        "abuse", "abused", "assault", "assaulted", "attacked", "violence",
+        "hurt me", "hit me", "rape", "molested", "trauma",
+        "إساءة", "اعتداء", "عنف"
+      ],
+      "language": "any",
+      "modifiers": [],
+      "action": {"type": "clinical_flag", "flag_id": "trauma_indicator"}
+    },
+    {
+      "rule_id": "CF-003",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Eating concern detection",
+      "category": "safety",
+      "match_type": "keyword",
+      "patterns": [
+        "purging", "binge eating", "starving myself", "not eating",
+        "eating disorder", "anorexia", "bulimia",
+        "لا اكل", "اتجوع"
+      ],
+      "language": "any",
+      "modifiers": [],
+      "action": {"type": "clinical_flag", "flag_id": "eating_concern"}
+    },
+    {
+      "rule_id": "CF-004",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Medication mention detection",
+      "category": "safety",
+      "match_type": "keyword",
+      "patterns": [
+        "medication", "antidepressant", "dosage", "prescribed", "prescription",
+        "دواء", "مضادات الاكتئاب", "جرعة"
+      ],
+      "language": "any",
+      "modifiers": [],
+      "action": {"type": "clinical_flag", "flag_id": "medication_mention"}
+    }
+  ]
+}
