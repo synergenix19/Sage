@@ -84,6 +84,30 @@ def test_resolved_state_falls_through_to_normal_skill_matching():
     assert result["skill_match_method"] == "keyword"
 
 
+def test_skill_executor_l1_exit_from_post_crisis_sets_resolved():
+    """L1 exit phrase while post_crisis_check_in is active must set crisis_state='resolved'."""
+    from sage_poc.nodes.skill_executor import skill_executor_node
+    # "i'm done" is in L1_EXIT_PHRASES and unambiguously signals the user wants to stop
+    state = _ss_state(
+        message_en="i'm done",
+        crisis_state="monitoring",
+        active_skill_id="post_crisis_check_in",
+        active_step_id="acknowledge_and_check",
+        emotional_intensity=5,
+        engagement=7,
+    )
+    result = skill_executor_node(state)
+    assert result["active_skill_id"] is None, (
+        "active_skill_id must be cleared on L1 exit"
+    )
+    assert result.get("crisis_state") == "resolved", (
+        "crisis_state must transition to 'resolved' on L1 exit from post_crisis_check_in"
+    )
+    assert result["escalation_triggered"]["level"] == "L1", (
+        "escalation_triggered must carry the L1 escalation dict"
+    )
+
+
 def test_skill_executor_sets_resolved_when_post_crisis_skill_completes():
     """skill_executor_node must write crisis_state='resolved' when post_crisis_check_in finishes."""
     from sage_poc.nodes.skill_executor import skill_executor_node

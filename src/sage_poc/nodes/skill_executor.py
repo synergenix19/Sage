@@ -144,6 +144,9 @@ def skill_executor_node(state: SageState) -> dict:
         matrix_instruction = skill.escalation_matrix.get(
             escalation["level"], "Follow escalation protocol."
         )
+        crisis_update: dict = {}
+        if escalation["action"] == "exit_skill" and skill_id == "post_crisis_check_in":
+            crisis_update = {"crisis_state": "resolved"}
         return {
             "step_instruction": f"[{escalation['level']}] {matrix_instruction}",
             "executed_step_id": step_id,
@@ -151,6 +154,7 @@ def skill_executor_node(state: SageState) -> dict:
             "active_skill_id": None if escalation["action"] == "exit_skill" else skill_id,
             "escalation_triggered": escalation,
             "path": state["path"] + ["skill_executor"],
+            **crisis_update,
         }
 
     result = evaluate_step_policy(
