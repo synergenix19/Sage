@@ -86,7 +86,9 @@ def compose_prompt(state: SageState) -> tuple[str, str]:
 
     # Prompt injection: clinical flag adaptations + secondary intent (system-targeted)
     session_flags: list[str] = []
-    if state.get("crisis_occurred_this_session"):
+    # "resolved" is included: the L5 heightened-sensitivity prompt layer stays active
+    # even after the skill completes, so the LLM remains careful for the rest of the session.
+    if state.get("crisis_state") in ("active", "monitoring", "resolved"):
         session_flags.append("crisis_occurred")
 
     injection_result = rules_engine.evaluate("prompt_injection", {
@@ -128,6 +130,18 @@ def compose_prompt(state: SageState) -> tuple[str, str]:
     if secondary_intent:
         intent_line += f" + {secondary_intent} (blended)"
     user_parts.append(f"{intent_line} | Emotional intensity: {intensity}/10")
+
+    # POST-CRISIS CONTEXT block fires only in monitoring state, not resolved.
+    # In resolved state the session_flag 'crisis_occurred' (above) keeps the LLM
+    # sensitised without pinning every response to the crisis event.
+    if state.get("crisis_state") == "monitoring":
+        s7 = state.get("s7_result") or "UNCLEAR"
+        user_parts.append(
+            f"POST-CRISIS CONTEXT: The user was recently in crisis. "
+            f"S7 recovery classifier result: {s7}. "
+            f"Respond with extra warmth, patience, and safety-consciousness. "
+            f"Do not probe for details of the crisis. Meet the user where they are."
+        )
 
     # Prompt injection: user-targeted injections (dialectical framing for secondary intent)
     user_injections = [

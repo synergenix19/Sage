@@ -4,7 +4,7 @@ import numpy as np
 from sage_poc.state import SageState
 from sage_poc.skills.schema import load_skill
 
-SKILL_REGISTRY = ["cbt_thought_record", "grounding_5_4_3_2_1", "sleep_hygiene"]
+SKILL_REGISTRY = ["cbt_thought_record", "grounding_5_4_3_2_1", "sleep_hygiene", "post_crisis_check_in"]
 _SKILLS = {sid: load_skill(sid) for sid in SKILL_REGISTRY}
 
 # Threshold from empirical calibration (Task 3).
@@ -55,6 +55,23 @@ def _semantic_match(message_en: str) -> tuple[str | None, float]:
 
 
 def skill_select_node(state: SageState) -> dict:
+    # Post-crisis auto-select: bypass keyword and semantic matching entirely
+    if state.get("crisis_state") == "monitoring":
+        skill_id = "post_crisis_check_in"
+        skill = _SKILLS[skill_id]
+        current_step = (
+            state.get("active_step_id")
+            if state.get("active_skill_id") == skill_id
+            else skill.steps[0].step_id
+        )
+        return {
+            "active_skill_id": skill_id,
+            "active_step_id": current_step,
+            "skill_match_method": "post_crisis_auto_select",
+            "semantic_score": None,
+            "path": state["path"] + ["skill_select"],
+        }
+
     message = state["message_en"].lower()
 
     # Tier 1: Keyword matching — deterministic, fast, auditable

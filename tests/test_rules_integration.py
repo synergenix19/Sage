@@ -293,7 +293,7 @@ def test_post_crisis_session_injection_fires_on_subsequent_safe_turn():
         crisis_state="monitoring",
     )
     system_str, _ = compose_prompt(state)
-    assert "POST-CRISIS" in system_str or "crisis" in system_str.lower(), (
+    assert "POST-CRISIS" in system_str, (
         "Post-crisis injection must appear in system prompt when crisis_state='monitoring'"
     )
 

@@ -161,6 +161,10 @@ def skill_executor_node(state: SageState) -> dict:
         message_en=state["message_en"],
     )
 
+    crisis_state_update: dict = {}
+    if result.get("skill_complete") and skill_id == "post_crisis_check_in":
+        crisis_state_update = {"crisis_state": "resolved"}
+
     return {
         "step_instruction": result["instruction"],
         "executed_step_id": step_id,           # which step's instruction was used THIS turn
@@ -168,4 +172,5 @@ def skill_executor_node(state: SageState) -> dict:
         "active_skill_id": None if result.get("skill_complete") else skill_id,
         "escalation_triggered": None,
         "path": state["path"] + ["skill_executor"],
+        **crisis_state_update,
     }
