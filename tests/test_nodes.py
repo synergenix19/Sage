@@ -1355,6 +1355,51 @@ def test_persona_contains_crisis_handoff_constraint():
         "PERSONA must reference crisis handling behaviour"
 
 
+def test_persona_opens_with_important_format_directive():
+    """L0 prohibition must be the first thing in PERSONA — before persona description."""
+    from sage_poc.nodes.freeflow_respond import PERSONA
+    first_word = PERSONA.strip().split()[0].rstrip(".")
+    assert first_word == "IMPORTANT", (
+        f"PERSONA must open with 'IMPORTANT', got '{first_word}'. "
+        "Format directive must precede persona description for correct model weighting."
+    )
+
+def test_persona_contains_anti_mirroring_clause():
+    """L0 must explicitly name the skill instruction source to suppress mirroring."""
+    from sage_poc.nodes.freeflow_respond import PERSONA
+    assert "skill instructions" in PERSONA, (
+        "PERSONA must contain 'skill instructions' to explicitly tell the model "
+        "not to copy formatting from L3 skill context."
+    )
+
+def test_persona_contains_wrong_right_example_pair():
+    """L0 must demonstrate correct style via WRONG/RIGHT examples, not just describe it."""
+    from sage_poc.nodes.freeflow_respond import PERSONA
+    assert "WRONG:" in PERSONA, "PERSONA must contain a WRONG: formatting example"
+    assert "RIGHT:" in PERSONA, "PERSONA must contain a RIGHT: formatting example"
+
+def test_persona_wrong_example_contains_em_dash_and_emoji():
+    """The WRONG example must show exactly the patterns we are suppressing."""
+    from sage_poc.nodes.freeflow_respond import PERSONA
+    wrong_block_start = PERSONA.find("WRONG:")
+    right_block_start = PERSONA.find("RIGHT:")
+    assert wrong_block_start != -1 and right_block_start != -1
+    wrong_text = PERSONA[wrong_block_start:right_block_start]
+    assert "—" in wrong_text, "WRONG example must contain an em dash"
+    assert any(c in wrong_text for c in ["💙", "😊", "🌿"]), \
+        "WRONG example must contain an emoji"
+    assert "**" in wrong_text, "WRONG example must contain bold markdown"
+
+def test_persona_has_no_duplicate_style_block():
+    """Old mid-prompt 'Style:' block must be removed — replaced by IMPORTANT block at top."""
+    from sage_poc.nodes.freeflow_respond import PERSONA
+    occurrences = PERSONA.count("no em dashes")
+    assert occurrences <= 1, (
+        f"'no em dashes' appears {occurrences} times — remove the old inline Style: block, "
+        "it is now replaced by the IMPORTANT directive at the top."
+    )
+
+
 def test_persona_contains_islamic_cultural_context():
     """Islamic framing (sabr, tawakkul, ibtila) must be engine-injected into system_str
     when the user message contains a faith keyword. The PERSONA string itself no longer
