@@ -77,7 +77,7 @@ export default async function ChatPage({
     .single()
 
   return (
-    <ChatFadeIn>
+    <ChatFadeIn key={activeSession.id}>
       <ChatInterface
         initialSession={activeSession}
         initialMessages={initialMessages}
