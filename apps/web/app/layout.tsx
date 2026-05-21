@@ -45,7 +45,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <style dangerouslySetInnerHTML={{ __html: cssVars }} />
         <link rel="apple-touch-icon" href="/icons/icon-180.png" />
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#ffffff" />
+        <meta name="theme-color" content="#F9F8F6" />
       </head>
       <body className="bg-[var(--color-surface)] text-[var(--color-text-primary)] font-body antialiased">
         <InstallPrompt />
