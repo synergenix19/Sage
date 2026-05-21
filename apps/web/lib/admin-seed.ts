@@ -30,8 +30,20 @@ export function getAdminDemoData() {
       { district: 'Nad Al Sheba',  index: 28 },
     ],
     recentAlerts: [
-      { id: '1', userId: 'usr_demo_01', district: 'Al Quoz',   timestamp: '2026-05-20T09:14:00Z', severity: 'high'   as const },
-      { id: '2', userId: 'usr_demo_02', district: 'Deira',     timestamp: '2026-05-19T16:33:00Z', severity: 'medium' as const },
+      {
+        id: '1',
+        message: '⚠ Elevated stress signals in Al Quoz district — last 72 hours',
+        severity: 'high'   as const,
+        timestamp: '2026-05-20T09:14:00Z',
+        targetSection: 'district-stress',
+      },
+      {
+        id: '2',
+        message: '⚠ Parenting topic volume +34% this week vs. prior week',
+        severity: 'medium' as const,
+        timestamp: '2026-05-19T16:33:00Z',
+        targetSection: 'top-topics',
+      },
     ],
   }
 }
