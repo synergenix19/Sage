@@ -89,6 +89,35 @@
       "language": "ar",
       "modifiers": [],
       "action": {"type": "crisis_flag", "flag_id": "si_explicit"}
+    },
+    {
+      "rule_id": "SK-EN-003",
+      "version": "1.0.0",
+      "category": "safety",
+      "authored_by": "sage_clinics",
+      "approved_by": null,
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Self-harm method references indicating planning beyond ideation",
+      "match_type": "keyword",
+      "patterns": [
+        "how to overdose",
+        "how many pills to take",
+        "jumping off a bridge",
+        "cutting my wrists",
+        "cutting deep",
+        "where to cut myself",
+        "pills to kill myself",
+        "ways to end my life",
+        "how to hurt myself badly",
+        "methods to die"
+      ],
+      "language": "en",
+      "modifiers": ["negation_check"],
+      "action": {
+        "type": "crisis_flag",
+        "flag_id": "si_method"
+      }
     }
   ]
 }

@@ -321,3 +321,26 @@ def test_arabic_exhaustion_idioms_sk_ar_003(arabic_text):
     })
     crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
     assert crisis_actions, f"Expected crisis flag for Gulf exhaustion idiom: {arabic_text!r}"
+
+
+# ── Self-harm method references (SK-EN-003) ───────────────────────────────────
+
+@pytest.mark.parametrize("text", [
+    "how to overdose",
+    "how many pills to take",
+    "jumping off a bridge",
+    "cutting my wrists",
+    "cutting deep",
+    "where to cut myself",
+    "pills to kill myself",
+    "ways to end my life",
+    "how to hurt myself badly",
+    "methods to die",
+])
+def test_self_harm_method_reference_triggers_crisis(text):
+    result = engine.evaluate("safety", {"text_en": text, "language": "en"})
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert crisis_actions, f"Expected crisis flag for method reference: {text!r}"
+    assert any(a.get("flag_id") == "si_method" for a in crisis_actions), (
+        f"Expected flag_id='si_method' for: {text!r}"
+    )
