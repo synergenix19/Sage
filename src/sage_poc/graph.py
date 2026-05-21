@@ -87,7 +87,13 @@ def _route_after_intent(state: SageState) -> str:
     if intent == "scope_refusal":
         return "gate"
     if intent == "jailbreak":
+        # NOTE: jailbreak in monitoring state: persona reassertion takes priority.
+        # crisis_state remains 'monitoring' — S7 will re-evaluate on the next turn.
         return "gate"
+    # Post-crisis monitoring takes priority over confidence gating — short or fragmented
+    # messages are expected after a crisis; route to skill_select regardless of confidence.
+    if state.get("crisis_state") == "monitoring":
+        return "skill_select"
     if confidence < 0.6:
         return "low_confidence"
     if intent == "exit_skill":
@@ -96,9 +102,6 @@ def _route_after_intent(state: SageState) -> str:
         return "skill_select"
     if intent == "skill_continuation" and state.get("active_skill_id"):
         return "skill_executor"
-    # Post-crisis monitoring: route through skill_select so it can auto-select post_crisis_check_in
-    if state.get("crisis_state") == "monitoring":
-        return "skill_select"
     return "freeflow"
 
 
