@@ -5,7 +5,7 @@ import { useOnboardingStore } from '@/lib/stores/onboarding-store'
 import { createClient } from '@/lib/supabase/client'
 
 export function Personalising() {
-  const { reset } = useOnboardingStore()
+  const { reset, setStep } = useOnboardingStore()
   const [failed, setFailed] = useState(false)
   const router = useRouter()
   const failTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -40,8 +40,13 @@ export function Personalising() {
       return
     }
     clearTimeout(failTimerRef.current!)
-    reset()
-    router.push('/chat')
+    // Advance to step 7 so the progress bar shows 100% before we leave.
+    // reset() is called after a short delay to let the 100% state render.
+    setStep(7)
+    setTimeout(() => {
+      reset()
+      router.push('/chat')
+    }, 350)
   }
 
   function retry() {
