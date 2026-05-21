@@ -5,7 +5,7 @@
       "rule_id": "PI-CD-001",
       "version": "1.0.0",
       "category": "prompt_injection",
-      "authored_by": "sage-rules-team",
+      "authored_by": "sage_clinics",
       "effective_date": "2026-05-21",
       "active": true,
       "description": "Cumulative distress adaptation — sustained high emotional intensity across multiple turns",

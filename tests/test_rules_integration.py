@@ -312,8 +312,17 @@ def test_escalating_distress_flag_absent_below_floor():
     assert "escalating_distress" not in result["clinical_flags"]
 
 
+def test_escalating_distress_not_triggered_with_only_two_high_turns():
+    """Two high-intensity turns (one short of streak) must NOT set the flag."""
+    state = _state("I'm struggling")
+    state["distress_trajectory"] = [8]   # one prior high-intensity turn
+    state["emotional_intensity"] = 7     # this turn → trajectory becomes [8, 7]
+    result = safety_check_node(state)
+    assert "escalating_distress" not in result["clinical_flags"]
+
+
 def test_cumulative_distress_injection_fires_on_flag():
     """PI-CD-001 must inject cumulative distress guidance when escalating_distress flag is present."""
     state = _freeflow_state(clinical_flags=["escalating_distress"])
     system_str, _ = compose_prompt(state)
-    assert "CUMULATIVE DISTRESS" in system_str or "distress" in system_str.lower()
+    assert "CUMULATIVE DISTRESS" in system_str
