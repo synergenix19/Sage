@@ -33,6 +33,8 @@ class SageState(TypedDict):
     step_instruction: Optional[str]
     skill_match_method: Optional[str]   # "keyword" | "semantic" | None
     semantic_score: Optional[float]     # cosine similarity if semantic match
+    prompt_layers: list[str]            # layer names included in the composed LLM prompt
+    token_usage: dict                   # {"input": N, "output": N, "total": N} from LLM
     escalation_triggered: Optional[dict]  # {"level": "L1"|"L2", "reason": str, "action": str}
 
     gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak", "crisis"]]
