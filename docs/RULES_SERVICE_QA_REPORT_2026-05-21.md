@@ -586,11 +586,28 @@ PASS: crisis_suppress excluded from actions
 ```
 **Result: PASS** — 26 passive SI expansion tests passed.
 
+### SF-3: Post-crisis session handling
+
+**Status: ADDRESSED (2026-05-22)**
+
+`crisis_occurred_this_session: bool` was identified as a dead flag — written by
+`_crisis_response_node` but never read by `_route_after_safety`. Post-R2 audit safety
+fix replaced it with `crisis_state: str` (`"none" | "active" | "monitoring" | "resolved"`)
+and added the S7 post-crisis classifier and `post_crisis_check_in` skill.
+
+Implementation: `docs/superpowers/plans/2026-05-22-post-crisis-state-management.md`
+
 ### SF-4: Cumulative distress
 ```
 1 passed, 30 deselected in 1.87s
 ```
 **Result: PASS** — Cumulative distress integration test passed.
+
+**Status: ADDRESSED (2026-05-22)** — Cumulative distress detection implemented via
+`cumulative_distress.json` rules. Post-crisis state management (SF-3 fix above)
+provides the session-level continuity layer that complements turn-level distress scoring.
+
+Implementation: `docs/superpowers/plans/2026-05-22-post-crisis-state-management.md`
 
 ### SF-6: False positives / laughter idiom
 ```

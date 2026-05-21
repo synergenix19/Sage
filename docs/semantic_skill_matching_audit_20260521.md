@@ -490,3 +490,28 @@ PASS: no hardcoded descriptions in Python
 All six blocking gate criteria are met without exception. The BGE-M3 semantic fallback layer is correctly implemented: lazy-loaded (0.121s import), deterministic-first (Tier 1 keyword → Tier 2 semantic), threshold-calibrated (0.5264, gap 0.0300), and audit-trailed via `skill_match_method` and `semantic_score` in every output gate JSON. All 148 tests (113 fast + 35 slow) pass. All six novel semantic phrases resolve to the correct skill with scores between 0.62 and 0.69, well above threshold. All five non-therapeutic messages and both edge cases correctly return `active_skill=null`. Crisis, scope-refusal, and jailbreak safeguards are fully intact and unaffected by the new semantic layer.
 
 One minor quality note: the test message "I cant sleep at night" (no apostrophe) routes via semantic rather than keyword, because the keyword is defined as `"can't sleep"` with an apostrophe. The correct skill (sleep_hygiene) is reached — this is a test fixture imprecision, not a functional regression, and the 113 fast tests (which use the canonical form) pass without issue.
+
+---
+
+## Post-Audit Amendment (2026-05-22)
+
+**SKILL_REGISTRY count: 3 → 4 (Skills Library count: 28 → 29)**
+
+A fourth structured skill, `post_crisis_check_in`, was added to `SKILL_REGISTRY` as a
+post-R2 audit safety fix. This skill is not included in the semantic calibration above
+(it has an empty `semantic_description` and empty `target_presentations` by design —
+selection is exclusively via the `post_crisis_auto_select` rule in `skill_select_node`,
+not via keyword or semantic matching).
+
+| Skill ID | Steps | Evidence base | Notes |
+|---|---|---|---|
+| `cbt_thought_record` | identify_thought -> explore_distortion -> balanced_thought | Beck (1979); Burns (1980) | Keyword + semantic |
+| `grounding_5_4_3_2_1` | count_five -> four_sounds -> ... | DBT (Linehan, 1993) | Keyword + semantic |
+| `sleep_hygiene` | assess_sleep -> guidance -> barriers | CBT-I (Morin, 1993) | Keyword + semantic |
+| `post_crisis_check_in` | acknowledge_and_check -> bridge_or_close | ASIST (2018); SafeTALK; SAMHSA Safe Messaging (2023) | Auto-select only; post-audit safety addition |
+
+The semantic calibration threshold (0.5264) and all existing test results are unaffected.
+`post_crisis_check_in` is excluded from semantic matching by design and does not alter
+the calibration gap.
+
+Implementation: `docs/superpowers/plans/2026-05-22-post-crisis-state-management.md`

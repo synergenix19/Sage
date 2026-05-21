@@ -1219,13 +1219,18 @@ identified dead crisis_occurred_this_session flag. Three e2e test scenarios adde
 to tests/test_graph.py: crisis-then-monitoring, monitoring-then-recovery, monitoring-then-recrisis.
 ```
 
+**Post-audit addition (2026-05-22):** post-crisis state management (crisis_state field,
+S7 classifier, post_crisis_check_in skill) added as a safety fix after R2 audit
+identified dead crisis_occurred_this_session flag. Three e2e test scenarios added
+to tests/test_graph.py: crisis-then-monitoring, monitoring-then-recovery, monitoring-then-recrisis.
+
 - [ ] **Step 5: Commit all documentation**
 
 ```bash
 cd /Users/knowledgebase/Documents/Sage/sage-poc
 git add docs/v7.1-post-crisis-state-addendum.md
 git add $(git diff --name-only docs/)
-git commit -m "docs: v7.1 addendum, Intellie SF-3/SF-4 addressed, skill count 28→29, POC plan note"
+git commit -m "docs: v7.1 addendum, Intellie SF-3/SF-4 addressed, skill count 28->29, POC plan note"
 ```
 
 ---
