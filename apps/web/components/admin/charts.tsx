@@ -113,10 +113,20 @@ interface DistrictStressChartProps {
   data: Array<{ district: string; index: number }>
 }
 
+// Color interpolation between design token values.
+// LOW_RGB  = --color-surface-tinted (#EAF0EA = rgb(234, 240, 234)) — calm/low stress
+// HIGH_RGB = --color-crisis         (#DC2626 = rgb(220,  38,  38)) — high stress
+// These values mirror the tenant brand tokens. If tokens change, update these constants.
+// TODO(post-Gitex): derive from getComputedStyle(document.documentElement) to auto-follow token changes.
+const LOW_RGB  = { r: 234, g: 240, b: 234 } // --color-surface-tinted (#EAF0EA)
+const HIGH_RGB = { r: 220, g: 38,  b: 38  } // --color-crisis        (#DC2626)
+
 function districtColor(index: number): string {
-  if (index >= 65) return '#C0392B' // crisis
-  if (index >= 50) return '#E67E22' // warning amber
-  return '#4A7C59'                  // primary green
+  const ratio = Math.min(Math.max((index - 20) / 80, 0), 1) // maps 20–100 → 0–1
+  const r = Math.round(LOW_RGB.r + (HIGH_RGB.r - LOW_RGB.r) * ratio)
+  const g = Math.round(LOW_RGB.g + (HIGH_RGB.g - LOW_RGB.g) * ratio)
+  const b = Math.round(LOW_RGB.b + (HIGH_RGB.b - LOW_RGB.b) * ratio)
+  return `rgb(${r}, ${g}, ${b})`
 }
 
 function DistrictStressChartImpl({ data }: DistrictStressChartProps) {
@@ -145,7 +155,7 @@ function DistrictStressChartImpl({ data }: DistrictStressChartProps) {
                 borderRadius: '8px',
                 fontSize: '12px',
               }}
-              formatter={(v: number) => [`${v}`, 'Stress index']}
+              formatter={(v) => [`${v}`, 'Stress index'] as [string, string]}
             />
             <Bar dataKey="index" radius={[0, 4, 4, 0]}>
               {sorted.map((entry) => (
