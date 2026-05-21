@@ -8,7 +8,7 @@ SKILL_REGISTRY = ["cbt_thought_record", "grounding_5_4_3_2_1", "sleep_hygiene"]
 _SKILLS = {sid: load_skill(sid) for sid in SKILL_REGISTRY}
 
 # Threshold from empirical calibration (Task 3).
-SEMANTIC_THRESHOLD: float = 0.5264
+SEMANTIC_THRESHOLD: float = 0.5416
 
 # Lazy semantic components — initialised on first semantic miss, not at import
 _embed_model = None

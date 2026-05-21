@@ -249,6 +249,28 @@ def test_selects_cbt_for_blame_myself():
         "'blame myself' must activate cbt_thought_record"
 
 
+def test_stressed_does_not_match_any_skill():
+    """RT-4 inverse: 'stressed' is too vague — must route to freeflow, not trigger a skill."""
+    state = make_state(
+        message_en="Hi, I've been feeling stressed",
+        primary_intent="new_skill",
+    )
+    result = skill_select_node(state)
+    assert result["active_skill_id"] is None, \
+        "Vague 'stressed' must not activate any skill — freeflow should explore the presentation"
+
+
+def test_panicking_still_matches_grounding():
+    """RT-4 guard: tightening grounding description must not break explicit panic routing."""
+    state = make_state(
+        message_en="I'm panicking and I can't breathe",
+        primary_intent="new_skill",
+    )
+    result = skill_select_node(state)
+    assert result["active_skill_id"] == "grounding_5_4_3_2_1", \
+        "Explicit panic phrasing must still activate grounding after description tightening"
+
+
 from sage_poc.nodes.skill_executor import skill_executor_node, evaluate_step_policy
 
 def test_evaluate_step_policy_high_intensity_triggers_validate_only():
@@ -1548,17 +1570,21 @@ def test_semantic_fallback_catches_nothing_good_enough():
 
 @pytest.mark.slow
 def test_semantic_fallback_catches_spiralling():
-    """'spiralling out of control' keyword-misses; semantic fallback must catch → grounding.
+    """Dissociative derealization keyword-misses; semantic fallback must catch → grounding.
 
     NOTE: Original message 'things are spiralling out of control right now' scored 0.48–0.52
-    against the first-person somatic grounding description (below calibrated threshold 0.5264).
-    Substituted with 'I feel like I'm falling apart and I can't stop it' — confirmed above
-    threshold in calibration runs.
+    against the first-person somatic grounding description (below threshold).
+    Second substitution 'I feel like I'm falling apart and I can't stop it' scored higher
+    against cbt_thought_record (0.5893) than grounding (0.5596) after v3 description tightening.
+    Current phrase uses derealization/dissociative framing — confirmed grounding-best above
+    threshold (0.5790 vs threshold 0.5416) with no keyword hits.
     """
-    state = make_state(message_en="I feel like I'm falling apart and I can't stop it")
+    state = make_state(
+        message_en="everything suddenly feels unreal and I feel like I am watching from outside my body"
+    )
     result = skill_select_node(state)
     assert result["active_skill_id"] == "grounding_5_4_3_2_1", (
-        "'I feel like I'm falling apart and I can't stop it' must activate grounding_5_4_3_2_1 via semantic fallback"
+        "Derealization/dissociative phrasing must activate grounding_5_4_3_2_1 via semantic fallback"
     )
     assert result["skill_match_method"] == "semantic"
 

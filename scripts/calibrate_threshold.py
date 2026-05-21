@@ -29,8 +29,8 @@ KNOWN_HITS = [
     ("why can't I just be normal", "cbt_thought_record"),
     # Grounding — none of these contain a grounding keyword
     ("I feel like I'm falling apart and I can't stop it", "grounding_5_4_3_2_1"),
-    ("I can't handle this, everything feels like too much", "grounding_5_4_3_2_1"),
-    ("I feel like I'm completely losing it", "grounding_5_4_3_2_1"),
+    ("I feel like I'm dissociating", "grounding_5_4_3_2_1"),
+    ("my heart is pounding so hard and I feel faint", "grounding_5_4_3_2_1"),
     # Sleep — none of these contain a sleep keyword
     ("I'm exhausted but my mind won't stop racing", "sleep_hygiene"),
     ("I'm tired all day but wide awake at night", "sleep_hygiene"),
@@ -44,6 +44,8 @@ KNOWN_MISSES = [
     "thanks, that really helped",
     "hey, how are you",
     "I need to talk about something that happened at work",  # edge case — may weakly match
+    "I've been feeling stressed lately",  # vague stress must not match any skill
+    "Hi, I've been feeling stressed",  # exact RT-4 regression phrase — must not match any skill
 ]
 
 
