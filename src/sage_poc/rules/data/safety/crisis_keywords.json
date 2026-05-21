@@ -118,6 +118,39 @@
         "type": "crisis_flag",
         "flag_id": "si_method"
       }
+    },
+    {
+      "rule_id": "SK-EN-004",
+      "version": "1.0.0",
+      "category": "safety",
+      "authored_by": "sage_clinics",
+      "approved_by": null,
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Third-party crisis reports — user describing someone else in crisis; does NOT set is_safe=False for speaker",
+      "match_type": "keyword",
+      "patterns": [
+        "my friend told me she wants to die",
+        "my friend told me he wants to die",
+        "my friend wants to die",
+        "my friend wants to kill herself",
+        "my friend wants to kill himself",
+        "my sister is suicidal",
+        "my brother is suicidal",
+        "someone i know wants to end their life",
+        "my friend said she wants to kill herself",
+        "my friend said he wants to kill himself",
+        "my colleague mentioned wanting to die",
+        "my brother wants to hurt himself",
+        "my sister wants to hurt herself",
+        "my friend is thinking of ending it"
+      ],
+      "language": "en",
+      "modifiers": [],
+      "action": {
+        "type": "third_party_crisis",
+        "flag_id": "third_party_si"
+      }
     }
   ]
 }

@@ -26,15 +26,22 @@ def safety_check_node(state: SageState) -> dict:
     new_clinical_flags = [
         a["flag_id"] for a in safety_result.actions if a.get("type") == "clinical_flag"
     ]
+    third_party_flags = [
+        a["flag_id"] for a in safety_result.actions if a.get("type") == "third_party_crisis"
+    ]
+
+    # Third-party crisis overrides direct crisis — more specific pattern wins
+    if third_party_flags:
+        new_crisis_flags = []
 
     # Carry forward clinical flags from prior turns (set union — flags don't reset)
     persisted = state.get("clinical_flags", [])
-    all_clinical = list(set(new_clinical_flags + persisted))
+    all_clinical = list(set(new_clinical_flags + third_party_flags + persisted))
 
     return {
         "detected_language": lang,
         "message_en": message_en,
-        "is_safe": len(new_crisis_flags) == 0,
+        "is_safe": len(new_crisis_flags) == 0,   # third_party_crisis does NOT set is_safe=False
         "crisis_flags": new_crisis_flags,
         "clinical_flags": all_clinical,
         "path": state["path"] + ["safety_check"],

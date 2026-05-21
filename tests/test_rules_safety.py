@@ -382,3 +382,20 @@ def test_arabic_laughter_idiom_suppressed_rule_still_in_audit_trail(arabic_text)
         assert any("SK-AR" in rid or "SK-AZ" in rid for rid in suppressed_ids), (
             "Suppressed crisis rule must appear in audit trail"
         )
+
+
+# ── Third-party crisis detection (SK-EN-004) ─────────────────────────────────
+
+@pytest.mark.parametrize("text", [
+    "my friend told me she wants to die",
+    "my sister is suicidal",
+    "someone I know wants to end their life",
+    "my friend said she wants to kill herself",
+    "my colleague mentioned wanting to die",
+    "my brother wants to hurt himself",
+    "my friend is thinking of ending it",
+])
+def test_third_party_crisis_fires_third_party_action(text):
+    result = engine.evaluate("safety", {"text_en": text, "language": "en"})
+    third_party_actions = [a for a in result.actions if a.get("type") == "third_party_crisis"]
+    assert third_party_actions, f"Expected third_party_crisis action for: {text!r}"

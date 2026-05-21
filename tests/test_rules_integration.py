@@ -224,3 +224,34 @@ def test_domestic_situation_adaptation_injected():
     assert "safety" in system_str.lower() or "800111" in system_str or "domestic" in system_str.lower(), (
         "Domestic situation adaptation must reference safety or UAE resource"
     )
+
+
+def test_third_party_crisis_is_safe_does_not_block_session():
+    """A third-party crisis report is NOT a crisis for the current user — session continues."""
+    state = _state("my friend told me she wants to die")
+    with (
+        patch("sage_poc.nodes.safety_check.detect_language", return_value="en"),
+        patch("sage_poc.nodes.safety_check.translate_to_english", return_value="my friend told me she wants to die"),
+    ):
+        result = safety_check_node(state)
+    assert result["is_safe"] is True, "Third-party report must not block the session"
+    assert "third_party_si" in result["clinical_flags"], "third_party_si flag must be set"
+
+
+def test_third_party_overrides_direct_crisis_flag():
+    """When both crisis_flag and third_party_crisis fire, third_party wins — is_safe stays True."""
+    state = _state("my friend wants to kill herself")
+    with (
+        patch("sage_poc.nodes.safety_check.detect_language", return_value="en"),
+        patch("sage_poc.nodes.safety_check.translate_to_english", return_value="my friend wants to kill herself"),
+    ):
+        result = safety_check_node(state)
+    assert result["is_safe"] is True
+    assert "third_party_si" in result["clinical_flags"]
+    assert result["crisis_flags"] == []
+
+
+def test_third_party_guidance_injected_into_prompt():
+    state = _freeflow_state(clinical_flags=["third_party_si"])
+    system_str, _ = compose_prompt(state)
+    assert "friend" in system_str.lower() or "third" in system_str.lower() or "support" in system_str.lower()

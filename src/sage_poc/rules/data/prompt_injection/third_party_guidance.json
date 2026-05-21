@@ -1,0 +1,22 @@
+{
+  "category": "prompt_injection",
+  "rules": [
+    {
+      "rule_id": "PI-TP-001",
+      "version": "1.0.0",
+      "category": "prompt_injection",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Guidance for supporting a friend/family member in crisis",
+      "trigger_type": "flag_present",
+      "trigger_value": "third_party_si",
+      "trigger_keywords": [],
+      "action": {
+        "type": "inject",
+        "target": "system",
+        "content": "THIRD-PARTY CRISIS: The user is describing someone else who may be in crisis, not themselves. Do NOT treat the user as the person in crisis. Respond with empathy for the user's concern. Gently validate their worry. Encourage them to share UAE crisis resources with their friend or family member: 800 4673 (800-HOPE), 999. Suggest they stay connected with the person and encourage professional support."
+      }
+    }
+  ]
+}
