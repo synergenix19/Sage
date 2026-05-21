@@ -29,7 +29,7 @@ KNOWN_HITS = [
     ("why can't I just be normal", "cbt_thought_record"),
     # Grounding — none of these contain a grounding keyword
     ("my heart is pounding so hard and I feel faint", "grounding_5_4_3_2_1"),
-    ("everything around me seems far away", "grounding_5_4_3_2_1"),  # replaced "I feel like I'm dissociating" — moved to keyword tier (Task C)
+    ("my body is shaking and I can not catch my breath", "grounding_5_4_3_2_1"),  # replaced "I feel like I'm dissociating" — moved to keyword tier (Task C); self-referential dissociation phrases cross-matched CBT (scored 0.5209–0.5463)
     ("I feel completely overwhelmed, my head is spinning", "grounding_5_4_3_2_1"),
     # Sleep — none of these contain a sleep keyword
     ("I am exhausted but my mind will not stop racing at bedtime", "sleep_hygiene"),
