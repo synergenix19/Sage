@@ -28,9 +28,9 @@ def _crisis_response_node(state: SageState) -> dict:
     else:
         # Hard fallback: should never fire if JSON files are present
         response_text = (
-            "Please reach out for help now. UAE: 800 4673 (800-HOPE) or 999."
+            "Please reach out for support now. UAE: MoHAP Counselling Line 800 46342 (free, 24/7) or emergency: 999."
             if lang != "ar"
-            else "أرجوك اتصل بـ 800 4673 أو 999 الآن."
+            else "أرجوك تواصل مع خط وزارة الصحة 800 46342 أو الطوارئ 999 الآن."
         )
 
     path = state["path"] + ["crisis_response"]
