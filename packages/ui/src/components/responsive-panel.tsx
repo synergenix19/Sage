@@ -23,7 +23,7 @@ export function ResponsivePanel({ open, onClose, title, children }: ResponsivePa
 
   if (!open) return null
 
-  if (!isDesktop) return <BottomSheet open={open} onClose={onClose}>{children}</BottomSheet>
+  if (!isDesktop) return <BottomSheet open={open} onClose={onClose} title={title}>{children}</BottomSheet>
 
   return (
     <>
