@@ -325,7 +325,7 @@ def test_output_gate_calls_cultural_output_evaluate(monkeypatch):
     assert ctx["clinical_flags"] == []
 
 
-def test_output_gate_skips_cultural_output_for_scope_refusal():
+def test_output_gate_skips_cultural_output_for_scope_refusal(monkeypatch):
     """Scope refusal path must skip cultural output evaluation — fixed response, not LLM-generated."""
     from sage_poc.nodes.output_gate import output_gate_node
     from sage_poc.rules import engine as rules_engine
@@ -337,26 +337,20 @@ def test_output_gate_skips_cultural_output_for_scope_refusal():
         calls.append(category)
         return original_evaluate(category, context)
 
-    import sage_poc.nodes.output_gate as og_module
-    og_module_engine = og_module.rules_engine
-    original = og_module_engine.evaluate
-    og_module_engine.evaluate = mock_evaluate
+    monkeypatch.setattr(rules_engine, "evaluate", mock_evaluate)
 
-    try:
-        state = {
-            "gate_path": "scope_refusal",
-            "detected_language": "en",
-            "path": [],
-            "response_en": None,
-            "message_en": "diagnose me",
-            "clinical_flags": [],
-            "turn_count": 0,
-            "conversation_history": [],
-        }
-        output_gate_node(state)
-        assert "cultural_output" not in calls
-    finally:
-        og_module_engine.evaluate = original
+    state = {
+        "gate_path": "scope_refusal",
+        "detected_language": "en",
+        "path": [],
+        "response_en": None,
+        "message_en": "diagnose me",
+        "clinical_flags": [],
+        "turn_count": 0,
+        "conversation_history": [],
+    }
+    output_gate_node(state)
+    assert "cultural_output" not in calls
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -472,7 +466,7 @@ def test_cuo_is_001_fires_when_islamic_input_but_secular_response():
         "message_en": "I feel like allah has abandoned me",
         "clinical_flags": [],
     })
-    fired_ids = result.fired_ids
+    fired_ids = [r.rule_id for r in result.fired]
     assert "CUO-IS-001" in fired_ids, (
         "CUO-IS-001 must fire when Islamic keyword in message but no Islamic vocab in response"
     )
@@ -485,7 +479,7 @@ def test_cuo_is_001_passes_when_response_mirrors_islamic_vocab():
         "message_en": "I feel like allah has abandoned me",
         "clinical_flags": [],
     })
-    fired_ids = result.fired_ids
+    fired_ids = [r.rule_id for r in result.fired]
     assert "CUO-IS-001" not in fired_ids
 
 
@@ -496,7 +490,7 @@ def test_cuo_is_001_does_not_fire_without_islamic_input():
         "message_en": "I feel so alone and hopeless",
         "clinical_flags": [],
     })
-    fired_ids = result.fired_ids
+    fired_ids = [r.rule_id for r in result.fired]
     assert "CUO-IS-001" not in fired_ids
 ```
 
@@ -585,7 +579,7 @@ def test_cuo_fa_001_fires_when_family_context_and_individualist_response():
         "message_en": "My parents expect me to give up my career",
         "clinical_flags": [],
     })
-    assert "CUO-FA-001" in result.fired_ids, (
+    assert "CUO-FA-001" in [r.rule_id for r in result.fired], (
         "CUO-FA-001 must fire on 'put yourself first' when family context present"
     )
 
@@ -597,7 +591,7 @@ def test_cuo_fa_001_fires_on_you_owe_them_nothing():
         "message_en": "I feel guilty about letting my family down",
         "clinical_flags": [],
     })
-    assert "CUO-FA-001" in result.fired_ids
+    assert "CUO-FA-001" in [r.rule_id for r in result.fired]
 
 
 def test_cuo_fa_001_absent_without_family_context():
@@ -607,7 +601,7 @@ def test_cuo_fa_001_absent_without_family_context():
         "message_en": "I feel really overwhelmed by work",
         "clinical_flags": [],
     })
-    assert "CUO-FA-001" not in result.fired_ids, (
+    assert "CUO-FA-001" not in [r.rule_id for r in result.fired], (
         "CUO-FA-001 must not fire without family context, even if individualist phrase present"
     )
 
@@ -619,7 +613,7 @@ def test_cuo_fa_001_absent_when_response_is_balanced():
         "message_en": "My parents expect me to give up my career",
         "clinical_flags": [],
     })
-    assert "CUO-FA-001" not in result.fired_ids
+    assert "CUO-FA-001" not in [r.rule_id for r in result.fired]
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -715,7 +709,7 @@ def test_cuo_su_001_fires_on_harm_reduction_with_substance_flag():
         "message_en": "I've been using drugs to cope",
         "clinical_flags": ["substance_use"],
     })
-    assert "CUO-SU-001" in result.fired_ids, (
+    assert "CUO-SU-001" in [r.rule_id for r in result.fired], (
         "CUO-SU-001 must fire on 'harm reduction' when substance_use flag active"
     )
 
@@ -727,7 +721,7 @@ def test_cuo_su_001_fires_on_moderate_use_language():
         "message_en": "I drink to deal with stress",
         "clinical_flags": ["substance_use"],
     })
-    assert "CUO-SU-001" in result.fired_ids
+    assert "CUO-SU-001" in [r.rule_id for r in result.fired]
 
 
 def test_cuo_su_001_absent_without_substance_flag():
@@ -737,7 +731,7 @@ def test_cuo_su_001_absent_without_substance_flag():
         "message_en": "I'm struggling",
         "clinical_flags": [],
     })
-    assert "CUO-SU-001" not in result.fired_ids
+    assert "CUO-SU-001" not in [r.rule_id for r in result.fired]
 
 
 def test_cuo_su_001_absent_for_clean_substance_response():
@@ -747,7 +741,7 @@ def test_cuo_su_001_absent_for_clean_substance_response():
         "message_en": "I drink to deal with stress",
         "clinical_flags": ["substance_use"],
     })
-    assert "CUO-SU-001" not in result.fired_ids
+    assert "CUO-SU-001" not in [r.rule_id for r in result.fired]
 
 
 # ── CUO-GC-001 ───────────────────────────────────────────────────────────────
@@ -759,7 +753,7 @@ def test_cuo_gc_001_fires_on_western_dating_language():
         "message_en": "I feel so lonely",
         "clinical_flags": [],
     })
-    assert "CUO-GC-001" in result.fired_ids
+    assert "CUO-GC-001" in [r.rule_id for r in result.fired]
 
 
 def test_cuo_gc_001_fires_on_pork_idiom():
@@ -769,7 +763,7 @@ def test_cuo_gc_001_fires_on_pork_idiom():
         "message_en": "My husband works very hard",
         "clinical_flags": [],
     })
-    assert "CUO-GC-001" in result.fired_ids
+    assert "CUO-GC-001" in [r.rule_id for r in result.fired]
 
 
 def test_cuo_gc_001_absent_for_appropriate_response():
@@ -779,7 +773,7 @@ def test_cuo_gc_001_absent_for_appropriate_response():
         "message_en": "I feel so lonely",
         "clinical_flags": [],
     })
-    assert "CUO-GC-001" not in result.fired_ids
+    assert "CUO-GC-001" not in [r.rule_id for r in result.fired]
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -927,7 +921,7 @@ result = rules_engine.evaluate('cultural_output', {
     'message_en': 'I feel lonely',
     'clinical_flags': [],
 })
-print('Fired:', result.fired_ids)
+print('Fired:', [r.rule_id for r in result.fired])
 "
 ```
 Expected: `Fired: ['CUO-GC-001']`
