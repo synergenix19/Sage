@@ -408,3 +408,38 @@ def test_ramadan_framing_absent_without_keyword():
     state = _freeflow_state(message_en="I'm exhausted and can't sleep")
     system_str, _ = compose_prompt(state)
     assert "ramadan" not in system_str.lower()
+
+
+def test_dialect_mirroring_fires_on_khaleeji_wayed():
+    """CU-DM-001 must inject dialect instruction when Khaleeji وايد detected."""
+    state = _freeflow_state(
+        raw_message="أنا وايد تعبان اليوم",
+        message_en="I am very tired today",
+        detected_language="ar",
+    )
+    system_str, _ = compose_prompt(state)
+    assert "DIALECT" in system_str, (
+        "CU-DM-001 must inject DIALECT instruction for Khaleeji وايد"
+    )
+
+
+def test_dialect_mirroring_fires_on_shloun():
+    """CU-DM-001 must fire on other Khaleeji markers like شلون."""
+    state = _freeflow_state(
+        raw_message="شلون أتعامل مع هذا الموضوع؟",
+        message_en="How do I deal with this topic?",
+        detected_language="ar",
+    )
+    system_str, _ = compose_prompt(state)
+    assert "DIALECT" in system_str
+
+
+def test_dialect_mirroring_absent_for_msa():
+    """CU-DM-001 must NOT fire for formal MSA without Khaleeji markers."""
+    state = _freeflow_state(
+        raw_message="أشعر بالقلق الشديد هذا اليوم",
+        message_en="I feel intense anxiety today",
+        detected_language="ar",
+    )
+    system_str, _ = compose_prompt(state)
+    assert "DIALECT" not in system_str

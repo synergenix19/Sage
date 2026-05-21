@@ -1,0 +1,26 @@
+{
+  "category": "cultural",
+  "rules": [
+    {
+      "rule_id": "CU-DM-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Inject Khaleeji dialect mirroring instruction when Gulf Arabic dialect markers detected",
+      "category": "cultural",
+      "trigger_keywords": [
+        "وايد", "زين", "شلون", "وش", "يبغى", "ابغى", "جذي", "ابي",
+        "ليش", "واجد", "عاد", "مب", "ماكو", "اكو", "هاه", "ايش"
+      ],
+      "language": "any",
+      "action": {
+        "type": "prompt_injection",
+        "target": "system",
+        "layer": "L5",
+        "priority": 2,
+        "content": "DIALECT (this turn): The user is writing in Khaleeji Gulf Arabic dialect. Mirror their dialect in your Arabic responses. Do NOT respond in formal Modern Standard Arabic (MSA). Use natural Khaleeji vocabulary and register. Prefer 'وايد' over 'كثير', 'زين' over 'حسن', 'شلون' over 'كيف حالك'. Match the warmth and naturalness of the user's conversational register."
+      }
+    }
+  ]
+}
