@@ -128,5 +128,11 @@ async def chat(req: ChatRequest) -> StreamingResponse:
             "X-Sage-Clinical-Flags":      json.dumps(result.get("clinical_flags") or []),
             "X-Sage-Emotional-Intensity": str(result.get("emotional_intensity") or 0),
             "X-Sage-Crisis-State":        result.get("crisis_state") or "none",
+            # Trace fields: Priority 1
+            "X-Sage-Intent":              result.get("primary_intent") or "",
+            "X-Sage-Semantic-Score":      str(result.get("semantic_score") or ""),
+            "X-Sage-Prompt-Layers":       json.dumps(result.get("prompt_layers") or []),
+            "X-Sage-Token-Usage":         json.dumps(result.get("token_usage") or {}),
+            "X-Sage-Turn-Number":         str(result.get("turn_count") or 0),
         },
     )

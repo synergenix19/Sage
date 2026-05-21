@@ -229,3 +229,51 @@ def test_freeflow_response_audit_headers(monkeypatch):
     assert res.headers.get("x-sage-gate-path") == "standard"
     assert _json.loads(res.headers["x-sage-clinical-flags"]) == ["trauma_indicator"]
     assert res.headers.get("x-sage-emotional-intensity") == "8"
+
+
+def test_chat_response_has_all_trace_headers(monkeypatch):
+    """All 13 trace headers must be present in every /chat response."""
+    import server as srv
+
+    async def _mock_trace(state):
+        return {
+            "path": ["safety_check", "intent_route", "freeflow_respond", "output_gate"],
+            "is_safe": True,
+            "response": "I hear you.",
+            "active_skill_id": None,
+            "executed_step_id": None,
+            "gate_path": "standard",
+            "crisis_flags": [],
+            "clinical_flags": [],
+            "emotional_intensity": 5,
+            "crisis_state": "none",
+            "primary_intent": "general_chat",
+            "semantic_score": None,
+            "prompt_layers": ["persona", "intent"],
+            "token_usage": {"input": 100, "output": 30, "total": 130},
+            "turn_count": 1,
+        }
+
+    monkeypatch.setattr(srv, "_graph", type("G", (), {"ainvoke": staticmethod(_mock_trace)})())
+    client = get_client()
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "hello"}],
+        "session_id": "test",
+    })
+    assert res.status_code == 200
+    for header in [
+        "x-sage-node-path",
+        "x-sage-model",
+        "x-sage-skill-id",
+        "x-sage-step-id",
+        "x-sage-gate-path",
+        "x-sage-crisis-flags",
+        "x-sage-clinical-flags",
+        "x-sage-emotional-intensity",
+        "x-sage-intent",
+        "x-sage-semantic-score",
+        "x-sage-prompt-layers",
+        "x-sage-token-usage",
+        "x-sage-turn-number",
+    ]:
+        assert header in res.headers, f"Missing header: {header}"
