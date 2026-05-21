@@ -8,3 +8,6 @@ dist
 out
 *.tsbuildinfo
 .DS_Store
+apps/web/playwright/.auth-state.json
+apps/web/playwright/.seed-state.json
+apps/web/test-results/
