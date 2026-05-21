@@ -1,0 +1,226 @@
+# tests/test_rules_engine.py
+import pytest
+from unittest.mock import patch
+from sage_poc.rules.schemas import SafetyRule, CulturalRule, PromptInjectionRule, EvalResult
+from sage_poc.rules import engine
+
+
+_BASE = {
+    "version": "1.0.0", "authored_by": "test",
+    "effective_date": "2026-05-21", "active": True,
+}
+
+
+# ── Safety evaluator ────────────────────────────────────────────────────────
+
+def _safety_rule(rule_id, patterns, language="en", modifiers=None):
+    return SafetyRule(**{
+        **_BASE,
+        "rule_id": rule_id,
+        "category": "safety",
+        "match_type": "keyword",
+        "patterns": patterns,
+        "language": language,
+        "modifiers": modifiers or [],
+        "action": {"type": "crisis_flag", "flag_id": "si_test"},
+    })
+
+
+def test_safety_keyword_match_fires():
+    rules = [_safety_rule("T1", ["want to die"])]
+    ctx = {"text_en": "I want to die", "text_ar": None, "language": "en"}
+    result = engine._eval_safety(rules, ctx)
+    assert "T1" in result.fired_ids
+
+
+def test_safety_keyword_no_match():
+    rules = [_safety_rule("T1", ["want to die"])]
+    ctx = {"text_en": "I want to live fully", "text_ar": None, "language": "en"}
+    result = engine._eval_safety(rules, ctx)
+    assert result.fired == []
+
+
+def test_safety_negation_suppresses_match():
+    rules = [_safety_rule("T1", ["want to die"], modifiers=["negation_check"])]
+    ctx = {"text_en": "I don't want to die", "text_ar": None, "language": "en"}
+    result = engine._eval_safety(rules, ctx)
+    assert result.fired == []
+
+
+def test_safety_negation_does_not_suppress_without_modifier():
+    rules = [_safety_rule("T1", ["want to die"], modifiers=[])]
+    ctx = {"text_en": "I don't want to die", "text_ar": None, "language": "en"}
+    result = engine._eval_safety(rules, ctx)
+    # No negation_check modifier → still fires (keyword substring present)
+    assert "T1" in result.fired_ids
+
+
+def test_safety_arabic_rule_matches_normalized_text():
+    # Arabic rule with alef-hamza pattern; input has alef-hamza variant
+    rules = [_safety_rule("T2", ["ابي اموت"], language="ar", modifiers=[])]
+    # Input: أبي أموت (with alef-hamza-above) — normalized to ابي اموت
+    ctx = {"text_en": "want to die", "text_ar": "أبي أموت", "language": "ar"}
+    result = engine._eval_safety(rules, ctx)
+    assert "T2" in result.fired_ids
+
+
+def test_safety_arabic_rule_matches_diacritic_variant():
+    # Input has full harakat; rule pattern has no harakat
+    rules = [_safety_rule("T2", ["ابي اموت"], language="ar")]
+    ctx = {"text_en": "i want to die", "text_ar": "أَبِي أَمُوتُ", "language": "ar"}
+    result = engine._eval_safety(rules, ctx)
+    assert "T2" in result.fired_ids
+
+
+def test_safety_multiple_rules_all_evaluated():
+    rules = [
+        _safety_rule("T1", ["want to die"]),
+        _safety_rule("T2", ["no reason to live"]),
+    ]
+    ctx = {"text_en": "I want to die, there is no reason to live", "language": "en"}
+    result = engine._eval_safety(rules, ctx)
+    assert "T1" in result.fired_ids
+    assert "T2" in result.fired_ids
+
+
+def test_safety_inactive_rule_skipped():
+    rule = SafetyRule(**{
+        **_BASE,
+        "rule_id": "T1",
+        "category": "safety",
+        "match_type": "keyword",
+        "patterns": ["want to die"],
+        "active": False,
+        "action": {"type": "crisis_flag", "flag_id": "si_test"},
+    })
+    # loader only returns active rules, but test engine directly with inactive rule
+    rules = [rule]
+    ctx = {"text_en": "I want to die", "language": "en"}
+    # The engine receives rules from loader; loader filters inactive.
+    # Here we test the engine with the rule passed in — engine trusts what loader gives it.
+    result = engine._eval_safety(rules, ctx)
+    assert "T1" in result.fired_ids  # engine does NOT filter; loader does
+
+
+# ── Cultural evaluator ───────────────────────────────────────────────────────
+
+def _cultural_rule(rule_id, keywords, language="any"):
+    return CulturalRule(**{
+        **_BASE,
+        "rule_id": rule_id,
+        "category": "cultural",
+        "trigger_keywords": keywords,
+        "language": language,
+        "action": {"type": "prompt_injection", "target": "system", "content": f"[{rule_id}]"},
+    })
+
+
+def test_cultural_rule_fires_on_keyword():
+    rules = [_cultural_rule("C1", ["allah", "faith"])]
+    ctx = {"text": "I feel distant from my faith", "language": "en"}
+    result = engine._eval_cultural(rules, ctx)
+    assert "C1" in result.fired_ids
+
+
+def test_cultural_rule_no_match():
+    rules = [_cultural_rule("C1", ["allah", "faith"])]
+    ctx = {"text": "I feel anxious about my exam", "language": "en"}
+    result = engine._eval_cultural(rules, ctx)
+    assert result.fired == []
+
+
+def test_cultural_rule_language_filter():
+    rules = [_cultural_rule("C1", ["الله"], language="ar")]
+    ctx = {"text": "الله يساعدني", "language": "ar"}
+    result = engine._eval_cultural(rules, ctx)
+    assert "C1" in result.fired_ids
+
+
+def test_cultural_rule_language_mismatch_does_not_fire():
+    rules = [_cultural_rule("C1", ["الله"], language="ar")]
+    ctx = {"text": "الله يساعدني", "language": "en"}  # language="en" but rule requires "ar"
+    result = engine._eval_cultural(rules, ctx)
+    assert result.fired == []
+
+
+def test_cultural_accumulates_multiple_matches():
+    rules = [
+        _cultural_rule("C1", ["allah"]),
+        _cultural_rule("C2", ["family"]),
+    ]
+    ctx = {"text": "My family and my faith in allah help me", "language": "en"}
+    result = engine._eval_cultural(rules, ctx)
+    assert "C1" in result.fired_ids
+    assert "C2" in result.fired_ids
+
+
+# ── Prompt injection evaluator ───────────────────────────────────────────────
+
+def _pi_rule(rule_id, trigger_type, trigger_value=None, trigger_keywords=None):
+    return PromptInjectionRule(**{
+        **_BASE,
+        "rule_id": rule_id,
+        "category": "prompt_injection",
+        "trigger_type": trigger_type,
+        "trigger_value": trigger_value,
+        "trigger_keywords": trigger_keywords or [],
+        "action": {"type": "inject", "target": "system", "content": f"[{rule_id}]"},
+    })
+
+
+def test_pi_flag_present_fires():
+    rules = [_pi_rule("P1", "flag_present", trigger_value="substance_use")]
+    ctx = {"clinical_flags": ["substance_use"], "primary_intent": None, "secondary_intent": None, "text": ""}
+    result = engine._eval_prompt_injection(rules, ctx)
+    assert "P1" in result.fired_ids
+
+
+def test_pi_flag_present_does_not_fire_when_absent():
+    rules = [_pi_rule("P1", "flag_present", trigger_value="substance_use")]
+    ctx = {"clinical_flags": ["trauma_indicator"], "primary_intent": None, "secondary_intent": None, "text": ""}
+    result = engine._eval_prompt_injection(rules, ctx)
+    assert result.fired == []
+
+
+def test_pi_secondary_intent_present_fires():
+    rules = [_pi_rule("P2", "secondary_intent_present")]
+    ctx = {"clinical_flags": [], "primary_intent": "new_skill", "secondary_intent": "info_request", "text": ""}
+    result = engine._eval_prompt_injection(rules, ctx)
+    assert "P2" in result.fired_ids
+
+
+def test_pi_secondary_intent_present_does_not_fire_when_none():
+    rules = [_pi_rule("P2", "secondary_intent_present")]
+    ctx = {"clinical_flags": [], "primary_intent": "new_skill", "secondary_intent": None, "text": ""}
+    result = engine._eval_prompt_injection(rules, ctx)
+    assert result.fired == []
+
+
+def test_pi_intent_match_fires_on_primary():
+    rules = [_pi_rule("P3", "intent_match", trigger_value="info_request")]
+    ctx = {"clinical_flags": [], "primary_intent": "info_request", "secondary_intent": None, "text": ""}
+    result = engine._eval_prompt_injection(rules, ctx)
+    assert "P3" in result.fired_ids
+
+
+def test_pi_intent_match_fires_on_secondary():
+    rules = [_pi_rule("P3", "intent_match", trigger_value="info_request")]
+    ctx = {"clinical_flags": [], "primary_intent": "new_skill", "secondary_intent": "info_request", "text": ""}
+    result = engine._eval_prompt_injection(rules, ctx)
+    assert "P3" in result.fired_ids
+
+
+# ── Top-level evaluate() dispatch ───────────────────────────────────────────
+
+def test_evaluate_dispatches_to_safety(monkeypatch):
+    """evaluate() with mocked loader calls _eval_safety."""
+    monkeypatch.setattr("sage_poc.rules.engine.get_rules", lambda cat: [
+        _safety_rule("T1", ["want to die"]) if cat == "safety" else []
+    ])
+    result = engine.evaluate("safety", {"text_en": "I want to die", "language": "en"})
+    assert "T1" in result.fired_ids
+
+
+def test_evaluate_raises_on_unknown_category():
+    with pytest.raises(ValueError, match="Unknown rule category"):
+        engine.evaluate("nonexistent", {})
