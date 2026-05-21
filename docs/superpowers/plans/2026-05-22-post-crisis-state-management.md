@@ -1204,7 +1204,7 @@ grep -rl "28 structured\|structured.*28\|skill.*count\|skills.*library" docs/ | 
 
 In the found file, update the structured skill count from 28 to 29 and add `post_crisis_check_in` to the skill list with: `Post-Crisis Check-In | acknowledge_and_check → bridge_or_close | ASIST (2018); SafeTALK; SAMHSA Safe Messaging (2023) | Post-audit safety addition`
 
-- [ ] **Step 4: Add post-audit note to POC Plan**
+- [x] **Step 4: Add post-audit note to POC Plan**
 
 Find the POC plan file:
 ```bash
