@@ -1,4 +1,4 @@
-from __future__ import annotations
+from sage_poc.llm import get_classifier
 
 _RECOVERY_KEYWORDS = frozenset([
     "feeling better", "feel better", "better now", "much better", "a lot better",
@@ -57,7 +57,6 @@ def evaluate_s7(message_en: str, llm=None) -> tuple[str, str]:
             return "RECOVERING", "keyword"
 
     if llm is None:
-        from sage_poc.llm import get_classifier
         llm = get_classifier()
 
     messages = [
