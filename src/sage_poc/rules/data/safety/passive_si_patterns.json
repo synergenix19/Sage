@@ -49,6 +49,34 @@
       "language": "ar",
       "modifiers": [],
       "action": {"type": "crisis_flag", "flag_id": "si_passive"}
+    },
+    {
+      "rule_id": "SK-AZ-002",
+      "version": "1.0.0",
+      "category": "safety",
+      "authored_by": "sage_clinics",
+      "approved_by": null,
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Arabizi passive SI — Gulf Arabic transliterated despair and hopelessness expressions",
+      "match_type": "keyword",
+      "patterns": [
+        "ma7ad y7tajni",
+        "kolhum a7san bdooni",
+        "ma fee amal",
+        "ma fi amal",
+        "ta3abt mn nafsy",
+        "hayati khalsa",
+        "hayati 5alsa",
+        "ma7ad ra7 yef2adni",
+        "mafi fayda"
+      ],
+      "language": "en",
+      "modifiers": ["negation_check"],
+      "action": {
+        "type": "crisis_flag",
+        "flag_id": "si_passive"
+      }
     }
   ]
 }

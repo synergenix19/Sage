@@ -191,3 +191,40 @@ def test_domestic_situation_flag_detection_arabic(arabic_text, expected_flag):
     })
     flag_ids = [a["flag_id"] for a in result.actions if a.get("type") == "clinical_flag"]
     assert expected_flag in flag_ids, f"Expected {expected_flag!r} for Arabic: {arabic_text!r}"
+
+
+# ── Arabizi explicit SI expansion (SK-AZ-001) ─────────────────────────────────
+
+@pytest.mark.parametrize("text", [
+    "aby amoot",
+    "abi amwt",
+    "bidi amoot",
+    "bedi amoot",
+    "mabi akoon",
+    "ma abgha akamil",
+    "ta3abt mn el7ayat",
+    "ta3abt mn alhayat",
+])
+def test_arabizi_explicit_si_expansion_triggers_crisis(text):
+    result = engine.evaluate("safety", {"text_en": text, "language": "en"})
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert crisis_actions, f"Expected crisis flag for Arabizi: {text!r}"
+
+
+# ── Arabizi passive SI (SK-AZ-002) ────────────────────────────────────────────
+
+@pytest.mark.parametrize("text", [
+    "ma7ad y7tajni",
+    "kolhum a7san bdooni",
+    "ma fee amal",
+    "ma fi amal",
+    "ta3abt mn nafsy",
+    "hayati khalsa",
+    "hayati 5alsa",
+    "ma7ad ra7 yef2adni",
+    "mafi fayda",
+])
+def test_arabizi_passive_si_triggers_crisis(text):
+    result = engine.evaluate("safety", {"text_en": text, "language": "en"})
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert crisis_actions, f"Expected crisis flag for Arabizi passive SI: {text!r}"
