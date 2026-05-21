@@ -1,6 +1,10 @@
+import re
 from sage_poc.state import SageState
 from sage_poc.language import detect_language, translate_to_english
 from sage_poc.rules import engine as rules_engine
+
+_HAS_ARABIC_RE = re.compile(r'[؀-ۿ]')
+_HAS_LATIN_RE = re.compile(r'[A-Za-z]')
 
 _DISTRESS_WINDOW = 4
 _DISTRESS_FLOOR = 6
@@ -27,6 +31,7 @@ def _update_distress_trajectory(state: SageState) -> tuple[list[int], bool]:
 
 def safety_check_node(state: SageState) -> dict:
     raw = state["raw_message"]
+    code_switching = bool(_HAS_ARABIC_RE.search(raw) and _HAS_LATIN_RE.search(raw))
     lang = detect_language(raw)
 
     if lang == "ar":
@@ -70,5 +75,6 @@ def safety_check_node(state: SageState) -> dict:
         "crisis_flags": new_crisis_flags,
         "clinical_flags": all_clinical,
         "distress_trajectory": trajectory,
+        "code_switching": code_switching,
         "path": state["path"] + ["safety_check"],
     }

@@ -123,22 +123,35 @@ def _eval_crisis_content(rules: list[CrisisContentRule], context: dict) -> EvalR
 
 def _eval_cultural(rules: list[CulturalRule], context: dict) -> EvalResult:
     """
-    Accumulate all cultural rules whose trigger_keywords appear in the message text.
+    Accumulate all cultural rules whose trigger condition matches.
 
     context keys:
-      text (str)           — user message (English)
-      text_ar (str | None) — original Arabic text (if language == "ar")
-      language (str)       — "en" | "ar"
+      text (str)            -- user message (English)
+      text_ar (str | None)  -- original Arabic text (if language == "ar")
+      language (str)        -- "en" | "ar"
+      code_switch (bool)    -- True when raw_message contains both Arabic and Latin characters
     """
     text_lower = normalize_text(context.get("text", ""))
     text_ar = context.get("text_ar") or ""
     norm_ar = normalize_arabic(text_ar) if text_ar else ""
     language = context.get("language", "en")
+    code_switch: bool = context.get("code_switch", False)
 
     result = EvalResult()
     for rule in rules:
         if rule.language not in ("any", language):
             continue
+
+        if rule.trigger_type == "code_switch":
+            if code_switch:
+                result.fired.append(FiredRule(
+                    rule_id=rule.rule_id,
+                    version=rule.version,
+                    action=rule.action,
+                ))
+            continue
+
+        # trigger_type == "keyword_match" (default)
         matched = False
         for kw in rule.trigger_keywords:
             is_arabic_kw = any('؀' <= ch <= 'ۿ' for ch in kw)

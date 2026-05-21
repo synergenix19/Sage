@@ -43,7 +43,8 @@ class CulturalRule(BaseModel):
     effective_date: str
     active: bool = True
     description: str = ""
-    trigger_keywords: list[str]
+    trigger_type: Literal["keyword_match", "code_switch"] = "keyword_match"
+    trigger_keywords: list[str] = []
     language: Literal["en", "ar", "any"] = "any"
     action: dict
 

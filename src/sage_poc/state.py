@@ -17,6 +17,7 @@ class SageState(TypedDict):
 
     crisis_occurred_this_session: bool         # set True by crisis_response node; persists for session
     distress_trajectory: list[int]             # rolling window of emotional_intensity scores for cumulative distress
+    code_switching: bool          # True when raw_message contains both Arabic script and Latin letters
 
     primary_intent: Optional[Intent]
     secondary_intent: Optional[Intent]  # blended intent — e.g. "info_request" alongside "new_skill"

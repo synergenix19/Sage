@@ -22,6 +22,7 @@ def _state(raw_message, clinical_flags=None):
         "clinical_flags": clinical_flags or [],
         "crisis_occurred_this_session": False,
         "distress_trajectory": [],
+        "code_switching": False,
         "primary_intent": None,
         "secondary_intent": None,
         "intent_confidence": 1.0,
@@ -133,6 +134,7 @@ def _freeflow_state(**overrides):
         "clinical_flags": [],
         "crisis_occurred_this_session": False,
         "distress_trajectory": [],
+        "code_switching": False,
         "primary_intent": "general_chat",
         "secondary_intent": None,
         "intent_confidence": 0.9,
@@ -443,3 +445,80 @@ def test_dialect_mirroring_absent_for_msa():
     )
     system_str, _ = compose_prompt(state)
     assert "DIALECT" not in system_str
+
+
+# ── Code-switching detection and CU-CS-001 ───────────────────────────────────
+
+def test_safety_check_node_detects_code_switching():
+    """safety_check_node must set code_switching=True for mixed Arabic/English messages."""
+    state = _state("أنا feeling really stressed اليوم")
+    result = safety_check_node(state)
+    assert result.get("code_switching") is True, (
+        "safety_check_node must detect mixed Arabic+Latin script and set code_switching=True"
+    )
+
+
+def test_safety_check_node_code_switching_false_for_pure_arabic():
+    """safety_check_node must set code_switching=False for pure Arabic."""
+    state = _state("أنا وايد تعبان اليوم")
+    result = safety_check_node(state)
+    assert result.get("code_switching") is False
+
+
+def test_safety_check_node_code_switching_false_for_pure_english():
+    """safety_check_node must set code_switching=False for pure English."""
+    state = _state("I feel really anxious today")
+    result = safety_check_node(state)
+    assert result.get("code_switching") is False
+
+
+def test_code_switch_rule_fires_on_mixed_arabic_english():
+    """CU-CS-001 must fire when state has code_switching=True."""
+    state = _freeflow_state(
+        raw_message="أنا feeling really stressed اليوم",
+        message_en="I am feeling really stressed today",
+        detected_language="ar",
+        code_switching=True,
+    )
+    system_str, _ = compose_prompt(state)
+    assert "CODE-SWITCHING" in system_str, (
+        "CU-CS-001 must inject code-switching instruction when code_switching=True in state"
+    )
+
+
+def test_code_switch_rule_absent_for_pure_arabic():
+    """CU-CS-001 must NOT fire when state has code_switching=False."""
+    state = _freeflow_state(
+        raw_message="أنا وايد تعبان اليوم",
+        message_en="I am very tired today",
+        detected_language="ar",
+        code_switching=False,
+    )
+    system_str, _ = compose_prompt(state)
+    assert "CODE-SWITCHING" not in system_str
+
+
+def test_cultural_rule_schema_accepts_code_switch_trigger_type():
+    """CulturalRule schema must accept trigger_type='code_switch' with empty trigger_keywords."""
+    from sage_poc.rules.schemas import CulturalRule
+    rule = CulturalRule.model_validate({
+        "rule_id": "TEST-CS-001",
+        "category": "cultural",
+        "effective_date": "2026-05-21",
+        "trigger_type": "code_switch",
+        "trigger_keywords": [],
+        "action": {"type": "test"},
+    })
+    assert rule.trigger_type == "code_switch"
+    assert rule.trigger_keywords == []
+
+
+def test_existing_cultural_rules_unaffected_by_schema_change():
+    """Existing rules with no trigger_type field must default to keyword_match and still fire."""
+    from sage_poc.rules.loader import reload_all
+    reload_all()
+    state = _freeflow_state(message_en="I feel my faith in allah is fading")
+    system_str, _ = compose_prompt(state)
+    assert "ISLAMIC" in system_str or "sabr" in system_str or "ibtila" in system_str, (
+        "Existing CU-IS-001 must still fire after schema change (backward compat)"
+    )

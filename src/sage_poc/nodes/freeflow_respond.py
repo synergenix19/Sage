@@ -39,6 +39,8 @@ You do NOT diagnose, prescribe, or replace professional mental health care. If s
 
 Keep responses concise (2-4 sentences unless the user needs more). Match the user's energy and register. Be present before being helpful."""
 
+_CULTURAL_BUDGET_WORDS = 150
+
 
 def compose_prompt(state: SageState) -> tuple[str, str]:
     """Return (system_str, user_str) for role-separated LLM invocation.
@@ -56,16 +58,31 @@ def compose_prompt(state: SageState) -> tuple[str, str]:
     # ── System role ────────────────────────────────────────────────────────────
     system_parts = [PERSONA]
 
-    # Cultural injections (Islamic framing, collectivist framing)
+    # Cultural injections (Islamic framing, collectivist framing, code-switching)
     # Pass raw_message as text_ar when language=="ar" so Arabic trigger keywords are reachable
+    code_switch = state.get("code_switching", False)
+
     cultural_result = rules_engine.evaluate("cultural", {
         "text": message_en,
         "text_ar": state.get("raw_message") if language == "ar" else None,
         "language": language,
+        "code_switch": code_switch,
     })
-    for action in cultural_result.actions:
-        if action.get("target") == "system":
-            system_parts.append(action["content"])
+
+    # L5 budget cap: sort by priority (lower = higher priority), cap at ~150 words
+    cultural_actions = sorted(
+        [a for a in cultural_result.actions if a.get("target") == "system"],
+        key=lambda a: a.get("priority", 5),
+    )
+    word_count = 0
+    for action in cultural_actions:
+        content = action["content"]
+        words = len(content.split())
+        if word_count + words <= _CULTURAL_BUDGET_WORDS or word_count == 0:
+            system_parts.append(content)
+            word_count += words
+        else:
+            break
 
     # Prompt injection: clinical flag adaptations + secondary intent (system-targeted)
     session_flags: list[str] = []
