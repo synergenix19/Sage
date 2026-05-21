@@ -13,41 +13,25 @@ from sage_poc.nodes.freeflow_respond import freeflow_respond_node
 from sage_poc.nodes.output_gate import output_gate_node
 from sage_poc.config import AUDIT_LOG_ENABLED
 
-CRISIS_RESPONSE = (
-    "I'm really concerned about what you've shared. "
-    "Please reach out to a crisis line now — "
-    "in the UAE: 800 4673 (800-HOPE), or emergency: 999. "
-    "You don't have to face this alone."
-    # 800-HOPE verified correct UAE number; "Tawazun" removed (no UAE service by this name);
-    # 988 removed (US-only, unreachable from UAE); 999 added (24/7 UAE emergency)
-)
-
-CRISIS_RESPONSE_AR = (
-    "أنا مهتم جداً بسلامتك وبما شاركته معي. "
-    "أرجوك تواصل مع خط دعم الصحة النفسية الآن — "
-    "في الإمارات: 800 4673 (800-HOPE)، أو رقم الطوارئ: 999. "
-    "أنت لست وحدك."
-    # 800-HOPE verified correct UAE number; 988 removed (US-only, unreachable from UAE);
-    # "توازن" removed (no UAE service by this name); 999 added (24/7 UAE emergency)
-)
-
-# For E5-type queries: user is asking about resources proactively, not in acute crisis.
-# Richer list than the acute crisis response; no "immediate danger" framing.
-CRISIS_RESPONSE_EXTENDED = (
-    "Here are crisis and mental health resources in the UAE:\n"
-    "- CDA Mental Health Support: 800-4888\n"
-    "- National Lifeline (Estijaba): 800-HOPE (800-4673)\n"
-    "- Emergency Services: 999\n"
-    "- Al Amal Psychiatric Hospital: in-person psychiatric support\n"
-    "- Lighthouse Arabia, Camali Clinic, American Center for Psychiatry and Neurology: "
-    "therapy in Dubai\n\n"
-    "If you're in immediate danger, please call 999 or go to your nearest emergency room."
-)
-
-
 def _crisis_response_node(state: SageState) -> dict:
+    from sage_poc.rules import engine as rules_engine
+
     lang = state.get("detected_language", "en")
-    response = CRISIS_RESPONSE_AR if lang == "ar" else CRISIS_RESPONSE
+
+    crisis_result = rules_engine.evaluate("crisis_content", {
+        "language": lang,
+        "crisis_level": "acute",
+    })
+
+    if crisis_result.fired:
+        response_text = crisis_result.fired[0].action["response_text"]
+    else:
+        # Hard fallback: should never fire if JSON files are present
+        response_text = (
+            "Please reach out for help now. UAE: 800 4673 (800-HOPE) or 999."
+            if lang != "ar"
+            else "أرجوك اتصل بـ 800 4673 أو 999 الآن."
+        )
 
     path = state["path"] + ["crisis_response"]
 
@@ -60,12 +44,13 @@ def _crisis_response_node(state: SageState) -> dict:
             "crisis_flags": state.get("crisis_flags", []),
             "clinical_flags": state.get("clinical_flags", []),
             "active_skill_cleared": state.get("active_skill_id"),
+            "crisis_content_rule": crisis_result.fired[0].rule_id if crisis_result.fired else "fallback",
         }
         print(f"\n[AUDIT:CRISIS] {json.dumps(audit, indent=2)}")
 
     history = state.get("conversation_history", []) + [
         {"role": "user", "content": state.get("message_en", state.get("raw_message", ""))},
-        {"role": "assistant", "content": CRISIS_RESPONSE},
+        {"role": "assistant", "content": response_text},
     ]
 
     return {
@@ -73,8 +58,8 @@ def _crisis_response_node(state: SageState) -> dict:
         "active_skill_id": None,
         "active_step_id": None,
         "gate_path": "crisis",
-        "response": response,
-        "response_en": CRISIS_RESPONSE,
+        "response": response_text,
+        "response_en": response_text,
         "path": path,
         "conversation_history": history,
         "turn_count": state.get("turn_count", 0) + 1,

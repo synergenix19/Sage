@@ -1,0 +1,48 @@
+{
+  "category": "crisis_content",
+  "rules": [
+    {
+      "rule_id": "CC-EN-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "English acute crisis response for UAE",
+      "category": "crisis_content",
+      "locale": "en_uae",
+      "crisis_level": "acute",
+      "action": {
+        "type": "crisis_response",
+        "response_text": "I'm really concerned about what you've shared. Please reach out to a crisis line now — in the UAE: 800 4673 (800-HOPE), or emergency: 999. You don't have to face this alone.",
+        "resources": [
+          {"name": "National Lifeline (Estijaba)", "number": "800-4673", "available": "24/7"},
+          {"name": "Emergency Services", "number": "999", "available": "24/7"}
+        ]
+      }
+    },
+    {
+      "rule_id": "CC-EN-002",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "English extended crisis resources for proactive queries",
+      "category": "crisis_content",
+      "locale": "en_uae",
+      "crisis_level": "extended",
+      "action": {
+        "type": "crisis_response",
+        "response_text": "Here are crisis and mental health resources in the UAE:\n- CDA Mental Health Support: 800-4888\n- National Lifeline (Estijaba): 800-HOPE (800-4673)\n- Emergency Services: 999\n- Al Amal Psychiatric Hospital: in-person psychiatric support\n- Lighthouse Arabia, Camali Clinic, American Center for Psychiatry and Neurology: therapy in Dubai\n\nIf you're in immediate danger, please call 999 or go to your nearest emergency room.",
+        "resources": [
+          {"name": "CDA Mental Health Support", "number": "800-4888"},
+          {"name": "National Lifeline (Estijaba)", "number": "800-HOPE (800-4673)", "available": "24/7"},
+          {"name": "Emergency Services", "number": "999", "available": "24/7"},
+          {"name": "Al Amal Psychiatric Hospital", "type": "in-person"},
+          {"name": "Lighthouse Arabia", "type": "therapy"},
+          {"name": "Camali Clinic", "type": "therapy"},
+          {"name": "American Center for Psychiatry and Neurology", "type": "therapy"}
+        ]
+      }
+    }
+  ]
+}

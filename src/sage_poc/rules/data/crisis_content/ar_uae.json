@@ -1,0 +1,24 @@
+{
+  "category": "crisis_content",
+  "rules": [
+    {
+      "rule_id": "CC-AR-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Arabic acute crisis response for UAE",
+      "category": "crisis_content",
+      "locale": "ar_uae",
+      "crisis_level": "acute",
+      "action": {
+        "type": "crisis_response",
+        "response_text": "أنا مهتم جداً بسلامتك وبما شاركته معي. أرجوك تواصل مع خط دعم الصحة النفسية الآن — في الإمارات: 800 4673 (800-HOPE)، أو رقم الطوارئ: 999. أنت لست وحدك.",
+        "resources": [
+          {"name": "الخط الوطني (استجابة)", "number": "800-4673", "available": "24/7"},
+          {"name": "خدمات الطوارئ", "number": "999", "available": "24/7"}
+        ]
+      }
+    }
+  ]
+}

@@ -275,7 +275,7 @@ def test_session_full_lifecycle_e2e():
 def test_crisis_clears_active_skill_and_returns_arabic_when_ar_detected():
     """P0-A + P0-B: Arabic crisis gets Arabic response; skill cleared."""
     import sys; sys.path.insert(0, 'src')
-    from sage_poc.graph import _crisis_response_node, CRISIS_RESPONSE_AR
+    from sage_poc.graph import _crisis_response_node
     state = make_e2e_state(
         "أريد الموت",
         detected_language="ar",
@@ -285,8 +285,9 @@ def test_crisis_clears_active_skill_and_returns_arabic_when_ar_detected():
         conversation_history=[{"role": "user", "content": "hi"}, {"role": "assistant", "content": "hello"}],
     )
     result = _crisis_response_node(state)
-    # P0-A: Arabic response
-    assert result["response"] == CRISIS_RESPONSE_AR, "Arabic user must receive Arabic crisis response"
+    # P0-A: Arabic response — contains UAE crisis number
+    assert "800" in result["response"] and "4673" in result["response"], \
+        "Arabic user must receive Arabic crisis response with UAE crisis line number"
     # P0-B: skill cleared
     assert result["active_skill_id"] is None, "Skill must be cleared on crisis"
     assert result["active_step_id"] is None, "Step must be cleared on crisis"
@@ -299,7 +300,7 @@ def test_crisis_clears_active_skill_and_returns_arabic_when_ar_detected():
 def test_crisis_english_user_gets_english_response():
     """English crisis user gets English response."""
     import sys; sys.path.insert(0, 'src')
-    from sage_poc.graph import _crisis_response_node, CRISIS_RESPONSE
+    from sage_poc.graph import _crisis_response_node
     state = make_e2e_state(
         "I want to kill myself",
         detected_language="en",
@@ -307,55 +308,67 @@ def test_crisis_english_user_gets_english_response():
         conversation_history=[],
     )
     result = _crisis_response_node(state)
-    assert result["response"] == CRISIS_RESPONSE
+    assert "800" in result["response"] and "4673" in result["response"], \
+        "English crisis response must contain UAE crisis line number"
     assert result["active_skill_id"] is None
     assert result["turn_count"] == 1
     assert len(result["conversation_history"]) == 2
 
 
 # Arabic crisis response content verification
+# These tests now read from the Rules Service (ar_uae.json) rather than hardcoded constants.
+
+def _get_ar_crisis_response_text() -> str:
+    """Helper: fetch Arabic acute crisis response text via the Rules engine."""
+    from sage_poc.rules import engine as rules_engine
+    from sage_poc.rules.loader import reload_all
+    reload_all()
+    result = rules_engine.evaluate("crisis_content", {"language": "ar", "crisis_level": "acute"})
+    assert result.fired, "ar_uae acute crisis content rule must be loaded"
+    return result.fired[0].action["response_text"]
+
 
 def test_arabic_crisis_response_contains_correct_hotline_number():
     """800 4673 (800-HOPE) must be in the Arabic response — it is the verified UAE crisis line."""
-    from sage_poc.graph import CRISIS_RESPONSE_AR
-    assert "800 4673" in CRISIS_RESPONSE_AR or "800-4673" in CRISIS_RESPONSE_AR, \
+    ar_text = _get_ar_crisis_response_text()
+    assert "800 4673" in ar_text or "800-4673" in ar_text, \
         "Arabic crisis response must include the verified 800-HOPE number"
 
 
 def test_arabic_crisis_response_contains_emergency_number():
     """999 (UAE emergency, 24/7) must be present as fallback."""
-    from sage_poc.graph import CRISIS_RESPONSE_AR
-    assert "999" in CRISIS_RESPONSE_AR, \
+    ar_text = _get_ar_crisis_response_text()
+    assert "999" in ar_text, \
         "Arabic crisis response must include 999 (UAE 24/7 emergency line)"
 
 
 def test_arabic_crisis_response_excludes_us_only_988():
     """988 is a US domestic line — unreachable from UAE. Must not appear."""
-    from sage_poc.graph import CRISIS_RESPONSE_AR
-    assert "988" not in CRISIS_RESPONSE_AR, \
+    ar_text = _get_ar_crisis_response_text()
+    assert "988" not in ar_text, \
         "Arabic crisis response must NOT include 988 — it is a US-only number, unreachable from UAE"
 
 
 def test_arabic_crisis_response_excludes_incorrect_service_name():
     """'توازن' (Tawazun) is not a UAE crisis service — the correct name is 800-HOPE / مساندة."""
-    from sage_poc.graph import CRISIS_RESPONSE_AR
-    assert "توازن" not in CRISIS_RESPONSE_AR, \
+    ar_text = _get_ar_crisis_response_text()
+    assert "توازن" not in ar_text, \
         "Arabic crisis response must NOT use 'توازن' — no UAE crisis service by this name exists"
 
 
 def test_arabic_crisis_response_ends_with_not_alone():
     """'أنت لست وحدك' (you are not alone) is culturally resonant closing phrase — must be present."""
-    from sage_poc.graph import CRISIS_RESPONSE_AR
-    assert "أنت لست وحدك" in CRISIS_RESPONSE_AR, \
+    ar_text = _get_ar_crisis_response_text()
+    assert "أنت لست وحدك" in ar_text, \
         "Arabic crisis response must include 'أنت لست وحدك' — verified culturally appropriate closing"
 
 
 def test_arabic_crisis_response_centers_safety_not_ai_anxiety():
     """'سلامتك' (your safety) is the correct focus — 'قلق' (my anxiety) should not be the lead."""
-    from sage_poc.graph import CRISIS_RESPONSE_AR
-    assert "سلامتك" in CRISIS_RESPONSE_AR, \
+    ar_text = _get_ar_crisis_response_text()
+    assert "سلامتك" in ar_text, \
         "Response should center user's safety ('سلامتك'), not the AI's emotional state"
-    assert CRISIS_RESPONSE_AR.startswith("أنا قلق") is False, \
+    assert ar_text.startswith("أنا قلق") is False, \
         "Response must not lead with 'أنا قلق' — centers AI's anxiety, not user's wellbeing"
 
 
@@ -510,32 +523,43 @@ def test_crisis_keywords_covers_minimum_arabic_phrases():
 
 
 # English crisis response content verification (NEW-1 fix — mirrors Arabic test suite)
+# These tests now read from the Rules Service (en_uae.json) rather than hardcoded constants.
+
+def _get_en_crisis_response_text() -> str:
+    """Helper: fetch English acute crisis response text via the Rules engine."""
+    from sage_poc.rules import engine as rules_engine
+    from sage_poc.rules.loader import reload_all
+    reload_all()
+    result = rules_engine.evaluate("crisis_content", {"language": "en", "crisis_level": "acute"})
+    assert result.fired, "en_uae acute crisis content rule must be loaded"
+    return result.fired[0].action["response_text"]
+
 
 def test_english_crisis_response_contains_correct_hotline_number():
     """800 4673 (800-HOPE) must be in the English response — it is the verified UAE crisis line."""
-    from sage_poc.graph import CRISIS_RESPONSE
-    assert "800 4673" in CRISIS_RESPONSE or "800-4673" in CRISIS_RESPONSE, \
+    en_text = _get_en_crisis_response_text()
+    assert "800 4673" in en_text or "800-4673" in en_text, \
         "English crisis response must include the verified 800-HOPE number"
 
 
 def test_english_crisis_response_contains_emergency_number():
     """999 (UAE emergency, 24/7) must be present as fallback."""
-    from sage_poc.graph import CRISIS_RESPONSE
-    assert "999" in CRISIS_RESPONSE, \
+    en_text = _get_en_crisis_response_text()
+    assert "999" in en_text, \
         "English crisis response must include 999 (UAE 24/7 emergency line)"
 
 
 def test_english_crisis_response_excludes_us_only_988():
     """988 is a US domestic line — unreachable from UAE. Must not appear."""
-    from sage_poc.graph import CRISIS_RESPONSE
-    assert "988" not in CRISIS_RESPONSE, \
+    en_text = _get_en_crisis_response_text()
+    assert "988" not in en_text, \
         "English crisis response must NOT include 988 — it is a US-only number, unreachable from UAE"
 
 
 def test_english_crisis_response_excludes_incorrect_service_name():
     """'Tawazun' is not a UAE crisis service. Must not appear in the English response."""
-    from sage_poc.graph import CRISIS_RESPONSE
-    assert "Tawazun" not in CRISIS_RESPONSE and "tawazun" not in CRISIS_RESPONSE.lower(), \
+    en_text = _get_en_crisis_response_text()
+    assert "Tawazun" not in en_text and "tawazun" not in en_text.lower(), \
         "English crisis response must NOT reference 'Tawazun' — no UAE crisis service by this name exists"
 
 
@@ -609,24 +633,35 @@ def test_standard_intent_leaves_gate_path_standard():
     assert result["gate_path"] == "standard"
 
 
-# CRISIS_RESPONSE_EXTENDED — proactive resource request (E5 benchmark finding)
+# Crisis extended response — proactive resource request (E5 benchmark finding)
+# These tests now read from the Rules Service (en_uae.json) rather than hardcoded constants.
+
+def _get_en_crisis_extended_text() -> str:
+    """Helper: fetch English extended crisis response text via the Rules engine."""
+    from sage_poc.rules import engine as rules_engine
+    from sage_poc.rules.loader import reload_all
+    reload_all()
+    result = rules_engine.evaluate("crisis_content", {"language": "en", "crisis_level": "extended"})
+    assert result.fired, "en_uae extended crisis content rule must be loaded"
+    return result.fired[0].action["response_text"]
+
 
 def test_crisis_response_extended_contains_cda_number():
-    """CRISIS_RESPONSE_EXTENDED must include CDA 800-4888 for proactive resource requests."""
-    from sage_poc.graph import CRISIS_RESPONSE_EXTENDED
-    assert "800-4888" in CRISIS_RESPONSE_EXTENDED or "800 4888" in CRISIS_RESPONSE_EXTENDED
+    """Extended crisis response must include CDA 800-4888 for proactive resource requests."""
+    extended_text = _get_en_crisis_extended_text()
+    assert "800-4888" in extended_text or "800 4888" in extended_text
 
 
 def test_crisis_response_extended_contains_estijaba():
-    """CRISIS_RESPONSE_EXTENDED must include Estijaba (national lifeline)."""
-    from sage_poc.graph import CRISIS_RESPONSE_EXTENDED
-    assert "Estijaba" in CRISIS_RESPONSE_EXTENDED or "estijaba" in CRISIS_RESPONSE_EXTENDED.lower()
+    """Extended crisis response must include Estijaba (national lifeline)."""
+    extended_text = _get_en_crisis_extended_text()
+    assert "Estijaba" in extended_text or "estijaba" in extended_text.lower()
 
 
 def test_crisis_response_extended_does_not_exclude_999():
-    """CRISIS_RESPONSE_EXTENDED must still include 999 for acute escalation."""
-    from sage_poc.graph import CRISIS_RESPONSE_EXTENDED
-    assert "999" in CRISIS_RESPONSE_EXTENDED
+    """Extended crisis response must still include 999 for acute escalation."""
+    extended_text = _get_en_crisis_extended_text()
+    assert "999" in extended_text
 
 
 # T-11: Output gate E2E routing — scope_refusal and jailbreak path through gate_path_set
@@ -747,10 +782,15 @@ def test_e2e_scope_refusal_distinct_from_crisis_response():
     This guards against the gate falling through to crisis handling incorrectly.
     """
     from sage_poc.nodes.output_gate import SCOPE_REFUSAL_RESPONSE
-    from sage_poc.graph import CRISIS_RESPONSE
+    from sage_poc.rules import engine as rules_engine
+    from sage_poc.rules.loader import reload_all
+    reload_all()
+    crisis_result = rules_engine.evaluate("crisis_content", {"language": "en", "crisis_level": "acute"})
+    assert crisis_result.fired, "en_uae acute crisis content rule must be loaded"
+    crisis_response_text = crisis_result.fired[0].action["response_text"]
 
     # The two responses must be different strings
-    assert SCOPE_REFUSAL_RESPONSE != CRISIS_RESPONSE, \
+    assert SCOPE_REFUSAL_RESPONSE != crisis_response_text, \
         "scope_refusal and crisis responses must be distinct"
 
     # scope_refusal must not contain bare crisis hotline numbers

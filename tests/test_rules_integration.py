@@ -89,3 +89,29 @@ def test_no_duplicate_flags():
     state = _state("I drink a lot", clinical_flags=["substance_use"])
     result = safety_check_node(state)
     assert result["clinical_flags"].count("substance_use") == 1
+
+
+# ── Crisis content ───────────────────────────────────────────────────────────
+from sage_poc.rules import engine as rules_engine
+
+
+def test_crisis_content_en_returns_uae_number():
+    result = rules_engine.evaluate("crisis_content", {"language": "en", "crisis_level": "acute"})
+    assert result.fired
+    text = result.fired[0].action["response_text"]
+    assert "800" in text and "4673" in text
+
+
+def test_crisis_content_ar_returns_arabic_text():
+    result = rules_engine.evaluate("crisis_content", {"language": "ar", "crisis_level": "acute"})
+    assert result.fired
+    text = result.fired[0].action["response_text"]
+    assert "أنا" in text or "الإمارات" in text
+
+
+def test_crisis_content_extended_returns_resource_list():
+    result = rules_engine.evaluate("crisis_content", {"language": "en", "crisis_level": "extended"})
+    assert result.fired
+    resources = result.fired[0].action.get("resources", [])
+    names = [r["name"] for r in resources]
+    assert any("Estijaba" in n or "HOPE" in n for n in names)
