@@ -228,3 +228,31 @@ def test_arabizi_passive_si_triggers_crisis(text):
     result = engine.evaluate("safety", {"text_en": text, "language": "en"})
     crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
     assert crisis_actions, f"Expected crisis flag for Arabizi passive SI: {text!r}"
+
+
+# ── C-SSRS passive SI expansion (SK-EN-002) ───────────────────────────────────
+
+@pytest.mark.parametrize("text", [
+    "I wish I were dead",
+    "I wish I was dead",
+    "wish to be dead",
+    "I want to go to sleep and not wake up",
+    "wish I could fall asleep and not wake up",
+    "life is not worth living",
+    "nothing will ever get better",
+    "there's no way out",
+    "I make everything worse",
+    "they'd be happier without me",
+    "I just want it to stop",
+    "I don't care about anything anymore",
+    "I've stopped caring what happens to me",
+    "I have no future",
+    "nothing brings me joy anymore",
+    "I've given up on everything",
+    "what is the point of anything",
+    "can't see a future for myself",
+])
+def test_passive_si_english_expansion_triggers_crisis(text):
+    result = engine.evaluate("safety", {"text_en": text, "language": "en"})
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert crisis_actions, f"Expected crisis flag for passive SI: {text!r}"
