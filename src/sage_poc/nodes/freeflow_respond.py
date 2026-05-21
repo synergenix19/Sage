@@ -88,6 +88,9 @@ def compose_prompt(state: SageState) -> tuple[str, str]:
     session_flags: list[str] = []
     # "resolved" is included: the L5 heightened-sensitivity prompt layer stays active
     # even after the skill completes, so the LLM remains careful for the rest of the session.
+    # "active" is included for forward-compatibility: no node currently writes crisis_state="active"
+    # (crisis_response writes "monitoring" directly), but the value is documented in SageState
+    # as a valid transition state.
     if state.get("crisis_state") in ("active", "monitoring", "resolved"):
         session_flags.append("crisis_occurred")
 

@@ -97,6 +97,7 @@ def test_skill_executor_sets_resolved_when_post_crisis_skill_completes():
     )
     result = skill_executor_node(state)
     assert result["active_skill_id"] is None, "Skill must be cleared when bridge_or_close completes"
-    assert result["crisis_state"] == "resolved", (
+    # skill_executor's _meets_completion_criteria requires > 10 words — this message has 17
+    assert result.get("crisis_state") == "resolved", (
         "crisis_state must transition to 'resolved' when post_crisis_check_in finishes"
     )
