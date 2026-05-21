@@ -399,3 +399,37 @@ def test_third_party_crisis_fires_third_party_action(text):
     result = engine.evaluate("safety", {"text_en": text, "language": "en"})
     third_party_actions = [a for a in result.actions if a.get("type") == "third_party_crisis"]
     assert third_party_actions, f"Expected third_party_crisis action for: {text!r}"
+
+
+# ── Expanded false positive prevention ───────────────────────────────────────
+
+@pytest.mark.parametrize("text", [
+    # English idioms (existing coverage)
+    "I feel anxious today",
+    "I'm struggling with work",
+    "could kill for a good coffee",
+    "that presentation killed me",
+    "I'm dying of laughter",
+    # New English metaphors
+    "this assignment is killing me",
+    "I'd die for a vacation right now",
+    "dead tired after that meeting",
+    "deadline is killing me",
+    "I bombed that exam",
+    "I'm dead serious",
+    "killer app",
+    "I killed it in the interview",
+    "my feet are dying",
+    "I could die of embarrassment",
+    "dying to try that restaurant",
+    "drop dead gorgeous",
+    "he's to die for",
+    # Negated self-harm
+    "I never want to hurt myself",
+    "I'm not suicidal",
+    "no I don't want to die",
+])
+def test_safe_messages_expanded_no_crisis_flag(text):
+    result = engine.evaluate("safety", {"text_en": text, "language": "en"})
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert not crisis_actions, f"FALSE POSITIVE: Crisis flag triggered for safe text: {text!r}"
