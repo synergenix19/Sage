@@ -281,3 +281,21 @@ def test_cuo_is_001_does_not_fire_without_islamic_input():
     })
     fired_ids = [r.rule_id for r in result.fired]
     assert "CUO-IS-001" not in fired_ids
+
+
+def test_cuo_is_001_known_limitation_secular_patience_clears_allowlist():
+    """Known limitation: secular 'patience' satisfies the allowlist without Islamic framing.
+
+    'patience' is in the patterns list as a proxy for sabr-adjacent content.
+    A response like 'It takes patience to work through this' clears the check
+    even though it contains no Islamic vocabulary. This is a conscious trade-off
+    for POC scope — full resolution requires NLP-level framing detection.
+    """
+    result = rules_engine.evaluate("cultural_output", {
+        "response_text": "It takes patience to work through these feelings.",
+        "message_en": "I feel like allah has abandoned me",
+        "clinical_flags": [],
+    })
+    fired_ids = [r.rule_id for r in result.fired]
+    # Documents current behaviour — CUO-IS-001 does NOT fire because "patience" is in patterns
+    assert "CUO-IS-001" not in fired_ids
