@@ -129,3 +129,21 @@ def test_safe_message_no_crisis_flag(text):
     result = engine.evaluate("safety", {"text_en": text, "language": "en"})
     crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
     assert not crisis_actions, f"Expected NO crisis flag for: {text!r}"
+
+
+# ── Arabic clinical flag patterns (language="any" must check norm_ar) ────────
+
+@pytest.mark.parametrize("arabic_text,expected_flag", [
+    ("أنا أشرب الكحول كثيراً", "substance_use"),
+    ("أنا مدمن", "substance_use"),
+])
+def test_arabic_clinical_flags_detected_via_arabic_patterns(arabic_text, expected_flag):
+    result = engine.evaluate("safety", {
+        "text_en": "some neutral translation",
+        "text_ar": arabic_text,
+        "language": "ar",
+    })
+    flag_ids = [a["flag_id"] for a in result.actions if a.get("type") == "clinical_flag"]
+    assert expected_flag in flag_ids, (
+        f"Expected {expected_flag!r} for Arabic text: {arabic_text!r}"
+    )

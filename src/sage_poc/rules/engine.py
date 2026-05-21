@@ -41,18 +41,21 @@ def _eval_safety(rules: list[SafetyRule], context: dict) -> EvalResult:
 
     for rule in rules:
         lang = rule.language
-        if lang == "ar":
-            text_to_check = norm_ar
-        elif lang == "en":
-            text_to_check = norm_en
-        else:  # "any" — check English path (already translated)
-            text_to_check = norm_en
 
-        if not text_to_check:
-            continue
-
+        matched = False
         for pattern in rule.patterns:
-            pattern_norm = (normalize_arabic(pattern) if lang == "ar"
+            if matched:
+                break
+            # For "any" rules: route Arabic-script patterns to norm_ar, others to norm_en
+            is_arabic_pattern = lang == "ar" or (
+                lang == "any" and any('؀' <= ch <= 'ۿ' for ch in pattern)
+            )
+            text_to_check = norm_ar if is_arabic_pattern else norm_en
+
+            if not text_to_check:
+                continue
+
+            pattern_norm = (normalize_arabic(pattern) if is_arabic_pattern
                             else normalize_text(pattern))
             idx = text_to_check.find(pattern_norm)
             if idx == -1:
@@ -64,7 +67,7 @@ def _eval_safety(rules: list[SafetyRule], context: dict) -> EvalResult:
                 version=rule.version,
                 action=rule.action,
             ))
-            break  # one pattern match per rule is enough
+            matched = True
 
     return result
 
