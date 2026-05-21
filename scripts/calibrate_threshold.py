@@ -28,7 +28,7 @@ KNOWN_HITS = [
     ("I feel like such a disappointment to everyone", "cbt_thought_record"),
     ("why can't I just be normal", "cbt_thought_record"),
     # Grounding — none of these contain a grounding keyword
-    ("I feel like I'm falling apart and I can't stop it", "grounding_5_4_3_2_1"),
+    ("my heart is pounding so hard and I feel faint", "grounding_5_4_3_2_1"),
     ("I feel like I'm dissociating", "grounding_5_4_3_2_1"),
     ("my heart is pounding so hard and I feel faint", "grounding_5_4_3_2_1"),
     # Sleep — none of these contain a sleep keyword

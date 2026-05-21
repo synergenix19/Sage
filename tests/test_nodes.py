@@ -261,9 +261,11 @@ def test_stressed_does_not_match_any_skill():
 
 
 def test_panicking_still_matches_grounding():
-    """RT-4 guard: tightening grounding description must not break explicit panic routing."""
+    """RT-4 guard: tightening grounding description must not break semantic panic routing.
+    Phrase is a keyword-miss — exercises the embedding path, not keyword tier.
+    """
     state = make_state(
-        message_en="I'm panicking and I can't breathe",
+        message_en="my heart is pounding so hard and I feel faint",
         primary_intent="new_skill",
     )
     result = skill_select_node(state)
