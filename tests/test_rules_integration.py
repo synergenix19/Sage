@@ -20,7 +20,9 @@ def _state(raw_message, clinical_flags=None):
         "is_safe": True,
         "crisis_flags": [],
         "clinical_flags": clinical_flags or [],
-        "crisis_occurred_this_session": False,
+        "crisis_state": "none",
+        "s7_result": None,
+        "s7_method": None,
         "distress_trajectory": [],
         "code_switching": False,
         "primary_intent": None,
@@ -132,7 +134,9 @@ def _freeflow_state(**overrides):
         "is_safe": True,
         "crisis_flags": [],
         "clinical_flags": [],
-        "crisis_occurred_this_session": False,
+        "crisis_state": "none",
+        "s7_result": None,
+        "s7_method": None,
         "distress_trajectory": [],
         "code_switching": False,
         "primary_intent": "general_chat",
@@ -272,31 +276,33 @@ def test_third_party_guidance_injected_into_prompt():
 
 
 def test_state_schema_includes_crisis_fields():
-    """SageState TypedDict must declare crisis_occurred_this_session and distress_trajectory fields."""
+    """SageState TypedDict must declare crisis_state, s7_result, and distress_trajectory."""
     from sage_poc.state import SageState
     import typing
     hints = typing.get_type_hints(SageState)
-    assert "crisis_occurred_this_session" in hints, "SageState must include crisis_occurred_this_session"
+    assert "crisis_state" in hints, "SageState must include crisis_state"
+    assert "s7_result" in hints, "SageState must include s7_result"
     assert "distress_trajectory" in hints, "SageState must include distress_trajectory"
+    assert "crisis_occurred_this_session" not in hints, "legacy field must be removed"
 
 
 def test_post_crisis_session_injection_fires_on_subsequent_safe_turn():
-    """After a crisis turn, subsequent safe turns must get post-crisis LLM guidance."""
+    """After a crisis turn (crisis_state='monitoring'), subsequent safe turns get post-crisis guidance."""
     state = _freeflow_state(
         message_en="I feel a bit better today",
-        crisis_occurred_this_session=True,  # prior turn triggered crisis
+        crisis_state="monitoring",
     )
     system_str, _ = compose_prompt(state)
     assert "POST-CRISIS" in system_str or "crisis" in system_str.lower(), (
-        "Post-crisis injection must appear in system prompt when crisis_occurred_this_session=True"
+        "Post-crisis injection must appear in system prompt when crisis_state='monitoring'"
     )
 
 
 def test_post_crisis_injection_absent_on_normal_session():
-    """Without a prior crisis turn, post-crisis injection must NOT fire."""
+    """With crisis_state='none', post-crisis injection must NOT fire."""
     state = _freeflow_state(
         message_en="I feel anxious today",
-        crisis_occurred_this_session=False,
+        crisis_state="none",
     )
     system_str, _ = compose_prompt(state)
     assert "POST-CRISIS" not in system_str

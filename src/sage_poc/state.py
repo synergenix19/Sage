@@ -15,9 +15,11 @@ class SageState(TypedDict):
     crisis_flags: list[str]
     clinical_flags: list[str]   # substance_use, trauma_indicator, eating_concern, medication_mention
 
-    crisis_occurred_this_session: bool         # set True by crisis_response node; persists for session
-    distress_trajectory: list[int]             # rolling window of emotional_intensity scores for cumulative distress
-    code_switching: bool          # True when raw_message contains both Arabic script and Latin letters
+    crisis_state: str              # "none" | "active" | "monitoring" | "resolved"
+    s7_result: Optional[str]       # "RECOVERING" | "STILL_DISTRESSED" | "UNCLEAR" | "NEW_CRISIS"
+    s7_method: Optional[str]       # "keyword" | "llm"
+    distress_trajectory: list[int]
+    code_switching: bool
 
     primary_intent: Optional[Intent]
     secondary_intent: Optional[Intent]  # blended intent — e.g. "info_request" alongside "new_skill"

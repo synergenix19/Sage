@@ -1,4 +1,5 @@
 from sage_poc.state import SageState
+import typing
 
 def test_state_has_required_fields():
     state: SageState = {
@@ -8,7 +9,11 @@ def test_state_has_required_fields():
         "is_safe": True,
         "crisis_flags": [],
         "clinical_flags": [],
+        "crisis_state": "none",
+        "s7_result": None,
+        "s7_method": None,
         "primary_intent": None,
+        "secondary_intent": None,
         "intent_confidence": 0.0,
         "emotional_intensity": 5,
         "engagement": 5,
@@ -26,8 +31,15 @@ def test_state_has_required_fields():
         "semantic_score": None,
     }
     assert state["raw_message"] == "hello"
-    assert state["path"] == []
-    assert state["clinical_flags"] == []
+    assert state["crisis_state"] == "none"
+    assert state["s7_result"] is None
+
+def test_state_has_crisis_state_not_legacy_bool():
+    hints = typing.get_type_hints(SageState)
+    assert "crisis_state" in hints, "SageState must declare crisis_state"
+    assert "s7_result" in hints, "SageState must declare s7_result"
+    assert "s7_method" in hints, "SageState must declare s7_method"
+    assert "crisis_occurred_this_session" not in hints, "legacy field must be removed"
 
 def test_state_path_is_list():
     state: SageState = {
@@ -37,7 +49,11 @@ def test_state_path_is_list():
         "is_safe": True,
         "crisis_flags": [],
         "clinical_flags": ["substance_use"],
+        "crisis_state": "none",
+        "s7_result": None,
+        "s7_method": None,
         "primary_intent": "general_chat",
+        "secondary_intent": None,
         "intent_confidence": 0.9,
         "emotional_intensity": 3,
         "engagement": 7,
@@ -55,5 +71,4 @@ def test_state_path_is_list():
         "semantic_score": None,
     }
     assert len(state["path"]) == 4
-    assert "intent_route" in state["path"]
-    assert state["clinical_flags"] == ["substance_use"]
+    assert state["crisis_state"] == "none"

@@ -6,6 +6,7 @@ from unittest.mock import patch, MagicMock
 _CARRY_FIELDS = (
     "turn_count", "clinical_flags", "conversation_history",
     "active_skill_id", "active_step_id", "emotional_intensity", "engagement",
+    "crisis_state",
 )
 
 
@@ -17,6 +18,11 @@ def make_e2e_state(raw_message: str, **overrides) -> dict:
         "is_safe": False,
         "crisis_flags": [],
         "clinical_flags": [],
+        "crisis_state": "none",
+        "s7_result": None,
+        "s7_method": None,
+        "distress_trajectory": [],
+        "code_switching": False,
         "primary_intent": None,
         "secondary_intent": None,
         "intent_confidence": 0.0,

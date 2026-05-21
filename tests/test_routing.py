@@ -12,6 +12,8 @@ def make_full_state(**overrides) -> dict:
     defaults = {
         "raw_message": "", "detected_language": "en", "message_en": "",
         "is_safe": True, "crisis_flags": [], "clinical_flags": [],
+        "crisis_state": "none", "s7_result": None, "s7_method": None,
+        "distress_trajectory": [], "code_switching": False,
         "primary_intent": None, "secondary_intent": None,
         "intent_confidence": 1.0, "emotional_intensity": 5, "engagement": 7,
         "active_skill_id": None, "active_step_id": None, "executed_step_id": None,
