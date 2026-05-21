@@ -48,6 +48,7 @@ KNOWN_MISSES = [
     "Hi, I've been feeling stressed",  # exact RT-4 regression phrase — must not match any skill
     "I'm overwhelmed and anxious",  # actual FP pre-fix — must not match any skill
     "I'm completely overwhelmed",  # bare overwhelm (no somatic symptoms) — must route to freeflow
+    "I just feel off today",  # R-3 audit FP: scores 0.5549 CBT; CBT semantic_description overlaps with vague affect — defended by intent_route (general_chat) in full graph; track here for threshold awareness
 ]
 
 
