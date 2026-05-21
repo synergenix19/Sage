@@ -47,6 +47,7 @@ KNOWN_MISSES = [
     "I've been feeling stressed lately",  # vague stress must not match any skill
     "Hi, I've been feeling stressed",  # exact RT-4 regression phrase — must not match any skill
     "I'm overwhelmed and anxious",  # actual FP pre-fix — must not match any skill
+    "I'm completely overwhelmed",  # bare overwhelm (no somatic symptoms) — must route to freeflow
 ]
 
 

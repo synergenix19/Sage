@@ -1335,7 +1335,11 @@ def test_selects_grounding_for_panic_phrasing():
 
 
 def test_selects_grounding_for_overwhelmed_phrasing():
-    """'I feel completely overwhelmed' must activate grounding skill."""
+    """'overwhelmed, my head is spinning' routes to grounding via 'spinning' keyword.
+    Note: 'overwhelmed' was intentionally removed from target_presentations (RT-4b) to
+    prevent 'I'm overwhelmed and anxious' from false-positiving into grounding.
+    See test_overwhelmed_and_anxious_does_not_match_any_skill for the guard test.
+    """
     state = make_state(
         message_en="I feel completely overwhelmed, my head is spinning",
         primary_intent="new_skill",
