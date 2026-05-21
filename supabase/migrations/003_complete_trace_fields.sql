@@ -56,14 +56,21 @@ CREATE TABLE IF NOT EXISTS public.message_feedback (
 
 ALTER TABLE public.message_feedback ENABLE ROW LEVEL SECURITY;
 
+-- CREATE POLICY has no IF NOT EXISTS in any PG version.
+-- DROP IF EXISTS first for idempotency.
+
 -- Users manage their own feedback.
-CREATE POLICY IF NOT EXISTS "own feedback"
+DROP POLICY IF EXISTS "own feedback" ON public.message_feedback;
+CREATE POLICY "own feedback"
   ON public.message_feedback
   FOR ALL
   USING (auth.uid() = user_id);
 
--- Admins can read all feedback for dashboard aggregation.
-CREATE POLICY IF NOT EXISTS "admin read feedback"
+-- Admins read all feedback for dashboard aggregation.
+-- Note: the admin dashboard uses the service-role client (bypasses RLS entirely).
+-- This policy covers admin users authenticated via the normal session (is_admin = true).
+DROP POLICY IF EXISTS "admin read feedback" ON public.message_feedback;
+CREATE POLICY "admin read feedback"
   ON public.message_feedback
   FOR SELECT
   USING (
