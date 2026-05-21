@@ -24,6 +24,10 @@ _graph = build_graph()
 
 CRISIS_SIGNAL = "[[CRISIS_DETECTED]]"
 
+# Closed set enforced at the HTTP boundary — v7 §5.5.
+# crisis_state is client-ferried between turns; arbitrary strings must never enter the graph.
+_VALID_CRISIS_STATES = frozenset({"none", "monitoring", "active_crisis"})
+
 
 class Message(BaseModel):
     role: str
@@ -35,6 +39,7 @@ class ChatRequest(BaseModel):
     # session_id is received from the client but intentionally not stored in SageState —
     # the graph has no concept of sessions; persistence is the frontend's responsibility.
     session_id: str
+    crisis_state: str = "none"
 
 
 def _build_state(req: ChatRequest) -> dict:
@@ -45,6 +50,7 @@ def _build_state(req: ChatRequest) -> dict:
         for m in previous
     ]
     turn_count = sum(1 for m in previous if m.role != "user")
+    crisis_state = req.crisis_state if req.crisis_state in _VALID_CRISIS_STATES else "none"
     return {
         "raw_message": current.content,
         "detected_language": "en",      # safety_check_node overwrites
@@ -67,6 +73,9 @@ def _build_state(req: ChatRequest) -> dict:
         "response": None,
         "path": [],
         "turn_count": turn_count,
+        "crisis_state": crisis_state,
+        "s7_result": None,
+        "s7_method": None,
         # Raw message pairs from the client. compose_prompt() in freeflow_respond.py
         # windows this to the last 4 turns — windowing is the graph's responsibility.
         "conversation_history": history,
@@ -118,5 +127,6 @@ async def chat(req: ChatRequest) -> StreamingResponse:
             "X-Sage-Crisis-Flags":        json.dumps(result.get("crisis_flags") or []),
             "X-Sage-Clinical-Flags":      json.dumps(result.get("clinical_flags") or []),
             "X-Sage-Emotional-Intensity": str(result.get("emotional_intensity") or 0),
+            "X-Sage-Crisis-State":        result.get("crisis_state") or "none",
         },
     )
