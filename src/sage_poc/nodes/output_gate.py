@@ -53,6 +53,9 @@ def output_gate_node(state: SageState) -> dict:
                 f"\n[CULTURAL OUTPUT VIOLATION] {rule.rule_id} v{rule.version}: "
                 f"{rule.action.get('message', rule.action.get('type', ''))}"
             )
+        cultural_output_violations = [r.rule_id for r in cultural_violations.fired]
+    else:
+        cultural_output_violations = []
 
     violations = _FORMAT_VIOLATIONS.findall(response_en)
     if violations:
@@ -99,4 +102,5 @@ def output_gate_node(state: SageState) -> dict:
             {"role": "user", "content": state["message_en"]},
             {"role": "assistant", "content": response_en},
         ],
+        "cultural_output_violations": cultural_output_violations,
     }

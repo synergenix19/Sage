@@ -19,7 +19,7 @@
       "patterns": [
         "allah", "الله", "sabr", "tawakkul", "ibtila",
         "inshallah", "إن شاء الله", "alhamdulillah", "الحمد لله",
-        "mashallah", "subhanallah", "bismillah", "patience", "perseverance"
+        "mashallah", "subhanallah", "bismillah", "patience", "patient", "perseverance", "trust", "test"
       ],
       "action": {
         "type": "audit_warn",

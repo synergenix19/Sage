@@ -246,6 +246,53 @@ def test_output_gate_skips_cultural_output_for_scope_refusal(monkeypatch):
     assert "cultural_output" not in calls
 
 
+def test_output_gate_returns_cultural_output_violations_in_state():
+    """output_gate_node must return cultural_output_violations list in all paths."""
+    from sage_poc.nodes.output_gate import output_gate_node
+
+    # Standard path with violation — list must contain rule ID
+    result_violation = output_gate_node({
+        "gate_path": None,
+        "detected_language": "en",
+        "path": [],
+        "response_en": "Maybe try dating apps to feel more connected.",
+        "message_en": "I feel lonely",
+        "clinical_flags": [],
+        "turn_count": 0,
+        "conversation_history": [],
+    })
+    assert "cultural_output_violations" in result_violation
+    assert "CUO-GC-001" in result_violation["cultural_output_violations"]
+
+    # Scope refusal — must return empty list, not omit the key
+    result_refusal = output_gate_node({
+        "gate_path": "scope_refusal",
+        "detected_language": "en",
+        "path": [],
+        "response_en": None,
+        "message_en": "diagnose me",
+        "clinical_flags": [],
+        "turn_count": 0,
+        "conversation_history": [],
+    })
+    assert "cultural_output_violations" in result_refusal
+    assert result_refusal["cultural_output_violations"] == []
+
+    # Standard path clean — must return empty list
+    result_clean = output_gate_node({
+        "gate_path": None,
+        "detected_language": "en",
+        "path": [],
+        "response_en": "That sounds really difficult. What has been on your mind?",
+        "message_en": "I feel overwhelmed",
+        "clinical_flags": [],
+        "turn_count": 0,
+        "conversation_history": [],
+    })
+    assert "cultural_output_violations" in result_clean
+    assert result_clean["cultural_output_violations"] == []
+
+
 # ── CUO-IS-001 ───────────────────────────────────────────────────────────────
 
 def test_cuo_is_001_fires_when_islamic_input_but_secular_response():
@@ -299,6 +346,36 @@ def test_cuo_is_001_known_limitation_secular_patience_clears_allowlist():
     fired_ids = [r.rule_id for r in result.fired]
     # Documents current behaviour — CUO-IS-001 does NOT fire because "patience" is in patterns
     assert "CUO-IS-001" not in fired_ids
+
+
+def test_cuo_is_001_passes_when_response_uses_patient():
+    """CUO-IS-001 must NOT fire when response contains 'patient' — common paraphrase of sabr."""
+    result = rules_engine.evaluate("cultural_output", {
+        "response_text": "Be patient with yourself, this is a test from Allah and you will find your way.",
+        "message_en": "I feel like allah has abandoned me",
+        "clinical_flags": [],
+    })
+    assert "CUO-IS-001" not in [r.rule_id for r in result.fired]
+
+
+def test_cuo_is_001_passes_when_response_uses_trust():
+    """CUO-IS-001 must NOT fire when response contains 'trust' — paraphrase of tawakkul."""
+    result = rules_engine.evaluate("cultural_output", {
+        "response_text": "Trust in His plan, even when it is hard to see the wisdom in it.",
+        "message_en": "I feel like allah has abandoned me",
+        "clinical_flags": [],
+    })
+    assert "CUO-IS-001" not in [r.rule_id for r in result.fired]
+
+
+def test_cuo_is_001_passes_when_response_uses_test():
+    """CUO-IS-001 must NOT fire when response contains 'test' — paraphrase of ibtila."""
+    result = rules_engine.evaluate("cultural_output", {
+        "response_text": "Many people of faith feel this is a test that ultimately strengthens them.",
+        "message_en": "I feel like allah has abandoned me",
+        "clinical_flags": [],
+    })
+    assert "CUO-IS-001" not in [r.rule_id for r in result.fired]
 
 
 # ── CUO-FA-001 ───────────────────────────────────────────────────────────────
