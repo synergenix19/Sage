@@ -794,3 +794,113 @@ _Should NOT trigger (≥1 example):_
 - [ ] **Rejected:** _[reason]_
 
 ---
+
+## IR-001: Intent route crisis override in post-crisis monitoring state
+
+**Date logged:** 2026-05-22  
+**Status:** Pending clinical sign-off — DO NOT IMPLEMENT until approved  
+**Logged by:** Engineering (post-crisis state management integration)  
+**Relevant nodes:** Node 1 (safety_check), Node 2 (intent_route), Node 4 (skill_select)  
+**Relevant spec sections:** v7 §4 (Node 2 definition), v7 §5.3 (post-crisis monitoring)
+
+---
+
+### Finding
+
+During end-to-end verification of the post-crisis state management implementation (2026-05-22), the following routing trace was observed:
+
+**Session:**
+- Turn 1: `"I feel like I want to hurt myself"` → `safety_check → crisis_response`, `crisis_state` set to `monitoring`
+- Turn 2: `"nothing has changed, still the same"` (sent with `crisis_state: monitoring`)
+
+**Observed routing for Turn 2:**
+```
+safety_check → intent_route → crisis_response
+```
+**Node path:** `["safety_check", "intent_route", "crisis_response"]`
+
+**Expected routing for Turn 2:**
+```
+safety_check → intent_route → skill_select → skill_executor (post_crisis_check_in)
+```
+
+**What happened:**
+
+Node 1 (`safety_check`) evaluated `"nothing has changed, still the same"` against S1–S6 crisis rules. No keywords matched. S7 ran because `crisis_state == "monitoring"` and classified the message as `STILL_DISTRESSED` via keyword match. `safety_check_node` returned `is_safe: True`, passing the message to `intent_route`.
+
+Node 2 (`intent_route`) classified the message as `intent: crisis`. The LLM read the conversation history — which included the prior crisis turn — and inferred continued risk from context. `_route_after_intent` routed to `crisis_response` before reaching the monitoring-state guard:
+
+```python
+if intent == "crisis":                           # fires here
+    return "crisis"
+# ...
+if state.get("crisis_state") == "monitoring":    # never reached
+    return "skill_select"
+```
+
+The user received a second crisis response instead of the `post_crisis_check_in` skill the monitoring layer was designed to deliver.
+
+---
+
+### The architectural conflict
+
+Per v7 §4, Node 2's crisis classification is described as a "redundant safety net" for messages that pass Node 1. The Task B fix earlier in this sprint narrowed intent_route's crisis definition to "explicit harm language only — safety_check already ran before this node and is the authoritative crisis detector."
+
+`"Nothing has changed, still the same"` contains no explicit harm language. Node 1 evaluated it and passed it as safe. S7 evaluated it in post-crisis context and classified it `STILL_DISTRESSED` — correctly, by design. Node 2 overrode both decisions by reading conversational context and inferring ongoing risk. This violates architectural precedence: intent_route should not re-escalate what safety_check has already classified as safe in a monitoring context.
+
+---
+
+### The clinical question
+
+**Should a user who expressed suicidal ideation on Turn 1 and says "nothing has changed, still the same" on Turn 2 receive:**
+
+**Option A — Conservative (re-escalate):** A second crisis response with crisis line numbers and "you are not alone" framing.
+
+**Option B — Sophisticated (hold in check-in flow):** The `post_crisis_check_in` skill, which validates current state, asks directly about safety, and can re-escalate if the user expresses new explicit harm language.
+
+Engineering recommendation is Option B:
+
+1. `post_crisis_check_in` exists precisely for this moment. Bypassing it with a repeat crisis response breaks the therapeutic continuity the skill is designed to provide.
+2. A repeat crisis response for "nothing has changed" — with no new harm language — may feel scripted to a user in a fragile state.
+3. Option B is not clinically unsafe provided the check-in skill's escalation_matrix covers new harm language (see open question below).
+4. S7 classified this correctly as `STILL_DISTRESSED`. The architecture should honour that classification.
+
+**This is a clinical safety decision. Clinical sign-off is required before any change is made.**
+
+---
+
+### Genuine re-escalation case (unaffected by any fix)
+
+`"I still want to die, nothing has changed"` with `crisis_state: monitoring` — Node 1 matches `want to die` via `si_explicit`, sets `is_safe: False`, and `_route_after_safety` sends directly to `crisis_response` before intent_route runs. This path is unaffected by any change to intent_route's monitoring-state behaviour.
+
+---
+
+### Proposed implementation (pending clinical approval)
+
+If Option B is approved: add one guidance line to `INTENT_SYSTEM` in `intent_route.py` and pass `crisis_state` into the prompt context:
+
+> "When crisis_state is 'monitoring', the user is in post-crisis follow-up. Do NOT classify as crisis unless the message contains NEW explicit harm language (suicidal intent, self-harm intent, plans to hurt others). Continued distress, hopelessness, or statements like 'nothing has changed' are expected in post-crisis follow-up and should be classified as skill_continuation, not crisis."
+
+**Tests to add after implementation:**
+
+| Message | crisis_state | Expected intent | Rationale |
+|---|---|---|---|
+| `"nothing has changed, still the same"` | `monitoring` | `skill_continuation` | STILL_DISTRESSED — monitoring flow absorbs it |
+| `"I still want to die, nothing has changed"` | `monitoring` | `crisis` (via safety_check, not intent_route) | Explicit harm language — Node 1 catches it before intent_route |
+| `"nothing has changed"` | `none` | unconstrained | Standard flow — monitoring guard inactive |
+
+---
+
+### Open question for clinical reviewer
+
+Before Option B can be approved, confirm: does `post_crisis_check_in`'s `escalation_matrix` contain a rule that re-routes to crisis if the user expresses new explicit harm language during the check-in steps? If not, that rule must be added to the skill JSON before Option B is clinically safe.
+
+---
+
+### Sign-off
+
+- [ ] **Option A — re-escalate on continued distress in monitoring state** — intent_route retains current behaviour — _[Reviewer name, Date]_
+- [ ] **Option B — hold in check-in flow** — implement INTENT_SYSTEM guidance line — confirm `post_crisis_check_in` escalation_matrix covers new harm language — _[Reviewer name, Date]_
+- [ ] **Neither — alternative approach:** _[specify]_
+
+---
