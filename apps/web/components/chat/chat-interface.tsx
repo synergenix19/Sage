@@ -142,6 +142,19 @@ export function ChatInterface({ initialSession, initialMessages = [], userName }
   const hasSignaledInstall = useRef(false)
   const { messages, append, isLoading, error, reload } = useStreamingChat(initialSession?.id, initialMessages)
 
+  // Derive the most recent crisis message content for the pinned card.
+  // The inline render in the message list remains for context; this pin
+  // ensures the card is always visible regardless of scroll position.
+  // Post-Gitex: extract into useMemo if pagination/virtual-scroll is added.
+  const pinnedCrisis = (() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'assistant' && messages[i].content.startsWith(CRISIS_SIGNAL)) {
+        return messages[i].content.replace(CRISIS_SIGNAL, '').trimStart()
+      }
+    }
+    return null
+  })()
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
@@ -203,6 +216,12 @@ export function ChatInterface({ initialSession, initialMessages = [], userName }
         )}
         <div ref={bottomRef} />
       </div>
+
+      {pinnedCrisis !== null && (
+        <div className="px-0 py-2">
+          <CrisisCard content={pinnedCrisis} />
+        </div>
+      )}
 
       <InputBar onSend={handleSend} disabled={isLoading} />
     </div>
