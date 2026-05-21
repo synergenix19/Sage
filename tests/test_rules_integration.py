@@ -271,8 +271,8 @@ def test_third_party_guidance_injected_into_prompt():
     assert "friend" in system_str.lower() or "third" in system_str.lower() or "support" in system_str.lower()
 
 
-def test_crisis_response_node_sets_crisis_occurred_flag():
-    """_crisis_response_node must set crisis_occurred_this_session=True."""
+def test_state_schema_includes_crisis_fields():
+    """SageState TypedDict must declare crisis_occurred_this_session and distress_trajectory fields."""
     from sage_poc.state import SageState
     import typing
     hints = typing.get_type_hints(SageState)
@@ -521,4 +521,19 @@ def test_existing_cultural_rules_unaffected_by_schema_change():
     system_str, _ = compose_prompt(state)
     assert "ISLAMIC" in system_str or "sabr" in system_str or "ibtila" in system_str, (
         "Existing CU-IS-001 must still fire after schema change (backward compat)"
+    )
+
+
+def test_code_switch_rule_fires_alongside_islamic_rule():
+    """CU-CS-001 must still fire even when CU-IS-001 also fires in the same turn."""
+    state = _freeflow_state(
+        message_en="I feel allah has abandoned me today",
+        code_switching=True,
+    )
+    system_str, _ = compose_prompt(state)
+    assert "CODE-SWITCHING" in system_str, (
+        "CU-CS-001 must inject code-switching context even when CU-IS-001 also fires"
+    )
+    assert "ISLAMIC" in system_str or "sabr" in system_str.lower(), (
+        "CU-IS-001 must also fire when Islamic keyword present"
     )
