@@ -68,11 +68,16 @@ def compose_prompt(state: SageState) -> tuple[str, str]:
             system_parts.append(action["content"])
 
     # Prompt injection: clinical flag adaptations + secondary intent (system-targeted)
+    session_flags: list[str] = []
+    if state.get("crisis_occurred_this_session"):
+        session_flags.append("crisis_occurred")
+
     injection_result = rules_engine.evaluate("prompt_injection", {
         "text": message_en,
         "clinical_flags": clinical_flags,
         "primary_intent": primary_intent,
         "secondary_intent": secondary_intent,
+        "session_flags": session_flags,
     })
     system_injections = [
         a["content"] for a in injection_result.actions if a.get("target") == "system"

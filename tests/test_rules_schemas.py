@@ -159,3 +159,14 @@ def test_eval_result_bool_false_when_all_suppressed():
     result = EvalResult(fired=[r])
     assert bool(result) is False
     assert len(result.fired_ids) == 1  # audit trail still has it
+
+
+def test_prompt_injection_rule_accepts_session_flag_present():
+    rule = PromptInjectionRule(
+        rule_id="PI-PC-001", category="prompt_injection",
+        effective_date="2026-05-21",
+        trigger_type="session_flag_present",
+        trigger_value="crisis_occurred",
+        action={"type": "inject", "target": "system", "content": "test"},
+    )
+    assert rule.trigger_type == "session_flag_present"

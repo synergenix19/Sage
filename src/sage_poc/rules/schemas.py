@@ -58,7 +58,8 @@ class PromptInjectionRule(BaseModel):
     active: bool = True
     description: str = ""
     trigger_type: Literal[
-        "keyword_match", "flag_present", "intent_match", "secondary_intent_present"
+        "keyword_match", "flag_present", "intent_match",
+        "secondary_intent_present", "session_flag_present"
     ]
     trigger_value: str | None = None
     trigger_keywords: list[str] = []

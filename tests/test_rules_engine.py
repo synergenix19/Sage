@@ -290,3 +290,37 @@ def test_eval_safety_applies_suppression_end_to_end():
     crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
     assert crisis_actions == [], "Suppression should prevent crisis_flag from appearing in actions"
     assert len(result.suppressed_rules) == 1  # suppressed rule recorded for audit
+
+
+# ── session_flag_present trigger type ────────────────────────────────────────
+
+_BASE_PI = {
+    "version": "1.0.0", "authored_by": "test",
+    "effective_date": "2026-05-21", "active": True,
+    "category": "prompt_injection",
+    "trigger_keywords": [],
+    "action": {"type": "inject", "target": "system", "content": "post-crisis"},
+}
+
+def test_pi_session_flag_present_fires_when_flag_set():
+    rule = PromptInjectionRule(**{
+        **_BASE_PI,
+        "rule_id": "PI-PC-TEST",
+        "trigger_type": "session_flag_present",
+        "trigger_value": "crisis_occurred",
+    })
+    ctx = {"text": "I feel okay", "clinical_flags": [], "session_flags": ["crisis_occurred"]}
+    result = engine._eval_prompt_injection([rule], ctx)
+    assert result.fired_ids == ["PI-PC-TEST"]
+
+
+def test_pi_session_flag_present_does_not_fire_when_absent():
+    rule = PromptInjectionRule(**{
+        **_BASE_PI,
+        "rule_id": "PI-PC-TEST",
+        "trigger_type": "session_flag_present",
+        "trigger_value": "crisis_occurred",
+    })
+    ctx = {"text": "I feel okay", "clinical_flags": [], "session_flags": []}
+    result = engine._eval_prompt_injection([rule], ctx)
+    assert result.fired == []

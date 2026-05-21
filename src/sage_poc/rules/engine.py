@@ -174,6 +174,7 @@ def _eval_prompt_injection(rules: list[PromptInjectionRule], context: dict) -> E
     clinical_flags: list[str] = context.get("clinical_flags", [])
     primary_intent: str | None = context.get("primary_intent")
     secondary_intent: str | None = context.get("secondary_intent")
+    session_flags: list[str] = context.get("session_flags", [])
 
     result = EvalResult()
     for rule in rules:
@@ -186,6 +187,8 @@ def _eval_prompt_injection(rules: list[PromptInjectionRule], context: dict) -> E
             fired = rule.trigger_value in (primary_intent, secondary_intent)
         elif rule.trigger_type == "secondary_intent_present":
             fired = secondary_intent is not None
+        elif rule.trigger_type == "session_flag_present":
+            fired = rule.trigger_value in session_flags
 
         if fired:
             result.fired.append(FiredRule(
