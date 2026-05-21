@@ -13,8 +13,8 @@ Analyse the user's message and return ONLY valid JSON with these fields:
 
 Rules:
 - skill_continuation: user is responding to an active therapeutic skill session
-- new_skill: user expresses distress, negative thoughts, or needs a therapeutic technique
-- general_chat: greeting, small talk, or unrelated question
+- new_skill: user describes a specific symptom, pattern, or difficulty with enough context to indicate a structured technique is appropriate. Requires at least one of: (a) a specific symptom description (can't sleep, panic attack, I blame myself, heart racing), (b) a repeated or chronic pattern (every night, for weeks, always, keeps happening), or (c) clear distress tied to a particular named issue. A brief statement of general affect alone does not qualify.
+- general_chat: greeting, small talk, unrelated question, or a brief opening disclosure of general affect without specific symptoms, duration, or frequency ("I'm stressed", "I'm not doing great", "things are hard", "I'm feeling low", "I don't know where to start"). Use when the user has not yet provided enough context to identify a specific therapeutic target — freeflow exploration should come first.
 - crisis: ANY mention of self-harm, suicide, or immediate danger (redundant safety net)
 - info_request: user asks a factual question about mental health
 - exit_skill: user explicitly asks to stop, leave, or change topic away from the current skill

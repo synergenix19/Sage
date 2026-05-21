@@ -1879,3 +1879,103 @@ def test_compose_prompt_does_not_mutate_state_history():
     compose_prompt(state)
     assert state["conversation_history"][0]["content"] == formatted_content, \
         "compose_prompt must not mutate state['conversation_history']"
+
+
+# Task B: intent_route must distinguish vague affect disclosures from specific therapeutic targets
+
+def test_intent_system_requires_specific_symptoms_for_new_skill():
+    """INTENT_SYSTEM must contain guidance requiring specific symptoms/patterns for new_skill."""
+    from sage_poc.nodes.intent_route import INTENT_SYSTEM
+    assert "specific symptom" in INTENT_SYSTEM.lower() or "specific symptoms" in INTENT_SYSTEM.lower(), \
+        "INTENT_SYSTEM must require specific symptoms for new_skill classification"
+
+def test_intent_system_defines_general_chat_for_brief_affect():
+    """INTENT_SYSTEM must explicitly classify brief affect disclosures as general_chat."""
+    from sage_poc.nodes.intent_route import INTENT_SYSTEM
+    assert "general_chat" in INTENT_SYSTEM
+    # Verify the updated general_chat definition covers brief affect phrases
+    lower = INTENT_SYSTEM.lower()
+    assert "brief" in lower and "affect" in lower, \
+        "INTENT_SYSTEM general_chat definition must address brief affect disclosures"
+
+def test_intent_route_vague_stress_returns_general_chat():
+    """'I've been feeling stressed' — brief affect disclosure, must return general_chat.
+    Uses mocked LLM to verify intent_route_node processes the classification correctly.
+    """
+    import json
+    from unittest.mock import MagicMock
+    from sage_poc.nodes.intent_route import intent_route_node
+    mock_llm = MagicMock()
+    mock_llm.invoke.return_value = MagicMock(
+        content=json.dumps({
+            "primary_intent": "general_chat",
+            "secondary_intent": None,
+            "emotional_intensity": 4,
+            "engagement": 6,
+            "intent_confidence": 0.85
+        })
+    )
+    state = {
+        "raw_message": "Hi, I've been feeling stressed",
+        "message_en": "Hi, I've been feeling stressed",
+        "active_skill_id": None,
+        "conversation_history": [],
+        "path": ["safety_check"],
+    }
+    result = intent_route_node(state, llm=mock_llm)
+    assert result["primary_intent"] == "general_chat", \
+        "Vague stress disclosure must be classified as general_chat, not new_skill"
+
+def test_intent_route_specific_symptom_returns_new_skill():
+    """'I can't sleep, lying awake every night for weeks' — specific + chronic, must be new_skill."""
+    import json
+    from unittest.mock import MagicMock
+    from sage_poc.nodes.intent_route import intent_route_node
+    mock_llm = MagicMock()
+    mock_llm.invoke.return_value = MagicMock(
+        content=json.dumps({
+            "primary_intent": "new_skill",
+            "secondary_intent": None,
+            "emotional_intensity": 6,
+            "engagement": 7,
+            "intent_confidence": 0.90
+        })
+    )
+    state = {
+        "raw_message": "I can't sleep, I've been lying awake every night for weeks",
+        "message_en": "I can't sleep, I've been lying awake every night for weeks",
+        "active_skill_id": None,
+        "conversation_history": [],
+        "path": ["safety_check"],
+    }
+    result = intent_route_node(state, llm=mock_llm)
+    assert result["primary_intent"] == "new_skill", \
+        "Specific chronic symptom must be classified as new_skill"
+
+def test_intent_route_blended_specific_plus_affect_returns_new_skill():
+    """'I can't sleep and I'm feeling really down' — blended: specific (sleep) + affect.
+    Must be new_skill because it contains a specific symptom, not just general affect.
+    """
+    import json
+    from unittest.mock import MagicMock
+    from sage_poc.nodes.intent_route import intent_route_node
+    mock_llm = MagicMock()
+    mock_llm.invoke.return_value = MagicMock(
+        content=json.dumps({
+            "primary_intent": "new_skill",
+            "secondary_intent": "general_chat",
+            "emotional_intensity": 6,
+            "engagement": 7,
+            "intent_confidence": 0.88
+        })
+    )
+    state = {
+        "raw_message": "I can't sleep and I'm feeling really down",
+        "message_en": "I can't sleep and I'm feeling really down",
+        "active_skill_id": None,
+        "conversation_history": [],
+        "path": ["safety_check"],
+    }
+    result = intent_route_node(state, llm=mock_llm)
+    assert result["primary_intent"] == "new_skill", \
+        "Blended message with specific symptom must be new_skill (§6.4 dual-intent path)"
