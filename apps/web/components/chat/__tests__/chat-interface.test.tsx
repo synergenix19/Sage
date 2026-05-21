@@ -20,23 +20,26 @@ if (typeof crypto === 'undefined' || typeof crypto.randomUUID !== 'function') {
 // ---------------------------------------------------------------------------
 
 /**
- * Build a ReadableStream that:
- *   1. Emits `chunks` as Uint8Array values (simulating partial content).
- *   2. Then rejects with `error` — simulating a mid-stream network failure.
+ * Build a fetch mock whose body reader rejects after emitting `chunks`.
+ *
+ * jsdom's ReadableStream does not propagate controller.error() to reader.read()
+ * reliably. We bypass that layer entirely by mocking the reader directly so
+ * the nth read() call rejects — simulating a mid-stream network failure in a
+ * way that reliably enters the catch block of useStreamingChat.
  */
-function makeFaultingStream(chunks: string[], error: Error): ReadableStream<Uint8Array> {
+function makeFaultingFetchMock(chunks: string[], error: Error): Promise<Response> {
   const enc = new TextEncoder()
-  let idx = 0
-  return new ReadableStream<Uint8Array>({
-    async pull(controller) {
-      if (idx < chunks.length) {
-        controller.enqueue(enc.encode(chunks[idx++]))
-      } else {
-        // Simulate network failure after chunks have been emitted.
-        controller.error(error)
-      }
-    },
+  let callCount = 0
+  const mockRead = vi.fn().mockImplementation(() => {
+    if (callCount < chunks.length) {
+      return Promise.resolve({ done: false, value: enc.encode(chunks[callCount++]) })
+    }
+    return Promise.reject(error)
   })
+  return Promise.resolve({
+    ok: true,
+    body: { getReader: () => ({ read: mockRead }) },
+  } as unknown as Response)
 }
 
 afterEach(() => {
@@ -51,9 +54,8 @@ describe('useStreamingChat — mid-stream failure', () => {
   it('discards partial assistant message when stream errors mid-way', async () => {
     const networkError = new Error('Network failure mid-stream')
 
-    // Mock fetch to return a 200 response whose body errors after "Hello".
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(makeFaultingStream(['Hello'], networkError), { status: 200 })
+    vi.spyOn(globalThis, 'fetch').mockReturnValueOnce(
+      makeFaultingFetchMock(['Hello'], networkError)
     )
 
     const { result } = renderHook(() => useStreamingChat('session-1', []))
@@ -63,23 +65,26 @@ describe('useStreamingChat — mid-stream failure', () => {
       result.current.append({ role: 'user', content: 'Hi' })
     })
 
-    // Wait until loading stops (stream errored out and finally block ran).
-    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 3000 })
+    // Wait for both isLoading:false AND error:non-null together.
+    // Waiting on isLoading alone is racy: append() uses queueMicrotask, so
+    // isLoading may still be false when waitFor first polls (stream not started
+    // yet). The compound condition only passes after the stream has fully errored.
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+      expect(result.current.error).not.toBeNull()
+    }, { timeout: 3000 })
 
     // --- core assertion: zero assistant messages remain ---
     const assistantMessages = result.current.messages.filter((m) => m.role === 'assistant')
     expect(assistantMessages).toHaveLength(0)
-
-    // The error should be set so the UI can show a retry prompt.
-    expect(result.current.error).not.toBeNull()
     expect(result.current.error?.message).toMatch(/Network failure mid-stream/)
   })
 
   it('keeps the user message after stream error', async () => {
     const networkError = new Error('Network failure mid-stream')
 
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(makeFaultingStream(['Partial'], networkError), { status: 200 })
+    vi.spyOn(globalThis, 'fetch').mockReturnValueOnce(
+      makeFaultingFetchMock(['Partial'], networkError)
     )
 
     const { result } = renderHook(() => useStreamingChat('session-2', []))
@@ -88,7 +93,11 @@ describe('useStreamingChat — mid-stream failure', () => {
       result.current.append({ role: 'user', content: 'Hello there' })
     })
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 3000 })
+    // Same compound wait: proves the stream ran and errored before checking survivors.
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+      expect(result.current.error).not.toBeNull()
+    }, { timeout: 3000 })
 
     // The original user message must survive — only the assistant placeholder is removed.
     const userMessages = result.current.messages.filter((m) => m.role === 'user')

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
-    "test": "turbo test",
+    "test": "npm run test --workspace=apps/web && npm run test --workspace=packages/ui && npm run test --workspace=packages/theme && npm run test --workspace=packages/types",
+    "test:turbo": "turbo test",
     "lint": "turbo lint"
   },
   "devDependencies": {

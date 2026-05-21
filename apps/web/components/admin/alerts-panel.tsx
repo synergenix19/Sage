@@ -41,7 +41,7 @@ export function AlertsPanel({ alerts, onAlertClick }: AlertsPanelProps) {
                   {alert.message}
                 </span>
                 <span className="flex-shrink-0 text-xs text-[var(--color-text-secondary)]">
-                  {new Date(alert.timestamp).toLocaleDateString()}
+                  {new Date(alert.timestamp).toLocaleDateString('en-GB')}
                 </span>
               </button>
             </li>
