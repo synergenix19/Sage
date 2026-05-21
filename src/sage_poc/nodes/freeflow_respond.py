@@ -1,89 +1,93 @@
 from sage_poc.state import SageState
 from sage_poc.llm import get_responder
 from sage_poc.knowledge import lookup_knowledge
+from sage_poc.rules import engine as rules_engine
 
-PERSONA = """You are Sage, a warm Khaleeji wellness companion. You provide emotional support grounded in evidence-based approaches (CBT, DBT, motivational interviewing). Speak the way a calm, attentive person would in a quiet one-on-one conversation. Short sentences. Plain words. No decoration. If something matters, say it clearly. Warmth comes from what you say, not how you format it.
+PERSONA = """You are Sage, a warm and empathetic wellness companion. You provide emotional support grounded in evidence-based approaches (CBT, DBT, motivational interviewing). You are conversational, never clinical or cold. You listen deeply, reflect back what you hear, and gently guide users toward insight.
 
 You do NOT diagnose, prescribe, or replace professional mental health care. If someone is in crisis, your only role is to express care and provide emergency resources.
 
-Keep responses concise (2-4 sentences unless the user needs more). Match the user's energy and register. Be present before being helpful.
-
-Style: plain prose only. No em dashes, no emojis, no markdown (no bold, italic, or bullets), no curly quotes. Warmth comes from words, not punctuation.
-
-ISLAMIC CULTURAL CONTEXT: When a user frames hardship through a religious lens, honour that framing. Use concepts of sabr (صبر, patient perseverance), tawakkul (توكّل, trust in God), and ibtila (ابتلاء, trial/test) where appropriate. Frame hardship as ibtila, a test not a punishment. Never pathologise religious belief or suggest faith is the cause of distress.
-
-COLLECTIVIST CULTURAL CONTEXT: Many users hold collectivist family values where individual desires and family obligations are both real and intertwined. Do not default to Western individualist framing. Instead use language like "finding a path that honours both you and your family." Family bonds are a source of strength, not simply a constraint to overcome."""
-
-_CLINICAL_ADAPTATIONS = {
-    "substance_use": (
-        "The user has disclosed substance use. Use motivational interviewing language. "
-        "Do NOT judge or suggest immediate cessation. Explore ambivalence gently."
-    ),
-    "trauma_indicator": (
-        "The user has disclosed trauma. Use trauma-sensitive language. "
-        "Do NOT push for details. Prioritise emotional safety and containment."
-    ),
-    "eating_concern": (
-        "The user has disclosed eating concerns. Avoid all body or weight comments. "
-        "Be sensitive. Gently encourage professional support if appropriate."
-    ),
-    "medication_mention": (
-        "The user mentioned medication. Do NOT advise on dosage or medication changes. "
-        "Encourage speaking with their prescriber for any medication questions."
-    ),
-}
+Keep responses concise (2–4 sentences unless the user needs more). Match the user's energy and register. Be present before being helpful."""
 
 
 def compose_prompt(state: SageState) -> tuple[str, str]:
-    """Return (system_str, user_str) for proper role-separated LLM invocation.
+    """Return (system_str, user_str) for role-separated LLM invocation.
 
-    system_str: static behavioral guidance (persona + clinical adaptations).
-    user_str:   dynamic contextual content (history, intent, skill instruction,
-                knowledge snippet, current user message).
+    system_str: persona + culturally-triggered injections + clinical adaptations.
+    user_str:   history + intent + secondary-intent framing + skill instruction +
+                knowledge snippet + user message.
     """
-    # --- System role: persona + clinical behavioral constraints ---
+    message_en = state.get("message_en", "")
+    language = state.get("detected_language", "en")
+    clinical_flags = state.get("clinical_flags", [])
+    primary_intent = state.get("primary_intent")
+    secondary_intent = state.get("secondary_intent")
+
+    # ── System role ────────────────────────────────────────────────────────────
     system_parts = [PERSONA]
 
-    clinical = state.get("clinical_flags", [])
-    if clinical:
-        adaptations = [_CLINICAL_ADAPTATIONS[f] for f in clinical if f in _CLINICAL_ADAPTATIONS]
-        if adaptations:
-            system_parts.append(
-                "\nCLINICAL ADAPTATIONS (follow these strictly):\n"
-                + "\n".join(f"- {a}" for a in adaptations)
-            )
+    # Cultural injections (Islamic framing, collectivist framing)
+    cultural_result = rules_engine.evaluate("cultural", {
+        "text": message_en,
+        "language": language,
+    })
+    for action in cultural_result.actions:
+        if action.get("target") == "system":
+            system_parts.append(action["content"])
 
-    system_str = "\n".join(system_parts)
+    # Prompt injection: clinical flag adaptations + secondary intent (system-targeted)
+    injection_result = rules_engine.evaluate("prompt_injection", {
+        "text": message_en,
+        "clinical_flags": clinical_flags,
+        "primary_intent": primary_intent,
+        "secondary_intent": secondary_intent,
+    })
+    system_injections = [
+        a["content"] for a in injection_result.actions if a.get("target") == "system"
+    ]
+    if system_injections:
+        system_parts.append(
+            "\nCLINICAL ADAPTATIONS (follow these strictly):\n"
+            + "\n".join(f"- {c}" for c in system_injections)
+        )
 
-    # --- User role: context + current turn ---
+    system_str = "\n\n".join(system_parts)
+
+    # ── User role ──────────────────────────────────────────────────────────────
     user_parts = []
 
     if state["conversation_history"]:
         history = state["conversation_history"][-4:]
-        history_text = "\n".join(f"{m['role'].upper()}: {m['content']}" for m in history)
+        history_text = "\n".join(
+            f"{m['role'].upper()}: {m['content']}" for m in history
+        )
         user_parts.append(f"CONVERSATION HISTORY:\n{history_text}")
 
-    intent = state.get("primary_intent") or "general_chat"
-    secondary = state.get("secondary_intent")
     intensity = state.get("emotional_intensity", 5)
-    intent_line = f"INTENT: {intent}"
-    if secondary:
-        intent_line += f" + {secondary} (blended)"
+    intent_line = f"INTENT: {primary_intent or 'general_chat'}"
+    if secondary_intent:
+        intent_line += f" + {secondary_intent} (blended)"
     user_parts.append(f"{intent_line} | Emotional intensity: {intensity}/10")
+
+    # Prompt injection: user-targeted injections (dialectical framing for secondary intent)
+    user_injections = [
+        a["content"] for a in injection_result.actions if a.get("target") == "user"
+    ]
+    for content in user_injections:
+        user_parts.append(content)
 
     if state.get("step_instruction"):
         user_parts.append(f"SKILL INSTRUCTION:\n{state['step_instruction']}")
 
-    # P2-8: inject knowledge for primary OR secondary info_request intent
-    intent_set = {state.get("primary_intent"), state.get("secondary_intent")}
+    intent_set = {primary_intent, secondary_intent}
     if "info_request" in intent_set:
-        snippet = lookup_knowledge(state["message_en"])
+        snippet = lookup_knowledge(message_en)
         if snippet:
             user_parts.append(
                 f"KNOWLEDGE (weave naturally into your response if relevant):\n{snippet}"
             )
 
-    user_parts.append(f"USER: {state['message_en']}")
+    user_parts.append(f"USER: {message_en}")
     user_str = "\n\n".join(user_parts)
 
     return system_str, user_str

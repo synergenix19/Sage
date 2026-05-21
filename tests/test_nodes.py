@@ -1356,21 +1356,43 @@ def test_persona_contains_crisis_handoff_constraint():
 
 
 def test_persona_contains_islamic_cultural_context():
-    """PERSONA must include Islamic cultural framing (sabr, tawakkul, ibtila)."""
-    from sage_poc.nodes.freeflow_respond import PERSONA
-    assert "sabr" in PERSONA or "صبر" in PERSONA, \
-        "PERSONA must include Islamic cultural context (sabr)"
-    assert "tawakkul" in PERSONA or "توكّل" in PERSONA, \
-        "PERSONA must include Islamic cultural context (tawakkul)"
+    """Islamic framing (sabr, tawakkul, ibtila) must be engine-injected into system_str
+    when the user message contains a faith keyword. The PERSONA string itself no longer
+    embeds these terms — they are conditionally added by the Rules Service (CU-IS-001).
+    """
+    from sage_poc.nodes.freeflow_respond import compose_prompt
+    state = make_state(
+        message_en="I feel like my faith in allah is fading",
+        primary_intent="general_chat",
+        conversation_history=[],
+        emotional_intensity=5,
+        clinical_flags=[],
+    )
+    system_str, _ = compose_prompt(state)
+    assert "sabr" in system_str or "صبر" in system_str, \
+        "compose_prompt must inject Islamic framing (sabr) when faith keyword present"
+    assert "tawakkul" in system_str or "توكّل" in system_str, \
+        "compose_prompt must inject Islamic framing (tawakkul) when faith keyword present"
 
 
 def test_persona_contains_collectivist_framing():
-    """PERSONA must include collectivist family framing and avoid Western individualist defaults."""
-    from sage_poc.nodes.freeflow_respond import PERSONA
-    assert "collectivist" in PERSONA.lower() or "family" in PERSONA.lower(), \
-        "PERSONA must include collectivist cultural framing"
-    assert "set yourself free from family" not in PERSONA.lower(), \
-        "PERSONA must not use individualist 'free from family' framing"
+    """Collectivist family framing must be engine-injected into system_str when the
+    user message contains a family/duty keyword. PERSONA no longer embeds this text —
+    it is conditionally added by the Rules Service (CU-CO-001).
+    """
+    from sage_poc.nodes.freeflow_respond import compose_prompt
+    state = make_state(
+        message_en="My family expects me to become a doctor",
+        primary_intent="general_chat",
+        conversation_history=[],
+        emotional_intensity=5,
+        clinical_flags=[],
+    )
+    system_str, _ = compose_prompt(state)
+    assert "collectivist" in system_str.lower() or "family" in system_str.lower(), \
+        "compose_prompt must inject collectivist framing when family keyword present"
+    assert "set yourself free from family" not in system_str.lower(), \
+        "Individualist 'free from family' framing must never appear in system role"
 
 
 def test_compose_prompt_system_role_contains_full_persona():
