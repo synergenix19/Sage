@@ -28,9 +28,9 @@ KNOWN_HITS = [
     ("I feel like such a disappointment to everyone", "cbt_thought_record"),
     ("why can't I just be normal", "cbt_thought_record"),
     # Grounding — none of these contain a grounding keyword
-    ("my heart is pounding so hard and I feel faint", "grounding_5_4_3_2_1"),
+    ("I am so dizzy I can barely stand and everything feels unstable", "grounding_5_4_3_2_1"),  # replaced "my heart is pounding so hard and I feel faint" — 'heart is pounding' moved to keyword tier (Task C)
     ("my body is shaking and I can not catch my breath", "grounding_5_4_3_2_1"),  # replaced "I feel like I'm dissociating" — moved to keyword tier (Task C); self-referential dissociation phrases cross-matched CBT (scored 0.5209–0.5463)
-    ("I feel completely overwhelmed, my head is spinning", "grounding_5_4_3_2_1"),
+    ("my hands are trembling and I cannot catch my breath properly", "grounding_5_4_3_2_1"),  # replaced "I feel completely overwhelmed, my head is spinning" — 'spinning' keyword present since skill creation (pre-Task C contamination)
     # Sleep — none of these contain a sleep keyword
     ("I am exhausted but my mind will not stop racing at bedtime", "sleep_hygiene"),
     ("my brain just won't let me rest when it's dark", "sleep_hygiene"),  # replaced "I am tired all day but wide awake at night" — moved to keyword tier (Task C)
