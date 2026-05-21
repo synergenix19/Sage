@@ -7,7 +7,7 @@
       "authored_by": "sage_clinics",
       "effective_date": "2026-05-21",
       "active": true,
-      "description": "Warn when user used Islamic vocabulary but response contains no Islamic vocabulary, mirroring may have failed",
+      "description": "Warn when user used Islamic vocabulary but response contains no Islamic vocabulary, mirroring may have failed. NOTE: Arabic-script entries in condition_keywords and patterns require normalize_arabic() normalization in the engine to work correctly for Arabic-native input. POC operates on message_en and response_en (English), so romanized forms (allah, inshallah, etc.) cover all current use cases.",
       "category": "cultural_output",
       "check_type": "allowlist_required",
       "condition_type": "keyword_in_message",
