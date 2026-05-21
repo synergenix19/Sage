@@ -164,31 +164,31 @@ def _freeflow_state(**overrides):
 
 def test_islamic_framing_injected_when_faith_keyword_present():
     state = _freeflow_state(message_en="I feel my faith in allah is fading")
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "ISLAMIC" in system_str or "sabr" in system_str or "ibtila" in system_str
 
 
 def test_no_islamic_framing_without_faith_keyword():
     state = _freeflow_state(message_en="I feel really anxious today")
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "ibtila" not in system_str
 
 
 def test_collectivist_framing_injected_when_family_keyword_present():
     state = _freeflow_state(message_en="My family expects me to be an engineer")
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "COLLECTIVIST" in system_str or "honour" in system_str or "COLLECTIVIST" in system_str.upper()
 
 
 def test_clinical_adaptation_substance_injected_from_flag():
     state = _freeflow_state(clinical_flags=["substance_use"])
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "motivational interviewing" in system_str.lower() or "substance" in system_str.lower()
 
 
 def test_substance_use_uae_legal_context_injected():
     state = _freeflow_state(clinical_flags=["substance_use"])
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "legal" in system_str.lower() or "uae" in system_str.lower(), (
         "PI-CF-001 must include UAE legal context for substance use"
     )
@@ -201,7 +201,7 @@ def test_substance_use_uae_legal_context_injected():
 ])
 def test_clinical_adaptation_injected_per_flag(flag, expected_keyword):
     state = _freeflow_state(clinical_flags=[flag])
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert expected_keyword in system_str.lower(), (
         f"Expected {expected_keyword!r} in system prompt for {flag}"
     )
@@ -215,7 +215,7 @@ def test_collectivist_framing_fires_on_arabic_keyword():
         raw_message="أحس بالعيب",
         detected_language="ar",
     )
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "COLLECTIVIST" in system_str, (
         "Collectivist framing must fire on Arabic keyword عيب even without matching English translation"
     )
@@ -226,19 +226,19 @@ def test_secondary_intent_dialectical_framing_injected():
         primary_intent="new_skill",
         secondary_intent="info_request",
     )
-    _, user_str = compose_prompt(state)
+    _, user_str, _ = compose_prompt(state)
     assert "SECONDARY INTENT" in user_str or "dialectical" in user_str.lower()
 
 
 def test_no_secondary_intent_framing_when_none():
     state = _freeflow_state(primary_intent="new_skill", secondary_intent=None)
-    _, user_str = compose_prompt(state)
+    _, user_str, _ = compose_prompt(state)
     assert "SECONDARY INTENT" not in user_str
 
 
 def test_domestic_situation_adaptation_injected():
     state = _freeflow_state(clinical_flags=["domestic_situation"])
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "safety" in system_str.lower() or "800111" in system_str or "domestic" in system_str.lower(), (
         "Domestic situation adaptation must reference safety or UAE resource"
     )
@@ -271,7 +271,7 @@ def test_third_party_overrides_direct_crisis_flag():
 
 def test_third_party_guidance_injected_into_prompt():
     state = _freeflow_state(clinical_flags=["third_party_si"])
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "friend" in system_str.lower() or "third" in system_str.lower() or "support" in system_str.lower()
 
 
@@ -292,7 +292,7 @@ def test_post_crisis_session_injection_fires_on_subsequent_safe_turn():
         message_en="I feel a bit better today",
         crisis_state="monitoring",
     )
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "POST-CRISIS" in system_str, (
         "Post-crisis injection must appear in system prompt when crisis_state='monitoring'"
     )
@@ -304,7 +304,7 @@ def test_post_crisis_injection_absent_on_normal_session():
         message_en="I feel anxious today",
         crisis_state="none",
     )
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "POST-CRISIS" not in system_str
 
 
@@ -340,14 +340,14 @@ def test_escalating_distress_not_triggered_with_only_two_high_turns():
 def test_cumulative_distress_injection_fires_on_flag():
     """PI-CD-001 must inject cumulative distress guidance when escalating_distress flag is present."""
     state = _freeflow_state(clinical_flags=["escalating_distress"])
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "CUMULATIVE DISTRESS" in system_str
 
 
 def test_islamic_framing_absent_for_generic_prayer():
     """'I pray to God every day' must NOT inject Islamic framing (no allah/quran etc)."""
     state = _freeflow_state(message_en="I pray to God every day")
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "sabr" not in system_str and "ibtila" not in system_str and "tawakkul" not in system_str, (
         "Generic prayer without Islamic keywords must not trigger CU-IS-001"
     )
@@ -356,7 +356,7 @@ def test_islamic_framing_absent_for_generic_prayer():
 def test_generic_religious_framing_fires_on_god_keyword():
     """Generic spiritual framing (CU-RG-001) must fire for universal religious language."""
     state = _freeflow_state(message_en="I pray to God every day")
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "spiritual" in system_str.lower() or "faith" in system_str.lower() or "religious" in system_str.lower(), (
         "CU-RG-001 must inject generic religious context for 'god'/'prayer' keywords"
     )
@@ -369,7 +369,7 @@ def test_shame_framing_fires_on_arabic_ayb():
         message_en="It is shameful to talk about my problems",
         detected_language="ar",
     )
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "shame" in system_str.lower() or "social" in system_str.lower() or "bond" in system_str.lower(), (
         "CU-SH-001 must fire on Arabic عيب and inject shame-specific framing"
     )
@@ -378,7 +378,7 @@ def test_shame_framing_fires_on_arabic_ayb():
 def test_shame_framing_fires_on_english_disgrace():
     """CU-SH-001 must fire on English shame/disgrace keywords."""
     state = _freeflow_state(message_en="I would bring disgrace to my family if they knew")
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "shame" in system_str.lower() or "social" in system_str.lower(), (
         "CU-SH-001 must fire on 'disgrace' keyword"
     )
@@ -387,14 +387,14 @@ def test_shame_framing_fires_on_english_disgrace():
 def test_shame_framing_absent_for_generic_sad():
     """CU-SH-001 must NOT fire for generic sadness without shame/disgrace keywords."""
     state = _freeflow_state(message_en="I feel sad and hopeless today")
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "social bond" not in system_str.lower()
 
 
 def test_ramadan_framing_fires_on_ramadan_keyword():
     """CU-RR-001 must inject Ramadan context when 'Ramadan' or 'fasting' detected."""
     state = _freeflow_state(message_en="I'm exhausted and irritable during Ramadan")
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "ramadan" in system_str.lower() or "fasting" in system_str.lower(), (
         "CU-RR-001 must inject Ramadan framing for 'Ramadan' keyword"
     )
@@ -407,14 +407,14 @@ def test_ramadan_framing_fires_on_arabic_ramadan():
         message_en="Ramadan this year is very tiring",
         detected_language="ar",
     )
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "ramadan" in system_str.lower() or "fasting" in system_str.lower()
 
 
 def test_ramadan_framing_absent_without_keyword():
     """CU-RR-001 must NOT fire for generic tiredness without Ramadan/fasting keywords."""
     state = _freeflow_state(message_en="I'm exhausted and can't sleep")
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "ramadan" not in system_str.lower()
 
 
@@ -425,7 +425,7 @@ def test_dialect_mirroring_fires_on_khaleeji_wayed():
         message_en="I am very tired today",
         detected_language="ar",
     )
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "DIALECT" in system_str, (
         "CU-DM-001 must inject DIALECT instruction for Khaleeji وايد"
     )
@@ -438,7 +438,7 @@ def test_dialect_mirroring_fires_on_shloun():
         message_en="How do I deal with this topic?",
         detected_language="ar",
     )
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "DIALECT" in system_str
 
 
@@ -449,7 +449,7 @@ def test_dialect_mirroring_absent_for_msa():
         message_en="I feel intense anxiety today",
         detected_language="ar",
     )
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "DIALECT" not in system_str
 
 
@@ -486,7 +486,7 @@ def test_code_switch_rule_fires_on_mixed_arabic_english():
         detected_language="ar",
         code_switching=True,
     )
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "CODE-SWITCHING" in system_str, (
         "CU-CS-001 must inject code-switching instruction when code_switching=True in state"
     )
@@ -500,7 +500,7 @@ def test_code_switch_rule_absent_for_pure_arabic():
         detected_language="ar",
         code_switching=False,
     )
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "CODE-SWITCHING" not in system_str
 
 
@@ -524,7 +524,7 @@ def test_existing_cultural_rules_unaffected_by_schema_change():
     from sage_poc.rules.loader import reload_all
     reload_all()
     state = _freeflow_state(message_en="I feel my faith in allah is fading")
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "ISLAMIC" in system_str or "sabr" in system_str or "ibtila" in system_str, (
         "Existing CU-IS-001 must still fire after schema change (backward compat)"
     )
@@ -562,7 +562,7 @@ def test_code_switch_rule_fires_alongside_islamic_rule():
         message_en="I feel allah has abandoned me today",
         code_switching=True,
     )
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "CODE-SWITCHING" in system_str, (
         "CU-CS-001 must inject code-switching context even when CU-IS-001 also fires"
     )

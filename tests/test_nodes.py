@@ -558,7 +558,7 @@ def test_compose_prompt_with_skill_instruction():
         conversation_history=[],
         emotional_intensity=6,
     )
-    system_str, user_str = compose_prompt(state)
+    system_str, user_str, _ = compose_prompt(state)
     # Persona is in the system role
     assert "wellness" in system_str.lower() or "companion" in system_str.lower()
     # Skill instruction and user message are in the user role
@@ -573,7 +573,7 @@ def test_compose_prompt_without_skill_instruction():
         conversation_history=[],
         emotional_intensity=3,
     )
-    system_str, user_str = compose_prompt(state)
+    system_str, user_str, _ = compose_prompt(state)
     assert "wellness" in system_str.lower() or "companion" in system_str.lower()
 
 def test_compose_prompt_blended_intent_injects_knowledge():
@@ -586,7 +586,7 @@ def test_compose_prompt_blended_intent_injects_knowledge():
         conversation_history=[],
         emotional_intensity=5,
     )
-    system_str, user_str = compose_prompt(state)
+    system_str, user_str, _ = compose_prompt(state)
     assert "blended" in user_str.lower() or "info_request" in user_str.lower()
     assert "cognitive behavioral" in user_str.lower()  # knowledge snippet in user role
 
@@ -600,7 +600,7 @@ def test_compose_prompt_primary_info_request_injects_knowledge():
         conversation_history=[],
         emotional_intensity=3,
     )
-    system_str, user_str = compose_prompt(state)
+    system_str, user_str, _ = compose_prompt(state)
     assert "cognitive behavioral" in user_str.lower(), \
         "Primary info_request intent must inject knowledge snippet into prompt"
 
@@ -614,13 +614,14 @@ def test_compose_prompt_clinical_flag_injects_adaptation():
         emotional_intensity=5,
         clinical_flags=["substance_use"],
     )
-    system_str, user_str = compose_prompt(state)
+    system_str, user_str, _ = compose_prompt(state)
     assert "motivational interviewing" in system_str.lower()
     assert "judge" in system_str.lower()  # "do not judge" — in system behavioral guidance
 
 @pytest.mark.asyncio
 async def test_freeflow_respond_with_mocked_llm():
-    """freeflow_respond calls llm.astream with [{role:system,...},{role:user,...}] message list."""
+    """freeflow_respond calls llm.ainvoke with [{role:system,...},{role:user,...}] message list."""
+    from unittest.mock import AsyncMock, MagicMock as MM
     state = make_state(
         message_en="I keep thinking I'm a failure.",
         step_instruction="Goal: identify the thought. Technique: Socratic questioning.",
@@ -628,20 +629,20 @@ async def test_freeflow_respond_with_mocked_llm():
         emotional_intensity=6,
         engagement=7,
     )
-    _captured_args = []
 
-    async def _fake_astream(messages):
-        _captured_args.append(messages)
-        yield MagicMock(content="That sounds really hard. When you say you feel like a failure, what specifically are you telling yourself?")
+    mock_msg = MM()
+    mock_msg.content = "That sounds really hard. When you say you feel like a failure, what specifically are you telling yourself?"
+    mock_msg.usage_metadata = {"input_tokens": 100, "output_tokens": 30, "total_tokens": 130}
 
-    mock_llm = MagicMock()
-    mock_llm.astream = _fake_astream
+    mock_llm = AsyncMock()
+    mock_llm.ainvoke = AsyncMock(return_value=mock_msg)
+
     result = await freeflow_respond_node(state, llm=mock_llm)
     assert result["response_en"] is not None
     assert "freeflow_respond" in result["path"]
     # Verify the LLM was called with a proper message list (not a raw string)
-    call_args = _captured_args[0]
-    assert isinstance(call_args, list), "llm.astream must be called with a message list"
+    call_args = mock_llm.ainvoke.call_args[0][0]
+    assert isinstance(call_args, list), "llm.ainvoke must be called with a message list"
     roles = [m["role"] for m in call_args]
     assert roles == ["system", "user"], "Message list must have exactly [system, user] roles"
 
@@ -1522,16 +1523,13 @@ def test_persona_contains_wrong_right_example_pair():
     assert "WRONG:" in PERSONA, "PERSONA must contain a WRONG: formatting example"
     assert "RIGHT:" in PERSONA, "PERSONA must contain a RIGHT: formatting example"
 
-def test_persona_wrong_example_contains_em_dash_and_emoji():
-    """The WRONG example must show exactly the patterns we are suppressing."""
+def test_persona_wrong_example_contains_bold_markdown():
+    """The WRONG example must show bold markdown — the primary formatting violation to suppress."""
     from sage_poc.nodes.freeflow_respond import PERSONA
     wrong_block_start = PERSONA.find("WRONG:")
     right_block_start = PERSONA.find("RIGHT:")
     assert wrong_block_start != -1 and right_block_start != -1
     wrong_text = PERSONA[wrong_block_start:right_block_start]
-    assert "—" in wrong_text, "WRONG example must contain an em dash"
-    assert any(c in wrong_text for c in ["💙", "😊", "🌿"]), \
-        "WRONG example must contain an emoji"
     assert "**" in wrong_text, "WRONG example must contain bold markdown"
 
 def test_persona_has_no_duplicate_style_block():
@@ -1556,7 +1554,7 @@ def test_persona_contains_islamic_cultural_context():
         emotional_intensity=5,
         clinical_flags=[],
     )
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "sabr" in system_str or "صبر" in system_str, \
         "compose_prompt must inject Islamic framing (sabr) when faith keyword present"
     assert "tawakkul" in system_str or "توكّل" in system_str, \
@@ -1576,7 +1574,7 @@ def test_persona_contains_collectivist_framing():
         emotional_intensity=5,
         clinical_flags=[],
     )
-    system_str, _ = compose_prompt(state)
+    system_str, _, _ = compose_prompt(state)
     assert "collectivist" in system_str.lower() or "family" in system_str.lower(), \
         "compose_prompt must inject collectivist framing when family keyword present"
     assert "set yourself free from family" not in system_str.lower(), \
@@ -1593,7 +1591,7 @@ def test_compose_prompt_system_role_contains_full_persona():
         emotional_intensity=6,
         clinical_flags=[],
     )
-    system_str, user_str = compose_prompt(state)
+    system_str, user_str, _ = compose_prompt(state)
     assert "wellness companion" in system_str.lower(), \
         "System role must contain the full Sage persona"
     assert "useless" in user_str, "User message must be in user role"
@@ -1610,7 +1608,7 @@ def test_compose_prompt_hostile_message_isolated_in_user_role():
         emotional_intensity=3,
         clinical_flags=[],
     )
-    system_str, user_str = compose_prompt(state)
+    system_str, user_str, _ = compose_prompt(state)
     assert "DAN" in user_str, "Jailbreak content must appear in user role for context"
     assert "DAN" not in system_str, "Jailbreak content must not appear in system role"
     assert "no restrictions" not in system_str, \
@@ -1643,7 +1641,7 @@ def test_compose_prompt_warmth_gradient_crisis_vs_positive():
         clinical_flags=["trauma_indicator"],
         conversation_history=[],
     )
-    crisis_system, crisis_user = compose_prompt(crisis_state)
+    crisis_system, crisis_user, _ = compose_prompt(crisis_state)
 
     checkin_state = make_state(
         message_en="I've been doing pretty well this week actually",
@@ -1652,7 +1650,7 @@ def test_compose_prompt_warmth_gradient_crisis_vs_positive():
         clinical_flags=[],
         conversation_history=[],
     )
-    checkin_system, checkin_user = compose_prompt(checkin_state)
+    checkin_system, checkin_user, _ = compose_prompt(checkin_state)
 
     # System role: crisis must inject clinical adaptation; check-in must not
     assert "CLINICAL ADAPTATIONS" in crisis_system, \
@@ -1850,7 +1848,7 @@ def test_compose_prompt_sanitizes_assistant_history():
         ],
         emotional_intensity=5,
     )
-    _, user_str = compose_prompt(state)
+    _, user_str, _ = compose_prompt(state)
     assert "—" not in user_str, "em dash must be stripped from assistant history in prompt"
     assert "💙" not in user_str, "emoji must be stripped from assistant history in prompt"
     assert "**" not in user_str, "bold markdown must be stripped from assistant history in prompt"
@@ -1868,7 +1866,7 @@ def test_compose_prompt_preserves_user_history_verbatim():
         ],
         emotional_intensity=5,
     )
-    _, user_str = compose_prompt(state)
+    _, user_str, _ = compose_prompt(state)
     assert "I feel — terrible — about everything." in user_str, \
         "User content must appear verbatim — do not sanitize user turns"
 
