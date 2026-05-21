@@ -1,0 +1,26 @@
+{
+  "category": "cultural",
+  "rules": [
+    {
+      "rule_id": "CU-IS-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Inject Islamic framing when user expresses faith context",
+      "category": "cultural",
+      "trigger_keywords": [
+        "god", "allah", "muslim", "islam", "islamic", "faith", "prayer", "pray",
+        "religious", "spiritual", "religion", "quran", "haram", "halal", "inshallah",
+        "الله", "الإسلام", "مسلم", "صلاة", "دين", "إيمان", "الحمد لله", "إن شاء الله"
+      ],
+      "language": "any",
+      "action": {
+        "type": "prompt_injection",
+        "target": "system",
+        "layer": "L2",
+        "content": "ISLAMIC CULTURAL CONTEXT: The user is framing their experience through their faith. Use concepts of sabr (صبر — patient perseverance through trials), tawakkul (توكّل — trust in God), and ibtila (ابتلاء — viewing hardship as a test, not a punishment). Affirm their faith perspective; do NOT pathologize religious belief or suggest faith is the cause of distress. If they express spiritual guilt, explore it gently without reinforcing shame."
+      }
+    }
+  ]
+}

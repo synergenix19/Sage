@@ -1,0 +1,73 @@
+{
+  "category": "prompt_injection",
+  "rules": [
+    {
+      "rule_id": "PI-CF-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Motivational interviewing for substance_use flag",
+      "category": "prompt_injection",
+      "trigger_type": "flag_present",
+      "trigger_value": "substance_use",
+      "trigger_keywords": [],
+      "action": {
+        "type": "inject",
+        "target": "system",
+        "content": "CLINICAL ADAPTATION (substance use): The user has disclosed substance use. Use motivational interviewing language. Do NOT judge or suggest immediate cessation. Explore ambivalence gently."
+      }
+    },
+    {
+      "rule_id": "PI-CF-002",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Trauma-sensitive language for trauma_indicator flag",
+      "category": "prompt_injection",
+      "trigger_type": "flag_present",
+      "trigger_value": "trauma_indicator",
+      "trigger_keywords": [],
+      "action": {
+        "type": "inject",
+        "target": "system",
+        "content": "CLINICAL ADAPTATION (trauma): The user has disclosed trauma. Use trauma-sensitive language. Do NOT push for details. Prioritise emotional safety and containment."
+      }
+    },
+    {
+      "rule_id": "PI-CF-003",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Body-neutral language for eating_concern flag",
+      "category": "prompt_injection",
+      "trigger_type": "flag_present",
+      "trigger_value": "eating_concern",
+      "trigger_keywords": [],
+      "action": {
+        "type": "inject",
+        "target": "system",
+        "content": "CLINICAL ADAPTATION (eating concern): The user has disclosed eating concerns. Avoid all body or weight comments. Be sensitive. Gently encourage professional support if appropriate."
+      }
+    },
+    {
+      "rule_id": "PI-CF-004",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "No medication advice for medication_mention flag",
+      "category": "prompt_injection",
+      "trigger_type": "flag_present",
+      "trigger_value": "medication_mention",
+      "trigger_keywords": [],
+      "action": {
+        "type": "inject",
+        "target": "system",
+        "content": "CLINICAL ADAPTATION (medication): The user mentioned medication. Do NOT advise on dosage or medication changes. Encourage speaking with their prescriber for any medication questions."
+      }
+    }
+  ]
+}

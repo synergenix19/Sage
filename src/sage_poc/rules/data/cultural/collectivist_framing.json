@@ -1,0 +1,26 @@
+{
+  "category": "cultural",
+  "rules": [
+    {
+      "rule_id": "CU-CO-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Inject collectivist framing when family or duty context is detected",
+      "category": "cultural",
+      "trigger_keywords": [
+        "family", "parents", "mother", "father", "brother", "sister", "husband", "wife",
+        "expectation", "expectations", "duty", "obligation", "pressure", "honor", "shame",
+        "عائلة", "أهل", "والدين", "أم", "أب", "أخ", "أخت", "واجب", "التزام", "شرف", "عيب"
+      ],
+      "language": "any",
+      "action": {
+        "type": "prompt_injection",
+        "target": "system",
+        "layer": "L2",
+        "content": "COLLECTIVIST CULTURAL CONTEXT: The user is navigating family bonds and collective obligations. Do NOT apply Western individualist framing ('prioritize your own needs over family'). Hold space for BOTH the user's individual feelings AND the legitimacy of family roles. Use language like: 'It sounds like both your own sense of direction AND your family's expectations matter deeply to you — finding a path that honours both is real work.' Do NOT pathologize family bonds or treat them simply as constraints to overcome."
+      }
+    }
+  ]
+}

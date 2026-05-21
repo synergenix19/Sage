@@ -1,0 +1,22 @@
+{
+  "category": "prompt_injection",
+  "rules": [
+    {
+      "rule_id": "PI-SI-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "DBT dialectical framing when any secondary intent is present",
+      "category": "prompt_injection",
+      "trigger_type": "secondary_intent_present",
+      "trigger_value": null,
+      "trigger_keywords": [],
+      "action": {
+        "type": "inject",
+        "target": "user",
+        "content": "SECONDARY INTENT PRESENT: Use DBT dialectical framing — two things can be true at once. Address BOTH the primary and secondary emotion/need explicitly in your response. Example framing: 'It makes sense that you feel [primary emotion] AND that you also [secondary need]. Both are real and valid.'"
+      }
+    }
+  ]
+}
