@@ -1,5 +1,4 @@
 from __future__ import annotations
-import re
 from sage_poc.rules.schemas import (
     SafetyRule, CrisisContentRule, CulturalRule, PromptInjectionRule,
     EvalResult, FiredRule,
