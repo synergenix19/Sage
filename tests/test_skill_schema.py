@@ -29,3 +29,14 @@ def test_skill_policy_rule_structure():
         assert rule.condition.value is not None
         assert rule.action
         assert rule.instruction
+
+
+def test_post_crisis_check_in_skill_loads_and_validates():
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("post_crisis_check_in")
+    assert skill.skill_id == "post_crisis_check_in"
+    assert len(skill.steps) == 2
+    assert skill.steps[0].step_id == "acknowledge_and_check"
+    assert skill.steps[1].step_id == "bridge_or_close"
+    assert skill.target_presentations == []
+    assert skill.semantic_description == ""

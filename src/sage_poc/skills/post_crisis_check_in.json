@@ -1,0 +1,51 @@
+{
+  "skill_id": "post_crisis_check_in",
+  "skill_name": "Post-Crisis Check-In",
+  "skill_type": "structured",
+  "evidence_base": "ASIST (2018); SafeTALK; SAMHSA Safe Messaging Guidelines (2023)",
+  "target_presentations": [],
+  "semantic_description": "",
+  "steps": [
+    {
+      "step_id": "acknowledge_and_check",
+      "goal": "Acknowledge what the user has been through and gently check in on how they are right now",
+      "technique": "Active listening, validation, open check-in",
+      "tone": "warm, unhurried, non-intrusive",
+      "examples": [
+        "I am really glad you are still here. How are you feeling right now, compared to a little while ago?",
+        "That was a lot. I want to make sure you are okay. How are you doing in this moment?",
+        "You have been through something difficult. I am here. How does it feel right now?"
+      ]
+    },
+    {
+      "step_id": "bridge_or_close",
+      "goal": "Based on how the user responds, either bridge toward continued support or gently close the check-in",
+      "technique": "Safety planning bridge or warm closure",
+      "tone": "warm, steady, forward-looking",
+      "examples": [
+        "It sounds like things are a little steadier now. Is there anything you would find helpful to talk through?",
+        "I am glad you are feeling calmer. If things get harder again, I am right here, and support is also available at 800 46342.",
+        "You do not have to have everything figured out right now. I am here whenever you want to talk."
+      ]
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
+      "action": "validate_only",
+      "instruction": "The user is still highly distressed. Stay present and validating. Do not attempt to move forward. Express that you are here and that support is also available at 800 46342.",
+      "next_step_id": "current"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit skill gracefully if user explicitly requests to stop",
+    "L2": "Add clinician_review flag if trauma or substance mention detected",
+    "L3": "Exit immediately to crisis protocol if any new crisis signal",
+    "L4": "Trigger human handoff if 3 or more crises detected in last 30 days"
+  }
+}
