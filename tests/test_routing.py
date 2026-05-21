@@ -103,3 +103,54 @@ def test_route_intent_confidence_boundary_059_is_low():
     """0.59 (< 0.6) must route to low_confidence."""
     state = make_full_state(primary_intent="general_chat", intent_confidence=0.59)
     assert _route_after_intent(state) == "low_confidence"
+
+
+# --- _route_after_safety with monitoring state ---
+
+def test_route_safe_in_monitoring_when_s1_s6_safe_and_s7_recovering():
+    """In monitoring state with S1-S6 clear and S7=RECOVERING, route to safe."""
+    state = make_full_state(
+        is_safe=True,
+        crisis_state="monitoring",
+        s7_result="RECOVERING",
+    )
+    assert _route_after_safety(state) == "safe"
+
+
+def test_route_safe_in_monitoring_when_s7_still_distressed():
+    """STILL_DISTRESSED does NOT re-route to crisis -- post_crisis_check_in handles it."""
+    state = make_full_state(
+        is_safe=True,
+        crisis_state="monitoring",
+        s7_result="STILL_DISTRESSED",
+    )
+    assert _route_after_safety(state) == "safe"
+
+
+def test_route_safe_in_monitoring_when_s7_unclear():
+    state = make_full_state(
+        is_safe=True,
+        crisis_state="monitoring",
+        s7_result="UNCLEAR",
+    )
+    assert _route_after_safety(state) == "safe"
+
+
+def test_route_crisis_in_monitoring_when_s7_new_crisis():
+    """S7=NEW_CRISIS re-routes to crisis even when S1-S6 didn't fire."""
+    state = make_full_state(
+        is_safe=True,
+        crisis_state="monitoring",
+        s7_result="NEW_CRISIS",
+    )
+    assert _route_after_safety(state) == "crisis"
+
+
+def test_route_crisis_in_monitoring_when_s1_s6_fire():
+    """Direct S1-S6 crisis flag always routes to crisis regardless of monitoring state."""
+    state = make_full_state(
+        is_safe=False,
+        crisis_state="monitoring",
+        s7_result="STILL_DISTRESSED",
+    )
+    assert _route_after_safety(state) == "crisis"

@@ -63,11 +63,18 @@ def _crisis_response_node(state: SageState) -> dict:
         "path": path,
         "conversation_history": history,
         "turn_count": state.get("turn_count", 0) + 1,
-        "crisis_occurred_this_session": True,
+        "crisis_state": "monitoring",
+        "s7_result": None,
+        "s7_method": None,
     }
 
 
 def _route_after_safety(state: SageState) -> str:
+    if state.get("crisis_state") == "monitoring":
+        # In monitoring: only re-escalate if S1-S6 fired directly or S7 classified a new crisis
+        if not state["is_safe"] or state.get("s7_result") == "NEW_CRISIS":
+            return "crisis"
+        return "safe"
     return "safe" if state["is_safe"] else "crisis"
 
 
