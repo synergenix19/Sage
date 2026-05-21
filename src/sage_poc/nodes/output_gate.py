@@ -82,6 +82,9 @@ def output_gate_node(state: SageState) -> dict:
             "emotional_intensity": state.get("emotional_intensity"),
             "engagement": state.get("engagement"),
             "is_safe": state.get("is_safe"),
+            "crisis_state": state.get("crisis_state", "none"),
+            "s7_result": state.get("s7_result"),
+            "s7_method": state.get("s7_method"),
             "clinical_flags": state.get("clinical_flags", []),
             "escalation": state.get("escalation_triggered"),
         }

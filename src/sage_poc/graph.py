@@ -96,6 +96,9 @@ def _route_after_intent(state: SageState) -> str:
         return "skill_select"
     if intent == "skill_continuation" and state.get("active_skill_id"):
         return "skill_executor"
+    # Post-crisis monitoring: route through skill_select so it can auto-select post_crisis_check_in
+    if state.get("crisis_state") == "monitoring":
+        return "skill_select"
     return "freeflow"
 
 
