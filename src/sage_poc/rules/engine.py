@@ -20,6 +20,29 @@ def _has_negation(text_lower: str, match_start: int) -> bool:
     return any(neg in window for neg in _NEGATION_WORDS)
 
 
+def _apply_suppressions(result: EvalResult) -> EvalResult:
+    """Post-filter: mark crisis_flag actions suppressed when a crisis_suppress rule also fired."""
+    suppress_actions = [
+        r.action for r in result.fired
+        if r.action.get("type") == "crisis_suppress"
+    ]
+    if not suppress_actions:
+        return result
+
+    suppressed_flag_ids = {
+        flag_id
+        for action in suppress_actions
+        for flag_id in action.get("suppresses", [])
+    }
+
+    for rule in result.fired:
+        if (rule.action.get("type") == "crisis_flag"
+                and rule.action.get("flag_id") in suppressed_flag_ids):
+            rule.suppressed = True
+
+    return result
+
+
 def _eval_safety(rules: list[SafetyRule], context: dict) -> EvalResult:
     """
     Evaluate safety rules. All matching rules fire (OR-semantics for crisis detection,
@@ -69,7 +92,7 @@ def _eval_safety(rules: list[SafetyRule], context: dict) -> EvalResult:
             ))
             matched = True
 
-    return result
+    return _apply_suppressions(result)
 
 
 def _eval_crisis_content(rules: list[CrisisContentRule], context: dict) -> EvalResult:

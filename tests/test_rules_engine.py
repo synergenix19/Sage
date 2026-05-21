@@ -224,3 +224,69 @@ def test_evaluate_dispatches_to_safety(monkeypatch):
 def test_evaluate_raises_on_unknown_category():
     with pytest.raises(ValueError, match="Unknown rule category"):
         engine.evaluate("nonexistent", {})
+
+
+# ── Suppression modifier ─────────────────────────────────────────────────────
+
+def test_apply_suppressions_marks_suppressed_flag():
+    from sage_poc.rules.engine import _apply_suppressions
+    from sage_poc.rules.schemas import FiredRule, EvalResult
+    crisis = FiredRule("SK-AR-001", "1.0.0", {"type": "crisis_flag", "flag_id": "si_passive"})
+    suppressor = FiredRule("FPE-AR-001", "1.0.0", {"type": "crisis_suppress", "suppresses": ["si_passive"]})
+    result = EvalResult(fired=[crisis, suppressor])
+    result = _apply_suppressions(result)
+    assert crisis.suppressed is True
+    assert suppressor.suppressed is False
+
+
+def test_apply_suppressions_leaves_non_matching_flag_active():
+    from sage_poc.rules.engine import _apply_suppressions
+    from sage_poc.rules.schemas import FiredRule, EvalResult
+    explicit = FiredRule("SK-EN-001", "1.0.0", {"type": "crisis_flag", "flag_id": "si_explicit"})
+    suppressor = FiredRule("FPE-AR-001", "1.0.0", {"type": "crisis_suppress", "suppresses": ["si_passive"]})
+    result = EvalResult(fired=[explicit, suppressor])
+    result = _apply_suppressions(result)
+    assert explicit.suppressed is False  # si_explicit not in suppresses list
+
+
+def test_apply_suppressions_noop_when_no_suppressors():
+    from sage_poc.rules.engine import _apply_suppressions
+    from sage_poc.rules.schemas import FiredRule, EvalResult
+    crisis = FiredRule("SK-EN-001", "1.0.0", {"type": "crisis_flag", "flag_id": "si_explicit"})
+    result = EvalResult(fired=[crisis])
+    result = _apply_suppressions(result)
+    assert crisis.suppressed is False
+
+
+def test_apply_suppressions_handles_multiple_suppresses_values():
+    from sage_poc.rules.engine import _apply_suppressions
+    from sage_poc.rules.schemas import FiredRule, EvalResult
+    r1 = FiredRule("SK-1", "1.0.0", {"type": "crisis_flag", "flag_id": "si_explicit"})
+    r2 = FiredRule("SK-2", "1.0.0", {"type": "crisis_flag", "flag_id": "si_passive"})
+    suppressor = FiredRule("FPE-1", "1.0.0", {"type": "crisis_suppress", "suppresses": ["si_explicit", "si_passive"]})
+    result = EvalResult(fired=[r1, r2, suppressor])
+    result = _apply_suppressions(result)
+    assert r1.suppressed is True
+    assert r2.suppressed is True
+
+
+def test_eval_safety_applies_suppression_end_to_end():
+    from sage_poc.rules.engine import _eval_safety
+    from sage_poc.rules.schemas import SafetyRule
+    crisis_rule = SafetyRule(
+        rule_id="SK-TEST", version="1.0.0", category="safety",
+        effective_date="2026-05-21", match_type="keyword",
+        patterns=["ابي اموت"], language="ar",
+        action={"type": "crisis_flag", "flag_id": "si_explicit"},
+    )
+    suppress_rule = SafetyRule(
+        rule_id="FPE-TEST", version="1.0.0", category="safety",
+        effective_date="2026-05-21", match_type="keyword",
+        patterns=["ابي اموت من الضحك"], language="ar",
+        action={"type": "crisis_suppress", "suppresses": ["si_explicit"]},
+    )
+    ctx = {"text_en": "dying of laughter", "text_ar": "ابي اموت من الضحك", "language": "ar"}
+    result = _eval_safety([crisis_rule, suppress_rule], ctx)
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert crisis_actions == [], "Suppression should prevent crisis_flag from appearing in actions"
+    assert len(result.suppressed_rules) == 1  # suppressed rule recorded for audit
