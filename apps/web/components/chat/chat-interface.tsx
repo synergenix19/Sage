@@ -35,6 +35,7 @@ interface Props {
 // Exported for testability only — not part of the public component API.
 export function useStreamingChat(sessionId: string | undefined, initialMessages: SdkMessage[] = []) {
   const [messages, setMessages] = useState<SdkMessage[]>(initialMessages)
+  const [crisisState, setCrisisState] = useState<string>('none')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -57,9 +58,16 @@ export function useStreamingChat(sessionId: string | undefined, initialMessages:
           body: JSON.stringify({
             sessionId,
             messages: history.map((m) => ({ role: m.role, content: m.content })),
+            crisisState,
           }),
           signal: controller.signal,
         })
+
+        // Read crisis_state from response before consuming the body stream.
+        // This is the turn-to-turn ferry: server sets the new state, client
+        // stores it and sends it back on the next request.
+        const nextCrisisState = res.headers.get('X-Sage-Crisis-State')
+        if (nextCrisisState) setCrisisState(nextCrisisState)
 
         if (!res.ok || !res.body) {
           throw new Error(`Chat request failed: ${res.status}`)
@@ -96,7 +104,7 @@ export function useStreamingChat(sessionId: string | undefined, initialMessages:
         abortRef.current = null
       }
     },
-    [sessionId]
+    [sessionId, crisisState]
   )
 
   const append = useCallback(

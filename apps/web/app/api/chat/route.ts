@@ -23,9 +23,10 @@ async function classifyIntent(message: string): Promise<Intent> {
 }
 
 export async function POST(req: Request) {
-  const { messages, sessionId } = await req.json() as {
+  const { messages, sessionId, crisisState } = await req.json() as {
     messages: { role: string; content: string }[]
     sessionId: string
+    crisisState?: string
   }
 
   if (!sessionId || !messages?.length) {
@@ -50,6 +51,7 @@ export async function POST(req: Request) {
     body: JSON.stringify({
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
       session_id: sessionId,
+      crisis_state: crisisState ?? 'none',
     }),
   })
 
@@ -75,6 +77,7 @@ export async function POST(req: Request) {
 
   const intensityStr      = sageRes.headers.get('X-Sage-Emotional-Intensity')
   const emotionalIntensity = intensityStr ? (parseInt(intensityStr, 10) || null) : null
+  const sageCrisisState   = sageRes.headers.get('X-Sage-Crisis-State') || 'none'
 
   const [clientStream, persistStream] = sageRes.body.tee()
 
@@ -139,6 +142,9 @@ export async function POST(req: Request) {
   })()
 
   return new Response(clientStream, {
-    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'X-Sage-Crisis-State': sageCrisisState,
+    },
   })
 }
