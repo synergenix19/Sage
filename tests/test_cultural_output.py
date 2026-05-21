@@ -368,7 +368,9 @@ def test_cuo_su_001_fires_on_moderate_use_language():
         "message_en": "I drink to deal with stress",
         "clinical_flags": ["substance_use"],
     })
-    assert "CUO-SU-001" in [r.rule_id for r in result.fired]
+    assert "CUO-SU-001" in [r.rule_id for r in result.fired], (
+        "CUO-SU-001 must fire on 'moderate use' when substance_use flag active"
+    )
 
 
 def test_cuo_su_001_absent_without_substance_flag():
