@@ -1,3 +1,4 @@
+import { ChatFadeIn } from '@/components/chat/chat-fade-in'
 import { ChatInterface } from '@/components/chat/chat-interface'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
@@ -76,11 +77,13 @@ export default async function ChatPage({
     .single()
 
   return (
-    <ChatInterface
-      initialSession={activeSession}
-      initialMessages={initialMessages}
-      userName={profile?.name ?? ''}
-      userId={user.id}
-    />
+    <ChatFadeIn>
+      <ChatInterface
+        initialSession={activeSession}
+        initialMessages={initialMessages}
+        userName={profile?.name ?? ''}
+        userId={user.id}
+      />
+    </ChatFadeIn>
   )
 }
