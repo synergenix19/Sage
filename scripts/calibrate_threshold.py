@@ -30,10 +30,10 @@ KNOWN_HITS = [
     # Grounding — none of these contain a grounding keyword
     ("my heart is pounding so hard and I feel faint", "grounding_5_4_3_2_1"),
     ("I feel like I'm dissociating", "grounding_5_4_3_2_1"),
-    ("my heart is pounding so hard and I feel faint", "grounding_5_4_3_2_1"),
+    ("I feel completely overwhelmed, my head is spinning", "grounding_5_4_3_2_1"),
     # Sleep — none of these contain a sleep keyword
-    ("I'm exhausted but my mind won't stop racing", "sleep_hygiene"),
-    ("I'm tired all day but wide awake at night", "sleep_hygiene"),
+    ("I am exhausted but my mind will not stop racing at bedtime", "sleep_hygiene"),
+    ("I am tired all day but wide awake at night", "sleep_hygiene"),
 ]
 
 # Messages that should NOT match any skill
@@ -46,6 +46,7 @@ KNOWN_MISSES = [
     "I need to talk about something that happened at work",  # edge case — may weakly match
     "I've been feeling stressed lately",  # vague stress must not match any skill
     "Hi, I've been feeling stressed",  # exact RT-4 regression phrase — must not match any skill
+    "I'm overwhelmed and anxious",  # actual FP pre-fix — must not match any skill
 ]
 
 

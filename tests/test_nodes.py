@@ -273,6 +273,41 @@ def test_panicking_still_matches_grounding():
         "Explicit panic phrasing must still activate grounding after description tightening"
 
 
+def test_stressed_does_not_match_sleep_hygiene():
+    """RT-4b: 'stressed' must not route to sleep_hygiene — general stress is not a sleep complaint.
+    sleep_hygiene is indicated for insomnia patterns, not everyday stress.
+    """
+    state = make_state(
+        message_en="Hi, I've been feeling stressed",
+        primary_intent="new_skill",
+    )
+    result = skill_select_node(state)
+    assert result["active_skill_id"] is None, \
+        "Vague 'stressed' must not activate sleep_hygiene or any other skill"
+
+def test_overwhelmed_and_anxious_does_not_match_any_skill():
+    """RT-4b: 'overwhelmed and anxious' without sleep context must route to freeflow.
+    This was an actual false positive (score 0.5522 against sleep_hygiene pre-fix).
+    """
+    state = make_state(
+        message_en="I'm overwhelmed and anxious",
+        primary_intent="new_skill",
+    )
+    result = skill_select_node(state)
+    assert result["active_skill_id"] is None, \
+        "'overwhelmed and anxious' without sleep context must not activate any skill"
+
+def test_insomnia_still_matches_sleep_hygiene():
+    """RT-4b guard: tightening sleep description must not break canonical insomnia routing."""
+    state = make_state(
+        message_en="I keep waking up at 3am and can't get back to sleep",
+        primary_intent="new_skill",
+    )
+    result = skill_select_node(state)
+    assert result["active_skill_id"] == "sleep_hygiene", \
+        "Explicit insomnia phrasing must still activate sleep_hygiene after description tightening"
+
+
 from sage_poc.nodes.skill_executor import skill_executor_node, evaluate_step_policy
 
 def test_evaluate_step_policy_high_intensity_triggers_validate_only():
