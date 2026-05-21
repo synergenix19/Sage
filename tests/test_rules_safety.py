@@ -160,3 +160,34 @@ def test_arabic_clinical_flags_detected_via_arabic_patterns(arabic_text, expecte
     assert expected_flag in flag_ids, (
         f"Expected {expected_flag!r} for Arabic text: {arabic_text!r}"
     )
+
+
+# ── CF-005 domestic_situation ─────────────────────────────────────────────────
+
+@pytest.mark.parametrize("text,expected_flag", [
+    ("he hits me", "domestic_situation"),
+    ("I'm in an abusive relationship", "domestic_situation"),
+    ("domestic violence in my home", "domestic_situation"),
+    ("my partner hurts me", "domestic_situation"),
+    ("he won't let me leave", "domestic_situation"),
+    ("she controls everything I do", "domestic_situation"),
+])
+def test_domestic_situation_flag_detection_english(text, expected_flag):
+    result = engine.evaluate("safety", {"text_en": text, "language": "en"})
+    flag_ids = [a["flag_id"] for a in result.actions if a.get("type") == "clinical_flag"]
+    assert expected_flag in flag_ids, f"Expected {expected_flag!r} for: {text!r}"
+
+
+@pytest.mark.parametrize("arabic_text,expected_flag", [
+    ("يضربني زوجي", "domestic_situation"),
+    ("أنا في علاقة مسيئة", "domestic_situation"),
+    ("عنف أسري", "domestic_situation"),
+])
+def test_domestic_situation_flag_detection_arabic(arabic_text, expected_flag):
+    result = engine.evaluate("safety", {
+        "text_en": "my partner hurts me",
+        "text_ar": arabic_text,
+        "language": "ar",
+    })
+    flag_ids = [a["flag_id"] for a in result.actions if a.get("type") == "clinical_flag"]
+    assert expected_flag in flag_ids, f"Expected {expected_flag!r} for Arabic: {arabic_text!r}"

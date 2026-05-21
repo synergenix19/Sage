@@ -72,6 +72,31 @@
       "language": "any",
       "modifiers": [],
       "action": {"type": "clinical_flag", "flag_id": "medication_mention"}
+    },
+    {
+      "rule_id": "CF-005",
+      "version": "1.0.0",
+      "category": "safety",
+      "authored_by": "sage_clinics",
+      "approved_by": null,
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Domestic situation safety flag — physical safety concerns in intimate/household context",
+      "match_type": "keyword",
+      "patterns": [
+        "hits me", "hit me", "abusive relationship", "domestic violence",
+        "my partner hurts me", "my husband hurts me", "my wife hurts me",
+        "he won't let me leave", "she won't let me leave", "won't let me go",
+        "controlling relationship", "controls everything", "physically abused", "being beaten",
+        "يضربني", "علاقة مسيئة", "عنف اسري", "عنف منزلي",
+        "ما يخليني اطلع", "يؤذيني", "يحبسني"
+      ],
+      "language": "any",
+      "modifiers": [],
+      "action": {
+        "type": "clinical_flag",
+        "flag_id": "domestic_situation"
+      }
     }
   ]
 }

@@ -216,3 +216,11 @@ def test_no_secondary_intent_framing_when_none():
     state = _freeflow_state(primary_intent="new_skill", secondary_intent=None)
     _, user_str = compose_prompt(state)
     assert "SECONDARY INTENT" not in user_str
+
+
+def test_domestic_situation_adaptation_injected():
+    state = _freeflow_state(clinical_flags=["domestic_situation"])
+    system_str, _ = compose_prompt(state)
+    assert "safety" in system_str.lower() or "800111" in system_str or "domestic" in system_str.lower(), (
+        "Domestic situation adaptation must reference safety or UAE resource"
+    )

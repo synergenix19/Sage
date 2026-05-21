@@ -68,6 +68,23 @@
         "target": "system",
         "content": "CLINICAL ADAPTATION (medication): The user mentioned medication. Do NOT advise on dosage or medication changes. Encourage speaking with their prescriber for any medication questions."
       }
+    },
+    {
+      "rule_id": "PI-CF-005",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Safety-first framing for domestic situation flag",
+      "category": "prompt_injection",
+      "trigger_type": "flag_present",
+      "trigger_value": "domestic_situation",
+      "trigger_keywords": [],
+      "action": {
+        "type": "inject",
+        "target": "system",
+        "content": "CLINICAL ADAPTATION (domestic situation): The user has disclosed a domestic safety concern. Prioritise immediate safety. Do NOT advise leaving without safety planning — this can increase risk in some situations. Do NOT challenge or minimise their account. UAE resources if needed: Dubai Foundation for Women and Children (800111), Ewaa Shelters. Focus on safety, autonomy, and connection to support."
+      }
     }
   ]
 }
