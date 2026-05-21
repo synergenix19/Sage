@@ -1,0 +1,27 @@
+{
+  "category": "cultural",
+  "rules": [
+    {
+      "rule_id": "CU-SH-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Inject shame-specific framing (additive to collectivist baseline) when cultural shame context detected",
+      "category": "cultural",
+      "trigger_keywords": [
+        "عيب", "عار", "فضيحة", "خزي",
+        "disgrace", "dishonour", "dishonor", "bring shame", "family shame",
+        "community shame", "ashamed of myself", "they would be ashamed"
+      ],
+      "language": "any",
+      "action": {
+        "type": "prompt_injection",
+        "target": "system",
+        "layer": "L5",
+        "priority": 1,
+        "content": "SHAME CONTEXT (this turn): The user has expressed shame (cultural: عيب/عار) specifically. Apply your collectivist framing baseline. Add: in Gulf culture, shame functions as a social bond signal, not only personal failure. It signals awareness of collective standards and relational consequences. Do NOT push the user to simply overcome or dismiss it. Help them find a path that honours both their integrity and their relationships."
+      }
+    }
+  ]
+}

@@ -352,3 +352,32 @@ def test_generic_religious_framing_fires_on_god_keyword():
     assert "spiritual" in system_str.lower() or "faith" in system_str.lower() or "religious" in system_str.lower(), (
         "CU-RG-001 must inject generic religious context for 'god'/'prayer' keywords"
     )
+
+
+def test_shame_framing_fires_on_arabic_ayb():
+    """CU-SH-001 must inject shame-specific framing when Arabic عيب detected."""
+    state = _freeflow_state(
+        raw_message="عيب أن أتكلم عن مشاكلي",
+        message_en="It is shameful to talk about my problems",
+        detected_language="ar",
+    )
+    system_str, _ = compose_prompt(state)
+    assert "shame" in system_str.lower() or "social" in system_str.lower() or "bond" in system_str.lower(), (
+        "CU-SH-001 must fire on Arabic عيب and inject shame-specific framing"
+    )
+
+
+def test_shame_framing_fires_on_english_disgrace():
+    """CU-SH-001 must fire on English shame/disgrace keywords."""
+    state = _freeflow_state(message_en="I would bring disgrace to my family if they knew")
+    system_str, _ = compose_prompt(state)
+    assert "shame" in system_str.lower() or "social" in system_str.lower(), (
+        "CU-SH-001 must fire on 'disgrace' keyword"
+    )
+
+
+def test_shame_framing_absent_for_generic_sad():
+    """CU-SH-001 must NOT fire for generic sadness without shame/disgrace keywords."""
+    state = _freeflow_state(message_en="I feel sad and hopeless today")
+    system_str, _ = compose_prompt(state)
+    assert "social bond" not in system_str.lower()
