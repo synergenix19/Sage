@@ -1,18 +1,29 @@
 import json
+import re
 from datetime import datetime, timezone
 from sage_poc.state import SageState
 from sage_poc.language import translate_to_arabic
 from sage_poc.config import AUDIT_LOG_ENABLED
 
 SCOPE_REFUSAL_RESPONSE = (
-    "That's a question that's better answered by a medical professional or licensed therapist — "
-    "I want to make sure you get accurate information. What I can do is help you think through "
+    "That's a question better answered by a medical professional or licensed therapist. "
+    "I want to make sure you get accurate information. I can help you think through "
     "how you're feeling about it, or find some general information. Would either of those help?"
 )
 
+_FORMAT_VIOLATIONS = re.compile(
+    r"—"                            # em dash
+    r"|\*\*"                        # bold markdown
+    r"|["
+    r"\U0001F300-\U0001F9FF"        # misc symbols, emoticons, transport, flags
+    r"\U00002600-\U000027BF"        # misc symbols (weather, chess, etc.)
+    r"\U0001FA00-\U0001FAFF"        # extended symbols and pictographs
+    r"]"
+)
+
 JAILBREAK_RESPONSE = (
-    "I'm Sage — a wellness companion built to offer emotional support and evidence-based coping "
-    "techniques. That's my role, and it's what I'm here for. What's been on your mind today?"
+    "I'm Sage, a wellness companion here to offer emotional support and evidence-based coping "
+    "techniques. That's my role. What's been on your mind today?"
 )
 
 
@@ -28,6 +39,10 @@ def output_gate_node(state: SageState) -> dict:
         response_en = JAILBREAK_RESPONSE
     else:
         response_en = state["response_en"] or ""
+
+    violations = _FORMAT_VIOLATIONS.findall(response_en)
+    if violations:
+        print(f"\n[FORMAT VIOLATION] Disallowed formatting detected: {violations}")
 
     if lang == "ar":
         final_response = translate_to_arabic(response_en)
