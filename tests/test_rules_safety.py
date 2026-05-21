@@ -256,3 +256,68 @@ def test_passive_si_english_expansion_triggers_crisis(text):
     result = engine.evaluate("safety", {"text_en": text, "language": "en"})
     crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
     assert crisis_actions, f"Expected crisis flag for passive SI: {text!r}"
+
+
+# ── Arabic dialect expansion — explicit SI (SK-AR-001) ────────────────────────
+
+@pytest.mark.parametrize("arabic_text", [
+    "بدي اموت",
+    "عايز اموت",
+    "عاوز اموت",
+    "نفسي اموت",
+    "انهاء حياتي",
+    "ما ابي اعيش",
+    "ما ابغى اعيش",
+])
+def test_arabic_explicit_si_dialect_expansion(arabic_text):
+    result = engine.evaluate("safety", {
+        "text_en": "i want to die",
+        "text_ar": arabic_text,
+        "language": "ar",
+    })
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert crisis_actions, f"Expected crisis flag for Arabic dialect: {arabic_text!r}"
+
+
+# ── Arabic passive SI expansion (SK-AR-002) ───────────────────────────────────
+
+@pytest.mark.parametrize("arabic_text", [
+    "الحياة ما لها معنى",
+    "وش الفايدة من الحياة",
+    "انا عبء على الكل",
+    "ودي اختفي من الدنيا",
+    "ما في مستقبل لي",
+    "الحياة ما تستاهل",
+    "ما شايف فايدة",
+    "روحي تعبت",
+])
+def test_arabic_passive_si_dialect_expansion(arabic_text):
+    result = engine.evaluate("safety", {
+        "text_en": "nothing matters",
+        "text_ar": arabic_text,
+        "language": "ar",
+    })
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert crisis_actions, f"Expected crisis flag for Arabic passive SI: {arabic_text!r}"
+
+
+# ── Gulf emotional exhaustion idioms (SK-AR-003) ──────────────────────────────
+
+@pytest.mark.parametrize("arabic_text", [
+    "روحي طايرة",
+    "قلبي ميت",
+    "انا تعبت من كل شي",
+    "ما عاد في قلبي حياة",
+    "نفسي مريضة",
+    "روحي ما تحتمل",
+    "انكسرت من الداخل",
+    "ما في شي يسعدني",
+])
+def test_arabic_exhaustion_idioms_sk_ar_003(arabic_text):
+    result = engine.evaluate("safety", {
+        "text_en": "i feel empty",
+        "text_ar": arabic_text,
+        "language": "ar",
+    })
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert crisis_actions, f"Expected crisis flag for Gulf exhaustion idiom: {arabic_text!r}"
