@@ -5,7 +5,7 @@
   "self_evolution": "manual_only",
   "evidence_base": "ASIST (2018); SafeTALK; SAMHSA Safe Messaging Guidelines (2023)",
   "target_presentations": [],
-  "semantic_description": "Post-crisis safety check-in with validation, current-state acknowledgement, and warm closure with helpline provision.",
+  "semantic_description": "Post-crisis safety monitoring protocol. ASIST post-intervention follow-up. Structured safety reassessment after acute suicidal ideation de-escalation: current safety status, whether intrusive thoughts have receded, access to support network. Crisis stabilization verification. Safety check-in after previously expressed passive or active suicidal ideation. Monitoring-phase transition assessment: post-acute stability, risk re-escalation detection, helpline resource provision. Follow-up after crisis intervention. Safety plan review.",
   "steps": [
     {
       "step_id": "acknowledge_and_check",
