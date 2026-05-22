@@ -290,4 +290,31 @@ describe('POST /api/chat', () => {
     await POST(req)
     expect(mockInsert).not.toHaveBeenCalled()
   })
+
+  // ── FE-C4: session ownership verification ────────────────────────────────
+  it('returns 403 when sessionId does not belong to the authenticated user', async () => {
+    mockSingle.mockResolvedValueOnce({ data: null, error: null })
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'hi' }],
+        sessionId: 'session-1',
+      }),
+    })
+    const res = await POST(req)
+    expect(res.status).toBe(403)
+  })
+
+  it('proceeds when session belongs to the authenticated user', async () => {
+    // mockSingle default returns { data: { name: null } } — truthy, ownership passes
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'hi' }],
+        sessionId: 'session-1',
+      }),
+    })
+    const res = await POST(req)
+    expect(res.status).not.toBe(403)
+  })
 })

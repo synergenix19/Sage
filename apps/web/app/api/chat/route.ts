@@ -59,6 +59,14 @@ export async function POST(req: Request) {
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) return new Response('Unauthorized', { status: 401 })
 
+  const { data: ownedSession } = await supabase
+    .from('chat_sessions')
+    .select('id')
+    .eq('id', sessionId)
+    .eq('user_id', user.id)
+    .single()
+  if (!ownedSession) return new Response('Forbidden', { status: 403 })
+
   const lastMessage = messages[messages.length - 1]?.content ?? ''
   const intent = await classifyIntent(lastMessage).catch(() => 'emotional' as Intent)
 
