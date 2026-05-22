@@ -597,10 +597,11 @@ def test_chat_accepts_correct_api_key(monkeypatch):
     assert res.status_code == 200
 
 
-def test_chat_bypasses_key_check_when_sage_api_key_unset():
+def test_chat_bypasses_key_check_when_sage_api_key_unset(monkeypatch):
     """No SAGE_API_KEY in env → check is disabled. Preserves backward compatibility
     for local dev where the key is not configured.
     """
+    monkeypatch.delenv("SAGE_API_KEY", raising=False)
     client = get_client()
     res = client.post("/chat", json={
         "messages": [{"role": "user", "content": "I want to end it all"}],
