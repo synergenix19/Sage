@@ -5,7 +5,7 @@ import { cn } from '@cdai/ui'
 import { tenant } from '@cdai/tenant'
 import { useLocaleStore } from '@/lib/stores/locale-store'
 
-const ALL_TABS = [
+export const ALL_TABS = [
   { href: '/chat', label: 'Chat', labelAr: 'محادثة' },
   { href: '/progress', label: 'Progress', labelAr: 'تقدمي' },
   ...(tenant.capabilities.voiceBiomarker
@@ -13,11 +13,11 @@ const ALL_TABS = [
     : []),
 ]
 
-export function TabBar() {
+export function TabBar({ className }: { className?: string }) {
   const pathname = usePathname()
   const locale = useLocaleStore((s) => s.locale)
   return (
-    <nav className="border-t border-[var(--color-border)] bg-[var(--color-surface)] flex">
+    <nav className={cn('border-t border-[var(--color-border)] bg-[var(--color-surface)] flex', className)}>
       {ALL_TABS.map((tab) => {
         const active = pathname.startsWith(tab.href)
         return (
