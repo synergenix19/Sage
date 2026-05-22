@@ -1,0 +1,21 @@
+{
+  "template_id": "L3_skill_wrapper",
+  "version": "1.0.0",
+  "authored_by": "sage_clinics",
+  "approved_by": null,
+  "effective_date": "2026-05-22",
+  "layer": "L3",
+  "role": "user",
+  "always_include": false,
+  "word_budget": 200,
+  "content": "THERAPEUTIC APPROACH FOR THIS TURN:\nYou are gently guiding the user through {skill_name}. The current focus is: {step_goal}\n\nApproach: Use {technique_name}. {technique_description}Match the tone: {tone_instruction}.\n\n{contraindication_block}Example phrases that convey this well (use as inspiration, not scripts):\n{few_shot_block}\n\nIMPORTANT: Weave this naturally into conversation. Do NOT announce the technique name or read these instructions aloud. The user should feel heard, not assessed.",
+  "variables": [
+    "skill_name",
+    "step_goal",
+    "technique_name",
+    "technique_description",
+    "tone_instruction",
+    "contraindication_block",
+    "few_shot_block"
+  ]
+}

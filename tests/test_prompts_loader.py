@@ -36,6 +36,16 @@ def test_prompt_template_pydantic_validates():
     assert tmpl.intent is None
 
 
+def test_load_l3_skill_wrapper():
+    tmpl = get_template("L3_skill_wrapper")
+    assert tmpl.layer == "L3"
+    assert tmpl.role == "user"
+    assert tmpl.always_include is False
+    assert "{skill_name}" in tmpl.content
+    assert "{few_shot_block}" in tmpl.content
+    assert "Do NOT announce the technique name" in tmpl.content
+
+
 def test_get_template_loads_from_disk(tmp_path, monkeypatch):
     """Verify the loader actually reads JSON files from disk and parses them."""
     import sage_poc.prompts.loader as loader_module

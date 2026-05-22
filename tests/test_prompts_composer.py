@@ -1,0 +1,74 @@
+import pytest
+from sage_poc.prompts.composer import _select_few_shot_examples, _build_l3_skill_block
+from sage_poc.skills.schema import SkillStep
+
+
+_CBT_STEP = SkillStep(
+    step_id="identify_thought",
+    goal="Help the user identify and clearly articulate the specific negative thought",
+    technique="Socratic questioning",
+    technique_description="Ask open questions that help the user surface and name their own thoughts.",
+    tone="warm, curious, non-judgmental",
+    examples=[
+        "What specific thought is going through your mind right now?",
+        "When you say you feel like a failure, what exactly are you telling yourself?",
+        "Can you put that thought into one sentence, what is the thought saying about you?",
+        "وين بالظبط الصوت اللي في بالك الحين؟ شو يقولك؟",
+    ],
+    contraindications="Do NOT challenge the thought at this step.",
+)
+
+
+def test_select_few_shot_defaults_to_first_two():
+    selected = _select_few_shot_examples(_CBT_STEP.examples, language="en", intensity=5)
+    assert len(selected) == 2
+    assert selected[0] == "What specific thought is going through your mind right now?"
+
+
+def test_select_few_shot_prefers_arabic_when_language_is_ar():
+    selected = _select_few_shot_examples(_CBT_STEP.examples, language="ar", intensity=5)
+    arabic_ex = "وين بالظبط الصوت اللي في بالك الحين؟ شو يقولك؟"
+    assert arabic_ex in selected
+    assert len(selected) == 2
+
+
+def test_select_few_shot_returns_at_most_two():
+    selected = _select_few_shot_examples(_CBT_STEP.examples, language="en", intensity=9)
+    assert len(selected) <= 2
+
+
+def test_select_few_shot_handles_single_example():
+    selected = _select_few_shot_examples(["Only one"], language="en", intensity=5)
+    assert selected == ["Only one"]
+
+
+def test_select_few_shot_handles_empty():
+    assert _select_few_shot_examples([], language="en", intensity=5) == []
+
+
+def test_build_l3_skill_block_contains_skill_name():
+    block = _build_l3_skill_block("CBT Thought Record", _CBT_STEP, language="en", intensity=5)
+    assert "CBT Thought Record" in block
+
+
+def test_build_l3_skill_block_does_not_contain_raw_goal_label():
+    block = _build_l3_skill_block("CBT Thought Record", _CBT_STEP, language="en", intensity=5)
+    # P1-4 fix: the old "Goal:/Technique:" form format must NOT appear
+    assert "Goal:" not in block
+    assert "Technique:" not in block
+
+
+def test_build_l3_skill_block_contains_do_not_announce():
+    block = _build_l3_skill_block("CBT Thought Record", _CBT_STEP, language="en", intensity=5)
+    assert "Do NOT announce the technique name" in block
+
+
+def test_build_l3_skill_block_includes_contraindications():
+    block = _build_l3_skill_block("CBT Thought Record", _CBT_STEP, language="en", intensity=5)
+    assert "Do NOT challenge the thought at this step." in block
+
+
+def test_build_l3_skill_block_omits_contraindication_section_when_empty():
+    step_no_contra = _CBT_STEP.model_copy(update={"contraindications": ""})
+    block = _build_l3_skill_block("CBT Thought Record", step_no_contra, language="en", intensity=5)
+    assert "Important:" not in block
