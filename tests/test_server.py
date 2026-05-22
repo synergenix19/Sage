@@ -388,3 +388,41 @@ def test_clinical_flags_ferried_into_graph_state(monkeypatch):
     assert received["clinical_flags"] == ["trauma_indicator"], (
         f"Graph received clinical_flags={received['clinical_flags']!r}, expected ['trauma_indicator']"
     )
+
+
+def test_skill_ferry_headers_present(monkeypatch):
+    """active_step_id and distress_trajectory must be returned as headers for client ferry."""
+    import server as srv
+    import json as _json
+
+    async def _mock(state):
+        return {
+            "path": ["safety_check", "skill_select", "skill_executor", "output_gate"],
+            "is_safe": True,
+            "response": "Let's try step 2.",
+            "crisis_state": "none",
+            "crisis_flags": [],
+            "clinical_flags": [],
+            "emotional_intensity": 6,
+            "active_skill_id": "cbt_thought_record",
+            "active_step_id": "explore_distortion",   # next turn's step
+            "executed_step_id": "identify_thought",   # this turn's step (audit)
+            "gate_path": "standard",
+            "distress_trajectory": [7, 6, 5],
+        }
+
+    monkeypatch.setattr(srv, "_graph", type("G", (), {"ainvoke": staticmethod(_mock)})())
+    client = get_client()
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "ok let's continue"}],
+        "session_id": "test",
+    })
+    assert res.status_code == 200
+    # Ferry header: active_step_id (the NEXT step), not executed_step_id (this turn's audit)
+    assert res.headers.get("x-sage-active-step-id") == "explore_distortion", (
+        "x-sage-active-step-id must carry active_step_id, not executed_step_id"
+    )
+    # Existing audit header unchanged
+    assert res.headers.get("x-sage-step-id") == "identify_thought"
+    trajectory = _json.loads(res.headers.get("x-sage-distress-trajectory", "[]"))
+    assert trajectory == [7, 6, 5]
