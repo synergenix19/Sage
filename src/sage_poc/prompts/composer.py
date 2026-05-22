@@ -107,6 +107,10 @@ def _build_l2_intent_block(
     tmpl = get_intent_template(intent, variant=variant)
     if tmpl is None:
         tmpl = get_intent_template("general_chat", variant=variant)
+    if tmpl is None:
+        raise ValueError(
+            f"No L2 template found for intent '{intent}' and 'general_chat' fallback is also missing."
+        )
     guidance = _intensity_guidance(intensity)
     variables: dict[str, str] = {
         "intensity": str(intensity),
@@ -117,7 +121,7 @@ def _build_l2_intent_block(
         content = content.replace("{" + var + "}", variables.get(var, ""))
     if secondary_intent:
         content += f" (blended with: {secondary_intent})"
-    _log.debug("L2_%s@%s loaded", intent, tmpl.version)
+    _log.debug("L2_%s@%s loaded (requested: %s)", tmpl.intent, tmpl.version, intent)
     return content
 
 

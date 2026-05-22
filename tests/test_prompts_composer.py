@@ -196,3 +196,8 @@ def test_l2_intent_block_falls_back_gracefully_for_unknown_intent():
 def test_l2_intent_block_appends_secondary_intent():
     block = _build_l2_intent_block("general_chat", intensity=5, secondary_intent="info_request")
     assert "info_request" in block
+
+
+def test_l2_intent_block_mid_intensity_uses_engaged_guidance():
+    block = _build_l2_intent_block("general_chat", intensity=5, secondary_intent=None)
+    assert "moderately" in block.lower() or "engaged" in block.lower()
