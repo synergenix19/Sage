@@ -37,6 +37,8 @@ class SageState(TypedDict):
     token_usage: dict                   # {"input": N, "output": N, "total": N} from LLM
     escalation_triggered: Optional[dict]  # {"level": "L1"|"L2", "reason": str, "action": str}
 
+    cultural_output_violations: list[str]  # rule_ids fired in output_gate cultural check
+
     gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak", "crisis"]]
 
     response_en: Optional[str]

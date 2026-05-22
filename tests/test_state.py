@@ -29,10 +29,12 @@ def test_state_has_required_fields():
         "conversation_history": [],
         "skill_match_method": None,
         "semantic_score": None,
+        "cultural_output_violations": [],
     }
     assert state["raw_message"] == "hello"
     assert state["crisis_state"] == "none"
     assert state["s7_result"] is None
+    assert state["cultural_output_violations"] == []
 
 def test_state_has_crisis_state_not_legacy_bool():
     hints = typing.get_type_hints(SageState)
@@ -40,6 +42,13 @@ def test_state_has_crisis_state_not_legacy_bool():
     assert "s7_result" in hints, "SageState must declare s7_result"
     assert "s7_method" in hints, "SageState must declare s7_method"
     assert "crisis_occurred_this_session" not in hints, "legacy field must be removed"
+
+def test_state_has_cultural_output_violations():
+    hints = typing.get_type_hints(SageState)
+    assert "cultural_output_violations" in hints, (
+        "SageState must declare cultural_output_violations — "
+        "output_gate_node writes this key but it was absent from the schema"
+    )
 
 def test_state_path_is_list():
     state: SageState = {
@@ -69,6 +78,7 @@ def test_state_path_is_list():
         "conversation_history": [{"role": "user", "content": "test"}],
         "skill_match_method": None,
         "semantic_score": None,
+        "cultural_output_violations": [],
     }
     assert len(state["path"]) == 4
     assert state["crisis_state"] == "none"

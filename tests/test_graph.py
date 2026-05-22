@@ -41,6 +41,7 @@ def make_e2e_state(raw_message: str, **overrides) -> dict:
         "conversation_history": [],
         "skill_match_method": None,
         "semantic_score": None,
+        "cultural_output_violations": [],
     }
     return {**base, **overrides}
 
