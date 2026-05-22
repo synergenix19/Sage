@@ -426,3 +426,140 @@ def test_skill_ferry_headers_present(monkeypatch):
     assert res.headers.get("x-sage-step-id") == "identify_thought"
     trajectory = _json.loads(res.headers.get("x-sage-distress-trajectory", "[]"))
     assert trajectory == [7, 6, 5]
+
+
+def test_crisis_state_survives_two_turns_through_http(monkeypatch):
+    """Full ferry: crisis_state='monitoring' returned on turn 1 must reach
+    the graph on turn 2.
+
+    This is the regression test for the bug that killed post-crisis monitoring:
+    - Turn 1: server sets X-Sage-Crisis-State: monitoring in response headers
+    - Turn 2: client sends crisis_state=monitoring in request body
+    - graph receives crisis_state=monitoring (not 'none')
+
+    INT-C1 + INT-C2 + BE-C1 must all be fixed for this test to pass.
+    """
+    import server as srv
+    import json as _json
+
+    turn_states = []
+
+    async def _two_turn_mock(state):
+        turn_states.append(state.get("crisis_state"))
+        return {
+            "path": ["safety_check", "output_gate"],
+            "is_safe": True,
+            "response": "I am here with you.",
+            "crisis_state": "monitoring",   # server always returns monitoring in this mock
+            "crisis_flags": ["si_explicit"],
+            "clinical_flags": [],
+            "emotional_intensity": 8,
+            "active_skill_id": None,
+            "active_step_id": None,
+            "executed_step_id": None,
+            "gate_path": "standard",
+            "distress_trajectory": [8],
+        }
+
+    monkeypatch.setattr(srv, "_graph", type("G", (), {"ainvoke": staticmethod(_two_turn_mock)})())
+    client = get_client()
+
+    # Turn 1: user sends a normal message; server returns crisis_state=monitoring
+    res1 = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "I feel hopeless"}],
+        "session_id": "test-ferry",
+        "crisis_state": "none",
+    })
+    assert res1.status_code == 200
+    # The server must return the updated crisis state so the client can ferry it
+    crisis_after_turn1 = res1.headers.get("x-sage-crisis-state")
+    assert crisis_after_turn1 == "monitoring", (
+        f"Turn 1 response must include x-sage-crisis-state=monitoring, got {crisis_after_turn1!r}. "
+        "Check X-Sage-Crisis-State is in the StreamingResponse headers."
+    )
+
+    # Turn 2: client ferries crisis_state=monitoring back
+    res2 = client.post("/chat", json={
+        "messages": [
+            {"role": "user",      "content": "I feel hopeless"},
+            {"role": "assistant", "content": "I am here with you."},
+            {"role": "user",      "content": "Still feeling bad"},
+        ],
+        "session_id": "test-ferry",
+        "crisis_state": crisis_after_turn1,  # ferried from turn 1 header
+    })
+    assert res2.status_code == 200
+
+    assert len(turn_states) == 2, f"Expected 2 graph invocations, got {len(turn_states)}"
+    assert turn_states[0] == "none", "Turn 1 should start with crisis_state='none'"
+    assert turn_states[1] == "monitoring", (
+        f"Turn 2 must arrive at graph with crisis_state='monitoring' but got {turn_states[1]!r}. "
+        "The ferry is still broken — check server.py _VALID_CRISIS_STATES and _build_state."
+    )
+
+
+def test_skill_continuation_survives_two_turns_through_http(monkeypatch):
+    """active_skill_id ferried from turn 1 reaches the graph on turn 2.
+
+    This proves multi-turn guided skills work through the HTTP API.
+    BE-C5 must be fixed for this test to pass.
+    """
+    import server as srv
+
+    turn_skill_states = []
+
+    async def _skill_mock(state):
+        turn_skill_states.append({
+            "active_skill_id": state.get("active_skill_id"),
+            "active_step_id":  state.get("active_step_id"),
+        })
+        return {
+            "path": ["skill_executor", "output_gate"],
+            "is_safe": True,
+            "response": "Now let us explore the distortion.",
+            "crisis_state": "none",
+            "crisis_flags": [],
+            "clinical_flags": [],
+            "emotional_intensity": 6,
+            "active_skill_id": "cbt_thought_record",
+            "active_step_id":  "explore_distortion",
+            "executed_step_id": "identify_thought",
+            "gate_path": "standard",
+            "distress_trajectory": [],
+        }
+
+    monkeypatch.setattr(srv, "_graph", type("G", (), {"ainvoke": staticmethod(_skill_mock)})())
+    client = get_client()
+
+    # Turn 1: no active skill
+    res1 = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "I want to do CBT"}],
+        "session_id": "skill-ferry",
+    })
+    assert res1.status_code == 200
+    skill_after_turn1 = res1.headers.get("x-sage-skill-id")
+    step_after_turn1  = res1.headers.get("x-sage-active-step-id")
+    assert skill_after_turn1 == "cbt_thought_record"
+    assert step_after_turn1  == "explore_distortion"
+
+    # Turn 2: ferry the skill state
+    res2 = client.post("/chat", json={
+        "messages": [
+            {"role": "user",      "content": "I want to do CBT"},
+            {"role": "assistant", "content": "Now let us explore the distortion."},
+            {"role": "user",      "content": "My thought is that I am worthless"},
+        ],
+        "session_id":      "skill-ferry",
+        "active_skill_id": skill_after_turn1,
+        "active_step_id":  step_after_turn1,
+    })
+    assert res2.status_code == 200
+
+    assert len(turn_skill_states) == 2
+    assert turn_skill_states[0]["active_skill_id"] is None, \
+        "Turn 1 should start with no active skill"
+    assert turn_skill_states[1]["active_skill_id"] == "cbt_thought_record", (
+        f"Turn 2 must arrive with active_skill_id='cbt_thought_record', "
+        f"got {turn_skill_states[1]['active_skill_id']!r}"
+    )
+    assert turn_skill_states[1]["active_step_id"] == "explore_distortion"
