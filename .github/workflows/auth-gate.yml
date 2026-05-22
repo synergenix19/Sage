@@ -1,0 +1,61 @@
+name: auth-gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/middleware.ts'
+      - 'apps/web/middleware.test.ts'
+      - 'apps/web/app/(auth)/forgot-password/page.tsx'
+      - 'apps/web/app/(auth)/reset-password/page.tsx'
+      - 'apps/web/app/auth/callback/route.ts'
+      - 'apps/web/app/auth/__tests__/callback.test.ts'
+      - 'apps/web/app/api/feedback/route.ts'
+      - 'apps/web/app/api/feedback/__tests__/route.test.ts'
+      - 'apps/web/components/onboarding/step-guard.tsx'
+      - 'apps/web/components/onboarding/__tests__/step-guard.test.tsx'
+  pull_request:
+    paths:
+      - 'apps/web/middleware.ts'
+      - 'apps/web/middleware.test.ts'
+      - 'apps/web/app/(auth)/forgot-password/page.tsx'
+      - 'apps/web/app/(auth)/reset-password/page.tsx'
+      - 'apps/web/app/auth/callback/route.ts'
+      - 'apps/web/app/auth/__tests__/callback.test.ts'
+      - 'apps/web/app/api/feedback/route.ts'
+      - 'apps/web/app/api/feedback/__tests__/route.test.ts'
+      - 'apps/web/components/onboarding/step-guard.tsx'
+      - 'apps/web/components/onboarding/__tests__/step-guard.test.tsx'
+
+jobs:
+  auth:
+    name: Auth security tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --workspace=apps/web --include-workspace-root
+
+      - name: Run auth security tests
+        run: |
+          npx vitest run \
+            app/api/chat/__tests__/route.test.ts \
+            app/api/feedback/__tests__/route.test.ts \
+            app/auth/__tests__/callback.test.ts \
+            middleware.test.ts \
+            components/onboarding/__tests__/step-guard.test.tsx
+        working-directory: apps/web
+        env:
+          # Supabase, OpenRouter, and Sage API are fully mocked in these tests.
+          # These values prevent import-time env checks from throwing.
+          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-ci
+          OPENROUTER_API_KEY: dummy-ci
+          SAGE_API_URL: http://localhost:8000
+          SAGE_API_KEY: dummy-ci
