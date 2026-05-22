@@ -1,0 +1,40 @@
+name: ferry-gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/app/api/chat/route.ts'
+      - 'apps/web/components/chat/chat-interface.tsx'
+      - 'apps/web/app/api/chat/__tests__/route.test.ts'
+  pull_request:
+    paths:
+      - 'apps/web/app/api/chat/route.ts'
+      - 'apps/web/components/chat/chat-interface.tsx'
+      - 'apps/web/app/api/chat/__tests__/route.test.ts'
+
+jobs:
+  ferry:
+    name: Ferry integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ferry tests
+        run: npx vitest run app/api/chat/__tests__/route.test.ts
+        working-directory: apps/web
+        env:
+          # Supabase and OpenRouter are fully mocked in route.test.ts.
+          # These values prevent import-time env checks from throwing.
+          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-ci
+          OPENROUTER_API_KEY: dummy-ci
+          SAGE_API_URL: http://localhost:8000
