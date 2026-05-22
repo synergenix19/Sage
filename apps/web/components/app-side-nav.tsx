@@ -8,6 +8,7 @@ import { LanguageToggle } from '@/components/auth/language-toggle'
 import { ALL_TABS } from '@/components/tab-bar'
 import { useLocaleStore } from '@/lib/stores/locale-store'
 import { createClient } from '@/lib/supabase/client'
+import { signOutUser } from '@/lib/auth-actions'
 
 export function AppSideNav() {
   const pathname = usePathname()
@@ -151,7 +152,7 @@ export function AppSideNav() {
                 </button>
                 <button
                   ref={signOutConfirmRef}
-                  onClick={() => import('@/lib/auth-actions').then(({ signOutUser }) => signOutUser(router.push))}
+                  onClick={() => signOutUser(router.push)}
                   className={cn(
                     'flex-1 rounded-xl border border-[var(--color-crisis)] py-2 text-xs font-medium',
                     'text-[var(--color-crisis)] hover:bg-red-50 transition-colors',

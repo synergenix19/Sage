@@ -30,7 +30,7 @@ vi.mock('@/components/auth/language-toggle', () => ({
 
 const mockSignOutUser = vi.fn().mockResolvedValue(undefined)
 vi.mock('@/lib/auth-actions', () => ({
-  signOutUser: mockSignOutUser,
+  signOutUser: (...args: Parameters<typeof mockSignOutUser>) => mockSignOutUser(...args),
 }))
 
 const mockGetUser = vi.fn().mockResolvedValue({
