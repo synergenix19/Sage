@@ -15,7 +15,7 @@
       "action": {
         "type": "inject",
         "target": "user",
-        "content": "SECONDARY INTENT PRESENT: Use DBT dialectical framing — two things can be true at once. Address BOTH the primary and secondary emotion/need explicitly in your response. Example framing: 'It makes sense that you feel [primary emotion] AND that you also [secondary need]. Both are real and valid.'"
+        "content": "SECONDARY INTENT PRESENT: Use DBT dialectical framing, two things can be true at once. Address BOTH the primary and secondary emotion/need explicitly in your response. Example framing: 'It makes sense that you feel [primary emotion] AND that you also [secondary need]. Both are real and valid.'"
       }
     }
   ]

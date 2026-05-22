@@ -5,7 +5,7 @@
   "self_evolution": "manual_only",
   "evidence_base": "ASIST (2018); SafeTALK; SAMHSA Safe Messaging Guidelines (2023)",
   "target_presentations": [],
-  "semantic_description": "",
+  "semantic_description": "Post-crisis safety check-in with validation, current-state acknowledgement, and warm closure with helpline provision.",
   "steps": [
     {
       "step_id": "acknowledge_and_check",

@@ -15,7 +15,7 @@
       "action": {
         "type": "inject",
         "target": "system",
-        "content": "POST-CRISIS SESSION: A crisis event occurred earlier in this session. Maintain gentle, supportive presence throughout. Do NOT immediately offer skills or structured techniques — the user may not be ready. Begin by checking in about current safety state, gently and without pressure. Avoid topics that could re-trigger distress. Follow the user's lead entirely. If they want to continue normally, support that. If they seem fragile, prioritise containment and safety over any therapeutic agenda."
+        "content": "POST-CRISIS SESSION: A crisis event occurred earlier in this session. Maintain gentle, supportive presence throughout. Do NOT immediately offer skills or structured techniques, as the user may not be ready. Begin by checking in about current safety state, gently and without pressure. Avoid topics that could re-trigger distress. Follow the user's lead entirely. If they want to continue normally, support that. If they seem fragile, prioritise containment and safety over any therapeutic agenda."
       }
     }
   ]
