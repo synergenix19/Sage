@@ -1,0 +1,15 @@
+{
+  "template_id": "L1_history",
+  "version": "1.0.0",
+  "authored_by": "sage_clinics",
+  "approved_by": null,
+  "effective_date": "2026-05-22",
+  "layer": "L1",
+  "role": "user",
+  "always_include": false,
+  "word_budget": 300,
+  "content": "CONVERSATION HISTORY:\n{history_lines}",
+  "variables": ["history_lines"],
+  "window_size": 8,
+  "summary_trigger": 10
+}

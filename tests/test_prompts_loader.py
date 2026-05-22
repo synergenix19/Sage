@@ -71,3 +71,35 @@ def test_get_template_loads_from_disk(tmp_path, monkeypatch):
     assert tmpl.template_id == "fixture_tmpl"
     assert tmpl.content == "Hello from fixture"
     assert tmpl.layer == "L0"
+
+
+def test_load_l0_persona():
+    tmpl = get_template("L0_persona")
+    assert tmpl.layer == "L0"
+    assert tmpl.role == "system"
+    assert tmpl.always_include is True
+    assert tmpl.word_budget == 150
+    assert tmpl.content.startswith("IMPORTANT")
+
+
+def test_l0_persona_has_no_em_dashes():
+    tmpl = get_template("L0_persona")
+    assert "—" not in tmpl.content
+
+
+def test_l0_persona_contains_scope_constraint():
+    tmpl = get_template("L0_persona")
+    assert "diagnos" in tmpl.content.lower()
+
+
+def test_l0_persona_contains_skill_instructions_clause():
+    tmpl = get_template("L0_persona")
+    assert "skill instructions" in tmpl.content
+
+
+def test_load_l1_history():
+    tmpl = get_template("L1_history")
+    assert tmpl.layer == "L1"
+    assert tmpl.role == "user"
+    assert tmpl.window_size == 8
+    assert "{history_lines}" in tmpl.content

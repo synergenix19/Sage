@@ -107,3 +107,39 @@ def test_sanitize_assistant_turn_strips_emoji():
 def test_sanitize_assistant_turn_replaces_em_dash():
     from sage_poc.prompts.composer import _sanitize_assistant_turn
     assert _sanitize_assistant_turn("one—two") == "one, two"
+
+
+from sage_poc.prompts.composer import _build_l0_system_block, _build_l1_history_block
+
+
+def test_l0_system_block_starts_with_important():
+    block = _build_l0_system_block()
+    assert block.startswith("IMPORTANT")
+
+
+def test_l1_history_empty_returns_none():
+    assert _build_l1_history_block([]) is None
+
+
+def test_l1_history_respects_window_size():
+    history = [
+        {"role": "user" if i % 2 == 0 else "assistant", "content": f"message {i}"}
+        for i in range(12)
+    ]
+    block = _build_l1_history_block(history)
+    # window_size=8: turns 0-3 are outside the window
+    assert "message 3" not in block
+    assert "message 11" in block
+
+
+def test_l1_history_sanitizes_assistant_turns():
+    history = [{"role": "assistant", "content": "**bold** and emoji \U0001f60a"}]
+    block = _build_l1_history_block(history)
+    assert "**" not in block
+    assert "\U0001f60a" not in block
+
+
+def test_l1_history_preserves_user_turns_verbatim():
+    history = [{"role": "user", "content": "I feel **really** bad"}]
+    block = _build_l1_history_block(history)
+    assert "I feel **really** bad" in block
