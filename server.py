@@ -93,7 +93,7 @@ def _sanitize_skill_id(value: str | None) -> str | None:
     return value if value in _VALID_SKILL_IDS else None
 
 
-_STEP_ID_RE = _re.compile(r'^[a-z][a-z0-9_]{0,63}$')
+_STEP_ID_RE = _re.compile(r'^[a-z][a-z0-9_-]{0,63}$')
 
 
 def _sanitize_step_id(value: str | None) -> str | None:
@@ -134,6 +134,7 @@ def _build_state(req: ChatRequest) -> dict:
         "message_en": current.content,  # safety_check_node overwrites for Arabic
         "is_safe": True,
         "crisis_flags": [],
+        "third_party_crisis": False,
         "clinical_flags": _sanitize_clinical_flags(req.clinical_flags),
         "primary_intent": None,
         "secondary_intent": None,

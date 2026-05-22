@@ -608,3 +608,33 @@ def test_chat_bypasses_key_check_when_sage_api_key_unset(monkeypatch):
         "session_id": "test",
     })
     assert res.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# _sanitize_step_id — hyphen support (v7 §9.1 CMS-authored step IDs)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("step_id,expected", [
+    # underscored IDs (current skills) — must still pass
+    ("explore_distortion",  "explore_distortion"),
+    ("identify_thought",    "identify_thought"),
+    ("hold_1",              "hold_1"),
+    # hyphenated IDs (v7 CMS authors will write these) — must now pass
+    ("explore-distortion",  "explore-distortion"),
+    ("capture-thought",     "capture-thought"),
+    ("validate-only",       "validate-only"),
+    ("breathe-and-settle",  "breathe-and-settle"),
+    # edge: starts with letter, max length, mixed
+    ("a-b",                 "a-b"),
+    # reject: starts with hyphen, starts with digit, empty
+    ("-bad",                None),
+    ("1bad",                None),
+    ("",                    None),
+])
+def test_sanitize_step_id_allows_hyphens(step_id, expected):
+    import server as srv
+    result = srv._sanitize_step_id(step_id if step_id else None)
+    assert result == expected, (
+        f"_sanitize_step_id({step_id!r}) = {result!r}, want {expected!r}. "
+        "Hyphenated step IDs from v7 CMS must not be silently dropped."
+    )
