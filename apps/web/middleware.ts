@@ -20,10 +20,10 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
   // Unauthenticated → sign-in (skip auth routes themselves)
-  if (!session) {
+  if (!user) {
     if (pathname.startsWith('/api/')) {
       return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
@@ -36,17 +36,17 @@ export async function middleware(request: NextRequest) {
   }
 
   // Root redirect
-  if (session && pathname === '/') {
+  if (user && pathname === '/') {
     return NextResponse.redirect(new URL('/chat', request.url))
   }
 
   // Single profile fetch — used for both admin check and onboarding gate.
   // Never make two round-trips to Supabase per middleware call.
-  if (session && !AUTH_PATHS.some(p => pathname.startsWith(p)) && pathname !== '/') {
+  if (user && !AUTH_PATHS.some(p => pathname.startsWith(p)) && pathname !== '/') {
     const { data: profile } = await supabase
       .from('user_profiles')
       .select('is_admin, onboarding_complete, onboarding_step')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single()
 
     if (pathname.startsWith('/admin') && !profile?.is_admin) {
