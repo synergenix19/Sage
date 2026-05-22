@@ -8,12 +8,16 @@ on:
       - 'src/sage_poc/state.py'
       - 'src/sage_poc/skill_ids.py'
       - 'tests/test_server.py'
+      - 'tests/test_state.py'
+      - 'tests/test_skill_ids.py'
   pull_request:
     paths:
       - 'server.py'
       - 'src/sage_poc/state.py'
       - 'src/sage_poc/skill_ids.py'
       - 'tests/test_server.py'
+      - 'tests/test_state.py'
+      - 'tests/test_skill_ids.py'
 
 jobs:
   ferry:
@@ -33,7 +37,7 @@ jobs:
       - name: Run ferry tests
         run: |
           pytest tests/test_server.py \
-            -k "ferry or two_turns or resolved or skill_ferry_headers" \
+            -k "ferry or two_turns or resolved or skill_ferry_headers or ferried" \
             -v --tb=short
         env:
           # Tests mock the graph — real API calls are never made.

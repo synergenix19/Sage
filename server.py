@@ -29,7 +29,7 @@ CRISIS_SIGNAL = "[[CRISIS_DETECTED]]"
 
 # Closed set enforced at the HTTP boundary — v7 §5.5.
 # crisis_state is client-ferried between turns; arbitrary strings must never enter the graph.
-_VALID_CRISIS_STATES = frozenset({"none", "monitoring", "active_crisis", "resolved"})
+_VALID_CRISIS_STATES = frozenset({"none", "active", "monitoring", "resolved"})
 
 _VALID_SKILL_IDS: frozenset[str] = frozenset(_SKILL_REGISTRY)
 
