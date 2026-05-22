@@ -35,10 +35,13 @@ async def lifespan(app: FastAPI):
     yield
 
 
+_cors_origins_raw = os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
+_CORS_ORIGINS: list[str] = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
+
 app = FastAPI(title="SageAI API", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # TODO: read from env var for production deployment
+    allow_origins=_CORS_ORIGINS,
     allow_methods=["POST"],
     allow_headers=["Content-Type"],
 )
