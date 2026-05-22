@@ -169,6 +169,17 @@ def _eval_cultural(rules: list[CulturalRule], context: dict) -> EvalResult:
                 ))
             continue
 
+        # Empty trigger_keywords = language-only trigger: fire for every message in
+        # the rule's target language without inspecting content. This lets cultural
+        # baseline rules (e.g. "always respond in Arabic") fire unconditionally.
+        if not rule.trigger_keywords:
+            result.fired.append(FiredRule(
+                rule_id=rule.rule_id,
+                version=rule.version,
+                action=rule.action,
+            ))
+            continue
+
         # trigger_type == "keyword_match" (default)
         matched = False
         for kw in rule.trigger_keywords:

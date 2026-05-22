@@ -211,7 +211,7 @@ def _build_l1_history_block(
     return content
 
 
-_CULTURAL_BUDGET_WORDS = 150
+_CULTURAL_BUDGET_WORDS = 250
 _TOTAL_WORD_BUDGET = 1100
 
 

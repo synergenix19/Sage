@@ -3,23 +3,20 @@
   "rules": [
     {
       "rule_id": "CU-DM-001",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "authored_by": "sage_clinics",
-      "effective_date": "2026-05-21",
+      "effective_date": "2026-05-22",
       "active": true,
-      "description": "Inject Khaleeji dialect mirroring instruction when Gulf Arabic dialect markers detected",
+      "description": "Inject Gulf Arabic dialect and language instruction for ALL Arabic-detected messages. Empty trigger_keywords = language-only trigger (fires whenever detected_language == language field). Previously keyword-triggered — changed because dialect mirroring must fire on every Arabic turn, not just turns that happen to contain Khaleeji markers.",
       "category": "cultural",
-      "trigger_keywords": [
-        "وايد", "زين", "شلون", "وش", "يبغى", "ابغى", "جذي", "ابي",
-        "ليش", "واجد", "عاد", "مب", "ماكو", "اكو", "هاه", "ايش"
-      ],
-      "language": "any",
+      "trigger_keywords": [],
+      "language": "ar",
       "action": {
         "type": "prompt_injection",
         "target": "system",
         "layer": "L5",
         "priority": 2,
-        "content": "DIALECT (this turn): The user is writing in Khaleeji Gulf Arabic dialect. Mirror their dialect in your Arabic responses. Use natural Khaleeji vocabulary and register. Prefer 'وايد' over 'كثير', 'زين' over 'حسن', 'شلون' over 'كيف حالك'. Match the warmth and naturalness of the user's conversational register."
+        "content": "LANGUAGE AND DIALECT: The user is writing in Arabic. You MUST respond in Arabic. This app is UAE-focused, so use Gulf Arabic (Khaleeji) register when natural: prefer 'وايد' over 'كثير', 'زين' over 'حسن', 'شلون' over 'كيف حالك'. If the user's message contains Khaleeji markers, mirror them. If the message is MSA, use warm conversational Arabic. Do NOT switch to English unless the user switches first."
       }
     }
   ]

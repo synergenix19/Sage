@@ -142,3 +142,24 @@ def test_compose_prompt_clinical_adaptation_layer_tracked():
         _, _, layers = compose_prompt(state)
 
     assert "clinical_adaptation" in layers
+
+
+def test_dialect_mirroring_fires_on_any_arabic_message():
+    # CU-DM-001 has empty trigger_keywords (language-only trigger). It must fire
+    # on every Arabic turn — including generic messages with no Khaleeji markers —
+    # so the LLM always gets "respond in Arabic" framing.
+    arabic_state = {
+        **_BASE_STATE,
+        "raw_message": "فهمت",  # "I understand" — no Khaleeji markers, no keywords
+        "detected_language": "ar",
+        "message_en": "I understand",
+    }
+    # Use live rules engine (not mocked) — this tests the actual rule file.
+    system_str, _, layers = compose_prompt(arabic_state)
+    assert "cultural" in layers, (
+        "Cultural layer must fire for Arabic messages even without keyword match. "
+        "CU-DM-001 (dialect_mirroring) uses empty trigger_keywords as a language-only trigger."
+    )
+    assert "Arabic" in system_str or "LANGUAGE" in system_str, (
+        "Arabic language instruction must appear in system prompt"
+    )

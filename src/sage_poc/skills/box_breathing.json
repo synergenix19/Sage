@@ -29,6 +29,7 @@
       "step_id": "inhale",
       "goal": "Coach the user to inhale slowly for 4 counts",
       "technique": "Paced breathing instruction, 4-count nasal inhale",
+      "technique_description": "Pace the diaphragmatic inhale over 4 counts to begin slowing the respiratory rate toward the therapeutic range and initiate the vagal tone shift.",
       "tone": "calm, slow, gently directive, model the pace through language",
       "examples": [
         "Let's start together. Breathe in slowly through your nose, and count with me: 1... 2... 3... 4. Take your time.",
@@ -44,6 +45,7 @@
       "step_id": "hold_1",
       "goal": "Guide the user to hold the breath for 4 counts, the parasympathetic activation phase",
       "technique": "Breath retention, 4-count hold",
+      "technique_description": "Use the breath-retention phase to prolong pulmonary stretch and deepen vagal activation, producing the parasympathetic shift that reduces sympathetic arousal.",
       "tone": "steady, present, reassuring",
       "examples": [
         "Good. Now hold, gently, no strain: 1... 2... 3... 4.",
@@ -59,6 +61,7 @@
       "step_id": "exhale_hold",
       "goal": "Guide exhale for 4 counts then final hold for 4 counts, completing the box; check in on state",
       "technique": "Controlled exhale with post-exhale hold, 4+4 counts; integration",
+      "technique_description": "Amplify the parasympathetic brake on heart rate through the extended exhale, then sustain it with the post-exhale hold before the next cycle; use the check-in to gauge whether the user needs another round.",
       "tone": "warm, slowing down, checking in",
       "examples": [
         "Now breathe out slowly through your mouth: 1... 2... 3... 4. And hold empty: 1... 2... 3... 4. Then take a normal breath. How do you feel?",

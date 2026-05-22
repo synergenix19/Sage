@@ -442,15 +442,19 @@ def test_dialect_mirroring_fires_on_shloun():
     assert "DIALECT" in system_str
 
 
-def test_dialect_mirroring_absent_for_msa():
-    """CU-DM-001 must NOT fire for formal MSA without Khaleeji markers."""
+def test_dialect_mirroring_fires_for_msa():
+    """CU-DM-001 must fire for formal MSA — the language baseline applies to ALL Arabic,
+    not just messages containing Khaleeji markers."""
     state = _freeflow_state(
         raw_message="أشعر بالقلق الشديد هذا اليوم",
         message_en="I feel intense anxiety today",
         detected_language="ar",
     )
     system_str, _, _ = compose_prompt(state)
-    assert "DIALECT" not in system_str
+    assert "DIALECT" in system_str, (
+        "CU-DM-001 (dialect_mirroring) uses empty trigger_keywords as a language-only trigger "
+        "and must fire for every Arabic message including formal MSA."
+    )
 
 
 # ── Code-switching detection and CU-CS-001 ───────────────────────────────────
