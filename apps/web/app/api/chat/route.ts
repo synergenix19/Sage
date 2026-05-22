@@ -78,22 +78,28 @@ export async function POST(req: Request) {
   })
 
   const sageStart = Date.now()
-  const sageRes = await fetch(`${SAGE_API_URL}/chat`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(process.env.SAGE_API_KEY ? { 'X-Sage-Api-Key': process.env.SAGE_API_KEY } : {}),
-    },
-    body: JSON.stringify({
-      messages:            messages.map((m) => ({ role: m.role, content: m.content })),
-      session_id:          sessionId,
-      crisis_state:        crisisState,
-      active_skill_id:     activeSkillId,
-      active_step_id:      activeStepId,
-      clinical_flags:      clinicalFlags,
-      distress_trajectory: distressTrajectory,
-    }),
-  })
+  let sageRes: Response
+  try {
+    sageRes = await fetch(`${SAGE_API_URL}/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(process.env.SAGE_API_KEY ? { 'X-Sage-Api-Key': process.env.SAGE_API_KEY } : {}),
+      },
+      body: JSON.stringify({
+        messages:            messages.map((m) => ({ role: m.role, content: m.content })),
+        session_id:          sessionId,
+        crisis_state:        crisisState,
+        active_skill_id:     activeSkillId,
+        active_step_id:      activeStepId,
+        clinical_flags:      clinicalFlags,
+        distress_trajectory: distressTrajectory,
+      }),
+    })
+  } catch (err) {
+    console.error('[chat/route] sage backend unreachable:', err)
+    return new Response('Service unavailable', { status: 503 })
+  }
 
   if (!sageRes.ok || !sageRes.body) {
     return new Response('Upstream error', { status: 502 })
