@@ -18,6 +18,21 @@ export async function POST(req: Request) {
     return new Response('Unauthorized', { status: 401 })
   }
 
+  const { data: message } = await supabase
+    .from('messages')
+    .select('session_id')
+    .eq('id', messageId)
+    .single()
+  if (!message) return new Response('Not Found', { status: 404 })
+
+  const { data: ownedSession } = await supabase
+    .from('chat_sessions')
+    .select('id')
+    .eq('id', message.session_id)
+    .eq('user_id', user.id)
+    .single()
+  if (!ownedSession) return new Response('Forbidden', { status: 403 })
+
   const { error } = await supabase
     .from('message_feedback')
     .upsert(
