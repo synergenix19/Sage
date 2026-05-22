@@ -11,7 +11,7 @@ interface InitialMessage { id: string; role: SdkRole; content: string }
 export default async function ChatPage({
   searchParams,
 }: {
-  searchParams: Promise<{ session?: string }>
+  searchParams: Promise<{ session?: string; new?: string }>
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
