@@ -11,7 +11,7 @@ export function StepGuard({ pageStep, children }: { pageStep: number; children: 
     if (storedStep > pageStep) {
       router.replace(`/step-${Math.min(storedStep, 6)}`)
     } else if (storedStep < pageStep) {
-      router.replace(`/step-${storedStep}`)
+      router.replace(`/step-${Math.max(storedStep, 1)}`)
     }
   }, [storedStep, pageStep, router])
 
