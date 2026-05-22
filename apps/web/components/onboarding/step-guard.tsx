@@ -10,6 +10,8 @@ export function StepGuard({ pageStep, children }: { pageStep: number; children: 
   useEffect(() => {
     if (storedStep > pageStep) {
       router.replace(`/step-${Math.min(storedStep, 6)}`)
+    } else if (storedStep < pageStep) {
+      router.replace(`/step-${storedStep}`)
     }
   }, [storedStep, pageStep, router])
 
