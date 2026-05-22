@@ -412,3 +412,13 @@ async def test_skill_select_keyword_tier_unaffected_by_timeout_patch():
     # "can't sleep" is a keyword in sleep_hygiene — keyword tier fires before embedding
     assert result["active_skill_id"] == "sleep_hygiene"
     assert result["skill_match_method"] == "keyword"
+
+
+# ── Server BGE-M3 warmup ──────────────────────────────────────────────────────
+
+def test_server_has_bge_warmup():
+    src = pathlib.Path(__file__).parent.parent / "server.py"
+    content = src.read_text()
+    assert "warmup" in content or "lifespan" in content, (
+        "server.py must define a lifespan/startup handler for BGE-M3 warmup"
+    )

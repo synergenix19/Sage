@@ -4,6 +4,7 @@ import json
 import logging
 import re as _re
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,7 +16,24 @@ from sage_poc.config import RESPONDER_MODEL
 # Import SKILL_REGISTRY from the zero-dependency module — does NOT load numpy or BGE-M3.
 from sage_poc.skill_ids import SKILL_REGISTRY as _SKILL_REGISTRY
 
-app = FastAPI(title="SageAI API")
+def _warmup_bge_m3() -> None:
+    from sage_poc.nodes.skill_select import _ensure_semantic_ready
+    _ensure_semantic_ready()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        await asyncio.to_thread(_warmup_bge_m3)
+        logging.getLogger(__name__).info("[sage/startup] BGE-M3 warmup complete")
+    except Exception as exc:
+        logging.getLogger(__name__).warning(
+            "[sage/startup] BGE-M3 warmup failed: %s", exc
+        )
+    yield
+
+
+app = FastAPI(title="SageAI API", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],  # TODO: read from env var for production deployment
