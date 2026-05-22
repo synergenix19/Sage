@@ -1,6 +1,6 @@
 export function TypingIndicator() {
   return (
-    <div className="flex justify-start">
+    <div className="flex justify-start" data-testid="typing-indicator">
       <div className="flex items-center gap-1 rounded-2xl rounded-es-sm bg-[var(--color-surface-tinted)] px-4 py-3">
         {[0, 1, 2].map((i) => (
           <span

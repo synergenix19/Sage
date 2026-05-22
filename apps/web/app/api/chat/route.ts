@@ -167,10 +167,30 @@ export async function POST(req: Request) {
     }
   })()
 
-  return new Response(clientStream, {
-    headers: {
-      'Content-Type':          'text/plain; charset=utf-8',
-      'X-Sage-Ai-Message-Id':  aiMessageId,
-    },
-  })
+  // Diagnostic headers forwarded to the browser — controlled by SAGE_EXPOSE_DIAGNOSTIC_HEADERS.
+  // Off by default in production. Set to "true" in .env.local or test environment.
+  // NOTE: x-sage-crisis-flags contains clinical flag identifiers — review before enabling in prod.
+  const SAGE_HEADERS_WHITELIST = [
+    'x-sage-node-path',
+    'x-sage-skill-id',
+    'x-sage-gate-path',
+    'x-sage-prompt-layers',
+    'x-sage-intent',
+    'x-sage-emotional-intensity',
+    'x-sage-turn-number',
+  ]
+
+  const responseHeaders: Record<string, string> = {
+    'Content-Type':         'text/plain; charset=utf-8',
+    'X-Sage-Ai-Message-Id': aiMessageId,
+  }
+
+  if (process.env.SAGE_EXPOSE_DIAGNOSTIC_HEADERS === 'true') {
+    for (const header of SAGE_HEADERS_WHITELIST) {
+      const value = sageRes.headers.get(header)
+      if (value) responseHeaders[header] = value
+    }
+  }
+
+  return new Response(clientStream, { headers: responseHeaders })
 }
