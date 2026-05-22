@@ -80,7 +80,10 @@ export async function POST(req: Request) {
   const sageStart = Date.now()
   const sageRes = await fetch(`${SAGE_API_URL}/chat`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(process.env.SAGE_API_KEY ? { 'X-Sage-Api-Key': process.env.SAGE_API_KEY } : {}),
+    },
     body: JSON.stringify({
       messages:            messages.map((m) => ({ role: m.role, content: m.content })),
       session_id:          sessionId,

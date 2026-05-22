@@ -331,4 +331,23 @@ describe('POST /api/chat', () => {
     await POST(req)
     expect(mockInsert).not.toHaveBeenCalled()
   })
+
+  // ── FE-H5: X-Sage-Api-Key forwarded to sage-poc ───────────────────────
+  it('sends X-Sage-Api-Key header to sage-poc when SAGE_API_KEY env is set', async () => {
+    vi.stubEnv('SAGE_API_KEY', 'test-secret')
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'hello' }],
+        sessionId: 'test-session-id',
+      }),
+    })
+    await POST(req)
+    vi.unstubAllEnvs()
+
+    const fetchCalls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls
+    const sageCall = fetchCalls.find((c) => (c[0] as string).includes('/chat'))
+    expect(sageCall).toBeDefined()
+    expect(sageCall![1].headers['X-Sage-Api-Key']).toBe('test-secret')
+  })
 })
