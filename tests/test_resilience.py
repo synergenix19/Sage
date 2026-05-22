@@ -50,6 +50,7 @@ def test_fallbacks_json_valid():
         ("low_confidence_respond", "en"),
         ("low_confidence_respond", "ar"),
         ("default", "en"),
+        ("default", "ar"),
     }
     missing = required - nodes_langs
     assert not missing, f"Missing fallback entries: {missing}"
