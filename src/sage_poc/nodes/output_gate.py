@@ -2,7 +2,7 @@ import json
 import re
 from datetime import datetime, timezone
 from sage_poc.state import SageState
-from sage_poc.language import translate_to_arabic
+from sage_poc.language import async_translate_to_arabic
 from sage_poc.config import AUDIT_LOG_ENABLED
 from sage_poc.rules import engine as rules_engine
 
@@ -28,12 +28,11 @@ JAILBREAK_RESPONSE = (
 )
 
 
-def output_gate_node(state: SageState) -> dict:
+async def output_gate_node(state: SageState) -> dict:
     gate_path = state.get("gate_path")
     lang = state["detected_language"]
     path = state["path"] + ["output_gate"]
 
-    # 3-path gate: scope_refusal and jailbreak bypass the LLM response entirely
     if gate_path == "scope_refusal":
         response_en = SCOPE_REFUSAL_RESPONSE
     elif gate_path == "jailbreak":
@@ -41,7 +40,6 @@ def output_gate_node(state: SageState) -> dict:
     else:
         response_en = state["response_en"] or ""
 
-    # Cultural output validation — audit-only, non-blocking
     if gate_path not in ("scope_refusal", "jailbreak"):
         cultural_violations = rules_engine.evaluate("cultural_output", {
             "response_text": response_en,
@@ -62,7 +60,7 @@ def output_gate_node(state: SageState) -> dict:
         print(f"\n[FORMAT VIOLATION] Disallowed formatting detected: {violations}")
 
     if lang == "ar":
-        final_response = translate_to_arabic(response_en)
+        final_response = await async_translate_to_arabic(response_en)
     else:
         final_response = response_en
 

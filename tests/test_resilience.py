@@ -450,3 +450,214 @@ async def test_async_translate_to_english_timeout_returns_original():
     with patch("sage_poc.language.asyncio.wait_for", side_effect=asyncio.TimeoutError):
         result = await async_translate_to_english("مرحباً")
     assert result == "مرحباً"
+
+
+# ── intent_route integration ──────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_intent_route_is_async():
+    import inspect
+    from sage_poc.nodes.intent_route import intent_route_node
+    assert inspect.iscoroutinefunction(intent_route_node)
+
+
+@pytest.mark.asyncio
+async def test_intent_route_fallback_routes_to_general_chat():
+    """When resilient_invoke returns fallback text (not JSON), intent defaults to general_chat."""
+    from sage_poc.nodes.intent_route import intent_route_node
+    state = {
+        "message_en": "I feel anxious",
+        "active_skill_id": None,
+        "conversation_history": [],
+        "path": [],
+    }
+    with patch(
+        "sage_poc.nodes.intent_route.resilient_invoke",
+        new_callable=AsyncMock,
+        return_value="I'm here with you, give me a moment",
+    ) as mock_ri:
+        result = await intent_route_node(state)
+    assert result["primary_intent"] == "general_chat"
+    assert result["intent_confidence"] == 0.5
+
+
+@pytest.mark.asyncio
+async def test_intent_route_parses_valid_json_response():
+    from sage_poc.nodes.intent_route import intent_route_node
+    state = {
+        "message_en": "I can't sleep",
+        "active_skill_id": None,
+        "conversation_history": [],
+        "path": [],
+    }
+    valid_json = '{"primary_intent": "new_skill", "secondary_intent": null, "emotional_intensity": 6, "engagement": 7, "intent_confidence": 0.9}'
+    with patch(
+        "sage_poc.nodes.intent_route.resilient_invoke",
+        new_callable=AsyncMock,
+        return_value=valid_json,
+    ):
+        result = await intent_route_node(state)
+    assert result["primary_intent"] == "new_skill"
+    assert result["intent_confidence"] == 0.9
+
+
+# ── low_confidence_respond integration ────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_low_confidence_respond_collects_stream():
+    from sage_poc.nodes.low_confidence_respond import low_confidence_respond_node
+    state = {
+        "message_en": "I don't know",
+        "detected_language": "en",
+        "path": [],
+    }
+
+    async def fake_stream(*a, **kw):
+        yield "Could you tell me more?"
+
+    with patch(
+        "sage_poc.nodes.low_confidence_respond.resilient_stream",
+        return_value=fake_stream(),
+    ):
+        result = await low_confidence_respond_node(state)
+    assert result["response_en"] == "Could you tell me more?"
+
+
+@pytest.mark.asyncio
+async def test_low_confidence_respond_fallback_text_returned():
+    from sage_poc.nodes.low_confidence_respond import low_confidence_respond_node
+    state = {
+        "message_en": "I don't know",
+        "detected_language": "en",
+        "path": [],
+    }
+
+    async def fallback_stream(*a, **kw):
+        yield "I want to make sure I understand you well. Could you tell me a bit more about what's on your mind?"
+
+    with patch(
+        "sage_poc.nodes.low_confidence_respond.resilient_stream",
+        return_value=fallback_stream(),
+    ):
+        result = await low_confidence_respond_node(state)
+    assert "understand" in result["response_en"].lower()
+
+
+# ── freeflow_respond integration ──────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_freeflow_respond_calls_resilient_invoke():
+    from sage_poc.nodes.freeflow_respond import freeflow_respond_node
+    state = {
+        "message_en": "I feel overwhelmed",
+        "detected_language": "en",
+        "active_skill_id": None,
+        "active_step_id": None,
+        "step_instruction": None,
+        "emotional_intensity": 6,
+        "engagement": 5,
+        "prompt_layers": [],
+        "conversation_history": [],
+        "crisis_state": "none",
+        "clinical_flags": [],
+        "code_switching": False,
+        "path": [],
+    }
+    with patch(
+        "sage_poc.nodes.freeflow_respond.resilient_invoke",
+        new_callable=AsyncMock,
+        return_value="I hear you, that sounds really hard.",
+    ) as mock_ri:
+        result = await freeflow_respond_node(state)
+    mock_ri.assert_called_once()
+    assert result["response_en"] == "I hear you, that sounds really hard."
+    assert result["token_usage"] == {}
+
+
+@pytest.mark.asyncio
+async def test_freeflow_respond_fallback_returned_on_llm_failure():
+    from sage_poc.nodes.freeflow_respond import freeflow_respond_node
+    state = {
+        "message_en": "I feel overwhelmed",
+        "detected_language": "en",
+        "active_skill_id": None,
+        "active_step_id": None,
+        "step_instruction": None,
+        "emotional_intensity": 6,
+        "engagement": 5,
+        "prompt_layers": [],
+        "conversation_history": [],
+        "crisis_state": "none",
+        "clinical_flags": [],
+        "code_switching": False,
+        "path": [],
+    }
+    fallback = "I'm here with you. I need a brief moment to collect my thoughts, can you bear with me?"
+    with patch(
+        "sage_poc.nodes.freeflow_respond.resilient_invoke",
+        new_callable=AsyncMock,
+        return_value=fallback,
+    ):
+        result = await freeflow_respond_node(state)
+    assert "moment" in result["response_en"] or "here" in result["response_en"]
+
+
+# ── output_gate integration ───────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_output_gate_is_async():
+    import inspect
+    from sage_poc.nodes.output_gate import output_gate_node
+    assert inspect.iscoroutinefunction(output_gate_node)
+
+
+def _gate_state(**overrides) -> dict:
+    base = {
+        "gate_path": "standard",
+        "detected_language": "en",
+        "response_en": "I hear you",
+        "message_en": "hello",
+        "clinical_flags": [],
+        "escalation_triggered": None,
+        "active_skill_id": None,
+        "skill_match_method": None,
+        "semantic_score": None,
+        "executed_step_id": None,
+        "active_step_id": None,
+        "emotional_intensity": 5,
+        "engagement": 5,
+        "is_safe": True,
+        "crisis_state": "none",
+        "s7_result": None,
+        "s7_method": None,
+        "primary_intent": "general_chat",
+        "turn_count": 1,
+        "conversation_history": [],
+        "path": [],
+    }
+    base.update(overrides)
+    return base
+
+
+@pytest.mark.asyncio
+async def test_output_gate_arabic_uses_async_translate():
+    from sage_poc.nodes.output_gate import output_gate_node
+    state = _gate_state(detected_language="ar", message_en="أنا حزين")
+    with patch(
+        "sage_poc.nodes.output_gate.async_translate_to_arabic",
+        new_callable=AsyncMock,
+        return_value="أسمعك",
+    ) as mock_t:
+        result = await output_gate_node(state)
+    mock_t.assert_called_once_with("I hear you")
+    assert result["response"] == "أسمعك"
+
+
+@pytest.mark.asyncio
+async def test_output_gate_english_no_translation():
+    from sage_poc.nodes.output_gate import output_gate_node
+    state = _gate_state(detected_language="en")
+    with patch("sage_poc.nodes.output_gate.async_translate_to_arabic") as mock_t:
+        result = await output_gate_node(state)
+    mock_t.assert_not_called()
+    assert result["response"] == "I hear you"

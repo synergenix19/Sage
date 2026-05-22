@@ -1,7 +1,8 @@
 import json
 import re
 from sage_poc.state import SageState
-from sage_poc.llm import get_classifier
+from sage_poc.llm import get_classifier, get_fallback_classifier
+from sage_poc.resilience import resilient_invoke
 
 INTENT_SYSTEM = """You are a routing classifier for a mental health assistant.
 Analyse the user's message and return ONLY valid JSON with these fields:
@@ -41,17 +42,19 @@ def _safe_int(value, default: int) -> int:
         return default
 
 
-def intent_route_node(state: SageState, llm=None) -> dict:
+async def intent_route_node(state: SageState, llm=None) -> dict:
     if llm is None:
         llm = get_classifier()
+    fallback_llm = get_fallback_classifier()
 
     messages = [
         {"role": "system", "content": INTENT_SYSTEM},
         {"role": "user", "content": build_intent_prompt(state)},
     ]
-    raw = llm.invoke(messages).content.strip()
+    raw = await resilient_invoke(
+        llm, messages, node="intent_route", fallback_llm=fallback_llm
+    )
 
-    # Extract JSON — handle models that wrap in markdown fences
     match = re.search(r'\{.*\}', raw, re.DOTALL)
     try:
         data = json.loads(match.group(0)) if match else {}
