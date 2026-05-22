@@ -349,9 +349,11 @@ def test_self_harm_method_reference_triggers_crisis(text):
 # ── Arabic idiom false positive suppression (FPE-AR-001, FPE-AR-002) ──────────
 
 @pytest.mark.parametrize("arabic_text,should_be_suppressed", [
-    # These are frustration idioms — must NOT trigger crisis path
-    ("ابغى اموت من الضحك", True),
-    ("بموت من الضحك", True),
+    # C-6: FPE-AR-001 is currently active=False pending clinician approval.
+    # While inactive, laughter idioms are NOT suppressed — crisis_flag fires (conservative default).
+    # Update to True once clinician approves FPE-AR-001 and active=True.
+    ("ابغى اموت من الضحك", False),
+    ("بموت من الضحك", False),
     # These ARE genuine crisis expressions — suppression must NOT apply
     ("ابغى اموت بدون سبب", False),
 ])
