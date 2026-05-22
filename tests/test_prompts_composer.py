@@ -1,5 +1,5 @@
 import pytest
-from sage_poc.prompts.composer import _select_few_shot_examples, _build_l3_skill_block
+from sage_poc.prompts.composer import _select_few_shot_examples, _build_l3_skill_block, _TOTAL_WORD_BUDGET
 from sage_poc.skills.schema import SkillStep
 
 
@@ -395,5 +395,16 @@ def test_compose_prompt_post_crisis_context_fires_when_monitoring():
 def test_compose_prompt_user_message_always_last_in_user_str():
     state = _make_state(message_en="this is my message")
     with patch("sage_poc.prompts.composer.rules_engine.evaluate", side_effect=_no_rules()):
-        _, user_str, _ = compose_prompt(_BASE_STATE)
-    assert user_str.endswith("USER: I've been feeling anxious for weeks")
+        _, user_str, _ = compose_prompt(state)
+    assert user_str.endswith("USER: this is my message")
+
+
+def test_compose_prompt_shrinks_l1_on_overflow():
+    long_msg = " ".join(["word"] * 50)
+    history = [{"role": "user", "content": long_msg} for _ in range(10)]
+    state = _make_state(conversation_history=history)
+    with patch("sage_poc.prompts.composer.rules_engine.evaluate", side_effect=_no_rules()):
+        system_str, user_str, layers = compose_prompt(state)
+    assert "history" in layers
+    total = len(system_str.split()) + len(user_str.split())
+    assert total <= _TOTAL_WORD_BUDGET + 100

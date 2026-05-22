@@ -253,6 +253,8 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
         content = action["content"]
         words = count_words(content)
         if word_count + words <= _CULTURAL_BUDGET_WORDS or word_count == 0:
+            if word_count == 0 and words > _CULTURAL_BUDGET_WORDS:
+                _log.warning("Cultural action exceeds budget (%d > %d words)", words, _CULTURAL_BUDGET_WORDS)
             system_parts.append(content)
             word_count += words
         else:
