@@ -28,9 +28,28 @@ function parseJsonHeader<T>(raw: string | null, fallback: T): T {
 }
 
 export async function POST(req: Request) {
-  const { messages, sessionId } = await req.json() as {
-    messages: { role: string; content: string }[]
-    sessionId: string
+  // route.ts is a deliberate security boundary:
+  //   - SAGE_API_URL is a server-side env var; it never reaches the browser
+  //   - Supabase persistence happens here, not in the browser
+  //   - Auth checks (Group 2) will be added here
+  // All sage-poc calls originate from this server process — CORS headers on sage-poc
+  // are irrelevant to this call path.
+  const {
+    messages,
+    sessionId,
+    crisisState        = 'none',
+    activeSkillId      = null,
+    activeStepId       = null,
+    clinicalFlags      = [],
+    distressTrajectory = [],
+  } = await req.json() as {
+    messages:            { role: string; content: string }[]
+    sessionId:           string
+    crisisState?:        string
+    activeSkillId?:      string | null
+    activeStepId?:       string | null
+    clinicalFlags?:      string[]
+    distressTrajectory?: number[]
   }
 
   if (!sessionId || !messages?.length) {
@@ -53,8 +72,13 @@ export async function POST(req: Request) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      session_id: sessionId,
+      messages:            messages.map((m) => ({ role: m.role, content: m.content })),
+      session_id:          sessionId,
+      crisis_state:        crisisState,
+      active_skill_id:     activeSkillId,
+      active_step_id:      activeStepId,
+      clinical_flags:      clinicalFlags,
+      distress_trajectory: distressTrajectory,
     }),
   })
 
@@ -68,9 +92,9 @@ export async function POST(req: Request) {
   const stepId       = sageRes.headers.get('X-Sage-Step-Id') || null
   const gatePath     = sageRes.headers.get('X-Sage-Gate-Path') || null
 
-  const sageNodePath  = parseJsonHeader<string[] | null>(sageRes.headers.get('X-Sage-Node-Path'), null)
-  const crisisFlags   = parseJsonHeader<string[] | null>(sageRes.headers.get('X-Sage-Crisis-Flags'), null)
-  const clinicalFlags = parseJsonHeader<string[] | null>(sageRes.headers.get('X-Sage-Clinical-Flags'), null)
+  const sageNodePath      = parseJsonHeader<string[] | null>(sageRes.headers.get('X-Sage-Node-Path'), null)
+  const crisisFlags       = parseJsonHeader<string[] | null>(sageRes.headers.get('X-Sage-Crisis-Flags'), null)
+  const sageClinicalFlags = parseJsonHeader<string[] | null>(sageRes.headers.get('X-Sage-Clinical-Flags'), null)
 
   const intensityStr       = sageRes.headers.get('X-Sage-Emotional-Intensity')
   const emotionalIntensity = intensityStr ? (parseInt(intensityStr, 10) || null) : null
@@ -124,7 +148,7 @@ export async function POST(req: Request) {
           step_id:               stepId,
           gate_path:             gatePath,
           crisis_flags:          crisisFlags,
-          clinical_flags:        clinicalFlags,
+          clinical_flags:        sageClinicalFlags,
           emotional_intensity:   emotionalIntensity,
           // New trace fields
           intent_classification: intentClassification,
@@ -134,9 +158,9 @@ export async function POST(req: Request) {
           turn_number:           turnNumber,
           // Timestamped clinical flag detail for clinician timeline and
           // cross-session aggregation (Priority 3). Only written when flags present.
-          clinical_flags_detail: clinicalFlags?.length
+          clinical_flags_detail: sageClinicalFlags?.length
             ? Object.fromEntries(
-                clinicalFlags.map(flag => [
+                sageClinicalFlags.map(flag => [
                   flag,
                   { detected_at: new Date().toISOString(), turn_number: turnNumber },
                 ])
@@ -191,6 +215,15 @@ export async function POST(req: Request) {
       if (value) responseHeaders[header] = value
     }
   }
+
+  // Ferry headers: read by chat-interface.tsx and sent back on the next request.
+  // These are the only sage-poc headers forwarded to the browser — all others
+  // are consumed here for Supabase persistence.
+  responseHeaders['X-Sage-Crisis-State']        = sageRes.headers.get('X-Sage-Crisis-State') ?? 'none'
+  responseHeaders['X-Sage-Skill-Id']            = sageRes.headers.get('X-Sage-Skill-Id') ?? ''
+  responseHeaders['X-Sage-Active-Step-Id']      = sageRes.headers.get('X-Sage-Active-Step-Id') ?? ''
+  responseHeaders['X-Sage-Clinical-Flags']      = sageRes.headers.get('X-Sage-Clinical-Flags') ?? '[]'
+  responseHeaders['X-Sage-Distress-Trajectory'] = sageRes.headers.get('X-Sage-Distress-Trajectory') ?? '[]'
 
   return new Response(clientStream, { headers: responseHeaders })
 }
