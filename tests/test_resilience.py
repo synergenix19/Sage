@@ -358,3 +358,57 @@ def test_fallback_config_defined():
     from sage_poc.config import FALLBACK_RESPONDER_MODEL, FALLBACK_CLASSIFIER_MODEL
     assert isinstance(FALLBACK_RESPONDER_MODEL, str) and FALLBACK_RESPONDER_MODEL
     assert isinstance(FALLBACK_CLASSIFIER_MODEL, str) and FALLBACK_CLASSIFIER_MODEL
+
+
+# ── skill_select embedding timeout ────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_skill_select_node_is_async():
+    import inspect
+    from sage_poc.nodes.skill_select import skill_select_node
+    assert inspect.iscoroutinefunction(skill_select_node)
+
+
+@pytest.mark.asyncio
+async def test_skill_select_embedding_timeout_falls_to_freeflow():
+    from sage_poc.nodes.skill_select import skill_select_node
+
+    state = {
+        "message_en": "I have racing thoughts at night",
+        "crisis_state": "none",
+        "active_skill_id": None,
+        "active_step_id": None,
+        "path": [],
+    }
+    with patch(
+        "sage_poc.nodes.skill_select.asyncio.wait_for",
+        side_effect=asyncio.TimeoutError,
+    ):
+        result = await skill_select_node(state)
+
+    assert result["active_skill_id"] is None
+    assert result["skill_match_method"] is None
+    assert result.get("embedding_timeout") is True
+
+
+@pytest.mark.asyncio
+async def test_skill_select_keyword_tier_unaffected_by_timeout_patch():
+    """Keyword matching runs before embedding — timeout patch must not block it."""
+    from sage_poc.nodes.skill_select import skill_select_node
+
+    state = {
+        "message_en": "I can't sleep at night",
+        "crisis_state": "none",
+        "active_skill_id": None,
+        "active_step_id": None,
+        "path": [],
+    }
+    with patch(
+        "sage_poc.nodes.skill_select.asyncio.wait_for",
+        side_effect=asyncio.TimeoutError,
+    ):
+        result = await skill_select_node(state)
+
+    # "can't sleep" is a keyword in sleep_hygiene — keyword tier fires before embedding
+    assert result["active_skill_id"] == "sleep_hygiene"
+    assert result["skill_match_method"] == "keyword"

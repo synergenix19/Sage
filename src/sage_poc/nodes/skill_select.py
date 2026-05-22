@@ -1,31 +1,34 @@
 from __future__ import annotations
 
-import numpy as np
-from sage_poc.state import SageState
-from sage_poc.skills.schema import load_skill
+import asyncio
+import logging
 
+import numpy as np
+
+from sage_poc.state import SageState
 from sage_poc.skill_ids import SKILL_REGISTRY
+from sage_poc.skills.schema import load_skill
+from sage_poc.resilience import EMBEDDING_TIMEOUT_SECONDS
+
+logger = logging.getLogger(__name__)
+
 _SKILLS = {sid: load_skill(sid) for sid in SKILL_REGISTRY}
 
-# Threshold from empirical calibration (Task 3).
-SEMANTIC_THRESHOLD: float = 0.5258  # recalibrated 2026-05-22; all descriptions rewritten to technique-identity only (see SKILL_AUTHORING_CONVENTIONS.md); gap=0.0124 (lowest hit 0.5345, highest miss 0.5220)
+# Calibrated 2026-05-22 after technique-first semantic description rewrite (Doc 4).
+# gap=0.0124 (lowest hit 0.5345, highest miss 0.5220).
+# Re-run scripts/calibrate_threshold.py after any semantic_description edit.
 # NOTE: CBT semantic_description has inherent overlap with vague negative-affect
-# language in BGE-M3 embedding space ("I just feel off today" scores 0.5566,
-# "I'm not doing great" 0.5965 — both above threshold at the semantic tier).
-# This is a known single-vector matching limitation; no description wording can
-# cleanly separate cognitive-distortion statements from vague affect in this model.
-# Architectural defence: intent_route (Node 2) classifies vague openings as
-# general_chat before they reach skill_select (Node 4). Validated in R-3 audit.
-# Re-run calibrate_threshold.py after any semantic_description or target_presentations edit.
+# language in BGE-M3 embedding space. Architectural defence: intent_route (Node 2)
+# classifies vague openings as general_chat before they reach skill_select (Node 4).
+SEMANTIC_THRESHOLD: float = 0.5258
 
-# Lazy semantic components — initialised on first semantic miss, not at import
 _embed_model = None
 _semantic_skill_ids: list[str] = []
 _semantic_embeddings: np.ndarray | None = None
 
 
 def _ensure_semantic_ready() -> None:
-    """Load BGE-M3 and embed all skill descriptions. No-op on subsequent calls."""
+    """Load BGE-M3 and embed all skill descriptions. No-op after first call."""
     global _embed_model, _semantic_skill_ids, _semantic_embeddings
     if _embed_model is not None:
         return
@@ -40,8 +43,8 @@ def _ensure_semantic_ready() -> None:
     _semantic_embeddings = _embed_model.encode(texts, normalize_embeddings=True)
 
 
-def _semantic_match(message_en: str) -> tuple[str | None, float]:
-    """Cosine similarity against all skill semantic_descriptions. Tier 2 fallback only."""
+def _semantic_match_sync(message_en: str) -> tuple[str | None, float]:
+    """Cosine similarity against all skill semantic_descriptions. Runs in thread."""
     _ensure_semantic_ready()
     if _semantic_embeddings is None or not message_en.strip():
         return None, 0.0
@@ -54,8 +57,8 @@ def _semantic_match(message_en: str) -> tuple[str | None, float]:
     return None, best_score
 
 
-def skill_select_node(state: SageState) -> dict:
-    # Post-crisis auto-select: bypass keyword and semantic matching entirely
+async def skill_select_node(state: SageState) -> dict:
+    # Post-crisis auto-select bypasses keyword and semantic matching
     if state.get("crisis_state") == "monitoring":
         skill_id = "post_crisis_check_in"
         skill = _SKILLS[skill_id]
@@ -74,7 +77,7 @@ def skill_select_node(state: SageState) -> dict:
 
     message = state["message_en"].lower()
 
-    # Tier 1: Keyword matching — deterministic, fast, auditable
+    # Tier 1: Keyword matching — synchronous, deterministic, fast
     for skill_id, skill in _SKILLS.items():
         for keyword in skill.target_presentations:
             if keyword.lower() in message:
@@ -86,8 +89,27 @@ def skill_select_node(state: SageState) -> dict:
                     "path": state["path"] + ["skill_select"],
                 }
 
-    # Tier 2: Semantic fallback — fires only when keywords miss
-    semantic_skill, score = _semantic_match(state["message_en"])
+    # Tier 2: Semantic fallback — CPU inference on a separate thread with timeout
+    try:
+        semantic_skill, score = await asyncio.wait_for(
+            asyncio.to_thread(_semantic_match_sync, state["message_en"]),
+            timeout=EMBEDDING_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError:
+        logger.warning(
+            '{"event": "embedding_timeout", "skill_select_tier": "keyword_only", '
+            '"timeout_s": %s}',
+            EMBEDDING_TIMEOUT_SECONDS,
+        )
+        return {
+            "active_skill_id": None,
+            "active_step_id": None,
+            "skill_match_method": None,
+            "semantic_score": None,
+            "embedding_timeout": True,
+            "path": state["path"] + ["skill_select"],
+        }
+
     if semantic_skill is not None:
         skill = _SKILLS[semantic_skill]
         return {

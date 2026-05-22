@@ -212,60 +212,66 @@ def test_intent_route_classifies_exit_skill():
 
 from sage_poc.nodes.skill_select import skill_select_node
 
-def test_selects_cbt_for_negative_thought():
+@pytest.mark.asyncio
+async def test_selects_cbt_for_negative_thought():
     state = make_state(
         message_en="I keep thinking I'm a failure, it's always my fault",
         primary_intent="new_skill",
     )
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] == "cbt_thought_record"
     assert result["active_step_id"] == "identify_thought"
     assert "skill_select" in result["path"]
 
-def test_no_skill_for_general_chat():
+@pytest.mark.asyncio
+async def test_no_skill_for_general_chat():
     state = make_state(
         message_en="What is the weather like?",
         primary_intent="new_skill",
     )
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] is None
 
 
-def test_selects_cbt_for_my_fault_phrasing():
+@pytest.mark.asyncio
+async def test_selects_cbt_for_my_fault_phrasing():
     """RT-4: 'everything is my fault' must activate CBT — 'my fault' substring fix."""
     state = make_state(
         message_en="I keep thinking everything is my fault, always",
         primary_intent="new_skill",
     )
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] == "cbt_thought_record", \
         "RT-4: 'my fault' phrasing must activate cbt_thought_record"
     assert result["active_step_id"] == "identify_thought"
 
 
-def test_selects_cbt_for_blame_myself():
+@pytest.mark.asyncio
+async def test_selects_cbt_for_blame_myself():
     """'I always blame myself for everything' must activate CBT via 'blame myself' keyword."""
     state = make_state(
         message_en="I always blame myself for everything that goes wrong",
         primary_intent="new_skill",
     )
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] == "cbt_thought_record", \
         "'blame myself' must activate cbt_thought_record"
 
 
-def test_stressed_does_not_match_any_skill():
+@pytest.mark.asyncio
+async def test_stressed_does_not_match_any_skill():
     """RT-4 inverse: 'stressed' is too vague — must route to freeflow, not trigger a skill."""
     state = make_state(
         message_en="Hi, I've been feeling stressed",
         primary_intent="new_skill",
     )
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] is None, \
         "Vague 'stressed' must not activate any skill — freeflow should explore the presentation"
 
 
-def test_panicking_still_matches_grounding():
+@pytest.mark.asyncio
+async def test_panicking_still_matches_grounding():
     """RT-4 guard: tightening grounding description must not break semantic panic routing.
     Phrase is a keyword-miss — exercises the embedding path, not keyword tier.
     """
@@ -273,12 +279,13 @@ def test_panicking_still_matches_grounding():
         message_en="my heart is pounding so hard and I feel faint",
         primary_intent="new_skill",
     )
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] == "grounding_5_4_3_2_1", \
         "Explicit panic phrasing must still activate grounding after description tightening"
 
 
-def test_stressed_does_not_match_sleep_hygiene():
+@pytest.mark.asyncio
+async def test_stressed_does_not_match_sleep_hygiene():
     """RT-4b: 'stressed' must not route to sleep_hygiene — general stress is not a sleep complaint.
     sleep_hygiene is indicated for insomnia patterns, not everyday stress.
     """
@@ -286,11 +293,12 @@ def test_stressed_does_not_match_sleep_hygiene():
         message_en="Hi, I've been feeling stressed",
         primary_intent="new_skill",
     )
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] is None, \
         "Vague 'stressed' must not activate sleep_hygiene or any other skill"
 
-def test_overwhelmed_and_anxious_does_not_match_any_skill():
+@pytest.mark.asyncio
+async def test_overwhelmed_and_anxious_does_not_match_any_skill():
     """RT-4b: 'overwhelmed and anxious' without sleep context must route to freeflow.
     This was an actual false positive (score 0.5522 against sleep_hygiene pre-fix).
     """
@@ -298,17 +306,18 @@ def test_overwhelmed_and_anxious_does_not_match_any_skill():
         message_en="I'm overwhelmed and anxious",
         primary_intent="new_skill",
     )
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] is None, \
         "'overwhelmed and anxious' without sleep context must not activate any skill"
 
-def test_insomnia_still_matches_sleep_hygiene():
+@pytest.mark.asyncio
+async def test_insomnia_still_matches_sleep_hygiene():
     """RT-4b guard: tightening sleep description must not break canonical insomnia routing."""
     state = make_state(
         message_en="I keep waking up at 3am and can't get back to sleep",
         primary_intent="new_skill",
     )
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] == "sleep_hygiene", \
         "Explicit insomnia phrasing must still activate sleep_hygiene after description tightening"
 
@@ -1328,19 +1337,21 @@ def test_grounding_skill_schema_is_valid():
     assert all(len(s.examples) >= 2 for s in skill.steps)
 
 
-def test_selects_grounding_for_panic_phrasing():
+@pytest.mark.asyncio
+async def test_selects_grounding_for_panic_phrasing():
     """'I'm having a panic attack' must activate grounding skill."""
     state = make_state(
         message_en="I'm having a panic attack right now, I can't breathe",
         primary_intent="new_skill",
     )
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] == "grounding_5_4_3_2_1", \
         "Panic attack phrasing must activate grounding skill"
     assert result["active_step_id"] == "see_5"
 
 
-def test_selects_grounding_for_overwhelmed_phrasing():
+@pytest.mark.asyncio
+async def test_selects_grounding_for_overwhelmed_phrasing():
     """'overwhelmed, my head is spinning' routes to grounding via 'spinning' keyword.
     Note: 'overwhelmed' was intentionally removed from target_presentations (RT-4b) to
     prevent 'I'm overwhelmed and anxious' from false-positiving into grounding.
@@ -1350,7 +1361,7 @@ def test_selects_grounding_for_overwhelmed_phrasing():
         message_en="I feel completely overwhelmed, my head is spinning",
         primary_intent="new_skill",
     )
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] == "grounding_5_4_3_2_1"
 
 
@@ -1364,25 +1375,27 @@ def test_sleep_hygiene_skill_schema_is_valid():
     assert all(len(s.examples) >= 2 for s in skill.steps)
 
 
-def test_selects_sleep_hygiene_for_insomnia_phrasing():
+@pytest.mark.asyncio
+async def test_selects_sleep_hygiene_for_insomnia_phrasing():
     """'I can't sleep at night' must activate sleep_hygiene skill."""
     state = make_state(
         message_en="I can't sleep at night, I lie awake for hours",
         primary_intent="new_skill",
     )
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] == "sleep_hygiene", \
         "'can't sleep' phrasing must activate sleep_hygiene skill"
     assert result["active_step_id"] == "assess_sleep"
 
 
-def test_selects_sleep_hygiene_for_insomnia_keyword():
+@pytest.mark.asyncio
+async def test_selects_sleep_hygiene_for_insomnia_keyword():
     """'I have insomnia' must activate sleep_hygiene skill."""
     state = make_state(
         message_en="I've been struggling with insomnia for months",
         primary_intent="new_skill",
     )
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] == "sleep_hygiene"
 
 
@@ -1676,10 +1689,11 @@ def test_compose_prompt_warmth_gradient_crisis_vs_positive():
 # ---------------------------------------------------------------------------
 
 @pytest.mark.slow
-def test_semantic_fallback_catches_nothing_good_enough():
+@pytest.mark.asyncio
+async def test_semantic_fallback_catches_nothing_good_enough():
     """'nothing I do is good enough' keyword-misses; semantic fallback must catch → cbt."""
     state = make_state(message_en="nothing I do is good enough")
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] == "cbt_thought_record", (
         "'nothing I do is good enough' must activate cbt_thought_record via semantic fallback"
     )
@@ -1688,7 +1702,8 @@ def test_semantic_fallback_catches_nothing_good_enough():
 
 
 @pytest.mark.slow
-def test_semantic_fallback_catches_spiralling():
+@pytest.mark.asyncio
+async def test_semantic_fallback_catches_spiralling():
     """Dissociative derealization keyword-misses; semantic fallback must catch → grounding.
 
     NOTE: Original message 'things are spiralling out of control right now' scored 0.48–0.52
@@ -1701,7 +1716,7 @@ def test_semantic_fallback_catches_spiralling():
     state = make_state(
         message_en="everything suddenly feels unreal and I feel like I am watching from outside my body"
     )
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] == "grounding_5_4_3_2_1", (
         "Derealization/dissociative phrasing must activate grounding_5_4_3_2_1 via semantic fallback"
     )
@@ -1709,10 +1724,11 @@ def test_semantic_fallback_catches_spiralling():
 
 
 @pytest.mark.slow
-def test_semantic_fallback_catches_exhausted_mind_racing():
+@pytest.mark.asyncio
+async def test_semantic_fallback_catches_exhausted_mind_racing():
     """Sleep-register message that keyword-misses; semantic fallback must catch → sleep_hygiene."""
     state = make_state(message_en="my brain just won't let me rest when it's dark")
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] == "sleep_hygiene", (
         "Sleep difficulty described without any keyword substring must activate sleep_hygiene via semantic fallback"
     )
@@ -1720,31 +1736,34 @@ def test_semantic_fallback_catches_exhausted_mind_racing():
 
 
 @pytest.mark.slow
-def test_semantic_fallback_rejects_weather_question():
+@pytest.mark.asyncio
+async def test_semantic_fallback_rejects_weather_question():
     """Off-topic question must not match any skill even via semantic fallback."""
     state = make_state(message_en="what's the weather like today in Dubai")
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] is None, (
         "Weather question must not activate any skill"
     )
 
 
 @pytest.mark.slow
-def test_semantic_fallback_rejects_diagnosis_request():
+@pytest.mark.asyncio
+async def test_semantic_fallback_rejects_diagnosis_request():
     """Scope-refusal territory — must not match a therapeutic skill."""
     state = make_state(message_en="can you diagnose me with depression")
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] is None, (
         "Diagnosis request must not activate any skill"
     )
 
 
 @pytest.mark.slow
-def test_keyword_match_takes_priority_over_semantic():
+@pytest.mark.asyncio
+async def test_keyword_match_takes_priority_over_semantic():
     """When a keyword fires, skill_match_method must be 'keyword', not 'semantic'."""
     # "my fault" is in CBT target_presentations — this is a guaranteed keyword match
     state = make_state(message_en="I feel like everything is my fault")
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] == "cbt_thought_record"
     assert result["skill_match_method"] == "keyword", (
         "Keyword match must fire before semantic fallback"
@@ -1753,10 +1772,11 @@ def test_keyword_match_takes_priority_over_semantic():
 
 
 @pytest.mark.slow
-def test_semantic_match_returns_score_in_result():
+@pytest.mark.asyncio
+async def test_semantic_match_returns_score_in_result():
     """Semantic matches must include the similarity score for audit trail."""
     state = make_state(message_en="I just have this constant voice telling me I'm terrible")
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["skill_match_method"] == "semantic", (
         "Self-critical cognition without keyword phrasing must reach semantic fallback"
     )

@@ -1,4 +1,5 @@
 # tests/test_skill_select.py
+import pytest
 from sage_poc.nodes.skill_select import skill_select_node
 
 
@@ -38,19 +39,21 @@ def _ss_state(**overrides):
     return base
 
 
-def test_monitoring_state_always_selects_post_crisis_check_in():
+@pytest.mark.asyncio
+async def test_monitoring_state_always_selects_post_crisis_check_in():
     """When crisis_state=='monitoring', skill_select bypasses keyword/semantic and returns post_crisis_check_in."""
     state = _ss_state(
         message_en="I feel a bit calmer now",
         crisis_state="monitoring",
     )
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] == "post_crisis_check_in"
     assert result["skill_match_method"] == "post_crisis_auto_select"
     assert result["active_step_id"] == "acknowledge_and_check"
 
 
-def test_monitoring_state_continues_from_current_step_if_already_in_skill():
+@pytest.mark.asyncio
+async def test_monitoring_state_continues_from_current_step_if_already_in_skill():
     """If post_crisis_check_in is already active on step 2, skill_select preserves that step."""
     state = _ss_state(
         message_en="I feel a bit calmer",
@@ -58,28 +61,30 @@ def test_monitoring_state_continues_from_current_step_if_already_in_skill():
         active_skill_id="post_crisis_check_in",
         active_step_id="bridge_or_close",
     )
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] == "post_crisis_check_in"
     assert result["active_step_id"] == "bridge_or_close"
 
 
-def test_normal_state_not_affected_by_post_crisis_check_in_in_registry():
+@pytest.mark.asyncio
+async def test_normal_state_not_affected_by_post_crisis_check_in_in_registry():
     """post_crisis_check_in's empty target_presentations must not match via keyword or semantic."""
     state = _ss_state(
         message_en="I keep thinking everything is my fault",
         crisis_state="none",
     )
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] != "post_crisis_check_in"
 
 
-def test_resolved_state_falls_through_to_normal_skill_matching():
+@pytest.mark.asyncio
+async def test_resolved_state_falls_through_to_normal_skill_matching():
     """In resolved state, skill_select must use normal keyword/semantic matching, not auto-select."""
     state = _ss_state(
         message_en="I keep thinking everything is my fault",
         crisis_state="resolved",
     )
-    result = skill_select_node(state)
+    result = await skill_select_node(state)
     assert result["active_skill_id"] == "cbt_thought_record"
     assert result["skill_match_method"] == "keyword"
 
