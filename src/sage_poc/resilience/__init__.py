@@ -199,7 +199,6 @@ async def resilient_invoke(
             )
             return response_msg.content.strip()
         except Exception as exc:
-            _record_failure(key)
             if not _is_retryable(exc):
                 logger.error(
                     '{"event": "llm_call_failed", "node": "%s", "attempt": %d, '
@@ -208,6 +207,7 @@ async def resilient_invoke(
                     attempt + 1,
                 )
                 return get_fallback_response(node, language)
+            _record_failure(key)
             if attempt < LLM_MAX_RETRIES:
                 backoff = _backoff(attempt)
                 logger.warning(
@@ -280,7 +280,6 @@ async def resilient_stream(
             )
             return
         except Exception as exc:
-            _record_failure(key)
             if not _is_retryable(exc):
                 logger.error(
                     '{"event": "llm_stream_failed", "node": "%s", '
@@ -289,6 +288,7 @@ async def resilient_stream(
                 )
                 yield get_fallback_response(node, language)
                 return
+            _record_failure(key)
             if attempt < LLM_MAX_RETRIES:
                 backoff = _backoff(attempt)
                 logger.warning(
