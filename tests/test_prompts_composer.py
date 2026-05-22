@@ -232,7 +232,7 @@ def test_l5_user_context_fires_for_substance_use():
         clinical_flags=["substance_use"], intensity=5, engagement=6
     )
     assert block is not None
-    assert "motivational" in block.lower() or "MI" in block or "substance" in block.lower()
+    assert "motivational" in block.lower()
 
 
 def test_l5_user_context_includes_distress_note_when_escalating():

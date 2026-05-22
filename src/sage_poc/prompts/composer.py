@@ -158,7 +158,7 @@ def _build_l5_user_context_block(
     flags_summary = " ".join(_FLAG_DESCRIPTIONS[f] for f in relevant)
     distress_note = (
         " Distress has been elevated for multiple turns."
-        if "escalating_distress" in clinical_flags
+        if "escalating_distress" in relevant
         else ""
     )
     content = tmpl.content.format(
