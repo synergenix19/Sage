@@ -1,0 +1,14 @@
+{
+  "template_id": "L2_info_request",
+  "version": "1.0.0",
+  "authored_by": "sage_clinics",
+  "approved_by": null,
+  "effective_date": "2026-05-22",
+  "layer": "L2",
+  "role": "user",
+  "always_include": true,
+  "word_budget": 50,
+  "content": "INTENT: The user is asking for information. Emotional intensity: {intensity}/10. {intensity_guidance} Answer clearly and briefly. If the answer is uncertain, say so. Do not pad the response with unsolicited support.",
+  "variables": ["intensity", "intensity_guidance"],
+  "intent": "info_request"
+}

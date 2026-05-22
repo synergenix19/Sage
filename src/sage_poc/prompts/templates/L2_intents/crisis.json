@@ -1,0 +1,14 @@
+{
+  "template_id": "L2_crisis",
+  "version": "1.0.0",
+  "authored_by": "sage_clinics",
+  "approved_by": null,
+  "effective_date": "2026-05-22",
+  "layer": "L2",
+  "role": "user",
+  "always_include": true,
+  "word_budget": 50,
+  "content": "INTENT: The user may be in crisis. Emotional intensity: {intensity}/10. Express care immediately. Provide emergency resources. Do not probe for details.",
+  "variables": ["intensity"],
+  "intent": "crisis"
+}

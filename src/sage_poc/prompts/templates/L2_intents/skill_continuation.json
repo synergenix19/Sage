@@ -1,0 +1,14 @@
+{
+  "template_id": "L2_skill_continuation",
+  "version": "1.0.0",
+  "authored_by": "sage_clinics",
+  "approved_by": null,
+  "effective_date": "2026-05-22",
+  "layer": "L2",
+  "role": "user",
+  "always_include": true,
+  "word_budget": 50,
+  "content": "INTENT: Continuing a structured support approach already underway. Emotional intensity: {intensity}/10. {intensity_guidance} Stay with the user's current thread. Do not restart from the beginning.",
+  "variables": ["intensity", "intensity_guidance"],
+  "intent": "skill_continuation"
+}

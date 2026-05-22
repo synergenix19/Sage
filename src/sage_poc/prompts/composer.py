@@ -82,6 +82,45 @@ def _build_l3_skill_block(
     return content
 
 
+_INTENSITY_GUIDANCE: dict[str, str] = {
+    "low": "The user's distress is mild. A lighter touch is appropriate.",
+    "mid": "The user is moderately engaged. Be present and attentive.",
+    "high": "The user is significantly distressed. Prioritise validation. Hold space before offering any guidance.",
+}
+
+
+def _intensity_guidance(intensity: int) -> str:
+    if intensity <= 3:
+        return _INTENSITY_GUIDANCE["low"]
+    if intensity <= 6:
+        return _INTENSITY_GUIDANCE["mid"]
+    return _INTENSITY_GUIDANCE["high"]
+
+
+def _build_l2_intent_block(
+    primary_intent: str | None,
+    intensity: int,
+    secondary_intent: str | None = None,
+    variant: str | None = None,
+) -> str:
+    intent = primary_intent or "general_chat"
+    tmpl = get_intent_template(intent, variant=variant)
+    if tmpl is None:
+        tmpl = get_intent_template("general_chat", variant=variant)
+    guidance = _intensity_guidance(intensity)
+    variables: dict[str, str] = {
+        "intensity": str(intensity),
+        "intensity_guidance": guidance,
+    }
+    content = tmpl.content
+    for var in tmpl.variables:
+        content = content.replace("{" + var + "}", variables.get(var, ""))
+    if secondary_intent:
+        content += f" (blended with: {secondary_intent})"
+    _log.debug("L2_%s@%s loaded", intent, tmpl.version)
+    return content
+
+
 def _build_l0_system_block(variant: str | None = None) -> str:
     tmpl = get_template("L0_persona", variant=variant)
     _log.debug("L0_persona@%s loaded", tmpl.version)

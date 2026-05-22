@@ -167,3 +167,32 @@ def test_l1_history_respects_word_budget_for_subsequent_lines():
     assert block is not None
     line_count = block.count("USER:")
     assert line_count < 6
+
+
+from sage_poc.prompts.composer import _build_l2_intent_block
+
+
+def test_l2_intent_block_contains_intensity():
+    block = _build_l2_intent_block("general_chat", intensity=5, secondary_intent=None)
+    assert "5/10" in block
+
+
+def test_l2_intent_block_low_intensity_uses_lighter_guidance():
+    block = _build_l2_intent_block("general_chat", intensity=2, secondary_intent=None)
+    assert "lighter" in block.lower() or "mild" in block.lower()
+
+
+def test_l2_intent_block_high_intensity_uses_validation_guidance():
+    block = _build_l2_intent_block("general_chat", intensity=8, secondary_intent=None)
+    assert "validat" in block.lower() or "distressed" in block.lower()
+
+
+def test_l2_intent_block_falls_back_gracefully_for_unknown_intent():
+    block = _build_l2_intent_block("totally_unknown_intent_xyz", intensity=5, secondary_intent=None)
+    assert block is not None
+    assert "5/10" in block
+
+
+def test_l2_intent_block_appends_secondary_intent():
+    block = _build_l2_intent_block("general_chat", intensity=5, secondary_intent="info_request")
+    assert "info_request" in block

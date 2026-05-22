@@ -103,3 +103,17 @@ def test_load_l1_history():
     assert tmpl.role == "user"
     assert tmpl.window_size == 8
     assert "{history_lines}" in tmpl.content
+
+
+import pytest as _pytest
+
+
+@_pytest.mark.parametrize("intent", [
+    "general_chat", "new_skill", "skill_continuation", "info_request",
+    "exit_skill", "scope_refusal", "jailbreak", "crisis", "low_confidence",
+])
+def test_all_intents_have_l2_template(intent):
+    tmpl = get_intent_template(intent)
+    assert tmpl is not None, f"No L2 template for intent: {intent}"
+    assert tmpl.layer == "L2"
+    assert tmpl.intent == intent

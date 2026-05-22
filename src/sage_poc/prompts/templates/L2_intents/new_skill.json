@@ -1,0 +1,14 @@
+{
+  "template_id": "L2_new_skill",
+  "version": "1.0.0",
+  "authored_by": "sage_clinics",
+  "approved_by": null,
+  "effective_date": "2026-05-22",
+  "layer": "L2",
+  "role": "user",
+  "always_include": true,
+  "word_budget": 50,
+  "content": "INTENT: A structured support approach is being introduced. Emotional intensity: {intensity}/10. {intensity_guidance} Introduce the approach naturally, without announcing it as a technique. Begin from where the user is.",
+  "variables": ["intensity", "intensity_guidance"],
+  "intent": "new_skill"
+}
