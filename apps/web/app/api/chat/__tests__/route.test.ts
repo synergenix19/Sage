@@ -316,5 +316,19 @@ describe('POST /api/chat', () => {
     })
     const res = await POST(req)
     expect(res.status).not.toBe(403)
+    expect(mockInsert).toHaveBeenCalled()
+  })
+
+  it('does not write to Supabase when session ownership check fails', async () => {
+    mockSingle.mockResolvedValueOnce({ data: null, error: null })
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'hi' }],
+        sessionId: 'session-1',
+      }),
+    })
+    await POST(req)
+    expect(mockInsert).not.toHaveBeenCalled()
   })
 })
