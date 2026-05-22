@@ -5,6 +5,8 @@ from sage_poc.config import (
     CLASSIFIER_MODEL,
     RESPONDER_MODEL,
     TRANSLATOR_MODEL,
+    FALLBACK_RESPONDER_MODEL,
+    FALLBACK_CLASSIFIER_MODEL,
 )
 
 _HEADERS = {"HTTP-Referer": "https://sage.ai", "X-Title": "SageAI POC"}
@@ -42,5 +44,29 @@ def get_translator() -> ChatOpenAI:
         openai_api_base=OPENROUTER_BASE_URL,
         temperature=0,
         max_tokens=1024,
+        default_headers=_HEADERS,
+    )
+
+
+def get_fallback_responder() -> ChatOpenAI:
+    """Fallback model for response generation when primary is unavailable."""
+    return ChatOpenAI(
+        model=FALLBACK_RESPONDER_MODEL,
+        openai_api_key=OPENROUTER_API_KEY,
+        openai_api_base=OPENROUTER_BASE_URL,
+        temperature=0.7,
+        max_tokens=1024,
+        default_headers=_HEADERS,
+    )
+
+
+def get_fallback_classifier() -> ChatOpenAI:
+    """Fallback model for intent classification when primary is unavailable."""
+    return ChatOpenAI(
+        model=FALLBACK_CLASSIFIER_MODEL,
+        openai_api_key=OPENROUTER_API_KEY,
+        openai_api_base=OPENROUTER_BASE_URL,
+        temperature=0,
+        max_tokens=512,
         default_headers=_HEADERS,
     )

@@ -344,3 +344,17 @@ async def test_resilient_stream_non_retryable_yields_fallback():
             resilient_stream(llm, [], node="low_confidence_respond", language="en")
         )
     assert isinstance(result, str) and len(result) > 5
+
+
+# ── Model fallback factory ────────────────────────────────────────────────────
+
+def test_fallback_factories_importable():
+    from sage_poc.llm import get_fallback_responder, get_fallback_classifier
+    assert callable(get_fallback_responder)
+    assert callable(get_fallback_classifier)
+
+
+def test_fallback_config_defined():
+    from sage_poc.config import FALLBACK_RESPONDER_MODEL, FALLBACK_CLASSIFIER_MODEL
+    assert isinstance(FALLBACK_RESPONDER_MODEL, str) and FALLBACK_RESPONDER_MODEL
+    assert isinstance(FALLBACK_CLASSIFIER_MODEL, str) and FALLBACK_CLASSIFIER_MODEL
