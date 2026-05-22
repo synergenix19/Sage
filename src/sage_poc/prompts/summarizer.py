@@ -11,7 +11,8 @@ _SUMMARY_SYSTEM = (
     "(3) anything the user has already shared about their daily life or routines, "
     "(4) any commitments or next steps the assistant offered (e.g. 'we can try that next time', "
     "'let's come back to this', 'we could try a grounding exercise'). "
-    "Be factual. Do not advise or evaluate. Do not use bullet points or headers."
+    "Be factual. Do not advise or evaluate. Do not use bullet points or headers. "
+    "Do not include names, phone numbers, or other directly identifying details."
 )
 
 

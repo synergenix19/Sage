@@ -13,6 +13,12 @@ def make_initial_state() -> SageState:
         "is_safe": True,
         "crisis_flags": [],
         "clinical_flags": [],
+        "crisis_state": "none",
+        "s7_result": None,
+        "s7_method": None,
+        "distress_trajectory": [],
+        "engagement_trajectory": [],
+        "code_switching": False,
         "primary_intent": None,
         "secondary_intent": None,
         "intent_confidence": 0.0,
@@ -24,13 +30,17 @@ def make_initial_state() -> SageState:
         "step_instruction": None,
         "skill_match_method": None,
         "semantic_score": None,
+        "prompt_layers": [],
+        "token_usage": {},
         "escalation_triggered": None,
+        "cultural_output_violations": [],
         "gate_path": None,
         "response_en": None,
         "response": None,
         "path": [],
         "turn_count": 0,
         "conversation_history": [],
+        "conversation_summary": None,
     }
 
 
@@ -91,7 +101,11 @@ def main():
             "turn_count": result.get("turn_count", 0),
             "engagement": result.get("engagement", 7),
             "emotional_intensity": result.get("emotional_intensity", 5),
-            "clinical_flags": result.get("clinical_flags", []),  # P1-3: carry forward across turns
+            "clinical_flags": result.get("clinical_flags", []),
+            "distress_trajectory": result.get("distress_trajectory", []),
+            "engagement_trajectory": result.get("engagement_trajectory", []),
+            "conversation_summary": result.get("conversation_summary"),
+            "crisis_state": result.get("crisis_state", "none"),
         }
 
 
