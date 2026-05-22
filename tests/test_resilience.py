@@ -174,23 +174,17 @@ async def test_resilient_invoke_success():
 @pytest.mark.asyncio
 async def test_resilient_invoke_timeout_returns_fallback():
     """A call that always times out should return the fallback response."""
-    original_timeout = _res.LLM_TIMEOUT_SECONDS
-    original_retries = _res.LLM_MAX_RETRIES
-    _res.LLM_TIMEOUT_SECONDS = 0.01
-    _res.LLM_MAX_RETRIES = 0
-
     llm = MagicMock()
     llm.model_name = "test/model"
     llm.openai_api_base = "https://timeout-test.api"
+    llm.ainvoke = AsyncMock(side_effect=asyncio.TimeoutError)
 
-    async def slow(messages):
-        await asyncio.sleep(10)
-        return MagicMock(content="never")
+    async def fake_wait_for(coro, timeout):
+        return await coro
 
-    llm.ainvoke = slow
-    result = await resilient_invoke(llm, [], node="freeflow_respond", language="en")
-    _res.LLM_TIMEOUT_SECONDS = original_timeout
-    _res.LLM_MAX_RETRIES = original_retries
+    with patch("sage_poc.resilience.asyncio.wait_for", side_effect=fake_wait_for), \
+         patch.object(_res, "LLM_MAX_RETRIES", 0):
+        result = await resilient_invoke(llm, [], node="freeflow_respond", language="en")
 
     assert "moment" in result.lower() or "here" in result.lower()
 
@@ -252,11 +246,13 @@ async def test_resilient_invoke_circuit_open_skips_llm():
         "consecutive_failures": CIRCUIT_BREAKER_THRESHOLD,
         "reset_at": datetime.utcnow() + timedelta(seconds=60),
     }
-    llm = _make_llm(model_name="test/model", base_url="https://open.api")
-    result = await resilient_invoke(llm, [], node="freeflow_respond")
-    assert llm.ainvoke.call_count == 0
-    assert isinstance(result, str)
-    _reset(key)
+    try:
+        llm = _make_llm(model_name="test/model", base_url="https://open.api")
+        result = await resilient_invoke(llm, [], node="freeflow_respond")
+        assert llm.ainvoke.call_count == 0
+        assert isinstance(result, str)
+    finally:
+        _reset(key)
 
 
 @pytest.mark.asyncio
@@ -306,25 +302,20 @@ async def test_resilient_stream_success():
 
 @pytest.mark.asyncio
 async def test_resilient_stream_timeout_before_first_chunk_yields_fallback():
-    original_timeout = _res.LLM_TIMEOUT_SECONDS
-    original_retries = _res.LLM_MAX_RETRIES
-    _res.LLM_TIMEOUT_SECONDS = 0.01
-    _res.LLM_MAX_RETRIES = 0
-
     llm = MagicMock()
     llm.model_name = "test/model"
     llm.openai_api_base = "https://slow-stream.api"
 
     async def slow_astream(messages):
-        await asyncio.sleep(10)
         yield MagicMock(content="never")
 
     llm.astream = slow_astream
-    result = await _collect(
-        resilient_stream(llm, [], node="low_confidence_respond", language="en")
-    )
-    _res.LLM_TIMEOUT_SECONDS = original_timeout
-    _res.LLM_MAX_RETRIES = original_retries
+
+    with patch("sage_poc.resilience.asyncio.wait_for", side_effect=asyncio.TimeoutError), \
+         patch.object(_res, "LLM_MAX_RETRIES", 0):
+        result = await _collect(
+            resilient_stream(llm, [], node="low_confidence_respond", language="en")
+        )
     assert "understand" in result.lower() or "mind" in result.lower()
 
 
@@ -345,7 +336,10 @@ async def test_resilient_stream_non_retryable_yields_fallback():
 
     llm.astream = bad_astream
 
-    with patch("sage_poc.resilience.asyncio.wait_for", side_effect=err):
+    async def fake_wait_for(coro, timeout):
+        return await coro
+
+    with patch("sage_poc.resilience.asyncio.wait_for", side_effect=fake_wait_for):
         result = await _collect(
             resilient_stream(llm, [], node="low_confidence_respond", language="en")
         )
