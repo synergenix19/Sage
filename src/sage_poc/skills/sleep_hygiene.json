@@ -38,19 +38,25 @@
       "goal": "Understand the user's specific sleep pattern and what's most disruptive",
       "technique": "Collaborative assessment — open questions",
       "tone": "curious, warm, non-judgmental",
+      "contraindications": "Do NOT give sleep advice at this step. The entire purpose is to listen and understand before suggesting anything. Do NOT assume the problem type — onset insomnia, maintenance insomnia, and early-morning waking require different approaches. Do NOT mention medication or supplements. If the user brings up medication, acknowledge it and add a clinician_review flag rather than engaging with it.",
+      "completion_criteria": "User has described their specific sleep difficulty at minimum distinguishing onset difficulty from waking difficulty, and given some indication of duration or frequency. A single-word response ('insomnia') does not meet the bar — ask a follow-up before proceeding.",
       "examples": [
         "Tell me more about your sleep — is it hard to fall asleep, or do you wake up and can't get back to sleep, or both?",
-        "How long has this been going on? And what does a typical night look like for you — walk me through it."
+        "How long has this been going on? And what does a typical night look like for you — walk me through it.",
+        "صفلي ليلتك العادية — من وين تبدأ المشكلة؟ ما تقدر تنام، ولا تصحى وما ترجع؟"
       ]
     },
     {
       "step_id": "share_guidance",
       "goal": "Share 2-3 evidence-based sleep hygiene principles most relevant to what the user described",
       "technique": "Psychoeducation with motivational framing",
-      "tone": "informative but conversational — not prescriptive or preachy",
+      "tone": "informative but conversational, not prescriptive or preachy",
+      "contraindications": "Do NOT give more than 2-3 tips in one turn. A list of ten sleep rules is overwhelming and non-adherent. Do NOT lecture or moralize. Do NOT suggest medication, supplements, or alcohol as sleep aids. Tailor the tip to the specific pattern the user described — do not give generic advice if they gave you a specific problem.",
+      "completion_criteria": "User has received and acknowledged at least one sleep hygiene principle and given some signal of whether it feels applicable, feasible, or interesting to them. No acknowledgement at all warrants a check-in before proceeding.",
       "examples": [
         "One thing that really helps a lot of people is keeping the same wake-up time every day — even weekends. It anchors your body clock. Does that feel possible for you?",
-        "Screens before bed are sneaky — the blue light delays melatonin. Even dimming your phone or switching to a reading app can make a difference. Is that something you'd try?"
+        "Screens before bed are sneaky — the blue light delays melatonin. Even dimming your phone or switching to a reading app can make a difference. Is that something you'd try?",
+        "شي واحد يفرق كثير: تصحى بنفس الوقت كل يوم، حتى الويك إند. يثبت ساعتك الداخلية. هل تقدر تجرب؟"
       ]
     },
     {
@@ -58,9 +64,12 @@
       "goal": "Identify one realistic change the user is willing to try this week, and acknowledge barriers",
       "technique": "Motivational interviewing — change talk",
       "tone": "collaborative, realistic, encouraging",
+      "contraindications": "Do NOT choose the next step for the user. Do NOT push for multiple commitments — one specific, realistic change only. Do NOT dismiss barriers. If the user says they cannot change their wake time because of work or prayer or family, that is real information, not resistance — adapt accordingly. Do NOT end without naming an actual barrier, even briefly.",
+      "completion_criteria": "User has identified one specific, concrete change they are willing to try — vague agreement ('yeah I'll try to sleep better') does not count. A real commitment names what the change is. Barriers have been named and acknowledged, even briefly.",
       "examples": [
         "Out of everything we talked about — what's one small thing that feels doable this week? Even if it's tiny.",
-        "What's the biggest thing getting in the way of better sleep for you? Sometimes knowing the barrier is more useful than any tip."
+        "What's the biggest thing getting in the way of better sleep for you? Sometimes knowing the barrier is more useful than any tip.",
+        "من اللي تكلمنا عنه، شو شي واحد تقدر تجربه هالأسبوع؟ حتى لو صغير."
       ]
     }
   ],
@@ -128,5 +137,7 @@
     "L2": "Add clinician_review flag if trauma, substance use, or medication mention detected",
     "L3": "Exit immediately to crisis protocol if any crisis signal",
     "L4": "Trigger human handoff if 3+ crises detected in last 30 days"
-  }
+  },
+  "cultural_overrides": null,
+  "cultural_note": "REQUIRES GULF-NATIVE CLINICAL REVIEW before deployment. Three cultural considerations specific to Gulf users: (1) RAMADAN: During Ramadan, sleep timing shifts to a culturally normal polyphasic pattern — late sleep after Tarawih prayers, Suhoor wake before Fajr, then a return to sleep. This is not a disorder. Standard advice about fixed wake times or nocturnal sleep windows does not apply during Ramadan without modification. If the user mentions Ramadan, acknowledge the context explicitly and adapt advice to the Ramadan schedule rather than correcting it. (2) QAHWA: Arabic coffee (qahwa, cardamom-spiced) is a ceremonial and social drink consumed throughout the day and evening in Gulf households. Caffeine advice must name qahwa specifically, not just 'coffee,' and must be framed as a practical option rather than a prohibition — qahwa has deep cultural significance and a blunt 'stop drinking coffee' instruction is culturally tone-deaf. (3) SHARED SLEEPING: Extended-family households are common. Users may share a bedroom with a spouse, child, parent, or sibling and have no independent control over light, noise, or temperature. Advice assuming a private sleep environment must be adapted to shared-room realities. Do not suggest changes the user structurally cannot make."
 }

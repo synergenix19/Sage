@@ -41,9 +41,12 @@
       "goal": "Anchor the user in their environment by naming 5 things they can see",
       "technique": "Sensory grounding — sight",
       "tone": "calm, slow, gently directive",
+      "contraindications": "Do NOT ask 'what do you see?' if the user has disclosed being in a dark room, has their eyes closed, or has mentioned visual impairment. Adapt to an available sense — redirect to touch and name the step accordingly. Do NOT rush. Pace the question slowly; acute panic narrows attention and the user may need a moment.",
+      "completion_criteria": "User has named at least 3 things they can see (or equivalent sensory items if adapted). Fewer than 3 with no further engagement warrants a gentle re-prompt before advancing.",
       "examples": [
         "Let's slow things down together. Can you look around and tell me five things you can see right now — anything at all?",
-        "I'm right here with you. Start simple — what are five things your eyes can land on in this moment?"
+        "I'm right here with you. Start simple — what are five things your eyes can land on in this moment?",
+        "خذ نفس. شوف حواليك. شو تشوف؟ أي خمسة أشياء، ما يهم."
       ]
     },
     {
@@ -51,9 +54,12 @@
       "goal": "Deepen physical grounding by naming 4 things the user can physically feel",
       "technique": "Sensory grounding — touch",
       "tone": "calm, reassuring, present",
+      "contraindications": "Do NOT advance if the user has not engaged with see_5 — returning a blank response or 'I can't' to the sight step means the panic has not settled enough to move forward. Re-anchor before proceeding. Do NOT describe specific sensations for the user; let them discover them.",
+      "completion_criteria": "User has named at least 2 things they can physically feel or touch. One named item with some indication of engagement is a borderline case — one more prompt is appropriate before advancing.",
       "examples": [
         "Good. Now — four things you can physically feel or touch. Maybe the surface under you, your clothes, the temperature of the air.",
-        "You're doing really well. Now notice four things you can feel with your hands or body right now."
+        "You're doing really well. Now notice four things you can feel with your hands or body right now.",
+        "زين. الحين، أربعة أشياء تحسهم بجسمك. الأرض تحتك، هواء البرودة، أي شي."
       ]
     },
     {
@@ -61,9 +67,12 @@
       "goal": "Shift attention to sound to further interrupt the panic cycle",
       "technique": "Sensory grounding — hearing",
       "tone": "calm, steady, unhurried",
+      "contraindications": "Do NOT describe or suggest specific sounds the user should hear. Let them identify sounds themselves. Do NOT say 'can you hear the traffic?' — this implants a suggestion rather than drawing attention outward. Do NOT rush to advance if the user seems still very dysregulated.",
+      "completion_criteria": "User has named at least 2 things they can hear. Complete silence or 'nothing' is not a failure — prompt once to listen more carefully before accepting and moving on.",
       "examples": [
         "Three things you can hear. It might be something in the room, outside, even your own breathing.",
-        "Listen carefully — what are three sounds you can make out right now, however faint?"
+        "Listen carefully — what are three sounds you can make out right now, however faint?",
+        "ثلاثة أصوات، أي أصوات. في غرفتك، برا، نفسك، أي شي تسمعه."
       ]
     },
     {
@@ -71,9 +80,12 @@
       "goal": "Engage the olfactory sense to complete the sensory circuit",
       "technique": "Sensory grounding — smell",
       "tone": "gentle, exploratory",
+      "contraindications": "Do NOT skip this step even if the user says they cannot smell anything. The act of actively searching for a smell is itself grounding. Suggest they move to find something to smell if needed. Do NOT advance if the user has not made any attempt.",
+      "completion_criteria": "User has named at least 1 thing they can smell, or has made a genuine physical attempt such as getting up to find something. The attempt matters more than the result for grounding purposes.",
       "examples": [
         "Two things you can smell. If nothing comes to mind, you can get up and smell something nearby — coffee, a book, your clothes.",
-        "Can you notice two smells? Even very subtle ones count."
+        "Can you notice two smells? Even very subtle ones count.",
+        "شيئين تشمهم. لو ما في، قوم شم أي شي قريب منك — قهوة، كتاب، أي شي."
       ]
     },
     {
@@ -81,9 +93,12 @@
       "goal": "Complete the 5-4-3-2-1 sequence and check in on the user's state",
       "technique": "Sensory grounding — taste / integration",
       "tone": "warm, encouraging, checking in",
+      "contraindications": "Do NOT close the exercise without checking in on the user's current state. The integration moment — slow breath, compare now to before — is clinically important. Do NOT claim success or tell the user they are better; ask them how they feel.",
+      "completion_criteria": "User has named 1 taste. User has taken a breath and offered some reflection on how they feel now compared to when the exercise started. Any indication of reduced distress or increased present-moment awareness marks completion. If distress has not reduced, acknowledge the effort and offer to sit together rather than retry immediately.",
       "examples": [
         "Last one — one thing you can taste. Even if it's just the inside of your mouth. Then take a slow breath and tell me how you're feeling now.",
-        "One taste — and then let's pause and take a breath together. How are you feeling compared to when we started?"
+        "One taste — and then let's pause and take a breath together. How are you feeling compared to when we started?",
+        "آخر شي: طعم واحد. حتى لو بس طعم فمك. وبعدين خذ نفس وقولي — كيف تحس الحين؟"
       ]
     }
   ],

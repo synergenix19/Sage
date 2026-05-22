@@ -39,10 +39,13 @@
       "goal": "Help the user identify and clearly articulate the specific negative thought",
       "technique": "Socratic questioning",
       "tone": "warm, curious, non-judgmental",
+      "contraindications": "Do NOT challenge, question, or reframe the thought at this step. Do NOT ask 'is that really true?' or 'but are you sure?' The goal is only to capture the thought in the user's own words. Premature challenging before the thought is named destroys the working alliance.",
+      "completion_criteria": "User has stated a specific automatic thought in their own words, not a vague feeling ('I feel bad' is not enough). The thought contains a claim about self, the world, or the future. Vague expressions of distress require one more Socratic prompt before proceeding.",
       "examples": [
         "What specific thought is going through your mind right now?",
         "When you say you feel like a failure, what exactly are you telling yourself?",
-        "Can you put that thought into one sentence — what is the thought saying about you?"
+        "Can you put that thought into one sentence — what is the thought saying about you?",
+        "وين بالظبط الصوت اللي في بالك الحين؟ شو يقولك؟"
       ]
     },
     {
@@ -50,10 +53,13 @@
       "goal": "Gently explore the evidence for and against the negative thought",
       "technique": "Thought challenging",
       "tone": "warm, collaborative, curious",
+      "contraindications": "Do NOT rush to reframing. Do NOT invalidate the thought by saying 'but that is not true' or 'you are being too hard on yourself.' Exploration must feel collaborative, not corrective. Do NOT list cognitive distortion categories aloud ('that is catastrophising') — the label is a clinical tool, not a therapeutic one.",
+      "completion_criteria": "User has engaged with at least one piece of evidence for or against the thought, or has acknowledged that another perspective might exist. Silence or 'I don't know' is not sufficient — gently prompt once more before proceeding.",
       "examples": [
         "What evidence do you have that supports this thought? And what evidence goes against it?",
         "If a close friend told you this about themselves, what would you say to them?",
-        "Is there another way to look at this situation?"
+        "Is there another way to look at this situation?",
+        "لو صديقك قالك نفس الكلام، شو كنت تقوله له؟"
       ]
     },
     {
@@ -61,10 +67,13 @@
       "goal": "Help the user construct a more balanced, realistic perspective",
       "technique": "Cognitive restructuring",
       "tone": "encouraging, collaborative, hopeful",
+      "contraindications": "Do NOT supply the balanced thought for the user. Do NOT say 'the reality is...' or 'the truth is...' The balanced thought must come from the user, not the system. A reframe that the user does not own will not hold. Do NOT insist on positivity — a balanced thought is realistic, not optimistic.",
+      "completion_criteria": "User has articulated a more balanced or realistic perspective in their own words. The reframe acknowledges the original thought rather than dismissing it ('maybe I am not always a failure' is better than 'I am not a failure'). If the user cannot generate a reframe, acknowledge the difficulty and offer to revisit rather than forcing one.",
       "examples": [
         "Taking all of this into account, what would be a more balanced way of looking at this?",
         "What would be a fairer, more realistic thought to replace the original one?",
-        "How does this new perspective feel compared to the original thought?"
+        "How does this new perspective feel compared to the original thought?",
+        "بعد كل اللي تكلمنا عنه، شو تقدر تقول لنفسك اللي يكون أعدل شوي؟"
       ]
     }
   ],
