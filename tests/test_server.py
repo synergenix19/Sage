@@ -315,3 +315,76 @@ def test_chat_response_has_all_trace_headers(monkeypatch):
         "x-sage-turn-number",
     ]:
         assert header in res.headers, f"Missing header: {header}"
+
+
+def test_active_skill_id_ferried_into_graph_state(monkeypatch):
+    """active_skill_id from the request must reach the graph as-is.
+
+    BE-C5: _build_state previously hardcoded active_skill_id=None, so
+    multi-turn skills always restarted from scratch through the HTTP API.
+    """
+    import server as srv
+
+    received = {}
+
+    async def _capture(state):
+        received["active_skill_id"] = state.get("active_skill_id")
+        received["active_step_id"] = state.get("active_step_id")
+        return {
+            "path": ["output_gate"],
+            "is_safe": True,
+            "response": "ok",
+            "crisis_state": "none",
+            "crisis_flags": [],
+            "clinical_flags": [],
+            "emotional_intensity": 5,
+            "active_skill_id": "cbt_thought_record",
+            "executed_step_id": None,
+            "gate_path": "standard",
+        }
+
+    monkeypatch.setattr(srv, "_graph", type("G", (), {"ainvoke": staticmethod(_capture)})())
+    client = get_client()
+    client.post("/chat", json={
+        "messages": [{"role": "user", "content": "continue"}],
+        "session_id": "test",
+        "active_skill_id": "cbt_thought_record",
+        "active_step_id": "explore_distortion",
+    })
+    assert received["active_skill_id"] == "cbt_thought_record", (
+        f"Graph received active_skill_id={received['active_skill_id']!r}, expected 'cbt_thought_record'"
+    )
+    assert received["active_step_id"] == "explore_distortion"
+
+
+def test_clinical_flags_ferried_into_graph_state(monkeypatch):
+    """clinical_flags from prior turns must be carried into the new turn's state."""
+    import server as srv
+
+    received = {}
+
+    async def _capture(state):
+        received["clinical_flags"] = state.get("clinical_flags")
+        return {
+            "path": ["output_gate"],
+            "is_safe": True,
+            "response": "ok",
+            "crisis_state": "none",
+            "crisis_flags": [],
+            "clinical_flags": ["trauma_indicator"],
+            "emotional_intensity": 5,
+            "active_skill_id": None,
+            "executed_step_id": None,
+            "gate_path": "standard",
+        }
+
+    monkeypatch.setattr(srv, "_graph", type("G", (), {"ainvoke": staticmethod(_capture)})())
+    client = get_client()
+    client.post("/chat", json={
+        "messages": [{"role": "user", "content": "I feel okay"}],
+        "session_id": "test",
+        "clinical_flags": ["trauma_indicator"],
+    })
+    assert received["clinical_flags"] == ["trauma_indicator"], (
+        f"Graph received clinical_flags={received['clinical_flags']!r}, expected ['trauma_indicator']"
+    )

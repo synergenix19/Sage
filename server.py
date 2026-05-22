@@ -11,6 +11,8 @@ from pydantic import BaseModel
 
 from sage_poc.graph import build_graph
 from sage_poc.config import RESPONDER_MODEL
+# Import SKILL_REGISTRY from the zero-dependency module — does NOT load numpy or BGE-M3.
+from sage_poc.skill_ids import SKILL_REGISTRY as _SKILL_REGISTRY
 
 app = FastAPI(title="SageAI API")
 app.add_middleware(
@@ -28,6 +30,14 @@ CRISIS_SIGNAL = "[[CRISIS_DETECTED]]"
 # crisis_state is client-ferried between turns; arbitrary strings must never enter the graph.
 _VALID_CRISIS_STATES = frozenset({"none", "monitoring", "active_crisis", "resolved"})
 
+_VALID_SKILL_IDS: frozenset[str] = frozenset(_SKILL_REGISTRY)
+
+# Known clinical flag IDs — matches safety_check.py clinical flag production values.
+_VALID_CLINICAL_FLAGS: frozenset[str] = frozenset({
+    "substance_use", "trauma_indicator", "eating_concern",
+    "medication_mention", "third_party_si",
+})
+
 
 class Message(BaseModel):
     role: str
@@ -39,7 +49,45 @@ class ChatRequest(BaseModel):
     # session_id is received from the client but intentionally not stored in SageState —
     # the graph has no concept of sessions; persistence is the frontend's responsibility.
     session_id: str
+    # --- Client-ferried state: values computed by the graph on turn N, returned as
+    # response headers, stored by the browser, and sent back on turn N+1.
+    # All fields are optional with safe defaults so old clients continue to work. ---
     crisis_state: str = "none"
+    active_skill_id: str | None = None
+    active_step_id: str | None = None
+    clinical_flags: list[str] = []
+    distress_trajectory: list[int] = []
+
+
+def _sanitize_skill_id(value: str | None) -> str | None:
+    """Reject unknown skill IDs — prevents an injected value from crashing skill_executor."""
+    if not value:
+        return None
+    return value if value in _VALID_SKILL_IDS else None
+
+
+def _sanitize_step_id(value: str | None) -> str | None:
+    if not value:
+        return None
+    cleaned = value.strip()
+    # Step IDs are short ASCII slugs; reject anything that looks like an injection.
+    return cleaned if cleaned and len(cleaned) <= 64 and cleaned.isidentifier() else None
+
+
+def _sanitize_clinical_flags(flags: list[str]) -> list[str]:
+    """Keep only known clinical flag IDs; discard unrecognised strings."""
+    return [f for f in flags if f in _VALID_CLINICAL_FLAGS]
+
+
+def _sanitize_trajectory(values: list[int]) -> list[int]:
+    """Clamp each value to [0, 10] and keep only the last 20 entries.
+
+    POC stopgap: distress_trajectory is client-ferried because there is no
+    server-side session store. In v7, migrate to Cosmos DB / LangGraph
+    checkpointing and remove this field from ChatRequest.
+    """
+    clamped = [max(0, min(10, int(v))) for v in values if isinstance(v, (int, float))]
+    return clamped[-20:]
 
 
 def _build_state(req: ChatRequest) -> dict:
@@ -57,14 +105,14 @@ def _build_state(req: ChatRequest) -> dict:
         "message_en": current.content,  # safety_check_node overwrites for Arabic
         "is_safe": True,
         "crisis_flags": [],
-        "clinical_flags": [],
+        "clinical_flags": _sanitize_clinical_flags(req.clinical_flags),
         "primary_intent": None,
         "secondary_intent": None,
         "intent_confidence": 0.0,
         "emotional_intensity": 5,
         "engagement": 7,
-        "active_skill_id": None,
-        "active_step_id": None,
+        "active_skill_id": _sanitize_skill_id(req.active_skill_id),
+        "active_step_id": _sanitize_step_id(req.active_step_id),
         "executed_step_id": None,
         "step_instruction": None,
         "escalation_triggered": None,
@@ -74,8 +122,15 @@ def _build_state(req: ChatRequest) -> dict:
         "path": [],
         "turn_count": turn_count,
         "crisis_state": crisis_state,
+        "distress_trajectory": _sanitize_trajectory(req.distress_trajectory),
+        "code_switching": False,
         "s7_result": None,
         "s7_method": None,
+        "skill_match_method": None,
+        "semantic_score": None,
+        "prompt_layers": [],
+        "token_usage": {},
+        "cultural_output_violations": [],
         # Raw message pairs from the client. compose_prompt() in freeflow_respond.py
         # windows this to the last 4 turns — windowing is the graph's responsibility.
         "conversation_history": history,
