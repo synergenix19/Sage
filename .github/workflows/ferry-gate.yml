@@ -39,4 +39,3 @@ jobs:
           # Tests mock the graph — real API calls are never made.
           # A dummy key prevents import-time failures in llm.py.
           OPENROUTER_API_KEY: dummy-ci
-          SAGE_ENV: test
