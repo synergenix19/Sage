@@ -1,7 +1,13 @@
 import asyncio
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from sage_poc.nodes.freeflow_respond import compose_prompt, freeflow_respond_node
+
+
+def _no_rules():
+    r = MagicMock()
+    r.actions = []
+    return r
 
 # Minimal state for testing
 _BASE_STATE = {
@@ -24,7 +30,8 @@ _BASE_STATE = {
 
 
 def test_compose_prompt_returns_layers():
-    _, _, layers = compose_prompt(_BASE_STATE)
+    with patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules()):
+        _, _, layers = compose_prompt(_BASE_STATE)
     assert "persona" in layers
     assert isinstance(layers, list)
     assert all(isinstance(l, str) for l in layers)
@@ -34,18 +41,21 @@ def test_compose_prompt_history_layer():
     state = {**_BASE_STATE, "conversation_history": [
         {"role": "user", "content": "hi"}, {"role": "assistant", "content": "hello"}
     ]}
-    _, _, layers = compose_prompt(state)
+    with patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules()):
+        _, _, layers = compose_prompt(state)
     assert "history" in layers
 
 
 def test_compose_prompt_skill_instruction_layer():
     state = {**_BASE_STATE, "step_instruction": "Ask the user to name one small worry."}
-    _, _, layers = compose_prompt(state)
+    with patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules()):
+        _, _, layers = compose_prompt(state)
     assert "skill_instruction" in layers
 
 
 def test_compose_prompt_no_skill_instruction_when_absent():
-    _, _, layers = compose_prompt(_BASE_STATE)
+    with patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules()):
+        _, _, layers = compose_prompt(_BASE_STATE)
     assert "skill_instruction" not in layers
 
 
@@ -92,14 +102,13 @@ def test_freeflow_respond_node_handles_missing_usage_metadata():
 
 def test_compose_prompt_intent_layer_always_present():
     # L2 per v7 §5.6 is always included regardless of path
-    _, _, layers = compose_prompt(_BASE_STATE)
+    with patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules()):
+        _, _, layers = compose_prompt(_BASE_STATE)
     assert "intent" in layers
 
 
 def test_compose_prompt_cultural_layer_tracked():
     # When rules_engine fires a cultural action, the "cultural" layer must appear.
-    from unittest.mock import patch
-
     cultural_result = MagicMock()
     cultural_result.actions = [{"target": "system", "content": "Acknowledge Islamic framing.", "priority": 1}]
     injection_result = MagicMock()
@@ -118,8 +127,6 @@ def test_compose_prompt_cultural_layer_tracked():
 
 def test_compose_prompt_clinical_adaptation_layer_tracked():
     # When prompt_injection fires a system-targeted injection, "clinical_adaptation" must appear.
-    from unittest.mock import patch
-
     cultural_result = MagicMock()
     cultural_result.actions = []
     injection_result = MagicMock()

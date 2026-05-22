@@ -369,12 +369,7 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
         history = state.get("conversation_history", [])
         l1_tmpl = get_template("L1_history")
         half_window = max(1, (l1_tmpl.window_size or 8) // 2)
-        window = history[-half_window:]
-        lines = [
-            f"{m['role'].upper()}: {_sanitize_assistant_turn(m['content']) if m['role'] == 'assistant' else m['content']}"
-            for m in window
-        ]
-        shrunk = l1_tmpl.content.format(history_lines=_esc("\n".join(lines)))
+        shrunk = _build_l1_history_block(history[-half_window:]) or ""
         user_parts[0] = shrunk  # history is always index 0 when present (appended first)
         _log.warning("Token budget overflow: L1 history shrunk to %d turns", half_window)
 
