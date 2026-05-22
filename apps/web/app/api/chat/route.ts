@@ -196,7 +196,6 @@ export async function POST(req: Request) {
   // NOTE: x-sage-crisis-flags contains clinical flag identifiers — review before enabling in prod.
   const SAGE_HEADERS_WHITELIST = [
     'x-sage-node-path',
-    'x-sage-skill-id',
     'x-sage-gate-path',
     'x-sage-prompt-layers',
     'x-sage-intent',
