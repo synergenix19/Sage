@@ -1,10 +1,47 @@
 # src/sage_poc/rules/loader.py
 import json
+import logging
+import re as _re
 from pathlib import Path
 from sage_poc.rules.schemas import (
     SafetyRule, CrisisContentRule, CulturalRule, PromptInjectionRule,
     CulturalOutputRule,
 )
+
+_log = logging.getLogger(__name__)
+
+# Characters that normalize_arabic() strips before regex matching.
+# A regex pattern containing these will silently match nothing against Arabic text.
+_UNNORM_ALEF_RE  = _re.compile(r'[آأإٱ]')        # → bare alef (ا)
+_ARABIC_DIACRITIC_RE = _re.compile(r'[ً-ٰ]')  # harakat stripped by strip_arabic_diacritics()
+_HAS_ARABIC_RE   = _re.compile(r'[؀-ۿ]')
+
+
+def _lint_arabic_regex_rule(rule: SafetyRule) -> None:
+    """Emit a WARNING if an Arabic regex pattern contains characters that
+    normalize_arabic() strips before matching. Silent misses in crisis rules
+    are a patient safety risk — they must surface at load time, not at runtime.
+    See docs/RULES_AUTHORING_CONVENTIONS.md § Arabic regex patterns.
+    """
+    for pattern in rule.patterns:
+        if not _HAS_ARABIC_RE.search(pattern):
+            continue
+        if _UNNORM_ALEF_RE.search(pattern):
+            _log.warning(
+                "SAFETY RULE LINT [%s]: regex pattern contains alef-hamza variant "
+                "(آ أ إ ٱ) which normalize_arabic() replaces with bare alef (ا). "
+                "This pattern will NEVER match Arabic text. "
+                "Replace with bare alef. Pattern: %r",
+                rule.rule_id, pattern,
+            )
+        if _ARABIC_DIACRITIC_RE.search(pattern):
+            _log.warning(
+                "SAFETY RULE LINT [%s]: regex pattern contains Arabic diacritics (harakat, "
+                "U+064B–U+0670) which normalize_arabic() strips before matching. "
+                "This pattern will NEVER match Arabic text. "
+                "Remove diacritics from the pattern. Pattern: %r",
+                rule.rule_id, pattern,
+            )
 
 _RULE_MODELS: dict[str, type] = {
     "safety": SafetyRule,
@@ -41,6 +78,8 @@ def load_rules(category: str) -> list:
         for rule_data in raw.get("rules", []):
             rule = model_cls.model_validate(rule_data)
             if rule.active:
+                if isinstance(rule, SafetyRule) and rule.match_type == "regex":
+                    _lint_arabic_regex_rule(rule)
                 rules.append(rule)
     return rules
 

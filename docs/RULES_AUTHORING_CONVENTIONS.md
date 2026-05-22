@@ -80,6 +80,59 @@ Cultural rules must add **turn-specific guidance** on top of the baseline, not r
 
 ---
 
+## Arabic regex patterns (safety rules)
+
+**This section applies only to `safety` category rules with `"match_type": "regex"`.**
+
+Arabic text is passed through `normalize_arabic()` before regex matching. This pipeline:
+
+1. Strips invisible characters (ZWSP, ZWNJ, ZWJ, BOM)
+2. Applies NFKC Unicode normalization
+3. Removes Arabic diacritics (harakat: fatha, damma, kasra, sukun, shadda — U+064B–U+0670)
+4. Normalizes alef variants to bare alef: `آ أ إ ٱ` → `ا`
+5. Lowercases
+
+**Consequence:** A regex pattern containing `أ` will never match the normalized text `ا`. The mismatch is silent — no error, no match, no crisis signal. This is a patient safety risk.
+
+### Rule: Arabic regex patterns must use normalized forms
+
+| Use | Instead of | Reason |
+|-----|-----------|--------|
+| `ا` (bare alef, U+0627) | `أ` `إ` `آ` `ٱ` | Alef variants are normalized away |
+| No harakat | `مَات` | Diacritics are stripped |
+
+```json
+// WRONG — alef-hamza-above will never match normalized text
+"patterns": ["أريد أن أموت"]
+
+// RIGHT — normalized form matches normalized text
+"patterns": ["اريد ان اموت"]
+```
+
+### Loader lint check
+
+The rule loader automatically warns at startup when a loaded `safety` regex rule contains unnormalized Arabic characters:
+
+```
+SAFETY RULE LINT [rule-id]: regex pattern contains alef-hamza variant (آ أ إ ٱ)
+which normalize_arabic() replaces with bare alef (ا). This pattern will NEVER
+match Arabic text. Replace with bare alef. Pattern: '...'
+```
+
+If you see this warning, the rule is currently non-functional for Arabic text. Fix the pattern before deploying.
+
+### Verifying normalization
+
+```python
+from sage_poc.rules.normalize import normalize_arabic
+print(normalize_arabic("أريد أن أموت"))
+# اريد ان اموت
+```
+
+Write your pattern against this output, not against the original text.
+
+---
+
 ## Authoring checklist
 
 Before committing any new or edited rule file:
@@ -92,3 +145,4 @@ Before committing any new or edited rule file:
 - [ ] `authored_by: "sage_clinics"` on every rule
 - [ ] At least one test in `tests/test_rules_integration.py` or `tests/test_cultural_output.py` that verifies the rule fires on its trigger condition
 - [ ] At least one test that verifies the rule does NOT fire without the trigger
+- [ ] **Arabic regex rules:** patterns use normalized Arabic (bare alef `ا`, no harakat)

@@ -83,6 +83,14 @@ See `docs/semantic_skill_matching_audit_20260521.md` for the threshold calibrati
 
 ---
 
+## Arabic safety rules: use normalized Arabic in regex patterns
+
+If you are authoring a `safety` category rule with `"match_type": "regex"` that includes Arabic text, patterns must be written in `normalize_arabic()` normalized form — bare alef (`ا`), no harakat. Natural Arabic typing (e.g. `أريد`) will never match normalized text and the rule will silently produce no matches.
+
+The loader emits a `WARNING` at startup if unnormalized Arabic is detected in a regex rule. See `docs/RULES_AUTHORING_CONVENTIONS.md § Arabic regex patterns` for the full specification and a verification snippet.
+
+---
+
 ## No em dashes in any string field
 
 **NEVER** use em dashes (—) in any JSON string field in a skill file. This applies to `semantic_description`, `examples`, `contraindications`, `completion_criteria`, `goal`, `technique`, `tone`, and all other fields.
