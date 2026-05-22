@@ -41,3 +41,18 @@ def test_post_crisis_check_in_skill_loads_and_validates():
     assert skill.semantic_description == ""
     assert len(skill.step_policy) == 5  # M-7: upgraded from 1 to 5 rules
     assert skill.step_policy[0].condition.signal == "emotional_intensity"
+
+
+def test_skill_step_has_technique_description_field():
+    from sage_poc.skills.schema import SkillStep
+    step = SkillStep(
+        step_id="test", goal="g", technique="t", tone="t",
+        examples=[], technique_description="A detailed description."
+    )
+    assert step.technique_description == "A detailed description."
+
+
+def test_skill_step_technique_description_defaults_empty():
+    from sage_poc.skills.schema import SkillStep
+    step = SkillStep(step_id="test", goal="g", technique="t", tone="t", examples=[])
+    assert step.technique_description == ""

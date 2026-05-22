@@ -23,6 +23,7 @@ class SkillStep(BaseModel):
     step_id: str
     goal: str
     technique: str
+    technique_description: str = ""
     tone: str
     examples: list[str]
     contraindications: str = ""
