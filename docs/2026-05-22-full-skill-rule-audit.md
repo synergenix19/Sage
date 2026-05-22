@@ -659,6 +659,12 @@ Full end-to-end simulation requires a running inference server and LLM calls. Th
 12. Fix semantic description over-claims: change "PHQ-style" wording, "Martell BA method" → "adapted from Martell", "EMDR safe place protocol" → "EMDR-adapted safe place concept"
 13. Add `cultural_overrides` or explicit null-with-justification to mood_check_in and stop_technique
 14. Obtain clinician approval for FPE-AR-001 and FPE-EN-001 (set `approved_by` field)
+15. **Gulf-native clinical review of `cultural_note` fields** — four skill files contain substantive cultural guidance authored without Gulf-native review. Each is flagged `REQUIRES GULF-NATIVE CLINICAL REVIEW` in the file. Review required before deployment to UAE users:
+    - `sleep_hygiene.json` — Ramadan sleep schedule, qahwa caffeine framing, shared sleeping arrangements
+    - `post_crisis_check_in.json` — Islamic post-crisis spiritual language, shame and help-seeking framing
+    - `mood_check_in.json` — self-rating shame in Gulf context, qualitative fallback guidance
+    - `stop_technique.json` — family honour reactive situations, ird/karama sensitivity
+    Reviewer should be an Emirati or Gulf-native clinician. Upon review: remove the `REQUIRES GULF-NATIVE CLINICAL REVIEW` prefix and add `reviewed_by` and `review_date` fields to the `cultural_note` (or keep as a free-text annotation). This is a safety gate — cultural mis-framing in a crisis-adjacent context can erode trust and reduce help-seeking.
 
 ### Tier 3 — Design improvements (advisory): no immediate action required
 
