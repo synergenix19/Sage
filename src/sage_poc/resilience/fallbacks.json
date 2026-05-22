@@ -1,0 +1,38 @@
+[
+  {
+    "node": "freeflow_respond",
+    "language": "en",
+    "response": "I'm here with you. I need a brief moment to collect my thoughts, can you bear with me? In the meantime, I want you to know that what you've shared matters.",
+    "version": 1
+  },
+  {
+    "node": "freeflow_respond",
+    "language": "ar",
+    "response": "أنا معاك. أحتاج لحظة أجمع أفكاري، تقدر تعطيني شوي وقت؟ اللي قلته مهم وأبي أعطيك الاهتمام اللي تستاهله.",
+    "version": 1
+  },
+  {
+    "node": "low_confidence_respond",
+    "language": "en",
+    "response": "I want to make sure I understand you well. Could you tell me a bit more about what's on your mind?",
+    "version": 1
+  },
+  {
+    "node": "low_confidence_respond",
+    "language": "ar",
+    "response": "أبي أتأكد إني فاهمك صح. تقدر تقولي أكثر عن اللي في بالك؟",
+    "version": 1
+  },
+  {
+    "node": "default",
+    "language": "en",
+    "response": "I'm here with you. Please give me just a moment.",
+    "version": 1
+  },
+  {
+    "node": "default",
+    "language": "ar",
+    "response": "أنا معاك. أعطني لحظة من فضلك.",
+    "version": 1
+  }
+]
