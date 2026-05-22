@@ -78,7 +78,9 @@ export function useStreamingChat(sessionId: string | undefined, initialMessages:
         })
 
         if (!res.ok || !res.body) {
-          throw new Error(`Chat request failed: ${res.status}`)
+          const err = new Error(`Chat request failed: ${res.status}`)
+          ;(err as Error & { httpStatus: number }).httpStatus = res.status
+          throw err
         }
 
         // Ferry: write updated state into refs; refs are read on the next send.
@@ -272,8 +274,10 @@ export function ChatInterface({ initialSession, initialMessages = [], userName }
         {isLoading &&
           messages[messages.length - 1]?.content === '' && <TypingIndicator />}
         {error && (
-          <div className="text-center text-xs text-[var(--color-crisis)]">
-            Something went wrong —{' '}
+          <div className="text-center text-xs text-[var(--color-text-secondary)]">
+            {(error as Error & { httpStatus?: number }).httpStatus === 503
+              ? 'Service is starting up — '
+              : 'Something went wrong — '}
             <button onClick={() => reload()} className="underline">
               tap to retry
             </button>

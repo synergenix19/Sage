@@ -98,11 +98,17 @@ export async function POST(req: Request) {
     })
   } catch (err) {
     console.error('[chat/route] sage backend unreachable:', err)
-    return new Response('Service unavailable', { status: 503 })
+    return new Response(
+      JSON.stringify({ code: 'SAGE_UNAVAILABLE', message: 'Service unavailable' }),
+      { status: 503, headers: { 'Content-Type': 'application/json' } },
+    )
   }
 
   if (!sageRes.ok || !sageRes.body) {
-    return new Response('Upstream error', { status: 502 })
+    return new Response(
+      JSON.stringify({ code: 'SAGE_ERROR', message: 'Upstream error' }),
+      { status: 502, headers: { 'Content-Type': 'application/json' } },
+    )
   }
 
   // Existing metadata headers
