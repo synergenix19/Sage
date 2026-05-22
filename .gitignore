@@ -11,3 +11,4 @@ out
 apps/web/playwright/.auth-state.json
 apps/web/playwright/.seed-state.json
 apps/web/test-results/
+supabase/.temp/
