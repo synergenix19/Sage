@@ -1137,6 +1137,75 @@ def test_distress_trajectory_accumulates_across_turns():
         "distress_trajectory must have accumulated at least 3 entries"
 
 
+def test_escalating_distress_suppressed_during_active_skill_with_good_engagement():
+    """Intensity streaks during structured skill execution must NOT flag escalating_distress.
+
+    High emotional intensity is therapeutically expected when a user works through distressing
+    material in a CBT thought record or similar skill. The heuristic should only fire in
+    freeflow conversations where sustained high intensity without a skill context is concerning.
+    """
+    from sage_poc.nodes.safety_check import safety_check_node
+
+    base = make_e2e_state(
+        "I keep telling myself I'm a failure",
+        emotional_intensity=7, engagement=7,
+    )
+    base = {**base, "active_skill_id": "cbt_thought_record"}
+
+    t1 = safety_check_node(base)
+    assert "escalating_distress" not in t1["clinical_flags"]
+
+    t2_in = carry_state(t1, "I always mess things up", emotional_intensity=7, engagement=7)
+    t2_in = {**t2_in, "active_skill_id": "cbt_thought_record"}
+    t2 = safety_check_node(t2_in)
+    assert "escalating_distress" not in t2["clinical_flags"]
+
+    t3_in = carry_state(t2, "Maybe it's because I made a mistake at work", emotional_intensity=7, engagement=6)
+    t3_in = {**t3_in, "active_skill_id": "cbt_thought_record"}
+    t3 = safety_check_node(t3_in)
+    assert "escalating_distress" not in t3["clinical_flags"], (
+        "escalating_distress must NOT fire during active skill execution with engagement >= 5. "
+        f"clinical_flags={t3['clinical_flags']}, trajectory={t3['distress_trajectory']}"
+    )
+    assert len(t3["distress_trajectory"]) >= 3, "trajectory still accumulates (for later freeflow detection)"
+
+
+def test_escalating_distress_fires_in_freeflow_not_suppressed():
+    """The heuristic still fires in freeflow (no active skill) — same as original behaviour."""
+    from sage_poc.nodes.safety_check import safety_check_node
+
+    base = make_e2e_state("feeling really heavy today", emotional_intensity=7, engagement=5)
+    # active_skill_id not set — freeflow context
+
+    t1 = safety_check_node(base)
+    t2_in = carry_state(t1, "still feeling really low", emotional_intensity=7, engagement=5)
+    t2 = safety_check_node(t2_in)
+    t3_in = carry_state(t2, "three days like this now", emotional_intensity=7, engagement=5)
+    t3 = safety_check_node(t3_in)
+    assert "escalating_distress" in t3["clinical_flags"], (
+        "escalating_distress must still fire in freeflow conversations after 3 high-intensity turns."
+    )
+
+
+def test_escalating_distress_fires_during_skill_when_engagement_low():
+    """Low engagement during skill execution still triggers escalating_distress — user is disengaged/resistant."""
+    from sage_poc.nodes.safety_check import safety_check_node
+
+    base = make_e2e_state("I guess", emotional_intensity=7, engagement=3)
+    base = {**base, "active_skill_id": "cbt_thought_record"}
+
+    t1 = safety_check_node(base)
+    t2_in = carry_state(t1, "I don't know", emotional_intensity=7, engagement=3)
+    t2_in = {**t2_in, "active_skill_id": "cbt_thought_record"}
+    t2 = safety_check_node(t2_in)
+    t3_in = carry_state(t2, "whatever", emotional_intensity=7, engagement=3)
+    t3_in = {**t3_in, "active_skill_id": "cbt_thought_record"}
+    t3 = safety_check_node(t3_in)
+    assert "escalating_distress" in t3["clinical_flags"], (
+        "escalating_distress must fire even during skill execution when engagement < 5 (disengaged/resistant)."
+    )
+
+
 @pytest.mark.slow
 def test_extended_session_15_turns():
     """15-turn session: state coherence, trajectory accumulation, skill lifecycle, recovery.

@@ -64,9 +64,16 @@ def safety_check_node(state: SageState) -> dict:
 
     trajectory, escalating = _update_distress_trajectory(state)
 
+    # Suppress escalating_distress during active skill execution with good engagement:
+    # high intensity is therapeutically expected when a user works through distressing material.
+    # The heuristic is preserved for freeflow conversations where sustained high intensity
+    # without a skill context is genuinely concerning.
+    skill_active = bool(state.get("active_skill_id"))
+    engagement_ok = state.get("engagement", 5) >= 5
+
     # Carry forward clinical flags from prior turns (set union — flags don't reset)
     persisted = state.get("clinical_flags", [])
-    extra = ["escalating_distress"] if escalating else []
+    extra = ["escalating_distress"] if escalating and not (skill_active and engagement_ok) else []
     all_clinical = list(set(new_clinical_flags + third_party_flags + extra + persisted))
 
     crisis_state = state.get("crisis_state", "none")
