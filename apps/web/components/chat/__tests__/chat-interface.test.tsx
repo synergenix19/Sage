@@ -38,6 +38,7 @@ function makeFaultingFetchMock(chunks: string[], error: Error): Promise<Response
   })
   return Promise.resolve({
     ok: true,
+    headers: new Headers(),
     body: { getReader: () => ({ read: mockRead }) },
   } as unknown as Response)
 }

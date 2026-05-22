@@ -15,5 +15,6 @@ export default defineConfig({
     pool: 'forks',
     setupFiles: ['./vitest.setup.ts'],
     globals: true,
+    exclude: ['playwright/**'],
   },
 })
