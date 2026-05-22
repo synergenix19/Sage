@@ -84,14 +84,21 @@ CREATE TABLE IF NOT EXISTS public.message_feedback (
 
 ALTER TABLE public.message_feedback ENABLE ROW LEVEL SECURITY;
 
+-- CREATE POLICY has no IF NOT EXISTS in any PG version.
+-- DROP IF EXISTS first for idempotency.
+
 -- Users manage their own feedback.
-CREATE POLICY IF NOT EXISTS "own feedback"
+DROP POLICY IF EXISTS "own feedback" ON public.message_feedback;
+CREATE POLICY "own feedback"
   ON public.message_feedback
   FOR ALL
   USING (auth.uid() = user_id);
 
--- Admins can read all feedback for dashboard aggregation.
-CREATE POLICY IF NOT EXISTS "admin read feedback"
+-- Admins read all feedback for dashboard aggregation.
+-- Note: the admin dashboard uses the service-role client (bypasses RLS entirely).
+-- This policy covers admin users authenticated via the normal session (is_admin = true).
+DROP POLICY IF EXISTS "admin read feedback" ON public.message_feedback;
+CREATE POLICY "admin read feedback"
   ON public.message_feedback
   FOR SELECT
   USING (
@@ -151,4 +158,4 @@ git commit -m "feat(db): add trace fields, clinical_flags_detail, and feedback t
 - `clinical_flags_detail` is written by `route.ts` when `clinicalFlags` is non-empty: `{"flag_name": {"detected_at": timestamp, "turn_number": N}}`.
 - The `trace-and-feedback` plan writes `message_feedback` rows via `/api/feedback`.
 - The `dashboard-redesign` plan reads these columns in Supabase queries.
-- `CREATE POLICY IF NOT EXISTS` requires PostgreSQL 14+. Supabase Cloud runs PG15. If running on an older local dev instance, run `DROP POLICY IF EXISTS "own feedback" ON public.message_feedback;` before applying.
+- `CREATE POLICY` has no `IF NOT EXISTS` option in any PG version. The migration uses `DROP POLICY IF EXISTS` + `CREATE POLICY` for idempotency.
