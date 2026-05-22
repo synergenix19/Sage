@@ -90,6 +90,7 @@ class FiredRule:
     version: str
     action: dict
     suppressed: bool = False
+    matched_span: tuple[int, int] | None = None  # (start, end) of match in normalised text
 
 
 @dataclass

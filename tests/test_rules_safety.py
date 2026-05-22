@@ -407,6 +407,35 @@ def test_english_idiom_fpe_suppression(text, should_be_suppressed):
         assert not crisis_actions, f"Expected FPE suppression for idiom: {text!r}"
 
 
+# ── FPE scope: suppression must not bleed into genuine SI in the same message ──
+# Safety-critical regression guard for FPE-EN-001 and FPE-AR-001 being active.
+# A message containing both a suppressed idiom AND a genuine SI signal must still
+# fire crisis_flag. The FPE pattern-match suppresses its own matched rule only;
+# it must not suppress unrelated SI signals in the same message.
+
+@pytest.mark.parametrize("text,text_ar,language", [
+    # FPE-EN-001 idiom + genuine passive SI in the same message (English)
+    ("I'm killing it at work but honestly I have no reason to live", None, "en"),
+    ("dead tired this week and everyone would be better off without me", None, "en"),
+    ("dying of laughter earlier today but honestly I wish I were dead", None, "en"),
+    ("i could kill for a coffee, there's no point in living anymore", None, "en"),
+    ("killing it at the gym, but I want to end my life", None, "en"),
+    ("I've been killing it at work lately but I don't want to be here anymore", None, "en"),
+    # FPE-AR-001 Arabic laughter idiom + genuine Arabic passive SI in the same message
+    ("laughing and feeling bad", "اموت من الضحك بس انا ما ابي اعيش", "ar"),
+])
+def test_fpe_does_not_suppress_genuine_si_in_same_message(text, text_ar, language):
+    context = {"text_en": text, "language": language}
+    if text_ar:
+        context["text_ar"] = text_ar
+    result = engine.evaluate("safety", context)
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert crisis_actions, (
+        f"SCOPE BUG: FPE suppression swallowed a genuine SI signal. "
+        f"crisis_flag must fire for: {text!r} / ar={text_ar!r}"
+    )
+
+
 # ── Third-party crisis detection (SK-EN-004) ─────────────────────────────────
 
 @pytest.mark.parametrize("text", [
@@ -422,6 +451,31 @@ def test_third_party_crisis_fires_third_party_action(text):
     result = engine.evaluate("safety", {"text_en": text, "language": "en"})
     third_party_actions = [a for a in result.actions if a.get("type") == "third_party_crisis"]
     assert third_party_actions, f"Expected third_party_crisis action for: {text!r}"
+
+
+# ── Passive SI embedded in longer messages (1a) ──────────────────────────────
+# Confirms SI keyword matching works when the signal is embedded mid-sentence or
+# at the end of otherwise normal text. Guards against any future rule refactor
+# that moves to sentence-splitting or anchored matching.
+
+@pytest.mark.parametrize("text", [
+    # SI phrase at end of normal-sounding sentence
+    "had a rough week at work, honestly nothing matters anymore",
+    "talked to my sister earlier, still feel like everyone would be better off without me",
+    "got some sleep last night but I just don't want to be here anymore",
+    # SI phrase mid-sentence
+    "I keep thinking there's no point in living and I don't know how to shake it",
+    "ever since the move I've had no reason to live, nothing feels real",
+    # SI phrase after filler / softener
+    "I know this sounds dramatic but I genuinely wish I were dead",
+    "talking to you helps but honestly I just want it to stop",
+])
+def test_passive_si_embedded_in_longer_message(text):
+    result = engine.evaluate("safety", {"text_en": text, "language": "en"})
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert crisis_actions, (
+        f"Passive SI must fire when embedded in longer message: {text!r}"
+    )
 
 
 # ── Expanded false positive prevention ───────────────────────────────────────

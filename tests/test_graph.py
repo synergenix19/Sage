@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 _CARRY_FIELDS = (
     "turn_count", "clinical_flags", "conversation_history",
     "active_skill_id", "active_step_id", "emotional_intensity", "engagement",
-    "crisis_state",
+    "crisis_state", "distress_trajectory",
 )
 
 
@@ -1034,3 +1034,213 @@ def test_post_crisis_new_crisis_signal_reroutes_to_crisis():
     ))
     assert "crisis_response" in t2["path"], "Direct crisis language must re-trigger crisis_response"
     assert t2["crisis_state"] == "monitoring"
+
+
+# ── Mid-skill digression (2a, 2b) ────────────────────────────────────────────
+# Tests that the routing layer correctly handles off-topic turns and in-progress
+# skill keywords when a skill is already active.
+# These test _route_after_intent directly — no LLM, fast, deterministic.
+
+def test_mid_skill_off_topic_routes_to_freeflow_not_executor():
+    """Off-topic message mid-skill must route to freeflow, preserving active_skill_id.
+
+    When intent_route returns 'general_chat' with an active skill, the graph sends
+    the turn to freeflow_respond (which does not clear active_skill_id). The skill
+    resumes on the next turn when intent_route returns 'skill_continuation'.
+    """
+    from sage_poc.graph import _route_after_intent
+    state = make_e2e_state(
+        "what time is it in Dubai right now",
+        active_skill_id="cbt_thought_record",
+        active_step_id="explore_distortion",
+        primary_intent="general_chat",
+        intent_confidence=0.85,
+    )
+    route = _route_after_intent(state)
+    assert route == "freeflow", (
+        f"Off-topic message mid-skill must route to 'freeflow', not '{route}'. "
+        "Routing to skill_executor or skill_select would incorrectly restart the skill."
+    )
+
+
+def test_mid_skill_continuation_routes_to_executor():
+    """skill_continuation intent mid-skill must route to skill_executor, not skill_select."""
+    from sage_poc.graph import _route_after_intent
+    state = make_e2e_state(
+        "I guess that thought pattern started after I failed the exam",
+        active_skill_id="cbt_thought_record",
+        active_step_id="explore_distortion",
+        primary_intent="skill_continuation",
+        intent_confidence=0.82,
+    )
+    route = _route_after_intent(state)
+    assert route == "skill_executor", (
+        f"skill_continuation mid-skill must route to 'skill_executor', got '{route}'"
+    )
+
+
+def test_mid_skill_new_skill_keyword_routes_to_skill_select():
+    """Documents current behavior: 'new_skill' intent mid-skill routes to skill_select.
+
+    This means intent_route returning 'new_skill' while a skill is active will trigger
+    a skill switch. The LLM intent_route must correctly classify mid-skill messages
+    with off-topic keywords as 'skill_continuation', not 'new_skill', to prevent
+    unintended skill switches. This test documents the routing contract so that
+    intent_route prompt changes don't silently break it.
+    """
+    from sage_poc.graph import _route_after_intent
+    state = make_e2e_state(
+        "I can't sleep at night either, everything feels heavy",
+        active_skill_id="cbt_thought_record",
+        active_step_id="explore_distortion",
+        primary_intent="new_skill",
+        intent_confidence=0.75,
+    )
+    route = _route_after_intent(state)
+    assert route == "skill_select", (
+        "When intent_route returns 'new_skill', routing goes to skill_select even if a "
+        "skill is active. Intent_route must return 'skill_continuation' to preserve the "
+        "active skill. This test documents that contract."
+    )
+
+
+# ── Distress trajectory accumulation (3a fix verification + 3b extended) ─────
+
+def test_distress_trajectory_accumulates_across_turns():
+    """Verifies the carry_state fix: distress_trajectory must persist across turns.
+
+    Before the fix, _CARRY_FIELDS omitted 'distress_trajectory', so it reset to []
+    each turn and the 3-turn streak (_DISTRESS_STREAK=3) could never accumulate.
+    This test confirms that 3 consecutive turns with emotional_intensity >= 6 result
+    in 'escalating_distress' appearing in clinical_flags.
+    """
+    from sage_poc.nodes.safety_check import safety_check_node
+
+    base = make_e2e_state("feeling really heavy today", emotional_intensity=7, engagement=5)
+
+    t1 = safety_check_node(base)
+    assert "escalating_distress" not in t1["clinical_flags"], \
+        "Single high-intensity turn must not flag escalating_distress"
+
+    t2_in = carry_state(t1, "still feeling really low, nothing has changed", emotional_intensity=7, engagement=5)
+    t2 = safety_check_node(t2_in)
+    assert "escalating_distress" not in t2["clinical_flags"], \
+        "Two consecutive high-intensity turns must not yet flag escalating_distress"
+
+    t3_in = carry_state(t2, "three days like this now, I can barely function", emotional_intensity=7, engagement=4)
+    t3 = safety_check_node(t3_in)
+    assert "escalating_distress" in t3["clinical_flags"], (
+        "Three consecutive turns with intensity >= 6 must set escalating_distress. "
+        "If this fails, distress_trajectory is not being carried across turns."
+    )
+    assert len(t3["distress_trajectory"]) >= 3, \
+        "distress_trajectory must have accumulated at least 3 entries"
+
+
+@pytest.mark.slow
+def test_extended_session_15_turns():
+    """15-turn session: state coherence, trajectory accumulation, skill lifecycle, recovery.
+
+    Exercises:
+    - turn_count increments correctly across all 15 turns
+    - distress_trajectory accumulates (not reset between turns)
+    - escalating_distress appears after 3 high-intensity turns
+    - A skill can be entered and completed in turns 6-8
+    - Crisis at turn 12 routes to crisis_response and sets monitoring state
+    - System recovers to safe state by turn 15
+    """
+    from sage_poc.graph import build_graph
+    graph = build_graph()
+
+    # ── Turns 1-5: Normal freeflow, low-moderate intensity ──────────────────
+    turns = []
+    current = make_e2e_state(
+        "Hello, just wanted to talk",
+        emotional_intensity=4, engagement=7, turn_count=0,
+    )
+    for i, msg in enumerate([
+        "Hello, just wanted to talk",
+        "Work has been tiring but nothing unusual",
+        "I've been thinking about a few things lately",
+        "Just processing some stuff from the week",
+        "Trying to stay grounded",
+    ], start=1):
+        r = asyncio.run(graph.ainvoke(
+            make_e2e_state(msg, emotional_intensity=4, engagement=7,
+                           conversation_history=(turns[-1]["conversation_history"] if turns else []),
+                           turn_count=i - 1)
+        ))
+        turns.append(r)
+        assert r["is_safe"] is True, f"Turn {i} should be safe"
+
+    print(f"\n[15T] Turns 1-5 complete. turn_count after t5: {turns[-1].get('turn_count')}")
+
+    # ── Turns 6-8: CBT skill activation and progression ─────────────────────
+    r6 = asyncio.run(graph.ainvoke(carry_state(
+        turns[-1],
+        "I keep telling myself everything is my fault and I can't stop",
+        emotional_intensity=5, engagement=7,
+    )))
+    print(f"[15T] Turn 6 skill: {r6.get('active_skill_id')} step={r6.get('active_step_id')}")
+
+    r7 = asyncio.run(graph.ainvoke(carry_state(
+        r6,
+        "I think I've been doing this for years, always blaming myself for things",
+        emotional_intensity=5, engagement=7,
+    )))
+    r8 = asyncio.run(graph.ainvoke(carry_state(
+        r7,
+        "Maybe I can try to see it differently, that is a fair point",
+        emotional_intensity=4, engagement=8,
+    )))
+    turns.extend([r6, r7, r8])
+
+    # ── Turns 9-11: Elevated intensity — trajectory must accumulate ──────────
+    r9 = asyncio.run(graph.ainvoke(carry_state(
+        r8, "I've been feeling really low, everything feels heavy", emotional_intensity=7, engagement=4,
+    )))
+    r10 = asyncio.run(graph.ainvoke(carry_state(
+        r9, "Still feeling the same way, three days of this now", emotional_intensity=7, engagement=4,
+    )))
+    r11 = asyncio.run(graph.ainvoke(carry_state(
+        r10, "Can't shake it, it just keeps building", emotional_intensity=7, engagement=4,
+    )))
+    turns.extend([r9, r10, r11])
+
+    # After 3 consecutive high-intensity turns, escalating_distress must be set
+    assert "escalating_distress" in (r11.get("clinical_flags") or []), (
+        "escalating_distress must appear in clinical_flags after 3 turns at intensity >= 6. "
+        "If this fails, distress_trajectory is not accumulating correctly."
+    )
+    traj = r11.get("distress_trajectory", [])
+    assert len(traj) >= 3, f"distress_trajectory should have >= 3 entries, got: {traj}"
+    print(f"[15T] Turns 9-11: trajectory={traj}, escalating_distress confirmed")
+
+    # ── Turn 12: Crisis signal ───────────────────────────────────────────────
+    r12 = asyncio.run(graph.ainvoke(carry_state(
+        r11, "I have no reason to live anymore", emotional_intensity=9, engagement=2,
+    )))
+    turns.append(r12)
+    assert r12["is_safe"] is False, "Turn 12 crisis message must set is_safe=False"
+    assert r12.get("crisis_state") == "monitoring", \
+        "Post-crisis state must be 'monitoring'"
+    print(f"[15T] Turn 12: crisis confirmed, state=monitoring")
+
+    # ── Turns 13-15: Recovery ────────────────────────────────────────────────
+    for i, msg in enumerate([
+        "Thank you, I feel a bit steadier now",
+        "I think I just needed someone to hear me",
+        "I am going to be okay, thank you for being here",
+    ], start=13):
+        r = asyncio.run(graph.ainvoke(carry_state(turns[-1], msg, emotional_intensity=4, engagement=7)))
+        turns.append(r)
+        assert r["response"] is not None, f"Turn {i} must produce a response"
+        print(f"[15T] Turn {i}: is_safe={r['is_safe']} active_skill={r.get('active_skill_id')}")
+
+    r15 = turns[-1]
+    assert r15["is_safe"] is True, "Turn 15 recovery message must be safe"
+    assert r15["response"] is not None
+
+    print(f"\n[15T] 15-turn session complete.")
+    print(f"[15T] Final clinical_flags: {r15.get('clinical_flags')}")
+    print(f"[15T] Final distress_trajectory: {r15.get('distress_trajectory')}")

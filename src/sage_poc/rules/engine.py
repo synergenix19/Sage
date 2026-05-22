@@ -22,24 +22,39 @@ def _has_negation(text_lower: str, match_start: int) -> bool:
 
 
 def _apply_suppressions(result: EvalResult) -> EvalResult:
-    """Post-filter: mark crisis_flag actions suppressed when a crisis_suppress rule also fired."""
-    suppress_actions = [
-        r.action for r in result.fired
-        if r.action.get("type") == "crisis_suppress"
-    ]
-    if not suppress_actions:
+    """Post-filter: mark crisis_flag actions suppressed when a crisis_suppress rule fired
+    on the same or overlapping text span.
+
+    Suppression is span-scoped: a FPE rule that fires on "killing it" at position 4
+    must not suppress a genuine SI rule that fired on "no reason to live" at position 44.
+    Both must be present in the same result for message-level analysis, but only the
+    overlapping SI match is suppressed.
+
+    If span info is unavailable (matched_span is None on either side), falls back to
+    message-level suppression as a conservative default.
+    """
+    suppress_rules = [r for r in result.fired if r.action.get("type") == "crisis_suppress"]
+    if not suppress_rules:
         return result
 
-    suppressed_flag_ids = {
-        flag_id
-        for action in suppress_actions
-        for flag_id in action.get("suppresses", [])
-    }
+    for si_rule in result.fired:
+        if si_rule.action.get("type") != "crisis_flag":
+            continue
+        flag_id = si_rule.action.get("flag_id")
+        si_span = si_rule.matched_span
 
-    for rule in result.fired:
-        if (rule.action.get("type") == "crisis_flag"
-                and rule.action.get("flag_id") in suppressed_flag_ids):
-            rule.suppressed = True
+        for fpe_rule in suppress_rules:
+            if flag_id not in fpe_rule.action.get("suppresses", []):
+                continue
+            fpe_span = fpe_rule.matched_span
+            if si_span is None or fpe_span is None:
+                # No span info: conservative message-level suppression
+                si_rule.suppressed = True
+                break
+            # Suppress only if the spans overlap
+            if max(fpe_span[0], si_span[0]) < min(fpe_span[1], si_span[1]):
+                si_rule.suppressed = True
+                break
 
     return result
 
@@ -90,6 +105,7 @@ def _eval_safety(rules: list[SafetyRule], context: dict) -> EvalResult:
                 rule_id=rule.rule_id,
                 version=rule.version,
                 action=rule.action,
+                matched_span=(idx, idx + len(pattern_norm)),
             ))
             matched = True
 
