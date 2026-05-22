@@ -85,7 +85,9 @@ function groupByDay<T extends { created_at: string }>(
 }
 
 export async function fetchOverviewMetrics(admin: SupabaseClient): Promise<OverviewMetrics> {
-  // UAE is UTC+4: shift by -4h so midnight UAE time = 20:00 previous UTC day
+  // UAE (Dubai) is UTC+4 year-round. The UAE does not observe daylight saving time,
+  // so this offset is fixed and does not need seasonal adjustment.
+  // Shift back 4h so that slicing the ISO date gives the UAE calendar date, not UTC date.
   const uaeMidnight = new Date(Date.now() - 4 * 60 * 60 * 1000)
   const todayUtc = uaeMidnight.toISOString().slice(0, 10) + 'T00:00:00.000Z'
 
