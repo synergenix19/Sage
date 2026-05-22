@@ -1,6 +1,12 @@
+import asyncio
 import re
 
 from langdetect import detect_langs, LangDetectException
+
+try:
+    from sage_poc.llm import get_translator
+except Exception:  # pragma: no cover – circular-import guard during early startup
+    get_translator = None  # type: ignore[assignment]
 
 # Languages that use the Latin script and may be confused with English by
 # langdetect on short inputs. We treat these as English when text contains no
@@ -89,6 +95,49 @@ def translate_to_arabic(text: str) -> str:
                 f"{text}"
             ),
         }])
+        return response.content.strip()
+    except Exception:
+        return text
+
+
+TRANSLATION_TIMEOUT_SECONDS: float = 30.0
+
+
+async def async_translate_to_arabic(text: str) -> str:
+    """Translate text to Arabic using ainvoke with timeout. Returns original on failure."""
+    try:
+        llm = get_translator()
+        response = await asyncio.wait_for(
+            llm.ainvoke([{
+                "role": "user",
+                "content": (
+                    "Translate the following text to Modern Standard Arabic. "
+                    "Return ONLY the Arabic translation, nothing else:\n\n"
+                    f"{text}"
+                ),
+            }]),
+            timeout=TRANSLATION_TIMEOUT_SECONDS,
+        )
+        return response.content.strip()
+    except Exception:
+        return text
+
+
+async def async_translate_to_english(text: str) -> str:
+    """Translate text to English using ainvoke with timeout. Returns original on failure."""
+    try:
+        llm = get_translator()
+        response = await asyncio.wait_for(
+            llm.ainvoke([{
+                "role": "user",
+                "content": (
+                    "Translate the following text to English. "
+                    "Return ONLY the translation, nothing else:\n\n"
+                    f"{text}"
+                ),
+            }]),
+            timeout=TRANSLATION_TIMEOUT_SECONDS,
+        )
         return response.content.strip()
     except Exception:
         return text

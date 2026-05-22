@@ -422,3 +422,31 @@ def test_server_has_bge_warmup():
     assert "warmup" in content or "lifespan" in content, (
         "server.py must define a lifespan/startup handler for BGE-M3 warmup"
     )
+
+
+# ── Async translation ─────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_async_translate_to_arabic_success():
+    from sage_poc.language import async_translate_to_arabic
+    llm = MagicMock()
+    llm.ainvoke = AsyncMock(return_value=MagicMock(content="مرحباً"))
+    with patch("sage_poc.language.get_translator", return_value=llm):
+        result = await async_translate_to_arabic("Hello")
+    assert result == "مرحباً"
+
+
+@pytest.mark.asyncio
+async def test_async_translate_to_arabic_timeout_returns_original():
+    from sage_poc.language import async_translate_to_arabic
+    with patch("sage_poc.language.asyncio.wait_for", side_effect=asyncio.TimeoutError):
+        result = await async_translate_to_arabic("Hello")
+    assert result == "Hello"
+
+
+@pytest.mark.asyncio
+async def test_async_translate_to_english_timeout_returns_original():
+    from sage_poc.language import async_translate_to_english
+    with patch("sage_poc.language.asyncio.wait_for", side_effect=asyncio.TimeoutError):
+        result = await async_translate_to_english("مرحباً")
+    assert result == "مرحباً"
