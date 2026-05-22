@@ -1,11 +1,25 @@
 // apps/web/app/api/chat/__tests__/route.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const mockInsert = vi.fn().mockResolvedValue({ error: null })
-const mockSelect = vi.fn().mockReturnThis()
-const mockEq = vi.fn().mockReturnThis()
-const mockSingle = vi.fn().mockResolvedValue({ data: { name: null } })
-const mockUpdate = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
+const {
+  mockInsert,
+  mockSelect,
+  mockEq,
+  mockSingle,
+  mockUpdate,
+  mockGetUser,
+} = vi.hoisted(() => {
+  const mockInsert = vi.fn().mockResolvedValue({ error: null })
+  const mockSelect = vi.fn().mockReturnThis()
+  const mockEq = vi.fn().mockReturnThis()
+  const mockSingle = vi.fn().mockResolvedValue({ data: { name: null } })
+  const mockUpdate = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
+  const mockGetUser = vi.fn().mockResolvedValue({
+    data: { user: { id: 'test-user-id' } },
+    error: null,
+  })
+  return { mockInsert, mockSelect, mockEq, mockSingle, mockUpdate, mockGetUser }
+})
 
 vi.mock('ai', () => ({
   generateText: vi.fn().mockResolvedValue({ text: 'emotional' }),
@@ -13,6 +27,7 @@ vi.mock('ai', () => ({
 vi.mock('@ai-sdk/openai', () => ({ createOpenAI: vi.fn(() => vi.fn()) }))
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn().mockResolvedValue({
+    auth: { getUser: mockGetUser },
     from: () => ({
       insert: mockInsert,
       select: mockSelect,
@@ -64,6 +79,8 @@ global.fetch = vi.fn().mockResolvedValue(makeSageResponse())
 describe('POST /api/chat', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'test-user-id' } }, error: null })
+    mockSingle.mockResolvedValue({ data: { name: null } })
     ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(makeSageResponse())
   })
 
@@ -214,5 +231,50 @@ describe('POST /api/chat', () => {
     const res = await POST(req)
     expect(res.headers.get('X-Sage-Clinical-Flags')).toBe('["trauma_indicator"]')
     expect(res.headers.get('X-Sage-Distress-Trajectory')).toBe('[8,7,6]')
+  })
+
+  // ── FE-C1: authenticated access required ──────────────────────────────
+  it('returns 401 when getUser returns no user', async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null })
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'hello' }],
+        sessionId: 'test-session-id',
+      }),
+    })
+    const res = await POST(req)
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 401 when getUser returns an auth error', async () => {
+    mockGetUser.mockResolvedValueOnce({
+      data: { user: null },
+      error: { message: 'JWT expired' },
+    })
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'hello' }],
+        sessionId: 'test-session-id',
+      }),
+    })
+    const res = await POST(req)
+    expect(res.status).toBe(401)
+  })
+
+  it('does not call sage-poc when auth fails', async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null })
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'hello' }],
+        sessionId: 'test-session-id',
+      }),
+    })
+    await POST(req)
+    const fetchCalls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls
+    const sageCall = fetchCalls.find((c) => (c[0] as string).includes('/chat'))
+    expect(sageCall).toBeUndefined()
   })
 })

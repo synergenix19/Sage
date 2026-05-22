@@ -56,10 +56,13 @@ export async function POST(req: Request) {
     return new Response('Bad Request', { status: 400 })
   }
 
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) return new Response('Unauthorized', { status: 401 })
+
   const lastMessage = messages[messages.length - 1]?.content ?? ''
   const intent = await classifyIntent(lastMessage).catch(() => 'emotional' as Intent)
 
-  const supabase = await createClient()
   await supabase.from('messages').insert({
     session_id: sessionId,
     role: 'user',
