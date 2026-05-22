@@ -1,5 +1,5 @@
 // apps/web/app/api/chat/__tests__/route.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 const {
   mockInsert,
@@ -82,6 +82,10 @@ describe('POST /api/chat', () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'test-user-id' } }, error: null })
     mockSingle.mockResolvedValue({ data: { name: null } })
     ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(makeSageResponse())
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
   })
 
   it('returns a streaming response', async () => {
@@ -343,7 +347,6 @@ describe('POST /api/chat', () => {
       }),
     })
     await POST(req)
-    vi.unstubAllEnvs()
 
     const fetchCalls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls
     const sageCall = fetchCalls.find((c) => (c[0] as string).includes('/chat'))
