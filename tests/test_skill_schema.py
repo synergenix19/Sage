@@ -56,3 +56,22 @@ def test_skill_step_technique_description_defaults_empty():
     from sage_poc.skills.schema import SkillStep
     step = SkillStep(step_id="test", goal="g", technique="t", tone="t", examples=[])
     assert step.technique_description == ""
+
+
+def test_cbt_thought_record_steps_have_technique_descriptions():
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("cbt_thought_record")
+    for step in skill.steps:
+        assert step.technique_description, (
+            f"Step '{step.step_id}' has empty technique_description in cbt_thought_record.json"
+        )
+
+
+def test_load_skill_without_technique_description_defaults_empty():
+    from sage_poc.skills.schema import load_skill
+    # post_crisis_check_in.json has no technique_description field
+    skill = load_skill("post_crisis_check_in")
+    for step in skill.steps:
+        assert step.technique_description == "", (
+            f"Step '{step.step_id}' should default to empty technique_description"
+        )
