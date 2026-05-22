@@ -24,6 +24,7 @@ def _state(raw_message, clinical_flags=None):
         "s7_result": None,
         "s7_method": None,
         "distress_trajectory": [],
+        "engagement_trajectory": [],
         "code_switching": False,
         "primary_intent": None,
         "secondary_intent": None,
@@ -138,6 +139,7 @@ def _freeflow_state(**overrides):
         "s7_result": None,
         "s7_method": None,
         "distress_trajectory": [],
+        "engagement_trajectory": [],
         "code_switching": False,
         "primary_intent": "general_chat",
         "secondary_intent": None,
@@ -573,3 +575,30 @@ def test_code_switch_rule_fires_alongside_islamic_rule():
     assert "ISLAMIC" in system_str or "sabr" in system_str.lower(), (
         "CU-IS-001 must also fire when Islamic keyword present"
     )
+
+
+@pytest.mark.parametrize("text", [
+    "I have to build a network all over again",
+    "I've been building a network from scratch",
+    "I exhausted my network here",
+    "I don't know anyone here",
+    "I have no friends here",
+    "starting over in a new country",
+    "this wasn't my first choice of country",
+    "Dubai is not my first choice",
+    "I have no support system here",
+    "moved here for my career but",
+    "starting fresh somewhere new",
+])
+def test_pi_ei_001_fires_on_paraphrase_expat_isolation(text):
+    from sage_poc.rules import engine
+    result = engine.evaluate("prompt_injection", {
+        "text": text,
+        "text_ar": None,
+        "clinical_flags": [],
+        "primary_intent": "general_chat",
+        "secondary_intent": None,
+        "session_flags": [],
+    })
+    rule_ids = [r.rule_id for r in result.fired]
+    assert "PI-EI-001" in rule_ids, f"Expected PI-EI-001 for: {text!r}"
