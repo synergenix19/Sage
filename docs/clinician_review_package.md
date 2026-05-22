@@ -11,10 +11,11 @@
 
 This document requires your clinical judgement on two sets of questions. No technical knowledge is required.
 
-**Section A** covers phrases that Sage might flag as self-harm signals. It is split into two parts:
+**Section A** covers phrases that Sage might flag as self-harm signals. It is split into three parts:
 
 - **Part 1 (A1)** presents two categories of phrases we have already stopped flagging because they are unambiguous idioms — "dying of laughter," for example. We are asking you to confirm these decisions or flag any disagreement.
 - **Part 2 (A2)** presents two categories where the phrases are genuinely ambiguous — the same words can be idiomatic in one context and a real distress signal in another. These are still flagged. We need your clinical judgement on what to do with them.
+- **Part 3 (A3)** presents Gulf Arabic metaphorical despair expressions that vary significantly in clinical weight, and asks you to classify each as crisis-grade, clinical-flag-only, or remove.
 
 **Section B** asks you to review notes that guide how Sage talks with Gulf users about culturally sensitive topics: sleep during Ramadan, shame after a mental health crisis, and similar matters. We need you to confirm whether the guidance is clinically sound or whether it needs adjustment.
 
@@ -246,6 +247,123 @@ Some of these ("tickled to death," "talked to death") carry no clinical ambiguit
 &nbsp;
 
 ---
+
+# SECTION A3 — SK-AR-003: Gulf Arabic Metaphorical Despair — Crisis Grade vs. Clinical Flag
+
+## Background
+
+Sage currently flags 8 Gulf Arabic metaphorical expressions as passive suicidal ideation (rule SK-AR-003), treating all of them as crisis signals. A technical review has identified that these phrases vary significantly in their specificity and clinical weight. Two have been assessed as unambiguously crisis-grade and are already tested. The remaining six are genuinely ambiguous — they can represent profound despair or common fatigue depending on context, and applying the crisis protocol to all of them risks the alarm-fatigue problem described in Section A of this package.
+
+We need your clinical guidance on how to handle each phrase.
+
+**Your options for each phrase:**
+- **CRISIS** — This phrase should trigger the full crisis protocol (user gets hotline numbers, session pauses). Keep in SK-AR-003.
+- **FLAG** — This phrase should set a clinical flag for follow-up but not trigger the crisis protocol. We will move it to a new clinical-flag rule.
+- **REMOVE** — This phrase is too common or too ambiguous to flag at all. We will remove it from crisis and flag rules.
+
+---
+
+## A3-01 — "انا تعبت من كل شي"
+
+**Literal translation:** "I am exhausted/tired of everything"
+
+**Technical assessment:** This is one of the most common expressions of overwhelm in Gulf Arabic. It is used by people describing a stressful day at work, a difficult week, or general life fatigue. It is also used in contexts of genuine despair. The technical team assesses this as **flag-grade, not crisis-grade** — triggering the full crisis protocol for this phrase would produce frequent false positives that undermine user trust.
+
+**Questions for the reviewer:**
+1. Is "انا تعبت من كل شي" in isolation sufficient to trigger a crisis response, or does it require additional context signals (e.g. previous passive SI statements, high distress score)?
+2. If flag-grade: what is the appropriate clinical follow-up — a gentle check-in the same turn, a clinician note for the next session, or something else?
+
+**REVIEWER DECISION — A3-01:**
+- [ ] **CRISIS** — Keep as crisis-grade in SK-AR-003
+- [ ] **FLAG** — Move to clinical flag; specify follow-up: _______________
+- [ ] **REMOVE** — Too ambiguous to flag
+
+**Reviewer name/initials:** _______________ **Notes:** &nbsp;
+
+---
+
+## A3-02 — "روحي طايرة"
+
+**Literal translation:** "My soul is floating/flying away"
+
+**Technical assessment:** This phrase is used in Gulf Arabic to describe dissociation, spiritual distress, or feeling unmoored. It can be figurative (said during an overwhelming moment) or a genuine signal of severe dissociative distress. Technical assessment: **flag-grade candidate**, pending clinical guidance.
+
+**REVIEWER DECISION — A3-02:**
+- [ ] **CRISIS** — Keep as crisis-grade in SK-AR-003
+- [ ] **FLAG** — Move to clinical flag
+- [ ] **REMOVE** — Too ambiguous to flag
+
+**Reviewer name/initials:** _______________ **Notes:** &nbsp;
+
+---
+
+## A3-03 — "قلبي ميت"
+
+**Literal translation:** "My heart is dead"
+
+**Technical assessment:** Used to describe profound emotional numbness, grief, or disconnection. Also used figuratively after disappointment (similar to "heartbroken" in English). Technical assessment: **flag-grade candidate**, but the phrase's specificity makes it a stronger signal than "انا تعبت من كل شي."
+
+**REVIEWER DECISION — A3-03:**
+- [ ] **CRISIS** — Keep as crisis-grade in SK-AR-003
+- [ ] **FLAG** — Move to clinical flag
+- [ ] **REMOVE** — Too ambiguous to flag
+
+**Reviewer name/initials:** _______________ **Notes:** &nbsp;
+
+---
+
+## A3-04 — "نفسي مريضة"
+
+**Literal translation:** "My soul/self is sick"
+
+**Technical assessment:** Highly ambiguous. Can mean spiritually unwell, emotionally exhausted, or literally physically ill depending on dialect and context. Gulf Arabic uses "نفس" for both soul and self. Technical assessment: **remove or flag-grade only** — this phrase does not reliably distinguish distress from ordinary illness.
+
+**REVIEWER DECISION — A3-04:**
+- [ ] **CRISIS** — Keep as crisis-grade in SK-AR-003
+- [ ] **FLAG** — Move to clinical flag
+- [ ] **REMOVE** — Too ambiguous to flag
+
+**Reviewer name/initials:** _______________ **Notes:** &nbsp;
+
+---
+
+## A3-05 — "انكسرت من الداخل"
+
+**Literal translation:** "I'm broken inside"
+
+**Technical assessment:** Commonly used after significant loss, betrayal, or trauma. Carries significant distress weight but is also used figuratively after disappointment. Technical assessment: **flag-grade candidate** — the phrase signals significant emotional pain but is not specific enough to trigger the full crisis protocol without additional context.
+
+**REVIEWER DECISION — A3-05:**
+- [ ] **CRISIS** — Keep as crisis-grade in SK-AR-003
+- [ ] **FLAG** — Move to clinical flag
+- [ ] **REMOVE** — Too ambiguous to flag
+
+**Reviewer name/initials:** _______________ **Notes:** &nbsp;
+
+---
+
+## A3-06 — "ما في شي يسعدني"
+
+**Literal translation:** "Nothing makes me happy anymore"
+
+**Technical assessment:** Classic anhedonia expression. Clinically significant as a depression indicator but not passive SI on its own. Technical assessment: **flag-grade** — this is a clinical flag for follow-up, not a crisis trigger. The v7 architecture's intent is that Layer 1 catches explicit crisis signals; anhedonia belongs in the clinical flag tier.
+
+**REVIEWER DECISION — A3-06:**
+- [ ] **CRISIS** — Keep as crisis-grade in SK-AR-003
+- [ ] **FLAG** — Move to clinical flag
+- [ ] **REMOVE** — Too ambiguous to flag
+
+**Reviewer name/initials:** _______________ **Notes:** &nbsp;
+
+---
+
+**After completing A3:** Please return with your decisions. The technical team will:
+1. Keep CRISIS decisions in SK-AR-003 unchanged
+2. Move FLAG decisions to a new rule SK-AR-004 with `clinical_flag` action instead of `crisis_flag`
+3. Remove REMOVE decisions from all rules
+4. Add graph-level tests for each decision
+
+**If any phrase raises a concern not captured above, add a note and request a call. These decisions have direct patient safety implications.**
 
 ---
 
@@ -489,133 +607,6 @@ Each note was drafted by the Sage team with reference to Gulf cultural context, 
 &nbsp;
 
 **Reviewer name/initials:** _______________
-
----
-
----
-
----
-
----
-
-# SECTION A3 — SK-AR-003: Gulf Arabic Metaphorical Despair — Crisis Grade vs. Clinical Flag
-
-## Background
-
-Sage currently flags 8 Gulf Arabic metaphorical expressions as passive suicidal ideation (rule SK-AR-003), treating all of them as crisis signals. A technical review has identified that these phrases vary significantly in their specificity and clinical weight. Two have been assessed as unambiguously crisis-grade and are already tested. The remaining six are genuinely ambiguous — they can represent profound despair or common fatigue depending on context, and applying the crisis protocol to all of them risks the alarm-fatigue problem described in Section A of this package.
-
-We need your clinical guidance on how to handle each phrase.
-
-**Your options for each phrase:**
-- **CRISIS** — This phrase should trigger the full crisis protocol (user gets hotline numbers, session pauses). Keep in SK-AR-003.
-- **FLAG** — This phrase should set a clinical flag for follow-up but not trigger the crisis protocol. We will move it to a new clinical-flag rule.
-- **REMOVE** — This phrase is too common or too ambiguous to flag at all. We will remove it from crisis and flag rules.
-
----
-
-## A3-01 — "انا تعبت من كل شي"
-
-**Literal translation:** "I am exhausted/tired of everything"
-
-**Technical assessment:** This is one of the most common expressions of overwhelm in Gulf Arabic. It is used by people describing a stressful day at work, a difficult week, or general life fatigue. It is also used in contexts of genuine despair. The technical team assesses this as **flag-grade, not crisis-grade** — triggering the full crisis protocol for this phrase would produce frequent false positives that undermine user trust.
-
-**Questions for the reviewer:**
-1. Is "انا تعبت من كل شي" in isolation sufficient to trigger a crisis response, or does it require additional context signals (e.g. previous passive SI statements, high distress score)?
-2. If flag-grade: what is the appropriate clinical follow-up — a gentle check-in the same turn, a clinician note for the next session, or something else?
-
-**REVIEWER DECISION — A3-01:**
-- [ ] **CRISIS** — Keep as crisis-grade in SK-AR-003
-- [ ] **FLAG** — Move to clinical flag; specify follow-up: _______________
-- [ ] **REMOVE** — Too ambiguous to flag
-
-**Reviewer name/initials:** _______________ **Notes:** &nbsp;
-
----
-
-## A3-02 — "روحي طايرة"
-
-**Literal translation:** "My soul is floating/flying away"
-
-**Technical assessment:** This phrase is used in Gulf Arabic to describe dissociation, spiritual distress, or feeling unmoored. It can be figurative (said during an overwhelming moment) or a genuine signal of severe dissociative distress. Technical assessment: **flag-grade candidate**, pending clinical guidance.
-
-**REVIEWER DECISION — A3-02:**
-- [ ] **CRISIS** — Keep as crisis-grade in SK-AR-003
-- [ ] **FLAG** — Move to clinical flag
-- [ ] **REMOVE** — Too ambiguous to flag
-
-**Reviewer name/initials:** _______________ **Notes:** &nbsp;
-
----
-
-## A3-03 — "قلبي ميت"
-
-**Literal translation:** "My heart is dead"
-
-**Technical assessment:** Used to describe profound emotional numbness, grief, or disconnection. Also used figuratively after disappointment (similar to "heartbroken" in English). Technical assessment: **flag-grade candidate**, but the phrase's specificity makes it a stronger signal than "انا تعبت من كل شي."
-
-**REVIEWER DECISION — A3-03:**
-- [ ] **CRISIS** — Keep as crisis-grade in SK-AR-003
-- [ ] **FLAG** — Move to clinical flag
-- [ ] **REMOVE** — Too ambiguous to flag
-
-**Reviewer name/initials:** _______________ **Notes:** &nbsp;
-
----
-
-## A3-04 — "نفسي مريضة"
-
-**Literal translation:** "My soul/self is sick"
-
-**Technical assessment:** Highly ambiguous. Can mean spiritually unwell, emotionally exhausted, or literally physically ill depending on dialect and context. Gulf Arabic uses "نفس" for both soul and self. Technical assessment: **remove or flag-grade only** — this phrase does not reliably distinguish distress from ordinary illness.
-
-**REVIEWER DECISION — A3-04:**
-- [ ] **CRISIS** — Keep as crisis-grade in SK-AR-003
-- [ ] **FLAG** — Move to clinical flag
-- [ ] **REMOVE** — Too ambiguous to flag
-
-**Reviewer name/initials:** _______________ **Notes:** &nbsp;
-
----
-
-## A3-05 — "انكسرت من الداخل"
-
-**Literal translation:** "I'm broken inside"
-
-**Technical assessment:** Commonly used after significant loss, betrayal, or trauma. Carries significant distress weight but is also used figuratively after disappointment. Technical assessment: **flag-grade candidate** — the phrase signals significant emotional pain but is not specific enough to trigger the full crisis protocol without additional context.
-
-**REVIEWER DECISION — A3-05:**
-- [ ] **CRISIS** — Keep as crisis-grade in SK-AR-003
-- [ ] **FLAG** — Move to clinical flag
-- [ ] **REMOVE** — Too ambiguous to flag
-
-**Reviewer name/initials:** _______________ **Notes:** &nbsp;
-
----
-
-## A3-06 — "ما في شي يسعدني"
-
-**Literal translation:** "Nothing makes me happy anymore"
-
-**Technical assessment:** Classic anhedonia expression. Clinically significant as a depression indicator but not passive SI on its own. Technical assessment: **flag-grade** — this is a clinical flag for follow-up, not a crisis trigger. The v7 architecture's intent is that Layer 1 catches explicit crisis signals; anhedonia belongs in the clinical flag tier.
-
-**REVIEWER DECISION — A3-06:**
-- [ ] **CRISIS** — Keep as crisis-grade in SK-AR-003
-- [ ] **FLAG** — Move to clinical flag
-- [ ] **REMOVE** — Too ambiguous to flag
-
-**Reviewer name/initials:** _______________ **Notes:** &nbsp;
-
----
-
-**After completing A3:** Please return with your decisions. The technical team will:
-1. Keep CRISIS decisions in SK-AR-003 unchanged
-2. Move FLAG decisions to a new rule SK-AR-004 with `clinical_flag` action instead of `crisis_flag`
-3. Remove REMOVE decisions from all rules
-4. Add graph-level tests for each decision
-
-**If any phrase raises a concern not captured above, add a note and request a call. These decisions have direct patient safety implications.**
-
----
 
 ---
 
