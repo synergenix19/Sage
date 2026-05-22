@@ -1,0 +1,13 @@
+{
+  "template_id": "L5_user_context",
+  "version": "1.0.0",
+  "authored_by": "sage_clinics",
+  "approved_by": null,
+  "effective_date": "2026-05-22",
+  "layer": "L5",
+  "role": "user",
+  "always_include": false,
+  "word_budget": 100,
+  "content": "CONTEXT ABOUT THIS USER: {flags_summary} Current emotional state: intensity {intensity}/10, engagement {engagement}/10.{distress_note}",
+  "variables": ["flags_summary", "intensity", "engagement", "distress_note"]
+}

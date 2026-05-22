@@ -201,3 +201,42 @@ def test_l2_intent_block_appends_secondary_intent():
 def test_l2_intent_block_mid_intensity_uses_engaged_guidance():
     block = _build_l2_intent_block("general_chat", intensity=5, secondary_intent=None)
     assert "moderately" in block.lower() or "engaged" in block.lower()
+
+
+from sage_poc.prompts.composer import _build_l4_knowledge_block, _build_l5_user_context_block
+
+
+def test_l4_knowledge_block_formats_with_citation_marker():
+    block = _build_l4_knowledge_block("Anxiety is a feeling of worry or fear.")
+    assert "[1]" in block
+    assert "Anxiety is a feeling" in block
+
+
+def test_l4_knowledge_block_includes_abstain_instruction():
+    block = _build_l4_knowledge_block("Some snippet.")
+    assert "not certain" in block
+
+
+def test_l4_knowledge_block_returns_none_for_empty_snippet():
+    assert _build_l4_knowledge_block(None) is None
+    assert _build_l4_knowledge_block("") is None
+
+
+def test_l5_user_context_returns_none_when_no_relevant_flags():
+    result = _build_l5_user_context_block(clinical_flags=[], intensity=5, engagement=5)
+    assert result is None
+
+
+def test_l5_user_context_fires_for_substance_use():
+    block = _build_l5_user_context_block(
+        clinical_flags=["substance_use"], intensity=5, engagement=6
+    )
+    assert block is not None
+    assert "motivational" in block.lower() or "MI" in block or "substance" in block.lower()
+
+
+def test_l5_user_context_includes_distress_note_when_escalating():
+    block = _build_l5_user_context_block(
+        clinical_flags=["escalating_distress"], intensity=8, engagement=4
+    )
+    assert "elevated" in block.lower() or "multiple turns" in block.lower()

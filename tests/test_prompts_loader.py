@@ -117,3 +117,18 @@ def test_all_intents_have_l2_template(intent):
     assert tmpl is not None, f"No L2 template for intent: {intent}"
     assert tmpl.layer == "L2"
     assert tmpl.intent == intent
+
+
+def test_load_l4_knowledge():
+    tmpl = get_template("L4_knowledge")
+    assert tmpl.layer == "L4"
+    assert tmpl.max_passages == 3
+    assert "{passages}" in tmpl.content
+    assert "not certain" in tmpl.content
+
+
+def test_load_l5_user_context():
+    tmpl = get_template("L5_user_context")
+    assert tmpl.layer == "L5"
+    assert "{flags_summary}" in tmpl.content
+    assert "{distress_note}" in tmpl.content

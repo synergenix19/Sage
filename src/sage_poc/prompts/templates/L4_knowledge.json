@@ -1,0 +1,14 @@
+{
+  "template_id": "L4_knowledge",
+  "version": "1.0.0",
+  "authored_by": "sage_clinics",
+  "approved_by": null,
+  "effective_date": "2026-05-22",
+  "layer": "L4",
+  "role": "user",
+  "always_include": false,
+  "word_budget": 300,
+  "content": "KNOWLEDGE (use the passages below if they directly answer the user's question, weave naturally):\n{passages}\n\nIf none of the above passages directly answer the user's question, say so honestly rather than guessing. You can say: \"I'm not certain about that, would you like me to look into it further?\"",
+  "variables": ["passages"],
+  "max_passages": 3
+}

@@ -125,6 +125,52 @@ def _build_l2_intent_block(
     return content
 
 
+_FLAG_DESCRIPTIONS: dict[str, str] = {
+    "substance_use": "This user has disclosed substance use. Use a motivational interviewing (MI) approach: non-judgmental, no lecturing.",
+    "trauma_indicator": "This user has indicated trauma history. Be sensitive and do not probe for details.",
+    "eating_concern": "This user has disclosed eating concerns. Do not comment on food, weight, or body image.",
+    "medication_mention": "This user has mentioned medication. Do not advise on dosing or stopping medication.",
+    "third_party_si": "This user has expressed concern about someone else's safety. Take this seriously.",
+    "escalating_distress": "This user's distress has been elevated across multiple turns.",
+}
+
+
+def _build_l4_knowledge_block(snippet: str | None, variant: str | None = None) -> str | None:
+    if not snippet:
+        return None
+    tmpl = get_template("L4_knowledge", variant=variant)
+    passages = f"[1] {snippet}"
+    content = tmpl.content.format(passages=_esc(passages))
+    _log.debug("L4_knowledge@%s loaded", tmpl.version)
+    return content
+
+
+def _build_l5_user_context_block(
+    clinical_flags: list[str],
+    intensity: int,
+    engagement: int,
+    variant: str | None = None,
+) -> str | None:
+    relevant = [f for f in clinical_flags if f in _FLAG_DESCRIPTIONS]
+    if not relevant:
+        return None
+    tmpl = get_template("L5_user_context", variant=variant)
+    flags_summary = " ".join(_FLAG_DESCRIPTIONS[f] for f in relevant)
+    distress_note = (
+        " Distress has been elevated for multiple turns."
+        if "escalating_distress" in clinical_flags
+        else ""
+    )
+    content = tmpl.content.format(
+        flags_summary=_esc(flags_summary),
+        intensity=str(intensity),
+        engagement=str(engagement),
+        distress_note=_esc(distress_note),
+    )
+    _log.debug("L5_user_context@%s loaded", tmpl.version)
+    return content
+
+
 def _build_l0_system_block(variant: str | None = None) -> str:
     tmpl = get_template("L0_persona", variant=variant)
     _log.debug("L0_persona@%s loaded", tmpl.version)
