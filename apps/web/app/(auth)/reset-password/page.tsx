@@ -32,6 +32,7 @@ export default function ResetPasswordPage() {
       <form onSubmit={submit} className="flex flex-col gap-4">
         <Input
           type="password"
+          autoComplete="new-password"
           placeholder="New password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
