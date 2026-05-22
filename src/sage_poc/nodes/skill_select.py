@@ -4,7 +4,7 @@ import numpy as np
 from sage_poc.state import SageState
 from sage_poc.skills.schema import load_skill
 
-SKILL_REGISTRY = ["cbt_thought_record", "grounding_5_4_3_2_1", "sleep_hygiene", "post_crisis_check_in", "box_breathing", "mood_check_in", "behavioral_activation", "worry_time", "mi_readiness_ruler", "stop_technique", "progressive_muscle_relaxation", "safe_place_visualization"]
+from sage_poc.skill_ids import SKILL_REGISTRY
 _SKILLS = {sid: load_skill(sid) for sid in SKILL_REGISTRY}
 
 # Threshold from empirical calibration (Task 3).
