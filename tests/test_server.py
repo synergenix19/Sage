@@ -166,6 +166,44 @@ def test_crisis_path_gate_path_and_no_skill():
     assert res.headers.get("x-sage-step-id") == ""
 
 
+def test_crisis_state_resolved_not_coerced_to_none(monkeypatch):
+    """crisis_state='resolved' must survive the _build_state boundary.
+
+    BE-C1: _VALID_CRISIS_STATES previously omitted 'resolved', so the post-
+    crisis warmth window was silently dropped on the first turn after check-in.
+    """
+    import server as srv
+
+    received_states = []
+
+    async def _capture_state(state):
+        received_states.append(state.get("crisis_state"))
+        return {
+            "path": ["safety_check", "output_gate"],
+            "is_safe": True,
+            "response": "I hear you.",
+            "crisis_state": "resolved",
+            "crisis_flags": [],
+            "clinical_flags": [],
+            "emotional_intensity": 5,
+            "active_skill_id": None,
+            "executed_step_id": None,
+            "gate_path": "standard",
+        }
+
+    monkeypatch.setattr(srv, "_graph", type("G", (), {"ainvoke": staticmethod(_capture_state)})())
+    client = get_client()
+    client.post("/chat", json={
+        "messages": [{"role": "user", "content": "I'm feeling much better now"}],
+        "session_id": "test",
+        "crisis_state": "resolved",
+    })
+    assert received_states == ["resolved"], (
+        f"Expected graph to receive crisis_state='resolved' but got {received_states}. "
+        "Check _VALID_CRISIS_STATES in server.py."
+    )
+
+
 def test_skill_response_audit_headers(monkeypatch):
     """Skill-path response: skill_id and step_id populated, crisis_flags empty."""
     import server as srv

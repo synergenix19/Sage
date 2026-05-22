@@ -26,7 +26,7 @@ CRISIS_SIGNAL = "[[CRISIS_DETECTED]]"
 
 # Closed set enforced at the HTTP boundary — v7 §5.5.
 # crisis_state is client-ferried between turns; arbitrary strings must never enter the graph.
-_VALID_CRISIS_STATES = frozenset({"none", "monitoring", "active_crisis"})
+_VALID_CRISIS_STATES = frozenset({"none", "monitoring", "active_crisis", "resolved"})
 
 
 class Message(BaseModel):
