@@ -74,6 +74,7 @@ describe('POST /api/feedback', () => {
     const req = makeRequest({ messageId: 'msg-1', value: 1 })
     const res = await POST(req)
     expect(res.status).toBe(404)
+    expect(mockUpsert).not.toHaveBeenCalled()
   })
 
   it('returns 403 when message session does not belong to the authenticated user', async () => {
@@ -84,5 +85,6 @@ describe('POST /api/feedback', () => {
     const req = makeRequest({ messageId: 'msg-1', value: 1 })
     const res = await POST(req)
     expect(res.status).toBe(403)
+    expect(mockUpsert).not.toHaveBeenCalled()
   })
 })
