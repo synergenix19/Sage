@@ -2,11 +2,12 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import re as _re
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -166,7 +167,10 @@ async def _stream_words(text: str) -> AsyncGenerator[bytes, None]:
 
 
 @app.post("/chat")
-async def chat(req: ChatRequest) -> StreamingResponse:
+async def chat(req: ChatRequest, x_sage_api_key: str | None = Header(default=None)) -> StreamingResponse:
+    _expected_key = os.environ.get("SAGE_API_KEY", "")
+    if _expected_key and x_sage_api_key != _expected_key:
+        raise HTTPException(status_code=401, detail="Unauthorized")
     if not req.messages or req.messages[-1].role != "user":
         raise HTTPException(status_code=400, detail="Last message must be from the user")
 

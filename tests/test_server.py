@@ -563,3 +563,47 @@ def test_skill_continuation_survives_two_turns_through_http(monkeypatch):
         f"got {turn_skill_states[1]['active_skill_id']!r}"
     )
     assert turn_skill_states[1]["active_step_id"] == "explore_distortion"
+
+
+# ── FE-H5: shared secret validation ───────────────────────────────────────
+def test_chat_rejects_missing_api_key(monkeypatch):
+    """Requests without X-Sage-Api-Key must be rejected when SAGE_API_KEY is configured."""
+    monkeypatch.setenv("SAGE_API_KEY", "test-secret")
+    client = get_client()
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "I want to end it all"}],
+        "session_id": "test",
+    })
+    assert res.status_code == 401
+
+
+def test_chat_rejects_wrong_api_key(monkeypatch):
+    monkeypatch.setenv("SAGE_API_KEY", "test-secret")
+    client = get_client()
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "I want to end it all"}],
+        "session_id": "test",
+    }, headers={"X-Sage-Api-Key": "wrong-key"})
+    assert res.status_code == 401
+
+
+def test_chat_accepts_correct_api_key(monkeypatch):
+    monkeypatch.setenv("SAGE_API_KEY", "test-secret")
+    client = get_client()
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "I want to end it all"}],
+        "session_id": "test",
+    }, headers={"X-Sage-Api-Key": "test-secret"})
+    assert res.status_code == 200
+
+
+def test_chat_bypasses_key_check_when_sage_api_key_unset():
+    """No SAGE_API_KEY in env → check is disabled. Preserves backward compatibility
+    for local dev where the key is not configured.
+    """
+    client = get_client()
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "I want to end it all"}],
+        "session_id": "test",
+    })
+    assert res.status_code == 200
