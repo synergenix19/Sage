@@ -1,0 +1,42 @@
+name: ferry-gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'server.py'
+      - 'src/sage_poc/state.py'
+      - 'src/sage_poc/skill_ids.py'
+      - 'tests/test_server.py'
+  pull_request:
+    paths:
+      - 'server.py'
+      - 'src/sage_poc/state.py'
+      - 'src/sage_poc/skill_ids.py'
+      - 'tests/test_server.py'
+
+jobs:
+  ferry:
+    name: Ferry integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run ferry tests
+        run: |
+          pytest tests/test_server.py \
+            -k "ferry or two_turns or resolved or skill_ferry_headers" \
+            -v --tb=short
+        env:
+          # Tests mock the graph — real API calls are never made.
+          # A dummy key prevents import-time failures in llm.py.
+          OPENROUTER_API_KEY: dummy-ci
+          SAGE_ENV: test
