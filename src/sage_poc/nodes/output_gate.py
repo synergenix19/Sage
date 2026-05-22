@@ -1,10 +1,14 @@
 import json
+import logging
 import re
 from datetime import datetime, timezone
 from sage_poc.state import SageState
 from sage_poc.language import async_translate_to_arabic
 from sage_poc.config import AUDIT_LOG_ENABLED
 from sage_poc.rules import engine as rules_engine
+from sage_poc.prompts.summarizer import summarise_history
+
+_log = logging.getLogger(__name__)
 
 SCOPE_REFUSAL_RESPONSE = (
     "That's a question better answered by a medical professional or licensed therapist. "
@@ -94,14 +98,26 @@ async def output_gate_node(state: SageState) -> dict:
             esc = state["escalation_triggered"]
             print(f"\n[ESCALATION {esc['level']}] {esc['reason']}")
 
+    new_history = state.get("conversation_history", []) + [
+        {"role": "user", "content": state["message_en"]},
+        {"role": "assistant", "content": response_en},
+    ]
+
+    next_turn = state["turn_count"] + 1
+    new_summary = state.get("conversation_summary")
+    if next_turn % 10 == 0:
+        try:
+            new_summary = await summarise_history(new_history)
+            _log.info("Conversation summary generated at turn %d", next_turn)
+        except Exception:
+            _log.warning("Summarisation failed at turn %d; keeping prior summary", next_turn)
+
     return {
         "response": final_response,
         "gate_path": gate_path or "standard",
         "path": path,
-        "turn_count": state["turn_count"] + 1,
-        "conversation_history": state["conversation_history"] + [
-            {"role": "user", "content": state["message_en"]},
-            {"role": "assistant", "content": response_en},
-        ],
+        "turn_count": next_turn,
+        "conversation_history": new_history,
+        "conversation_summary": new_summary,
         "cultural_output_violations": cultural_output_violations,
     }

@@ -215,6 +215,28 @@ def test_compose_prompt_l1_budget_stays_at_450_when_skill_active():
     assert _compute_l1_budget(skill_state) == 450
 
 
+def test_compose_prompt_l1_budget_stays_at_450_for_info_request_primary():
+    """L1 budget does not flex when primary_intent is info_request."""
+    from sage_poc.prompts.composer import _compute_l1_budget
+    state = _make_state(
+        primary_intent="info_request",
+        secondary_intent=None,
+        step_instruction=None,
+    )
+    assert _compute_l1_budget(state) == 450
+
+
+def test_compose_prompt_l1_budget_stays_at_450_for_info_request_secondary():
+    """L1 budget does not flex when secondary_intent is info_request."""
+    from sage_poc.prompts.composer import _compute_l1_budget
+    state = _make_state(
+        primary_intent="general_chat",
+        secondary_intent="info_request",
+        step_instruction=None,
+    )
+    assert _compute_l1_budget(state) == 450
+
+
 from sage_poc.prompts.composer import _build_l2_intent_block
 
 
@@ -454,3 +476,72 @@ def test_compose_prompt_shrinks_l1_on_overflow():
     assert "history" in layers
     total = len(system_str.split()) + len(user_str.split())
     assert total <= _TOTAL_WORD_BUDGET + 100
+
+
+# ---------------------------------------------------------------------------
+# Task 6: Conversation summariser
+# ---------------------------------------------------------------------------
+from unittest.mock import AsyncMock, patch as async_patch
+
+
+@pytest.mark.asyncio
+async def test_summarise_history_calls_llm_and_returns_string():
+    from sage_poc.prompts.summarizer import summarise_history
+    mock_llm = AsyncMock()
+    with async_patch(
+        "sage_poc.prompts.summarizer.resilient_invoke",
+        new=AsyncMock(return_value="The user is an expat struggling with job search."),
+    ):
+        history = [
+            {"role": "user", "content": "I moved to Dubai and can't find a job."},
+            {"role": "assistant", "content": "That sounds exhausting."},
+        ]
+        result = await summarise_history(history, llm=mock_llm)
+    assert isinstance(result, str)
+    assert len(result) > 10
+
+
+@pytest.mark.asyncio
+async def test_summarise_history_passes_full_history_to_llm():
+    from sage_poc.prompts.summarizer import summarise_history
+    captured_messages = []
+
+    async def capture(llm, messages, **kwargs):
+        captured_messages.extend(messages)
+        return "Summary text."
+
+    mock_llm = AsyncMock()
+    with async_patch("sage_poc.prompts.summarizer.resilient_invoke", new=capture):
+        history = [
+            {"role": "user", "content": "Turn 1 user content"},
+            {"role": "assistant", "content": "Turn 1 assistant content"},
+        ]
+        await summarise_history(history, llm=mock_llm)
+
+    user_message_content = captured_messages[1]["content"]
+    assert "Turn 1 user content" in user_message_content
+    assert "Turn 1 assistant content" in user_message_content
+
+
+# Task 6c: _build_l1_history_block summary integration
+
+def test_l1_history_prepends_summary_when_present():
+    """When a conversation_summary exists, it appears before the recent turns."""
+    history = [
+        {"role": "user", "content": "Turn A"},
+        {"role": "assistant", "content": "Turn B"},
+    ]
+    block = _build_l1_history_block(
+        history,
+        conversation_summary="The user is an expat who feels isolated.",
+    )
+    assert block is not None
+    assert "The user is an expat who feels isolated." in block
+    assert "Turn A" in block
+    assert block.index("isolated") < block.index("Turn A")
+
+
+def test_l1_history_no_summary_prefix_when_summary_is_none():
+    history = [{"role": "user", "content": "Hello"}]
+    block = _build_l1_history_block(history, conversation_summary=None)
+    assert "SUMMARY" not in block

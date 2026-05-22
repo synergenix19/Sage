@@ -206,8 +206,9 @@ def _build_l1_history_block(
     conversation_history: list[dict],
     variant: str | None = None,
     word_budget: int | None = None,
+    conversation_summary: str | None = None,
 ) -> str | None:
-    if not conversation_history:
+    if not conversation_history and not conversation_summary:
         return None
     tmpl = get_template("L1_history", variant=variant)
     window_size = tmpl.window_size or 8
@@ -228,10 +229,19 @@ def _build_l1_history_block(
             break
         lines.append(line)
         word_total += words
-    if not lines:
-        return None
     lines.reverse()                       # restore chronological order for prompt
-    history_text = _esc("\n".join(lines))
+
+    if conversation_summary:
+        summary_block = f"SUMMARY (earlier context):\n{_esc(conversation_summary)}"
+        if lines:
+            history_text = summary_block + "\n\nRECENT TURNS:\n" + _esc("\n".join(lines))
+        else:
+            history_text = summary_block
+    else:
+        if not lines:
+            return None
+        history_text = _esc("\n".join(lines))
+
     content = tmpl.content.format(history_lines=history_text)
     _log.debug("L1_history@%s loaded", tmpl.version)
     return content
@@ -320,6 +330,7 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     l1_block = _build_l1_history_block(
         state.get("conversation_history", []),
         word_budget=l1_budget,
+        conversation_summary=state.get("conversation_summary"),
     )
     if l1_block:
         user_parts.append(l1_block)
