@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation'
 import { ResponsivePanel, cn } from '@cdai/ui'
 import { useLocaleStore } from '@/lib/stores/locale-store'
 import { useTextSizeStore, type TextSize } from '@/lib/stores/text-size-store'
-import { createClient } from '@/lib/supabase/client'
+import { signOutUser } from '@/lib/auth-actions'
 
 const TEXT_SIZES: { value: TextSize; label: string; labelAr: string }[] = [
   { value: 'sm', label: 'Small',  labelAr: 'صغير'  },
@@ -24,9 +24,7 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
   }
 
   async function signOut() {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/sign-in')
+    await signOutUser(router.push)
   }
 
   return (
