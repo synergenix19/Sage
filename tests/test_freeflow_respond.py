@@ -110,7 +110,7 @@ def test_compose_prompt_cultural_layer_tracked():
             return cultural_result
         return injection_result
 
-    with patch("sage_poc.nodes.freeflow_respond.rules_engine.evaluate", side_effect=fake_evaluate):
+    with patch("sage_poc.prompts.composer.rules_engine.evaluate", side_effect=fake_evaluate):
         _, _, layers = compose_prompt(_BASE_STATE)
 
     assert "cultural" in layers
@@ -130,7 +130,7 @@ def test_compose_prompt_clinical_adaptation_layer_tracked():
             return cultural_result
         return injection_result
 
-    with patch("sage_poc.nodes.freeflow_respond.rules_engine.evaluate", side_effect=fake_evaluate):
+    with patch("sage_poc.prompts.composer.rules_engine.evaluate", side_effect=fake_evaluate):
         state = {**_BASE_STATE, "clinical_flags": ["substance_use"]}
         _, _, layers = compose_prompt(state)
 
