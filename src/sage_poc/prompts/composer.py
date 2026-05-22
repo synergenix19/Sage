@@ -191,20 +191,22 @@ def _build_l1_history_block(
     window = conversation_history[-window_size:]
     lines: list[str] = []
     word_total = 0
-    for m in window:
+    for m in reversed(window):            # newest → oldest
         content = (
             _sanitize_assistant_turn(m["content"])
             if m["role"] == "assistant"
             else m["content"]
         )
         line = f"{m['role'].upper()}: {content}"
-        word_total += count_words(line)
-        if len(lines) > 0 and word_total > word_budget:
+        words = count_words(line)
+        if lines and word_total + words > word_budget:
             _log.debug("L1 history truncated at word budget %d", word_budget)
             break
         lines.append(line)
+        word_total += words
     if not lines:
         return None
+    lines.reverse()                       # restore chronological order for prompt
     history_text = _esc("\n".join(lines))
     content = tmpl.content.format(history_lines=history_text)
     _log.debug("L1_history@%s loaded", tmpl.version)

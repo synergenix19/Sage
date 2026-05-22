@@ -152,7 +152,7 @@ def test_l1_history_safe_with_curly_braces_in_user_message():
     assert "{6/10}" in block
 
 
-def test_l1_history_always_includes_first_line_even_if_over_budget():
+def test_l1_history_always_includes_newest_turn_even_if_over_budget():
     long_content = " ".join(["word"] * 350)  # 350 words, exceeds budget of 300
     history = [{"role": "user", "content": long_content}]
     block = _build_l1_history_block(history)
@@ -167,6 +167,23 @@ def test_l1_history_respects_word_budget_for_subsequent_lines():
     assert block is not None
     line_count = block.count("USER:")
     assert line_count < 6
+
+
+def test_l1_history_newest_turn_appears_when_budget_tight():
+    """After Fix 1: the most recent message in the window survives truncation."""
+    # 8 messages × ~57 words each ≈ 456 words > 300-word budget
+    # Old iteration: markers 0–4 kept; marker7 (newest) dropped.
+    # New iteration: markers 7–3 kept; marker0 (oldest) may be dropped.
+    history = []
+    for i in range(8):
+        filler = " ".join(["filler"] * 54)
+        history.append({
+            "role": "user" if i % 2 == 0 else "assistant",
+            "content": f"marker{i} {filler}",
+        })
+    block = _build_l1_history_block(history)
+    assert block is not None
+    assert "marker7" in block   # newest must always be present
 
 
 from sage_poc.prompts.composer import _build_l2_intent_block
