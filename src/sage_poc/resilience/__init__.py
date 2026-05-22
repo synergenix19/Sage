@@ -139,11 +139,11 @@ async def _invoke_once(
     response_msg = await asyncio.wait_for(
         llm.ainvoke(messages), timeout=LLM_TIMEOUT_SECONDS
     )
-    label = "fallback" if is_fallback else "primary"
     logger.info(
-        '{"event": "llm_call", "node": "%s", "model": "%s", "status": "success"}',
+        '{"event": "llm_call", "node": "%s", "model": "%s", "is_fallback": %s, "status": "success"}',
         node,
-        label,
+        getattr(llm, "model_name", "unknown"),
+        str(is_fallback).lower(),
     )
     return response_msg.content.strip()
 
@@ -224,8 +224,12 @@ async def resilient_invoke(
             return await _invoke_once(
                 fallback_llm, messages, node, is_fallback=True
             )
-        except Exception:
-            pass
+        except Exception as fb_exc:
+            logger.error(
+                '{"event": "llm_invoke_fallback_failed", "node": "%s", "error_type": "%s"}',
+                node,
+                type(fb_exc).__name__,
+            )
 
     logger.error(
         '{"event": "llm_call_failed", "node": "%s", "retry_count": %d, '
@@ -265,6 +269,8 @@ async def resilient_stream(
             )
             if isinstance(first.content, str) and first.content:
                 yield first.content
+            # POC: no per-chunk timeout after first chunk; mid-stream hangs are
+            # bounded by the caller's outer graph timeout, not this wrapper.
             async for chunk in stream:
                 if isinstance(chunk.content, str) and chunk.content:
                     yield chunk.content
@@ -306,8 +312,12 @@ async def resilient_stream(
                 if isinstance(chunk.content, str) and chunk.content:
                     yield chunk.content
             return
-        except Exception:
-            pass
+        except Exception as fb_exc:
+            logger.error(
+                '{"event": "llm_stream_fallback_failed", "node": "%s", "error_type": "%s"}',
+                node,
+                type(fb_exc).__name__,
+            )
 
     logger.error(
         '{"event": "llm_stream_failed", "node": "%s", "retry_count": %d, '
