@@ -277,4 +277,17 @@ describe('POST /api/chat', () => {
     const sageCall = fetchCalls.find((c) => (c[0] as string).includes('/chat'))
     expect(sageCall).toBeUndefined()
   })
+
+  it('does not write to Supabase when auth fails', async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null })
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'hello' }],
+        sessionId: 'test-session-id',
+      }),
+    })
+    await POST(req)
+    expect(mockInsert).not.toHaveBeenCalled()
+  })
 })

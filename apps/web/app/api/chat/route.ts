@@ -31,7 +31,6 @@ export async function POST(req: Request) {
   // route.ts is a deliberate security boundary:
   //   - SAGE_API_URL is a server-side env var; it never reaches the browser
   //   - Supabase persistence happens here, not in the browser
-  //   - Auth checks (Group 2) will be added here
   // All sage-poc calls originate from this server process — CORS headers on sage-poc
   // are irrelevant to this call path.
   const {
