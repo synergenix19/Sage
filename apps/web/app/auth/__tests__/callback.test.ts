@@ -54,6 +54,7 @@ describe('GET /auth/callback', () => {
     const req = new NextRequest('http://localhost/auth/callback')
     const res = await GET(req)
     expect(res.headers.get('location')).toContain('/sign-in')
+    expect(res.headers.get('location')).toContain('error=callback-failed')
     expect(mockExchangeCode).not.toHaveBeenCalled()
   })
 
