@@ -1,15 +1,17 @@
 // apps/web/app/api/feedback/route.ts
 import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
+
+const FeedbackSchema = z.object({
+  messageId: z.string().uuid(),
+  value: z.union([z.literal(1), z.literal(-1)]),
+})
 
 export async function POST(req: Request) {
-  const { messageId, value } = await req.json() as {
-    messageId: string
-    value: unknown
-  }
+  const parsed = FeedbackSchema.safeParse(await req.json().catch(() => null))
+  if (!parsed.success) return new Response('Bad Request', { status: 400 })
 
-  if (value !== 1 && value !== -1) {
-    return new Response('value must be 1 or -1', { status: 400 })
-  }
+  const { messageId, value } = parsed.data
 
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()

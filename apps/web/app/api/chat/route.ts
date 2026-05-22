@@ -3,6 +3,22 @@ import { generateText } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createClient } from '@/lib/supabase/server'
 import type { Intent } from '@cdai/types'
+import { z } from 'zod'
+
+const MessageSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string().max(8000),
+})
+
+const ChatRequestSchema = z.object({
+  sessionId: z.string().uuid(),
+  messages: z.array(MessageSchema).min(1),
+  crisisState: z.string().default('none'),
+  activeSkillId: z.string().nullable().default(null),
+  activeStepId: z.string().nullable().default(null),
+  clinicalFlags: z.array(z.string()).default([]),
+  distressTrajectory: z.array(z.number()).default([]),
+})
 
 const openrouter = createOpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
@@ -28,32 +44,24 @@ function parseJsonHeader<T>(raw: string | null, fallback: T): T {
 }
 
 export async function POST(req: Request) {
-  // route.ts is a deliberate security boundary:
-  //   - SAGE_API_URL is a server-side env var; it never reaches the browser
-  //   - Supabase persistence happens here, not in the browser
-  // All sage-poc calls originate from this server process — CORS headers on sage-poc
-  // are irrelevant to this call path.
+  const parsed = ChatRequestSchema.safeParse(await req.json().catch(() => null))
+  if (!parsed.success) return new Response('Bad Request', { status: 400 })
+
   const {
     messages,
     sessionId,
-    crisisState        = 'none',
-    activeSkillId      = null,
-    activeStepId       = null,
-    clinicalFlags      = [],
-    distressTrajectory = [],
-  } = await req.json() as {
-    messages:            { role: string; content: string }[]
-    sessionId:           string
-    crisisState?:        string
-    activeSkillId?:      string | null
-    activeStepId?:       string | null
-    clinicalFlags?:      string[]
-    distressTrajectory?: number[]
-  }
+    crisisState,
+    activeSkillId,
+    activeStepId,
+    clinicalFlags,
+    distressTrajectory,
+  } = parsed.data
 
-  if (!sessionId || !messages?.length) {
-    return new Response('Bad Request', { status: 400 })
-  }
+  // crisisState, clinicalFlags, and distressTrajectory are ferry values: the sage-poc
+  // backend emits them as X-Sage-* headers and the client forwards them back each turn
+  // to preserve conversational state continuity. The backend (Node 1, safety_check) is
+  // the authoritative source for crisis detection — these fields must be treated as hints
+  // only, never as inputs to safety decisions.
 
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()

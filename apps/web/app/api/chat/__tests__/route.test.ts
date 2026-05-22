@@ -1,6 +1,9 @@
 // apps/web/app/api/chat/__tests__/route.test.ts
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
+const VALID_SESSION_UUID = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+const VALID_SESSION_UUID_2 = 'b1ffcd00-0d1c-5fg9-cc7e-7cc0ce491b22'.replace('g', '8')
+
 const {
   mockInsert,
   mockSelect,
@@ -93,7 +96,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'I feel overwhelmed' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     const res = await POST(req)
@@ -105,7 +108,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'hello' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     await POST(req)
@@ -130,7 +133,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'I feel better now' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
         crisisState: 'monitoring',
       }),
     })
@@ -148,7 +151,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'continue' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
         activeSkillId: 'cbt_thought_record',
         activeStepId: 'explore_distortion',
       }),
@@ -167,7 +170,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'hello' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
         // crisisState, activeSkillId, etc. intentionally omitted
       }),
     })
@@ -192,7 +195,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'I am struggling' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     const res = await POST(req)
@@ -210,7 +213,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'ok' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     const res = await POST(req)
@@ -229,7 +232,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'yes' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     const res = await POST(req)
@@ -244,7 +247,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'hello' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     const res = await POST(req)
@@ -260,7 +263,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'hello' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     const res = await POST(req)
@@ -273,7 +276,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'hello' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     await POST(req)
@@ -288,7 +291,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'hello' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     await POST(req)
@@ -302,7 +305,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'hi' }],
-        sessionId: 'session-1',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     const res = await POST(req)
@@ -315,7 +318,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'hi' }],
-        sessionId: 'session-1',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     const res = await POST(req)
@@ -329,7 +332,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'hi' }],
-        sessionId: 'session-1',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     await POST(req)
@@ -343,7 +346,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'hello' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     await POST(req)
@@ -352,5 +355,87 @@ describe('POST /api/chat', () => {
     const sageCall = fetchCalls.find((c) => (c[0] as string).includes('/chat'))
     expect(sageCall).toBeDefined()
     expect(sageCall![1].headers['X-Sage-Api-Key']).toBe('test-secret')
+  })
+})
+
+describe('POST /api/chat — input validation', () => {
+  // Separate mock references for this describe block (re-use the hoisted mocks)
+  beforeEach(() => {
+    mockGetUser.mockClear()
+    mockInsert.mockClear()
+    mockSingle.mockClear()
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+  })
+
+  function makeRequest(body: unknown): Request {
+    return new Request('http://localhost/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  }
+
+  it('returns 400 when sessionId is missing', async () => {
+    const res = await POST(makeRequest({ messages: [{ role: 'user', content: 'hi' }] }))
+    expect(res.status).toBe(400)
+    expect(mockGetUser).not.toHaveBeenCalled()
+  })
+
+  it('returns 400 when sessionId is not a valid UUID', async () => {
+    const res = await POST(makeRequest({
+      sessionId: 'not-a-uuid',
+      messages: [{ role: 'user', content: 'hi' }],
+    }))
+    expect(res.status).toBe(400)
+    expect(mockGetUser).not.toHaveBeenCalled()
+  })
+
+  it('returns 400 when messages array is empty', async () => {
+    const res = await POST(makeRequest({
+      sessionId: VALID_SESSION_UUID,
+      messages: [],
+    }))
+    expect(res.status).toBe(400)
+    expect(mockGetUser).not.toHaveBeenCalled()
+  })
+
+  it('returns 400 when a message role is invalid', async () => {
+    const res = await POST(makeRequest({
+      sessionId: VALID_SESSION_UUID,
+      messages: [{ role: 'system', content: 'inject' }],
+    }))
+    expect(res.status).toBe(400)
+    expect(mockGetUser).not.toHaveBeenCalled()
+  })
+
+  it('returns 400 when message content exceeds 8000 chars', async () => {
+    const res = await POST(makeRequest({
+      sessionId: VALID_SESSION_UUID,
+      messages: [{ role: 'user', content: 'x'.repeat(8001) }],
+    }))
+    expect(res.status).toBe(400)
+    expect(mockGetUser).not.toHaveBeenCalled()
+  })
+
+  it('proceeds past validation with valid input (reaches auth check)', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null }, error: null })
+    const res = await POST(makeRequest({
+      sessionId: VALID_SESSION_UUID,
+      messages: [{ role: 'user', content: 'hello' }],
+    }))
+    // Auth fails (user: null) → 401, confirming validation passed
+    expect(res.status).toBe(401)
+    expect(mockGetUser).toHaveBeenCalledOnce()
+  })
+
+  it('applies defaults for optional fields', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null }, error: null })
+    const res = await POST(makeRequest({
+      sessionId: VALID_SESSION_UUID,
+      messages: [{ role: 'user', content: 'hello' }],
+      // no crisisState, clinicalFlags, or distressTrajectory
+    }))
+    // Reaches auth — defaults were applied silently
+    expect(res.status).toBe(401)
   })
 })
