@@ -26,7 +26,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --workspace=apps/web --include-workspace-root
 
       - name: Run ferry tests
         run: npx vitest run app/api/chat/__tests__/route.test.ts
