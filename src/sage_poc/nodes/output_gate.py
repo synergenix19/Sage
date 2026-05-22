@@ -88,6 +88,7 @@ async def output_gate_node(state: SageState) -> dict:
             "s7_result": state.get("s7_result"),
             "s7_method": state.get("s7_method"),
             "clinical_flags": state.get("clinical_flags", []),
+            "third_party_crisis": state.get("third_party_crisis", False),
             "escalation": state.get("escalation_triggered"),
         }
         print(f"\n[AUDIT] {json.dumps(audit, indent=2)}")

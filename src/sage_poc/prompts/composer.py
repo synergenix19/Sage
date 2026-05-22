@@ -347,6 +347,17 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
         user_parts.append(l5_block)
         layers.append("user_context")
 
+    # Third-party crisis: user is worried about someone else, not disclosing their own crisis.
+    # Provide guidance on supporting the friend; do not apply crisis protocol to the user.
+    if state.get("third_party_crisis"):
+        user_parts.append(
+            "THIRD-PARTY CONCERN: The user is concerned about someone else's safety, not their own. "
+            "Provide compassionate guidance on how they can support that person. "
+            "Suggest crisis resources they can share with them. "
+            "Do not treat the current user as being in crisis."
+        )
+        layers.append("third_party_crisis")
+
     # Post-crisis context injection (text preserved from original)
     if state.get("crisis_state") == "monitoring":
         s7 = state.get("s7_result") or "UNCLEAR"

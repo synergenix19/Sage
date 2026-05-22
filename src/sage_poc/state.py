@@ -14,6 +14,7 @@ class SageState(TypedDict):
     is_safe: bool
     crisis_flags: list[str]
     clinical_flags: list[str]   # substance_use, trauma_indicator, eating_concern, medication_mention
+    third_party_crisis: bool    # user is concerned about someone else's safety, not their own
 
     crisis_state: str              # "none" | "active" | "monitoring" | "resolved"
     s7_result: Optional[str]       # "RECOVERING" | "STILL_DISTRESSED" | "UNCLEAR" | "NEW_CRISIS"

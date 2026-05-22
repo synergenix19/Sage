@@ -93,11 +93,13 @@ def safety_check_node(state: SageState) -> dict:
     skill_active = bool(state.get("active_skill_id"))
     engagement_ok = state.get("engagement", 5) >= 5
 
-    # Carry forward clinical flags from prior turns (set union — flags don't reset)
+    # Carry forward clinical flags from prior turns (set union — flags don't reset).
+    # third_party_flags are intentionally excluded: they signal concern about someone else,
+    # not the current user's own clinical state. They flow through third_party_crisis instead.
     persisted = state.get("clinical_flags", [])
     distress_signal = escalating or engagement_declining
     extra = ["escalating_distress"] if distress_signal and not (skill_active and engagement_ok) else []
-    all_clinical = list(set(new_clinical_flags + third_party_flags + extra + persisted))
+    all_clinical = list(set(new_clinical_flags + extra + persisted))
 
     crisis_state = state.get("crisis_state", "none")
     s7_result: str | None = None
@@ -109,8 +111,9 @@ def safety_check_node(state: SageState) -> dict:
     return {
         "detected_language": lang,
         "message_en": message_en,
-        "is_safe": len(new_crisis_flags) == 0,   # third_party_crisis does NOT set is_safe=False
+        "is_safe": len(new_crisis_flags) == 0,
         "crisis_flags": new_crisis_flags,
+        "third_party_crisis": bool(third_party_flags),
         "clinical_flags": all_clinical,
         "distress_trajectory": trajectory,
         "engagement_trajectory": engagement_trajectory,

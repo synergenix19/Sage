@@ -255,7 +255,8 @@ def test_third_party_crisis_is_safe_does_not_block_session():
     ):
         result = safety_check_node(state)
     assert result["is_safe"] is True, "Third-party report must not block the session"
-    assert "third_party_si" in result["clinical_flags"], "third_party_si flag must be set"
+    assert result.get("third_party_crisis") is True, "third_party_crisis flag must be set in state"
+    assert "third_party_si" not in result.get("clinical_flags", []), "third_party_si must not enter clinical_flags"
 
 
 def test_third_party_overrides_direct_crisis_flag():
@@ -267,14 +268,16 @@ def test_third_party_overrides_direct_crisis_flag():
     ):
         result = safety_check_node(state)
     assert result["is_safe"] is True
-    assert "third_party_si" in result["clinical_flags"]
+    assert result.get("third_party_crisis") is True
     assert result["crisis_flags"] == []
 
 
 def test_third_party_guidance_injected_into_prompt():
-    state = _freeflow_state(clinical_flags=["third_party_si"])
-    system_str, _, _ = compose_prompt(state)
-    assert "friend" in system_str.lower() or "third" in system_str.lower() or "support" in system_str.lower()
+    """third_party_crisis=True in state triggers a THIRD-PARTY CONCERN block in the user prompt."""
+    state = _freeflow_state(third_party_crisis=True)
+    _, user_str, layers = compose_prompt(state)
+    assert "third_party_crisis" in layers
+    assert "THIRD-PARTY CONCERN" in user_str
 
 
 def test_state_schema_includes_crisis_fields():
