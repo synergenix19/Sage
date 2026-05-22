@@ -19,7 +19,7 @@ export function CrisisCard({ content }: { content: string }) {
       <p className="mb-2 text-sm font-medium text-[var(--color-crisis)]">
         {isAr ? 'لست وحدك — الدعم متاح' : "You're not alone — support is available"}
       </p>
-      <p className="mb-3 text-sm text-[var(--color-text-primary)]">{content}</p>
+      <p className="mb-3 text-sm text-[var(--color-text-primary)]" dir="auto">{content}</p>
       <div className="flex flex-col gap-2">
         <a
           href={UAE_COUNSELLING_HREF}

@@ -1,7 +1,8 @@
 'use client'
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { cn } from '@cdai/ui'
 import { tenant } from '@cdai/tenant'
 import { LanguageToggle } from '@/components/auth/language-toggle'
@@ -9,6 +10,65 @@ import { ALL_TABS } from '@/components/tab-bar'
 import { useLocaleStore } from '@/lib/stores/locale-store'
 import { createClient } from '@/lib/supabase/client'
 import { signOutUser } from '@/lib/auth-actions'
+import { useChatSessions } from '@/lib/hooks/use-chat-sessions'
+import { formatRelativeTime } from '@/lib/format-relative-time'
+
+function SessionList() {
+  const searchParams = useSearchParams()
+  const activeId = searchParams.get('session')
+  const locale = useLocaleStore((s) => s.locale)
+  const { sessions, loading, error, refresh } = useChatSessions()
+
+  if (loading) {
+    return (
+      <div className="flex-1 px-3 py-2">
+        <p className="text-xs text-[var(--color-text-secondary)]">
+          {locale === 'ar' ? 'جارٍ التحميل...' : 'Loading...'}
+        </p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 px-3 py-2 flex flex-col gap-1">
+        <p className="text-xs text-[var(--color-text-secondary)]">
+          {locale === 'ar' ? 'تعذر التحميل' : "Couldn't load history"} —{' '}
+          <button onClick={refresh} className="underline text-xs">
+            {locale === 'ar' ? 'إعادة المحاولة' : 'Retry'}
+          </button>
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <ul className="flex-1 overflow-y-auto px-3 py-1 flex flex-col gap-0.5">
+      {sessions.map((s) => (
+        <li key={s.id}>
+          <Link
+            href={`/chat?session=${s.id}`}
+            aria-current={s.id === activeId ? 'page' : undefined}
+            className={cn(
+              'flex min-h-[44px] items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring-color)]',
+              s.id === activeId
+                ? 'bg-[var(--color-surface-tinted)]'
+                : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-tinted)]'
+            )}
+          >
+            <span className="flex-1 truncate text-[var(--color-text-primary)]">
+              {s.title ?? (locale === 'ar' ? 'محادثة بلا عنوان' : 'Untitled conversation')}
+            </span>
+            <span className="text-xs text-[var(--color-text-secondary)] text-end shrink-0">
+              {formatRelativeTime(s.updated_at)}
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  )
+}
 
 export function AppSideNav() {
   const pathname = usePathname()
@@ -47,6 +107,10 @@ export function AppSideNav() {
     }
   }
 
+  function handleNewChat() {
+    router.push(`/chat?new=${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
+  }
+
   const confirmText =
     locale === 'ar'
       ? 'تسجيل الخروج من Sage؟ سيتم حفظ تاريخ محادثاتك.'
@@ -61,8 +125,29 @@ export function AppSideNav() {
         </span>
       </div>
 
-      {/* Nav links */}
-      <nav className="flex flex-col gap-1 px-3">
+      {/* New conversation button */}
+      <div className="px-3 pb-2">
+        <button
+          onClick={handleNewChat}
+          aria-label={locale === 'ar' ? 'محادثة جديدة' : 'New conversation'}
+          className={cn(
+            'flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl',
+            'bg-[var(--color-primary)] text-white text-sm font-medium',
+            'hover:bg-[var(--color-primary-dark)] transition-colors',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring-color)]'
+          )}
+        >
+          {locale === 'ar' ? '+ محادثة جديدة' : '+ New conversation'}
+        </button>
+      </div>
+
+      {/* Conversation list — flex-1 zone with Suspense for useSearchParams */}
+      <Suspense fallback={<div className="flex-1" />}>
+        <SessionList />
+      </Suspense>
+
+      {/* Nav links — bottom section */}
+      <nav className="flex flex-col gap-1 px-3 border-t border-[var(--color-border)] pt-2 pb-1">
         {ALL_TABS.map((tab) => {
           const active = pathname.startsWith(tab.href)
           const label = locale === 'ar' ? tab.labelAr : tab.label
@@ -84,9 +169,6 @@ export function AppSideNav() {
         })}
       </nav>
 
-      {/* Spacer */}
-      <div className="flex-1" />
-
       {/* Footer */}
       <div className="border-t border-[var(--color-border)] p-3 flex flex-col gap-3">
         <LanguageToggle />
@@ -94,7 +176,6 @@ export function AppSideNav() {
         <div className="border-t border-[var(--color-border)] pt-3">
           {!showConfirm ? (
             <div className="flex items-center gap-2 min-h-[44px] px-1">
-              {/* Avatar */}
               <div
                 aria-hidden="true"
                 className="h-7 w-7 rounded-full bg-[var(--color-primary-dark)] flex items-center justify-center flex-shrink-0"
@@ -103,11 +184,9 @@ export function AppSideNav() {
                   {email ? email.charAt(0).toUpperCase() : '·'}
                 </span>
               </div>
-              {/* Email */}
               <span className="flex-1 truncate text-xs text-[var(--color-text-secondary)]">
                 {email ?? ''}
               </span>
-              {/* Sign out trigger */}
               <button
                 onClick={() => setShowConfirm(true)}
                 aria-label={locale === 'ar' ? 'تسجيل الخروج' : 'Sign out'}
@@ -117,7 +196,6 @@ export function AppSideNav() {
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring-color)]'
                 )}
               >
-                {/* Log-out arrow icon */}
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                   <path
                     d="M6 14H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h3M11 11l3-3-3-3M14 8H6"

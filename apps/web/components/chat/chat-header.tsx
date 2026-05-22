@@ -1,14 +1,22 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import type { ChatSession } from '@cdai/types'
 import { tenant } from '@cdai/tenant'
 import { HistoryPanel } from './history-panel'
 import { SettingsPanel } from './settings-panel'
 import { LanguageToggle } from '@/components/auth/language-toggle'
+import { useLocaleStore } from '@/lib/stores/locale-store'
 
 export function ChatHeader({ session }: { session: ChatSession | null }) {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const router = useRouter()
+  const locale = useLocaleStore((s) => s.locale)
+
+  function handleNewChat() {
+    router.push(`/chat?new=${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
+  }
 
   return (
     <>
@@ -21,10 +29,27 @@ export function ChatHeader({ session }: { session: ChatSession | null }) {
           </span>
         </div>
         <div className="flex items-center gap-1">
+          {/* Compose icon — mobile only, left of clock per spec */}
+          <button
+            onClick={handleNewChat}
+            className="md:hidden flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full hover:bg-[var(--color-surface-tinted)]"
+            aria-label={locale === 'ar' ? 'محادثة جديدة' : 'New conversation'}
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <path
+                d="M13 2.5a1.414 1.414 0 0 1 2 2L5.5 14.5 2 15.5l1-3.5L13 2.5Z"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+          {/* Clock icon — mobile only, desktop has sidebar history list */}
           <button
             onClick={() => setHistoryOpen(true)}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full hover:bg-[var(--color-surface-tinted)]"
-            aria-label="History"
+            className="md:hidden flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full hover:bg-[var(--color-surface-tinted)]"
+            aria-label={locale === 'ar' ? 'السجل' : 'History'}
           >
             🕐
           </button>
@@ -32,7 +57,7 @@ export function ChatHeader({ session }: { session: ChatSession | null }) {
           <button
             onClick={() => setSettingsOpen(true)}
             className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full hover:bg-[var(--color-surface-tinted)]"
-            aria-label="Settings"
+            aria-label={locale === 'ar' ? 'الإعدادات' : 'Settings'}
           >
             ⚙
           </button>

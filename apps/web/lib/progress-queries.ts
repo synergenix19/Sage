@@ -39,10 +39,13 @@ const CLINICAL_FLAG_COPY: Record<string, string> = {
 }
 
 export async function fetchEngagement(client: SupabaseClient, userId: string): Promise<EngagementStats> {
+  const cutoff = TWENTY_ONE_DAYS_AGO()
+
   const { data: sessions } = await client
     .from('chat_sessions')
     .select('id')
     .eq('user_id', userId)
+    .gte('created_at', cutoff)
 
   const sessionIds = (sessions ?? []).map(s => s.id as string)
   if (sessionIds.length === 0) return { sessionCount: 0, skillsUsedCount: 0 }
@@ -51,6 +54,7 @@ export async function fetchEngagement(client: SupabaseClient, userId: string): P
     .from('messages')
     .select('skill_id')
     .in('session_id', sessionIds)
+    .gte('created_at', cutoff)
     .not('skill_id', 'is', null)
 
   const distinctSkills = new Set((skillMsgs ?? []).map(m => m.skill_id as string))

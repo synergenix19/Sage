@@ -85,8 +85,9 @@ function groupByDay<T extends { created_at: string }>(
 }
 
 export async function fetchOverviewMetrics(admin: SupabaseClient): Promise<OverviewMetrics> {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  // UAE is UTC+4: shift by -4h so midnight UAE time = 20:00 previous UTC day
+  const uaeMidnight = new Date(Date.now() - 4 * 60 * 60 * 1000)
+  const todayUtc = uaeMidnight.toISOString().slice(0, 10) + 'T00:00:00.000Z'
 
   const [usersRes, crisisRes, aiMsgsRes] = await Promise.all([
     admin.from('user_profiles').select('id'),
@@ -106,7 +107,7 @@ export async function fetchOverviewMetrics(admin: SupabaseClient): Promise<Overv
   const { data: todayMsgs } = await admin
     .from('messages')
     .select('session_id')
-    .gte('created_at', today.toISOString())
+    .gte('created_at', todayUtc)
   const activeSessions = new Set((todayMsgs ?? []).map(m => m.session_id as string))
 
   let activeToday = 0
@@ -126,14 +127,14 @@ export async function fetchSystemPerformance(admin: SupabaseClient): Promise<Sys
     .from('messages')
     .select('created_at, latency_ms, intent_classification')
     .eq('role', 'ai')
-    .gte('created_at', FOURTEEN_DAYS_AGO())
+    .gte('created_at', SEVEN_DAYS_AGO())
 
   const latencyRows = (rows ?? []).filter(r => r.latency_ms != null)
 
   const latencyByDay = groupByDay(latencyRows as { created_at: string; latency_ms: number }[], (group) => {
     const sorted = group.map(r => r.latency_ms).sort((a, b) => a - b)
     const avgMs = Math.round(sorted.reduce((s, v) => s + v, 0) / sorted.length)
-    const p95Ms = sorted[Math.floor(sorted.length * 0.95)] ?? sorted[sorted.length - 1] ?? 0
+    const p95Ms = sorted[Math.ceil(sorted.length * 0.95) - 1] ?? sorted[sorted.length - 1] ?? 0
     return { avgMs, p95Ms, turnCount: group.length }
   })
 
@@ -214,7 +215,8 @@ export async function fetchConversationIntelligence(admin: SupabaseClient): Prom
   const allRows = rows ?? []
   const total = allRows.length
 
-  const withSemantic = allRows.filter(r => r.semantic_score != null).length
+  // 0.5258 mirrors SEMANTIC_THRESHOLD in sage-poc/nodes/skill_select.py
+  const withSemantic = allRows.filter(r => (r.semantic_score as number | null) != null && (r.semantic_score as number) >= 0.5258).length
   const semanticMatchRate = total > 0 ? Math.round((withSemantic / total) * 100) / 100 : null
 
   const skillCounts: Record<string, number> = {}
@@ -230,7 +232,7 @@ export async function fetchConversationIntelligence(admin: SupabaseClient): Prom
 
   const usageRows = allRows
     .map(r => r.token_usage as { input?: number; output?: number } | null)
-    .filter((u): u is { input: number; output: number } => u !== null && typeof u?.input === 'number')
+    .filter((u): u is { input: number; output: number } => u !== null && typeof u?.input === 'number' && typeof u?.output === 'number')
   const avgTokenUsageInput = usageRows.length
     ? Math.round(usageRows.reduce((s, u) => s + u.input, 0) / usageRows.length)
     : null
