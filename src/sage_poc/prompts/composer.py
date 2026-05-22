@@ -90,6 +90,9 @@ _INTENSITY_GUIDANCE: dict[str, str] = {
     "high": "The user is significantly distressed. Prioritise validation. Hold space before offering any guidance.",
 }
 
+_L1_BASE_BUDGET = 450
+_L1_FLEX_BUDGET = 600
+
 
 def _intensity_guidance(intensity: int) -> str:
     if intensity <= 3:
@@ -97,6 +100,26 @@ def _intensity_guidance(intensity: int) -> str:
     if intensity <= 6:
         return _INTENSITY_GUIDANCE["mid"]
     return _INTENSITY_GUIDANCE["high"]
+
+
+def _compute_l1_budget(state: SageState) -> int:
+    """Return the L1 word budget for this turn.
+
+    On freeflow turns (no skill step, no knowledge lookup), L3 and L4 layers
+    are absent. Their unused budget headroom is loaned to L1 so that rich
+    multi-turn disclosures don't get truncated.
+
+    POC note: `primary_intent == "info_request"` is a conservative proxy for
+    "knowledge will be retrieved." In production, this should check whether
+    skill_select routed to knowledge_retrieve rather than relying on intent
+    classification alone. The proxy is safe (it keeps L1 at 450 when knowledge
+    might be present), but may under-flex on edge cases where info_request
+    intent is classified but no snippet is found.
+    """
+    has_skill = bool(state.get("step_instruction"))
+    has_knowledge = state.get("primary_intent") == "info_request" or \
+                    state.get("secondary_intent") == "info_request"
+    return _L1_BASE_BUDGET if (has_skill or has_knowledge) else _L1_FLEX_BUDGET
 
 
 def _build_l2_intent_block(
@@ -182,12 +205,13 @@ def _build_l0_system_block(variant: str | None = None) -> str:
 def _build_l1_history_block(
     conversation_history: list[dict],
     variant: str | None = None,
+    word_budget: int | None = None,
 ) -> str | None:
     if not conversation_history:
         return None
     tmpl = get_template("L1_history", variant=variant)
     window_size = tmpl.window_size or 8
-    word_budget = tmpl.word_budget or 300
+    effective_budget = word_budget if word_budget is not None else (tmpl.word_budget or _L1_BASE_BUDGET)
     window = conversation_history[-window_size:]
     lines: list[str] = []
     word_total = 0
@@ -199,8 +223,8 @@ def _build_l1_history_block(
         )
         line = f"{m['role'].upper()}: {content}"
         words = count_words(line)
-        if lines and word_total + words > word_budget:
-            _log.debug("L1 history truncated at word budget %d", word_budget)
+        if lines and word_total + words > effective_budget:
+            _log.debug("L1 history truncated at word budget %d", effective_budget)
             break
         lines.append(line)
         word_total += words
@@ -292,7 +316,11 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     user_parts: list[str] = []
 
     # L1: Conversation history
-    l1_block = _build_l1_history_block(state.get("conversation_history", []))
+    l1_budget = _compute_l1_budget(state)
+    l1_block = _build_l1_history_block(
+        state.get("conversation_history", []),
+        word_budget=l1_budget,
+    )
     if l1_block:
         user_parts.append(l1_block)
         layers.append("history")
@@ -371,7 +399,10 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
         history = state.get("conversation_history", [])
         l1_tmpl = get_template("L1_history")
         half_window = max(1, (l1_tmpl.window_size or 8) // 2)
-        shrunk = _build_l1_history_block(history[-half_window:]) or ""
+        shrunk = _build_l1_history_block(
+            history[-half_window:],
+            word_budget=300,    # conservative for overflow case
+        ) or ""
         user_parts[0] = shrunk  # history is always index 0 when present (appended first)
         _log.warning("Token budget overflow: L1 history shrunk to %d turns", half_window)
 

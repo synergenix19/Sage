@@ -7,7 +7,7 @@
   "layer": "L1",
   "role": "user",
   "always_include": false,
-  "word_budget": 300,
+  "word_budget": 450,
   "content": "CONVERSATION HISTORY:\n{history_lines}",
   "variables": ["history_lines"],
   "window_size": 8,

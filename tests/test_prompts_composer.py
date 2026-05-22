@@ -161,12 +161,12 @@ def test_l1_history_always_includes_newest_turn_even_if_over_budget():
 
 
 def test_l1_history_respects_word_budget_for_subsequent_lines():
-    long_content = " ".join(["word"] * 60)  # ~60 words per message
+    long_content = " ".join(["word"] * 90)  # ~90 words × 6 entries = ~540 words > 450 budget
     history = [{"role": "user", "content": long_content} for _ in range(6)]
     block = _build_l1_history_block(history)
     assert block is not None
     line_count = block.count("USER:")
-    assert line_count < 6
+    assert line_count < 6   # some truncation must still occur at base 450-word budget
 
 
 def test_l1_history_newest_turn_appears_when_budget_tight():
@@ -184,6 +184,35 @@ def test_l1_history_newest_turn_appears_when_budget_tight():
     block = _build_l1_history_block(history)
     assert block is not None
     assert "marker7" in block   # newest must always be present
+
+
+def test_l1_history_base_budget_is_450():
+    """Verify the template's base word_budget is 450 after the increase."""
+    from sage_poc.prompts.loader import get_template
+    tmpl = get_template("L1_history")
+    assert tmpl.word_budget == 450
+
+
+def test_compose_prompt_l1_budget_flexes_to_600_on_freeflow_turns():
+    """L1 gets 600-word flex budget when no skill and no info_request intent."""
+    from sage_poc.prompts.composer import _compute_l1_budget
+    freeflow_state = _make_state(
+        primary_intent="general_chat",
+        secondary_intent=None,
+        step_instruction=None,
+    )
+    assert _compute_l1_budget(freeflow_state) == 600
+
+
+def test_compose_prompt_l1_budget_stays_at_450_when_skill_active():
+    """L1 budget does not flex when a skill step is in progress."""
+    from sage_poc.prompts.composer import _compute_l1_budget
+    skill_state = _make_state(
+        primary_intent="skill_continuation",
+        secondary_intent=None,
+        step_instruction="Invite the user to identify their thought.",
+    )
+    assert _compute_l1_budget(skill_state) == 450
 
 
 from sage_poc.prompts.composer import _build_l2_intent_block
