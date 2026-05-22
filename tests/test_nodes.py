@@ -154,7 +154,7 @@ def test_english_only_message_not_classified_as_arabic():
         "English message must not be passed through translation"
 
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 from sage_poc.nodes.intent_route import intent_route_node, build_intent_prompt
 
 def test_intent_prompt_contains_message():
@@ -163,50 +163,56 @@ def test_intent_prompt_contains_message():
     assert "everything is my fault" in prompt
     assert "active_skill_id" in prompt.lower() or "no active skill" in prompt.lower()
 
-def test_intent_route_with_mocked_llm():
+@pytest.mark.asyncio
+async def test_intent_route_with_mocked_llm():
     state = make_state(
         message_en="I keep thinking I'm a failure",
         active_skill_id=None,
         conversation_history=[],
     )
-    mock_llm = MagicMock()
-    mock_llm.invoke.return_value = MagicMock(
-        content='{"primary_intent": "new_skill", "emotional_intensity": 7, "engagement": 6, "intent_confidence": 0.9}'
-    )
-    result = intent_route_node(state, llm=mock_llm)
+    with patch(
+        "sage_poc.nodes.intent_route.resilient_invoke",
+        new_callable=AsyncMock,
+        return_value='{"primary_intent": "new_skill", "emotional_intensity": 7, "engagement": 6, "intent_confidence": 0.9}',
+    ):
+        result = await intent_route_node(state)
     assert result["primary_intent"] == "new_skill"
     assert result["emotional_intensity"] == 7
     assert result["engagement"] == 6
     assert result["intent_confidence"] == 0.9
     assert "intent_route" in result["path"]
 
-def test_intent_route_skill_continuation():
+@pytest.mark.asyncio
+async def test_intent_route_skill_continuation():
     state = make_state(
         message_en="Hmm, I think maybe it was partly my fault but not entirely",
         active_skill_id="cbt_thought_record",
         active_step_id="identify_thought",
         conversation_history=[{"role": "assistant", "content": "What thought is going through your mind?"}],
     )
-    mock_llm = MagicMock()
-    mock_llm.invoke.return_value = MagicMock(
-        content='{"primary_intent": "skill_continuation", "emotional_intensity": 5, "engagement": 7, "intent_confidence": 0.85}'
-    )
-    result = intent_route_node(state, llm=mock_llm)
+    with patch(
+        "sage_poc.nodes.intent_route.resilient_invoke",
+        new_callable=AsyncMock,
+        return_value='{"primary_intent": "skill_continuation", "emotional_intensity": 5, "engagement": 7, "intent_confidence": 0.85}',
+    ):
+        result = await intent_route_node(state)
     assert result["primary_intent"] == "skill_continuation"
     assert result["engagement"] == 7
 
-def test_intent_route_classifies_exit_skill():
+@pytest.mark.asyncio
+async def test_intent_route_classifies_exit_skill():
     state = make_state(
         message_en="I don't want to do this anymore, can we stop?",
         active_skill_id="cbt_thought_record",
         active_step_id="explore_distortion",
         conversation_history=[],
     )
-    mock_llm = MagicMock()
-    mock_llm.invoke.return_value = MagicMock(
-        content='{"primary_intent": "exit_skill", "emotional_intensity": 4, "engagement": 3, "intent_confidence": 0.88}'
-    )
-    result = intent_route_node(state, llm=mock_llm)
+    with patch(
+        "sage_poc.nodes.intent_route.resilient_invoke",
+        new_callable=AsyncMock,
+        return_value='{"primary_intent": "exit_skill", "emotional_intensity": 4, "engagement": 3, "intent_confidence": 0.88}',
+    ):
+        result = await intent_route_node(state)
     assert result["primary_intent"] == "exit_skill"
 
 
@@ -659,25 +665,30 @@ async def test_freeflow_respond_with_mocked_llm():
 # Task 12: output_gate node
 from sage_poc.nodes.output_gate import output_gate_node
 
-def test_output_gate_english_passthrough():
+@pytest.mark.asyncio
+async def test_output_gate_english_passthrough():
     state = make_state(
         detected_language="en",
         response_en="That sounds really difficult. What thought is coming up for you?",
         path=["safety_check", "intent_route", "skill_select", "skill_executor", "freeflow_respond"],
     )
-    result = output_gate_node(state)
+    result = await output_gate_node(state)
     assert result["response"] == "That sounds really difficult. What thought is coming up for you?"
     assert "output_gate" in result["path"]
 
-def test_output_gate_arabic_response_is_translated():
+@pytest.mark.asyncio
+async def test_output_gate_arabic_response_is_translated():
     state = make_state(
         detected_language="ar",
         response_en="I hear you. That sounds incredibly hard.",
         path=["safety_check", "intent_route"],
     )
-    with patch("sage_poc.nodes.output_gate.translate_to_arabic") as mock_translate:
-        mock_translate.return_value = "أسمعك. يبدو هذا صعباً للغاية."
-        result = output_gate_node(state)
+    with patch(
+        "sage_poc.nodes.output_gate.async_translate_to_arabic",
+        new_callable=AsyncMock,
+        return_value="أسمعك. يبدو هذا صعباً للغاية.",
+    ) as mock_translate:
+        result = await output_gate_node(state)
     assert result["response"] == "أسمعك. يبدو هذا صعباً للغاية."
     mock_translate.assert_called_once_with("I hear you. That sounds incredibly hard.")
 
@@ -756,66 +767,78 @@ def test_l1_still_fires_on_explicit_stop_request():
 
 
 # P1-7: JSONDecodeError in intent_route
-def test_intent_route_malformed_json_returns_defaults():
+@pytest.mark.asyncio
+async def test_intent_route_malformed_json_returns_defaults():
     """Malformed LLM JSON must not crash intent_route — defaults applied."""
     state = make_state(
         message_en="I keep thinking I'm a failure",
         active_skill_id=None,
         conversation_history=[],
     )
-    mock_llm = MagicMock()
-    mock_llm.invoke.return_value = MagicMock(content='{invalid: json, missing quotes}')
-    result = intent_route_node(state, llm=mock_llm)
+    with patch(
+        "sage_poc.nodes.intent_route.resilient_invoke",
+        new_callable=AsyncMock,
+        return_value='{invalid: json, missing quotes}',
+    ):
+        result = await intent_route_node(state)
     assert result["primary_intent"] == "general_chat"
     assert result["emotional_intensity"] == 5
     assert result["engagement"] == 5
     assert result["intent_confidence"] == 0.5
 
 
-def test_intent_route_no_json_in_response_returns_defaults():
+@pytest.mark.asyncio
+async def test_intent_route_no_json_in_response_returns_defaults():
     """LLM response with no JSON at all must not crash — defaults applied."""
     state = make_state(
         message_en="Hello there",
         active_skill_id=None,
         conversation_history=[],
     )
-    mock_llm = MagicMock()
-    mock_llm.invoke.return_value = MagicMock(content="I cannot classify this message.")
-    result = intent_route_node(state, llm=mock_llm)
+    with patch(
+        "sage_poc.nodes.intent_route.resilient_invoke",
+        new_callable=AsyncMock,
+        return_value="I cannot classify this message.",
+    ):
+        result = await intent_route_node(state)
     assert result["primary_intent"] == "general_chat"
     assert "intent_route" in result["path"]
 
 
 # P2-7: _safe_int tolerates non-integer LLM output
-def test_intent_route_string_intensity_coerced_to_int():
+@pytest.mark.asyncio
+async def test_intent_route_string_intensity_coerced_to_int():
     """LLM returning emotional_intensity as a string (e.g. '7') must be coerced to int."""
     state = make_state(
         message_en="I feel okay",
         active_skill_id=None,
         conversation_history=[],
     )
-    mock_llm = MagicMock()
-    mock_llm.invoke.return_value = MagicMock(
-        content='{"primary_intent": "general_chat", "emotional_intensity": "7", "engagement": "5.5", "intent_confidence": 0.8}'
-    )
-    result = intent_route_node(state, llm=mock_llm)
+    with patch(
+        "sage_poc.nodes.intent_route.resilient_invoke",
+        new_callable=AsyncMock,
+        return_value='{"primary_intent": "general_chat", "emotional_intensity": "7", "engagement": "5.5", "intent_confidence": 0.8}',
+    ):
+        result = await intent_route_node(state)
     assert result["emotional_intensity"] == 7
     assert result["engagement"] == 5
     assert isinstance(result["emotional_intensity"], int)
 
 
-def test_intent_route_non_numeric_intensity_falls_back_to_default():
+@pytest.mark.asyncio
+async def test_intent_route_non_numeric_intensity_falls_back_to_default():
     """LLM returning 'high' for emotional_intensity must fall back to default 5."""
     state = make_state(
         message_en="I feel stressed",
         active_skill_id=None,
         conversation_history=[],
     )
-    mock_llm = MagicMock()
-    mock_llm.invoke.return_value = MagicMock(
-        content='{"primary_intent": "general_chat", "emotional_intensity": "high", "engagement": "medium", "intent_confidence": 0.7}'
-    )
-    result = intent_route_node(state, llm=mock_llm)
+    with patch(
+        "sage_poc.nodes.intent_route.resilient_invoke",
+        new_callable=AsyncMock,
+        return_value='{"primary_intent": "general_chat", "emotional_intensity": "high", "engagement": "medium", "intent_confidence": 0.7}',
+    ):
+        result = await intent_route_node(state)
     assert result["emotional_intensity"] == 5
     assert result["engagement"] == 5
 
@@ -1075,7 +1098,8 @@ def test_l1_does_not_fire_on_please_stop_being_harsh():
 
 # NEW-5: Audit log suppression when SAGE_AUDIT_LOG is not set
 
-def test_output_gate_suppresses_audit_when_disabled(capsys):
+@pytest.mark.asyncio
+async def test_output_gate_suppresses_audit_when_disabled(capsys):
     """Audit JSON must not appear in stdout when AUDIT_LOG_ENABLED is false."""
     import sage_poc.nodes.output_gate as og_module
     original = og_module.AUDIT_LOG_ENABLED
@@ -1086,14 +1110,15 @@ def test_output_gate_suppresses_audit_when_disabled(capsys):
             response_en="That sounds really hard.",
             path=["safety_check", "intent_route", "freeflow_respond"],
         )
-        output_gate_node(state)
+        await output_gate_node(state)
         captured = capsys.readouterr()
         assert "[AUDIT]" not in captured.out
     finally:
         og_module.AUDIT_LOG_ENABLED = original
 
 
-def test_output_gate_shows_audit_when_enabled(capsys):
+@pytest.mark.asyncio
+async def test_output_gate_shows_audit_when_enabled(capsys):
     """Audit JSON must appear in stdout when AUDIT_LOG_ENABLED is true."""
     import sage_poc.nodes.output_gate as og_module
     original = og_module.AUDIT_LOG_ENABLED
@@ -1104,7 +1129,7 @@ def test_output_gate_shows_audit_when_enabled(capsys):
             response_en="That sounds really hard.",
             path=["safety_check", "intent_route", "freeflow_respond"],
         )
-        output_gate_node(state)
+        await output_gate_node(state)
         captured = capsys.readouterr()
         assert "[AUDIT]" in captured.out
     finally:
@@ -1113,7 +1138,8 @@ def test_output_gate_shows_audit_when_enabled(capsys):
 
 # Sprint A: 3-path output gate — scope_refusal and jailbreak bypass LLM response
 
-def test_output_gate_scope_refusal_returns_redirect_response():
+@pytest.mark.asyncio
+async def test_output_gate_scope_refusal_returns_redirect_response():
     """scope_refusal gate_path must return the clinical-referral response, not response_en."""
     state = make_state(
         detected_language="en",
@@ -1121,12 +1147,13 @@ def test_output_gate_scope_refusal_returns_redirect_response():
         gate_path="scope_refusal",
         path=["safety_check", "intent_route", "gate_path_set"],
     )
-    result = output_gate_node(state)
+    result = await output_gate_node(state)
     assert "medical professional" in result["response"].lower() or "therapist" in result["response"].lower()
     assert "I diagnose you" not in result["response"]
 
 
-def test_output_gate_jailbreak_returns_persona_response():
+@pytest.mark.asyncio
+async def test_output_gate_jailbreak_returns_persona_response():
     """jailbreak gate_path must return the Sage persona reassertion, not response_en."""
     state = make_state(
         detected_language="en",
@@ -1134,7 +1161,7 @@ def test_output_gate_jailbreak_returns_persona_response():
         gate_path="jailbreak",
         path=["safety_check", "intent_route", "gate_path_set"],
     )
-    result = output_gate_node(state)
+    result = await output_gate_node(state)
     assert "sage" in result["response"].lower()
     assert "unrestricted" not in result["response"]
 
@@ -1229,7 +1256,8 @@ def test_output_gate_jailbreak_does_not_include_crisis_resources():
     assert "999" not in JAILBREAK_RESPONSE
 
 
-def test_output_gate_scope_refusal_arabic_user_gets_translated_response():
+@pytest.mark.asyncio
+async def test_output_gate_scope_refusal_arabic_user_gets_translated_response():
     """Arabic user hitting scope_refusal gate must receive a translated response, not raw English.
 
     Regression guard for Bug 2: gate canned responses (scope_refusal, jailbreak) must pass
@@ -1243,14 +1271,18 @@ def test_output_gate_scope_refusal_arabic_user_gets_translated_response():
         gate_path="scope_refusal",
         path=["safety_check", "intent_route", "gate_path_set"],
     )
-    with patch("sage_poc.nodes.output_gate.translate_to_arabic") as mock_translate:
-        mock_translate.return_value = "هذا سؤال يجيب عليه متخصص طبي."
-        result = output_gate_node(state)
+    with patch(
+        "sage_poc.nodes.output_gate.async_translate_to_arabic",
+        new_callable=AsyncMock,
+        return_value="هذا سؤال يجيب عليه متخصص طبي.",
+    ) as mock_translate:
+        result = await output_gate_node(state)
     mock_translate.assert_called_once_with(SCOPE_REFUSAL_RESPONSE)
     assert result["response"] == "هذا سؤال يجيب عليه متخصص طبي."
 
 
-def test_output_gate_jailbreak_arabic_user_gets_translated_response():
+@pytest.mark.asyncio
+async def test_output_gate_jailbreak_arabic_user_gets_translated_response():
     """Arabic user hitting jailbreak gate must receive a translated response, not raw English."""
     from sage_poc.nodes.output_gate import JAILBREAK_RESPONSE
     state = make_state(
@@ -1259,9 +1291,12 @@ def test_output_gate_jailbreak_arabic_user_gets_translated_response():
         gate_path="jailbreak",
         path=["safety_check", "intent_route", "gate_path_set"],
     )
-    with patch("sage_poc.nodes.output_gate.translate_to_arabic") as mock_translate:
-        mock_translate.return_value = "أنا سيج، مرافق للعافية."
-        result = output_gate_node(state)
+    with patch(
+        "sage_poc.nodes.output_gate.async_translate_to_arabic",
+        new_callable=AsyncMock,
+        return_value="أنا سيج، مرافق للعافية.",
+    ) as mock_translate:
+        result = await output_gate_node(state)
     mock_translate.assert_called_once_with(JAILBREAK_RESPONSE)
     assert result["response"] == "أنا سيج، مرافق للعافية."
 
@@ -1921,23 +1956,13 @@ def test_intent_system_defines_general_chat_for_brief_affect():
     assert "brief" in lower and "affect" in lower, \
         "INTENT_SYSTEM general_chat definition must address brief affect disclosures"
 
-def test_intent_route_vague_stress_returns_general_chat():
+@pytest.mark.asyncio
+async def test_intent_route_vague_stress_returns_general_chat():
     """'I've been feeling stressed' — brief affect disclosure, must return general_chat.
     Uses mocked LLM to verify intent_route_node processes the classification correctly.
     """
     import json
-    from unittest.mock import MagicMock
     from sage_poc.nodes.intent_route import intent_route_node
-    mock_llm = MagicMock()
-    mock_llm.invoke.return_value = MagicMock(
-        content=json.dumps({
-            "primary_intent": "general_chat",
-            "secondary_intent": None,
-            "emotional_intensity": 4,
-            "engagement": 6,
-            "intent_confidence": 0.85
-        })
-    )
     state = {
         "raw_message": "Hi, I've been feeling stressed",
         "message_en": "Hi, I've been feeling stressed",
@@ -1945,25 +1970,26 @@ def test_intent_route_vague_stress_returns_general_chat():
         "conversation_history": [],
         "path": ["safety_check"],
     }
-    result = intent_route_node(state, llm=mock_llm)
+    with patch(
+        "sage_poc.nodes.intent_route.resilient_invoke",
+        new_callable=AsyncMock,
+        return_value=json.dumps({
+            "primary_intent": "general_chat",
+            "secondary_intent": None,
+            "emotional_intensity": 4,
+            "engagement": 6,
+            "intent_confidence": 0.85
+        }),
+    ):
+        result = await intent_route_node(state)
     assert result["primary_intent"] == "general_chat", \
         "Vague stress disclosure must be classified as general_chat, not new_skill"
 
-def test_intent_route_specific_symptom_returns_new_skill():
+@pytest.mark.asyncio
+async def test_intent_route_specific_symptom_returns_new_skill():
     """'I can't sleep, lying awake every night for weeks' — specific + chronic, must be new_skill."""
     import json
-    from unittest.mock import MagicMock
     from sage_poc.nodes.intent_route import intent_route_node
-    mock_llm = MagicMock()
-    mock_llm.invoke.return_value = MagicMock(
-        content=json.dumps({
-            "primary_intent": "new_skill",
-            "secondary_intent": None,
-            "emotional_intensity": 6,
-            "engagement": 7,
-            "intent_confidence": 0.90
-        })
-    )
     state = {
         "raw_message": "I can't sleep, I've been lying awake every night for weeks",
         "message_en": "I can't sleep, I've been lying awake every night for weeks",
@@ -1971,27 +1997,28 @@ def test_intent_route_specific_symptom_returns_new_skill():
         "conversation_history": [],
         "path": ["safety_check"],
     }
-    result = intent_route_node(state, llm=mock_llm)
+    with patch(
+        "sage_poc.nodes.intent_route.resilient_invoke",
+        new_callable=AsyncMock,
+        return_value=json.dumps({
+            "primary_intent": "new_skill",
+            "secondary_intent": None,
+            "emotional_intensity": 6,
+            "engagement": 7,
+            "intent_confidence": 0.90
+        }),
+    ):
+        result = await intent_route_node(state)
     assert result["primary_intent"] == "new_skill", \
         "Specific chronic symptom must be classified as new_skill"
 
-def test_intent_route_blended_specific_plus_affect_returns_new_skill():
+@pytest.mark.asyncio
+async def test_intent_route_blended_specific_plus_affect_returns_new_skill():
     """'I can't sleep and I'm feeling really down' — blended: specific (sleep) + affect.
     Must be new_skill because it contains a specific symptom, not just general affect.
     """
     import json
-    from unittest.mock import MagicMock
     from sage_poc.nodes.intent_route import intent_route_node
-    mock_llm = MagicMock()
-    mock_llm.invoke.return_value = MagicMock(
-        content=json.dumps({
-            "primary_intent": "new_skill",
-            "secondary_intent": "general_chat",
-            "emotional_intensity": 6,
-            "engagement": 7,
-            "intent_confidence": 0.88
-        })
-    )
     state = {
         "raw_message": "I can't sleep and I'm feeling really down",
         "message_en": "I can't sleep and I'm feeling really down",
@@ -1999,12 +2026,24 @@ def test_intent_route_blended_specific_plus_affect_returns_new_skill():
         "conversation_history": [],
         "path": ["safety_check"],
     }
-    result = intent_route_node(state, llm=mock_llm)
+    with patch(
+        "sage_poc.nodes.intent_route.resilient_invoke",
+        new_callable=AsyncMock,
+        return_value=json.dumps({
+            "primary_intent": "new_skill",
+            "secondary_intent": "general_chat",
+            "emotional_intensity": 6,
+            "engagement": 7,
+            "intent_confidence": 0.88
+        }),
+    ):
+        result = await intent_route_node(state)
     assert result["primary_intent"] == "new_skill", \
         "Blended message with specific symptom must be new_skill (§6.4 dual-intent path)"
 
 
-def test_intent_route_panic_somatic_returns_new_skill_not_crisis():
+@pytest.mark.asyncio
+async def test_intent_route_panic_somatic_returns_new_skill_not_crisis():
     """'I'm panicking, my heart is racing, I can't breathe' — somatic panic, NOT crisis.
     Somatic distress (panic, racing heart, hyperventilation) is a grounding new_skill target.
     Crisis at intent_route is reserved for explicit harm language.
@@ -2012,18 +2051,7 @@ def test_intent_route_panic_somatic_returns_new_skill_not_crisis():
     somatic distress to crisis after safety_check already passed the message as safe.
     """
     import json
-    from unittest.mock import MagicMock
     from sage_poc.nodes.intent_route import intent_route_node
-    mock_llm = MagicMock()
-    mock_llm.invoke.return_value = MagicMock(
-        content=json.dumps({
-            "primary_intent": "new_skill",
-            "secondary_intent": None,
-            "emotional_intensity": 9,
-            "engagement": 6,
-            "intent_confidence": 0.90
-        })
-    )
     state = {
         "raw_message": "I'm panicking, my heart is racing, I can't breathe",
         "message_en": "I'm panicking, my heart is racing, I can't breathe",
@@ -2031,7 +2059,18 @@ def test_intent_route_panic_somatic_returns_new_skill_not_crisis():
         "conversation_history": [],
         "path": ["safety_check"],
     }
-    result = intent_route_node(state, llm=mock_llm)
+    with patch(
+        "sage_poc.nodes.intent_route.resilient_invoke",
+        new_callable=AsyncMock,
+        return_value=json.dumps({
+            "primary_intent": "new_skill",
+            "secondary_intent": None,
+            "emotional_intensity": 9,
+            "engagement": 6,
+            "intent_confidence": 0.90
+        }),
+    ):
+        result = await intent_route_node(state)
     assert result["primary_intent"] == "new_skill", \
         "Somatic panic must be new_skill (→ grounding), not crisis. safety_check is the authoritative crisis detector."
     assert result["primary_intent"] != "crisis", \

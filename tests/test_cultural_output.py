@@ -184,7 +184,8 @@ def test_eval_cultural_output_empty_response_returns_no_violations():
 
 # ── Task 2: output_gate wiring ───────────────────────────────────────────────
 
-def test_output_gate_calls_cultural_output_evaluate(monkeypatch):
+@pytest.mark.asyncio
+async def test_output_gate_calls_cultural_output_evaluate(monkeypatch):
     """output_gate_node must call rules_engine.evaluate('cultural_output', ...) for standard path."""
     from sage_poc.nodes.output_gate import output_gate_node
     from sage_poc.rules import engine as rules_engine
@@ -208,7 +209,7 @@ def test_output_gate_calls_cultural_output_evaluate(monkeypatch):
         "turn_count": 0,
         "conversation_history": [],
     }
-    output_gate_node(state)
+    await output_gate_node(state)
 
     cultural_output_calls = [c for c in calls if c[0] == "cultural_output"]
     assert len(cultural_output_calls) == 1, "output_gate_node must call evaluate('cultural_output', ...) once"
@@ -218,7 +219,8 @@ def test_output_gate_calls_cultural_output_evaluate(monkeypatch):
     assert ctx["clinical_flags"] == []
 
 
-def test_output_gate_skips_cultural_output_for_scope_refusal(monkeypatch):
+@pytest.mark.asyncio
+async def test_output_gate_skips_cultural_output_for_scope_refusal(monkeypatch):
     """Scope refusal path must skip cultural output evaluation — fixed response, not LLM-generated."""
     from sage_poc.nodes.output_gate import output_gate_node
     from sage_poc.rules import engine as rules_engine
@@ -242,16 +244,17 @@ def test_output_gate_skips_cultural_output_for_scope_refusal(monkeypatch):
         "turn_count": 0,
         "conversation_history": [],
     }
-    output_gate_node(state)
+    await output_gate_node(state)
     assert "cultural_output" not in calls
 
 
-def test_output_gate_returns_cultural_output_violations_in_state():
+@pytest.mark.asyncio
+async def test_output_gate_returns_cultural_output_violations_in_state():
     """output_gate_node must return cultural_output_violations list in all paths."""
     from sage_poc.nodes.output_gate import output_gate_node
 
     # Standard path with violation — list must contain rule ID
-    result_violation = output_gate_node({
+    result_violation = await output_gate_node({
         "gate_path": None,
         "detected_language": "en",
         "path": [],
@@ -265,7 +268,7 @@ def test_output_gate_returns_cultural_output_violations_in_state():
     assert "CUO-GC-001" in result_violation["cultural_output_violations"]
 
     # Scope refusal — must return empty list, not omit the key
-    result_refusal = output_gate_node({
+    result_refusal = await output_gate_node({
         "gate_path": "scope_refusal",
         "detected_language": "en",
         "path": [],
@@ -279,7 +282,7 @@ def test_output_gate_returns_cultural_output_violations_in_state():
     assert result_refusal["cultural_output_violations"] == []
 
     # Standard path clean — must return empty list
-    result_clean = output_gate_node({
+    result_clean = await output_gate_node({
         "gate_path": None,
         "detected_language": "en",
         "path": [],
