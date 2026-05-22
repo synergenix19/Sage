@@ -44,7 +44,6 @@ describe('middleware', () => {
   it('allows access to /sign-in without a session', async () => {
     const req = new NextRequest('http://localhost/sign-in')
     const res = await middleware(req)
-    expect(res.status).not.toBe(307)
-    expect(res.status).not.toBe(401)
+    expect(res.status).toBe(200)
   })
 })
