@@ -2,6 +2,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re as _re
 from collections.abc import AsyncGenerator
 
 from fastapi import FastAPI, HTTPException
@@ -35,7 +36,8 @@ _VALID_SKILL_IDS: frozenset[str] = frozenset(_SKILL_REGISTRY)
 # Known clinical flag IDs — matches safety_check.py clinical flag production values.
 _VALID_CLINICAL_FLAGS: frozenset[str] = frozenset({
     "substance_use", "trauma_indicator", "eating_concern",
-    "medication_mention", "third_party_si",
+    "medication_mention", "domestic_situation", "third_party_si",
+    "escalating_distress",
 })
 
 
@@ -66,12 +68,14 @@ def _sanitize_skill_id(value: str | None) -> str | None:
     return value if value in _VALID_SKILL_IDS else None
 
 
+_STEP_ID_RE = _re.compile(r'^[a-z][a-z0-9_]{0,63}$')
+
+
 def _sanitize_step_id(value: str | None) -> str | None:
     if not value:
         return None
     cleaned = value.strip()
-    # Step IDs are short ASCII slugs; reject anything that looks like an injection.
-    return cleaned if cleaned and len(cleaned) <= 64 and cleaned.isidentifier() else None
+    return cleaned if _STEP_ID_RE.match(cleaned) else None
 
 
 def _sanitize_clinical_flags(flags: list[str]) -> list[str]:
