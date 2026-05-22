@@ -77,6 +77,10 @@ export function useStreamingChat(sessionId: string | undefined, initialMessages:
           signal: controller.signal,
         })
 
+        if (!res.ok || !res.body) {
+          throw new Error(`Chat request failed: ${res.status}`)
+        }
+
         // Ferry: write updated state into refs; refs are read on the next send.
         // Writing to a ref does not trigger a re-render — correct, since none of these
         // values are shown in the UI.
@@ -97,10 +101,6 @@ export function useStreamingChat(sessionId: string | undefined, initialMessages:
         const nextTrajRaw = res.headers.get('X-Sage-Distress-Trajectory')
         if (nextTrajRaw) {
           try { distressTrajectoryRef.current = JSON.parse(nextTrajRaw) } catch { /* keep previous */ }
-        }
-
-        if (!res.ok || !res.body) {
-          throw new Error(`Chat request failed: ${res.status}`)
         }
 
         const aiSupabaseId = res.headers.get('X-Sage-Ai-Message-Id') ?? undefined
