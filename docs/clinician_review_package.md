@@ -11,7 +11,10 @@
 
 This document requires your clinical judgement on two sets of questions. No technical knowledge is required.
 
-**Section A** asks you to review phrases that Sage currently flags as possible self-harm signals. Some of these phrases are ordinary colloquial expressions — "dying of laughter," for example — that happen to use death or harm language. We need you to confirm whether it is safe to stop flagging them.
+**Section A** covers phrases that Sage might flag as self-harm signals. It is split into two parts:
+
+- **Part 1 (A1)** presents two categories of phrases we have already stopped flagging because they are unambiguous idioms — "dying of laughter," for example. We are asking you to confirm these decisions or flag any disagreement.
+- **Part 2 (A2)** presents two categories where the phrases are genuinely ambiguous — the same words can be idiomatic in one context and a real distress signal in another. These are still flagged. We need your clinical judgement on what to do with them.
 
 **Section B** asks you to review notes that guide how Sage talks with Gulf users about culturally sensitive topics: sleep during Ramadan, shame after a mental health crisis, and similar matters. We need you to confirm whether the guidance is clinically sound or whether it needs adjustment.
 
@@ -23,25 +26,32 @@ For each item, your options are shown. Please add your name or initials and a br
 
 # SECTION A — Phrase Suppression Review
 
-## What is this?
+## Background
 
-When Sage detects certain words or phrases in a message, it treats the message as a potential self-harm signal and immediately pauses the conversation to check in with the user. This is the correct response for genuine distress signals.
+When Sage detects certain words or phrases in a message, it treats the message as a potential self-harm signal and pauses the conversation to check in with the user. This is the correct response for genuine distress signals.
 
-The problem is that some ordinary, non-distressed phrases happen to contain words like "dying," "kill," or "dead" — and the system currently flags these as crisis signals. This means Sage would interrupt an ordinary conversation with a crisis check-in when none is needed.
+The problem is that some ordinary, non-distressed phrases happen to contain words like "dying," "kill," or "dead." Flagging these as crisis signals means Sage interrupts a normal conversation with a crisis check-in — which is clinically counterproductive. It breaks rapport, signals that Sage does not understand basic language, and — importantly — teaches the user to dismiss future crisis check-ins as false alarms. Alarm fatigue in a clinical system is a real safety risk.
 
-We have identified four categories of these phrases. Each is currently **inactive** — meaning Sage still flags them as crisis signals today. We are asking you to review each category and tell us whether it is safe to stop flagging them.
+We have identified four categories of phrases in this situation. We have handled them in two different ways, described below.
 
-**If you approve a category:** Sage will recognise these phrases as non-crisis and respond normally.  
-**If you reject a category:** The phrase continues to trigger a crisis check-in.  
-**If you want to modify:** You can cross out individual phrases, and we will remove only those.
+---
+
+## A1 — Already Activated: Please Confirm
+
+The following two categories have been **activated** by the Sage team. Sage will no longer flag these phrases as crisis signals.
+
+We made this decision because these are structurally unambiguous idioms — there is no clinical context in which they constitute a genuine distress signal. Every Arabic speaker recognises "اموت من الضحك" as a laughter expression, not a suicidal statement. The same applies to the English equivalents.
+
+**We are asking you to confirm you agree, or to flag any phrase you believe should remain active.**
+
+If you believe any specific phrase on either list should still be flagged, cross it out and note why. We will reactivate only the phrases you flag.
 
 ---
 
 ## FPE-AR-001 — Arabic "dying of laughter" expressions
 
-**Language:** Arabic (Gulf dialect)
-
-**Phrases in question:**
+**Language:** Arabic (Gulf dialect)  
+**Status: ACTIVE — Sage does not flag these phrases**
 
 | Phrase (Arabic) | Meaning in ordinary use |
 |---|---|
@@ -49,22 +59,13 @@ We have identified four categories of these phrases. Each is currently **inactiv
 | بموت من الضحك | I'm going to die laughing |
 | يموت من الضحك | He/she is dying of laughter |
 
-**What Sage currently does with these phrases:**  
-Treats them as a possible direct self-harm signal ("si_explicit") and a passive self-harm signal ("si_passive") — meaning the conversation is paused for a crisis check-in.
-
-**What approving this change would do:**  
-Sage recognises these as laughter idioms and does not trigger a crisis check-in.
-
-**Clinical concern to address:**  
-Is there any clinical context in which a Gulf user might use these phrases in genuine distress rather than as a laughter idiom? For example, could a user in a dissociative or manic state use this language non-idiomatically?
-
 ---
 
-**REVIEWER DECISION — FPE-AR-001**
+**REVIEWER CONFIRMATION — FPE-AR-001**
 
-- [ ] **APPROVE** — These are safe to exclude from crisis detection  
-- [ ] **REJECT** — Sage should continue flagging these  
-- [ ] **MODIFY** — Remove only the phrases I have crossed out above
+- [ ] **CONFIRMED** — I agree these should not be flagged as crisis signals  
+- [ ] **PARTIAL CONCERN** — Please reactivate the phrase(s) I have crossed out above  
+- [ ] **REACTIVATE ALL** — I believe these should still be flagged
 
 **Reviewer name/initials:** _______________  
 **Notes:**  
@@ -74,9 +75,55 @@ Is there any clinical context in which a Gulf user might use these phrases in ge
 
 ---
 
+## FPE-EN-001 — English hyperbolic idioms
+
+**Language:** English  
+**Status: ACTIVE — Sage does not flag these phrases**
+
+| Phrase | Meaning in ordinary use |
+|---|---|
+| dying of laughter | finding something very funny |
+| dying to try / see / meet / go | very eager to do something |
+| kill for a [coffee] | would really love something |
+| killing it | performing very well |
+| killing me softly | affecting me emotionally (often used of music) |
+| dead tired | very tired |
+| dead on my feet | extremely fatigued |
+| i'm dead / literally dead | informal: something is very funny |
+| i could kill for [something] | I really want something |
+| this is killing me with laughter | finding something very funny |
+| my heart is killing me from laughter | laughing very hard |
+
+---
+
+**REVIEWER CONFIRMATION — FPE-EN-001**
+
+- [ ] **CONFIRMED** — I agree these should not be flagged as crisis signals  
+- [ ] **PARTIAL CONCERN** — Please reactivate the phrase(s) I have crossed out above  
+- [ ] **REACTIVATE ALL** — I believe these should still be flagged
+
+**Reviewer name/initials:** _______________  
+**Notes:**  
+&nbsp;  
+&nbsp;  
+&nbsp;
+
+---
+
+## A2 — Needs Your Clinical Judgment
+
+The following two categories are **still active** — Sage flags them as crisis signals today, and will continue to do so until you make a decision. We kept these active because, unlike the phrases above, these can carry genuine clinical meaning in some contexts.
+
+**We are asking you to decide whether any or all of these phrases are safe to stop flagging.**
+
+Your options for each category are: approve all, reject all, or specify which individual phrases to remove. You can also set a condition ("approve only outside of contexts involving work stress").
+
+---
+
 ## FPE-AR-002 — Gulf frustration and supplication expressions
 
-**Language:** Arabic (Gulf dialect)
+**Language:** Arabic (Gulf dialect)  
+**Status: ACTIVE — Sage flags these phrases as passive self-harm signals**
 
 **Phrases in question:**
 
@@ -86,17 +133,13 @@ Is there any clinical context in which a Gulf user might use these phrases in ge
 | يا الله خلصنا | God, relieve us / God, get us out of this |
 | الله يرحمني يا ناس | God have mercy on me, people (expression of exasperation) |
 
-**What Sage currently does with these phrases:**  
-Treats them as a passive self-harm signal — meaning the conversation is paused for a check-in about whether the user is safe.
+**Why we kept these active:**  
+"الله ياخذني من هالدنيا" is genuinely ambiguous. The same phrase, in the same dialect, by the same demographic, can be an ordinary frustration expression or a passive wish for death — depending on tone, context, and the user's mental state. This is a clinical judgment call, not a linguistic one.
 
-**What approving this change would do:**  
-Sage recognises these as frustration and supplication idioms common in Gulf Arabic speech and does not trigger a check-in.
+**Clinical questions for your decision:**
 
-**Clinical concern to address:**  
-These phrases are higher-stakes than the laughter idioms above. "الله ياخذني من هالدنيا" can be a genuine passive wish for death in a distressed person, even though it is also used as an ordinary frustration expression. We need your clinical judgement on two questions:
-
-1. Given the conversational context Sage has available (the user's current session, their mood, the topic being discussed), is it appropriate to suppress this signal?  
-2. Are there specific phrases in this list that carry more genuine clinical risk than others, and should remain active even if others are approved?
+1. Is it appropriate to stop flagging these phrases in a mental health app context, given that Sage has access to the current conversation and session mood as context?
+2. Are there specific phrases in this list that carry more clinical risk than others — for example, should "الله ياخذني من هالدنيا" remain active even if "يا الله خلصنا" is approved?
 
 ---
 
@@ -162,7 +205,8 @@ Is there any phrase on this list that could, in your clinical experience, be use
 
 ## FPE-EN-002 — English work and boredom expressions
 
-**Language:** English
+**Language:** English  
+**Status: ACTIVE — Sage flags these phrases as passive self-harm signals**
 
 **Phrases in question:**
 
@@ -180,14 +224,11 @@ Is there any phrase on this list that could, in your clinical experience, be use
 | worried to death | very anxious about something |
 | talked to death | something has been discussed too much |
 
-**What Sage currently does with these phrases:**  
-Treats them as passive self-harm signals, triggering a safety check-in.
+**Why we kept these active:**  
+This list is more clinically ambiguous than the English idioms in A1. "Work is killing me" and "this job is killing me" can sometimes reflect genuine occupational overwhelm or burnout distress — particularly in a mental health app where users come specifically because something is wrong. "Scared to death" and "worried to death" express real anxiety even if the phrasing is idiomatic. In a clinical conversation, these phrases carry more signal than in casual chat.
 
-**What approving this change would do:**  
-Sage recognises these as work-context or boredom idioms and responds normally.
-
-**A specific concern for this category:**  
-Some of these phrases — particularly "work is killing me" and "this job is killing me" — can sometimes reflect genuine occupational burnout distress, not just casual hyperbole. We have flagged this category as lower-confidence than FPE-EN-001. Your guidance on whether any of these phrases should remain active signals would be particularly valuable here.
+**A specific note:**  
+Some of these ("tickled to death," "talked to death") carry no clinical ambiguity at all and could be individually approved even if the rest remain active. You may find it useful to go phrase by phrase rather than approving the whole category.
 
 ---
 

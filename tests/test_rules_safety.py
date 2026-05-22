@@ -349,11 +349,9 @@ def test_self_harm_method_reference_triggers_crisis(text):
 # ── Arabic idiom false positive suppression (FPE-AR-001, FPE-AR-002) ──────────
 
 @pytest.mark.parametrize("arabic_text,should_be_suppressed", [
-    # C-6: FPE-AR-001 is currently active=False pending clinician approval.
-    # While inactive, laughter idioms are NOT suppressed — crisis_flag fires (conservative default).
-    # Update to True once clinician approves FPE-AR-001 and active=True.
-    ("ابغى اموت من الضحك", False),
-    ("بموت من الضحك", False),
+    # FPE-AR-001 is active — Arabic laughter idioms ARE suppressed.
+    ("ابغى اموت من الضحك", True),
+    ("بموت من الضحك", True),
     # These ARE genuine crisis expressions — suppression must NOT apply
     ("ابغى اموت بدون سبب", False),
 ])
@@ -384,6 +382,29 @@ def test_arabic_laughter_idiom_suppressed_rule_still_in_audit_trail(arabic_text)
         assert any("SK-AR" in rid or "SK-AZ" in rid for rid in suppressed_ids), (
             "Suppressed crisis rule must appear in audit trail"
         )
+
+
+# ── English idiom false positive suppression (FPE-EN-001, FPE-EN-002) ─────────
+
+@pytest.mark.parametrize("text,should_be_suppressed", [
+    # FPE-EN-001 active — English hyperbolic idioms are suppressed
+    ("dying of laughter", True),
+    ("i'm dead, that was so funny", True),
+    ("killing it at work this week", True),
+    ("dead tired after that meeting", True),
+    ("i could kill for a coffee right now", True),
+    # FPE-EN-002 inactive — work/boredom expressions flag conservatively (clinician review pending)
+    ("work is killing me honestly", False),
+    ("bored to death in this meeting", False),
+    # Genuine crisis — suppression must NOT apply
+    ("I want to die", False),
+    ("thinking about killing myself", False),
+])
+def test_english_idiom_fpe_suppression(text, should_be_suppressed):
+    result = engine.evaluate("safety", {"text_en": text, "language": "en"})
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    if should_be_suppressed:
+        assert not crisis_actions, f"Expected FPE suppression for idiom: {text!r}"
 
 
 # ── Third-party crisis detection (SK-EN-004) ─────────────────────────────────
