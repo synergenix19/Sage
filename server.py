@@ -82,6 +82,8 @@ class ChatRequest(BaseModel):
     active_step_id: str | None = None
     clinical_flags: list[str] = []
     distress_trajectory: list[int] = []
+    engagement_trajectory: list[int] = []
+    conversation_summary: str | None = None
 
 
 def _sanitize_skill_id(value: str | None) -> str | None:
@@ -150,6 +152,8 @@ def _build_state(req: ChatRequest) -> dict:
         "turn_count": turn_count,
         "crisis_state": crisis_state,
         "distress_trajectory": _sanitize_trajectory(req.distress_trajectory),
+        "engagement_trajectory": _sanitize_trajectory(req.engagement_trajectory),
+        "conversation_summary": req.conversation_summary or None,
         "code_switching": False,
         "s7_result": None,
         "s7_method": None,
@@ -215,6 +219,8 @@ async def chat(req: ChatRequest, x_sage_api_key: str | None = Header(default=Non
             "X-Sage-Emotional-Intensity":    str(result.get("emotional_intensity") or 0),
             "X-Sage-Crisis-State":           result.get("crisis_state") or "none",
             "X-Sage-Distress-Trajectory":    json.dumps(result.get("distress_trajectory") or []),
+            "X-Sage-Engagement-Trajectory":  json.dumps(result.get("engagement_trajectory") or []),
+            "X-Sage-Conversation-Summary":   result.get("conversation_summary") or "",
             # Trace fields: Priority 1
             "X-Sage-Intent":                 result.get("primary_intent") or "",
             "X-Sage-Semantic-Score":         str(result.get("semantic_score") or ""),
