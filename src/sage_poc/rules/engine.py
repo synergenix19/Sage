@@ -1,4 +1,6 @@
 from __future__ import annotations
+import logging
+import re
 from sage_poc.rules.schemas import (
     SafetyRule, CrisisContentRule, CulturalRule, PromptInjectionRule,
     CulturalOutputRule,
@@ -95,18 +97,32 @@ def _eval_safety(rules: list[SafetyRule], context: dict) -> EvalResult:
             if not text_to_check:
                 continue
 
-            pattern_norm = (normalize_arabic(pattern) if is_arabic_pattern
-                            else normalize_text(pattern))
-            idx = text_to_check.find(pattern_norm)
-            if idx == -1:
-                continue
+            if rule.match_type == "regex":
+                try:
+                    m = re.search(pattern, text_to_check)
+                except re.error:
+                    logging.getLogger(__name__).warning(
+                        "Malformed regex in rule %s: %r", rule.rule_id, pattern
+                    )
+                    continue
+                if not m:
+                    continue
+                idx, span_end = m.start(), m.end()
+            else:
+                pattern_norm = (normalize_arabic(pattern) if is_arabic_pattern
+                                else normalize_text(pattern))
+                idx = text_to_check.find(pattern_norm)
+                if idx == -1:
+                    continue
+                span_end = idx + len(pattern_norm)
+
             if "negation_check" in rule.modifiers and _has_negation(text_to_check, idx):
                 continue
             result.fired.append(FiredRule(
                 rule_id=rule.rule_id,
                 version=rule.version,
                 action=rule.action,
-                matched_span=(idx, idx + len(pattern_norm)),
+                matched_span=(idx, span_end),
             ))
             matched = True
 

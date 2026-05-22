@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 
 import numpy as np
 
@@ -25,6 +26,7 @@ SEMANTIC_THRESHOLD: float = 0.5258
 _embed_model = None
 _semantic_skill_ids: list[str] = []
 _semantic_embeddings: np.ndarray | None = None
+_init_lock = threading.Lock()
 
 
 def _ensure_semantic_ready() -> None:
@@ -32,15 +34,19 @@ def _ensure_semantic_ready() -> None:
     global _embed_model, _semantic_skill_ids, _semantic_embeddings
     if _embed_model is not None:
         return
-    from sentence_transformers import SentenceTransformer
-    _embed_model = SentenceTransformer("BAAI/bge-m3")
-    ids, texts = [], []
-    for sid, skill in _SKILLS.items():
-        if skill.semantic_description:
-            ids.append(sid)
-            texts.append(skill.semantic_description)
-    _semantic_skill_ids = ids
-    _semantic_embeddings = _embed_model.encode(texts, normalize_embeddings=True)
+    with _init_lock:
+        if _embed_model is not None:  # re-check under lock: another thread may have loaded first
+            return
+        from sentence_transformers import SentenceTransformer
+        model = SentenceTransformer("BAAI/bge-m3")
+        ids, texts = [], []
+        for sid, skill in _SKILLS.items():
+            if skill.semantic_description:
+                ids.append(sid)
+                texts.append(skill.semantic_description)
+        _semantic_skill_ids = ids
+        _semantic_embeddings = model.encode(texts, normalize_embeddings=True)
+        _embed_model = model  # assign last so the outer guard only passes after full init
 
 
 def _semantic_match_sync(message_en: str) -> tuple[str | None, float]:
