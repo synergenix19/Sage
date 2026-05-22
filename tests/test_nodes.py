@@ -14,6 +14,8 @@ def make_state(**kwargs):
         "s7_result": None,
         "s7_method": None,
         "distress_trajectory": [],
+        "engagement_trajectory": [],
+        "conversation_summary": None,
         "code_switching": False,
         "primary_intent": None,
         "secondary_intent": None,
@@ -2113,3 +2115,151 @@ def test_safety_check_returns_crisis_state_unchanged():
     state = make_state(raw_message="I feel okay", crisis_state="monitoring")
     result = safety_check_node(state)
     assert result["crisis_state"] == "monitoring"
+
+
+# ---------------------------------------------------------------------------
+# Task 5: Distress trajectory and escalating_distress flag
+# ---------------------------------------------------------------------------
+
+def test_distress_trajectory_accumulates_across_turns():
+    """Each call appends current emotional_intensity to the trajectory."""
+    state = make_state(emotional_intensity=7, distress_trajectory=[])
+    result = safety_check_node(state)
+    assert 7 in result["distress_trajectory"]
+
+
+def test_escalating_distress_flag_set_after_three_high_intensity_turns():
+    """escalating_distress appears in clinical_flags after 3 consecutive turns >= 6."""
+    state = make_state(
+        raw_message="I still feel terrible",
+        emotional_intensity=7,
+        distress_trajectory=[7, 7],
+    )
+    result = safety_check_node(state)
+    assert "escalating_distress" in result["clinical_flags"]
+
+
+def test_escalating_distress_not_set_if_streak_broken():
+    """Flag does not fire if the streak of high intensity is broken."""
+    state = make_state(
+        raw_message="I'm okay today",
+        emotional_intensity=3,
+        distress_trajectory=[7, 7],
+    )
+    result = safety_check_node(state)
+    assert "escalating_distress" not in result["clinical_flags"]
+
+
+def test_escalating_distress_suppressed_during_active_skill_with_high_engagement():
+    """Flag is suppressed when user is actively engaged in a skill."""
+    state = make_state(
+        raw_message="The thought I keep having is that I'm worthless",
+        emotional_intensity=8,
+        distress_trajectory=[8, 8],
+        active_skill_id="cbt_thought_record",
+        engagement=7,
+    )
+    result = safety_check_node(state)
+    assert "escalating_distress" not in result["clinical_flags"]
+
+
+def test_escalating_distress_not_suppressed_without_active_skill():
+    """Flag fires normally when no skill is active, even with high engagement."""
+    state = make_state(
+        raw_message="I feel drained all the time",
+        emotional_intensity=7,
+        distress_trajectory=[7, 7],
+        active_skill_id=None,
+        engagement=8,
+    )
+    result = safety_check_node(state)
+    assert "escalating_distress" in result["clinical_flags"]
+
+
+# Task 5: Engagement-decline supplement tests (written before implementation)
+
+def test_engagement_trajectory_accumulates():
+    """Engagement from the current turn is appended to engagement_trajectory."""
+    state = make_state(engagement=2, engagement_trajectory=[])
+    result = safety_check_node(state)
+    assert 2 in result["engagement_trajectory"]
+
+
+def test_escalating_distress_fires_on_engagement_decline_alone():
+    """escalating_distress fires when engagement is low for 3 turns, even without high intensity."""
+    state = make_state(
+        raw_message="I guess",
+        emotional_intensity=4,
+        distress_trajectory=[4, 4],
+        engagement=3,
+        engagement_trajectory=[3, 3],
+    )
+    result = safety_check_node(state)
+    assert "escalating_distress" in result["clinical_flags"]
+
+
+def test_engagement_decline_does_not_fire_when_engagement_is_normal():
+    state = make_state(
+        raw_message="That makes sense",
+        emotional_intensity=4,
+        distress_trajectory=[4, 4],
+        engagement=6,
+        engagement_trajectory=[3, 3],
+    )
+    result = safety_check_node(state)
+    assert "escalating_distress" not in result["clinical_flags"]
+
+
+# ---------------------------------------------------------------------------
+# Task 6d: output_gate summariser trigger
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_output_gate_triggers_summariser_at_turn_10():
+    """At turn_count 9 (completing turn 10), output_gate calls summarise_history."""
+    from sage_poc.nodes.output_gate import output_gate_node
+
+    state = make_state(
+        message_en="I'm feeling better today",
+        response_en="Glad to hear that.",
+        detected_language="en",
+        turn_count=9,
+        gate_path="standard",
+        conversation_history=[
+            {"role": "user", "content": f"turn {i}"}
+            for i in range(18)
+        ],
+        conversation_summary=None,
+    )
+
+    with patch(
+        "sage_poc.nodes.output_gate.summarise_history",
+        new=AsyncMock(return_value="The user has been discussing their wellbeing."),
+    ):
+        result = await output_gate_node(state)
+
+    assert result["conversation_summary"] == "The user has been discussing their wellbeing."
+
+
+@pytest.mark.asyncio
+async def test_output_gate_does_not_call_summariser_at_other_turns():
+    from sage_poc.nodes.output_gate import output_gate_node
+
+    state = make_state(
+        message_en="I'm okay",
+        response_en="Good.",
+        detected_language="en",
+        turn_count=4,
+        gate_path="standard",
+        conversation_history=[],
+        conversation_summary=None,
+    )
+
+    with patch(
+        "sage_poc.nodes.output_gate.summarise_history",
+        new=AsyncMock(return_value="Should not be called."),
+    ) as mock_summarise:
+        result = await output_gate_node(state)
+
+    mock_summarise.assert_not_called()
+    assert result.get("conversation_summary") is None

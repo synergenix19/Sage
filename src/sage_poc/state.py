@@ -19,6 +19,8 @@ class SageState(TypedDict):
     s7_result: Optional[str]       # "RECOVERING" | "STILL_DISTRESSED" | "UNCLEAR" | "NEW_CRISIS"
     s7_method: Optional[str]       # "keyword" | "llm"
     distress_trajectory: list[int]
+    engagement_trajectory: list[int]
+    conversation_summary: Optional[str]
     code_switching: bool
 
     primary_intent: Optional[Intent]

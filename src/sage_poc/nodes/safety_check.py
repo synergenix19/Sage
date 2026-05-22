@@ -11,6 +11,10 @@ _DISTRESS_WINDOW = 4
 _DISTRESS_FLOOR = 6
 _DISTRESS_STREAK = 3
 
+_ENGAGEMENT_WINDOW = 4
+_ENGAGEMENT_LOW = 4
+_ENGAGEMENT_STREAK = 3
+
 
 def _update_distress_trajectory(state: SageState) -> tuple[list[int], bool]:
     """Append current turn's intensity to trajectory; return (updated_trajectory, escalating).
@@ -28,6 +32,23 @@ def _update_distress_trajectory(state: SageState) -> tuple[list[int], bool]:
         and all(s >= _DISTRESS_FLOOR for s in trajectory[-_DISTRESS_STREAK:])
     )
     return trajectory, escalating
+
+
+def _update_engagement_trajectory(state: SageState) -> tuple[list[int], bool]:
+    """Track engagement across turns; return (updated_trajectory, declining).
+
+    Engagement is also one-turn lagged (set by intent_route, which runs after
+    safety_check). Declining is True if the last 3 turns are all <= _ENGAGEMENT_LOW.
+    """
+    trajectory = list(state.get("engagement_trajectory") or [])
+    current = state.get("engagement", 5)
+    trajectory.append(current)
+    trajectory = trajectory[-_ENGAGEMENT_WINDOW:]
+    declining = (
+        len(trajectory) >= _ENGAGEMENT_STREAK
+        and all(s <= _ENGAGEMENT_LOW for s in trajectory[-_ENGAGEMENT_STREAK:])
+    )
+    return trajectory, declining
 
 
 def safety_check_node(state: SageState) -> dict:
@@ -63,6 +84,7 @@ def safety_check_node(state: SageState) -> dict:
         new_crisis_flags = []
 
     trajectory, escalating = _update_distress_trajectory(state)
+    engagement_trajectory, engagement_declining = _update_engagement_trajectory(state)
 
     # Suppress escalating_distress during active skill execution with good engagement:
     # high intensity is therapeutically expected when a user works through distressing material.
@@ -73,7 +95,8 @@ def safety_check_node(state: SageState) -> dict:
 
     # Carry forward clinical flags from prior turns (set union — flags don't reset)
     persisted = state.get("clinical_flags", [])
-    extra = ["escalating_distress"] if escalating and not (skill_active and engagement_ok) else []
+    distress_signal = escalating or engagement_declining
+    extra = ["escalating_distress"] if distress_signal and not (skill_active and engagement_ok) else []
     all_clinical = list(set(new_clinical_flags + third_party_flags + extra + persisted))
 
     crisis_state = state.get("crisis_state", "none")
@@ -90,6 +113,7 @@ def safety_check_node(state: SageState) -> dict:
         "crisis_flags": new_crisis_flags,
         "clinical_flags": all_clinical,
         "distress_trajectory": trajectory,
+        "engagement_trajectory": engagement_trajectory,
         "code_switching": code_switching,
         "crisis_state": crisis_state,
         "s7_result": s7_result,
