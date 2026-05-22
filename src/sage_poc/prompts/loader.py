@@ -6,6 +6,7 @@ from .schemas import PromptTemplate
 
 _DATA_DIR = Path(__file__).parent / "templates"
 _cache: dict[str, PromptTemplate] = {}
+_loaded: bool = False
 
 
 def _load_all_templates() -> dict[str, PromptTemplate]:
@@ -20,8 +21,10 @@ def _load_all_templates() -> dict[str, PromptTemplate]:
 def get_template(template_id: str, variant: Optional[str] = None) -> PromptTemplate:
     """Return template by ID. KeyError if not found.
     If variant is set (e.g. 'v2'), tries '{template_id}_{variant}' first."""
-    if not _cache:
+    global _loaded
+    if not _loaded:
         _cache.update(_load_all_templates())
+        _loaded = True
     if variant:
         variant_id = f"{template_id}_{variant}"
         if variant_id in _cache:
@@ -31,8 +34,10 @@ def get_template(template_id: str, variant: Optional[str] = None) -> PromptTempl
 
 def get_intent_template(intent: str, variant: Optional[str] = None) -> Optional[PromptTemplate]:
     """Return the L2 template for a given intent string, or None if not found."""
-    if not _cache:
+    global _loaded
+    if not _loaded:
         _cache.update(_load_all_templates())
+        _loaded = True
     template_id = f"L2_{intent}"
     if variant:
         variant_id = f"{template_id}_{variant}"
@@ -42,4 +47,6 @@ def get_intent_template(intent: str, variant: Optional[str] = None) -> Optional[
 
 
 def reload_all() -> None:
+    global _loaded
     _cache.clear()
+    _loaded = False

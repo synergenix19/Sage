@@ -9,7 +9,7 @@ class PromptTemplate(BaseModel):
     authored_by: str = "sage_clinics"
     approved_by: Optional[str] = None
     effective_date: str
-    layer: str                             # "L0" | "L1" | "L2" | "L3" | "L4" | "L5"
+    layer: Literal["L0", "L1", "L2", "L3", "L4", "L5"]
     role: Literal["system", "user"]
     always_include: bool
     word_budget: int

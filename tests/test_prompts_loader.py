@@ -34,3 +34,30 @@ def test_prompt_template_pydantic_validates():
     assert tmpl.template_id == "test_tmpl"
     assert tmpl.variables == []
     assert tmpl.intent is None
+
+
+def test_get_template_loads_from_disk(tmp_path, monkeypatch):
+    """Verify the loader actually reads JSON files from disk and parses them."""
+    import sage_poc.prompts.loader as loader_module
+
+    tmpl_json = {
+        "template_id": "fixture_tmpl",
+        "version": "1.0.0",
+        "effective_date": "2026-05-22",
+        "layer": "L0",
+        "role": "system",
+        "always_include": True,
+        "word_budget": 50,
+        "content": "Hello from fixture",
+    }
+    (tmp_path / "fixture_tmpl.json").write_text(
+        __import__("json").dumps(tmpl_json), encoding="utf-8"
+    )
+
+    monkeypatch.setattr(loader_module, "_DATA_DIR", tmp_path)
+    reload_all()
+
+    tmpl = get_template("fixture_tmpl")
+    assert tmpl.template_id == "fixture_tmpl"
+    assert tmpl.content == "Hello from fixture"
+    assert tmpl.layer == "L0"
