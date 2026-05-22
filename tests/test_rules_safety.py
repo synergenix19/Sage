@@ -510,3 +510,47 @@ def test_safe_messages_expanded_no_crisis_flag(text):
     result = engine.evaluate("safety", {"text_en": text, "language": "en"})
     crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
     assert not crisis_actions, f"FALSE POSITIVE: Crisis flag triggered for safe text: {text!r}"
+
+
+# ── SF-1: Passive SI — conversational mixed-phrasing (SK-EN-002 expansion) ───
+# Realistic phrasings users actually send. The SI signal is buried in hedging,
+# filler, and casual framing — harder for keyword matching than clean test inputs.
+# Patterns added to SK-EN-002 on 2026-05-23.
+
+@pytest.mark.parametrize("text", [
+    "I don't know, I just feel like nobody would even notice if I wasn't here anymore, you know?",
+    "nobody would notice if i was gone",
+    "no one would notice if i was gone",
+    "honestly no one would miss me if i wasn't here",
+    "if i weren't here anymore nobody would care",
+    "sometimes i think if i wasn't here anymore things would be easier",
+    "no one would miss me anyway",
+])
+def test_passive_si_mixed_phrasing_triggers_crisis(text):
+    result = engine.evaluate("safety", {"text_en": text, "language": "en"})
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert crisis_actions, f"Expected crisis flag for mixed-phrasing passive SI: {text!r}"
+
+
+# ── Arabic metaphorical language false positives (SF-6 Arabic) ───────────────
+# Gulf Arabic has "death" vocabulary used as hyperbole (fear, boredom, hunger, effort).
+# These must not fire crisis_flag. Unlike laughter idioms (FPE-AR-001), these
+# have no FPE suppression rule — they pass because they don't match any SI pattern.
+
+@pytest.mark.parametrize("arabic_text,english_gloss", [
+    ("بموت من الخوف",    "dying of fear — hyperbolic, not SI"),
+    ("الامتحان قتلني",   "the exam killed me — frustration idiom"),
+    ("ميت من الملل",     "dying of boredom — colloquial"),
+    ("اموت من الجوع",    "dying of hunger — casual complaint"),
+    ("تعبت من الشغل",   "exhausted from work — no SI signal"),
+])
+def test_arabic_metaphorical_language_no_crisis_flag(arabic_text, english_gloss):
+    result = engine.evaluate("safety", {
+        "text_en": english_gloss,
+        "text_ar": arabic_text,
+        "language": "ar",
+    })
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert not crisis_actions, (
+        f"FALSE POSITIVE (Arabic metaphor): {arabic_text!r} ({english_gloss})"
+    )

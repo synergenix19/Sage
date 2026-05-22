@@ -38,7 +38,16 @@
         "nothing brings me joy anymore",
         "i've given up on everything",
         "what is the point of anything",
-        "can't see a future for myself"
+        "can't see a future for myself",
+        "nobody would notice if i wasn't here",
+        "nobody would notice if i was gone",
+        "no one would notice if i was gone",
+        "no one would notice if i wasn't here",
+        "wouldn't even notice i was gone",
+        "if i wasn't here anymore",
+        "if i weren't here anymore",
+        "nobody would miss me",
+        "no one would miss me"
       ],
       "language": "en",
       "modifiers": ["negation_check"],
