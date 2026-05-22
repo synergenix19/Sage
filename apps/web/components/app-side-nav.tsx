@@ -112,7 +112,7 @@ export function AppSideNav() {
                 onClick={() => setShowConfirm(true)}
                 aria-label={locale === 'ar' ? 'تسجيل الخروج' : 'Sign out'}
                 className={cn(
-                  'p-1.5 rounded-lg text-[var(--color-text-secondary)] transition-colors',
+                  'flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-[var(--color-text-secondary)] transition-colors',
                   'hover:text-[var(--color-crisis)] hover:bg-[var(--color-surface-tinted)]',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring-color)]'
                 )}
@@ -143,7 +143,7 @@ export function AppSideNav() {
                   ref={cancelRef}
                   onClick={() => setShowConfirm(false)}
                   className={cn(
-                    'flex-1 rounded-xl border border-[var(--color-border)] py-2 text-xs font-medium',
+                    'flex-1 rounded-xl border border-[var(--color-border)] py-3.5 text-xs font-medium',
                     'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-tinted)] transition-colors',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring-color)]'
                   )}
@@ -154,7 +154,7 @@ export function AppSideNav() {
                   ref={signOutConfirmRef}
                   onClick={() => signOutUser(router.push)}
                   className={cn(
-                    'flex-1 rounded-xl border border-[var(--color-crisis)] py-2 text-xs font-medium',
+                    'flex-1 rounded-xl border border-[var(--color-crisis)] py-3.5 text-xs font-medium',
                     'text-[var(--color-crisis)] hover:bg-red-50 transition-colors',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-crisis)]'
                   )}
