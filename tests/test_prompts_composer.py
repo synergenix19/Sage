@@ -72,3 +72,38 @@ def test_build_l3_skill_block_omits_contraindication_section_when_empty():
     step_no_contra = _CBT_STEP.model_copy(update={"contraindications": ""})
     block = _build_l3_skill_block("CBT Thought Record", step_no_contra, language="en", intensity=5)
     assert "Important:" not in block
+
+
+def test_build_l3_skill_block_handles_empty_examples():
+    step_no_examples = _CBT_STEP.model_copy(update={"examples": []})
+    block = _build_l3_skill_block("CBT Thought Record", step_no_examples, language="en", intensity=5)
+    assert "CBT Thought Record" in block
+    assert "Do NOT announce the technique name" in block
+
+
+def test_build_l3_skill_block_safe_with_curly_braces_in_goal():
+    step_with_braces = _CBT_STEP.model_copy(update={"goal": "Identify {cognitive} patterns"})
+    block = _build_l3_skill_block("CBT Thought Record", step_with_braces, language="en", intensity=5)
+    assert "{cognitive}" in block  # brace escaped, not interpolated
+
+
+def test_sanitize_assistant_turn_strips_bold():
+    from sage_poc.prompts.composer import _sanitize_assistant_turn
+    assert _sanitize_assistant_turn("Hello **world**") == "Hello world"
+
+
+def test_sanitize_assistant_turn_strips_triple_asterisk():
+    from sage_poc.prompts.composer import _sanitize_assistant_turn
+    assert _sanitize_assistant_turn("Hello ***world***") == "Hello world"
+
+
+def test_sanitize_assistant_turn_strips_emoji():
+    from sage_poc.prompts.composer import _sanitize_assistant_turn
+    result = _sanitize_assistant_turn("Hello \U0001f60a world")
+    assert "\U0001f60a" not in result
+    assert "Hello" in result
+
+
+def test_sanitize_assistant_turn_replaces_em_dash():
+    from sage_poc.prompts.composer import _sanitize_assistant_turn
+    assert _sanitize_assistant_turn("one—two") == "one, two"

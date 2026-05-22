@@ -18,9 +18,14 @@ _EMOJI_RE = re.compile(
 _log = logging.getLogger(__name__)
 
 
+def _esc(s: str) -> str:
+    return s.replace("{", "{{").replace("}", "}}")
+
+
 def _sanitize_assistant_turn(text: str) -> str:
-    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
-    text = re.sub(r"(?<!\*)\*([^*\n]+?)\*(?!\*)", r"\1", text)
+    text = re.sub(r"\*\*\*(.+?)\*\*\*", r"\1", text)          # ***bold-italic*** -> text
+    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)              # **bold** -> bold
+    text = re.sub(r"(?<!\*)\*([^*\n]+?)\*(?!\*)", r"\1", text) # *italic* -> italic
     text = text.replace("—", ", ")
     text = _EMOJI_RE.sub("", text)
     return text
@@ -42,6 +47,8 @@ def _select_few_shot_examples(
     if language == "ar":
         arabic = [e for e in examples if _is_arabic(e)]
         non_arabic = [e for e in examples if not _is_arabic(e)]
+        if not arabic:
+            _log.warning("_select_few_shot_examples: language=ar but no Arabic examples in skill step")
         if arabic:
             return [arabic[0], non_arabic[0]] if non_arabic else arabic[:2]
     return list(examples[:2])
@@ -63,13 +70,13 @@ def _build_l3_skill_block(
     )
     technique_desc = (step.technique_description + " ") if step.technique_description else ""
     content = tmpl.content.format(
-        skill_name=skill_name,
-        step_goal=step.goal,
-        technique_name=step.technique,
-        technique_description=technique_desc,
-        tone_instruction=step.tone,
-        contraindication_block=contraindication_block,
-        few_shot_block=few_shot_lines,
+        skill_name=_esc(skill_name),
+        step_goal=_esc(step.goal),
+        technique_name=_esc(step.technique),
+        technique_description=_esc(technique_desc),
+        tone_instruction=_esc(step.tone),
+        contraindication_block=_esc(contraindication_block),
+        few_shot_block=_esc(few_shot_lines),
     )
     _log.debug("L3_skill_wrapper@%s loaded", tmpl.version)
     return content
