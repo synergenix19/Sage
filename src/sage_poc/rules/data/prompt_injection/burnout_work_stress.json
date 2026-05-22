@@ -1,0 +1,55 @@
+{
+  "category": "prompt_injection",
+  "rules": [
+    {
+      "rule_id": "PI-BW-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-22",
+      "active": true,
+      "description": "Burnout and work stress framing for UAE expat workforce context. Validates occupational exhaustion without medicalising, avoids Western individualist advice.",
+      "category": "prompt_injection",
+      "trigger_type": "keyword_match",
+      "trigger_value": "",
+      "trigger_keywords": [
+        "work is killing me",
+        "my boss",
+        "toxic workplace",
+        "workplace stress",
+        "work stress",
+        "burnout",
+        "burnt out",
+        "burned out",
+        "overworked",
+        "no work life balance",
+        "work life balance",
+        "always working",
+        "can't stop working",
+        "deadline",
+        "deadlines",
+        "my manager",
+        "office politics",
+        "hate my job",
+        "want to quit my job",
+        "exhausted from work",
+        "working all the time",
+        "no time for myself",
+        "job is too much",
+        "corporate",
+        "الشغل يتعبني",
+        "ما عندي وقت لنفسي",
+        "الشغل ما خلاني أعيش",
+        "مديري صعب",
+        "أبي أقدم استقالة",
+        "تعبت من الشغل",
+        "الشغل يضغط علي",
+        "ما في بالانس"
+      ],
+      "action": {
+        "type": "inject",
+        "target": "system",
+        "content": "WORK STRESS CONTEXT (this turn): The user has described occupational exhaustion or burnout. UAE-specific context applies.\n\nFRAMING:\n- Many UAE residents are expats working far from their support networks, often in high-pressure sectors (finance, construction, healthcare, hospitality). Work stress here carries added weight: job loss can affect visa/residency status, adding financial and legal anxiety on top of occupational distress.\n- Validate the exhaustion before exploring solutions. Work stress in this context is not simply a matter of setting better limits. Structural pressures are real.\n- Do NOT pathologise work stress as depression or anxiety without more context.\n- Do NOT recommend quitting, setting limits, or work reduction without exploring whether that is realistic. In UAE expat contexts, job security is often tied to residency.\n- If the user expresses sustained hopelessness or is unable to function, gently explore whether they are getting support beyond work.\n- Prayer, family connection, and community are valid coping supports for this demographic. Do not dismiss them.\n\nDO NOT: medicalise, recommend immediate job change, apply Western work-life framing without acknowledging structural constraints."
+      }
+    }
+  ]
+}

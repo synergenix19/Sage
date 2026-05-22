@@ -1,0 +1,115 @@
+{
+  "skill_id": "mi_readiness_ruler",
+  "skill_name": "MI Readiness Ruler",
+  "skill_type": "structured",
+  "evidence_base": "Miller & Rollnick (2013) Motivational Interviewing 3rd ed.; Rollnick et al. (1999) readiness ruler; NICE PH49 behavior change",
+  "self_evolution": "manual_only",
+  "target_presentations": [
+    "want to change", "trying to change", "know i should change",
+    "should stop drinking", "should stop smoking", "should exercise more",
+    "keep failing", "keep going back to it", "cant seem to stop",
+    "addicted", "habit i cant break", "bad habit",
+    "stuck in a bad pattern", "know what i should do but cant do it",
+    "relapsed", "relapse", "going in circles",
+    "trying to quit", "want to quit", "ambivalent",
+    "dont know if i want to change",
+    "أبي أتغير بس ما أقدر",
+    "أعرف إن هذا غلط بس ما أوقف",
+    "رجعت لنفس الشي",
+    "محتاج أغير حياتي",
+    "حاير",
+    "حايرة",
+    "أبي أوقف بس صعب",
+    "ما عندي قوة إرادة"
+  ],
+  "semantic_description": "Motivational Interviewing readiness ruler: rating importance and confidence for behavior change on a 1-to-10 scale. Where am I on readiness to change? Rollnick importance ruler, confidence ruler. I want to explore how ready I am to make a change. What would make the number higher? MI ambivalence exploration: both wanting and not wanting change at the same time. Rate how much this change matters to me and how confident I am I could do it. Change talk elicitation, readiness assessment, decisional balance.",
+  "steps": [
+    {
+      "step_id": "importance_ruler",
+      "goal": "Explore how important the change feels to the user on a 1-10 scale and draw out the reasons why it matters to them",
+      "technique": "Motivational Interviewing readiness ruler, importance rating",
+      "tone": "curious, non-judgmental, following the user's pace, not advice-giving but evocation",
+      "examples": [
+        "How important is it to you to make this change? If 1 is not important at all and 10 is the most important thing in your life right now, where would you put it?",
+        "You gave it a [X]. Why not a lower number? What makes it that important to you, even if part of you is not sure?",
+        "إيش أهمية هذا التغيير عندك؟ لو 1 ما يهمك خالص وعشرة أهم شي في حياتك الحين, وين تحط نفسك؟",
+        "What is it about this that matters enough to bring it up? Even a small reason is worth exploring.",
+        "If things stayed exactly as they are for the next year, what would that mean for you?"
+      ],
+      "contraindications": "Do NOT tell the user what they should change or why it matters. The reasons for change must come from the user. Do NOT challenge ambivalence directly or push for commitment.",
+      "completion_criteria": "User has given an importance rating and offered at least one reason why it matters to them."
+    },
+    {
+      "step_id": "confidence_ruler",
+      "goal": "Explore how confident the user feels about making the change and build on existing strengths",
+      "technique": "MI confidence ruler, strength spotting",
+      "tone": "warm, strength-focused, genuinely curious about what the user already has going for them",
+      "examples": [
+        "And how confident do you feel that if you decided to change, you could do it? 1 is not confident at all, 10 is completely confident.",
+        "You said a [X] for confidence. What would need to happen to make it a [X+2]? What would make you feel more able to do this?",
+        "وكيف واثق إنك لو قررت تغير, تقدر تسوي الشي؟ واحد معناه ما عندك ثقة خالص, عشرة معناه واثق 100 بالمية.",
+        "You have tried this before. Even if it did not work out, what did you learn about yourself from that attempt?",
+        "What strengths do you already have that might help you with this, if you decided to try?"
+      ],
+      "contraindications": "Do NOT reframe low confidence as just a mindset problem. Low confidence may reflect real past failures, genuine barriers, or structural constraints. Explore what gets in the way without dismissing it.",
+      "completion_criteria": "User has given a confidence rating and reflected on what would increase it."
+    },
+    {
+      "step_id": "next_step",
+      "goal": "Collaboratively identify the smallest next step the user is genuinely willing to take, without pressure",
+      "technique": "MI change planning, eliciting commitment language",
+      "tone": "collaborative, forward-moving but entirely pressure-free, accepting of ambivalence",
+      "examples": [
+        "Based on everything you have shared, what feels like one small thing you might be willing to try? Not a full plan, just one step.",
+        "You have given me a picture of where you are. What, if anything, feels like it could move things even slightly right now?",
+        "بناء على كل اللي قلته, إيش شي بسيط ممكن تكون مستعد تجربه؟ مو خطة كاملة, بس خطوة صغيرة.",
+        "If you were not ready for a full change, is there one small thing that might help you get a little clearer about what you want?",
+        "It is completely okay if the answer is nothing yet. Sometimes just naming where you are is a kind of step."
+      ],
+      "contraindications": "Do NOT set goals for the user. If the user says nothing, accept it without disappointment. Do NOT create false urgency or pressure. Ambivalence is normal and does not require resolution in this session.",
+      "completion_criteria": "User has reflected on a possible next step, even if that step is thinking about it more or nothing yet."
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": { "signal": "emotional_intensity", "operator": ">", "value": 7, "step": "ANY" },
+      "action": "validate_only",
+      "instruction": "User is highly distressed. Do not advance the ruler exercise. Validate the emotion and stay present.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": { "signal": "resistance", "operator": ">", "value": 6, "turns": 3, "step": "ANY" },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance. Offer to stop and just talk, or explore what feels wrong about this approach.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": { "signal": "engagement", "operator": "<", "value": 3, "turns": 3, "step": "ANY" },
+      "action": "check_in_micro",
+      "instruction": "User is disengaged. Gently check in: is exploring change helpful right now, or would they prefer something else?",
+      "next_step_id": "current"
+    },
+    {
+      "condition": { "signal": "user_stop_request", "operator": "==", "value": true, "step": "ANY" },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit with warmth. Ambivalence about change is completely normal. No persuasion.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": { "signal": "prior_exposure", "operator": ">=", "value": 3, "step": "importance_ruler" },
+      "action": "skip_psychoeducation",
+      "instruction": "User has done the ruler exercise before. Skip the scale explanation and go straight to the question.",
+      "next_step_id": "importance_ruler"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit gracefully if user requests to stop or is not ready to engage with change at all. Normalise this as completely valid.",
+    "L2": "Add clinician_review flag if the behavior involves substance use, significant self-harm patterns, or eating concerns.",
+    "L3": "Exit immediately to crisis protocol if any crisis signal detected.",
+    "L4": "Trigger human handoff if user explicitly requests a human or shows 3+ crises in last 30 days."
+  },
+  "cultural_overrides": {
+    "substance_uae_note": "UAE legal context applies if change involves substance use. Do NOT discuss quantities, suppliers, specific substances, or harm reduction strategies that assume legal access. Focus on the emotional relationship with the behavior.",
+    "willpower_framing": "In Gulf culture, change may be framed as a matter of will, faith, or God's guidance. If the user uses religious framing, validate it as a genuine source of strength."
+  }
+}

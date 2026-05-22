@@ -8,8 +8,8 @@
       "authored_by": "sage_clinics",
       "approved_by": null,
       "effective_date": "2026-05-21",
-      "active": true,
-      "description": "Arabic laughter idioms — 'dying of laughter' expressions; suppresses si_explicit. REQUIRES clinician approval before active=true.",
+      "active": false,
+      "description": "Arabic laughter idioms — 'dying of laughter' expressions; suppresses si_explicit. REQUIRES clinician approval before active=true. Set to inactive 2026-05-22 pending clinician approval. Reactivate only after approved_by field is populated.",
       "match_type": "keyword",
       "patterns": [
         "اموت من الضحك",
@@ -39,6 +39,70 @@
         "الله يرحمني يا ناس"
       ],
       "language": "ar",
+      "modifiers": [],
+      "action": {
+        "type": "crisis_suppress",
+        "suppresses": ["si_passive"]
+      }
+    },
+    {
+      "rule_id": "FPE-EN-001",
+      "version": "1.0.0",
+      "category": "safety",
+      "authored_by": "sage_clinics",
+      "approved_by": null,
+      "effective_date": "2026-05-22",
+      "active": false,
+      "description": "English hyperbolic idioms — 'dying of laughter', 'killing it', 'dead tired'. Suppresses si_explicit and si_passive false positives from colloquial English. REQUIRES clinician approval before active=true. Set to inactive 2026-05-22 pending clinician approval. Reactivate only after approved_by field is populated.",
+      "match_type": "keyword",
+      "patterns": [
+        "dying of laughter",
+        "dying to try",
+        "dying to see",
+        "dying to meet",
+        "dying to go",
+        "kill for a",
+        "killing it",
+        "killing me softly",
+        "dead tired",
+        "dead on my feet",
+        "i'm dead",
+        "literally dead",
+        "i could kill for",
+        "this is killing me with laughter",
+        "my heart is killing me from laughter"
+      ],
+      "language": "en",
+      "modifiers": [],
+      "action": {
+        "type": "crisis_suppress",
+        "suppresses": ["si_explicit", "si_passive"]
+      }
+    },
+    {
+      "rule_id": "FPE-EN-002",
+      "version": "1.0.0",
+      "category": "safety",
+      "authored_by": "sage_clinics",
+      "approved_by": null,
+      "effective_date": "2026-05-22",
+      "active": false,
+      "description": "English work/achievement hyperbole, lower confidence suppression for work-context phrases. INACTIVE pending clinician review — these can also reflect genuine burnout distress.",
+      "match_type": "keyword",
+      "patterns": [
+        "work is killing me",
+        "this job is killing me",
+        "this place is killing me",
+        "bored to death",
+        "bored out of my mind",
+        "i'm dying here",
+        "dying of boredom",
+        "scared to death",
+        "tickled to death",
+        "worried to death",
+        "talked to death"
+      ],
+      "language": "en",
       "modifiers": [],
       "action": {
         "type": "crisis_suppress",

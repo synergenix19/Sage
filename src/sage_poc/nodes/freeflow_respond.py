@@ -91,6 +91,7 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
 
     injection_result = rules_engine.evaluate("prompt_injection", {
         "text": message_en,
+        "text_ar": state.get("raw_message") if language == "ar" else None,
         "clinical_flags": clinical_flags,
         "primary_intent": primary_intent,
         "secondary_intent": secondary_intent,

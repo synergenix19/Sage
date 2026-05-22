@@ -1,0 +1,52 @@
+{
+  "category": "prompt_injection",
+  "rules": [
+    {
+      "rule_id": "PI-EI-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-22",
+      "active": true,
+      "description": "Expat isolation framing, loneliness, missing home, distance from family. Validates collectivist longing as normal and contextualises it without pathologising.",
+      "category": "prompt_injection",
+      "trigger_type": "keyword_match",
+      "trigger_value": "",
+      "trigger_keywords": [
+        "miss home",
+        "missing home",
+        "miss my family",
+        "miss my mom",
+        "miss my dad",
+        "miss my friends from home",
+        "far from home",
+        "far from family",
+        "alone here",
+        "lonely here",
+        "no one knows me here",
+        "no one understands",
+        "feel like an outsider",
+        "feel like a stranger",
+        "homesick",
+        "don't belong here",
+        "nobody here",
+        "all my friends are back home",
+        "feel isolated",
+        "no community here",
+        "أشتاق لأهلي",
+        "أشتاق لبيت",
+        "وحيد هنا",
+        "وحيدة هنا",
+        "ما عندي أحد هنا",
+        "الكل بعيد عني",
+        "تعبت من الغربة",
+        "الغربة صعبة",
+        "ما أحد يفهمني هنا"
+      ],
+      "action": {
+        "type": "inject",
+        "target": "system",
+        "content": "EXPAT ISOLATION CONTEXT (this turn): The user is expressing homesickness, loneliness, or disconnection that comes from living away from their home country and family.\n\nFRAMING:\n- In collectivist Gulf and Arab cultures, being separated from family is not simply a personal preference issue. It is a genuine loss of the social fabric that sustains identity and wellbeing. This is not weakness or over-dependence; it is a culturally coherent response to real separation.\n- Validate the longing directly. Do NOT reframe this as a good opportunity to build independence or suggest the user should embrace being alone. This would feel invalidating.\n- Acknowledge the dual reality: many expats chose to be here (for opportunity, career, family finances) while still genuinely grieving the distance. Both can be true.\n- Connection strategies that fit this context: calling family regularly, finding a community of people from the same culture, mosque or religious community, cultural associations, food and shared language.\n- If loneliness is severe or sustained (weeks of not leaving the house, no contact with anyone), gently explore whether professional support might help bridge the gap.\n\nDO NOT: reframe distance as opportunity, suggest independence is better than connection, dismiss the cultural significance of family proximity."
+      }
+    }
+  ]
+}

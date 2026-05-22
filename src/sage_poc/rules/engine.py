@@ -179,12 +179,15 @@ def _eval_prompt_injection(rules: list[PromptInjectionRule], context: dict) -> E
     Accumulate all prompt injection rules whose trigger condition matches.
 
     context keys:
-      text (str)                      — user message (English)
+      text (str)                      — user message (English translation)
+      text_ar (str | None)            — original Arabic text (None if message was English)
       clinical_flags (list[str])      — e.g. ["substance_use"]
       primary_intent (str | None)
       secondary_intent (str | None)
     """
     text_lower = normalize_text(context.get("text", ""))
+    text_ar_raw = context.get("text_ar") or ""
+    norm_ar = normalize_arabic(text_ar_raw) if text_ar_raw else ""
     clinical_flags: list[str] = context.get("clinical_flags", [])
     primary_intent: str | None = context.get("primary_intent")
     secondary_intent: str | None = context.get("secondary_intent")
@@ -194,7 +197,19 @@ def _eval_prompt_injection(rules: list[PromptInjectionRule], context: dict) -> E
     for rule in rules:
         fired = False
         if rule.trigger_type == "keyword_match":
-            fired = any(kw.lower() in text_lower for kw in rule.trigger_keywords)
+            # English keywords matched against English text
+            en_fired = any(
+                kw.lower() in text_lower
+                for kw in rule.trigger_keywords
+                if not any('؀' <= c <= 'ۿ' for c in kw)
+            )
+            # Arabic keywords matched against original Arabic text
+            ar_fired = bool(norm_ar) and any(
+                normalize_arabic(kw) in norm_ar
+                for kw in rule.trigger_keywords
+                if any('؀' <= c <= 'ۿ' for c in kw)
+            )
+            fired = en_fired or ar_fired
         elif rule.trigger_type == "flag_present":
             fired = rule.trigger_value in clinical_flags
         elif rule.trigger_type == "intent_match":

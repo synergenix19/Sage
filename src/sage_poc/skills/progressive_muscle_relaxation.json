@@ -1,0 +1,166 @@
+{
+  "skill_id": "progressive_muscle_relaxation",
+  "skill_name": "Progressive Muscle Relaxation",
+  "skill_type": "structured",
+  "evidence_base": "Jacobson (1938); Bernstein & Borkovec (1973); WHO mhGAP Intervention Guide; NICE CG90 anxiety",
+  "self_evolution": "manual_only",
+  "target_presentations": [
+    "muscle tension",
+    "tense muscles",
+    "tight shoulders",
+    "tension headache",
+    "body is tense",
+    "physically tense",
+    "can feel the tension",
+    "so tense",
+    "tight neck",
+    "clenching my jaw",
+    "clenched jaw",
+    "shoulders are up around my ears",
+    "body is wound up",
+    "body stress",
+    "physical anxiety",
+    "somatic anxiety",
+    "my body is holding stress",
+    "feel it in my body",
+    "tense all over",
+    "body won't relax",
+    "can't relax physically",
+    "stiff",
+    "body aches from stress",
+    "توتر في جسمي",
+    "جسمي متصلب",
+    "كتفي مرفوعة",
+    "رقبتي تألمني",
+    "فكي متكتل",
+    "جسمي تعبان من التوتر",
+    "أحس بضغط في جسمي",
+    "أبي أرخي جسمي"
+  ],
+  "semantic_description": "Progressive muscle relaxation: Jacobson tension-release method. Tense each muscle group for 5 counts, then release completely. Systematic muscle group cycle: jaw, neck, shoulders, arms, hands, chest, stomach, legs, feet. Squeeze and release sequence through all major muscle groups. PMR protocol: work through body regions in sequence, tensing then releasing. Bernstein and Borkovec PMR exercise. Teach me progressive muscle relaxation. Muscle group progression from face to feet.",
+  "steps": [
+    {
+      "step_id": "breathe_and_settle",
+      "goal": "Help the user settle their breathing and become aware of where tension is held before starting muscle work",
+      "technique": "Body scan awareness, preparatory breathing",
+      "tone": "slow, calm, guiding the user to settle without rushing",
+      "examples": [
+        "Before we start, let us take a moment to breathe and settle. Close your eyes if that feels comfortable, or just soften your gaze. Take a slow breath in, and as you breathe out, notice where in your body you feel tension right now.",
+        "Let your body be still for a moment. Where are you holding the most tension? Shoulders, jaw, neck, stomach? Just notice it without trying to change it yet.",
+        "قبل ما نبدأ, خذ نفس عميق وبطيء. وأثناء ما تزفر, لاحظ وين تحس بالتوتر في جسمك. ما لازم تغير شي الحين, بس لاحظ.",
+        "Take three slow breaths. Each time you breathe out, let your body get a little heavier. We are going to work through the tension muscle group by muscle group."
+      ],
+      "few_shot_examples": [
+        "Before we start, let us take a moment to breathe and settle. Close your eyes if that feels comfortable, or just soften your gaze. Take a slow breath in, and as you breathe out, notice where in your body you feel tension right now.",
+        "Let your body be still for a moment. Where are you holding the most tension? Shoulders, jaw, neck, stomach? Just notice it without trying to change it yet.",
+        "قبل ما نبدأ, خذ نفس عميق وبطيء. وأثناء ما تزفر, لاحظ وين تحس بالتوتر في جسمك. ما لازم تغير شي الحين, بس لاحظ.",
+        "Take three slow breaths. Each time you breathe out, let your body get a little heavier. We are going to work through the tension muscle group by muscle group."
+      ],
+      "contraindications": "Do NOT rush into muscle tensing. If the user is in acute panic or very high distress, stay with breathing only and do not advance to tensing yet.",
+      "completion_criteria": "User has taken at least one slow breath and has identified at least one area of tension in the body."
+    },
+    {
+      "step_id": "upper_body",
+      "goal": "Guide tension-and-release for upper body: shoulders, neck, face, jaw",
+      "technique": "Progressive muscle relaxation, tension-release cycles (Jacobson 1938)",
+      "tone": "steady, instructional but warm, pacing carefully through each group",
+      "examples": [
+        "Let us start at the top. Shrug your shoulders up to your ears and squeeze them tight, hold for about 5 seconds, then let them drop completely. Notice the difference between the tension and the release.",
+        "Now your jaw: clench it gently for 5 seconds, then let it go completely. Let your mouth hang slightly open. Feel the release.",
+        "الحين كتفينك: ارفعهم بقوة لأعلى واضغط لمدة 5 ثواني, ثم خلهم يسقطون فجأة. لاحظ الفرق بين التوتر والارتخاء.",
+        "Scrunch your face up tight for 5 seconds, like you just tasted something sour, then let it all go. Your forehead, your eyes, your cheeks, all releasing."
+      ],
+      "few_shot_examples": [
+        "Let us start at the top. Shrug your shoulders up to your ears and squeeze them tight, hold for about 5 seconds, then let them drop completely. Notice the difference between the tension and the release.",
+        "Now your jaw: clench it gently for 5 seconds, then let it go completely. Let your mouth hang slightly open. Feel the release.",
+        "الحين كتفينك: ارفعهم بقوة لأعلى واضغط لمدة 5 ثواني, ثم خلهم يسقطون فجأة. لاحظ الفرق بين التوتر والارتخاء.",
+        "Scrunch your face up tight for 5 seconds, like you just tasted something sour, then let it all go. Your forehead, your eyes, your cheeks, all releasing."
+      ],
+      "contraindications": "Do NOT instruct forceful tensing near areas of injury, chronic pain, or arthritis. If the user mentions neck or jaw pain, go very gentle or skip that muscle group. Ask before each group if they have any pain there.",
+      "completion_criteria": "User has completed at least one tension-release cycle for the upper body and reported a noticing of the release."
+    },
+    {
+      "step_id": "lower_body",
+      "goal": "Guide tension-and-release for lower body: arms, hands, stomach, legs, feet",
+      "technique": "Progressive muscle relaxation, continuing down the body",
+      "tone": "continuing steady, warm pacing",
+      "examples": [
+        "Move down to your hands: squeeze them into fists, as tight as you can, hold 5 seconds, then open them completely. Feel the warmth and release as the blood flows back in.",
+        "Now your stomach: pull it in tight, hold 5 seconds, then let it go completely. Feel your belly soften.",
+        "الحين يديك: اقبضهم بقوة لمدة 5 ثواني, ثم افتحهم تماماً. لاحظ الدفء والارتخاء في أصابعك.",
+        "Your legs and feet: squeeze the muscles in your thighs, calves, and curl your toes. Hold 5 seconds, then let everything go completely. Feel your legs get heavy."
+      ],
+      "few_shot_examples": [
+        "Move down to your hands: squeeze them into fists, as tight as you can, hold 5 seconds, then open them completely. Feel the warmth and release as the blood flows back in.",
+        "Now your stomach: pull it in tight, hold 5 seconds, then let it go completely. Feel your belly soften.",
+        "الحين يديك: اقبضهم بقوة لمدة 5 ثواني, ثم افتحهم تماماً. لاحظ الدفء والارتخاء في أصابعك.",
+        "Your legs and feet: squeeze the muscles in your thighs, calves, and curl your toes. Hold 5 seconds, then let everything go completely. Feel your legs get heavy."
+      ],
+      "contraindications": "Do NOT instruct tensing in legs if the user has mentioned cramps, deep vein conditions, or leg injuries. Go gentle or skip as needed.",
+      "completion_criteria": "User has completed at least one tension-release cycle for the lower body."
+    },
+    {
+      "step_id": "integration",
+      "goal": "End the exercise by inviting the user to notice the difference across their whole body and check in on their state",
+      "technique": "Body scan integration, check-in",
+      "tone": "warm, slow, closing, checking in genuinely",
+      "examples": [
+        "Take a moment now to scan through your whole body from the top of your head to the soles of your feet. How does it feel compared to when we started?",
+        "Notice the difference. Tension and relaxation. Your body just did something kind for itself. How are you feeling right now?",
+        "الحين تفقد جسمك كله, من رأسك لقدمك. وين اختلف الإحساس عن قبل؟ كيف تحس الحين؟",
+        "Take one more slow breath, in through your nose, out through your mouth. And when you are ready, gently open your eyes. How was that?"
+      ],
+      "few_shot_examples": [
+        "Take a moment now to scan through your whole body from the top of your head to the soles of your feet. How does it feel compared to when we started?",
+        "Notice the difference. Tension and relaxation. Your body just did something kind for itself. How are you feeling right now?",
+        "الحين تفقد جسمك كله, من رأسك لقدمك. وين اختلف الإحساس عن قبل؟ كيف تحس الحين؟",
+        "Take one more slow breath, in through your nose, out through your mouth. And when you are ready, gently open your eyes. How was that?"
+      ],
+      "contraindications": "Do NOT rush the check-in. The user may feel drowsy or vulnerable after PMR. Give them a moment before transitioning.",
+      "completion_criteria": "User has completed the body scan and responded to the check-in. They can report some difference between before and after, even if small."
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": { "signal": "emotional_intensity", "operator": ">", "value": 7, "step": "ANY" },
+      "action": "validate_only",
+      "instruction": "User is in acute distress. Do not advance to tensing. Stay with breathing, validate that you are with them, and do not push muscle work.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": { "signal": "resistance", "operator": ">", "value": 6, "turns": 3, "step": "ANY" },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance. Offer to stop the exercise and just talk, or try something different. Do not pressure.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": { "signal": "engagement", "operator": "<", "value": 3, "turns": 3, "step": "ANY" },
+      "action": "check_in_micro",
+      "instruction": "User is disengaged. Gently check in: is this exercise helping? Would they prefer to just talk or try something else?",
+      "next_step_id": "current"
+    },
+    {
+      "condition": { "signal": "user_stop_request", "operator": "==", "value": true, "step": "ANY" },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit immediately with warmth. No persuasion. Acknowledge they tried and that is enough.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": { "signal": "pain_or_injury_mention", "operator": "==", "value": true, "step": "ANY" },
+      "action": "pause_and_modify",
+      "instruction": "User has mentioned pain or physical injury. Pause the current muscle group. Ask if they want to skip it or go very gentle. Do not instruct tensing near an injured area.",
+      "next_step_id": "current"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit skill gracefully if user requests to stop or feels worse physically. PMR is voluntary and gentle.",
+    "L2": "Add clinician_review flag if user discloses chronic pain condition, fibromyalgia, or if PMR causes pain rather than relief.",
+    "L3": "Exit immediately to crisis protocol if any crisis signal detected.",
+    "L4": "Trigger human handoff if 3+ crises in last 30 days or user explicitly requests a human."
+  },
+  "cultural_overrides": {
+    "privacy_note": "PMR involves physical awareness and gentle tensing. For conservative users, note that this is done privately and does not require any specific clothing or posture. It can be done fully clothed, seated.",
+    "gender_note": "For female users in UAE context, if suggesting lying down, note this is done in private. If user is in a shared or public space, offer the seated version only.",
+    "prayer_note": "If timing is relevant, PMR can be done between prayer times or before sleep. It does not conflict with Islamic practice."
+  }
+}

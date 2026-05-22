@@ -2,6 +2,7 @@
   "skill_id": "cbt_thought_record",
   "skill_name": "CBT Thought Record",
   "skill_type": "structured",
+  "self_evolution": "manual_only",
   "evidence_base": "Beck (1979); NICE CG159",
   "target_presentations": [
     "negative thoughts", "self-blame", "cognitive distortions",
@@ -12,11 +13,24 @@
     "i'm useless", "im useless",
     "i'm not good enough", "im not good enough",
     "it's all my fault", "its all my fault",
-    "overthinking",
     "thought spiral",
     "spiraling thoughts", "spiralling thoughts",
     "intrusive thoughts",
-    "everyone hates me"
+    "everyone hates me",
+    "كل شي غلطتي",
+    "أنا السبب",
+    "أكره نفسي",
+    "مو كافي",
+    "فاشل",
+    "فاشلة",
+    "مو زين",
+    "كلش مو زين",
+    "أنا المشكلة",
+    "ما أستاهل",
+    "لحالي دايم أخرب",
+    "الكل يكرهني",
+    "عبء على الكل",
+    "أفكاري تعبتني"
   ],
   "semantic_description": "I'm not good enough. I'm a failure. I'm stupid. I'm worthless. I'm unlovable. I'm a disappointment to everyone. I hate myself. I always mess things up. Nothing I ever do is right. It's always my fault. I'm a burden. I should be better than this. I'm broken as a person. Everyone else seems to manage and I fall short — I am the one who cannot seem to be normal the way everyone else is. They must all think I'm a failure. Everyone can see I'm worthless. They must hate having me around. The self-talk turns inward and harshly judges who I am as a person — my character, my worth, my adequacy as a human being. A repeated sentence I tell myself about myself. A fixed self-evaluation, a stuck verdict on my identity. Self-critical content aimed at the kind of person I am.",
   "steps": [
@@ -68,13 +82,48 @@
     },
     {
       "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance to the thought record. Offer to pause and just talk, or explore whether a different approach might suit them better.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
         "signal": "engagement",
         "operator": "<",
         "value": 3,
+        "turns": 3,
         "step": "ANY"
       },
-      "action": "check_in",
-      "instruction": "The user seems disengaged. Gently check in — ask if they'd like to continue, take a different approach, or simply talk.",
+      "action": "check_in_micro",
+      "instruction": "The user seems disengaged. Gently check in: is the thought record approach feeling useful right now, or would something else be more helpful?",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit with warmth and without persuasion. Naming a difficult thought is already meaningful work.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": {
+        "signal": "trauma_disclosure_detected",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "flag_for_review",
+      "instruction": "User has disclosed a traumatic event. Do NOT challenge thoughts connected to trauma without clinical support. Validate, add clinician_review flag, and offer to simply talk rather than continue the thought record.",
       "next_step_id": "current"
     }
   ],

@@ -2,6 +2,7 @@
   "skill_id": "post_crisis_check_in",
   "skill_name": "Post-Crisis Check-In",
   "skill_type": "structured",
+  "self_evolution": "manual_only",
   "evidence_base": "ASIST (2018); SafeTALK; SAMHSA Safe Messaging Guidelines (2023)",
   "target_presentations": [],
   "semantic_description": "",
@@ -40,6 +41,52 @@
       "action": "validate_only",
       "instruction": "The user is still highly distressed. Stay present and validating. Do not attempt to move forward. Express that you are here and that support is also available at 800 46342.",
       "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance to the check-in. This may mean they are overwhelmed or not ready. Ease back, offer simple presence, and do not push further.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "check_in_micro",
+      "instruction": "User is disengaged from the check-in. In post-crisis context, this may signal overwhelm rather than disinterest. Reduce intensity, offer simple presence, and do not interpret silence as a sign they are fine.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop the check-in. Exit with warmth. Let them know help is always available and they can come back whenever they are ready. A post-crisis user stopping a check-in may be overwhelmed, not disengaged. Do not interpret this as a sign they are fine.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": {
+        "signal": "re_escalation_detected",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_to_crisis_protocol",
+      "instruction": "New crisis signals have appeared during the post-crisis check-in. Exit the check-in immediately and re-enter the crisis protocol. Do not attempt to continue the check-in. Treat this as a new acute crisis.",
+      "next_step_id": "exit"
     }
   ],
   "escalation_matrix": {

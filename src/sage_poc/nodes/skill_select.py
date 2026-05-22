@@ -4,11 +4,11 @@ import numpy as np
 from sage_poc.state import SageState
 from sage_poc.skills.schema import load_skill
 
-SKILL_REGISTRY = ["cbt_thought_record", "grounding_5_4_3_2_1", "sleep_hygiene", "post_crisis_check_in"]
+SKILL_REGISTRY = ["cbt_thought_record", "grounding_5_4_3_2_1", "sleep_hygiene", "post_crisis_check_in", "box_breathing", "mood_check_in", "behavioral_activation", "worry_time", "mi_readiness_ruler", "stop_technique", "progressive_muscle_relaxation", "safe_place_visualization"]
 _SKILLS = {sid: load_skill(sid) for sid in SKILL_REGISTRY}
 
 # Threshold from empirical calibration (Task 3).
-SEMANTIC_THRESHOLD: float = 0.5258  # calibrated 2026-05-21 (RT-4c); gap=0.0124 (lowest hit 0.5345, highest miss 0.5220); prior 0.5253 (Task D)
+SEMANTIC_THRESHOLD: float = 0.5258  # recalibrated 2026-05-22; all descriptions rewritten to technique-identity only (see SKILL_AUTHORING_CONVENTIONS.md); gap=0.0124 (lowest hit 0.5345, highest miss 0.5220)
 # NOTE: CBT semantic_description has inherent overlap with vague negative-affect
 # language in BGE-M3 embedding space ("I just feel off today" scores 0.5566,
 # "I'm not doing great" 0.5965 — both above threshold at the semantic tier).

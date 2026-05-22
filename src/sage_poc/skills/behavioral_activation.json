@@ -1,0 +1,156 @@
+{
+  "skill_id": "behavioral_activation",
+  "skill_name": "Behavioral Activation",
+  "skill_type": "structured",
+  "evidence_base": "Martell et al. (2001); Jacobson et al. (1996); NICE CG90, depression; Richards et al. (2016) low-intensity BA",
+  "self_evolution": "manual_only",
+  "target_presentations": [
+    "no motivation",
+    "lost motivation",
+    "can't get out of bed",
+    "cant get out of bed",
+    "doing nothing",
+    "no energy",
+    "haven't left the house",
+    "haven't done anything",
+    "stuck at home",
+    "can't be bothered",
+    "cant be bothered",
+    "everything feels pointless",
+    "nothing interests me",
+    "i don't enjoy anything",
+    "stopped enjoying things",
+    "withdrawn",
+    "isolating myself",
+    "no drive",
+    "just lying in bed",
+    "feel useless",
+    "not doing anything productive",
+    "hibernating",
+    "ما أقدر أقوم",
+    "ما أقدر أقومي",
+    "ما عندي خلق",
+    "ما في داعي لأي شي",
+    "محبوس في البيت",
+    "قاعد ما أسوي شي",
+    "كل شي ما يهمني",
+    "فقدت الرغبة بكل شي",
+    "stopped doing things",
+    "stopped doing the things i used to",
+    "dont do anything anymore",
+    "don't do anything anymore",
+    "ما أسوي شي"
+  ],
+  "semantic_description": "Behavioral activation: graded activity scheduling protocol. Adapted from Martell et al. (2001) and Richards et al. (2016) low-intensity BA: identify one concrete task, assign a specific day and time, complete it, observe the result. Activity hierarchy: start with smallest achievable step and build up. Pleasurable activity planning: pick one activity, schedule it, report back. Activity monitoring log: track what is completed and when. One-task experiment per day. Schedule one achievable task this week. Behavioral engagement through structured task scheduling.",
+  "steps": [
+    {
+      "step_id": "activity_audit",
+      "goal": "Understand the user's current activity level and what has dropped away",
+      "technique": "Behavioral assessment, activity mapping",
+      "tone": "curious, non-judgmental, collaborative, validate the difficulty without colluding with avoidance",
+      "examples": [
+        "Tell me about your days lately. What does a typical day look like from when you wake up to when you go to sleep?",
+        "What kinds of things were you doing before, things you enjoyed or that kept you going? And what's changed?",
+        "حدثني عن يومياتك هالفترة. إيش يصير من وقت ما تصحى لين ما تنام؟ إيش تسوي عادة؟",
+        "What's the thing that's dropped away most? The thing you used to do that feels furthest away right now?",
+        "إيش كنت تسوي قبل الي ما تسويه هالحين؟ إيش تغير؟"
+      ],
+      "few_shot_examples": [
+        "Tell me about your days lately. What does a typical day look like from when you wake up to when you go to sleep?",
+        "What kinds of things were you doing before, things you enjoyed or that kept you going? And what's changed?",
+        "حدثني عن يومياتك هالفترة. إيش يصير من وقت ما تصحى لين ما تنام؟ إيش تسوي عادة؟",
+        "What's the thing that's dropped away most? The thing you used to do that feels furthest away right now?",
+        "إيش كنت تسوي قبل الي ما تسويه هالحين؟ إيش تغير؟"
+      ],
+      "contraindications": "Do NOT suggest the user just push through it or imply willpower is the solution. Do NOT judge low activity levels. Low motivation is a symptom, not a character flaw.",
+      "completion_criteria": "User has described their current activity level and identified at least one activity that has dropped away or reduced."
+    },
+    {
+      "step_id": "identify_small_step",
+      "goal": "Help the user identify one very small, achievable activity they could try this week",
+      "technique": "Behavioral activation, graded task assignment, starting with lowest-effort high-reward activity",
+      "tone": "collaborative, realistic, encouraging without being pushy, the activity must feel genuinely achievable",
+      "examples": [
+        "What's one small thing that, if you did it, might feel like a win, even if tiny? Not a big task, just something small that counts as doing something.",
+        "If you couldn't leave your bed, is there one thing you could do right there that might shift the feeling slightly? Even making a cup of tea counts.",
+        "في شي صغير، لو سويته، ممكن يحسسك إنك سويت شي، ولو بسيط؟ مو لازم يكون شي كبير.",
+        "Think smaller than you think you need to. Not an exercise plan, not cleaning the whole house. Something that takes five minutes. What might that be?",
+        "إيش أصغر شي تقدر تسويه بكرة، حتى لو بسيط جدا؟"
+      ],
+      "few_shot_examples": [
+        "What's one small thing that, if you did it, might feel like a win, even if tiny? Not a big task, just something small that counts as doing something.",
+        "If you couldn't leave your bed, is there one thing you could do right there that might shift the feeling slightly? Even making a cup of tea counts.",
+        "في شي صغير، لو سويته، ممكن يحسسك إنك سويت شي، ولو بسيط؟ مو لازم يكون شي كبير.",
+        "Think smaller than you think you need to. Not an exercise plan, not cleaning the whole house. Something that takes five minutes. What might that be?",
+        "إيش أصغر شي تقدر تسويه بكرة، حتى لو بسيط جدا؟"
+      ],
+      "contraindications": "Do NOT suggest ambitious activities (exercise plan, social event) as a first step. Start as small as possible, making the bed, stepping outside for 2 minutes. Large goals early in BA increase shame when not completed.",
+      "completion_criteria": "User has named one specific small activity they are willing to try. The activity is concrete, not vague ('spend time with family' is vague; 'call my brother for 5 minutes' is concrete)."
+    },
+    {
+      "step_id": "commitment_and_barrier",
+      "goal": "Strengthen commitment to the activity and anticipate one realistic barrier",
+      "technique": "Implementation intention, barrier anticipation",
+      "tone": "warm, practical, supportive",
+      "examples": [
+        "When are you going to do it? Even a rough time helps, morning, after lunch, before bed? Having a when makes it more likely to happen.",
+        "What might get in the way of doing it? And if that happens, what's your backup plan? Even knowing the obstacle ahead of time changes things.",
+        "متى ممكن تسويه؟ حتى لو تقريبي، الصبح، بعد الغدا، قبل النوم؟ تحديد الوقت يساعد.",
+        "And if that low feeling hits and makes it hard to start, what's the smallest possible version of the activity you could still do? Even half of it counts.",
+        "إيش الي ممكن يصير ويمنعك من تسويه؟ ولو صار، إيش ممكن تسوي بدل ما تتركه كله؟"
+      ],
+      "few_shot_examples": [
+        "When are you going to do it? Even a rough time helps, morning, after lunch, before bed? Having a when makes it more likely to happen.",
+        "What might get in the way of doing it? And if that happens, what's your backup plan? Even knowing the obstacle ahead of time changes things.",
+        "متى ممكن تسويه؟ حتى لو تقريبي، الصبح، بعد الغدا، قبل النوم؟ تحديد الوقت يساعد.",
+        "And if that low feeling hits and makes it hard to start, what's the smallest possible version of the activity you could still do? Even half of it counts.",
+        "إيش الي ممكن يصير ويمنعك من تسويه؟ ولو صار، إيش ممكن تسوي بدل ما تتركه كله؟"
+      ],
+      "contraindications": "Do NOT make the commitment feel like a test or pressure. Frame it as an experiment, not a promise. If they don't do it, that is data, not failure.",
+      "completion_criteria": "User has named a time or rough timeframe for the activity and identified at least one potential barrier."
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": { "signal": "emotional_intensity", "operator": ">", "value": 7, "step": "ANY" },
+      "action": "validate_only",
+      "instruction": "User is in acute distress. Do not advance to activity planning. Stay with validation and let the user lead any movement forward.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": { "signal": "resistance", "operator": ">", "value": 6, "turns": 3, "step": "ANY" },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance to the BA framework. Offer to stop and just talk, or to try a different skill. Do not push the activity-planning structure.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": { "signal": "engagement", "operator": "<", "value": 3, "turns": 3, "step": "ANY" },
+      "action": "check_in_micro",
+      "instruction": "User is disengaged. Gently check in: is this approach feeling helpful? Would they prefer to just talk or try something else?",
+      "next_step_id": "current"
+    },
+    {
+      "condition": { "signal": "user_stop_request", "operator": "==", "value": true, "step": "ANY" },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit immediately with warmth. No persuasion. Acknowledge that even thinking about one small step is meaningful.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": { "signal": "hopelessness", "operator": ">", "value": 7, "step": "identify_small_step" },
+      "action": "validate_only",
+      "instruction": "User is expressing that nothing will help or that there is no point. Do not push toward activity identification. Validate the feeling, acknowledge it makes sense given how things have been, and only return to activity planning if the user re-engages. Flag session for clinician_review.",
+      "next_step_id": "current"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit gracefully if user requests to stop. No persuasion.",
+    "L2": "Add clinician_review flag if user expresses sustained hopelessness (nothing will ever get better), significant functional impairment (weeks of not leaving house, not eating), or self-neglect signals.",
+    "L3": "Exit immediately to crisis protocol if any crisis signal detected.",
+    "L4": "Trigger human handoff if 3 or more crises in last 30 days or user explicitly requests human."
+  },
+  "cultural_overrides": {
+    "prayer_time_note": "Do NOT suggest activities that conflict with Salah times. If timing comes up, treat prayer as a natural anchor point ('what about just after Asr prayer?') rather than a competing demand.",
+    "gender_norm_note": "Suggested activities should be gender-appropriate to the UAE context. Avoid suggesting mixed-gender social activities without the user raising this. Outdoor activities may need to account for gender norms and heat climate.",
+    "collective_framing": "Framing activities around family connection or service (helping a family member, cooking for someone) may feel more motivating than individual self-care framing in collectivist Gulf culture."
+  }
+}

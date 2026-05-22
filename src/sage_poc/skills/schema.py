@@ -25,6 +25,8 @@ class SkillStep(BaseModel):
     technique: str
     tone: str
     examples: list[str]
+    contraindications: str = ""
+    completion_criteria: str = ""
 
 
 class Skill(BaseModel):
@@ -32,6 +34,7 @@ class Skill(BaseModel):
     skill_name: str
     skill_type: str
     evidence_base: str
+    self_evolution: str = "manual_only"
     target_presentations: list[str]
     semantic_description: str = ""   # rich description for embedding-based skill matching
     steps: list[SkillStep]

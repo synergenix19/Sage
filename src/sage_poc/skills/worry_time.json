@@ -1,0 +1,129 @@
+{
+  "skill_id": "worry_time",
+  "skill_name": "Worry Time",
+  "skill_type": "structured",
+  "evidence_base": "Borkovec et al. (1983); Wells (1995) metacognitive therapy; NICE CG113, GAD",
+  "self_evolution": "manual_only",
+  "target_presentations": [
+    "can't stop worrying",
+    "cant stop worrying",
+    "worrying all the time",
+    "constantly worrying",
+    "my mind won't stop",
+    "mind wont stop",
+    "overthinking everything",
+    "always overthinking",
+    "worry about everything",
+    "catastrophising",
+    "catastrophizing",
+    "what if thoughts",
+    "spiral of worry",
+    "worry spiral",
+    "anxious thoughts won't stop",
+    "stuck in my head",
+    "ruminating",
+    "rumination",
+    "can't switch my brain off",
+    "stuck worrying",
+    "thoughts going round and round",
+    "ما أقدر أوقف أفكاري",
+    "دايم أفكر بالسوء",
+    "أفكاري تدور دايم",
+    "قلقان على كل شي",
+    "قلقانة على كل شي",
+    "ماذا لو",
+    "أفكار ما تنقطع",
+    "تفكير زيادة",
+    "cant stop overthinking",
+    "cant stop thinking about it",
+    "my mind wont stop overthinking",
+    "أفكر وايد"
+  ],
+  "semantic_description": "Worry time technique: scheduling a dedicated 30-minute window each day to contain chronic worry. I keep worrying about the same things repeatedly and cannot stop. What if thoughts that recur constantly. Scheduled worry postponement: when a worry comes outside the window, postpone it to worry time. Metacognitive approach to rumination. I need a structured technique to organize my worrying into one slot rather than all day. Chronic repetitive worry, persistent what-if loops, recurring intrusive worry thoughts. Borkovec scheduled worry containment method.",
+  "steps": [
+    {
+      "step_id": "schedule_worry",
+      "goal": "Introduce the concept of a designated worry window and invite the user to contain worry to that window",
+      "technique": "Stimulus control for worry, scheduled worry postponement (Borkovec 1983)",
+      "tone": "warm, validating first, then curious and collaborative, explain the technique without being prescriptive",
+      "examples": [
+        "There's a technique that actually works for a lot of people who can't stop their thoughts: giving worry its own time slot. Instead of trying to stop the thoughts, you let them happen, but only in a specific window you choose. Outside that window, when a worry comes, you gently postpone it. Would you want to try setting one up?",
+        "What if instead of fighting the worries, you gave them a dedicated 20-30 minute slot each day? A time when you're allowed to worry as much as you want. Outside that slot, the deal is: notice the thought, write it down if needed, and save it for worry time. Does that sound like something worth trying?",
+        "في أسلوب اسمه وقت القلق، بدل ما تحارب أفكارك، تعطيها وقت محدد في اليوم. خارج هذا الوقت، لما تجي الفكرة، تقول لها: راح تجي وقتها. إيش تحس لو جربنا نحدد وقت كذا؟",
+        "The idea is not to stop worrying, it's to contain it. Your brain gets its worry time, just on your schedule rather than all day. What time of day might work for a 20-minute worry window?",
+        "أفكارك ما لازم تكون العدو. لو أعطيناها وقت محدد في اليوم، ممكن تصير أخف على باقي الوقت. إيش رأيك نجرب؟"
+      ],
+      "few_shot_examples": [
+        "There's a technique that actually works for a lot of people who can't stop their thoughts: giving worry its own time slot. Instead of trying to stop the thoughts, you let them happen, but only in a specific window you choose. Outside that window, when a worry comes, you gently postpone it. Would you want to try setting one up?",
+        "What if instead of fighting the worries, you gave them a dedicated 20-30 minute slot each day? A time when you're allowed to worry as much as you want. Outside that slot, the deal is: notice the thought, write it down if needed, and save it for worry time. Does that sound like something worth trying?",
+        "في أسلوب اسمه وقت القلق، بدل ما تحارب أفكارك، تعطيها وقت محدد في اليوم. خارج هذا الوقت، لما تجي الفكرة، تقول لها: راح تجي وقتها. إيش تحس لو جربنا نحدد وقت كذا؟",
+        "The idea is not to stop worrying, it's to contain it. Your brain gets its worry time, just on your schedule rather than all day. What time of day might work for a 20-minute worry window?",
+        "أفكارك ما لازم تكون العدو. لو أعطيناها وقت محدد في اليوم، ممكن تصير أخف على باقي الوقت. إيش رأيك نجرب؟"
+      ],
+      "contraindications": "Do NOT dismiss the worry content as irrational. Do NOT tell the user to just stop worrying. Validate that the worry feels real and important before introducing the containment technique.",
+      "completion_criteria": "User has agreed to try worry time and has named or chosen a rough window for it (e.g., 6pm, after dinner, 20 minutes before bed)."
+    },
+    {
+      "step_id": "sort_and_act",
+      "goal": "Help the user sort their worries into actionable vs. hypothetical, and respond to each type",
+      "technique": "Worry categorisation (Wells 1995), real problem vs. hypothetical or what-if",
+      "tone": "curious, practical, structured but light",
+      "examples": [
+        "During worry time, there's a useful question to ask each worry: 'Is this something I can actually do something about, or is this a what-if?' If you can act on it, make a small plan. If it's a what-if, practice letting it sit without answering it.",
+        "Some worries have a practical solution. Most what-if worries don't, and responding to them actually feeds the cycle. The skill is learning to notice when a worry is a what-if, and practice not engaging with it. What's one worry you've had recently that you could test this with?",
+        "كل قلق نسأله: هل هذا شي أقدر أسوي فيه شي الحين؟ لو نعم، نحط خطة صغيرة. لو هو فكرة ماذا لو، نتعلم نتركها بدون إجابة. إيش قلق شايله هالفترة نجرب نصنفه؟",
+        "Two buckets: things I can do something about, and things that are pure what-if. Actionable worries get a small plan. What-if worries get acknowledged and set aside. Want to try sorting one?",
+        "في قلق معين شايله هالفترة؟ نشوف سوا: هل هو شي تقدر تسوي فيه شي؟ ولا هو مجرد ماذا لو؟"
+      ],
+      "few_shot_examples": [
+        "During worry time, there's a useful question to ask each worry: 'Is this something I can actually do something about, or is this a what-if?' If you can act on it, make a small plan. If it's a what-if, practice letting it sit without answering it.",
+        "Some worries have a practical solution. Most what-if worries don't, and responding to them actually feeds the cycle. The skill is learning to notice when a worry is a what-if, and practice not engaging with it. What's one worry you've had recently that you could test this with?",
+        "كل قلق نسأله: هل هذا شي أقدر أسوي فيه شي الحين؟ لو نعم، نحط خطة صغيرة. لو هو فكرة ماذا لو، نتعلم نتركها بدون إجابة. إيش قلق شايله هالفترة نجرب نصنفه؟",
+        "Two buckets: things I can do something about, and things that are pure what-if. Actionable worries get a small plan. What-if worries get acknowledged and set aside. Want to try sorting one?",
+        "في قلق معين شايله هالفترة؟ نشوف سوا: هل هو شي تقدر تسوي فيه شي؟ ولا هو مجرد ماذا لو؟"
+      ],
+      "contraindications": "Do NOT tell the user their worries are irrational or unfounded. Do NOT push too hard on the categorisation, some people resist the framework. Keep it collaborative.",
+      "completion_criteria": "User has applied the categorisation to at least one worry and has identified whether it is actionable or hypothetical."
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": { "signal": "emotional_intensity", "operator": ">", "value": 7, "step": "ANY" },
+      "action": "validate_only",
+      "instruction": "User is in acute distress. Do not introduce technique. Stay present, validate the overwhelm, and only re-offer the technique if the user indicates they are ready.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": { "signal": "resistance", "operator": ">", "value": 6, "turns": 3, "step": "ANY" },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance to the worry time framework. Offer to stop and just talk, or try a different skill. Do not repeat the technique explanation.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": { "signal": "engagement", "operator": "<", "value": 3, "turns": 3, "step": "ANY" },
+      "action": "check_in_micro",
+      "instruction": "User is disengaged. Gently check in: is this approach feeling useful? Would they prefer to just talk or try something else?",
+      "next_step_id": "current"
+    },
+    {
+      "condition": { "signal": "user_stop_request", "operator": "==", "value": true, "step": "ANY" },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit immediately with warmth. No persuasion. Acknowledge that noticing worry patterns is itself a meaningful step.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": { "signal": "obsessive_theme_detected", "operator": "==", "value": true, "step": "sort_and_act" },
+      "action": "flag_for_review",
+      "instruction": "User's worry content shows repetitive, intrusive, or shame-laden themes that may indicate OCD rather than GAD. Do not continue with worry time categorisation. Validate the difficulty of the thoughts, do not reinforce avoidance or compulsive checking, and flag session for clinician_review. Offer to just talk rather than continue the technique.",
+      "next_step_id": "current"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit gracefully if user requests to stop or finds the framework unhelpful. No persuasion.",
+    "L2": "Add clinician_review flag if worry is focused on specific trauma events, or if user describes obsessive themes or compulsive checking behaviors (possible OCD presentation, not GAD).",
+    "L3": "Exit immediately to crisis protocol if any crisis signal detected.",
+    "L4": "Trigger human handoff if 3 or more crises in last 30 days or user explicitly requests human."
+  },
+  "cultural_overrides": null,
+  "cultural_note": "Worry time is a cognitive-behavioral technique that is culturally transferable. Arabic examples use natural colloquial phrasing. The technique should be framed as a skill, not as dismissing God's will. For religious users, frame it as using one's reason as God intended, alongside trust in His plan (tawakkul)."
+}

@@ -2,6 +2,7 @@
   "skill_id": "grounding_5_4_3_2_1",
   "skill_name": "5-4-3-2-1 Grounding",
   "skill_type": "structured",
+  "self_evolution": "manual_only",
   "evidence_base": "Linehan (1993); DBT Skills Training Manual",
   "target_presentations": [
     "panic attack", "panic", "dissociated", "dissociation",
@@ -17,7 +18,21 @@
     "derealization", "derealisation",
     "spacing out",
     "feel like i'm dissociating", "feel like im dissociating",
-    "freaking out"
+    "freaking out",
+    "ما أقدر أركز",
+    "حاسس إني مو هني",
+    "مشتت",
+    "مشتتة",
+    "خايف",
+    "خايفة",
+    "قلبي يدق",
+    "ما أقدر أتنفس",
+    "أحس إني أغرق",
+    "الدنيا تدور",
+    "حاسس بدوخة",
+    "أحس إني طايح",
+    "كل شي مو حقيقي",
+    "خايف أجنن"
   ],
   "semantic_description": "Acute panic attack or dissociative episode. Somatic panic symptoms: heart pounding violently, chest tight and unable to expand, hyperventilation and rapid shallow breath, hands and limbs trembling and shaking, skin cold and clammy with tingling or pins-and-needles, dizziness, vertigo, feeling faint, vision narrowing. Dissociation: the room feels unreal, surroundings appear dreamlike or distorted, derealization, depersonalization, watching from outside the body, not feeling real or present, disconnected from the environment, the world looks wrong. Frozen, numb, blank, hollowed out. Sudden acute onset — not everyday stress or chronic worry. Five-four-three-two-one grounding: five things seen, four touched, three heard, two smelled, one tasted, to interrupt an acute panic or dissociative state.",
   "steps": [
@@ -86,13 +101,48 @@
     },
     {
       "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained difficulty engaging with the grounding exercise. Offer to stop and simply breathe together, or talk instead.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
         "signal": "engagement",
         "operator": "<",
         "value": 3,
+        "turns": 3,
         "step": "ANY"
       },
-      "action": "check_in",
-      "instruction": "The user seems disengaged or unable to focus. Gently check in — is this exercise helping? Would they prefer to just breathe together or talk?",
+      "action": "check_in_micro",
+      "instruction": "The user seems disengaged or unable to focus. Gently check in: is this exercise helping? Would they prefer to just breathe together or talk?",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit gently. Grounding is always voluntary, and choosing to pause is okay.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": {
+        "signal": "sensory_limitation_disclosed",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "adapt_exercise",
+      "instruction": "User has disclosed a sensory limitation such as visual impairment, being in a dark room, or having eyes closed. Adapt the current step to an available sense rather than skipping. For example, if sight is unavailable at see_5, redirect to touch and ask them to name five things they can physically feel.",
       "next_step_id": "current"
     }
   ],

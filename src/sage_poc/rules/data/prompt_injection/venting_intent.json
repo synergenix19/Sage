@@ -1,0 +1,52 @@
+{
+  "category": "prompt_injection",
+  "rules": [
+    {
+      "rule_id": "PI-VI-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-22",
+      "active": true,
+      "description": "Venting intent detection — user signals they want to be heard, not helped. Instructs freeflow to hold space and reflect without injecting technique or advice. Addresses the most common early-session misfire: premature solution-offering.",
+      "category": "prompt_injection",
+      "trigger_type": "keyword_match",
+      "trigger_value": "",
+      "trigger_keywords": [
+        "just need to vent",
+        "need to vent",
+        "want to vent",
+        "don't want advice",
+        "dont want advice",
+        "not looking for advice",
+        "just want to talk",
+        "just want someone to listen",
+        "don't try to fix it",
+        "dont try to fix it",
+        "not asking for a solution",
+        "let me get this off my chest",
+        "get this off my chest",
+        "don't fix me",
+        "dont fix me",
+        "just listen",
+        "just hear me out",
+        "i know what to do",
+        "i just need to say this",
+        "not asking you to fix this",
+        "أبي أطلع اللي بخاطري",
+        "لا تعطيني حلول",
+        "بس أبي أحد يسمعني",
+        "أبي أتكلم بس",
+        "ما أبي نصايح",
+        "ما أبي حل",
+        "خلني أفضفض",
+        "أبي أفضفض",
+        "بس أبي أحكي"
+      ],
+      "action": {
+        "type": "inject",
+        "target": "system",
+        "content": "VENTING INTENT (this turn): The user has explicitly signalled they want to be heard, not helped. They are NOT asking for advice, techniques, or solutions right now.\n\nHOLD SPACE: Reflect, validate, and be present. Do NOT:\n- Offer coping strategies or techniques\n- Suggest grounding, breathing, or any structured exercise\n- Redirect to problem-solving or action steps\n- Ask what they want to do about it\n- Offer silver linings or reframes\n\nDO: Listen actively. Reflect back what they said. Validate their experience. Mirror their emotional language. Ask gentle deepening questions (\"what's been the hardest part?\") if they seem to want to keep talking.\n\nIf they shift and ask for help or a suggestion, you may gently offer it. Until then, your only job is to be present with them."
+      }
+    }
+  ]
+}

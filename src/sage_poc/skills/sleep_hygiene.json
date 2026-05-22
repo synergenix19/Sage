@@ -2,6 +2,7 @@
   "skill_id": "sleep_hygiene",
   "skill_name": "Sleep Hygiene",
   "skill_type": "structured",
+  "self_evolution": "manual_only",
   "evidence_base": "Walker (2017); NHS Sleep Hygiene Guidelines; CBT-I principles",
   "target_presentations": [
     "can't sleep", "cant sleep", "insomnia", "sleep problems", "sleeping badly",
@@ -16,7 +17,19 @@
     "mind won't stop", "mind wont stop",
     "waking up in the middle of the night",
     "can't switch off", "cant switch off",
-    "exhausted but can't sleep", "exhausted but cant sleep"
+    "exhausted but can't sleep", "exhausted but cant sleep",
+    "سهران",
+    "سهرانة",
+    "ما أنام",
+    "تعبان بس ما أقدر أنام",
+    "تعبانة بس ما أقدر أنام",
+    "صاحي بالليل",
+    "صاحية بالليل",
+    "ما أقدر أنام",
+    "نومي مو زين",
+    "أصحى بنص الليل",
+    "أفكاري ما تخليني أنام",
+    "تعبان من قلة النوم"
   ],
   "semantic_description": "Difficulty falling asleep or staying asleep. Sleep onset insomnia: lying in bed in the dark unable to fall asleep, watching the clock, waiting for sleep that will not come. Sleep maintenance insomnia: waking at two or three in the morning unable to get back to sleep. Tossing and turning all night. Early-morning awakening. At bedtime the mind activates — thoughts racing, ruminating, replaying the day, unable to switch off when the lights go out and the head hits the pillow. Exhausted but unable to sleep. Tired all day but wide awake at night. Bedtime, bedroom, pillow, duvet, alarm clock, three a.m. Non-restorative sleep. Persistent insomnia affecting sleep onset, sleep continuity, or sleep duration.",
   "steps": [
@@ -65,13 +78,48 @@
     },
     {
       "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance to sleep guidance. Offer to stop the advice and simply acknowledge how exhausting poor sleep is.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
         "signal": "engagement",
         "operator": "<",
         "value": 3,
+        "turns": 3,
         "step": "ANY"
       },
-      "action": "check_in",
-      "instruction": "User seems disengaged. Check in — is talking about sleep helpful right now, or would they prefer emotional support instead?",
+      "action": "check_in_micro",
+      "instruction": "User seems disengaged. Check in: is talking about sleep helpful right now, or would they prefer emotional support instead?",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit warmly. Invite them to return whenever they want to revisit sleep.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": {
+        "signal": "medication_or_substance_mention",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "flag_for_review",
+      "instruction": "User has mentioned sleep medication or substance use in the context of sleep. Do not advise on medication. Add clinician_review flag and offer to talk about what is making sleep difficult without giving guidance on medication.",
       "next_step_id": "current"
     }
   ],

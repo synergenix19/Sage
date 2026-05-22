@@ -383,7 +383,7 @@ def test_evaluate_step_policy_low_engagement_triggers_check_in():
         emotional_intensity=4,
         engagement=2,
     )
-    assert action["action"] == "check_in"
+    assert action["action"] == "check_in_micro"
 
 def test_skill_executor_node_produces_instruction():
     # message_en must be > 10 words for completion_criteria to allow advancement

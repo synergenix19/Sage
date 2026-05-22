@@ -1,0 +1,122 @@
+{
+  "skill_id": "mood_check_in",
+  "skill_name": "Mood Check-in",
+  "skill_type": "structured",
+  "evidence_base": "Kroenke, Spitzer & Williams (2001) PHQ-9; IAPT Minimum Dataset v2.0 (2018)",
+  "self_evolution": "manual_only",
+  "target_presentations": [
+    "how are you tracking",
+    "check in",
+    "mood check",
+    "how am i doing",
+    "track my mood",
+    "mood today",
+    "feeling low",
+    "feeling down",
+    "not feeling great",
+    "not doing well",
+    "having a bad day",
+    "bad day",
+    "rough day",
+    "rough week",
+    "struggling today",
+    "just checking in",
+    "how do you think i'm doing",
+    "rate my mood",
+    "كيف حالي اليوم",
+    "مزاجي مو زين",
+    "يوم صعب",
+    "تعبان",
+    "تعبانة",
+    "ما أعرف كيف أكون",
+    "مش تمام",
+    "أبي أعرف كيف حالي"
+  ],
+  "semantic_description": "Mood check-in: 1-to-10 numerical mood rating per session. Structured session mood rating. Rate mood today on a scale. Session check-in: assign a number to current mood. Mood monitoring protocol: rate, record, track trend. Weekly mood tracking: compare scores over time. Mood thermometer: score this week versus last. Give mood a number between 1 and 10. Numerical session mood score.",
+  "steps": [
+    {
+      "step_id": "score_mood",
+      "goal": "Invite the user to rate their mood on a simple 1-10 scale and name what they are feeling",
+      "technique": "Session mood monitoring, dimensional affect rating",
+      "tone": "warm, curious, unhurried, no clinical formality",
+      "examples": [
+        "Let's take a moment. On a scale from 1 to 10, where 1 is really low and 10 is really good, where would you put your mood right now?",
+        "How's your mood sitting today? If you had to give it a number between 1 and 10, what would it be?",
+        "كيف مزاجك اليوم؟ لو تعطيه رقم من 1 لـ 10, واحد يعني صعب جدا وعشرة يعني ممتاز, وين تحط نفسك؟",
+        "No pressure to have the perfect answer. Just a rough number, anywhere from 1 to 10. Where does today feel like it sits?",
+        "Sometimes putting a number on it helps. If 1 is your lowest and 10 is your best, where would you say you are right now?"
+      ],
+      "few_shot_examples": [
+        "Let's take a moment. On a scale from 1 to 10, where 1 is really low and 10 is really good, where would you put your mood right now?",
+        "How's your mood sitting today? If you had to give it a number between 1 and 10, what would it be?",
+        "كيف مزاجك اليوم؟ لو تعطيه رقم من 1 لـ 10, واحد يعني صعب جدا وعشرة يعني ممتاز, وين تحط نفسك؟",
+        "No pressure to have the perfect answer. Just a rough number, anywhere from 1 to 10. Where does today feel like it sits?",
+        "Sometimes putting a number on it helps. If 1 is your lowest and 10 is your best, where would you say you are right now?"
+      ],
+      "contraindications": "Do NOT turn this into a clinical assessment. This is a check-in, not a diagnosis. Do NOT interpret the number for them, ask them what it means. Do NOT pressure them to give a number if they resist.",
+      "completion_criteria": "User has given a mood rating (numerical or descriptive) or explicitly declined to rate."
+    },
+    {
+      "step_id": "explore_mood",
+      "goal": "Gently explore what is driving the mood score, and offer a next step",
+      "technique": "Reflective listening, collaborative agenda-setting",
+      "tone": "warm, validating, curious, follow the user's lead",
+      "examples": [
+        "A [X]/10. That tells me something. What's been making it that kind of day? Anything specific going on, or just a general feeling?",
+        "That makes sense given what you've shared. What would help most right now? Talking through it, trying something practical, or just being heard for a bit?",
+        "رقم [X] من 10. إيش الي خلاه كذا؟ في شي معين صاير، ولا بس إحساس عام؟",
+        "I hear you. What's been behind that number? Has something happened, or has it just been building quietly?",
+        "كيف حالك مع هذا الرقم؟ إيش تحس إنه يقول عنك هالأيام؟"
+      ],
+      "few_shot_examples": [
+        "A [X]/10. That tells me something. What's been making it that kind of day? Anything specific going on, or just a general feeling?",
+        "That makes sense given what you've shared. What would help most right now? Talking through it, trying something practical, or just being heard for a bit?",
+        "رقم [X] من 10. إيش الي خلاه كذا؟ في شي معين صاير، ولا بس إحساس عام؟",
+        "I hear you. What's been behind that number? Has something happened, or has it just been building quietly?",
+        "كيف حالك مع هذا الرقم؟ إيش تحس إنه يقول عنك هالأيام؟"
+      ],
+      "contraindications": "Do NOT push the user toward any specific next step. Offer options, let them choose. Do NOT interpret the mood number as a clinical indicator of depression or anxiety without more context.",
+      "completion_criteria": "User has reflected on what is driving their mood and has indicated a preferred direction (talk, technique, or just being heard)."
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": { "signal": "emotional_intensity", "operator": ">", "value": 7, "step": "ANY" },
+      "action": "validate_only",
+      "instruction": "User is in acute distress. Do not advance the check-in. Slow down, validate that you are present with them, and only continue if they choose to. Do not push the rating question.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": { "signal": "resistance", "operator": ">", "value": 6, "turns": 3, "step": "ANY" },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance to the check-in format. Offer to stop and just talk, or try a different approach entirely. Do not repeat the scale question.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": { "signal": "engagement", "operator": "<", "value": 3, "turns": 3, "step": "ANY" },
+      "action": "check_in_micro",
+      "instruction": "User is disengaged. Gently check in: is this check-in feeling useful? Would they prefer to just talk or try something else?",
+      "next_step_id": "current"
+    },
+    {
+      "condition": { "signal": "user_stop_request", "operator": "==", "value": true, "step": "ANY" },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit immediately with warmth. No persuasion. Acknowledge that checking in takes courage and that is enough.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": { "signal": "mood_score", "operator": "<=", "value": 2, "step": "score_mood" },
+      "action": "flag_for_review",
+      "instruction": "User has rated mood at 1 or 2. Do not advance quickly to exploration. Hold the validation longer. Flag session for clinician_review if this is a second or third consecutive low rating.",
+      "next_step_id": "explore_mood"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit gracefully if user requests to stop or says check-in is not helpful. No persuasion.",
+    "L2": "Add clinician_review flag if mood score is consistently 1-2 across multiple sessions, or if user discloses trauma during check-in.",
+    "L3": "Exit immediately to crisis protocol if any crisis signal detected during check-in.",
+    "L4": "Trigger human handoff if user explicitly requests a human or shows 3 or more consecutive crisis sessions."
+  },
+  "cultural_overrides": null,
+  "cultural_note": "Mood check-in is culturally adaptable. The 1-10 scale is widely understood. Arabic examples use natural Khaleeji phrasing. No Gulf-specific structural override needed."
+}
