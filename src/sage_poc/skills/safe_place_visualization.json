@@ -34,7 +34,7 @@
     "أبي أتخيل مكان آمن",
     "الحاضر مرعب"
   ],
-  "semantic_description": "Safe place visualization: EMDR stabilization phase guided imagery. Shapiro safe place protocol: identify a real or imagined location, enrich with five-sense detail, create an anchor word to return to it. Sensory anchoring: describe the visualized scene by sight, sound, texture, temperature. EMDR-adapted grounding visualization: build a mental location and anchor it with a word or phrase. Guided imagery for internal stabilization. Safe place imagery technique. Teach me safe place visualization.",
+  "semantic_description": "Safe place visualization: guided safe place imagery adapted from stabilization techniques. Shapiro-adapted safe place exercise: identify a real or imagined location, enrich with five-sense detail, create an anchor word to return to it. Sensory anchoring: describe the visualized scene by sight, sound, texture, temperature. Grounding visualization: build a mental location and anchor it with a word or phrase. Guided imagery for internal stabilization. Safe place imagery technique. Teach me safe place visualization.",
   "steps": [
     {
       "step_id": "introduce_safe_place",
@@ -42,12 +42,6 @@
       "technique": "EMDR-adapted safe place introduction, grounding in choice and agency",
       "tone": "warm, slow, gentle, explicitly checking safety before proceeding",
       "examples": [
-        "I want to try something with you that might help you feel a little more grounded. It is called a safe place. We are going to imagine a place, real or made up, where you feel completely safe and calm. Does that sound okay to try?",
-        "This is entirely yours. The safe place can be anywhere: a real memory of somewhere you felt at peace, or somewhere completely imagined. A beach, a room, a garden, a place in nature. Is there anywhere that comes to mind when you think of feeling safe?",
-        "أبي أجرب معك شي اسمه المكان الآمن. راح نتخيل مكان, حقيقي أو من خيالك, تحس فيه بالأمان الكامل والهدوء. هل هذا شي تقدر تجربه الحين؟",
-        "If no real place comes to mind, we can build one. What would your ideal safe place look like? Where in the world, or out of it, would feel completely safe for you?"
-      ],
-      "few_shot_examples": [
         "I want to try something with you that might help you feel a little more grounded. It is called a safe place. We are going to imagine a place, real or made up, where you feel completely safe and calm. Does that sound okay to try?",
         "This is entirely yours. The safe place can be anywhere: a real memory of somewhere you felt at peace, or somewhere completely imagined. A beach, a room, a garden, a place in nature. Is there anywhere that comes to mind when you think of feeling safe?",
         "أبي أجرب معك شي اسمه المكان الآمن. راح نتخيل مكان, حقيقي أو من خيالك, تحس فيه بالأمان الكامل والهدوء. هل هذا شي تقدر تجربه الحين؟",
@@ -67,12 +61,6 @@
         "خلك في المكان هذا لحظة. وش تشوف؟ إيش يبدو عليه؟ إيش يصير حولك؟ وش تسمع؟ وش تحس فيه جسمياً؟",
         "What makes this place feel safe? Is it the solitude? The familiar sounds? The sense that you are protected here? Notice whatever it is that makes it yours."
       ],
-      "few_shot_examples": [
-        "Let yourself be there for a moment. What do you see? Describe it to me, what does it look like? What is the light like? What can you see around you?",
-        "And what can you hear? The sounds of this place, even the quiet of it. What can you feel physically, the temperature, the texture of the ground or seat beneath you?",
-        "خلك في المكان هذا لحظة. وش تشوف؟ إيش يبدو عليه؟ إيش يصير حولك؟ وش تسمع؟ وش تحس فيه جسمياً؟",
-        "What makes this place feel safe? Is it the solitude? The familiar sounds? The sense that you are protected here? Notice whatever it is that makes it yours."
-      ],
       "contraindications": "Do NOT impose imagery the user has not offered. Follow their lead. If the user's safe place has a spiritual or religious dimension (heaven, a mosque, a space of prayer), honor that without redirecting. Do NOT introduce other people into the space unless the user explicitly wants them there.",
       "completion_criteria": "User has described the safe place using at least two sensory details and has expressed that they can feel the place, even partially."
     },
@@ -87,43 +75,64 @@
         "تقدر ترجع لهذا المكان أي وقت تحتاجه. كلمة أو جملة تعبر عن هذا الإحساس, إيش ممكن تقول لنفسك تعيد هذا الشعور؟",
         "As you come back from the safe place, notice how you feel now compared to when we started. Even a small shift matters."
       ],
-      "few_shot_examples": [
-        "You can come back to this place any time you need it. As an anchor, is there a word or phrase that captures this feeling for you? Something you can say to yourself to bring this feeling back quickly?",
-        "When you are ready, we will gently come back to the present. Take a slow breath. Feel the surface beneath you. And notice that you are here, you are safe, right now in this moment.",
-        "تقدر ترجع لهذا المكان أي وقت تحتاجه. كلمة أو جملة تعبر عن هذا الإحساس, إيش ممكن تقول لنفسك تعيد هذا الشعور؟",
-        "As you come back from the safe place, notice how you feel now compared to when we started. Even a small shift matters."
-      ],
       "contraindications": "Do NOT end abruptly. Give the user adequate time to reorient. If the user seems dissociated or detached after the imagery, use gentle grounding (naming 5 things they can see) before fully closing.",
       "completion_criteria": "User has named an anchor word or phrase, or confirmed they can access the feeling again. User has reoriented to the present moment."
     }
   ],
   "step_policy": [
     {
-      "condition": { "signal": "emotional_intensity", "operator": ">", "value": 7, "step": "ANY" },
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
       "action": "validate_only",
       "instruction": "User is in acute distress. Stay in the present, do not advance to imagery. Validate and ground before any visualization.",
       "next_step_id": "current"
     },
     {
-      "condition": { "signal": "resistance", "operator": ">", "value": 6, "turns": 3, "step": "ANY" },
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
       "action": "offer_skill_switch_or_break",
       "instruction": "User has shown sustained resistance. Offer to stop and just talk, or to try a different skill. Do not push the visualization.",
       "next_step_id": "current"
     },
     {
-      "condition": { "signal": "engagement", "operator": "<", "value": 3, "turns": 3, "step": "ANY" },
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "turns": 3,
+        "step": "ANY"
+      },
       "action": "check_in_micro",
       "instruction": "User is disengaged. Gently check in: is this approach feeling helpful? Would they prefer to just talk or try something else?",
       "next_step_id": "current"
     },
     {
-      "condition": { "signal": "user_stop_request", "operator": "==", "value": true, "step": "ANY" },
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit immediately with warmth. Reorient gently to the present before closing. No persuasion.",
       "next_step_id": "exit"
     },
     {
-      "condition": { "signal": "dissociation_signal", "operator": "==", "value": true, "step": "ANY" },
+      "condition": {
+        "signal": "dissociation_signal",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
       "action": "pause_and_ground",
       "instruction": "User may be dissociating. Pause the imagery. Bring them back to the present with gentle grounding: name 3 things you can see right now. Do not continue the visualization until they are grounded.",
       "next_step_id": "current"

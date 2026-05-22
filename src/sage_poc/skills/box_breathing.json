@@ -5,11 +5,17 @@
   "evidence_base": "Jerath et al. (2006); US Navy SEAL slow breathing protocol; Zaccaro et al. (2018), respiratory regulation and autonomic nervous system",
   "self_evolution": "manual_only",
   "target_presentations": [
-    "breathing exercise", "breathing technique",
-    "box breathing", "square breathing", "deep breathing",
-    "help me breathe", "calm my breathing",
-    "breathe with me", "teach me to breathe",
-    "walk me through breathing", "try box breathing",
+    "breathing exercise",
+    "breathing technique",
+    "box breathing",
+    "square breathing",
+    "deep breathing",
+    "help me breathe",
+    "calm my breathing",
+    "breathe with me",
+    "teach me to breathe",
+    "walk me through breathing",
+    "try box breathing",
     "تنفس معي",
     "علمني أتنفس",
     "ساعدني أتنفس",
@@ -31,13 +37,6 @@
         "Ready when you are. Breathe in through your nose, slow and steady: 1... 2... 3... 4. Follow my pace.",
         "Let's do this together, nice and slow. Inhale through your nose: one... two... three... four. You've got this."
       ],
-      "few_shot_examples": [
-        "Let's start together. Breathe in slowly through your nose, and count with me: 1... 2... 3... 4. Take your time.",
-        "We're going to breathe together. In through your nose, nice and slow: one, two, three, four. No rush.",
-        "خلنا نبدأ سوا. شهيق من أنفك، ببطء: واحد... اثنين... ثلاثة... أربعة.",
-        "Ready when you are. Breathe in through your nose, slow and steady: 1... 2... 3... 4. Follow my pace.",
-        "Let's do this together, nice and slow. Inhale through your nose: one... two... three... four. You've got this."
-      ],
       "contraindications": "Do NOT instruct rapid breathing. Do NOT advance to hold if the user signals they are hyperventilating or cannot control their breath, return to slow, unguided breathing first.",
       "completion_criteria": "User confirms they completed the inhale, or responds in a way that shows engagement with the counting."
     },
@@ -47,13 +46,6 @@
       "technique": "Breath retention, 4-count hold",
       "tone": "steady, present, reassuring",
       "examples": [
-        "Good. Now hold, gently, no strain: 1... 2... 3... 4.",
-        "Now hold your breath softly. Not a tight hold, just pause: one, two, three, four.",
-        "ممتاز. الحين وقف التنفس بهدوء: واحد... اثنين... ثلاثة... أربعة.",
-        "Perfect. Just pause and hold: 1... 2... 3... 4. Easy and soft.",
-        "Good, now just hold gently, no force: one... two... three... four."
-      ],
-      "few_shot_examples": [
         "Good. Now hold, gently, no strain: 1... 2... 3... 4.",
         "Now hold your breath softly. Not a tight hold, just pause: one, two, three, four.",
         "ممتاز. الحين وقف التنفس بهدوء: واحد... اثنين... ثلاثة... أربعة.",
@@ -75,44 +67,64 @@
         "Breathe out slowly through your mouth: one... two... three... four. Now hold empty and still: one... two... three... four. Then back to normal. What are you noticing?",
         "Out through the mouth, nice and slow: 1... 2... 3... 4. Hold that empty pause: 1... 2... 3... 4. Take a natural breath. How does that feel compared to before?"
       ],
-      "few_shot_examples": [
-        "Now breathe out slowly through your mouth: 1... 2... 3... 4. And hold empty: 1... 2... 3... 4. Then take a normal breath. How do you feel?",
-        "Exhale gently, all the way out: one, two, three, four. Then hold empty, one, two, three, four. And breathe normally. Did that help at all?",
-        "الحين طلع الهواء بهدوء: واحد... اثنين... ثلاثة... أربعة. وقف خالي: واحد... اثنين... ثلاثة... أربعة. كيف تحس الحين؟",
-        "Breathe out slowly through your mouth: one... two... three... four. Now hold empty and still: one... two... three... four. Then back to normal. What are you noticing?",
-        "Out through the mouth, nice and slow: 1... 2... 3... 4. Hold that empty pause: 1... 2... 3... 4. Take a natural breath. How does that feel compared to before?"
-      ],
       "contraindications": "Do NOT encourage the user to do more than 3 full cycles in a single session without checking in. Do NOT dismiss the answer to 'how do you feel', use it to decide whether to continue or transition.",
       "completion_criteria": "User has completed exhale and final hold. User has responded to the check-in question."
     }
   ],
   "step_policy": [
     {
-      "condition": { "signal": "emotional_intensity", "operator": ">", "value": 7, "step": "ANY" },
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
       "action": "validate_only",
       "instruction": "User is in acute distress. Do not advance the breathing exercise. Slow down, validate that you are with them, and gently re-offer to breathe together. Do not push.",
       "next_step_id": "current"
     },
     {
-      "condition": { "signal": "resistance", "operator": ">", "value": 6, "turns": 3, "step": "ANY" },
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
       "action": "offer_skill_switch_or_break",
       "instruction": "User has shown sustained resistance. Offer to stop the exercise and just talk, or try something different. Do not pressure.",
       "next_step_id": "current"
     },
     {
-      "condition": { "signal": "engagement", "operator": "<", "value": 3, "turns": 3, "step": "ANY" },
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "turns": 3,
+        "step": "ANY"
+      },
       "action": "check_in_micro",
       "instruction": "User is disengaged. Gently check in: is this exercise helping? Would they prefer to just talk or try something else?",
       "next_step_id": "current"
     },
     {
-      "condition": { "signal": "user_stop_request", "operator": "==", "value": true, "step": "ANY" },
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit immediately with warmth. No persuasion. Acknowledge they tried and that is enough.",
       "next_step_id": "exit"
     },
     {
-      "condition": { "signal": "clarity", "operator": ">=", "value": 8, "step": "inhale" },
+      "condition": {
+        "signal": "clarity",
+        "operator": ">=",
+        "value": 8,
+        "step": "inhale"
+      },
       "action": "skip",
       "instruction": "User already knows box breathing well and confirmed this. Skip the instructional framing and go straight to counting together.",
       "next_step_id": "inhale"

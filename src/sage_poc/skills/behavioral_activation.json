@@ -55,13 +55,6 @@
         "What's the thing that's dropped away most? The thing you used to do that feels furthest away right now?",
         "إيش كنت تسوي قبل الي ما تسويه هالحين؟ إيش تغير؟"
       ],
-      "few_shot_examples": [
-        "Tell me about your days lately. What does a typical day look like from when you wake up to when you go to sleep?",
-        "What kinds of things were you doing before, things you enjoyed or that kept you going? And what's changed?",
-        "حدثني عن يومياتك هالفترة. إيش يصير من وقت ما تصحى لين ما تنام؟ إيش تسوي عادة؟",
-        "What's the thing that's dropped away most? The thing you used to do that feels furthest away right now?",
-        "إيش كنت تسوي قبل الي ما تسويه هالحين؟ إيش تغير؟"
-      ],
       "contraindications": "Do NOT suggest the user just push through it or imply willpower is the solution. Do NOT judge low activity levels. Low motivation is a symptom, not a character flaw.",
       "completion_criteria": "User has described their current activity level and identified at least one activity that has dropped away or reduced."
     },
@@ -71,13 +64,6 @@
       "technique": "Behavioral activation, graded task assignment, starting with lowest-effort high-reward activity",
       "tone": "collaborative, realistic, encouraging without being pushy, the activity must feel genuinely achievable",
       "examples": [
-        "What's one small thing that, if you did it, might feel like a win, even if tiny? Not a big task, just something small that counts as doing something.",
-        "If you couldn't leave your bed, is there one thing you could do right there that might shift the feeling slightly? Even making a cup of tea counts.",
-        "في شي صغير، لو سويته، ممكن يحسسك إنك سويت شي، ولو بسيط؟ مو لازم يكون شي كبير.",
-        "Think smaller than you think you need to. Not an exercise plan, not cleaning the whole house. Something that takes five minutes. What might that be?",
-        "إيش أصغر شي تقدر تسويه بكرة، حتى لو بسيط جدا؟"
-      ],
-      "few_shot_examples": [
         "What's one small thing that, if you did it, might feel like a win, even if tiny? Not a big task, just something small that counts as doing something.",
         "If you couldn't leave your bed, is there one thing you could do right there that might shift the feeling slightly? Even making a cup of tea counts.",
         "في شي صغير، لو سويته، ممكن يحسسك إنك سويت شي، ولو بسيط؟ مو لازم يكون شي كبير.",
@@ -99,44 +85,64 @@
         "And if that low feeling hits and makes it hard to start, what's the smallest possible version of the activity you could still do? Even half of it counts.",
         "إيش الي ممكن يصير ويمنعك من تسويه؟ ولو صار، إيش ممكن تسوي بدل ما تتركه كله؟"
       ],
-      "few_shot_examples": [
-        "When are you going to do it? Even a rough time helps, morning, after lunch, before bed? Having a when makes it more likely to happen.",
-        "What might get in the way of doing it? And if that happens, what's your backup plan? Even knowing the obstacle ahead of time changes things.",
-        "متى ممكن تسويه؟ حتى لو تقريبي، الصبح، بعد الغدا، قبل النوم؟ تحديد الوقت يساعد.",
-        "And if that low feeling hits and makes it hard to start, what's the smallest possible version of the activity you could still do? Even half of it counts.",
-        "إيش الي ممكن يصير ويمنعك من تسويه؟ ولو صار، إيش ممكن تسوي بدل ما تتركه كله؟"
-      ],
       "contraindications": "Do NOT make the commitment feel like a test or pressure. Frame it as an experiment, not a promise. If they don't do it, that is data, not failure.",
       "completion_criteria": "User has named a time or rough timeframe for the activity and identified at least one potential barrier."
     }
   ],
   "step_policy": [
     {
-      "condition": { "signal": "emotional_intensity", "operator": ">", "value": 7, "step": "ANY" },
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
       "action": "validate_only",
       "instruction": "User is in acute distress. Do not advance to activity planning. Stay with validation and let the user lead any movement forward.",
       "next_step_id": "current"
     },
     {
-      "condition": { "signal": "resistance", "operator": ">", "value": 6, "turns": 3, "step": "ANY" },
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
       "action": "offer_skill_switch_or_break",
       "instruction": "User has shown sustained resistance to the BA framework. Offer to stop and just talk, or to try a different skill. Do not push the activity-planning structure.",
       "next_step_id": "current"
     },
     {
-      "condition": { "signal": "engagement", "operator": "<", "value": 3, "turns": 3, "step": "ANY" },
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "turns": 3,
+        "step": "ANY"
+      },
       "action": "check_in_micro",
       "instruction": "User is disengaged. Gently check in: is this approach feeling helpful? Would they prefer to just talk or try something else?",
       "next_step_id": "current"
     },
     {
-      "condition": { "signal": "user_stop_request", "operator": "==", "value": true, "step": "ANY" },
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit immediately with warmth. No persuasion. Acknowledge that even thinking about one small step is meaningful.",
       "next_step_id": "exit"
     },
     {
-      "condition": { "signal": "hopelessness", "operator": ">", "value": 7, "step": "identify_small_step" },
+      "condition": {
+        "signal": "hopelessness",
+        "operator": ">",
+        "value": 7,
+        "step": "identify_small_step"
+      },
       "action": "validate_only",
       "instruction": "User is expressing that nothing will help or that there is no point. Do not push toward activity identification. Validate the feeling, acknowledge it makes sense given how things have been, and only return to activity planning if the user re-engages. Flag session for clinician_review.",
       "next_step_id": "current"

@@ -53,13 +53,6 @@
         "The idea is not to stop worrying, it's to contain it. Your brain gets its worry time, just on your schedule rather than all day. What time of day might work for a 20-minute worry window?",
         "أفكارك ما لازم تكون العدو. لو أعطيناها وقت محدد في اليوم، ممكن تصير أخف على باقي الوقت. إيش رأيك نجرب؟"
       ],
-      "few_shot_examples": [
-        "There's a technique that actually works for a lot of people who can't stop their thoughts: giving worry its own time slot. Instead of trying to stop the thoughts, you let them happen, but only in a specific window you choose. Outside that window, when a worry comes, you gently postpone it. Would you want to try setting one up?",
-        "What if instead of fighting the worries, you gave them a dedicated 20-30 minute slot each day? A time when you're allowed to worry as much as you want. Outside that slot, the deal is: notice the thought, write it down if needed, and save it for worry time. Does that sound like something worth trying?",
-        "في أسلوب اسمه وقت القلق، بدل ما تحارب أفكارك، تعطيها وقت محدد في اليوم. خارج هذا الوقت، لما تجي الفكرة، تقول لها: راح تجي وقتها. إيش تحس لو جربنا نحدد وقت كذا؟",
-        "The idea is not to stop worrying, it's to contain it. Your brain gets its worry time, just on your schedule rather than all day. What time of day might work for a 20-minute worry window?",
-        "أفكارك ما لازم تكون العدو. لو أعطيناها وقت محدد في اليوم، ممكن تصير أخف على باقي الوقت. إيش رأيك نجرب؟"
-      ],
       "contraindications": "Do NOT dismiss the worry content as irrational. Do NOT tell the user to just stop worrying. Validate that the worry feels real and important before introducing the containment technique.",
       "completion_criteria": "User has agreed to try worry time and has named or chosen a rough window for it (e.g., 6pm, after dinner, 20 minutes before bed)."
     },
@@ -75,44 +68,64 @@
         "Two buckets: things I can do something about, and things that are pure what-if. Actionable worries get a small plan. What-if worries get acknowledged and set aside. Want to try sorting one?",
         "في قلق معين شايله هالفترة؟ نشوف سوا: هل هو شي تقدر تسوي فيه شي؟ ولا هو مجرد ماذا لو؟"
       ],
-      "few_shot_examples": [
-        "During worry time, there's a useful question to ask each worry: 'Is this something I can actually do something about, or is this a what-if?' If you can act on it, make a small plan. If it's a what-if, practice letting it sit without answering it.",
-        "Some worries have a practical solution. Most what-if worries don't, and responding to them actually feeds the cycle. The skill is learning to notice when a worry is a what-if, and practice not engaging with it. What's one worry you've had recently that you could test this with?",
-        "كل قلق نسأله: هل هذا شي أقدر أسوي فيه شي الحين؟ لو نعم، نحط خطة صغيرة. لو هو فكرة ماذا لو، نتعلم نتركها بدون إجابة. إيش قلق شايله هالفترة نجرب نصنفه؟",
-        "Two buckets: things I can do something about, and things that are pure what-if. Actionable worries get a small plan. What-if worries get acknowledged and set aside. Want to try sorting one?",
-        "في قلق معين شايله هالفترة؟ نشوف سوا: هل هو شي تقدر تسوي فيه شي؟ ولا هو مجرد ماذا لو؟"
-      ],
       "contraindications": "Do NOT tell the user their worries are irrational or unfounded. Do NOT push too hard on the categorisation, some people resist the framework. Keep it collaborative.",
       "completion_criteria": "User has applied the categorisation to at least one worry and has identified whether it is actionable or hypothetical."
     }
   ],
   "step_policy": [
     {
-      "condition": { "signal": "emotional_intensity", "operator": ">", "value": 7, "step": "ANY" },
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
       "action": "validate_only",
       "instruction": "User is in acute distress. Do not introduce technique. Stay present, validate the overwhelm, and only re-offer the technique if the user indicates they are ready.",
       "next_step_id": "current"
     },
     {
-      "condition": { "signal": "resistance", "operator": ">", "value": 6, "turns": 3, "step": "ANY" },
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
       "action": "offer_skill_switch_or_break",
       "instruction": "User has shown sustained resistance to the worry time framework. Offer to stop and just talk, or try a different skill. Do not repeat the technique explanation.",
       "next_step_id": "current"
     },
     {
-      "condition": { "signal": "engagement", "operator": "<", "value": 3, "turns": 3, "step": "ANY" },
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "turns": 3,
+        "step": "ANY"
+      },
       "action": "check_in_micro",
       "instruction": "User is disengaged. Gently check in: is this approach feeling useful? Would they prefer to just talk or try something else?",
       "next_step_id": "current"
     },
     {
-      "condition": { "signal": "user_stop_request", "operator": "==", "value": true, "step": "ANY" },
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit immediately with warmth. No persuasion. Acknowledge that noticing worry patterns is itself a meaningful step.",
       "next_step_id": "exit"
     },
     {
-      "condition": { "signal": "obsessive_theme_detected", "operator": "==", "value": true, "step": "sort_and_act" },
+      "condition": {
+        "signal": "obsessive_theme_detected",
+        "operator": "==",
+        "value": true,
+        "step": "sort_and_act"
+      },
       "action": "flag_for_review",
       "instruction": "User's worry content shows repetitive, intrusive, or shame-laden themes that may indicate OCD rather than GAD. Do not continue with worry time categorisation. Validate the difficulty of the thoughts, do not reinforce avoidance or compulsive checking, and flag session for clinician_review. Offer to just talk rather than continue the technique.",
       "next_step_id": "current"

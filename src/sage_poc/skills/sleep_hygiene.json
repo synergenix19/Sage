@@ -49,7 +49,7 @@
     "أفكاري ما تخليني أنام",
     "تعبان من قلة النوم"
   ],
-  "semantic_description": "Difficulty falling asleep or staying asleep. Sleep onset insomnia: lying in bed in the dark unable to fall asleep, watching the clock, waiting for sleep that will not come. Sleep maintenance insomnia: waking at two or three in the morning unable to get back to sleep. Tossing and turning all night. Early-morning awakening. At bedtime the mind activates — thoughts racing, ruminating, replaying the day, unable to switch off when the lights go out and the head hits the pillow. Exhausted but unable to sleep. Tired all day but wide awake at night. Bedtime, bedroom, pillow, duvet, alarm clock, three a.m. Non-restorative sleep. Persistent insomnia affecting sleep onset, sleep continuity, or sleep duration.",
+  "semantic_description": "Difficulty falling asleep or staying asleep. Sleep onset insomnia: lying in bed in the dark unable to fall asleep, watching the clock, waiting for sleep that will not come. Sleep maintenance insomnia: waking at two or three in the morning unable to get back to sleep. Tossing and turning all night. Early-morning awakening. At bedtime the mind activates, thoughts racing, ruminating, replaying the day, unable to switch off when the lights go out and the head hits the pillow. Exhausted but unable to sleep. Tired all day but wide awake at night. Bedtime, bedroom, pillow, duvet, alarm clock, three a.m. Non-restorative sleep. Persistent insomnia affecting sleep onset, sleep continuity, or sleep duration.",
   "steps": [
     {
       "step_id": "assess_sleep",
