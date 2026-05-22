@@ -143,3 +143,27 @@ def test_l1_history_preserves_user_turns_verbatim():
     history = [{"role": "user", "content": "I feel **really** bad"}]
     block = _build_l1_history_block(history)
     assert "I feel **really** bad" in block
+
+
+def test_l1_history_safe_with_curly_braces_in_user_message():
+    history = [{"role": "user", "content": "My mood is {6/10} today"}]
+    block = _build_l1_history_block(history)
+    assert block is not None
+    assert "{6/10}" in block
+
+
+def test_l1_history_always_includes_first_line_even_if_over_budget():
+    long_content = " ".join(["word"] * 350)  # 350 words, exceeds budget of 300
+    history = [{"role": "user", "content": long_content}]
+    block = _build_l1_history_block(history)
+    assert block is not None
+    assert "word" in block
+
+
+def test_l1_history_respects_word_budget_for_subsequent_lines():
+    long_content = " ".join(["word"] * 60)  # ~60 words per message
+    history = [{"role": "user", "content": long_content} for _ in range(6)]
+    block = _build_l1_history_block(history)
+    assert block is not None
+    line_count = block.count("USER:")
+    assert line_count < 6

@@ -108,12 +108,13 @@ def _build_l1_history_block(
         )
         line = f"{m['role'].upper()}: {content}"
         word_total += count_words(line)
-        if word_total > word_budget:
+        if len(lines) > 0 and word_total > word_budget:
             _log.debug("L1 history truncated at word budget %d", word_budget)
             break
         lines.append(line)
     if not lines:
         return None
-    content = tmpl.content.format(history_lines="\n".join(lines))
+    history_text = _esc("\n".join(lines))
+    content = tmpl.content.format(history_lines=history_text)
     _log.debug("L1_history@%s loaded", tmpl.version)
     return content
