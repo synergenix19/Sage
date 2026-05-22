@@ -231,8 +231,11 @@ def test_evaluate_raises_on_unknown_category():
 def test_apply_suppressions_marks_suppressed_flag():
     from sage_poc.rules.engine import _apply_suppressions
     from sage_poc.rules.schemas import FiredRule, EvalResult
-    crisis = FiredRule("SK-AR-001", "1.0.0", {"type": "crisis_flag", "flag_id": "si_passive"})
-    suppressor = FiredRule("FPE-AR-001", "1.0.0", {"type": "crisis_suppress", "suppresses": ["si_passive"]})
+    # Both rules fired on the same text span (0, 13) — suppression applies
+    crisis = FiredRule("SK-AR-001", "1.0.0", {"type": "crisis_flag", "flag_id": "si_passive"},
+                       matched_span=(0, 13))
+    suppressor = FiredRule("FPE-AR-001", "1.0.0", {"type": "crisis_suppress", "suppresses": ["si_passive"]},
+                           matched_span=(0, 13))
     result = EvalResult(fired=[crisis, suppressor])
     result = _apply_suppressions(result)
     assert crisis.suppressed is True
@@ -261,13 +264,47 @@ def test_apply_suppressions_noop_when_no_suppressors():
 def test_apply_suppressions_handles_multiple_suppresses_values():
     from sage_poc.rules.engine import _apply_suppressions
     from sage_poc.rules.schemas import FiredRule, EvalResult
-    r1 = FiredRule("SK-1", "1.0.0", {"type": "crisis_flag", "flag_id": "si_explicit"})
-    r2 = FiredRule("SK-2", "1.0.0", {"type": "crisis_flag", "flag_id": "si_passive"})
-    suppressor = FiredRule("FPE-1", "1.0.0", {"type": "crisis_suppress", "suppresses": ["si_explicit", "si_passive"]})
+    # All three rules fired on the same span — both SI flags are suppressed
+    r1 = FiredRule("SK-1", "1.0.0", {"type": "crisis_flag", "flag_id": "si_explicit"},
+                   matched_span=(0, 10))
+    r2 = FiredRule("SK-2", "1.0.0", {"type": "crisis_flag", "flag_id": "si_passive"},
+                   matched_span=(0, 10))
+    suppressor = FiredRule("FPE-1", "1.0.0", {"type": "crisis_suppress", "suppresses": ["si_explicit", "si_passive"]},
+                           matched_span=(0, 10))
     result = EvalResult(fired=[r1, r2, suppressor])
     result = _apply_suppressions(result)
     assert r1.suppressed is True
     assert r2.suppressed is True
+
+
+def test_apply_suppressions_none_span_does_not_suppress():
+    """If matched_span is None on either side, suppression must NOT fire.
+
+    Missing span data means we cannot determine overlap. The safe default is
+    to let the crisis flag through rather than silently suppress a potential
+    genuine signal. This tests the behavior introduced by the span-scoped fix.
+    """
+    from sage_poc.rules.engine import _apply_suppressions
+    from sage_poc.rules.schemas import FiredRule, EvalResult
+    # SI rule has no span (matched_span=None)
+    crisis_no_span = FiredRule("SK-1", "1.0.0", {"type": "crisis_flag", "flag_id": "si_passive"},
+                               matched_span=None)
+    suppressor = FiredRule("FPE-1", "1.0.0", {"type": "crisis_suppress", "suppresses": ["si_passive"]},
+                           matched_span=(0, 10))
+    result = EvalResult(fired=[crisis_no_span, suppressor])
+    result = _apply_suppressions(result)
+    assert crisis_no_span.suppressed is False, \
+        "Crisis flag with None span must NOT be suppressed — safe default is to let it through"
+
+    # FPE rule has no span
+    crisis_with_span = FiredRule("SK-2", "1.0.0", {"type": "crisis_flag", "flag_id": "si_passive"},
+                                 matched_span=(5, 20))
+    suppressor_no_span = FiredRule("FPE-2", "1.0.0", {"type": "crisis_suppress", "suppresses": ["si_passive"]},
+                                   matched_span=None)
+    result2 = EvalResult(fired=[crisis_with_span, suppressor_no_span])
+    result2 = _apply_suppressions(result2)
+    assert crisis_with_span.suppressed is False, \
+        "Crisis flag must NOT be suppressed when FPE rule has None span"
 
 
 def test_eval_safety_applies_suppression_end_to_end():

@@ -48,9 +48,10 @@ def _apply_suppressions(result: EvalResult) -> EvalResult:
                 continue
             fpe_span = fpe_rule.matched_span
             if si_span is None or fpe_span is None:
-                # No span info: conservative message-level suppression
-                si_rule.suppressed = True
-                break
+                # Span unknown on either side: cannot determine overlap.
+                # Do NOT suppress — missing position data is not grounds for hiding a
+                # crisis signal. The safe default is to let the flag through.
+                continue
             # Suppress only if the spans overlap
             if max(fpe_span[0], si_span[0]) < min(fpe_span[1], si_span[1]):
                 si_rule.suppressed = True
