@@ -252,7 +252,7 @@ export function ChatInterface({ initialSession, initialMessages = [], userName }
             const content = isCrisis
               ? m.content.replace(CRISIS_SIGNAL, '').trimStart()
               : m.content
-            if (isCrisis) return <CrisisCard key={m.id} content={content} />
+            if (isCrisis) return null
             const role: MessageRole = mapSdkRole(m.role)
             return (
               <MessageBubble
