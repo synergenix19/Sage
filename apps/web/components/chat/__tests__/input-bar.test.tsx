@@ -1,10 +1,11 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { InputBar } from '../input-bar'
+import { useLocaleStore } from '@/lib/stores/locale-store'
 
 vi.mock('@/lib/stores/locale-store', () => ({
-  useLocaleStore: (selector: (s: { locale: string }) => unknown) =>
-    selector({ locale: 'en' }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  useLocaleStore: vi.fn((selector: any) => selector({ locale: 'en' })),
 }))
 
 describe('InputBar accessibility', () => {
@@ -27,5 +28,33 @@ describe('InputBar accessibility', () => {
   it('send button is present', () => {
     render(<InputBar onSend={vi.fn()} />)
     expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
+  })
+})
+
+describe('InputBar — Arabic locale', () => {
+  afterEach(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(useLocaleStore).mockImplementation((selector: any) => selector({ locale: 'en' }))
+  })
+
+  it('textarea has Arabic accessible name when locale is ar', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(useLocaleStore).mockImplementation((selector: any) => selector({ locale: 'ar' }))
+    render(<InputBar onSend={vi.fn()} />)
+    expect(screen.getByRole('textbox', { name: 'اكتب رسالتك' })).toBeInTheDocument()
+  })
+
+  it('voice button has Arabic aria-label when locale is ar', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(useLocaleStore).mockImplementation((selector: any) => selector({ locale: 'ar' }))
+    render(<InputBar onSend={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'الإدخال الصوتي' })).toBeInTheDocument()
+  })
+
+  it('send button has Arabic aria-label when locale is ar', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(useLocaleStore).mockImplementation((selector: any) => selector({ locale: 'ar' }))
+    render(<InputBar onSend={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'إرسال' })).toBeInTheDocument()
   })
 })
