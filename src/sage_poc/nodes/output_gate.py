@@ -35,7 +35,7 @@ JAILBREAK_RESPONSE = (
 async def output_gate_node(state: SageState) -> dict:
     gate_path = state.get("gate_path")
     lang = state["detected_language"]
-    path = state["path"] + ["output_gate"]
+    path = (state.get("path") or []) + ["output_gate"]
 
     if gate_path == "scope_refusal":
         response_en = SCOPE_REFUSAL_RESPONSE
@@ -71,7 +71,7 @@ async def output_gate_node(state: SageState) -> dict:
     if AUDIT_LOG_ENABLED:
         audit = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "turn": state["turn_count"],
+            "turn": state.get("turn_count", 0),
             "path": path,
             "gate_path": gate_path or "standard",
             "detected_language": lang,
@@ -104,7 +104,7 @@ async def output_gate_node(state: SageState) -> dict:
         {"role": "assistant", "content": response_en},
     ]
 
-    next_turn = state["turn_count"] + 1
+    next_turn = state.get("turn_count", 0) + 1
     new_summary = state.get("conversation_summary")
     if next_turn % 10 == 0:
         try:
