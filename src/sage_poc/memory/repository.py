@@ -1,6 +1,5 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Optional
 
 
 class MemoryRepository(ABC):
@@ -12,7 +11,7 @@ class MemoryRepository(ABC):
     """
 
     @abstractmethod
-    async def get_therapeutic_profile(self, user_id: str) -> Optional[dict]:
+    async def get_therapeutic_profile(self, user_id: str) -> dict | None:
         ...
 
     @abstractmethod
@@ -38,6 +37,9 @@ class MemoryRepository(ABC):
         skills_used: list[str] | None = None,
         mood_score: float | None = None,
     ) -> None:
+        """Persist a BGE-M3 embedded session summary. One row per session (upsert semantics).
+        safety_level controls retrieval exclusion — crisis summaries are excluded by default.
+        """
         ...
 
     @abstractmethod
@@ -48,4 +50,8 @@ class MemoryRepository(ABC):
         top_k: int = 3,
         exclude_safety_levels: list[str] | None = None,
     ) -> list[dict]:
+        """Return up to top_k prior session summaries similar to query_embedding.
+        Each dict contains at minimum: summary_text, safety_level, similarity (float).
+        exclude_safety_levels=['crisis'] is the recommended default for therapeutic retrieval.
+        """
         ...
