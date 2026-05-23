@@ -34,7 +34,7 @@ interface Props {
 // `toUIMessageStreamResponse()`. To avoid changing the route contract or adding
 // a dep, we consume the raw text stream directly.
 // Exported for testability only — not part of the public component API.
-export function useStreamingChat(sessionId: string | undefined, initialMessages: SdkMessage[] = []) {
+export function useStreamingChat(sessionId: string | undefined, userId: string | undefined, initialMessages: SdkMessage[] = []) {
   const [messages, setMessages]   = useState<SdkMessage[]>(initialMessages)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError]         = useState<Error | null>(null)
@@ -57,6 +57,7 @@ export function useStreamingChat(sessionId: string | undefined, initialMessages:
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             sessionId,
+            userId: userId ?? null,
             messages: history.map((m) => ({ role: m.role, content: m.content })),
           }),
           signal: controller.signal,
@@ -108,7 +109,7 @@ export function useStreamingChat(sessionId: string | undefined, initialMessages:
         abortRef.current = null
       }
     },
-    [sessionId]
+    [sessionId, userId]
   )
 
   const append = useCallback(
@@ -151,10 +152,10 @@ export function useStreamingChat(sessionId: string | undefined, initialMessages:
   return { messages, append, isLoading, error, reload }
 }
 
-export function ChatInterface({ initialSession, initialMessages = [], userName }: Props) {
+export function ChatInterface({ initialSession, initialMessages = [], userName, userId }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const hasSignaledInstall = useRef(false)
-  const { messages, append, isLoading, error, reload } = useStreamingChat(initialSession?.id, initialMessages)
+  const { messages, append, isLoading, error, reload } = useStreamingChat(initialSession?.id, userId, initialMessages)
 
   // Pin the crisis card only while the last assistant message is still a crisis.
   // Once the user receives a normal reply the crisis is considered addressed
