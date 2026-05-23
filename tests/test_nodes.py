@@ -270,7 +270,6 @@ async def test_selects_cbt_for_blame_myself():
 @pytest.mark.parametrize("message,expected_skill", [
     ("I can never do anything right, what is wrong with me", "cbt_thought_record"),
     ("I keep sabotaging myself every time things are going well", "cbt_thought_record"),
-    ("there is something fundamentally wrong with me as a person", "cbt_thought_record"),
     ("I am always the one who ends up getting blamed for everything", "cbt_thought_record"),
 ])
 async def test_selects_cbt_for_rt4_keyword_additions(message, expected_skill):
@@ -306,19 +305,21 @@ async def test_semantic_fallback_catches_rt4_long_tail(message, expected_skill):
     """RT-4 long-tail: phrases that keyword-miss and must activate via semantic fallback.
 
     'there is something fundamentally broken about who I am as a person' uses
-    different phrasing than the keyword 'fundamentally wrong with me' — this is
-    intentional. The semantic test uses a paraphrase that keywords won't catch,
-    confirming embedding similarity works across surface-level variation.
+    different phrasing from keyword candidates — intentional. The semantic test uses
+    a paraphrase that keywords won't catch, confirming embedding similarity works
+    across surface-level variation. Note: 'fundamentally wrong with me' was removed
+    from keywords after FP check (2026-05-23): 'there is nothing fundamentally wrong
+    with me' contains it as a substring.
 
     'I always ruin everything' and 'nobody likes me' were confirmed keyword misses
     whose candidate keywords ('ruin everything', 'nobody likes me') were removed due
     to false-positive check failures — they rely on semantic fallback only.
 
     'I deserve to suffer for what I have done to the people I love' was tested
-    and confirmed below SEMANTIC_THRESHOLD (0.5295) with no timeout; phrase is
+    and confirmed below SEMANTIC_THRESHOLD at calibration date 2026-05-23; phrase is
     ambiguous between grounding and CBT in BGE-M3 embedding space. Removed from
     this corpus — do not add without first running calibrate_threshold.py to confirm
-    score is within 0.03 of threshold before enriching semantic_description.
+    score is within 0.03 of current threshold before enriching semantic_description.
 
     If any case activates via 'keyword', a new keyword was added that covers it —
     update the assertion to accept both methods or remove the case.
