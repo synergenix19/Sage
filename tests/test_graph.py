@@ -1548,3 +1548,17 @@ def test_frustration_hyperbole_does_not_trigger_crisis(frustration_phrase):
         f"Expected NO crisis_response for: {frustration_phrase!r}. "
         f"Got path: {result['path']}"
     )
+
+
+def test_build_graph_without_checkpointer():
+    from sage_poc.graph import build_graph
+    g = build_graph()
+    assert g is not None
+
+
+def test_build_graph_with_checkpointer():
+    from langgraph.checkpoint.memory import MemorySaver
+    from sage_poc.graph import build_graph
+    cp = MemorySaver()
+    g = build_graph(checkpointer=cp)
+    assert g.checkpointer is cp

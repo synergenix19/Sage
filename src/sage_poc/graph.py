@@ -116,7 +116,7 @@ def _route_after_skill_select(state: SageState) -> str:
     return "skill_executor" if state.get("active_skill_id") else "freeflow"
 
 
-def build_graph() -> CompiledStateGraph:
+def build_graph(checkpointer=None) -> CompiledStateGraph:
     graph = StateGraph(SageState)
 
     graph.add_node("safety_check", safety_check_node)
@@ -157,4 +157,4 @@ def build_graph() -> CompiledStateGraph:
     graph.add_edge("freeflow_respond", "output_gate")
     graph.add_edge("output_gate", END)
 
-    return graph.compile()
+    return graph.compile(checkpointer=checkpointer)
