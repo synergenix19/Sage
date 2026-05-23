@@ -33,6 +33,37 @@ JAILBREAK_RESPONSE = (
 )
 
 
+async def _log_clinical_review(
+    session_id: str,
+    user_id: str,
+    crisis_flags: list[str],
+    clinical_flags: list[str],
+) -> None:
+    """Deterministic Layer 1 clinician review notification. Non-fatal."""
+    try:
+        from server import app  # noqa: PLC0415
+        from sage_poc.memory.notification import PostgresNotifier  # noqa: PLC0415
+        pool = app.state._db_pool
+        if pool is None:
+            return
+        severity = "critical" if crisis_flags else "medium"
+        reason_parts = []
+        if crisis_flags:
+            reason_parts.append(f"crisis flags: {', '.join(crisis_flags)}")
+        if clinical_flags:
+            reason_parts.append(f"clinical flags: {', '.join(clinical_flags)}")
+        notifier = PostgresNotifier(pool)
+        await notifier.notify(
+            session_id=session_id,
+            user_id=user_id,
+            source="layer1_safety",
+            severity=severity,
+            reason="; ".join(reason_parts),
+        )
+    except Exception:
+        _log.warning("Failed to log clinical review for session %s", session_id)
+
+
 async def _persist_session_summary(
     session_id: str,
     user_id: str,
@@ -70,6 +101,8 @@ async def output_gate_node(state: SageState) -> dict:
     gate_path = state.get("gate_path")
     lang = state["detected_language"]
     path = (state.get("path") or []) + ["output_gate"]
+    session_id = state.get("session_id")
+    user_id = state.get("user_id")
 
     if gate_path == "scope_refusal":
         response_en = SCOPE_REFUSAL_RESPONSE
@@ -146,8 +179,6 @@ async def output_gate_node(state: SageState) -> dict:
             _log.info("Conversation summary generated at turn %d", next_turn)
         except Exception:
             _log.warning("Summarisation failed at turn %d; keeping prior summary", next_turn)
-        session_id = state.get("session_id")
-        user_id = state.get("user_id")
         if new_summary and session_id and user_id:
             asyncio.create_task(
                 _persist_session_summary(
@@ -158,6 +189,15 @@ async def output_gate_node(state: SageState) -> dict:
                     mood_score=float(state.get("emotional_intensity", 5)),
                 )
             )
+
+    if (state.get("crisis_flags") or state.get("clinical_flags")) and session_id and user_id:
+        asyncio.create_task(
+            _log_clinical_review(
+                session_id, user_id,
+                state.get("crisis_flags", []),
+                state.get("clinical_flags", []),
+            )
+        )
 
     return {
         "response": final_response,
