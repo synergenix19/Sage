@@ -6,6 +6,7 @@ import { tenant } from '@cdai/tenant'
 import { Providers } from '@/components/providers'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
 import { SwUpdateBanner } from '@/components/pwa/sw-update-banner'
+import { SwRegistration } from '@/components/pwa/sw-registration'
 import type { Locale } from '@cdai/types'
 import './globals.css'
 
@@ -48,6 +49,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta name="theme-color" content="#F9F8F6" />
       </head>
       <body className="bg-[var(--color-surface)] text-[var(--color-text-primary)] font-body antialiased">
+        <SwRegistration />
         <InstallPrompt />
         <SwUpdateBanner />
         <Providers initialLocale={locale}>{children}</Providers>
