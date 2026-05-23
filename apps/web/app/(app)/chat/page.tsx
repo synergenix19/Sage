@@ -1,9 +1,8 @@
 import { ChatFadeIn } from '@/components/chat/chat-fade-in'
 import { ChatInterface } from '@/components/chat/chat-interface'
 import { createClient } from '@/lib/supabase/server'
+import { CRISIS_SIGNAL } from '@/lib/constants'
 import { redirect } from 'next/navigation'
-
-const CRISIS_SIGNAL = '[[CRISIS_DETECTED]]'
 
 type SdkRole = 'user' | 'assistant' | 'system'
 interface InitialMessage { id: string; role: SdkRole; content: string }

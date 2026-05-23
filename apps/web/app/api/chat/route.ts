@@ -2,6 +2,7 @@
 import { generateText } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createClient } from '@/lib/supabase/server'
+import { CRISIS_SIGNAL } from '@/lib/constants'
 import type { Intent } from '@cdai/types'
 import { z } from 'zod'
 
@@ -23,7 +24,6 @@ const openrouter = createOpenAI({
 
 const CLASSIFIER_MODEL = 'anthropic/claude-haiku-4-5-20251001'
 const SAGE_API_URL = process.env.SAGE_API_URL ?? 'http://localhost:8000'
-const CRISIS_SIGNAL = '[[CRISIS_DETECTED]]'
 
 async function classifyIntent(message: string): Promise<Intent> {
   const { text } = await generateText({

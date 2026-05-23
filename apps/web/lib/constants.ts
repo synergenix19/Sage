@@ -1,0 +1,1 @@
+export const CRISIS_SIGNAL = '[[CRISIS_DETECTED]]'

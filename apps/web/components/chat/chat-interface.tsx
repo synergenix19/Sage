@@ -2,14 +2,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { mapSdkRole, type ChatSession, type MessageRole } from '@cdai/types'
 import { FIRST_CHAT_EVENT } from '@/components/pwa/install-prompt'
+import { CRISIS_SIGNAL } from '@/lib/constants'
 import { ChatHeader } from './chat-header'
 import { MessageBubble } from './message-bubble'
 import { CrisisCard } from './crisis-card'
 import { TypingIndicator } from './typing-indicator'
 import { EmptyState } from './empty-state'
 import { InputBar } from './input-bar'
-
-const CRISIS_SIGNAL = '[[CRISIS_DETECTED]]'
 
 // SDK-shaped messages: roles are 'user' | 'assistant' | 'system' (what the route consumes
 // and what the AI SDK normally yields). Internal roles ('ai', 'crisis') are derived for render.
