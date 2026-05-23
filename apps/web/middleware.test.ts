@@ -1,6 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
+// --- Setup environment before module evaluation ---
+vi.stubGlobal('process', {
+  ...process,
+  env: {
+    ...process.env,
+    NEXT_PUBLIC_SUPABASE_URL: 'https://test.supabase.co',
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: 'test-key',
+  },
+})
+
 const mockGetUser = vi.fn()
 const mockGetSession = vi.fn()
 
