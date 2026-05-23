@@ -34,34 +34,30 @@ JAILBREAK_RESPONSE = (
 
 
 async def _log_clinical_review(
-    session_id: str,
     user_id: str,
-    crisis_flags: list[str],
-    clinical_flags: list[str],
+    session_id: str,
+    flags: list[str],
+    turn_count: int,
 ) -> None:
-    """Deterministic Layer 1 clinician review notification. Non-fatal."""
+    """Deterministic clinician review log: fires when Layer 1 safety rules detected flags.
+    source='layer1_safety' distinguishes this from the LLM tool path.
+    """
     try:
         from server import app  # noqa: PLC0415
         from sage_poc.memory.notification import PostgresNotifier  # noqa: PLC0415
-        pool = app.state._db_pool
-        if pool is None:
+        pool = getattr(app.state, "_db_pool", None)
+        if not pool:
             return
-        severity = "critical" if crisis_flags else "medium"
-        reason_parts = []
-        if crisis_flags:
-            reason_parts.append(f"crisis flags: {', '.join(crisis_flags)}")
-        if clinical_flags:
-            reason_parts.append(f"clinical flags: {', '.join(clinical_flags)}")
         notifier = PostgresNotifier(pool)
-        await notifier.notify(
-            session_id=session_id,
+        await notifier.notify_review_required(
             user_id=user_id,
+            session_id=session_id,
+            reason=f"clinical flags detected: {', '.join(flags)}",
             source="layer1_safety",
-            severity=severity,
-            reason="; ".join(reason_parts),
+            payload={"flags": flags, "turn_count": turn_count},
         )
-    except Exception:
-        _log.warning("Failed to log clinical review for session %s", session_id)
+    except Exception as exc:
+        _log.warning("[output_gate] _log_clinical_review failed: %s", exc)
 
 
 async def _persist_session_summary(
@@ -190,12 +186,14 @@ async def output_gate_node(state: SageState) -> dict:
                 )
             )
 
-    if (state.get("crisis_flags") or state.get("clinical_flags")) and session_id and user_id:
+    all_flags = (state.get("clinical_flags") or []) + (state.get("crisis_flags") or [])
+    if all_flags and session_id and user_id:
         asyncio.create_task(
             _log_clinical_review(
-                session_id, user_id,
-                state.get("crisis_flags", []),
-                state.get("clinical_flags", []),
+                user_id=user_id,
+                session_id=session_id,
+                flags=all_flags,
+                turn_count=state.get("turn_count", 0),
             )
         )
 
