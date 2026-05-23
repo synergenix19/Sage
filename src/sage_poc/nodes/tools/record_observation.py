@@ -1,71 +1,110 @@
+"""LLM-callable tool: record a per-turn clinical observation (v7 §6.5.4).
+
+Captures insight events, progress signals, agency signals, and context updates
+in real time — things a post-session extractor would miss because they're
+momentary (e.g., 'user identified their own distortion without prompting').
+
+Low-confidence observations are also forwarded to the clinician review queue
+rather than silently stored as confirmed facts.
+"""
 from __future__ import annotations
+import json
+import logging
+from datetime import datetime, timezone
 from langchain_core.tools import tool
 
+_log = logging.getLogger(__name__)
 
-def make_record_tool(user_id: str, session_id: str, repo_override=None):
-    """Return a LangChain tool that records a structured observation to the user's profile.
+_VALID_OBSERVATION_TYPES = {"insight", "progress", "agency", "context_update", "concern"}
+_VALID_CONFIDENCE = {"high", "medium", "low"}
 
-    Low-confidence observations (type='concern') also trigger a clinician review notification.
-    Pool and repo are resolved at call time via deferred imports to avoid circular imports.
-    repo_override is for testing only — allows injecting a mock repo without touching the pool.
-    """
+
+def _get_notifier(pool):
+    if pool is None:
+        return None
+    from sage_poc.memory.notification import PostgresNotifier
+    return PostgresNotifier(pool)
+
+
+def make_record_tool(
+    user_id: str,
+    pool,
+    session_id: str = "",
+    repo_override=None,  # for testing
+):
+    """Return a record_observation @tool with user_id injected."""
+
+    def _get_repo():
+        if repo_override:
+            return repo_override
+        if pool is None:
+            return None
+        from sage_poc.memory.postgres_repository import PostgresMemoryRepository
+        return PostgresMemoryRepository(pool)
 
     @tool
     async def record_observation(
+        observation: str,
         observation_type: str,
-        content: str,
-        confidence: float = 0.8,
+        confidence: str,
     ) -> str:
-        """Record a structured observation about this user for their therapeutic profile.
+        """Record a clinical observation about this user for cross-session continuity.
 
-        Use this when you notice something clinically meaningful that should persist
-        across sessions (e.g., a coping technique that worked, a disclosed life stressor).
+        Call this when you notice: the user identified their own cognitive distortion
+        (insight), a technique worked or mood shifted (progress), the user set a goal
+        or took agency (agency), or a life circumstance changed (context_update).
 
         Args:
-            observation_type: One of 'insight', 'progress', 'agency', 'context_update', 'concern'.
-            content: The observation text. Be specific and clinically useful.
-            confidence: Your confidence in this observation (0.0-1.0). Default 0.8.
+            observation:      What you observed (factual, 1-2 sentences).
+            observation_type: One of: insight, progress, agency, context_update, concern.
+            confidence:       'high' (explicitly stated), 'medium' (likely), or 'low' (inferred).
+                              Low-confidence observations are flagged for clinician review.
         """
-        VALID_TYPES = {"insight", "progress", "agency", "context_update", "concern"}
-        if observation_type not in VALID_TYPES:
-            return f"invalid observation_type '{observation_type}'; must be one of {sorted(VALID_TYPES)}"
+        if observation_type not in _VALID_OBSERVATION_TYPES:
+            return f"invalid observation_type: {observation_type}"
+        if confidence not in _VALID_CONFIDENCE:
+            confidence = "low"
+
+        repo = _get_repo()
+        if repo is None:
+            return "repo_unavailable"
+
         try:
-            from server import app  # noqa: PLC0415
-            from sage_poc.memory.postgres_repository import PostgresMemoryRepository  # noqa: PLC0415
-            from sage_poc.memory.notification import PostgresNotifier  # noqa: PLC0415
-            pool = app.state._db_pool
-            if pool is None:
-                return "observation skipped: database unavailable"
-
-            repo = repo_override if repo_override is not None else PostgresMemoryRepository(pool)
-
-            # Load current profile, cap observations at 50, append new one
-            current = await repo.get_therapeutic_profile(user_id) or {}
-            observations: list = current.get("observations", [])
-            if len(observations) >= 50:
-                observations = observations[-49:]  # keep newest 49, make room for 1 more
+            existing = await repo.get_therapeutic_profile(user_id) or {}
+            observations = existing.get("observations", [])
             observations.append({
-                "type": observation_type,
-                "content": content,
-                "confidence": confidence,
-                "session_id": session_id,
+                "text":              observation,
+                "type":              observation_type,
+                "confidence":        confidence,
+                "recorded_at":       datetime.now(timezone.utc).isoformat(),
             })
-            profile = {**current, "observations": observations}
-            await repo.upsert_therapeutic_profile(user_id, profile, session_id)
+            observations = observations[-50:]  # cap to last 50
 
-            # Notify clinician for low-confidence 'concern' observations
-            if observation_type == "concern" and confidence < 0.7:
-                notifier = PostgresNotifier(pool)
-                await notifier.notify(
-                    session_id=session_id,
-                    user_id=user_id,
-                    source="llm_flag_for_review",
-                    severity="medium",
-                    reason=f"Low-confidence concern recorded: {content[:200]}",
-                )
+            existing["observations"] = observations
+            await repo.upsert_therapeutic_profile(
+                user_id=user_id,
+                profile=existing,
+                session_id=session_id,
+            )
 
-            return f"observation recorded: {observation_type}"
+            # Low-confidence observations go to clinician review (v7 §6.5.4)
+            if confidence == "low" and session_id:
+                notifier = _get_notifier(pool)
+                if notifier:
+                    try:
+                        await notifier.notify_review_required(
+                            user_id=user_id,
+                            session_id=session_id,
+                            reason=f"low-confidence observation: {observation[:100]}",
+                            source="llm_flag_for_review",
+                            payload={"observation_type": observation_type},
+                        )
+                    except Exception as exc:
+                        _log.warning("[record_observation] notify failed: %s", exc)
+
+            return "recorded"
         except Exception as exc:
-            return f"observation failed: {exc}"
+            _log.error("[record_observation] failed: %s", exc)
+            return "error"
 
     return record_observation
