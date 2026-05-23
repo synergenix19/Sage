@@ -42,4 +42,14 @@ describe('SignInForm', () => {
       })
     })
   })
+
+  it('email field has an accessible label', () => {
+    render(<SignInForm />)
+    expect(screen.getByLabelText('Email')).toBeInTheDocument()
+  })
+
+  it('password field has an accessible label', () => {
+    render(<SignInForm />)
+    expect(screen.getByLabelText('Password')).toBeInTheDocument()
+  })
 })

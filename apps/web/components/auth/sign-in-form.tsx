@@ -31,9 +31,11 @@ export function SignInForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-      <Input type="email" placeholder="Email" {...register('email')} />
+      <label htmlFor="signin-email" className="sr-only">Email</label>
+      <Input id="signin-email" type="email" placeholder="Email" {...register('email')} />
       {errors.email && <p className="text-xs text-[var(--color-crisis)]">{errors.email.message}</p>}
-      <Input type="password" placeholder="Password" {...register('password')} />
+      <label htmlFor="signin-password" className="sr-only">Password</label>
+      <Input id="signin-password" type="password" placeholder="Password" {...register('password')} />
       {errors.password && <p className="text-xs text-[var(--color-crisis)]">{errors.password.message}</p>}
       {serverError && <p className="text-xs text-[var(--color-crisis)]">{serverError}</p>}
       <Button type="submit" disabled={isSubmitting}>
