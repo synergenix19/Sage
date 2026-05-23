@@ -11,15 +11,13 @@ from functools import lru_cache
 
 @lru_cache(maxsize=1)
 def _get_model():
-    """Return a loaded SentenceTransformer for BAAI/bge-m3.
+    """Return the shared BGE-M3 model from skill_select — loaded once per process.
 
-    Uses lru_cache so the model is loaded exactly once per process.
-    Import of SentenceTransformer is deferred to this function so that the
-    heavy dependency is not triggered at module import time.
+    Reuses the skill_select model instance to avoid loading a second copy of BAAI/bge-m3.
     """
-    from sentence_transformers import SentenceTransformer  # noqa: PLC0415
-
-    return SentenceTransformer("BAAI/bge-m3")
+    from sage_poc.nodes.skill_select import _ensure_semantic_ready, _model  # noqa: PLC0415
+    _ensure_semantic_ready()
+    return _model
 
 
 def get_embedding(text: str) -> list[float]:
