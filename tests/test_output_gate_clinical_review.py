@@ -200,14 +200,14 @@ class TestLogClinicalReviewHelper:
 
         mock_notify = AsyncMock()
         mock_notifier_instance = MagicMock()
-        mock_notifier_instance.notify = mock_notify
+        mock_notifier_instance.notify_review_required = mock_notify
 
         mock_notifier_cls = MagicMock(return_value=mock_notifier_instance)
 
         return mock_app, mock_notifier_cls, mock_notifier_instance, mock_notify
 
-    def test_severity_critical_when_crisis_flags(self):
-        """crisis_flags non-empty => severity='critical'."""
+    def test_severity_high_when_crisis_flags(self):
+        """crisis_flags non-empty => severity='high' (DB constraint: low/medium/high)."""
         mock_app, mock_notifier_cls, _, mock_notify = self._make_mock_app_and_notifier()
 
         self._run_helper(
@@ -221,7 +221,7 @@ class TestLogClinicalReviewHelper:
 
         mock_notify.assert_called_once()
         kwargs = mock_notify.call_args.kwargs
-        assert kwargs["severity"] == "critical"
+        assert kwargs["severity"] == "high"
 
     def test_severity_medium_when_clinical_only(self):
         """crisis_flags=[], clinical_flags non-empty => severity='medium'."""
@@ -283,7 +283,7 @@ class TestLogClinicalReviewHelper:
 
         mock_notify = AsyncMock()
         mock_notifier_instance = MagicMock()
-        mock_notifier_instance.notify = mock_notify
+        mock_notifier_instance.notify_review_required = mock_notify
         mock_notifier_cls = MagicMock(return_value=mock_notifier_instance)
 
         self._run_helper(

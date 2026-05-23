@@ -34,13 +34,14 @@ JAILBREAK_RESPONSE = (
 
 
 async def _log_clinical_review(
-    user_id: str,
     session_id: str,
-    flags: list[str],
-    turn_count: int,
+    user_id: str,
+    crisis_flags: list[str],
+    clinical_flags: list[str],
 ) -> None:
     """Deterministic clinician review log: fires when Layer 1 safety rules detected flags.
     source='layer1_safety' distinguishes this from the LLM tool path.
+    severity='high' for crisis, 'medium' for clinical-only (DB constraint: low/medium/high).
     """
     try:
         from server import app  # noqa: PLC0415
@@ -48,13 +49,20 @@ async def _log_clinical_review(
         pool = getattr(app.state, "_db_pool", None)
         if not pool:
             return
+        severity = "high" if crisis_flags else "medium"
+        reason_parts = []
+        if crisis_flags:
+            reason_parts.append(f"crisis flags: {', '.join(crisis_flags)}")
+        if clinical_flags:
+            reason_parts.append(f"clinical flags: {', '.join(clinical_flags)}")
         notifier = PostgresNotifier(pool)
         await notifier.notify_review_required(
             user_id=user_id,
             session_id=session_id,
-            reason=f"clinical flags detected: {', '.join(flags)}",
+            reason="; ".join(reason_parts),
             source="layer1_safety",
-            payload={"flags": flags, "turn_count": turn_count},
+            payload={"flags": crisis_flags + clinical_flags},
+            severity=severity,
         )
     except Exception as exc:
         _log.warning("[output_gate] _log_clinical_review failed: %s", exc)
@@ -190,15 +198,11 @@ async def output_gate_node(state: SageState) -> dict:
                 if not t.cancelled() and t.exception() else None
             )
 
-    all_flags = (state.get("clinical_flags") or []) + (state.get("crisis_flags") or [])
-    if all_flags and session_id and user_id:
+    _crisis_flags = state.get("crisis_flags") or []
+    _clinical_flags = state.get("clinical_flags") or []
+    if (_crisis_flags or _clinical_flags) and session_id and user_id:
         _review_task = asyncio.create_task(
-            _log_clinical_review(
-                user_id=user_id,
-                session_id=session_id,
-                flags=all_flags,
-                turn_count=state.get("turn_count", 0),
-            )
+            _log_clinical_review(session_id, user_id, _crisis_flags, _clinical_flags)
         )
         _review_task.add_done_callback(
             lambda t: _log.warning("[output_gate] clinical review error: %s", t.exception())

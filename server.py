@@ -41,7 +41,14 @@ async def lifespan(app: FastAPI):
     if os.environ.get("DATABASE_URL"):
         # Single pool shared by checkpointer + repository — prevents connection exhaustion
         # under Supabase connection limits. AsyncPostgresSaver accepts the pool directly.
-        pool = await asyncpg.create_pool(os.environ["DATABASE_URL"])
+        try:
+            pool = await asyncpg.create_pool(os.environ["DATABASE_URL"])
+        except Exception as exc:
+            _log.error("[sage/startup] database connection failed: %s", exc)
+            app.state._db_pool = None
+            app.state._graph = build_graph(checkpointer=None)
+            yield
+            return
         app.state._db_pool = pool
         saver = AsyncPostgresSaver(pool)
         await saver.setup()  # idempotent: creates LangGraph checkpoint tables if missing
@@ -94,6 +101,8 @@ async def chat(
         or not hmac.compare_digest(x_sage_api_key, _expected_key)
     ):
         raise HTTPException(status_code=401, detail="Unauthorized")
+    if not req.session_id or not req.session_id.strip():
+        raise HTTPException(status_code=400, detail="session_id is required")
     if not req.messages or req.messages[-1].role != "user":
         raise HTTPException(status_code=400, detail="Last message must be from the user")
 
