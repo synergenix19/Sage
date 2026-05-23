@@ -11,15 +11,18 @@ export default async function AdminPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/sign-in')
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('user_profiles')
     .select('is_admin')
     .eq('id', user.id)
     .single()
 
+  if (profileError && profileError.code !== 'PGRST116') {
+    console.error('[admin] profile fetch error:', profileError)
+  }
   if (!profile?.is_admin) redirect('/chat')
 
-  let data
+  let data: Awaited<ReturnType<typeof fetchAllAdminData>>
   try {
     const admin = createAdminClient()
     data = await fetchAllAdminData(admin)
@@ -28,7 +31,7 @@ export default async function AdminPage() {
     return (
       <div className="p-6">
         <p className="text-sm text-[var(--color-crisis)]">
-          Admin data unavailable. Check SUPABASE_SERVICE_ROLE_KEY in .env.local.
+          Admin data temporarily unavailable. Contact the platform team.
         </p>
       </div>
     )

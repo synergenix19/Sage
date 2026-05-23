@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { AdminSidebar } from '@/components/admin/admin-sidebar'
 
+export const dynamic = 'force-dynamic'
+
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-dvh">
