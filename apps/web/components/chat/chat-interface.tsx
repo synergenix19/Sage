@@ -25,7 +25,7 @@ interface Props {
   initialSession: ChatSession | null
   initialMessages?: SdkMessage[]
   userName: string
-  userId: string // passed by chat/page.tsx; available for future API auth or analytics
+  userId: string // sent in body for future analytics; route authenticates via supabase.auth.getUser(), not this value
 }
 
 // Custom streaming chat hook. The /api/chat route returns a raw text stream via
