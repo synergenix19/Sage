@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Plus_Jakarta_Sans, IBM_Plex_Sans_Arabic } from 'next/font/google'
 import { cookies } from 'next/headers'
 import { cssVarsString } from '@cdai/theme'
@@ -34,6 +34,12 @@ export const metadata: Metadata = {
   },
 }
 
+export const viewport: Viewport = {
+  viewportFit: 'cover',
+  width: 'device-width',
+  initialScale: 1,
+}
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies()
   const locale = (cookieStore.get('cdai-locale')?.value ?? 'en') as Locale
@@ -41,7 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const cssVars = cssVarsString(tenant.brand)
 
   return (
-    <html lang={locale} dir={dir} className={locale === 'ar' ? ibmPlexArabic.variable : jakartaSans.variable}>
+    <html lang={locale} dir={dir} className={`${jakartaSans.variable} ${ibmPlexArabic.variable}`}>
       <head>
         <style dangerouslySetInnerHTML={{ __html: cssVars }} />
         <link rel="apple-touch-icon" href="/icons/icon-180.png" />
@@ -49,6 +55,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta name="theme-color" content="#F9F8F6" />
       </head>
       <body className="bg-[var(--color-surface)] text-[var(--color-text-primary)] font-body antialiased">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-lg focus:bg-[var(--color-surface)] focus:px-4 focus:py-2 focus:text-sm focus:text-[var(--color-primary)] focus:ring-2 focus:ring-[var(--focus-ring-color)]"
+        >
+          {locale === 'ar' ? 'تخطى إلى المحتوى' : 'Skip to content'}
+        </a>
         <SwRegistration />
         <InstallPrompt />
         <SwUpdateBanner />

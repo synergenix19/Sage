@@ -17,7 +17,7 @@ export function TabBar({ className }: { className?: string }) {
   const pathname = usePathname()
   const locale = useLocaleStore((s) => s.locale)
   return (
-    <nav className={cn('border-t border-[var(--color-border)] bg-[var(--color-surface)] flex', className)}>
+    <nav className={cn('border-t border-[var(--color-border)] bg-[var(--color-surface)] flex pb-[env(safe-area-inset-bottom)]', className)}>
       {ALL_TABS.map((tab) => {
         const active = pathname.startsWith(tab.href)
         return (
