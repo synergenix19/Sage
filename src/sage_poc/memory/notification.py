@@ -48,8 +48,9 @@ class PostgresNotifier(ReviewNotifier):
         severity: str = "medium",
     ) -> None:
         message = json.dumps({
+            **payload,
             "user_id": user_id, "session_id": session_id,
-            "reason": reason, "source": source, "severity": severity, **payload,
+            "reason": reason, "source": source, "severity": severity,
         })
         async with self._pool.acquire() as conn:
             await conn.execute(

@@ -74,7 +74,7 @@ async def _persist_session_summary(
         from server import app  # noqa: PLC0415
         from sage_poc.memory.postgres_repository import PostgresMemoryRepository  # noqa: PLC0415
         from sage_poc.memory.embedding import get_embedding_async  # noqa: PLC0415
-        pool = app.state._db_pool
+        pool = getattr(app.state, "_db_pool", None)
         if pool is None:
             return
         embedding = await get_embedding_async(summary_text)
@@ -176,7 +176,7 @@ async def output_gate_node(state: SageState) -> dict:
         except Exception:
             _log.warning("Summarisation failed at turn %d; keeping prior summary", next_turn)
         if new_summary and session_id and user_id:
-            asyncio.create_task(
+            _task = asyncio.create_task(
                 _persist_session_summary(
                     session_id, user_id, new_summary,
                     state.get("crisis_flags", []),
@@ -185,16 +185,24 @@ async def output_gate_node(state: SageState) -> dict:
                     mood_score=float(state.get("emotional_intensity", 5)),
                 )
             )
+            _task.add_done_callback(
+                lambda t: _log.warning("[output_gate] summary persist error: %s", t.exception())
+                if not t.cancelled() and t.exception() else None
+            )
 
     all_flags = (state.get("clinical_flags") or []) + (state.get("crisis_flags") or [])
     if all_flags and session_id and user_id:
-        asyncio.create_task(
+        _review_task = asyncio.create_task(
             _log_clinical_review(
                 user_id=user_id,
                 session_id=session_id,
                 flags=all_flags,
                 turn_count=state.get("turn_count", 0),
             )
+        )
+        _review_task.add_done_callback(
+            lambda t: _log.warning("[output_gate] clinical review error: %s", t.exception())
+            if not t.cancelled() and t.exception() else None
         )
 
     return {

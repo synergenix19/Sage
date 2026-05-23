@@ -37,7 +37,7 @@ def make_flag_tool(user_id: str, session_id: str):
         reason: str,
         severity: str = "medium",
         turn_context: str = "",
-        evidence_turns: list[int] = [],
+        evidence_turns: list[int] | None = None,
     ) -> str:
         """Flag this session for clinician review.
 
@@ -60,7 +60,7 @@ def make_flag_tool(user_id: str, session_id: str):
                 session_id=session_id,
                 reason=reason,
                 source="llm_flag_for_review",
-                payload={"turn_context": turn_context, "evidence_turns": evidence_turns},
+                payload={"turn_context": turn_context, "evidence_turns": evidence_turns or []},
                 severity=severity,
             )
             return "flagged"
