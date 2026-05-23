@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Button, Input } from '@cdai/ui'
 import { useState } from 'react'
+import { useLocaleStore } from '@/lib/stores/locale-store'
 
 const schema = z.object({
   email: z.string().email(),
@@ -19,6 +20,7 @@ export function SignUpForm() {
   })
   const [serverError, setServerError] = useState<string | null>(null)
   const router = useRouter()
+  const locale = useLocaleStore((s) => s.locale)
 
   async function onSubmit(data: Fields) {
     setServerError(null)
@@ -33,11 +35,11 @@ export function SignUpForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-      <label htmlFor="signup-email" className="sr-only">Email</label>
-      <Input id="signup-email" type="email" placeholder="Email" {...register('email')} />
+      <label htmlFor="signup-email" className="sr-only">{locale === 'ar' ? 'البريد الإلكتروني' : 'Email'}</label>
+      <Input id="signup-email" type="email" placeholder={locale === 'ar' ? 'البريد الإلكتروني' : 'Email'} {...register('email')} />
       {errors.email && <p className="text-xs text-[var(--color-crisis)]">{errors.email.message}</p>}
-      <label htmlFor="signup-password" className="sr-only">Password</label>
-      <Input id="signup-password" type="password" placeholder="Password" {...register('password')} />
+      <label htmlFor="signup-password" className="sr-only">{locale === 'ar' ? 'كلمة المرور' : 'Password'}</label>
+      <Input id="signup-password" type="password" placeholder={locale === 'ar' ? 'كلمة المرور' : 'Password'} {...register('password')} />
       {errors.password && <p className="text-xs text-[var(--color-crisis)]">{errors.password.message}</p>}
       {serverError && <p className="text-xs text-[var(--color-crisis)]">{serverError}</p>}
       <Button type="submit" disabled={isSubmitting}>

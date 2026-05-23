@@ -6,7 +6,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="absolute top-4 end-4">
         <LanguageToggle />
       </div>
-      <div className="w-full max-w-sm">{children}</div>
+      <div id="main-content" className="w-full max-w-sm">{children}</div>
     </div>
   )
 }

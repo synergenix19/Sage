@@ -79,7 +79,9 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
           const { done, value } = await reader.read()
           if (done) break
           accumulated += decoder.decode(value, { stream: true })
-          const displayContent = accumulated
+          const displayContent = accumulated.startsWith(CRISIS_SIGNAL)
+            ? accumulated.slice(CRISIS_SIGNAL.length).trimStart()
+            : accumulated
           setMessages((curr) =>
             curr.map((m) => (m.id === assistantId ? { ...m, content: displayContent } : m))
           )
