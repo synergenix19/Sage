@@ -38,6 +38,7 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
   width: 'device-width',
   initialScale: 1,
+  themeColor: '#F9F8F6',
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -51,13 +52,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <style dangerouslySetInnerHTML={{ __html: cssVars }} />
         <link rel="apple-touch-icon" href="/icons/icon-180.png" />
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#F9F8F6" />
       </head>
       <body className="bg-[var(--color-surface)] text-[var(--color-text-primary)] font-body antialiased">
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-lg focus:bg-[var(--color-surface)] focus:px-4 focus:py-2 focus:text-sm focus:text-[var(--color-primary)] focus:ring-2 focus:ring-[var(--focus-ring-color)]"
+          className="absolute left-0 top-0 h-px w-px overflow-visible whitespace-nowrap opacity-0 focus:left-4 focus:top-4 focus:z-50 focus:h-auto focus:w-auto focus:rounded-lg focus:bg-[var(--color-surface)] focus:px-4 focus:py-2 focus:text-sm focus:text-[var(--color-primary)] focus:opacity-100 focus:ring-2 focus:ring-[var(--focus-ring-color)]"
         >
           {locale === 'ar' ? 'تخطى إلى المحتوى' : 'Skip to content'}
         </a>
