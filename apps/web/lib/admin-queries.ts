@@ -1,7 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 const SEVEN_DAYS_AGO = () => new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-const FOURTEEN_DAYS_AGO = () => new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
 
 export interface OverviewMetrics {
   totalUsers: number
@@ -217,8 +216,8 @@ export async function fetchConversationIntelligence(admin: SupabaseClient): Prom
   const allRows = rows ?? []
   const total = allRows.length
 
-  // 0.5258 mirrors SEMANTIC_THRESHOLD in sage-poc/nodes/skill_select.py
-  const withSemantic = allRows.filter(r => (r.semantic_score as number | null) != null && (r.semantic_score as number) >= 0.5258).length
+  // mirrors SEMANTIC_THRESHOLD in sage-poc/nodes/skill_select.py
+  const withSemantic = allRows.filter(r => (r.semantic_score as number | null) != null && (r.semantic_score as number) >= 0.5295).length
   const semanticMatchRate = total > 0 ? Math.round((withSemantic / total) * 100) / 100 : null
 
   const skillCounts: Record<string, number> = {}

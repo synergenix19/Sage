@@ -30,7 +30,7 @@ async function injectFreshCookies(page: Page) {
         await page.goto(origin.origin)
         for (const { name, value } of origin.localStorage) {
           await page.evaluate(
-            ([k, v]: [string, string]) => localStorage.setItem(k, v),
+            ([k, v]: string[]) => localStorage.setItem(k, v),
             [name, value]
           )
         }

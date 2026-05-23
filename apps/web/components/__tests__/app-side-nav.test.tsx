@@ -10,7 +10,7 @@ const mockPush = vi.fn()
 const mockRefresh = vi.fn()
 
 vi.mock('next/link', () => ({
-  default: ({ href, children, className, 'aria-current': ariaCurrent }: { href: string; children: React.ReactNode; className?: string; 'aria-current'?: string }) => (
+  default: ({ href, children, className, 'aria-current': ariaCurrent }: { href: string; children: React.ReactNode; className?: string; 'aria-current'?: React.AriaAttributes['aria-current'] }) => (
     <a href={href} className={className} aria-current={ariaCurrent}>{children}</a>
   ),
 }))

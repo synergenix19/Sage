@@ -226,7 +226,7 @@ function LatencyLineChartImpl({ data }: LatencyLineChartProps) {
   return (
     <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
       <h2 className="mb-4 text-base font-semibold text-[var(--color-text-primary)]">
-        Response Latency (14 days)
+        Response Latency (7 days)
       </h2>
       <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">
