@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import re
@@ -30,6 +31,39 @@ JAILBREAK_RESPONSE = (
     "I'm Sage, a wellness companion here to offer emotional support and evidence-based coping "
     "techniques. That's my role. What's been on your mind today?"
 )
+
+
+async def _persist_session_summary(
+    session_id: str,
+    user_id: str,
+    summary_text: str,
+    crisis_flags: list[str],
+    clinical_flags: list[str],
+    skills_used: list[str] | None = None,
+    mood_score: float | None = None,
+) -> None:
+    """Persist session summary to database. Non-fatal — errors are logged only."""
+    try:
+        from server import app  # noqa: PLC0415
+        from sage_poc.memory.postgres_repository import PostgresMemoryRepository  # noqa: PLC0415
+        from sage_poc.memory.embedding import get_embedding_async  # noqa: PLC0415
+        pool = app.state._db_pool
+        if pool is None:
+            return
+        embedding = await get_embedding_async(summary_text)
+        safety_level = (
+            "crisis" if crisis_flags
+            else "clinical" if clinical_flags
+            else "normal"
+        )
+        repo = PostgresMemoryRepository(pool)
+        await repo.save_session_summary(
+            session_id, user_id, summary_text, embedding, safety_level,
+            skills_used=skills_used,
+            mood_score=mood_score,
+        )
+    except Exception:
+        _log.warning("Failed to persist session summary for session %s", session_id)
 
 
 async def output_gate_node(state: SageState) -> dict:
@@ -112,6 +146,18 @@ async def output_gate_node(state: SageState) -> dict:
             _log.info("Conversation summary generated at turn %d", next_turn)
         except Exception:
             _log.warning("Summarisation failed at turn %d; keeping prior summary", next_turn)
+        session_id = state.get("session_id")
+        user_id = state.get("user_id")
+        if new_summary and session_id and user_id:
+            asyncio.create_task(
+                _persist_session_summary(
+                    session_id, user_id, new_summary,
+                    state.get("crisis_flags", []),
+                    state.get("clinical_flags", []),
+                    skills_used=[state["active_skill_id"]] if state.get("active_skill_id") else [],
+                    mood_score=float(state.get("emotional_intensity", 5)),
+                )
+            )
 
     return {
         "response": final_response,
