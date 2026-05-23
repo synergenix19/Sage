@@ -135,7 +135,11 @@ export async function POST(req: Request) {
   // New trace headers (Priority 1)
   const intentClassification = sageRes.headers.get('X-Sage-Intent') || null
   const semanticScoreStr     = sageRes.headers.get('X-Sage-Semantic-Score')
-  const semanticScore        = semanticScoreStr ? (parseFloat(semanticScoreStr) || null) : null
+  const semanticScore        = (() => {
+    if (!semanticScoreStr) return null
+    const n = parseFloat(semanticScoreStr)
+    return Number.isNaN(n) ? null : n
+  })()
   const promptLayers         = parseJsonHeader<string[] | null>(sageRes.headers.get('X-Sage-Prompt-Layers'), null)
   const tokenUsage           = parseJsonHeader<object | null>(sageRes.headers.get('X-Sage-Token-Usage'), null)
   const turnNumberStr        = sageRes.headers.get('X-Sage-Turn-Number')

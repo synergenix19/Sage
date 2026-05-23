@@ -38,7 +38,7 @@ export async function POST(req: Request) {
   const { error } = await supabase
     .from('message_feedback')
     .upsert(
-      { message_id: messageId, user_id: user.id, value: value as 1 | -1 },
+      { message_id: messageId, user_id: user.id, value },
       { onConflict: 'message_id,user_id' }
     )
 

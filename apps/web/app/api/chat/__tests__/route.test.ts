@@ -2,7 +2,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 const VALID_SESSION_UUID = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
-const VALID_SESSION_UUID_2 = 'b1ffcd00-0d1c-5fg9-cc7e-7cc0ce491b22'.replace('g', '8')
 
 const {
   mockInsert,
@@ -429,13 +428,29 @@ describe('POST /api/chat — input validation', () => {
   })
 
   it('applies defaults for optional fields', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null }, error: null })
-    const res = await POST(makeRequest({
-      sessionId: VALID_SESSION_UUID,
-      messages: [{ role: 'user', content: 'hello' }],
-      // no crisisState, clinicalFlags, or distressTrajectory
-    }))
-    // Reaches auth — defaults were applied silently
-    expect(res.status).toBe(401)
+    // Auth passes, session ownership passes, then sage-poc is unreachable (fetch throws) → 503
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: 'user-1' } }, error: null })
+    mockSingle.mockResolvedValueOnce({ data: { id: VALID_SESSION_UUID } })
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('SAGE_UNAVAILABLE'))
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: VALID_SESSION_UUID, messages: [{ role: 'user', content: 'hi' }] }),
+      // no crisisState, activeSkillId, activeStepId, clinicalFlags, distressTrajectory
+    })
+    const res = await POST(req)
+    // 503 means Zod accepted the body with defaults applied — validation did not return 400
+    expect(res.status).not.toBe(400)
+  })
+
+  it('returns 400 when body is not valid JSON', async () => {
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: 'not json {{{',
+    })
+    const res = await POST(req)
+    expect(res.status).toBe(400)
+    expect(mockGetUser).not.toHaveBeenCalled()
   })
 })

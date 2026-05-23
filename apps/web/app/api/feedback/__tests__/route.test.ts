@@ -137,4 +137,15 @@ describe('POST /api/feedback — input validation', () => {
     expect(res.status).toBe(401)
     expect(mockGetUser).toHaveBeenCalledOnce()
   })
+
+  it('returns 400 when body is not valid JSON', async () => {
+    const req = new Request('http://localhost/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: 'not json {{{',
+    })
+    const res = await POST(req)
+    expect(res.status).toBe(400)
+    expect(mockGetUser).not.toHaveBeenCalled()
+  })
 })
