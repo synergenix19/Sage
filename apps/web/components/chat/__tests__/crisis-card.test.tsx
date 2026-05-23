@@ -4,9 +4,8 @@ import { CrisisCard } from '../crisis-card'
 import { useLocaleStore } from '@/lib/stores/locale-store'
 
 vi.mock('@/lib/stores/locale-store', () => ({
-  useLocaleStore: vi.fn((selector: (s: { locale: string }) => unknown) =>
-    selector({ locale: 'en' })
-  ),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  useLocaleStore: vi.fn((selector: any) => selector({ locale: 'en', setLocale: () => {} })),
 }))
 
 describe('CrisisCard', () => {
@@ -36,15 +35,13 @@ describe('CrisisCard', () => {
 
 describe('CrisisCard — Arabic locale', () => {
   afterEach(() => {
-    vi.mocked(useLocaleStore).mockImplementation(
-      (selector: (s: { locale: string }) => unknown) => selector({ locale: 'en' })
-    )
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(useLocaleStore).mockImplementation((selector: any) => selector({ locale: 'en', setLocale: () => {} }))
   })
 
   it('renders Arabic heading and both call links', () => {
-    vi.mocked(useLocaleStore).mockImplementation(
-      (selector: (s: { locale: string }) => unknown) => selector({ locale: 'ar' })
-    )
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(useLocaleStore).mockImplementation((selector: any) => selector({ locale: 'ar', setLocale: () => {} }))
     render(<CrisisCard content="أنت لست وحدك." />)
     expect(screen.getByText('لست وحدك — الدعم متاح')).toBeInTheDocument()
     const links = screen.getAllByRole('link')
