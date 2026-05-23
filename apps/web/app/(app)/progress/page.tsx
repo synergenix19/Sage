@@ -43,7 +43,7 @@ export default function ProgressPage() {
   )
 
   return (
-    <div className="flex flex-col gap-4 overflow-y-auto p-4 pb-8">
+    <div className="flex h-full flex-col gap-4 overflow-y-auto p-4 pb-8">
       <h1 className="text-xl font-semibold">{tenant.copy.progressHeader}</h1>
       {loading && (
         <>
