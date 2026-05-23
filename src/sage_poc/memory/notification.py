@@ -1,81 +1,69 @@
 from __future__ import annotations
-from abc import ABC, abstractmethod
 import json
+from abc import ABC, abstractmethod
 
 
 class ReviewNotifier(ABC):
-    """Provider-agnostic interface for clinician review notifications.
+    """Abstraction over the clinician notification mechanism.
 
-    Implement this class to swap Postgres for any other notification backend.
+    PostgresNotifier uses standard LISTEN/NOTIFY (any Postgres host).
+    Swap by writing a new subclass (email, webhook, Slack, etc.).
     """
 
     @abstractmethod
-    async def notify(
+    async def notify_review_required(
         self,
-        session_id: str,
         user_id: str,
-        source: str,  # 'layer1_safety' | 'llm_flag_for_review' | 'manual'
-        severity: str,  # 'low' | 'medium' | 'high' | 'critical'
+        session_id: str,
         reason: str,
+        source: str,
+        payload: dict,
+        severity: str = "medium",
     ) -> None:
-        """Queue a session for clinician review.
+        """Send a review notification.
 
         Args:
-            session_id: Unique identifier for the session.
-            user_id: Unique identifier for the user.
-            source: Origin of the review request.
-            severity: Review urgency level.
-            reason: Human-readable explanation for the review.
+            source:   'layer1_safety' (deterministic) or 'llm_flag_for_review' (LLM-perceived).
+                      Clinicians use this to understand why the session was flagged.
+            severity: 'low' (daily batch), 'medium' or 'high' (notify within 4 hours). v7 §6.5.6.
         """
         ...
 
 
 class PostgresNotifier(ReviewNotifier):
-    """ReviewNotifier backed by asyncpg pool.
+    """Writes to clinician_review_queue and fires pg_notify for real-time delivery."""
 
-    Persists review queue to clinician_review_queue table and triggers
-    real-time notification via pg_notify.
-    """
+    CHANNEL = "clinician_review"
 
     def __init__(self, pool) -> None:
         self._pool = pool
 
-    async def notify(
+    async def notify_review_required(
         self,
-        session_id: str,
         user_id: str,
-        source: str,
-        severity: str,
+        session_id: str,
         reason: str,
+        source: str,
+        payload: dict,
+        severity: str = "medium",
     ) -> None:
+        message = json.dumps({
+            "user_id": user_id, "session_id": session_id,
+            "reason": reason, "source": source, "severity": severity, **payload,
+        })
         async with self._pool.acquire() as conn:
-            # Upsert to review queue
             await conn.execute(
                 """
-                INSERT INTO clinician_review_queue
-                  (session_id, user_id, source, severity, reason)
-                VALUES ($1, $2, $3, $4, $5)
-                ON CONFLICT (session_id) DO UPDATE
-                  SET source = EXCLUDED.source,
-                      severity = EXCLUDED.severity,
-                      reason = EXCLUDED.reason,
-                      updated_at = now()
+                INSERT INTO public.clinician_review_queue
+                  (user_id, session_id, reason, source, severity, payload, status)
+                VALUES ($1, $2::uuid, $3, $4, $5, $6::jsonb, 'pending')
+                ON CONFLICT (session_id) DO UPDATE SET
+                  reason     = EXCLUDED.reason,
+                  source     = EXCLUDED.source,
+                  severity   = EXCLUDED.severity,
+                  payload    = EXCLUDED.payload,
+                  updated_at = now()
                 """,
-                session_id,
-                user_id,
-                source,
-                severity,
-                reason,
+                user_id, session_id, reason, source, severity, message,
             )
-            # Trigger real-time notification
-            await conn.execute(
-                "SELECT pg_notify($1, $2)",
-                "clinician_review",
-                json.dumps(
-                    {
-                        "session_id": session_id,
-                        "source": source,
-                        "severity": severity,
-                    }
-                ),
-            )
+            await conn.execute("SELECT pg_notify($1, $2)", self.CHANNEL, message)
