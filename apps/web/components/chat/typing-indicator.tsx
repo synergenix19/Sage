@@ -1,6 +1,15 @@
+'use client'
+import { useLocaleStore } from '@/lib/stores/locale-store'
+
 export function TypingIndicator() {
+  const locale = useLocaleStore((s) => s.locale)
   return (
-    <div className="flex justify-start" data-testid="typing-indicator">
+    <div
+      role="status"
+      aria-label={locale === 'ar' ? '...Sage يكتب' : 'Sage is typing...'}
+      className="flex justify-start"
+      data-testid="typing-indicator"
+    >
       <div className="flex items-center gap-1 rounded-2xl rounded-es-sm bg-[var(--color-surface-tinted)] px-4 py-3">
         {[0, 1, 2].map((i) => (
           <span

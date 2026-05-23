@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { mapSdkRole, type ChatSession, type MessageRole } from '@cdai/types'
 import { FIRST_CHAT_EVENT } from '@/components/pwa/install-prompt'
 import { CRISIS_SIGNAL, SERVER_ERROR_SIGNAL } from '@/lib/constants'
+import { useLocaleStore } from '@/lib/stores/locale-store'
 import { ChatHeader } from './chat-header'
 import { MessageBubble } from './message-bubble'
 import { CrisisCard } from './crisis-card'
@@ -155,6 +156,7 @@ export function ChatInterface({ initialSession, initialMessages = [], userName, 
   const bottomRef = useRef<HTMLDivElement>(null)
   const hasSignaledInstall = useRef(false)
   const { messages, append, isLoading, error, reload } = useStreamingChat(initialSession?.id, userId, initialMessages)
+  const locale = useLocaleStore((s) => s.locale)
 
   // Pin the crisis card only while the last assistant message is still a crisis.
   // Once the user receives a normal reply the crisis is considered addressed
@@ -172,7 +174,7 @@ export function ChatInterface({ initialSession, initialMessages = [], userName, 
   })()
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    bottomRef.current?.scrollIntoView({ behavior: isLoading ? 'instant' : 'smooth' })
   }, [messages, isLoading])
 
   // Signal install prompt after first completed assistant response
@@ -205,7 +207,12 @@ export function ChatInterface({ initialSession, initialMessages = [], userName, 
     <div className="flex h-full flex-col">
       <ChatHeader session={initialSession} />
 
-      <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
+      <div
+        role="log"
+        aria-live="polite"
+        aria-label={locale === 'ar' ? 'المحادثة' : 'Conversation'}
+        className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4"
+      >
         {messages.length === 0 && !isLoading ? (
           <EmptyState userName={userName} onChipClick={handleSend} />
         ) : (
