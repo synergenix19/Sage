@@ -15,6 +15,7 @@ self.addEventListener('activate', (event) => {
     caches.keys()
       .then((keys) =>
         Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+          .catch(() => {})
       )
       .then(() => self.clients.claim())
   )
@@ -23,7 +24,9 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match(OFFLINE_URL))
+      fetch(event.request).catch(() =>
+        caches.match(OFFLINE_URL).then((r) => r ?? new Response('Offline', { status: 503 }))
+      )
     )
   }
 })
