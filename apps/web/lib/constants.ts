@@ -1,1 +1,2 @@
 export const CRISIS_SIGNAL = '[[CRISIS_DETECTED]]'
+export const SERVER_ERROR_SIGNAL = '[[SERVER_ERROR]]'

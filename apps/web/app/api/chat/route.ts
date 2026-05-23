@@ -2,7 +2,7 @@
 import { generateText } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createClient } from '@/lib/supabase/server'
-import { CRISIS_SIGNAL } from '@/lib/constants'
+import { CRISIS_SIGNAL, SERVER_ERROR_SIGNAL } from '@/lib/constants'
 import type { Intent } from '@cdai/types'
 import { z } from 'zod'
 
@@ -145,7 +145,7 @@ export async function POST(req: Request) {
       accumulated += decoder.decode()
       const latencyMs = Date.now() - sageStart
 
-      if (accumulated.includes('[[SERVER_ERROR]]')) {
+      if (accumulated.includes(SERVER_ERROR_SIGNAL)) {
         console.error('[chat/persist] server error sentinel received, skipping persist')
       } else {
         const isCrisis = accumulated.startsWith(CRISIS_SIGNAL)

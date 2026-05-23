@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { mapSdkRole, type ChatSession, type MessageRole } from '@cdai/types'
 import { FIRST_CHAT_EVENT } from '@/components/pwa/install-prompt'
-import { CRISIS_SIGNAL } from '@/lib/constants'
+import { CRISIS_SIGNAL, SERVER_ERROR_SIGNAL } from '@/lib/constants'
 import { ChatHeader } from './chat-header'
 import { MessageBubble } from './message-bubble'
 import { CrisisCard } from './crisis-card'
@@ -85,7 +85,7 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
         }
         accumulated += decoder.decode() // flush trailing multi-byte sequence
 
-        if (accumulated.includes('[[SERVER_ERROR]]')) {
+        if (accumulated.includes(SERVER_ERROR_SIGNAL)) {
           // Drop the placeholder and surface the error — lets the retry UI appear
           setMessages((curr) => curr.filter((m) => m.id !== assistantId))
           setError(new Error('Sage is having trouble responding. Please try again.'))
