@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { BottomSheet } from './bottom-sheet'
 import { cn } from '../lib/utils'
 
@@ -7,7 +7,7 @@ interface ResponsivePanelProps {
   open: boolean
   onClose: () => void
   title?: string
-  children: React.ReactNode
+  children: ReactNode
 }
 
 export function ResponsivePanel({ open, onClose, title, children }: ResponsivePanelProps) {

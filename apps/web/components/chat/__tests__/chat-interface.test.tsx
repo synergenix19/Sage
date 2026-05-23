@@ -59,7 +59,7 @@ describe('useStreamingChat — mid-stream failure', () => {
       makeFaultingFetchMock(['Hello'], networkError)
     )
 
-    const { result } = renderHook(() => useStreamingChat('session-1', []))
+    const { result } = renderHook(() => useStreamingChat('session-1', undefined, []))
 
     // Trigger a stream by appending a user message.
     act(() => {
@@ -88,7 +88,7 @@ describe('useStreamingChat — mid-stream failure', () => {
       makeFaultingFetchMock(['Partial'], networkError)
     )
 
-    const { result } = renderHook(() => useStreamingChat('session-2', []))
+    const { result } = renderHook(() => useStreamingChat('session-2', undefined, []))
 
     act(() => {
       result.current.append({ role: 'user', content: 'Hello there' })

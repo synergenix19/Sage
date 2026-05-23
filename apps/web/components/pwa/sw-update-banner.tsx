@@ -34,8 +34,10 @@ export function SwUpdateBanner() {
   if (!waitingWorker) return null
 
   function handleUpdate() {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload()
+    }, { once: true })
     waitingWorker!.postMessage({ type: 'SKIP_WAITING' })
-    window.location.reload()
   }
 
   return (

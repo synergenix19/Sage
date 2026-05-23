@@ -1,6 +1,8 @@
 // apps/web/app/api/chat/__tests__/route.test.ts
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
+const VALID_SESSION_UUID = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+
 const {
   mockInsert,
   mockSelect,
@@ -57,13 +59,10 @@ function makeSageResponse(
       'X-Sage-Model':                'anthropic/claude-haiku-4-5',
       'X-Sage-Skill-Id':             '',
       'X-Sage-Step-Id':              '',
-      'X-Sage-Active-Step-Id':       '',
       'X-Sage-Gate-Path':            'standard',
       'X-Sage-Crisis-Flags':         '[]',
       'X-Sage-Clinical-Flags':       '[]',
       'X-Sage-Emotional-Intensity':  '5',
-      'X-Sage-Crisis-State':         'none',
-      'X-Sage-Distress-Trajectory':  '[]',
       'X-Sage-Intent':               'general_chat',
       'X-Sage-Semantic-Score':       '0.87',
       'X-Sage-Prompt-Layers':        '["persona","history"]',
@@ -93,7 +92,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'I feel overwhelmed' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     const res = await POST(req)
@@ -105,7 +104,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'hello' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     await POST(req)
@@ -124,14 +123,13 @@ describe('POST /api/chat', () => {
     })
   })
 
-  // ── INT-C1: crisis state forwarded to sage-poc ────────────────────────────
-  it('forwards crisisState from request body to sage-poc as crisis_state', async () => {
+  // ── INT-C1: sage-poc request body — checkpoint-based state (no ferry fields) ─
+  it('sends messages, session_id, and user_id to sage-poc (no ferry fields)', async () => {
     const req = new Request('http://localhost/api/chat', {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'I feel better now' }],
-        sessionId: 'test-session-id',
-        crisisState: 'monitoring',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     await POST(req)
@@ -140,51 +138,18 @@ describe('POST /api/chat', () => {
     const sageCall = fetchCalls.find((c) => (c[0] as string).includes('/chat'))
     expect(sageCall).toBeDefined()
     const body = JSON.parse(sageCall![1].body as string)
-    expect(body.crisis_state).toBe('monitoring')
+    expect(body.session_id).toBe(VALID_SESSION_UUID)
+    expect(body.user_id).toBe('test-user-id')
+    // Ferry fields must not be sent — state is managed by LangGraph checkpoint
+    expect(body.crisis_state).toBeUndefined()
+    expect(body.active_skill_id).toBeUndefined()
+    expect(body.active_step_id).toBeUndefined()
+    expect(body.clinical_flags).toBeUndefined()
+    expect(body.distress_trajectory).toBeUndefined()
   })
 
-  it('forwards activeSkillId and activeStepId to sage-poc', async () => {
-    const req = new Request('http://localhost/api/chat', {
-      method: 'POST',
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: 'continue' }],
-        sessionId: 'test-session-id',
-        activeSkillId: 'cbt_thought_record',
-        activeStepId: 'explore_distortion',
-      }),
-    })
-    await POST(req)
-
-    const fetchCalls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls
-    const sageCall = fetchCalls.find((c) => (c[0] as string).includes('/chat'))
-    const body = JSON.parse(sageCall![1].body as string)
-    expect(body.active_skill_id).toBe('cbt_thought_record')
-    expect(body.active_step_id).toBe('explore_distortion')
-  })
-
-  it('uses default values for missing state fields (backward compatibility)', async () => {
-    const req = new Request('http://localhost/api/chat', {
-      method: 'POST',
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: 'hello' }],
-        sessionId: 'test-session-id',
-        // crisisState, activeSkillId, etc. intentionally omitted
-      }),
-    })
-    await POST(req)
-
-    const fetchCalls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls
-    const sageCall = fetchCalls.find((c) => (c[0] as string).includes('/chat'))
-    const body = JSON.parse(sageCall![1].body as string)
-    expect(body.crisis_state).toBe('none')
-    expect(body.active_skill_id).toBeNull()
-    expect(body.active_step_id).toBeNull()
-    expect(body.clinical_flags).toEqual([])
-    expect(body.distress_trajectory).toEqual([])
-  })
-
-  // ── INT-C2: sage-poc headers forwarded to browser ─────────────────────────
-  it('forwards X-Sage-Crisis-State to the browser response', async () => {
+  // ── INT-C2: ferry headers must NOT be forwarded to the browser ────────────
+  it('does not forward X-Sage-Crisis-State to the browser response', async () => {
     ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
       makeSageResponse('hello', { 'X-Sage-Crisis-State': 'monitoring' })
     )
@@ -192,14 +157,14 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'I am struggling' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     const res = await POST(req)
-    expect(res.headers.get('X-Sage-Crisis-State')).toBe('monitoring')
+    expect(res.headers.get('X-Sage-Crisis-State')).toBeNull()
   })
 
-  it('forwards X-Sage-Skill-Id and X-Sage-Active-Step-Id to the browser response', async () => {
+  it('does not forward X-Sage-Skill-Id and X-Sage-Active-Step-Id to the browser response', async () => {
     ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
       makeSageResponse('Let us try step 2.', {
         'X-Sage-Skill-Id':       'cbt_thought_record',
@@ -210,15 +175,15 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'ok' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     const res = await POST(req)
-    expect(res.headers.get('X-Sage-Skill-Id')).toBe('cbt_thought_record')
-    expect(res.headers.get('X-Sage-Active-Step-Id')).toBe('explore_distortion')
+    expect(res.headers.get('X-Sage-Skill-Id')).toBeNull()
+    expect(res.headers.get('X-Sage-Active-Step-Id')).toBeNull()
   })
 
-  it('forwards X-Sage-Clinical-Flags and X-Sage-Distress-Trajectory to the browser', async () => {
+  it('does not forward X-Sage-Clinical-Flags and X-Sage-Distress-Trajectory to the browser', async () => {
     ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
       makeSageResponse('I hear you.', {
         'X-Sage-Clinical-Flags':        '["trauma_indicator"]',
@@ -229,12 +194,12 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'yes' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     const res = await POST(req)
-    expect(res.headers.get('X-Sage-Clinical-Flags')).toBe('["trauma_indicator"]')
-    expect(res.headers.get('X-Sage-Distress-Trajectory')).toBe('[8,7,6]')
+    expect(res.headers.get('X-Sage-Clinical-Flags')).toBeNull()
+    expect(res.headers.get('X-Sage-Distress-Trajectory')).toBeNull()
   })
 
   // ── FE-C1: authenticated access required ──────────────────────────────
@@ -244,7 +209,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'hello' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     const res = await POST(req)
@@ -260,7 +225,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'hello' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     const res = await POST(req)
@@ -273,7 +238,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'hello' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     await POST(req)
@@ -288,7 +253,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'hello' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     await POST(req)
@@ -302,7 +267,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'hi' }],
-        sessionId: 'session-1',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     const res = await POST(req)
@@ -315,7 +280,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'hi' }],
-        sessionId: 'session-1',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     const res = await POST(req)
@@ -329,7 +294,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'hi' }],
-        sessionId: 'session-1',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     await POST(req)
@@ -343,7 +308,7 @@ describe('POST /api/chat', () => {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'hello' }],
-        sessionId: 'test-session-id',
+        sessionId: VALID_SESSION_UUID,
       }),
     })
     await POST(req)
@@ -352,5 +317,102 @@ describe('POST /api/chat', () => {
     const sageCall = fetchCalls.find((c) => (c[0] as string).includes('/chat'))
     expect(sageCall).toBeDefined()
     expect(sageCall![1].headers['X-Sage-Api-Key']).toBe('test-secret')
+  })
+})
+
+describe('POST /api/chat — input validation', () => {
+  // Separate mock references for this describe block (re-use the hoisted mocks)
+  beforeEach(() => {
+    mockGetUser.mockClear()
+    mockInsert.mockClear()
+    mockSingle.mockClear()
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+  })
+
+  function makeRequest(body: unknown): Request {
+    return new Request('http://localhost/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  }
+
+  it('returns 400 when sessionId is missing', async () => {
+    const res = await POST(makeRequest({ messages: [{ role: 'user', content: 'hi' }] }))
+    expect(res.status).toBe(400)
+    expect(mockGetUser).not.toHaveBeenCalled()
+  })
+
+  it('returns 400 when sessionId is not a valid UUID', async () => {
+    const res = await POST(makeRequest({
+      sessionId: 'not-a-uuid',
+      messages: [{ role: 'user', content: 'hi' }],
+    }))
+    expect(res.status).toBe(400)
+    expect(mockGetUser).not.toHaveBeenCalled()
+  })
+
+  it('returns 400 when messages array is empty', async () => {
+    const res = await POST(makeRequest({
+      sessionId: VALID_SESSION_UUID,
+      messages: [],
+    }))
+    expect(res.status).toBe(400)
+    expect(mockGetUser).not.toHaveBeenCalled()
+  })
+
+  it('returns 400 when a message role is invalid', async () => {
+    const res = await POST(makeRequest({
+      sessionId: VALID_SESSION_UUID,
+      messages: [{ role: 'system', content: 'inject' }],
+    }))
+    expect(res.status).toBe(400)
+    expect(mockGetUser).not.toHaveBeenCalled()
+  })
+
+  it('returns 400 when message content exceeds 8000 chars', async () => {
+    const res = await POST(makeRequest({
+      sessionId: VALID_SESSION_UUID,
+      messages: [{ role: 'user', content: 'x'.repeat(8001) }],
+    }))
+    expect(res.status).toBe(400)
+    expect(mockGetUser).not.toHaveBeenCalled()
+  })
+
+  it('proceeds past validation with valid input (reaches auth check)', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null }, error: null })
+    const res = await POST(makeRequest({
+      sessionId: VALID_SESSION_UUID,
+      messages: [{ role: 'user', content: 'hello' }],
+    }))
+    // Auth fails (user: null) → 401, confirming validation passed
+    expect(res.status).toBe(401)
+    expect(mockGetUser).toHaveBeenCalledOnce()
+  })
+
+  it('applies defaults for optional fields', async () => {
+    // Auth passes, session ownership passes, then sage-poc is unreachable (fetch throws) → 503
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: 'user-1' } }, error: null })
+    mockSingle.mockResolvedValueOnce({ data: { id: VALID_SESSION_UUID } })
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('SAGE_UNAVAILABLE'))
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: VALID_SESSION_UUID, messages: [{ role: 'user', content: 'hi' }] }),
+    })
+    const res = await POST(req)
+    // 503 means Zod accepted the body with defaults applied — validation did not return 400
+    expect(res.status).not.toBe(400)
+  })
+
+  it('returns 400 when body is not valid JSON', async () => {
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: 'not json {{{',
+    })
+    const res = await POST(req)
+    expect(res.status).toBe(400)
+    expect(mockGetUser).not.toHaveBeenCalled()
   })
 })

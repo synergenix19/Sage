@@ -3,6 +3,18 @@ import { generateText } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createClient } from '@/lib/supabase/server'
 import type { Intent } from '@cdai/types'
+import { z } from 'zod'
+
+const MessageSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string().max(8000),
+})
+
+const ChatRequestSchema = z.object({
+  sessionId: z.string().uuid(),
+  messages: z.array(MessageSchema).min(1),
+  userId: z.string().optional(),
+})
 
 const openrouter = createOpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
@@ -28,32 +40,13 @@ function parseJsonHeader<T>(raw: string | null, fallback: T): T {
 }
 
 export async function POST(req: Request) {
-  // route.ts is a deliberate security boundary:
-  //   - SAGE_API_URL is a server-side env var; it never reaches the browser
-  //   - Supabase persistence happens here, not in the browser
-  // All sage-poc calls originate from this server process — CORS headers on sage-poc
-  // are irrelevant to this call path.
+  const parsed = ChatRequestSchema.safeParse(await req.json().catch(() => null))
+  if (!parsed.success) return new Response('Bad Request', { status: 400 })
+
   const {
     messages,
     sessionId,
-    crisisState        = 'none',
-    activeSkillId      = null,
-    activeStepId       = null,
-    clinicalFlags      = [],
-    distressTrajectory = [],
-  } = await req.json() as {
-    messages:            { role: string; content: string }[]
-    sessionId:           string
-    crisisState?:        string
-    activeSkillId?:      string | null
-    activeStepId?:       string | null
-    clinicalFlags?:      string[]
-    distressTrajectory?: number[]
-  }
-
-  if (!sessionId || !messages?.length) {
-    return new Response('Bad Request', { status: 400 })
-  }
+  } = parsed.data
 
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -87,13 +80,9 @@ export async function POST(req: Request) {
         ...(process.env.SAGE_API_KEY ? { 'X-Sage-Api-Key': process.env.SAGE_API_KEY } : {}),
       },
       body: JSON.stringify({
-        messages:            messages.map((m) => ({ role: m.role, content: m.content })),
-        session_id:          sessionId,
-        crisis_state:        crisisState,
-        active_skill_id:     activeSkillId,
-        active_step_id:      activeStepId,
-        clinical_flags:      clinicalFlags,
-        distress_trajectory: distressTrajectory,
+        messages:   messages.map((m) => ({ role: m.role, content: m.content })),
+        session_id: sessionId,
+        user_id:    user.id,
       }),
     })
   } catch (err) {
@@ -127,7 +116,11 @@ export async function POST(req: Request) {
   // New trace headers (Priority 1)
   const intentClassification = sageRes.headers.get('X-Sage-Intent') || null
   const semanticScoreStr     = sageRes.headers.get('X-Sage-Semantic-Score')
-  const semanticScore        = semanticScoreStr ? (parseFloat(semanticScoreStr) || null) : null
+  const semanticScore        = (() => {
+    if (!semanticScoreStr) return null
+    const n = parseFloat(semanticScoreStr)
+    return Number.isNaN(n) ? null : n
+  })()
   const promptLayers         = parseJsonHeader<string[] | null>(sageRes.headers.get('X-Sage-Prompt-Layers'), null)
   const tokenUsage           = parseJsonHeader<object | null>(sageRes.headers.get('X-Sage-Token-Usage'), null)
   const turnNumberStr        = sageRes.headers.get('X-Sage-Turn-Number')
@@ -210,7 +203,16 @@ export async function POST(req: Request) {
           .update({ name: sessionName.trim(), updated_at: new Date().toISOString() })
           .eq('id', sessionId)
       }
-      // POST-PILOT: Add mood scoring and insight generation here.
+      // Trigger incremental profile extraction — fires every request but
+      // sage-poc's /extract-profile skips if fewer than 5 new turns since last extraction.
+      void fetch(`${SAGE_API_URL}/extract-profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(process.env.SAGE_API_KEY ? { 'X-Sage-Api-Key': process.env.SAGE_API_KEY } : {}),
+        },
+        body: JSON.stringify({ session_id: sessionId, user_id: user.id }),
+      }).catch((err) => console.warn('[chat/route] profile extraction error:', err))
     } catch (err) {
       console.error('[chat/persist] failed:', err)
     }
@@ -239,15 +241,6 @@ export async function POST(req: Request) {
       if (value) responseHeaders[header] = value
     }
   }
-
-  // Ferry headers: read by chat-interface.tsx and sent back on the next request.
-  // These are the only sage-poc headers forwarded to the browser — all others
-  // are consumed here for Supabase persistence.
-  responseHeaders['X-Sage-Crisis-State']        = sageRes.headers.get('X-Sage-Crisis-State') ?? 'none'
-  responseHeaders['X-Sage-Skill-Id']            = sageRes.headers.get('X-Sage-Skill-Id') ?? ''
-  responseHeaders['X-Sage-Active-Step-Id']      = sageRes.headers.get('X-Sage-Active-Step-Id') ?? ''
-  responseHeaders['X-Sage-Clinical-Flags']      = sageRes.headers.get('X-Sage-Clinical-Flags') ?? '[]'
-  responseHeaders['X-Sage-Distress-Trajectory'] = sageRes.headers.get('X-Sage-Distress-Trajectory') ?? '[]'
 
   return new Response(clientStream, { headers: responseHeaders })
 }
