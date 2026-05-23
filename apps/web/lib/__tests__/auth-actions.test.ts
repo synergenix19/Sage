@@ -54,9 +54,11 @@ describe('signOutUser', () => {
     expect(resetCalledBeforeSignOut).toBe(true)
   })
 
-  it('resets onboarding store even if signOut throws', async () => {
-    mockSignOut.mockRejectedValueOnce(new Error('network error'))
-    await signOutUser(push).catch(() => {})
-    expect(mockReset).toHaveBeenCalledOnce()
+  it('redirects to /sign-in even when signOut throws', async () => {
+    mockSignOut.mockRejectedValue(new Error('network error'))
+    const push = vi.fn()
+    await signOutUser(push)
+    expect(mockReset).toHaveBeenCalled()
+    expect(push).toHaveBeenCalledWith('/sign-in')
   })
 })
