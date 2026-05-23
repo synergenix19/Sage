@@ -15,7 +15,7 @@ export function CrisisCard({ content }: { content: string }) {
   const isAr = locale === 'ar'
 
   return (
-    <div role="alert" className="mx-4 rounded-xl border-2 border-[var(--color-crisis)] bg-[var(--color-crisis)]/10 p-4">
+    <div role="alert" aria-atomic="true" className="mx-4 rounded-xl border-2 border-[var(--color-crisis)] bg-[var(--color-crisis)]/10 p-4">
       <p className="mb-2 text-sm font-medium text-[var(--color-crisis)]">
         {isAr ? 'لست وحدك — الدعم متاح' : "You're not alone — support is available"}
       </p>
