@@ -203,7 +203,16 @@ export async function POST(req: Request) {
           .update({ name: sessionName.trim(), updated_at: new Date().toISOString() })
           .eq('id', sessionId)
       }
-      // POST-PILOT: Add mood scoring and insight generation here.
+      // Trigger incremental profile extraction — fires every request but
+      // sage-poc's /extract-profile skips if fewer than 5 new turns since last extraction.
+      void fetch(`${SAGE_API_URL}/extract-profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(process.env.SAGE_API_KEY ? { 'X-Sage-Api-Key': process.env.SAGE_API_KEY } : {}),
+        },
+        body: JSON.stringify({ session_id: sessionId, user_id: user.id }),
+      }).catch((err) => console.warn('[chat/route] profile extraction error:', err))
     } catch (err) {
       console.error('[chat/persist] failed:', err)
     }
