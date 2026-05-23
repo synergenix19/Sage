@@ -267,6 +267,85 @@ async def test_selects_cbt_for_blame_myself():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("message,expected_skill", [
+    ("I can never do anything right, what is wrong with me", "cbt_thought_record"),
+    ("I keep sabotaging myself every time things are going well", "cbt_thought_record"),
+    ("I am always the one who ends up getting blamed for everything", "cbt_thought_record"),
+])
+async def test_selects_cbt_for_rt4_keyword_additions(message, expected_skill):
+    """RT-4 keyword audit: confirmed keyword-miss phrases that must activate CBT via keyword tier.
+
+    If any case passes as skill_match_method='semantic', a keyword was already present
+    or was added that covers this phrase — remove that parametrize case from this test
+    and add it to the keyword regression tests instead.
+    """
+    state = make_state(message_en=message, primary_intent="new_skill")
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] == expected_skill, (
+        f"RT-4 keyword miss: {message!r} must activate {expected_skill!r} "
+        f"but got {result['active_skill_id']!r} "
+        f"(method={result.get('skill_match_method')!r}). "
+        "Add the confirmed keyword to cbt_thought_record.json target_presentations."
+    )
+    assert result["skill_match_method"] == "keyword", (
+        f"Expected keyword tier, not semantic, for: {message!r}. "
+        "A keyword should cover this — verify the keyword was added."
+    )
+
+
+@pytest.mark.slow
+@pytest.mark.asyncio
+@pytest.mark.parametrize("message,expected_skill", [
+    ("why am I like this, why can I never just be normal", "cbt_thought_record"),
+    ("there is something fundamentally broken about who I am as a person", "cbt_thought_record"),
+    ("I always ruin everything, nothing I do ever works out", "cbt_thought_record"),
+    ("nobody likes me, I know nobody actually likes me at all", "cbt_thought_record"),
+])
+async def test_semantic_fallback_catches_rt4_long_tail(message, expected_skill):
+    """RT-4 long-tail: phrases that keyword-miss and must activate via semantic fallback.
+
+    'there is something fundamentally broken about who I am as a person' uses
+    different phrasing from keyword candidates — intentional. The semantic test uses
+    a paraphrase that keywords won't catch, confirming embedding similarity works
+    across surface-level variation. Note: 'fundamentally wrong with me' was removed
+    from keywords after FP check (2026-05-23): 'there is nothing fundamentally wrong
+    with me' contains it as a substring.
+
+    'I always ruin everything' and 'nobody likes me' were confirmed keyword misses
+    whose candidate keywords ('ruin everything', 'nobody likes me') were removed due
+    to false-positive check failures — they rely on semantic fallback only.
+
+    'I deserve to suffer for what I have done to the people I love' was tested
+    and confirmed below SEMANTIC_THRESHOLD at calibration date 2026-05-23; phrase is
+    ambiguous between grounding and CBT in BGE-M3 embedding space. Removed from
+    this corpus — do not add without first running calibrate_threshold.py to confirm
+    score is within 0.03 of current threshold before enriching semantic_description.
+
+    If any case activates via 'keyword', a new keyword was added that covers it —
+    update the assertion to accept both methods or remove the case.
+    If a case returns active_skill_id=None, the semantic score fell below threshold.
+    Run the calibration script to see the score and compare to threshold.
+    If score is within 0.03 of threshold, enrich the semantic_description for
+    cbt_thought_record.json with user-register phrasings from the failing message.
+    After enriching, re-run scripts/calibrate_threshold.py to confirm the gap
+    has not narrowed before rerunning the test.
+    """
+    state = make_state(message_en=message, primary_intent="new_skill")
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] == expected_skill, (
+        f"Semantic fallback must catch long-tail RT-4 phrase: {message!r}. "
+        f"Got: {result['active_skill_id']!r} "
+        f"(method={result.get('skill_match_method')!r}, "
+        f"score={result.get('semantic_score')}). "
+        f"If score is close to threshold, enrich cbt_thought_record semantic_description."
+    )
+    assert result["skill_match_method"] in ("semantic", "keyword"), (
+        f"Expected semantic or keyword tier for: {message!r}. "
+        "Got unexpected method — check skill_select_node routing."
+    )
+
+
+@pytest.mark.asyncio
 async def test_stressed_does_not_match_any_skill():
     """RT-4 inverse: 'stressed' is too vague — must route to freeflow, not trigger a skill."""
     state = make_state(

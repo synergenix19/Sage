@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import re
@@ -32,10 +33,80 @@ JAILBREAK_RESPONSE = (
 )
 
 
+async def _log_clinical_review(
+    session_id: str,
+    user_id: str,
+    crisis_flags: list[str],
+    clinical_flags: list[str],
+) -> None:
+    """Deterministic clinician review log: fires when Layer 1 safety rules detected flags.
+    source='layer1_safety' distinguishes this from the LLM tool path.
+    severity='high' for crisis, 'medium' for clinical-only (DB constraint: low/medium/high).
+    """
+    try:
+        from server import app  # noqa: PLC0415
+        from sage_poc.memory.notification import PostgresNotifier  # noqa: PLC0415
+        pool = getattr(app.state, "_db_pool", None)
+        if not pool:
+            return
+        severity = "high" if crisis_flags else "medium"
+        reason_parts = []
+        if crisis_flags:
+            reason_parts.append(f"crisis flags: {', '.join(crisis_flags)}")
+        if clinical_flags:
+            reason_parts.append(f"clinical flags: {', '.join(clinical_flags)}")
+        notifier = PostgresNotifier(pool)
+        await notifier.notify_review_required(
+            user_id=user_id,
+            session_id=session_id,
+            reason="; ".join(reason_parts),
+            source="layer1_safety",
+            payload={"flags": crisis_flags + clinical_flags},
+            severity=severity,
+        )
+    except Exception as exc:
+        _log.warning("[output_gate] _log_clinical_review failed: %s", exc)
+
+
+async def _persist_session_summary(
+    session_id: str,
+    user_id: str,
+    summary_text: str,
+    crisis_flags: list[str],
+    clinical_flags: list[str],
+    skills_used: list[str] | None = None,
+    mood_score: float | None = None,
+) -> None:
+    """Persist session summary to database. Non-fatal — errors are logged only."""
+    try:
+        from server import app  # noqa: PLC0415
+        from sage_poc.memory.postgres_repository import PostgresMemoryRepository  # noqa: PLC0415
+        from sage_poc.memory.embedding import get_embedding_async  # noqa: PLC0415
+        pool = getattr(app.state, "_db_pool", None)
+        if pool is None:
+            return
+        embedding = await get_embedding_async(summary_text)
+        safety_level = (
+            "crisis" if crisis_flags
+            else "clinical" if clinical_flags
+            else "normal"
+        )
+        repo = PostgresMemoryRepository(pool)
+        await repo.save_session_summary(
+            session_id, user_id, summary_text, embedding, safety_level,
+            skills_used=skills_used,
+            mood_score=mood_score,
+        )
+    except Exception:
+        _log.warning("Failed to persist session summary for session %s", session_id)
+
+
 async def output_gate_node(state: SageState) -> dict:
     gate_path = state.get("gate_path")
     lang = state["detected_language"]
-    path = state["path"] + ["output_gate"]
+    path = (state.get("path") or []) + ["output_gate"]
+    session_id = state.get("session_id")
+    user_id = state.get("user_id")
 
     if gate_path == "scope_refusal":
         response_en = SCOPE_REFUSAL_RESPONSE
@@ -71,7 +142,7 @@ async def output_gate_node(state: SageState) -> dict:
     if AUDIT_LOG_ENABLED:
         audit = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "turn": state["turn_count"],
+            "turn": state.get("turn_count", 0),
             "path": path,
             "gate_path": gate_path or "standard",
             "detected_language": lang,
@@ -104,7 +175,7 @@ async def output_gate_node(state: SageState) -> dict:
         {"role": "assistant", "content": response_en},
     ]
 
-    next_turn = state["turn_count"] + 1
+    next_turn = state.get("turn_count", 0) + 1
     new_summary = state.get("conversation_summary")
     if next_turn % 10 == 0:
         try:
@@ -112,6 +183,31 @@ async def output_gate_node(state: SageState) -> dict:
             _log.info("Conversation summary generated at turn %d", next_turn)
         except Exception:
             _log.warning("Summarisation failed at turn %d; keeping prior summary", next_turn)
+        if new_summary and session_id and user_id:
+            _task = asyncio.create_task(
+                _persist_session_summary(
+                    session_id, user_id, new_summary,
+                    state.get("crisis_flags", []),
+                    state.get("clinical_flags", []),
+                    skills_used=[state["active_skill_id"]] if state.get("active_skill_id") else [],
+                    mood_score=float(state.get("emotional_intensity", 5)),
+                )
+            )
+            _task.add_done_callback(
+                lambda t: _log.warning("[output_gate] summary persist error: %s", t.exception())
+                if not t.cancelled() and t.exception() else None
+            )
+
+    _crisis_flags = state.get("crisis_flags") or []
+    _clinical_flags = state.get("clinical_flags") or []
+    if (_crisis_flags or _clinical_flags) and session_id and user_id:
+        _review_task = asyncio.create_task(
+            _log_clinical_review(session_id, user_id, _crisis_flags, _clinical_flags)
+        )
+        _review_task.add_done_callback(
+            lambda t: _log.warning("[output_gate] clinical review error: %s", t.exception())
+            if not t.cancelled() and t.exception() else None
+        )
 
     return {
         "response": final_response,

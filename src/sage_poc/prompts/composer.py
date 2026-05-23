@@ -170,14 +170,46 @@ def _build_l4_knowledge_block(snippet: str | None, variant: str | None = None) -
     return content
 
 
+def _build_cross_session_block(profile: dict | None) -> str:
+    if not profile:
+        return ""
+    parts = []
+    techs = profile.get("effective_techniques", [])
+    if techs:
+        parts.append(f"Techniques that have helped: {', '.join(techs)}.")
+    bad = profile.get("ineffective_techniques", [])
+    if bad:
+        parts.append(f"Approaches to avoid: {', '.join(bad)}.")
+    patterns = profile.get("distortion_patterns", [])
+    if patterns:
+        parts.append(f"Common thought patterns: {', '.join(patterns)}.")
+    concerns = profile.get("disclosed_concerns", [])
+    if concerns:
+        parts.append(f"Life areas shared: {', '.join(concerns)}.")
+    style = profile.get("communication_style")
+    if style:
+        parts.append(f"Communication note: {style}")
+    prefs = profile.get("cultural_preferences", {})
+    if prefs.get("religious_framing"):
+        parts.append("This user is comfortable with religious framing.")
+    if prefs.get("family_context"):
+        parts.append("This user often references family context.")
+    if not parts:
+        return ""
+    n = profile.get("session_count", 1)
+    return f" From {n} previous session{'s' if n != 1 else ''}: " + " ".join(parts)
+
+
 def _build_l5_user_context_block(
     clinical_flags: list[str],
     intensity: int,
     engagement: int,
+    therapeutic_profile: dict | None = None,
     variant: str | None = None,
 ) -> str | None:
     relevant = [f for f in clinical_flags if f in _FLAG_DESCRIPTIONS]
-    if not relevant:
+    cross_session = _build_cross_session_block(therapeutic_profile)
+    if not relevant and not cross_session:
         return None
     tmpl = get_template("L5_user_context", variant=variant)
     flags_summary = " ".join(_FLAG_DESCRIPTIONS[f] for f in relevant)
@@ -191,6 +223,7 @@ def _build_l5_user_context_block(
         intensity=str(intensity),
         engagement=str(engagement),
         distress_note=_esc(distress_note),
+        cross_session_profile=_esc(cross_session),
     )
     _log.debug("L5_user_context@%s loaded", tmpl.version)
     return content
@@ -342,7 +375,10 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     layers.append("intent")
 
     # L5: User context (before skill/knowledge so LLM has profile context first)
-    l5_block = _build_l5_user_context_block(clinical_flags, intensity, engagement)
+    l5_block = _build_l5_user_context_block(
+        clinical_flags, intensity, engagement,
+        therapeutic_profile=state.get("therapeutic_profile"),
+    )
     if l5_block:
         user_parts.append(l5_block)
         layers.append("user_context")
