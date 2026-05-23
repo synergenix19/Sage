@@ -76,13 +76,15 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
     if llm is None:
         llm = get_responder()
     fallback_llm = get_fallback_responder()
+    user_id = state.get("user_id")
+    session_id = state.get("session_id")
 
     prior_context = await _get_prior_context(state)
 
     system_str, user_str, prompt_layers = compose_prompt(state)
 
     if prior_context:
-        system_str += f"\n\n{prior_context}"
+        system_str = system_str + "\n\nPRIOR SESSION CONTEXT (share naturally, not verbatim):\n" + prior_context
         prompt_layers = list(prompt_layers) + ["prior_session_context"]
 
     messages = [
@@ -90,10 +92,29 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
         {"role": "user", "content": user_str},
     ]
 
+    # --- LLM tool binding: flag_for_review + record_observation ---
+    # Tools are created in Sprint 4 (Tasks 4.3/4.4). Graceful fallback if modules missing.
+    llm_tools = []
+    if user_id and session_id:
+        try:
+            from server import app  # noqa: PLC0415
+            pool = getattr(app.state, "_db_pool", None)
+            if pool:
+                from sage_poc.nodes.tools.flag_for_review import make_flag_tool  # noqa: PLC0415
+                from sage_poc.nodes.tools.record_observation import make_record_tool  # noqa: PLC0415
+                llm_tools = [
+                    make_flag_tool(user_id=user_id, session_id=session_id),
+                    make_record_tool(user_id=user_id, pool=pool, session_id=session_id),
+                ]
+        except ImportError:
+            pass  # Sprint 4 modules not yet created
+        except Exception as exc:
+            import logging; logging.getLogger(__name__).warning("[freeflow] tool setup failed: %s", exc)
+
     response = await _invoke_with_tool_loop(
         llm,
         messages,
-        [],  # empty tool list — populated by Task 4.3/4.4
+        llm_tools,
         node="freeflow_respond",
         language=state.get("detected_language", "en"),
         fallback_llm=fallback_llm,
@@ -103,5 +124,5 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
         "response_en":   response,
         "prompt_layers": prompt_layers,
         "token_usage":   {},
-        "path":          state["path"] + ["freeflow_respond"],
+        "path":          (state.get("path") or []) + ["freeflow_respond"],
     }
