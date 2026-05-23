@@ -129,5 +129,6 @@ describe('ChatInterface — ARIA live region', () => {
     const log = screen.getByRole('log')
     expect(log).toBeInTheDocument()
     expect(log).toHaveAttribute('aria-live', 'polite')
+    expect(log).toHaveAttribute('aria-label', 'Conversation')
   })
 })
