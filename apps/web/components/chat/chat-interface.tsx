@@ -40,16 +40,6 @@ export function useStreamingChat(sessionId: string | undefined, initialMessages:
   const [error, setError]         = useState<Error | null>(null)
   const abortRef                  = useRef<AbortController | null>(null)
 
-  // Ferry state: values computed by sage-poc on turn N, returned as response headers,
-  // and sent back as request body fields on turn N+1. None of these drive UI rendering,
-  // so useRef avoids new array references that would force useCallback to recreate
-  // `stream` on every turn.
-  const crisisStateRef        = useRef<string>('none')
-  const activeSkillIdRef      = useRef<string | null>(null)
-  const activeStepIdRef       = useRef<string | null>(null)
-  const clinicalFlagsRef      = useRef<string[]>([])
-  const distressTrajectoryRef = useRef<number[]>([])
-
   const stream = useCallback(
     async (history: SdkMessage[]) => {
       setError(null)
@@ -67,12 +57,7 @@ export function useStreamingChat(sessionId: string | undefined, initialMessages:
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             sessionId,
-            messages:            history.map((m) => ({ role: m.role, content: m.content })),
-            crisisState:         crisisStateRef.current,
-            activeSkillId:       activeSkillIdRef.current,
-            activeStepId:        activeStepIdRef.current,
-            clinicalFlags:       clinicalFlagsRef.current,
-            distressTrajectory:  distressTrajectoryRef.current,
+            messages: history.map((m) => ({ role: m.role, content: m.content })),
           }),
           signal: controller.signal,
         })
@@ -81,28 +66,6 @@ export function useStreamingChat(sessionId: string | undefined, initialMessages:
           const err = new Error(`Chat request failed: ${res.status}`)
           ;(err as Error & { httpStatus: number }).httpStatus = res.status
           throw err
-        }
-
-        // Ferry: write updated state into refs; refs are read on the next send.
-        // Writing to a ref does not trigger a re-render — correct, since none of these
-        // values are shown in the UI.
-        const nextCrisisState = res.headers.get('X-Sage-Crisis-State')
-        if (nextCrisisState) crisisStateRef.current = nextCrisisState
-
-        const nextSkillId = res.headers.get('X-Sage-Skill-Id')
-        activeSkillIdRef.current = nextSkillId || null
-
-        const nextStepId = res.headers.get('X-Sage-Active-Step-Id')
-        activeStepIdRef.current = nextStepId || null
-
-        const nextClinicalRaw = res.headers.get('X-Sage-Clinical-Flags')
-        if (nextClinicalRaw) {
-          try { clinicalFlagsRef.current = JSON.parse(nextClinicalRaw) } catch { /* keep previous */ }
-        }
-
-        const nextTrajRaw = res.headers.get('X-Sage-Distress-Trajectory')
-        if (nextTrajRaw) {
-          try { distressTrajectoryRef.current = JSON.parse(nextTrajRaw) } catch { /* keep previous */ }
         }
 
         const aiSupabaseId = res.headers.get('X-Sage-Ai-Message-Id') ?? undefined

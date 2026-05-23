@@ -13,11 +13,7 @@ const MessageSchema = z.object({
 const ChatRequestSchema = z.object({
   sessionId: z.string().uuid(),
   messages: z.array(MessageSchema).min(1),
-  crisisState: z.string().default('none'),
-  activeSkillId: z.string().nullable().default(null),
-  activeStepId: z.string().nullable().default(null),
-  clinicalFlags: z.array(z.string()).default([]),
-  distressTrajectory: z.array(z.number()).default([]),
+  userId: z.string().optional(),
 })
 
 const openrouter = createOpenAI({
@@ -50,18 +46,7 @@ export async function POST(req: Request) {
   const {
     messages,
     sessionId,
-    crisisState,
-    activeSkillId,
-    activeStepId,
-    clinicalFlags,
-    distressTrajectory,
   } = parsed.data
-
-  // crisisState, clinicalFlags, and distressTrajectory are ferry values: the sage-poc
-  // backend emits them as X-Sage-* headers and the client forwards them back each turn
-  // to preserve conversational state continuity. The backend (Node 1, safety_check) is
-  // the authoritative source for crisis detection — these fields must be treated as hints
-  // only, never as inputs to safety decisions.
 
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -95,13 +80,9 @@ export async function POST(req: Request) {
         ...(process.env.SAGE_API_KEY ? { 'X-Sage-Api-Key': process.env.SAGE_API_KEY } : {}),
       },
       body: JSON.stringify({
-        messages:            messages.map((m) => ({ role: m.role, content: m.content })),
-        session_id:          sessionId,
-        crisis_state:        crisisState,
-        active_skill_id:     activeSkillId,
-        active_step_id:      activeStepId,
-        clinical_flags:      clinicalFlags,
-        distress_trajectory: distressTrajectory,
+        messages:   messages.map((m) => ({ role: m.role, content: m.content })),
+        session_id: sessionId,
+        user_id:    user.id,
       }),
     })
   } catch (err) {
@@ -251,15 +232,6 @@ export async function POST(req: Request) {
       if (value) responseHeaders[header] = value
     }
   }
-
-  // Ferry headers: read by chat-interface.tsx and sent back on the next request.
-  // These are the only sage-poc headers forwarded to the browser — all others
-  // are consumed here for Supabase persistence.
-  responseHeaders['X-Sage-Crisis-State']        = sageRes.headers.get('X-Sage-Crisis-State') ?? 'none'
-  responseHeaders['X-Sage-Skill-Id']            = sageRes.headers.get('X-Sage-Skill-Id') ?? ''
-  responseHeaders['X-Sage-Active-Step-Id']      = sageRes.headers.get('X-Sage-Active-Step-Id') ?? ''
-  responseHeaders['X-Sage-Clinical-Flags']      = sageRes.headers.get('X-Sage-Clinical-Flags') ?? '[]'
-  responseHeaders['X-Sage-Distress-Trajectory'] = sageRes.headers.get('X-Sage-Distress-Trajectory') ?? '[]'
 
   return new Response(clientStream, { headers: responseHeaders })
 }

@@ -126,14 +126,13 @@ describe('POST /api/chat', () => {
     })
   })
 
-  // ── INT-C1: crisis state forwarded to sage-poc ────────────────────────────
-  it('forwards crisisState from request body to sage-poc as crisis_state', async () => {
+  // ── INT-C1: sage-poc request body — checkpoint-based state (no ferry fields) ─
+  it('sends messages, session_id, and user_id to sage-poc (no ferry fields)', async () => {
     const req = new Request('http://localhost/api/chat', {
       method: 'POST',
       body: JSON.stringify({
         messages: [{ role: 'user', content: 'I feel better now' }],
         sessionId: VALID_SESSION_UUID,
-        crisisState: 'monitoring',
       }),
     })
     await POST(req)
@@ -142,51 +141,18 @@ describe('POST /api/chat', () => {
     const sageCall = fetchCalls.find((c) => (c[0] as string).includes('/chat'))
     expect(sageCall).toBeDefined()
     const body = JSON.parse(sageCall![1].body as string)
-    expect(body.crisis_state).toBe('monitoring')
+    expect(body.session_id).toBe(VALID_SESSION_UUID)
+    expect(body.user_id).toBe('test-user-id')
+    // Ferry fields must not be sent — state is managed by LangGraph checkpoint
+    expect(body.crisis_state).toBeUndefined()
+    expect(body.active_skill_id).toBeUndefined()
+    expect(body.active_step_id).toBeUndefined()
+    expect(body.clinical_flags).toBeUndefined()
+    expect(body.distress_trajectory).toBeUndefined()
   })
 
-  it('forwards activeSkillId and activeStepId to sage-poc', async () => {
-    const req = new Request('http://localhost/api/chat', {
-      method: 'POST',
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: 'continue' }],
-        sessionId: VALID_SESSION_UUID,
-        activeSkillId: 'cbt_thought_record',
-        activeStepId: 'explore_distortion',
-      }),
-    })
-    await POST(req)
-
-    const fetchCalls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls
-    const sageCall = fetchCalls.find((c) => (c[0] as string).includes('/chat'))
-    const body = JSON.parse(sageCall![1].body as string)
-    expect(body.active_skill_id).toBe('cbt_thought_record')
-    expect(body.active_step_id).toBe('explore_distortion')
-  })
-
-  it('uses default values for missing state fields (backward compatibility)', async () => {
-    const req = new Request('http://localhost/api/chat', {
-      method: 'POST',
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: 'hello' }],
-        sessionId: VALID_SESSION_UUID,
-        // crisisState, activeSkillId, etc. intentionally omitted
-      }),
-    })
-    await POST(req)
-
-    const fetchCalls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls
-    const sageCall = fetchCalls.find((c) => (c[0] as string).includes('/chat'))
-    const body = JSON.parse(sageCall![1].body as string)
-    expect(body.crisis_state).toBe('none')
-    expect(body.active_skill_id).toBeNull()
-    expect(body.active_step_id).toBeNull()
-    expect(body.clinical_flags).toEqual([])
-    expect(body.distress_trajectory).toEqual([])
-  })
-
-  // ── INT-C2: sage-poc headers forwarded to browser ─────────────────────────
-  it('forwards X-Sage-Crisis-State to the browser response', async () => {
+  // ── INT-C2: ferry headers must NOT be forwarded to the browser ────────────
+  it('does not forward X-Sage-Crisis-State to the browser response', async () => {
     ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
       makeSageResponse('hello', { 'X-Sage-Crisis-State': 'monitoring' })
     )
@@ -198,10 +164,10 @@ describe('POST /api/chat', () => {
       }),
     })
     const res = await POST(req)
-    expect(res.headers.get('X-Sage-Crisis-State')).toBe('monitoring')
+    expect(res.headers.get('X-Sage-Crisis-State')).toBeNull()
   })
 
-  it('forwards X-Sage-Skill-Id and X-Sage-Active-Step-Id to the browser response', async () => {
+  it('does not forward X-Sage-Skill-Id and X-Sage-Active-Step-Id to the browser response', async () => {
     ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
       makeSageResponse('Let us try step 2.', {
         'X-Sage-Skill-Id':       'cbt_thought_record',
@@ -216,11 +182,11 @@ describe('POST /api/chat', () => {
       }),
     })
     const res = await POST(req)
-    expect(res.headers.get('X-Sage-Skill-Id')).toBe('cbt_thought_record')
-    expect(res.headers.get('X-Sage-Active-Step-Id')).toBe('explore_distortion')
+    expect(res.headers.get('X-Sage-Skill-Id')).toBeNull()
+    expect(res.headers.get('X-Sage-Active-Step-Id')).toBeNull()
   })
 
-  it('forwards X-Sage-Clinical-Flags and X-Sage-Distress-Trajectory to the browser', async () => {
+  it('does not forward X-Sage-Clinical-Flags and X-Sage-Distress-Trajectory to the browser', async () => {
     ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
       makeSageResponse('I hear you.', {
         'X-Sage-Clinical-Flags':        '["trauma_indicator"]',
@@ -235,8 +201,8 @@ describe('POST /api/chat', () => {
       }),
     })
     const res = await POST(req)
-    expect(res.headers.get('X-Sage-Clinical-Flags')).toBe('["trauma_indicator"]')
-    expect(res.headers.get('X-Sage-Distress-Trajectory')).toBe('[8,7,6]')
+    expect(res.headers.get('X-Sage-Clinical-Flags')).toBeNull()
+    expect(res.headers.get('X-Sage-Distress-Trajectory')).toBeNull()
   })
 
   // ── FE-C1: authenticated access required ──────────────────────────────
@@ -436,7 +402,6 @@ describe('POST /api/chat — input validation', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionId: VALID_SESSION_UUID, messages: [{ role: 'user', content: 'hi' }] }),
-      // no crisisState, activeSkillId, activeStepId, clinicalFlags, distressTrajectory
     })
     const res = await POST(req)
     // 503 means Zod accepted the body with defaults applied — validation did not return 400
