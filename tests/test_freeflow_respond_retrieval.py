@@ -197,3 +197,66 @@ def test_tool_loop_with_empty_tools_uses_resilient_invoke():
         fallback_llm=mock_fallback,
     )
     assert result == "Response text"
+
+
+# ---------------------------------------------------------------------------
+# Test 6: _invoke_with_tool_loop exhaustion — returns "" after MAX_ITERATIONS
+# ---------------------------------------------------------------------------
+
+def test_invoke_with_tool_loop_exhausts_max_iterations():
+    """_invoke_with_tool_loop returns '' after MAX_ITERATIONS of tool-only responses.
+    The LLM repeatedly returns tool_calls without ever producing plain text.
+    """
+    mock_tool = MagicMock()
+    mock_tool.name = "flag_for_review"
+    mock_tool.ainvoke = AsyncMock(return_value="flagged")
+
+    mock_ai = MagicMock()
+    mock_ai.tool_calls = [{"name": "flag_for_review", "args": {"reason": "test"}, "id": "tc1"}]
+    mock_ai.content = ""
+
+    mock_llm_with_tools = AsyncMock()
+    mock_llm_with_tools.ainvoke = AsyncMock(return_value=mock_ai)
+
+    mock_llm = MagicMock()
+    mock_llm.bind_tools = MagicMock(return_value=mock_llm_with_tools)
+
+    result = asyncio.run(
+        _invoke_with_tool_loop(
+            mock_llm,
+            [{"role": "user", "content": "test"}],
+            [mock_tool],
+            node="test",
+            language="en",
+            fallback_llm=MagicMock(),
+        )
+    )
+
+    assert result == ""
+    assert mock_llm_with_tools.ainvoke.call_count == 5  # MAX_ITERATIONS
+
+
+# ---------------------------------------------------------------------------
+# Test 7: freeflow_respond_node fallback when tool loop is exhausted (FAIL 4.1 fix)
+# ---------------------------------------------------------------------------
+
+def test_tool_loop_exhaustion_falls_back_in_node():
+    """When _invoke_with_tool_loop returns empty string (MAX_ITERATIONS hit),
+    freeflow_respond_node must call resilient_invoke and return a non-empty response.
+    A blank response to a user in distress is a clinical incident — never acceptable.
+    """
+    with patch(
+        "sage_poc.nodes.freeflow_respond._get_prior_context",
+        new=AsyncMock(return_value=""),
+    ), patch(
+        "sage_poc.nodes.freeflow_respond._invoke_with_tool_loop",
+        new=AsyncMock(return_value=""),  # simulates MAX_ITERATIONS exhaustion
+    ), patch(
+        "sage_poc.nodes.freeflow_respond.resilient_invoke",
+        new=AsyncMock(return_value="I am here for you."),
+    ) as mock_resilient:
+        result = asyncio.run(freeflow_respond_node(_BASE_STATE))
+
+    mock_resilient.assert_called_once()
+    assert result["response_en"] == "I am here for you."
+    assert result["response_en"]  # never empty

@@ -120,6 +120,17 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
         fallback_llm=fallback_llm,
     )
 
+    if not response:
+        # Tool loop exhausted MAX_ITERATIONS without producing text — fall back to
+        # resilient_invoke on the original 2-message prompt so the user always gets
+        # a response. A blank response to a user in distress is a clinical incident.
+        response = await resilient_invoke(
+            llm, messages,
+            node="freeflow_respond",
+            language=state.get("detected_language", "en"),
+            fallback_llm=fallback_llm,
+        )
+
     return {
         "response_en":   response,
         "prompt_layers": prompt_layers,
