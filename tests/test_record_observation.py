@@ -17,6 +17,33 @@ async def test_make_record_tool_writes_observation():
     mock_repo.upsert_therapeutic_profile.assert_awaited_once()
 
 @pytest.mark.asyncio
+async def test_observation_list_capped_at_50():
+    """When the stored profile already has 55 observations, adding one more must
+    result in exactly 50 observations in the upserted profile (the 6 oldest dropped).
+    """
+    from sage_poc.nodes.tools.record_observation import make_record_tool
+    existing_observations = [
+        {"text": f"obs {i}", "type": "insight", "confidence": "high", "recorded_at": "2026-01-01"}
+        for i in range(55)
+    ]
+    mock_repo = AsyncMock()
+    mock_repo.get_therapeutic_profile = AsyncMock(return_value={"observations": existing_observations})
+    mock_repo.upsert_therapeutic_profile = AsyncMock()
+
+    tool_fn = make_record_tool(user_id="u1", pool=object(), repo_override=mock_repo)
+    await tool_fn.ainvoke({
+        "observation": "New observation after cap.",
+        "observation_type": "progress",
+        "confidence": "high",
+    })
+
+    upserted_profile = mock_repo.upsert_therapeutic_profile.call_args.kwargs.get(
+        "profile"
+    ) or mock_repo.upsert_therapeutic_profile.call_args.args[1]
+    assert len(upserted_profile["observations"]) == 50
+
+
+@pytest.mark.asyncio
 async def test_low_confidence_observation_also_flags_for_review():
     from sage_poc.nodes.tools.record_observation import make_record_tool
     mock_repo = AsyncMock()
