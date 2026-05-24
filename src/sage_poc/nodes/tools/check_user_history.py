@@ -22,7 +22,16 @@ from sage_poc.memory.embedding import get_embedding_async
 
 _log = logging.getLogger(__name__)
 _ATTRIBUTION_PREFIX = "In an earlier conversation, you mentioned"
-_SIMILARITY_THRESHOLD = 0.6
+# Calibrated 2026-05-24 using scripts/calibrate_retrieval_threshold.py with BGE-M3.
+# gap=0.0331 (lowest KNOWN_RELEVANT=0.5005, highest KNOWN_IRRELEVANT=0.4674).
+# Decision: narrow gap (0.008 < 0.0331 ≤ 0.05) → max_irrelevant + gap*0.3 formula.
+# Previous uncalibrated value was 0.6 — calibration revealed that 13 of 14 KNOWN_RELEVANT
+# queries fell below 0.6, meaning prior context was almost never injected.
+# Corpus note: "I have been feeling stressed out lately" was removed from KNOWN_IRRELEVANT
+# because a general clinical distress query legitimately matches any clinical summary.
+# Re-run scripts/calibrate_retrieval_threshold.py after summarise_history() prompt edits
+# or embedding model changes.
+_SIMILARITY_THRESHOLD = 0.4774
 # v7 §5.6 budgets ~100 words for L5 (user context). 800 chars (~200 words) fits within
 # that budget with room for the therapeutic profile summary alongside it. Three uncapped
 # summaries at 300 words each would exceed the entire L0+L1+L2 prompt budget combined.
