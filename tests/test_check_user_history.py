@@ -38,3 +38,22 @@ async def test_retrieve_filters_low_similarity():
     with patch("sage_poc.nodes.tools.check_user_history.get_embedding_async", return_value=[0.1]*1024):
         result = await retrieve_prior_context(user_id="u1", query="q", repo=mock_repo)
     assert result == ""
+
+
+@pytest.mark.asyncio
+async def test_retrieve_caps_total_output_length():
+    """retrieve_prior_context total output must not exceed _MAX_PRIOR_CONTEXT_CHARS.
+    Three long summaries (each 350 chars) would otherwise inject ~1050+ chars into
+    the system prompt, exceeding the L5 budget many times over.
+    """
+    from sage_poc.nodes.tools.check_user_history import retrieve_prior_context, _MAX_PRIOR_CONTEXT_CHARS
+    long_summary = "x" * 350  # 350-char summary, well above per-fragment budget
+    mock_repo = AsyncMock()
+    mock_repo.search_session_summaries = AsyncMock(return_value=[
+        {"summary_text": long_summary, "safety_level": "normal", "similarity": 0.9},
+        {"summary_text": long_summary, "safety_level": "normal", "similarity": 0.85},
+        {"summary_text": long_summary, "safety_level": "normal", "similarity": 0.8},
+    ])
+    with patch("sage_poc.nodes.tools.check_user_history.get_embedding_async", return_value=[0.1]*1024):
+        result = await retrieve_prior_context(user_id="u1", query="q", repo=mock_repo)
+    assert len(result) <= _MAX_PRIOR_CONTEXT_CHARS

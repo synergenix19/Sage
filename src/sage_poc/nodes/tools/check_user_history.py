@@ -23,6 +23,10 @@ from sage_poc.memory.embedding import get_embedding_async
 _log = logging.getLogger(__name__)
 _ATTRIBUTION_PREFIX = "In an earlier conversation, you mentioned"
 _SIMILARITY_THRESHOLD = 0.6
+# v7 §5.6 budgets ~100 words for L5 (user context). 800 chars (~200 words) fits within
+# that budget with room for the therapeutic profile summary alongside it. Three uncapped
+# summaries at 300 words each would exceed the entire L0+L1+L2 prompt budget combined.
+_MAX_PRIOR_CONTEXT_CHARS = 800
 
 
 async def retrieve_prior_context(
@@ -56,4 +60,4 @@ async def retrieve_prior_context(
         for r in results
         if r.get("similarity", 0) >= _SIMILARITY_THRESHOLD
     ]
-    return "\n".join(lines)
+    return "\n".join(lines)[:_MAX_PRIOR_CONTEXT_CHARS]
