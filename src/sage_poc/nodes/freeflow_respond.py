@@ -49,6 +49,10 @@ async def _invoke_with_tool_loop(
         return await resilient_invoke(
             llm, messages, node=node, language=language, fallback_llm=fallback_llm
         )
+    # Deviation from v7 §5.6.2: tools are bound per-invocation, not at graph construction,
+    # because user_id and session_id are injected via closure and unavailable at build time.
+    # bind_tools() attaches schemas at the model API level, not in prompt text, so this
+    # does not consume prompt tokens — the intent of §5.6.2 is preserved.
     llm_with_tools = llm.bind_tools(tools)
     MAX_ITERATIONS = 5
     for _ in range(MAX_ITERATIONS):

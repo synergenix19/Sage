@@ -38,11 +38,14 @@ async def retrieve_prior_context(
     """Return a formatted string of relevant prior session context, or empty string.
 
     Args:
-        user_id: The authenticated user's UUID.
+        user_id: The authenticated user's UUID. Must be non-empty — caller is
+                 responsible for validation. Empty string returns "" without a DB query.
         query:   Current user message (used as embedding query).
         repo:    MemoryRepository instance (injected by caller — no circular import).
         top_k:   Maximum number of prior sessions to retrieve.
     """
+    if not user_id:
+        return ""
     try:
         embedding = await get_embedding_async(query)
         results = await repo.search_session_summaries(

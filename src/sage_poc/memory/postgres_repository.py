@@ -88,7 +88,7 @@ class PostgresMemoryRepository(MemoryRepository):
                 profile.get("total_skills_completed", 0),
                 profile.get("session_count", 0),
                 profile.get("last_extraction_turn", 0),
-                json.dumps(profile.get("observations", [])),
+                json.dumps(profile.get("observations", [])),  # asyncpg requires explicit json.dumps for jsonb params; ::jsonb cast in SQL handles the rest
             )
 
     async def save_session_summary(
