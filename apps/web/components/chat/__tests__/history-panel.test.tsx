@@ -68,11 +68,17 @@ describe('HistoryPanel — session list', () => {
     expect(screen.getByText('Untitled conversation')).toBeInTheDocument()
   })
 
-  it('navigates to /chat?session=<id> when session is clicked', () => {
+  it('renders session items as anchor links, not buttons', () => {
+    render(<HistoryPanel open={true} onClose={vi.fn()} />)
+    const link = screen.getByRole('link', { name: 'Feeling stressed' })
+    expect(link).toBeTruthy()
+    expect(link.getAttribute('href')).toBe('/chat?session=sess-1')
+  })
+
+  it('calls onClose when a session link is clicked', () => {
     const onClose = vi.fn()
     render(<HistoryPanel open={true} onClose={onClose} />)
-    fireEvent.click(screen.getByText('Feeling stressed'))
-    expect(mockPush).toHaveBeenCalledWith('/chat?session=sess-1')
+    fireEvent.click(screen.getByRole('link', { name: 'Feeling stressed' }))
     expect(onClose).toHaveBeenCalled()
   })
 })

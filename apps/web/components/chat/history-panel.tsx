@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ResponsivePanel } from '@cdai/ui'
 import { useChatSessions } from '@/lib/hooks/use-chat-sessions'
@@ -37,16 +38,14 @@ export function HistoryPanel({ open, onClose }: { open: boolean; onClose: () => 
       {!loading &&
         !error &&
         sessions.map((s) => (
-          <button
+          <Link
             key={s.id}
-            onClick={() => {
-              router.push(`/chat?session=${s.id}`)
-              onClose()
-            }}
+            href={`/chat?session=${s.id}`}
+            onClick={onClose}
             className="block w-full min-h-[44px] rounded-lg px-3 py-2 text-start text-sm hover:bg-[var(--color-surface-tinted)]"
           >
             {s.title ?? 'Untitled conversation'}
-          </button>
+          </Link>
         ))}
     </ResponsivePanel>
   )
