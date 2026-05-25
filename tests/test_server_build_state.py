@@ -11,20 +11,34 @@ class _Req:
         self.session_id = session_id
         self.user_id = user_id
 
-def test_build_state_excludes_conversation_history():
+_CHECKPOINT_FIELDS = [
+    "conversation_history",
+    "active_skill_id",
+    "active_step_id",
+    "crisis_state",
+    "turn_count",
+    "clinical_flags",
+    "distress_trajectory",
+    "engagement_trajectory",
+    "conversation_summary",
+]
+
+
+def test_build_state_excludes_all_checkpoint_fields():
+    """_build_state must never inject checkpoint-managed fields.
+
+    In LangGraph, any key present in the input dict overwrites the
+    checkpoint value for that channel (overwrite reducer). Injecting
+    defaults here would clobber turn_count, conversation_history, etc.
+    on every turn, erasing cross-turn memory.
+    """
     req = _Req([_Msg("user", "hello")])
     state = _build_state(req)
-    assert "conversation_history" not in state
-
-def test_build_state_excludes_active_skill_id():
-    req = _Req([_Msg("user", "hi")])
-    state = _build_state(req)
-    assert "active_skill_id" not in state
-
-def test_build_state_excludes_crisis_state():
-    req = _Req([_Msg("user", "hi")])
-    state = _build_state(req)
-    assert "crisis_state" not in state
+    for field in _CHECKPOINT_FIELDS:
+        assert field not in state, (
+            f"_build_state must NOT include '{field}' — "
+            "it is managed by the LangGraph checkpoint"
+        )
 
 def test_build_state_includes_per_turn_resets():
     req = _Req([_Msg("user", "hello")], session_id="test-1", user_id="u-1")

@@ -26,9 +26,9 @@ Return ONLY the JSON object. No explanation."""
 
 
 def build_intent_prompt(state: SageState) -> str:
-    active = f"Active skill: {state['active_skill_id']}" if state["active_skill_id"] else "No active skill."
+    active = f"Active skill: {state['active_skill_id']}" if state.get("active_skill_id") else "No active skill."
     history_lines = "\n".join(
-        f"{m['role'].upper()}: {m['content']}" for m in state["conversation_history"][-3:]
+        f"{m['role'].upper()}: {m['content']}" for m in (state.get("conversation_history") or [])[-3:]
     )
     history_block = f"\nRecent history:\n{history_lines}" if history_lines else ""
     return f"{active}{history_block}\n\nUser message: {state['message_en']}"
