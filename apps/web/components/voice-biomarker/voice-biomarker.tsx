@@ -1,10 +1,9 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { cn } from '@cdai/ui'
 
 type Phase = 'idle' | 'recording' | 'analysing' | 'result'
 
-// Fake analysis result for the pilot demo
 const DEMO_RESULT = {
   stressScore: 32,
   energyLevel: 'Moderate',
@@ -15,48 +14,46 @@ export function VoiceBiomarker() {
   const [phase, setPhase] = useState<Phase>('idle')
   const [countdown, setCountdown] = useState(30)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const analysisTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mountedRef = useRef(true)
 
   useEffect(() => {
     return () => {
       mountedRef.current = false
       if (timerRef.current) clearInterval(timerRef.current)
+      if (analysisTimerRef.current) clearTimeout(analysisTimerRef.current)
     }
   }, [])
 
-  function startRecording() {
-    setPhase('recording')
-    setCountdown(30)
-    timerRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current!)
-          timerRef.current = null
-          if (mountedRef.current) stopRecording()
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-  }
-
-  function stopRecording() {
+  // useCallback so stopRecording is a stable reference for the exhaustive-deps rule below.
+  // Empty deps are correct: all references (timerRef, analysisTimerRef, mountedRef, setPhase) are stable.
+  const stopRecording = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current)
       timerRef.current = null
     }
     setPhase('analysing')
-    // Simulate analysis delay
-    setTimeout(() => {
+    analysisTimerRef.current = setTimeout(() => {
       if (mountedRef.current) setPhase('result')
     }, 2500)
+  }, [])
+
+  // Side effect separated from state updater: transition when countdown hits 0 during recording.
+  useEffect(() => {
+    if (countdown === 0 && phase === 'recording') stopRecording()
+  }, [countdown, phase, stopRecording])
+
+  function startRecording() {
+    setPhase('recording')
+    setCountdown(30)
+    timerRef.current = setInterval(() => {
+      setCountdown((prev) => Math.max(0, prev - 1))
+    }, 1000)
   }
 
   function reset() {
-    if (timerRef.current) {
-      clearInterval(timerRef.current)
-      timerRef.current = null
-    }
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+    if (analysisTimerRef.current) { clearTimeout(analysisTimerRef.current); analysisTimerRef.current = null }
     setPhase('idle')
     setCountdown(30)
   }
