@@ -1,7 +1,7 @@
 'use client'
 import { useEffect } from 'react'
 
-export default function ErrorBoundary({
+export default function AppErrorBoundary({
   error,
   reset,
 }: {
@@ -13,7 +13,7 @@ export default function ErrorBoundary({
   }, [error])
 
   return (
-    <div className="flex h-dvh flex-col items-center justify-center gap-4 p-8 text-center">
+    <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
       <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
         Something went wrong
       </h2>
