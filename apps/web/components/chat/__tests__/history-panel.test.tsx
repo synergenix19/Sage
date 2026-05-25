@@ -28,6 +28,11 @@ vi.mock('@cdai/ui', () => ({
   }) => (open ? <div data-testid="panel">{children}</div> : null),
 }))
 
+vi.mock('@/lib/stores/locale-store', () => ({
+  useLocaleStore: (selector: (s: { locale: string }) => unknown) =>
+    selector({ locale: 'en' }),
+}))
+
 const DEFAULT_HOOK_STATE = {
   sessions: [
     { id: 'sess-1', title: 'Feeling stressed', updated_at: '2026-05-23T10:00:00Z' },
@@ -99,7 +104,7 @@ describe('HistoryPanel — error state', () => {
       sessions: [],
     })
     render(<HistoryPanel open={true} onClose={vi.fn()} />)
-    expect(screen.getByText(/couldn't load history/i)).toBeInTheDocument()
+    expect(screen.getByText(/couldn’t load history/i)).toBeInTheDocument()
   })
 
   it('calls refresh() when retry button is clicked', () => {
