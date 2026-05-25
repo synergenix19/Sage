@@ -122,4 +122,14 @@ describe('formatRelativeTime — Arabic locale', () => {
     expect(spy).toHaveBeenCalledWith('en-US', expect.any(Object))
     spy.mockRestore()
   })
+
+  it('returns أمس for yesterday in Arabic locale', () => {
+    const yesterday = new Date('2026-05-24T14:00:00Z').toISOString()
+    expect(formatRelativeTime(yesterday, 'ar')).toBe('أمس')
+  })
+
+  it('returns Yesterday for yesterday in English locale', () => {
+    const yesterday = new Date('2026-05-24T14:00:00Z').toISOString()
+    expect(formatRelativeTime(yesterday, 'en')).toBe('Yesterday')
+  })
 })

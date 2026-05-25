@@ -20,7 +20,7 @@ export function formatRelativeTime(updatedAt: string, locale: Locale = 'en'): st
     thenDate.getMonth() === yesterday.getMonth() &&
     thenDate.getDate() === yesterday.getDate()
   ) {
-    return 'Yesterday'
+    return locale === 'ar' ? 'أمس' : 'Yesterday'
   }
 
   const displayLocale = locale === 'ar' ? 'ar-AE' : 'en-US'
