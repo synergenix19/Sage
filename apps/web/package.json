@@ -19,7 +19,6 @@
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.0",
     "ai": "^6.0.185",
-    "framer-motion": "^12.39.0",
     "next": "^15.5.18",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

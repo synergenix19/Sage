@@ -5,3 +5,21 @@
 html[dir=rtl] body {
   font-family: var(--font-arabic);
 }
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fade-in 0.35s ease-out both;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
