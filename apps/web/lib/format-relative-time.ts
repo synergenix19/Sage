@@ -1,4 +1,6 @@
-export function formatRelativeTime(updatedAt: string, locale = 'en'): string {
+import type { Locale } from '@cdai/types'
+
+export function formatRelativeTime(updatedAt: string, locale: Locale = 'en'): string {
   const now = Date.now()
   const then = new Date(updatedAt).getTime()
   const diffMs = now - then
