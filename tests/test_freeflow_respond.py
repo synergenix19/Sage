@@ -63,9 +63,12 @@ def test_freeflow_respond_node_returns_prompt_layers():
     mock_msg = MagicMock()
     mock_msg.content = "That sounds really difficult."
     mock_msg.usage_metadata = {"input_tokens": 200, "output_tokens": 40, "total_tokens": 240}
+    mock_msg.tool_calls = None
 
-    mock_llm = AsyncMock()
-    mock_llm.ainvoke = AsyncMock(return_value=mock_msg)
+    mock_bound_llm = AsyncMock()
+    mock_bound_llm.ainvoke = AsyncMock(return_value=mock_msg)
+    mock_llm = MagicMock()
+    mock_llm.bind_tools = MagicMock(return_value=mock_bound_llm)
 
     result = asyncio.run(freeflow_respond_node(_BASE_STATE, llm=mock_llm))
 

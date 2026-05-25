@@ -96,9 +96,14 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
         {"role": "user", "content": user_str},
     ]
 
-    # --- LLM tool binding: flag_for_review + record_observation ---
-    # Tools are created in Sprint 4 (Tasks 4.3/4.4). Graceful fallback if modules missing.
+    # --- LLM tool binding: knowledge_lookup + flag_for_review + record_observation ---
     llm_tools = []
+    # knowledge_lookup is always available — no user identity required (v7 §6.5.2)
+    try:
+        from sage_poc.nodes.tools.knowledge_lookup import knowledge_lookup  # noqa: PLC0415
+        llm_tools.append(knowledge_lookup)
+    except ImportError:
+        pass
     if user_id and session_id:
         try:
             from server import app  # noqa: PLC0415
@@ -106,12 +111,12 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
             if pool:
                 from sage_poc.nodes.tools.flag_for_review import make_flag_tool  # noqa: PLC0415
                 from sage_poc.nodes.tools.record_observation import make_record_tool  # noqa: PLC0415
-                llm_tools = [
+                llm_tools.extend([
                     make_flag_tool(user_id=user_id, session_id=session_id),
                     make_record_tool(user_id=user_id, pool=pool, session_id=session_id),
-                ]
+                ])
         except ImportError:
-            pass  # Sprint 4 modules not yet created
+            pass
         except Exception as exc:
             import logging; logging.getLogger(__name__).warning("[freeflow] tool setup failed: %s", exc)
 

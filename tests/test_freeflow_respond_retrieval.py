@@ -71,7 +71,7 @@ def test_prior_context_injected_when_user_id_set():
     """System message must include prior context; prompt_layers must record it."""
     captured_messages = []
 
-    async def fake_resilient_invoke(llm, messages, *, node, language, fallback_llm):
+    async def fake_invoke_with_tool_loop(llm, messages, tools, *, node, language, fallback_llm):
         captured_messages.extend(messages)
         return "That sounds really difficult."
 
@@ -79,8 +79,8 @@ def test_prior_context_injected_when_user_id_set():
         "sage_poc.nodes.freeflow_respond._get_prior_context",
         new=AsyncMock(return_value=_PRIOR_CONTEXT_TEXT),
     ), patch(
-        "sage_poc.nodes.freeflow_respond.resilient_invoke",
-        side_effect=fake_resilient_invoke,
+        "sage_poc.nodes.freeflow_respond._invoke_with_tool_loop",
+        side_effect=fake_invoke_with_tool_loop,
     ):
         result = asyncio.run(freeflow_respond_node(_BASE_STATE))
 

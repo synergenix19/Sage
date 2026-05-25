@@ -564,12 +564,12 @@ async def test_freeflow_respond_calls_resilient_invoke():
         "path": [],
     }
     with patch(
-        "sage_poc.nodes.freeflow_respond.resilient_invoke",
+        "sage_poc.nodes.freeflow_respond._invoke_with_tool_loop",
         new_callable=AsyncMock,
         return_value="I hear you, that sounds really hard.",
-    ) as mock_ri:
+    ) as mock_itl:
         result = await freeflow_respond_node(state)
-    mock_ri.assert_called_once()
+    mock_itl.assert_called_once()
     assert result["response_en"] == "I hear you, that sounds really hard."
     assert result["token_usage"] == {}
 
@@ -594,6 +594,10 @@ async def test_freeflow_respond_fallback_returned_on_llm_failure():
     }
     fallback = "I'm here with you. I need a brief moment to collect my thoughts, can you bear with me?"
     with patch(
+        "sage_poc.nodes.freeflow_respond._invoke_with_tool_loop",
+        new_callable=AsyncMock,
+        return_value="",
+    ), patch(
         "sage_poc.nodes.freeflow_respond.resilient_invoke",
         new_callable=AsyncMock,
         return_value=fallback,

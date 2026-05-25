@@ -729,15 +729,18 @@ async def test_freeflow_respond_with_mocked_llm():
     mock_msg = MM()
     mock_msg.content = "That sounds really hard. When you say you feel like a failure, what specifically are you telling yourself?"
     mock_msg.usage_metadata = {"input_tokens": 100, "output_tokens": 30, "total_tokens": 130}
+    mock_msg.tool_calls = None
 
-    mock_llm = AsyncMock()
-    mock_llm.ainvoke = AsyncMock(return_value=mock_msg)
+    mock_bound_llm = AsyncMock()
+    mock_bound_llm.ainvoke = AsyncMock(return_value=mock_msg)
+    mock_llm = MagicMock()
+    mock_llm.bind_tools = MagicMock(return_value=mock_bound_llm)
 
     result = await freeflow_respond_node(state, llm=mock_llm)
     assert result["response_en"] is not None
     assert "freeflow_respond" in result["path"]
     # Verify the LLM was called with a proper message list (not a raw string)
-    call_args = mock_llm.ainvoke.call_args[0][0]
+    call_args = mock_bound_llm.ainvoke.call_args[0][0]
     assert isinstance(call_args, list), "llm.ainvoke must be called with a message list"
     roles = [m["role"] for m in call_args]
     assert roles == ["system", "user"], "Message list must have exactly [system, user] roles"
