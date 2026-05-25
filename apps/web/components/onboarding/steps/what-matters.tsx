@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useOnboardingStore } from '@/lib/stores/onboarding-store'
 import { Button, cn } from '@cdai/ui'
+import { TOTAL_ONBOARDING_STEPS } from '@/lib/onboarding-constants'
 
 const Q1_OPTIONS = ['Managing stress', 'Parenting challenges', 'Work-life balance', 'Grief or loss', 'Anxiety', 'Relationships']
 const Q2_OPTIONS = ['Someone to talk to', 'Practical tools & tips', 'Understanding my emotions', 'Crisis support']
@@ -17,8 +18,8 @@ export function WhatMatters() {
     if (!q1 || !q2) return
     setAnswer('wellnessQ1', q1)
     setAnswer('wellnessQ2', q2)
-    setStep(6)
-    router.push('/step-6')
+    setStep(TOTAL_ONBOARDING_STEPS)
+    router.push(`/step-${TOTAL_ONBOARDING_STEPS}`)
   }
 
   return (

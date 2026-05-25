@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { TOTAL_ONBOARDING_STEPS } from '@/lib/onboarding-constants'
 
 const AUTH_PATHS = ['/sign-in', '/sign-up', '/forgot-password', '/auth/callback', '/reset-password']
 
@@ -59,7 +60,8 @@ export async function middleware(request: NextRequest) {
       return new NextResponse(null, { status: 403 })
     }
 
-    const isOnboardingStep = /^\/step-[1-6]$/.test(pathname)
+    // Character class [1-N] assumes single-digit step count — see comment in lib/onboarding-constants.ts
+    const isOnboardingStep = new RegExp(`^/step-[1-${TOTAL_ONBOARDING_STEPS}]$`).test(pathname)
     const needsOnboarding = !profile || !profile.onboarding_complete
     if (!pathname.startsWith('/admin') && !isOnboardingStep && needsOnboarding) {
       const step = profile?.onboarding_step
