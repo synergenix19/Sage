@@ -52,7 +52,9 @@ export function InstallPrompt() {
     if (!promptRef.current) return
     await promptRef.current.prompt()
     await promptRef.current.userChoice
-    // Clear regardless of outcome — prompt() can only be called once per event
+    // prompt() can only be called once per event; always persist so the banner
+    // never reappears even if the browser fires a new beforeinstallprompt later.
+    localStorage.setItem(DISMISSED_KEY, '1')
     setShowBanner(false)
   }
 

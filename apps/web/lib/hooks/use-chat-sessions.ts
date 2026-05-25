@@ -27,9 +27,12 @@ export function useChatSessions(): {
     setError(null)
 
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
-        if (!cancelled) setLoading(false)
+    supabase.auth.getUser().then(({ data: { user }, error: userError }) => {
+      if (userError || !user) {
+        if (!cancelled) {
+          if (userError) setError(userError.message)
+          setLoading(false)
+        }
         return
       }
       supabase
