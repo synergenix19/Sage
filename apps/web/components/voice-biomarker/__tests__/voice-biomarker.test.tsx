@@ -1,3 +1,4 @@
+import React from 'react'
 import { render, screen, act, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { VoiceBiomarker } from '../voice-biomarker'
@@ -36,5 +37,16 @@ describe('VoiceBiomarker', () => {
     act(() => { vi.advanceTimersByTime(2_500) })
     fireEvent.click(screen.getByText('Record Again'))
     expect(screen.getByText('Start Recording')).toBeTruthy()
+  })
+
+  it('reaches analysing state when countdown expires in Strict Mode', () => {
+    render(
+      <React.StrictMode>
+        <VoiceBiomarker />
+      </React.StrictMode>
+    )
+    fireEvent.click(screen.getByText('Start Recording'))
+    act(() => { vi.advanceTimersByTime(30_000) })
+    expect(screen.getByText('Analysing your voice sample…')).toBeTruthy()
   })
 })
