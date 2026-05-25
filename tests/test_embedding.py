@@ -17,7 +17,6 @@ def test_get_embedding_returns_1024_floats():
     """get_embedding returns a plain list of 1024 floats."""
     from sage_poc.memory import embedding as m
 
-    m._get_model.cache_clear()
     mock_model = _make_mock_model()
 
     with patch("sage_poc.memory.embedding._get_model", return_value=mock_model):
@@ -32,7 +31,6 @@ def test_get_embedding_async_matches_sync():
     """get_embedding_async returns the same result as get_embedding."""
     from sage_poc.memory import embedding as m
 
-    m._get_model.cache_clear()
     mock_model = _make_mock_model()
 
     with patch("sage_poc.memory.embedding._get_model", return_value=mock_model):
@@ -45,21 +43,13 @@ def test_get_embedding_async_matches_sync():
 
 
 def test_get_model_is_cached():
-    """_get_model() returns the same object on repeated calls (lru_cache works)."""
+    """get_embedding returns consistent results across repeated calls."""
     from sage_poc.memory import embedding as m
 
-    m._get_model.cache_clear()
     mock_model = _make_mock_model()
 
-    with patch("sage_poc.memory.embedding._get_model") as mock_get:
-        # Configure the mock to return our mock model on first call
-        mock_get.return_value = mock_model
-        mock_get.cache_clear = lambda: None
-        # Call it twice through the get_embedding function to test cache
-        m._get_model.cache_clear()
-        with patch("sage_poc.memory.embedding._get_model", return_value=mock_model):
-            first = m.get_embedding("test1")
-            second = m.get_embedding("test1")
+    with patch("sage_poc.memory.embedding._get_model", return_value=mock_model):
+        first = m.get_embedding("test1")
+        second = m.get_embedding("test1")
 
-    # Both calls should succeed (proving cache works)
     assert first == second, "get_embedding must return consistent results"
