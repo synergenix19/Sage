@@ -18,18 +18,41 @@ def normalize_alef(text: str) -> str:
     return re.sub(r'[آأإٱ]', 'ا', text)
 
 
+_TYPOGRAPHIC_SUBSTITUTIONS = str.maketrans({
+    '‘': "'",   # LEFT SINGLE QUOTATION MARK
+    '’': "'",   # RIGHT SINGLE QUOTATION MARK (iOS/Android apostrophe)
+    '‚': "'",   # SINGLE LOW-9 QUOTATION MARK
+    '‛': "'",   # SINGLE HIGH-REVERSED-9 QUOTATION MARK
+    '“': '"',   # LEFT DOUBLE QUOTATION MARK
+    '”': '"',   # RIGHT DOUBLE QUOTATION MARK
+    '„': '"',   # DOUBLE LOW-9 QUOTATION MARK
+    '‟': '"',   # DOUBLE HIGH-REVERSED-9 QUOTATION MARK
+    '—': '-',   # EM DASH -> hyphen-minus
+    '–': '-',   # EN DASH -> hyphen-minus
+    '−': '-',   # MINUS SIGN -> hyphen-minus
+})
+
+
 def normalize_text(text: str) -> str:
     """
     Universal pre-processing for all text before keyword matching.
-    Pipeline: strip_invisible → lowercase.
+    Pipeline: strip_invisible -> NFKC -> typographic substitution -> lowercase.
+
+    Typographic substitution maps iOS/Android smart quotes (U+2018/U+2019),
+    smart double quotes (U+201C/U+201D), and dashes (U+2013/U+2014) to their
+    ASCII equivalents so keyword patterns match regardless of input device.
+    NFKC folds fullwidth/halfwidth characters and other compatibility variants.
     """
-    return strip_invisible(text).lower()
+    text = strip_invisible(text)
+    text = unicodedata.normalize('NFKC', text)
+    text = text.translate(_TYPOGRAPHIC_SUBSTITUTIONS)
+    return text.lower()
 
 
 def normalize_arabic(text: str) -> str:
     """
     Extended normalization for Arabic text.
-    Pipeline: strip_invisible → NFKC → strip_diacritics → normalize_alef → lowercase.
+    Pipeline: strip_invisible -> NFKC -> strip_diacritics -> normalize_alef -> lowercase.
     """
     text = strip_invisible(text)
     text = unicodedata.normalize('NFKC', text)

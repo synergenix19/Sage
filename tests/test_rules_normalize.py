@@ -77,3 +77,38 @@ def test_normalize_arabic_strips_diacritics_and_alef():
 
 def test_normalize_arabic_bare_alef_unchanged():
     assert normalize_arabic("ابي اموت") == "ابي اموت"
+
+
+def test_normalize_text_folds_curly_apostrophe():
+    # U+2019 RIGHT SINGLE QUOTATION MARK (iOS/Android apostrophe) -> U+0027
+    assert normalize_text("can’t") == "can't"
+
+
+def test_normalize_text_folds_left_single_quote():
+    # U+2018 LEFT SINGLE QUOTATION MARK -> U+0027
+    assert normalize_text("it‘s fine") == "it's fine"
+
+
+def test_normalize_text_folds_smart_double_quotes():
+    # U+201C LEFT / U+201D RIGHT DOUBLE QUOTATION MARK -> U+0022
+    assert normalize_text("“hello”") == '"hello"'
+
+
+def test_normalize_text_folds_em_dash():
+    # U+2014 EM DASH -> ASCII hyphen-minus; U+2019 apostrophe also folds
+    result = normalize_text("i—can’t")
+    assert result == "i-can't"
+
+
+def test_normalize_text_folds_en_dash():
+    # U+2013 EN DASH -> ASCII hyphen-minus
+    assert normalize_text("day–by–day") == "day-by-day"
+
+
+def test_normalize_text_folds_fullwidth_chars():
+    # Fullwidth i (U+FF49) -> ASCII i via NFKC; U+2019 apostrophe also folds
+    assert normalize_text("ｉ’m") == "i'm"
+
+
+def test_normalize_text_backward_compat_plain_ascii():
+    assert normalize_text("can't go on") == "can't go on"
