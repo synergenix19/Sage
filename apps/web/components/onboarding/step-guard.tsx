@@ -15,5 +15,6 @@ export function StepGuard({ pageStep, children }: { pageStep: number; children: 
     }
   }, [storedStep, pageStep, router])
 
+  if (storedStep !== pageStep) return null
   return <>{children}</>
 }
