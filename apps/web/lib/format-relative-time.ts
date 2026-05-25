@@ -1,4 +1,4 @@
-export function formatRelativeTime(updatedAt: string): string {
+export function formatRelativeTime(updatedAt: string, locale = 'en'): string {
   const now = Date.now()
   const then = new Date(updatedAt).getTime()
   const diffMs = now - then
@@ -21,10 +21,11 @@ export function formatRelativeTime(updatedAt: string): string {
     return 'Yesterday'
   }
 
+  const displayLocale = locale === 'ar' ? 'ar-AE' : 'en-US'
   const diffDays = Math.floor(diffMs / 86_400_000)
   if (diffDays < 7) {
-    return thenDate.toLocaleDateString('en-US', { weekday: 'long' })
+    return thenDate.toLocaleDateString(displayLocale, { weekday: 'long' })
   }
 
-  return thenDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return thenDate.toLocaleDateString(displayLocale, { month: 'short', day: 'numeric' })
 }

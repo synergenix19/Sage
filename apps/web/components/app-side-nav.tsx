@@ -61,7 +61,7 @@ function SessionList() {
               {s.title ?? (locale === 'ar' ? 'محادثة بلا عنوان' : 'Untitled conversation')}
             </span>
             <span className="text-xs text-[var(--color-text-secondary)] text-end shrink-0">
-              {formatRelativeTime(s.updated_at)}
+              {formatRelativeTime(s.updated_at, locale)}
             </span>
           </Link>
         </li>

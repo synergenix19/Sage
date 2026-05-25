@@ -1,5 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { formatRelativeTime } from '../format-relative-time'
 
 // Fixed "now": Saturday 2026-05-23T14:00:00Z
@@ -82,5 +81,45 @@ describe('formatRelativeTime — older', () => {
 
   it('returns "MMM D" format for a different month', () => {
     expect(formatRelativeTime('2026-04-01T14:00:00Z')).toBe('Apr 1')
+  })
+})
+
+describe('formatRelativeTime — Arabic locale', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-05-25T14:00:00Z'))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('uses ar-AE locale for day-of-week display', () => {
+    const spy = vi.spyOn(Date.prototype, 'toLocaleDateString')
+    const fourDaysAgo = new Date('2026-05-21T14:00:00Z').toISOString()
+    formatRelativeTime(fourDaysAgo, 'ar')
+    expect(spy).toHaveBeenCalledWith('ar-AE', expect.objectContaining({ weekday: 'long' }))
+    spy.mockRestore()
+  })
+
+  it('uses ar-AE locale for month/day display', () => {
+    const spy = vi.spyOn(Date.prototype, 'toLocaleDateString')
+    const twoWeeksAgo = new Date('2026-05-11T14:00:00Z').toISOString()
+    formatRelativeTime(twoWeeksAgo, 'ar')
+    expect(spy).toHaveBeenCalledWith('ar-AE', expect.objectContaining({ month: 'short', day: 'numeric' }))
+    spy.mockRestore()
+  })
+
+  it('returns same relative string for under-1-hour regardless of locale', () => {
+    const thirtyMinsAgo = new Date('2026-05-25T13:30:00Z').toISOString()
+    expect(formatRelativeTime(thirtyMinsAgo, 'ar')).toBe('30m ago')
+  })
+
+  it('defaults to en-US when no locale passed (backward compat)', () => {
+    const spy = vi.spyOn(Date.prototype, 'toLocaleDateString')
+    const twoWeeksAgo = new Date('2026-05-11T14:00:00Z').toISOString()
+    formatRelativeTime(twoWeeksAgo)
+    expect(spy).toHaveBeenCalledWith('en-US', expect.any(Object))
+    spy.mockRestore()
   })
 })
