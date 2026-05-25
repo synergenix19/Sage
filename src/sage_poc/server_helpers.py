@@ -59,6 +59,17 @@ def _build_state(req: _RequestLike) -> dict:
         "prompt_layers":      [],
         "token_usage":        {},
         "cultural_output_violations": [],
+        # These defaults cover the first turn when no LangGraph checkpoint exists.
+        # On subsequent turns the checkpoint provides the real values, which overwrite these.
+        "active_skill_id":    None,
+        "active_step_id":     None,
+        "clinical_flags":     [],
+        "conversation_history": [],
+        "crisis_state":       "none",
+        "distress_trajectory": [],
+        "engagement_trajectory": [],
+        "conversation_summary": None,
+        "turn_count":         0,
         # Set from request — needed by tools and summary persistence
         "session_id": req.session_id,
         "user_id":    req.user_id,

@@ -6,18 +6,18 @@ No model is instantiated at import time.
 from __future__ import annotations
 
 import asyncio
-from functools import lru_cache
 
 
-@lru_cache(maxsize=1)
 def _get_model():
     """Return the shared BGE-M3 model from skill_select — loaded once per process.
 
     Reuses the skill_select model instance to avoid loading a second copy of BAAI/bge-m3.
+    _embed_model is a module-level global that _ensure_semantic_ready() fills in;
+    we must read it after calling _ensure_semantic_ready(), not cache the pre-init None.
     """
-    from sage_poc.nodes.skill_select import _ensure_semantic_ready, _model  # noqa: PLC0415
-    _ensure_semantic_ready()
-    return _model
+    import sage_poc.nodes.skill_select as _ss  # noqa: PLC0415
+    _ss._ensure_semantic_ready()
+    return _ss._embed_model
 
 
 def get_embedding(text: str) -> list[float]:

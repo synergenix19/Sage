@@ -11,6 +11,9 @@ import asyncpg
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from psycopg import AsyncConnection
+from psycopg.rows import dict_row
+from psycopg_pool import AsyncConnectionPool
 from pydantic import BaseModel
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
@@ -39,23 +42,38 @@ async def lifespan(app: FastAPI):
         _log.warning("[sage/startup] BGE-M3 warmup failed: %s", exc)
 
     if os.environ.get("DATABASE_URL"):
-        # Single pool shared by checkpointer + repository — prevents connection exhaustion
-        # under Supabase connection limits. AsyncPostgresSaver accepts the pool directly.
+        # Two connection objects:
+        #   saver_pool — psycopg AsyncConnectionPool for AsyncPostgresSaver (checkpointing)
+        #   asyncpg_pool — asyncpg pool for PostgresMemoryRepository (uses asyncpg directly)
+        # setup() runs CREATE INDEX CONCURRENTLY which can't run inside a transaction, so we
+        # bootstrap it via a single autocommit connection before handing off to the pool.
+        db_url = os.environ["DATABASE_URL"]
         try:
-            pool = await asyncpg.create_pool(os.environ["DATABASE_URL"])
+            async with await AsyncConnection.connect(
+                db_url, autocommit=True, prepare_threshold=0, row_factory=dict_row
+            ) as setup_conn:
+                await AsyncPostgresSaver(setup_conn).setup()
+            saver_pool = AsyncConnectionPool(conninfo=db_url, open=False)
+            await saver_pool.open()
+            asyncpg_pool = await asyncpg.create_pool(
+                db_url,
+                min_size=1,
+                max_size=5,
+                max_inactive_connection_lifetime=300,  # recycle connections idle >5 min
+            )
         except Exception as exc:
             _log.error("[sage/startup] database connection failed: %s", exc)
             app.state._db_pool = None
             app.state._graph = build_graph(checkpointer=None)
             yield
             return
-        app.state._db_pool = pool
-        saver = AsyncPostgresSaver(pool)
-        await saver.setup()  # idempotent: creates LangGraph checkpoint tables if missing
+        app.state._db_pool = asyncpg_pool
+        saver = AsyncPostgresSaver(saver_pool)
         app.state._graph = build_graph(checkpointer=saver)
         _log.info("[sage/startup] checkpointer ready")
         yield
-        await pool.close()
+        await saver_pool.close()
+        await asyncpg_pool.close()
     else:
         _log.warning("[sage/startup] DATABASE_URL not set — running without persistence")
         app.state._db_pool = None
@@ -108,13 +126,15 @@ async def chat(
 
     state = _build_state(req)
 
-    # Load therapeutic profile for L5 injection
+    # Load therapeutic profile for L5 injection — non-fatal if DB is unavailable
+    state["therapeutic_profile"] = None
     if app.state._db_pool and req.user_id:
-        from sage_poc.memory.postgres_repository import PostgresMemoryRepository
-        repo = PostgresMemoryRepository(app.state._db_pool)
-        state["therapeutic_profile"] = await repo.get_therapeutic_profile(req.user_id)
-    else:
-        state["therapeutic_profile"] = None
+        try:
+            from sage_poc.memory.postgres_repository import PostgresMemoryRepository
+            repo = PostgresMemoryRepository(app.state._db_pool)
+            state["therapeutic_profile"] = await repo.get_therapeutic_profile(req.user_id)
+        except Exception as exc:
+            _log.warning("[sage/chat] therapeutic profile load failed: %s", exc)
 
     graph = app.state._graph
     try:
