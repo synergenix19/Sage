@@ -4,9 +4,7 @@ import { tenant } from '@cdai/tenant'
 import { EngagementCard } from './engagement-card'
 import { MoodChart } from './mood-chart'
 import { TopicsScroll } from './topics-scroll'
-import { InsightsList } from './insights-list'
 import { INTENT_TOPIC_LABELS, type ProgressData } from '@/lib/progress-queries'
-import type { SessionInsight } from '@cdai/types'
 
 interface ProgressViewProps {
   data: ProgressData
@@ -71,7 +69,6 @@ export function ProgressView({ data }: ProgressViewProps) {
               ))}
             </div>
           )}
-          <InsightsList insights={[] as SessionInsight[]} />
         </>
       )}
     </div>
