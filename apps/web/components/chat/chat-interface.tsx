@@ -159,7 +159,6 @@ export function ChatInterface({ initialSession, initialMessages = [], userName, 
   const hasSignaledInstall = useRef(false)
   const { messages, append, isLoading, error, reload } = useStreamingChat(initialSession?.id, userId, initialMessages)
   const locale = useLocaleStore((s) => s.locale)
-
   // Pin the crisis card only while the last assistant message is still a crisis.
   // Once the user receives a normal reply the crisis is considered addressed
   // for this turn and the pin is cleared.
