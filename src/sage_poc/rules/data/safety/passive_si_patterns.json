@@ -176,10 +176,11 @@
         "go somewhere.*never (?:come|return|go) back",
         "leave.*and never (?:come|return|go) back",
         "not (?:coming|going|returning|planning) back.*anymore",
-        "wish.*could just.*disappear",
-        "want to.*vanish.*forever",
+        "\\bi wish i could just disappear",
+        "i want to vanish forever",
         "wish i could cease to exist",
-        "(?:want|wish) to.*stop existing"
+        "i (?:want|wish) to stop existing",
+        "want (?:myself|me) to stop existing"
       ],
       "language": "en",
       "modifiers": [],
