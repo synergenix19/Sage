@@ -109,6 +109,8 @@ async def safety_check_node(state: SageState) -> dict:
 
     # S3: semantic crisis detection — OR-fusion with S1
     # Fail-open: exceptions and timeouts → score 0.0, no crash, S1 result stands.
+    # v7 target: <50ms total for Layer 1. S3 embedding adds ~200-500ms per turn.
+    # Acceptable for POC; production requires async pre-warm and potential GPU inference.
     # TODO: Run S3 on both message_en and raw Arabic text for bilingual coverage. Currently EN-only.
     try:
         s3_score = await asyncio.wait_for(
