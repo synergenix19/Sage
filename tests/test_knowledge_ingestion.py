@@ -57,3 +57,16 @@ def test_ingest_document_valid_schema_passes():
         "is_crisis_content": False,
     }
     validate_article_schema(article)  # must not raise
+
+
+def test_ingest_script_warns_on_missing_bilingual_pair():
+    """Ingestion logs a warning if one language of a bilingual pair is missing."""
+    from sage_poc.knowledge.ingestion import check_bilingual_pairing
+
+    articles = [
+        {"article_id": "cbt-001", "language": "en", "is_crisis_content": False, "title": "CBT", "source_url": "", "citation": "", "content": "CBT text."},
+        # Arabic pair missing
+    ]
+    warnings = check_bilingual_pairing(articles)
+    assert len(warnings) == 1
+    assert "cbt-001" in warnings[0]

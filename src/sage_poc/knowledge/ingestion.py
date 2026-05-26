@@ -119,3 +119,19 @@ async def ingest_article(article: dict[str, Any], pool) -> int:
             inserted += 1
 
     return inserted
+
+
+def check_bilingual_pairing(articles: list[dict]) -> list[str]:
+    """Return warning strings for article IDs that have only one language variant."""
+    by_id: dict[str, set[str]] = {}
+    for a in articles:
+        validate_article_schema(a)
+        base_id = a["article_id"]
+        by_id.setdefault(base_id, set()).add(a["language"])
+    warnings = []
+    for base_id, langs in by_id.items():
+        if "en" not in langs:
+            warnings.append(f"WARNING: {base_id} has no English variant")
+        if "ar" not in langs:
+            warnings.append(f"WARNING: {base_id} has no Arabic variant")
+    return warnings
