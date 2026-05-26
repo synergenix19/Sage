@@ -182,6 +182,7 @@ async def chat(
             "X-Sage-Engagement-Trajectory": json.dumps(result.get("engagement_trajectory") or []),
             "X-Sage-Conversation-Summary":  result.get("conversation_summary") or "",
             "X-Sage-Intent":                result.get("primary_intent") or "",
+            "X-Sage-Secondary-Intent":      result.get("secondary_intent") or "",
             "X-Sage-Semantic-Score":        str(result.get("semantic_score") or ""),
             "X-Sage-Prompt-Layers":         json.dumps(result.get("prompt_layers") or []),
             "X-Sage-Token-Usage":           json.dumps(result.get("token_usage") or {}),
