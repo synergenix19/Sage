@@ -23,10 +23,6 @@ const {
   return { mockInsert, mockSelect, mockEq, mockSingle, mockUpdate, mockGetUser }
 })
 
-vi.mock('ai', () => ({
-  generateText: vi.fn().mockResolvedValue({ text: 'emotional' }),
-}))
-vi.mock('@ai-sdk/openai', () => ({ createOpenAI: vi.fn(() => vi.fn()) }))
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn().mockResolvedValue({
     auth: { getUser: mockGetUser },
@@ -111,10 +107,13 @@ describe('POST /api/chat', () => {
     await new Promise((r) => setTimeout(r, 50))
 
     const calls = mockInsert.mock.calls
-    const aiInsert = calls.find((c) => c[0]?.role === 'ai' || c[0]?.role === 'crisis')
-    expect(aiInsert).toBeDefined()
-    const payload = aiInsert![0]
-    expect(payload).toMatchObject({
+    // New route: batched array insert [user_row, ai_row] — find the AI row within the array
+    const batchCall = calls.find((c) => Array.isArray(c[0]))
+    expect(batchCall).toBeDefined()
+    const rows = batchCall![0] as Array<Record<string, unknown>>
+    const aiRow = rows.find((r) => r.role === 'ai' || r.role === 'crisis')
+    expect(aiRow).toBeDefined()
+    expect(aiRow).toMatchObject({
       intent_classification: 'general_chat',
       semantic_score: 0.87,
       prompt_layers: ['persona', 'history'],
@@ -285,6 +284,8 @@ describe('POST /api/chat', () => {
     })
     const res = await POST(req)
     expect(res.status).not.toBe(403)
+    // Insert happens in async persist background task — wait for stream consumption
+    await new Promise((r) => setTimeout(r, 50))
     expect(mockInsert).toHaveBeenCalled()
   })
 
