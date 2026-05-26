@@ -154,3 +154,30 @@ def test_route_crisis_in_monitoring_when_s1_s6_fire():
         s7_result="STILL_DISTRESSED",
     )
     assert _route_after_safety(state) == "crisis"
+
+
+def test_info_request_no_active_skill_routes_to_knowledge_retrieve():
+    state = make_full_state(
+        primary_intent="info_request",
+        active_skill_id=None,
+        crisis_state="none",
+    )
+    assert _route_after_skill_select(state) == "knowledge_retrieve"
+
+
+def test_info_request_with_active_skill_routes_to_skill_executor():
+    """Mid-protocol info question must go to executor, not knowledge_retrieve."""
+    state = make_full_state(
+        primary_intent="info_request",
+        active_skill_id="cbt_thought_record",
+        crisis_state="none",
+    )
+    assert _route_after_skill_select(state) == "skill_executor"
+
+
+def test_non_info_request_no_skill_routes_to_freeflow():
+    state = make_full_state(
+        primary_intent="general_chat",
+        active_skill_id=None,
+    )
+    assert _route_after_skill_select(state) == "freeflow"

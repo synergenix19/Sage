@@ -10,6 +10,7 @@ from sage_poc.nodes.low_confidence_respond import low_confidence_respond_node
 from sage_poc.nodes.skill_select import skill_select_node
 from sage_poc.nodes.skill_executor import skill_executor_node
 from sage_poc.nodes.freeflow_respond import freeflow_respond_node
+from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
 from sage_poc.nodes.output_gate import output_gate_node
 from sage_poc.config import AUDIT_LOG_ENABLED
 
@@ -106,7 +107,11 @@ def _route_after_intent(state: SageState) -> str:
 
 
 def _route_after_skill_select(state: SageState) -> str:
-    return "skill_executor" if state.get("active_skill_id") else "freeflow"
+    if state.get("active_skill_id"):
+        return "skill_executor"
+    if state.get("primary_intent") == "info_request":
+        return "knowledge_retrieve"
+    return "freeflow"
 
 
 def build_graph(checkpointer=None) -> CompiledStateGraph:
@@ -116,6 +121,7 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     graph.add_node("intent_route", intent_route_node)
     graph.add_node("low_confidence_respond", low_confidence_respond_node)
     graph.add_node("skill_select", skill_select_node)
+    graph.add_node("knowledge_retrieve", knowledge_retrieve_node)
     graph.add_node("skill_executor", skill_executor_node)
     graph.add_node("freeflow_respond", freeflow_respond_node)
     graph.add_node("output_gate", output_gate_node)
@@ -141,8 +147,10 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
 
     graph.add_conditional_edges("skill_select", _route_after_skill_select, {
         "skill_executor": "skill_executor",
+        "knowledge_retrieve": "knowledge_retrieve",
         "freeflow": "freeflow_respond",
     })
+    graph.add_edge("knowledge_retrieve", "freeflow_respond")
 
     graph.add_edge("skill_executor", "freeflow_respond")
     graph.add_edge("freeflow_respond", "output_gate")
