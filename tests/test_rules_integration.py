@@ -49,51 +49,51 @@ def _state(raw_message, clinical_flags=None):
 
 # ── Crisis detection via Rules Service ──────────────────────────────────────
 
-def test_safety_check_node_crisis_sets_is_safe_false():
-    result = safety_check_node(_state("I want to die"))
+async def test_safety_check_node_crisis_sets_is_safe_false():
+    result = await safety_check_node(_state("I want to die"))
     assert result["is_safe"] is False
     assert len(result["crisis_flags"]) > 0
 
 
-def test_safety_check_node_safe_message():
-    result = safety_check_node(_state("I feel anxious today"))
+async def test_safety_check_node_safe_message():
+    result = await safety_check_node(_state("I feel anxious today"))
     assert result["is_safe"] is True
     assert result["crisis_flags"] == []
 
 
-def test_safety_check_node_negation_no_crisis():
-    result = safety_check_node(_state("I don't want to die"))
+async def test_safety_check_node_negation_no_crisis():
+    result = await safety_check_node(_state("I don't want to die"))
     assert result["is_safe"] is True, "Negation should suppress crisis flag"
 
 
-def test_safety_check_node_clinical_flag_substance():
-    result = safety_check_node(_state("I've been drinking to cope"))
+async def test_safety_check_node_clinical_flag_substance():
+    result = await safety_check_node(_state("I've been drinking to cope"))
     assert "substance_use" in result["clinical_flags"]
 
 
 # ── Clinical flag carry-forward ──────────────────────────────────────────────
 
-def test_clinical_flags_carry_forward_across_turns():
+async def test_clinical_flags_carry_forward_across_turns():
     """Flags from a prior turn are merged, not erased, by the next turn."""
     state = _state("I'm feeling better today", clinical_flags=["substance_use"])
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert "substance_use" in result["clinical_flags"], (
         "substance_use flag from prior turn must persist into turn 2"
     )
 
 
-def test_new_clinical_flag_merges_with_existing():
+async def test_new_clinical_flag_merges_with_existing():
     """New flag from current turn merges with flag persisted from prior turn."""
     state = _state("I was assaulted and I drink too much", clinical_flags=["substance_use"])
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert "substance_use" in result["clinical_flags"]
     assert "trauma_indicator" in result["clinical_flags"]
 
 
-def test_no_duplicate_flags():
+async def test_no_duplicate_flags():
     """If the same flag fires again, it appears once, not twice."""
     state = _state("I drink a lot", clinical_flags=["substance_use"])
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["clinical_flags"].count("substance_use") == 1
 
 
@@ -246,27 +246,27 @@ def test_domestic_situation_adaptation_injected():
     )
 
 
-def test_third_party_crisis_is_safe_does_not_block_session():
+async def test_third_party_crisis_is_safe_does_not_block_session():
     """A third-party crisis report is NOT a crisis for the current user — session continues."""
     state = _state("my friend told me she wants to die")
     with (
         patch("sage_poc.nodes.safety_check.detect_language", return_value="en"),
         patch("sage_poc.nodes.safety_check.translate_to_english", return_value="my friend told me she wants to die"),
     ):
-        result = safety_check_node(state)
+        result = await safety_check_node(state)
     assert result["is_safe"] is True, "Third-party report must not block the session"
     assert result.get("third_party_crisis") is True, "third_party_crisis flag must be set in state"
     assert "third_party_si" not in result.get("clinical_flags", []), "third_party_si must not enter clinical_flags"
 
 
-def test_third_party_overrides_direct_crisis_flag():
+async def test_third_party_overrides_direct_crisis_flag():
     """When both crisis_flag and third_party_crisis fire, third_party wins — is_safe stays True."""
     state = _state("my friend wants to kill herself")
     with (
         patch("sage_poc.nodes.safety_check.detect_language", return_value="en"),
         patch("sage_poc.nodes.safety_check.translate_to_english", return_value="my friend wants to kill herself"),
     ):
-        result = safety_check_node(state)
+        result = await safety_check_node(state)
     assert result["is_safe"] is True
     assert result.get("third_party_crisis") is True
     assert result["crisis_flags"] == []
@@ -315,30 +315,30 @@ def test_post_crisis_injection_absent_on_normal_session():
 
 # ── Cumulative distress heuristic ────────────────────────────────────────────
 
-def test_escalating_distress_flag_set_after_streak():
+async def test_escalating_distress_flag_set_after_streak():
     """3 consecutive turns at intensity ≥6 must set escalating_distress clinical flag."""
     state = _state("I can't cope anymore")
     state["distress_trajectory"] = [7, 8]   # two prior high-intensity turns
     state["emotional_intensity"] = 7         # this turn (one-turn lag: previous turn's score)
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert "escalating_distress" in result["clinical_flags"]
 
 
-def test_escalating_distress_flag_absent_below_floor():
+async def test_escalating_distress_flag_absent_below_floor():
     """Scores below floor (< 6) must NOT trigger escalating_distress."""
     state = _state("I feel okay today")
     state["distress_trajectory"] = [3, 4]
     state["emotional_intensity"] = 3
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert "escalating_distress" not in result["clinical_flags"]
 
 
-def test_escalating_distress_not_triggered_with_only_two_high_turns():
+async def test_escalating_distress_not_triggered_with_only_two_high_turns():
     """Two high-intensity turns (one short of streak) must NOT set the flag."""
     state = _state("I'm struggling")
     state["distress_trajectory"] = [8]   # one prior high-intensity turn
     state["emotional_intensity"] = 7     # this turn → trajectory becomes [8, 7]
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert "escalating_distress" not in result["clinical_flags"]
 
 
@@ -464,26 +464,26 @@ def test_dialect_mirroring_fires_for_msa():
 
 # ── Code-switching detection and CU-CS-001 ───────────────────────────────────
 
-def test_safety_check_node_detects_code_switching():
+async def test_safety_check_node_detects_code_switching():
     """safety_check_node must set code_switching=True for mixed Arabic/English messages."""
     state = _state("أنا feeling really stressed اليوم")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result.get("code_switching") is True, (
         "safety_check_node must detect mixed Arabic+Latin script and set code_switching=True"
     )
 
 
-def test_safety_check_node_code_switching_false_for_pure_arabic():
+async def test_safety_check_node_code_switching_false_for_pure_arabic():
     """safety_check_node must set code_switching=False for pure Arabic."""
     state = _state("أنا وايد تعبان اليوم")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result.get("code_switching") is False
 
 
-def test_safety_check_node_code_switching_false_for_pure_english():
+async def test_safety_check_node_code_switching_false_for_pure_english():
     """safety_check_node must set code_switching=False for pure English."""
     state = _state("I feel really anxious today")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result.get("code_switching") is False
 
 

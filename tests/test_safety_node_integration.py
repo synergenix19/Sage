@@ -59,9 +59,9 @@ class TestPassiveSiNodeLevel:
     """Verify passive SI phrases produce is_safe=False and si_passive in crisis_flags
     through the full safety_check_node pipeline."""
 
-    def test_passive_si_better_off_without_me(self):
+    async def test_passive_si_better_off_without_me(self):
         state = make_state(raw_message="everyone would be better off without me")
-        result = safety_check_node(state)
+        result = await safety_check_node(state)
         assert result["is_safe"] is False, (
             "Passive SI 'everyone would be better off without me' must not be safe"
         )
@@ -69,9 +69,9 @@ class TestPassiveSiNodeLevel:
             "Expected si_passive flag for 'everyone would be better off without me'"
         )
 
-    def test_passive_si_no_point_in_living(self):
+    async def test_passive_si_no_point_in_living(self):
         state = make_state(raw_message="there's no point in living")
-        result = safety_check_node(state)
+        result = await safety_check_node(state)
         assert result["is_safe"] is False, (
             "Passive SI 'there's no point in living' must not be safe"
         )
@@ -79,12 +79,12 @@ class TestPassiveSiNodeLevel:
             "Expected si_passive flag for 'there's no point in living'"
         )
 
-    def test_passive_si_wish_i_could_disappear(self):
+    async def test_passive_si_wish_i_could_disappear(self):
         # Rules engine matches "I wish I could disappear" (base SK-EN-002 phrase).
         # Adverb-padded variants ("just", "forever") rely on regex flexibility in the rule;
         # use the canonical phrase to pin the node pipeline, not the rule's regex boundary.
         state = make_state(raw_message="I wish I could disappear")
-        result = safety_check_node(state)
+        result = await safety_check_node(state)
         assert result["is_safe"] is False, (
             "Passive SI 'I wish I could disappear' must not be safe"
         )
@@ -92,7 +92,7 @@ class TestPassiveSiNodeLevel:
             "Expected si_passive flag for 'I wish I could disappear'"
         )
 
-    def test_passive_si_arabic_no_reason_to_live(self):
+    async def test_passive_si_arabic_no_reason_to_live(self):
         # "ما عندي سبب اعيش" = "I have no reason to live"
         # Arabic rules fire on text_ar independently; translation is mocked for the English path.
         state = make_state(raw_message="ما عندي سبب اعيش")
@@ -100,7 +100,7 @@ class TestPassiveSiNodeLevel:
             "sage_poc.nodes.safety_check.translate_to_english",
             return_value="I have no reason to live",
         ):
-            result = safety_check_node(state)
+            result = await safety_check_node(state)
         assert result["is_safe"] is False, (
             "Arabic passive SI 'ما عندي سبب اعيش' must not be safe"
         )
@@ -108,11 +108,11 @@ class TestPassiveSiNodeLevel:
             "Expected si_passive flag for Arabic 'ما عندي سبب اعيش'"
         )
 
-    def test_passive_si_arabizi_ma7ad_y7tajni(self):
+    async def test_passive_si_arabizi_ma7ad_y7tajni(self):
         # "ma7ad y7tajni" = "nobody needs me" — Arabizi, langdetect classifies as English.
         # SK-AZ-002 matches on the English path.
         state = make_state(raw_message="ma7ad y7tajni")
-        result = safety_check_node(state)
+        result = await safety_check_node(state)
         assert result["is_safe"] is False, (
             "Arabizi passive SI 'ma7ad y7tajni' must trigger crisis via SK-AZ-002"
         )
@@ -126,9 +126,9 @@ class TestPassiveSiNodeLevel:
 class TestFalsePositivesNodeLevel:
     """Verify that idioms and hyperbole do not trigger crisis through the full node."""
 
-    def test_fp_english_dying_of_laughter(self):
+    async def test_fp_english_dying_of_laughter(self):
         state = make_state(raw_message="I'm literally dying of laughter right now")
-        result = safety_check_node(state)
+        result = await safety_check_node(state)
         assert result["is_safe"] is True, (
             "Idiom 'dying of laughter' must not trigger crisis (FPE-EN-001)"
         )
@@ -136,9 +136,9 @@ class TestFalsePositivesNodeLevel:
             "No crisis flags expected for 'dying of laughter'"
         )
 
-    def test_fp_english_killing_it(self):
+    async def test_fp_english_killing_it(self):
         state = make_state(raw_message="I've been killing it at work this week")
-        result = safety_check_node(state)
+        result = await safety_check_node(state)
         assert result["is_safe"] is True, (
             "Idiom 'killing it at work' must not trigger crisis (FPE-EN-001)"
         )
@@ -146,9 +146,9 @@ class TestFalsePositivesNodeLevel:
             "No crisis flags expected for 'killing it at work'"
         )
 
-    def test_fp_english_dead_tired(self):
+    async def test_fp_english_dead_tired(self):
         state = make_state(raw_message="I'm dead tired after that meeting")
-        result = safety_check_node(state)
+        result = await safety_check_node(state)
         assert result["is_safe"] is True, (
             "Idiom 'dead tired' must not trigger crisis (FPE-EN-001)"
         )
@@ -156,14 +156,14 @@ class TestFalsePositivesNodeLevel:
             "No crisis flags expected for 'dead tired'"
         )
 
-    def test_fp_arabic_laughter_idiom(self):
+    async def test_fp_arabic_laughter_idiom(self):
         # "اموت من الضحك" = "dying of laughter" — FPE-AR-001 must suppress.
         state = make_state(raw_message="اموت من الضحك")
         with patch(
             "sage_poc.nodes.safety_check.translate_to_english",
             return_value="dying of laughter",
         ):
-            result = safety_check_node(state)
+            result = await safety_check_node(state)
         assert result["is_safe"] is True, (
             "Arabic laughter idiom 'اموت من الضحك' must be suppressed by FPE-AR-001"
         )
@@ -171,9 +171,9 @@ class TestFalsePositivesNodeLevel:
             "No crisis flags expected for Arabic laughter idiom"
         )
 
-    def test_fp_negation_i_dont_want_to_die(self):
+    async def test_fp_negation_i_dont_want_to_die(self):
         state = make_state(raw_message="I don't want to die, I love life")
-        result = safety_check_node(state)
+        result = await safety_check_node(state)
         assert result["is_safe"] is True, (
             "Negated death phrase 'I don't want to die, I love life' must not trigger crisis"
         )
@@ -187,14 +187,14 @@ class TestFalsePositivesNodeLevel:
 class TestKhaleejiDialectNodeLevel:
     """Verify Khaleeji-specific patterns route correctly through the full node."""
 
-    def test_khaleeji_safe_beach_message(self):
+    async def test_khaleeji_safe_beach_message(self):
         # "يلا نروح البحر الحين" = "let's go to the beach now" — unambiguously safe.
         state = make_state(raw_message="يلا نروح البحر الحين")
         with patch(
             "sage_poc.nodes.safety_check.translate_to_english",
             return_value="let's go to the beach",
         ):
-            result = safety_check_node(state)
+            result = await safety_check_node(state)
         assert result["is_safe"] is True, (
             "Khaleeji safe phrase 'يلا نروح البحر الحين' must not trigger crisis"
         )
@@ -202,27 +202,27 @@ class TestKhaleejiDialectNodeLevel:
             "No crisis flags expected for beach invitation message"
         )
 
-    def test_khaleeji_exhaustion_idiom_triggers_crisis(self):
+    async def test_khaleeji_exhaustion_idiom_triggers_crisis(self):
         # "انا تعبت من كل شي" = "I'm exhausted from everything" — SK-AR-003 pattern.
         state = make_state(raw_message="انا تعبت من كل شي")
         with patch(
             "sage_poc.nodes.safety_check.translate_to_english",
             return_value="I am exhausted from everything",
         ):
-            result = safety_check_node(state)
+            result = await safety_check_node(state)
         # SK-AR-003 fires on the Arabic text regardless of translation.
         assert result["is_safe"] is False or "si_passive" in result["crisis_flags"], (
             "Khaleeji exhaustion idiom 'انا تعبت من كل شي' must trigger crisis via SK-AR-003"
         )
 
-    def test_khaleeji_no_life_in_heart(self):
+    async def test_khaleeji_no_life_in_heart(self):
         # "ما عاد في قلبي حياة" = "no life left in my heart" — SK-AR-003 pattern.
         state = make_state(raw_message="ما عاد في قلبي حياة")
         with patch(
             "sage_poc.nodes.safety_check.translate_to_english",
             return_value="there is no life left in my heart",
         ):
-            result = safety_check_node(state)
+            result = await safety_check_node(state)
         assert result["is_safe"] is False, (
             "Khaleeji phrase 'ما عاد في قلبي حياة' must trigger crisis via SK-AR-003"
         )
@@ -233,7 +233,7 @@ class TestKhaleejiDialectNodeLevel:
 class TestCodeSwitchingNodeLevel:
     """Edge cases for Arabic/English code-switching detection through the full node."""
 
-    def test_code_switching_crisis_arabic_in_english_sentence(self):
+    async def test_code_switching_crisis_arabic_in_english_sentence(self):
         # Arabic script embedded in an English sentence triggers Arabic classification
         # and sets code_switching=True (both scripts present).
         state = make_state(raw_message="I am feeling أريد الموت today")
@@ -241,7 +241,7 @@ class TestCodeSwitchingNodeLevel:
             "sage_poc.nodes.safety_check.translate_to_english",
             return_value="I want to die",
         ):
-            result = safety_check_node(state)
+            result = await safety_check_node(state)
         assert result["is_safe"] is False, (
             "Arabic crisis phrase embedded in English sentence must trigger crisis"
         )
@@ -252,11 +252,11 @@ class TestCodeSwitchingNodeLevel:
             "Mixed Arabic and Latin scripts must set code_switching=True"
         )
 
-    def test_code_switching_arabizi_passive_si_node_level(self):
+    async def test_code_switching_arabizi_passive_si_node_level(self):
         # "hayati khalsa wallah" = "my life is over, I swear" — SK-AZ-002 keyword.
         # Arabizi is pure Latin so code_switching must be False (no Arabic script).
         state = make_state(raw_message="hayati khalsa wallah")
-        result = safety_check_node(state)
+        result = await safety_check_node(state)
         assert result["is_safe"] is False, (
             "Arabizi passive SI 'hayati khalsa wallah' must trigger crisis via SK-AZ-002"
         )
@@ -264,7 +264,7 @@ class TestCodeSwitchingNodeLevel:
             "Arabizi (Latin-only) must not set code_switching=True"
         )
 
-    def test_code_switching_flag_set_when_both_scripts(self):
+    async def test_code_switching_flag_set_when_both_scripts(self):
         # "ana okay بس a bit tired" — Latin and Arabic script present.
         # "بس" = "but" in Gulf Arabic. Message is benign; we only test the flag.
         state = make_state(raw_message="ana okay بس a bit tired")
@@ -272,7 +272,7 @@ class TestCodeSwitchingNodeLevel:
             "sage_poc.nodes.safety_check.translate_to_english",
             return_value="I'm okay but a bit tired",
         ):
-            result = safety_check_node(state)
+            result = await safety_check_node(state)
         assert result["code_switching"] is True, (
             "Mixed Arabic Unicode and Latin characters must set code_switching=True"
         )

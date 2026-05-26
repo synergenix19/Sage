@@ -35,6 +35,7 @@ markers = [
     "slow: marks tests as slow (requires Ollama or real LLM)",
 ]
 pythonpath = ["."]
+asyncio_mode = "auto"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/sage_poc"]

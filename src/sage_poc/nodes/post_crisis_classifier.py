@@ -1,4 +1,5 @@
 from sage_poc.llm import get_classifier
+from sage_poc.resilience import resilient_invoke
 
 _RECOVERY_KEYWORDS = frozenset([
     "feeling better", "feel better", "better now", "much better", "a lot better",
@@ -39,12 +40,13 @@ S7_SYSTEM = (
 _VALID_LABELS = frozenset({"RECOVERING", "STILL_DISTRESSED", "UNCLEAR", "NEW_CRISIS"})
 
 
-def evaluate_s7(message_en: str, llm=None) -> tuple[str, str]:
+async def evaluate_s7(message_en: str, llm=None) -> tuple[str, str]:
     """Return (label, method) where method is 'keyword' or 'llm'.
 
     Deterministic keyword tier runs first; STILL_DISTRESSED checked before RECOVERING.
     LLM is called only when keywords produce no match.
     Evaluates the current message in isolation — no conversation history passed to LLM.
+    Uses resilient_invoke for timeout, retry, and fallback on the LLM path.
     """
     text = message_en.lower()
 
@@ -63,8 +65,8 @@ def evaluate_s7(message_en: str, llm=None) -> tuple[str, str]:
         {"role": "system", "content": S7_SYSTEM},
         {"role": "user", "content": message_en},
     ]
-    response = llm.invoke(messages)
-    label = response.content.strip().upper()
+    label = await resilient_invoke(llm, messages, node="post_crisis_classifier")
+    label = label.strip().upper()
     if label not in _VALID_LABELS:
         return "UNCLEAR", "llm"
     return label, "llm"

@@ -175,38 +175,38 @@ class TestA3RegexBranch:
 
 class TestA4ThirdPartyCrisis:
 
-    def _run_safety(self, raw: str):
+    async def _run_safety(self, raw: str):
         state = _safety_state(raw)
         with (
             patch("sage_poc.nodes.safety_check.detect_language", return_value="en"),
             patch("sage_poc.nodes.safety_check.translate_to_english", return_value=raw),
         ):
-            return safety_check_node(state)
+            return await safety_check_node(state)
 
-    def test_third_party_sets_flag_not_crisis(self):
+    async def test_third_party_sets_flag_not_crisis(self):
         """'My friend told me she wants to die' → third_party_crisis=True, is_safe=True."""
-        result = self._run_safety("my friend told me she wants to die")
+        result = await self._run_safety("my friend told me she wants to die")
         assert result["is_safe"] is True
         assert result.get("third_party_crisis") is True
         assert "third_party_si" not in result.get("clinical_flags", [])
 
-    def test_direct_crisis_unaffected(self):
+    async def test_direct_crisis_unaffected(self):
         """'I want to die' → third_party_crisis=False, is_safe=False, crisis path fires."""
-        result = self._run_safety("I want to die")
+        result = await self._run_safety("I want to die")
         assert result["is_safe"] is False
         assert result.get("third_party_crisis") is False
         assert len(result.get("crisis_flags", [])) > 0
 
-    def test_ambiguous_third_party_without_explicit_subject(self):
+    async def test_ambiguous_third_party_without_explicit_subject(self):
         """'Sometimes people around me want to give up' — verify it does NOT fire crisis for user."""
-        result = self._run_safety("sometimes people around me want to give up")
+        result = await self._run_safety("sometimes people around me want to give up")
         # This is ambiguous — it should NOT lock in crisis for the current user.
         # is_safe must be True (no self-harm flag on current user).
         assert result["is_safe"] is True
 
-    def test_third_party_plus_own_distress(self):
+    async def test_third_party_plus_own_distress(self):
         """'My friend wants to die and I'm terrified' — third_party fires, user stays safe."""
-        result = self._run_safety("my friend wants to die and i am terrified")
+        result = await self._run_safety("my friend wants to die and i am terrified")
         assert result["is_safe"] is True
         assert result.get("third_party_crisis") is True
 
@@ -225,9 +225,9 @@ class TestA4ThirdPartyCrisis:
         assert "third_party_crisis" not in layers
         assert "THIRD-PARTY CONCERN" not in user_str
 
-    def test_direct_crisis_still_fires_after_a4(self):
+    async def test_direct_crisis_still_fires_after_a4(self):
         """Regression: A4 must not suppress direct crisis detection."""
-        result = self._run_safety("I want to end my life right now")
+        result = await self._run_safety("I want to end my life right now")
         assert result["is_safe"] is False, "Direct crisis must still be detected after A4 fix"
         assert result.get("third_party_crisis") is False
 
