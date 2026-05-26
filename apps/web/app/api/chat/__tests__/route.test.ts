@@ -104,7 +104,9 @@ describe('POST /api/chat', () => {
       }),
     })
     await POST(req)
-    await new Promise((r) => setTimeout(r, 50))
+    // Flush all pending microtasks and macrotasks
+    await new Promise((r) => setImmediate(r))
+    await new Promise((r) => setImmediate(r))
 
     const calls = mockInsert.mock.calls
     // New route: batched array insert [user_row, ai_row] — find the AI row within the array
@@ -284,8 +286,9 @@ describe('POST /api/chat', () => {
     })
     const res = await POST(req)
     expect(res.status).not.toBe(403)
-    // Insert happens in async persist background task — wait for stream consumption
-    await new Promise((r) => setTimeout(r, 50))
+    // Insert happens in async persist background task — flush pending microtasks and macrotasks
+    await new Promise((r) => setImmediate(r))
+    await new Promise((r) => setImmediate(r))
     expect(mockInsert).toHaveBeenCalled()
   })
 

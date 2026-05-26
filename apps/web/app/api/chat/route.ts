@@ -56,6 +56,11 @@ export async function POST(req: Request) {
         user_id:    user.id,
       }),
     })
+  // NOTE: On sage-poc failure (503/502/SERVER_ERROR_SIGNAL), neither the user message nor
+  // the AI message is persisted. This is intentional — the design requires a single
+  // post-response write so that intent (from X-Sage-Intent header) is always present on
+  // both rows. Orphaned user messages without a corresponding AI response and intent label
+  // would corrupt the audit trail. The client must handle retries.
   } catch (err) {
     console.error('[chat/route] sage backend unreachable:', err)
     return new Response(
@@ -131,7 +136,7 @@ export async function POST(req: Request) {
       // Both rows carry the same intent values for query convenience (no join needed to
       // filter by intent). The AI message row is the authoritative source — it reflects
       // the intent the graph actually processed. See migration 008 for full design rationale.
-      await supabase.from('messages').insert([
+      const { error: insertError } = await supabase.from('messages').insert([
         {
           session_id:                      sessionId,
           role:                            'user',
@@ -169,6 +174,9 @@ export async function POST(req: Request) {
             : null,
         },
       ])
+      if (insertError) {
+        console.error('[chat/persist] message insert failed:', insertError)
+      }
 
       void fetch(`${SAGE_API_URL}/name-session`, {
         method: 'POST',
