@@ -34,6 +34,43 @@ KNOWN_HITS = [
     # Sleep — none of these contain a sleep keyword
     ("I am exhausted but my mind will not stop racing at bedtime", "sleep_hygiene"),
     ("my brain just won't let me rest when it's dark", "sleep_hygiene"),  # replaced "I am tired all day but wide awake at night" — moved to keyword tier (Task C)
+
+    # DBT TIPP — physiological/somatic regulation without TIPP keywords
+    # Note: vague emotional-control phrases route to CBT; TIPP wins on somatic+physical language
+    ("I am in physiological crisis and need cold water or intense exercise to reset my nervous system", "dbt_tipp"),
+
+    # Box breathing — paced-breathing structure without 'breathing'/'breathe' keywords
+    ("my breathing is all wrong, it keeps speeding up and I cannot get it under control", "box_breathing"),
+
+    # Mood check-in — introspective self-monitoring without keyword phrases
+    ("I just want to take stock of where I am emotionally today", "mood_check_in"),
+    ("I need to tune in to what my emotional state actually is right now", "mood_check_in"),
+
+    # Behavioral activation — activity-re-engagement framing without skill keywords
+    # Note: withdrawal-without-activity-language routes to CBT; BA wins on activity scheduling language
+    ("scheduling small rewarding activities to break out of depression and inactivity", "behavioral_activation"),
+    ("I want to build an activity schedule to help pull me out of withdrawal and low mood", "behavioral_activation"),
+
+    # Worry time — rumination without 'worry' or 'overthinking'
+    ("I ruminate constantly, the same anxious thoughts cycling over and over", "worry_time"),
+    ("I am caught in a loop of anxious thinking and cannot break the cycle", "worry_time"),
+
+    # MI readiness ruler — ambivalence language
+    ("part of me wants to change but another part of me is not sure I can or even want to", "mi_readiness_ruler"),
+    ("I know what I should do but I do not know if I am ready to do it yet", "mi_readiness_ruler"),
+
+    # STOP technique — impulsivity and reactivity language without 'need to pause'
+    ("I react before I think and then I always regret it, I wish I could slow down first", "stop_technique"),
+    ("I acted impulsively again without thinking and I need to build a habit of pausing", "stop_technique"),
+
+    # Progressive muscle relaxation — body tension without the skill name
+    ("I want to systematically tense and release each muscle group to let go of body tension", "progressive_muscle_relaxation"),
+    ("my whole body holds tension and I need a technique to release it muscle by muscle", "progressive_muscle_relaxation"),
+
+    # Safe place visualization — mental imagery/refuge language without the skill's own keywords
+    # Note: 'guided imagery', 'visualization', 'calm place' are in keyword tier for this skill
+    ("I want to use mental imagery to create an inner sanctuary where I feel completely safe", "safe_place_visualization"),
+    ("I want to find a safe imaginary refuge to calm down when reality feels overwhelming", "safe_place_visualization"),
 ]
 
 # Messages that should NOT match any skill

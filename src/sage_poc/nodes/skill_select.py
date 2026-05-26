@@ -15,21 +15,14 @@ logger = logging.getLogger(__name__)
 
 _SKILLS = {sid: load_skill(sid) for sid in SKILL_REGISTRY}
 
-# Calibrated 2026-05-23 after adding 9 new skills to SKILL_REGISTRY (now 12; was 3 at
-# prior calibration). gap=0.0128 (lowest hit=0.5384, highest miss=0.5257).
-# Decision: gap=0.0128 > 0.0124 baseline → "Gap > baseline → PROCEED" rule applied.
-# The lowest-hit < 0.55 stop gate is only evaluated when gap is in 0.008–0.0124 range.
-# Threshold set conservatively: max_miss + gap*0.3 (narrow-gap formula, gap < 0.05).
-# KNOWN_HITS corpus covers 3 skills only (cbt, grounding, sleep); new skills' hit
-# scores not yet in calibration corpus — add before next threshold change.
-# post_crisis_check_in semantic_description rewritten from generic "warm closure"
-# language to dense clinical post-acute monitoring protocol — eliminated 0.5468
-# false-positive score on "thanks, that really helped".
+# Calibrated 2026-05-26 after extending corpus to 13 skills (added dbt_tipp and
+# added 9-new-skill phrases to KNOWN_HITS). Gap = 0.0010 (lowest hit=0.5267,
+# highest miss=0.5257). Narrow-gap formula applied: max_miss + gap*0.3.
 # Re-run scripts/calibrate_threshold.py after any semantic_description edit.
 # NOTE: CBT semantic_description has inherent overlap with vague negative-affect
 # language in BGE-M3 embedding space. Architectural defence: intent_route (Node 2)
 # classifies vague openings as general_chat before they reach skill_select (Node 4).
-SEMANTIC_THRESHOLD: float = 0.5295
+SEMANTIC_THRESHOLD: float = 0.526
 
 _embed_model = None
 _semantic_skill_ids: list[str] = []

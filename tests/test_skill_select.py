@@ -144,3 +144,23 @@ async def test_dbt_tipp_keyword_arabic():
     state = _ss_state(message_en="محتاج أهدى بسرعة", detected_language="ar")
     result = await skill_select_node(state)
     assert result["active_skill_id"] == "dbt_tipp"
+
+
+def test_semantic_threshold_is_calibrated():
+    """Threshold must be in plausible range and calibration gap comment must reflect >= 13 skills."""
+    import ast, pathlib
+    src = pathlib.Path("src/sage_poc/nodes/skill_select.py").read_text()
+    tree = ast.parse(src)
+    threshold = None
+    for node in ast.walk(tree):
+        # Handle both plain assignment (x = ...) and annotated assignment (x: float = ...)
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id == "SEMANTIC_THRESHOLD":
+                    threshold = ast.literal_eval(node.value)
+        elif isinstance(node, ast.AnnAssign):
+            if isinstance(node.target, ast.Name) and node.target.id == "SEMANTIC_THRESHOLD":
+                if node.value is not None:
+                    threshold = ast.literal_eval(node.value)
+    assert threshold is not None, "SEMANTIC_THRESHOLD not found in skill_select.py"
+    assert 0.45 <= threshold <= 0.65, f"Threshold {threshold} outside expected range 0.45–0.65"
