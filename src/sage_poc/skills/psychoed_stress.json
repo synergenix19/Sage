@@ -1,0 +1,164 @@
+{
+  "skill_id": "psychoed_stress",
+  "skill_name": "Stress Psychoeducation",
+  "skill_type": "structured",
+  "self_evolution": "manual_only",
+  "evidence_base": "Selye (1956) General Adaptation Syndrome; Lazarus & Folkman (1984) Stress, Appraisal, and Coping; NICE NG123 (Mental health problems in the workplace); McEwen (1998) allostatic load",
+  "target_presentations": [
+    "what is stress",
+    "stress explained",
+    "what does stress do",
+    "acute vs chronic stress",
+    "stress education",
+    "teach me about stress",
+    "how stress works",
+    "why am I always stressed",
+    "stress response",
+    "what does stress do to the body",
+    "explain stress to me",
+    "how does my body respond to stress",
+    "the difference between good stress and bad stress",
+    "eustress and distress",
+    "what is allostatic load",
+    "what is the general adaptation syndrome",
+    "why does chronic stress harm you",
+    "how does the body respond to long-term stress",
+    "stress and the HPA axis",
+    "stress and cortisol",
+    "what is burnout",
+    "am I burned out",
+    "constantly running on empty",
+    "always braced for the next thing",
+    "شو هو الضغط",
+    "ما هو التوتر",
+    "وش يسوي الضغط بجسمي",
+    "كيف يشتغل التوتر",
+    "الضغط وش هو",
+    "ليش دايم ضاغط",
+    "التوتر والجسم",
+    "وش الفرق بين الضغط الطبيعي والمزمن",
+    "وش يصير للجسم من الضغط",
+    "الاحتراق الوظيفي",
+    "دايم تعبان وما في طاقة"
+  ],
+  "semantic_description": "Interactive stress psychoeducation protocol. Three-step structured technique: explain stress mechanisms, connect to personal experience, bridge to action. Selye General Adaptation Syndrome. Alarm stage, resistance stage, exhaustion stage. Acute stress versus chronic stress. Eustress versus distress. Lazarus and Folkman appraisal model: primary appraisal and secondary appraisal. Cognitive appraisal of threat. Stress response physiology. HPA axis and cortisol. Allostatic load explained. Allostatic overload and cumulative physiological cost. Teach me about stress. Explain stress to me. What is stress. What does stress do to the body. How the body responds to stress. Stress education. The stress response system. The difference between acute and chronic stress. Why chronic stress is harmful. How perception shapes the stress response. Stress psychoeducation walkthrough. General Adaptation Syndrome three stages. What the resistance phase of stress looks like. What happens when the body reaches exhaustion. The concept of wear and tear on the stress system. Why running on empty is a biological state. The difference between motivating stress and harmful stress. Why the same event can be stressful to one person and not another. Appraisal as the mechanism that determines stress intensity. Secondary appraisal and coping resource evaluation. Stress and the nervous system. Cortisol and immune function. Cumulative stress burden. Burnout as a stress-exhaustion endpoint.",
+  "steps": [
+    {
+      "step_id": "explain",
+      "goal": "Deliver accessible, warm psychoeducation about what stress is: Selye's General Adaptation Syndrome (alarm, resistance, exhaustion), the distinction between eustress and distress, and Lazarus and Folkman's appraisal model. Explain allostatic load in plain language. End with an open question inviting the user to reflect on what they heard.",
+      "technique": "Didactic psychoeducation with interactive check-in",
+      "technique_description": "Present the core stress psychoeducation in clear, accessible language, grounded in Selye (1956) and Lazarus and Folkman (1984). Cover: (1) stress as a biological response system, not a personal failing; (2) the General Adaptation Syndrome: alarm stage (adrenaline, cortisol surge, mobilisation), resistance stage (the body fights to adapt), exhaustion stage (reserves depleted, cumulative damage); (3) the distinction between eustress (helpful, motivating stress) and distress (chronic, harmful stress); (4) Lazarus and Folkman's appraisal model: primary appraisal asks 'is this a threat?' and secondary appraisal asks 'do I have what it takes to cope?', both of which can be inaccurate; (5) allostatic load as the cumulative physiological cost of sustained stress, in plain language: the body keeps a running tab, and chronic stress fills that tab without clearing it. Keep it concrete and warm. Validate that what the user is experiencing is real and understandable. End with a reflective open question.",
+      "tone": "warm, accessible, curious, non-clinical",
+      "contraindications": "Do NOT use clinical jargon without explanation. Do NOT frame stress as a personal weakness or character failing. Do NOT skip the distinction between helpful and harmful stress, as users may believe all stress is bad or conversely minimise genuinely harmful chronic stress. Do NOT skip the allostatic load concept: it is the mechanism that explains why chronic stress damages health. Do NOT end without the reflective question.",
+      "completion_criteria": "The psychoeducation has covered at least: what stress is, at least two stages of the General Adaptation Syndrome, and either the eustress/distress distinction or the appraisal model. The user has been asked a reflective open question and has given any response.",
+      "examples": [
+        "Stress is your body's mobilisation system. When your brain reads a situation as threatening, it fires a cascade: adrenaline and cortisol surge, your heart speeds up, your muscles tighten, your focus narrows. That is the alarm stage, and it is genuinely useful. The problem is what happens when the threat does not end. Your body moves into a resistance stage, where it works hard to adapt, and eventually, if the pressure stays, it reaches exhaustion, where the reserves run out. A physiologist named Hans Selye mapped this out in 1956, and we still see it in every stressed body today. Not all stress is harmful though. A deadline that pushes you to perform, a challenge that pulls out your best, that is eustress, the kind that sharpens rather than depletes. The kind that harms you is distress: prolonged, unrelenting, with no recovery window. Does any of that map onto what you have been experiencing?",
+        "There is a framework that explains why the same situation is crushing to one person and manageable to another. It is called the appraisal model, developed by Lazarus and Folkman. Your brain asks two questions, almost instantly: first, is this a threat? Second, do I have what it takes to handle it? If the answer to the first is yes and the answer to the second is no, you get the full stress response. The important thing is that both of those appraisals can be inaccurate. Your brain may be overestimating the threat and underestimating your resources. That gap, perceived threat exceeding perceived coping capacity, is where chronic stress lives. What does your own appraisal pattern look like when pressure hits?",
+        "الضغط مو ضعف. هو نظام في جسمك صمم يحميك. لما الدماغ يحس بتهديد، يطلق هرمونات مثل الأدرينالين والكورتيزول، يرفع ضربات القلب، وينشط العضلات. هذا اسمه مرحلة الإنذار. لو الضغط استمر، الجسم يدخل مرحلة المقاومة، يحاول يتكيف. لو ما أخذ راحة، يوصل لمرحلة الإرهاق، وهنا الاحتياطيات تخلص. العالم هانز سيلي سمى هذا الثلاثي متلازمة التكيف العام. مو كل ضغط ضار، في ضغط إيجابي يخليك تتفوق، وفي ضغط مزمن يستنزفك. وش اللي تحس انه الأقوى عندك الحين؟",
+        "Think of your body's stress capacity as a glass. Short-term stress fills the glass: adrenaline rises, you focus, you perform, then the glass empties again in recovery. Chronic stress is like a tap left running with no drain. The glass fills and stays full. Eventually it spills over. Bruce McEwen called this allostatic overload: the cumulative wear that comes from a body that never gets to reset. It shows up as exhaustion, brain fog, sleep problems, physical tension that won't ease, a feeling of running on empty all the time. That experience you are describing? That is a body telling you the glass has been full for too long. What has been filling yours?"
+      ]
+    },
+    {
+      "step_id": "connect_to_experience",
+      "goal": "Invite the user to reflect on what type of stress they recognise in their own pattern. Are they in the alarm stage, the resistance stage, or at exhaustion? Which appraisal pattern resonates, overestimating threat, underestimating coping capacity, or both?",
+      "technique": "Reflective inquiry and experiential bridging",
+      "technique_description": "Use open, curious questions to help the user map the psychoeducation onto their own lived experience. The goal is recognition, not analysis. Ask which stage of the General Adaptation Syndrome they recognise: the constant activation of alarm, the grinding effortful resistance, or the depleted exhaustion. Ask whether the appraisal model resonates: do they tend to read situations as more threatening than they might be, or to underestimate their own coping resources, or both? Reflect back what they share without interpreting or advising. Validate relational stressors explicitly: in Gulf contexts, family pressure, work obligations, and social expectations are often the source, and these are real stressors, not symptoms. Do not rush to problem-solving.",
+      "tone": "curious, warm, slow, non-directive",
+      "contraindications": "Do NOT advise, reframe, or problem-solve at this step. Do NOT ask multiple questions at once. Do NOT push for details they are not offering. Do NOT minimise relational or social stressors by framing them as cognitive distortions. Do NOT treat exhaustion-level presentations as simple stress without exploring whether burnout is present.",
+      "completion_criteria": "User has described at least one aspect of their own experience that connects to the psychoeducation: a stage they recognise, an appraisal pattern, a physical sensation, or a relational context. A simple 'yes that is me' with any specificity is sufficient.",
+      "examples": [
+        "What you are describing, that constant sense of bracing, like the alarm is always on even when nothing is actively wrong, that is the resistance phase. Your body adapted to the threat and stayed adapted. The cost of staying in that state is enormous. How long has it felt like this for you?",
+        "It sounds like the appraisal piece is significant for you. When pressure hits, your brain is reading it as a serious threat and simultaneously questioning whether you have what it takes to manage it. Both readings may be inaccurate, but when they happen together, the stress response is at full intensity. What kinds of situations tend to trigger that pattern most?",
+        "اللي قلته عن الضغط من البيت والشغل في نفس الوقت، هذا ضغط حقيقي. ما هو وهم. الجسم ما يفرق بين ضغط العمل وضغط العيلة، يستجيب لكل شي. وش اللي تحس انه الأثقل عليك؟ الضغط من الشغل، من العيلة، أو الاثنين سوا؟",
+        "You mentioned you cannot switch off even when you are home. That is the resistance stage in real life: the body is still mobilised even when the immediate pressure is gone. The nervous system has not received a clear signal that it is safe to rest. What does rest actually feel like for you right now? Does it feel possible, or has it stopped feeling available?",
+        "When you described feeling like you are running on empty, I want to check in on that. Empty can mean different things. Are you still functioning, still managing, even if it is hard? Or are there things, work, relationships, basic tasks, that are starting to slip? I am asking because there is a difference between being stretched and being past the point where self-help tools can carry the weight alone."
+      ]
+    },
+    {
+      "step_id": "bridge_to_action",
+      "goal": "Offer a concrete next step that follows naturally from what the user described. Match the offer to where they are: box breathing for acute alarm-phase stress, behavioral activation for withdrawal and exhaustion, worry time for rumination loops, or values clarification if the stress is connected to life direction conflict.",
+      "technique": "Psychoeducation-to-skill bridge with invitation",
+      "technique_description": "Based on what the user shared in the connect_to_experience step, name one or two approaches that address the pattern most relevant to them. If they described acute activation, racing heart, or an inability to calm the alarm, offer box breathing as a direct nervous system interrupt. If they described withdrawal, low energy, or the flatness of exhaustion, offer behavioral activation: small, restorative activities to begin reversing depletion. If they described circular, repetitive worry about stressors they cannot immediately resolve, offer worry time as a containment strategy. If they described stress rooted in a sense that life is misaligned with what matters to them, raise values clarification as a direction-finding tool. Frame each as an invitation, not a prescription. Do not offer more than two options. If the user's description matches burnout-level exhaustion with functional impairment, note warmly that professional support alongside any skill practice is the most useful next step.",
+      "tone": "hopeful, grounded, collaborative, non-prescriptive",
+      "contraindications": "Do NOT tell the user what they must do. Do NOT offer more than two options at once. Do NOT transition abruptly from the emotional space of the connect step. Do NOT frame any skill as a cure for chronic stress. Do NOT skip the invitation framing. Do NOT offer a coping skill to someone describing burnout-level impairment without also naming professional support.",
+      "completion_criteria": "User has been offered at least one concrete next step and has responded in any way, whether accepting, declining, asking a question, or expressing uncertainty. Any response counts.",
+      "examples": [
+        "Based on what you described, that alarm that will not switch off even when nothing is immediately wrong, box breathing is one of the most direct ways to interrupt the physiological response. It is not about relaxing by willpower. It is about giving the nervous system a concrete signal that the threat has passed. Would you like to try a few rounds of that together right now?",
+        "What you described sounds more like exhaustion than acute stress. When someone has been in the resistance phase for a long time, pushing to cope, the tank eventually empties. The approach that fits that state is not more coping, it is recovery: small, restorative activities that start to refill what has been depleted. There is a structured approach to that called behavioral activation. Would it be useful to look at what that might involve for you?",
+        "بناء على اللي شاركته، يبدو ان الأفكار الدائرة هي الأصعب. في تقنية اسمها وقت القلق تساعدك تحدد وقت معين للأفكار هذي بدل ما تأخذك طول اليوم. ما هي للتخلص من القلق، هي لتنظيمه. تبي نشوف سوا كيف تشتغل؟",
+        "You mentioned feeling like the stress is connected to something deeper, like you are working hard in directions that do not feel meaningful. That is a different kind of stress from work pressure or external demands. When stress is rooted in a values gap, coping skills help but they do not reach the source. There is a process called values clarification that helps you identify what actually matters and where the mismatch is. It does not fix the situation immediately, but it gives the stress a name and a direction. Would that be useful to explore?",
+        "I want to be honest with you about what you have described: the exhaustion, the inability to function normally, the sense that you are past running on empty. That is not something that box breathing alone will resolve. What you are describing sounds like it may be at or near burnout, and the most important thing you can do alongside any skill practice is to speak with someone who can properly support you. Would it be useful to talk about what getting that kind of support might look like, or what is making it feel difficult to reach for?"
+      ]
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
+      "action": "validate_only",
+      "instruction": "The user is acutely distressed. Do not continue psychoeducation. Validate their experience fully and stay present. Do not deliver information when they are in a high-distress state. Return to normal step next turn only if distress has reduced.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance to the psychoeducation framing. Offer to pause and just talk, or explore whether a different approach might suit them better. Do not push the educational content.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "check_in_micro",
+      "instruction": "The user seems disengaged. Gently check in: is learning about stress feeling useful right now, or would something else be more helpful? Do not assume disengagement means refusal.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit with warmth and without persuasion. Even a partial conversation about stress can be valuable. Acknowledge the curiosity they brought.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": {
+        "signal": "burnout_exhaustion_with_functional_impairment",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "flag_burnout_risk",
+      "instruction": "User is describing potential burnout, sustained exhaustion beyond normal stress response. Add clinician_review flag. Gently note that what they are describing may be beyond what self-help tools can address alone, and explore whether professional support might be helpful alongside any skill practice.",
+      "next_step_id": "current"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit skill gracefully if user requests to stop. No persuasion. Acknowledge that curiosity about stress is already meaningful.",
+    "L2": "Add clinician_review flag if user describes burnout-level exhaustion with inability to function (cannot work, significant functional impairment), or stress-related physical symptoms such as chest pain or persistent headaches that have not been medically evaluated.",
+    "L3": "Exit immediately to crisis protocol if any crisis signal is detected during the session.",
+    "L4": "Trigger human handoff if 3 or more crises detected in the last 30 days, or if user explicitly requests a human clinician."
+  },
+  "cultural_overrides": {
+    "relational_stressors_first": "In Gulf contexts, stress is frequently framed relationally: family pressure, work obligations, financial duty, social expectations from extended family or community. These are not cognitive distortions to be challenged. They are real, often structural stressors. Always validate relational stressors explicitly and warmly before introducing any individual appraisal or coping framework. Beginning with the appraisal model before validating the relational source of stress may feel dismissive or tone-deaf. Lead with acknowledgement of what the user is carrying, then introduce the mechanism.",
+    "tawakkul_and_stress": "Some Gulf users may frame chronic stress as a failure of tawakkul (trust in God), feeling that their stress response indicates weak faith or inadequate reliance on God. Do not contradict or dismiss this frame. Validate it directly: the stress response is a biological mechanism built into the body, not a spiritual indicator. A person with complete tawakkul still has an HPA axis and cortisol. Acknowledging stress is honest self-knowledge, not a spiritual failing. These are different registers and do not conflict. Frame stress awareness as compatible with, and even supportive of, a faith-based orientation.",
+    "performance_and_shame": "In Gulf cultures, admitting to stress, especially at work, in a leadership role, or in a family provider role, can carry significant shame. Male users in particular may minimise or deflect from stress rather than acknowledge it. Normalise stress explicitly as a universal biological response, present in every human nervous system regardless of strength, capability, or faith. Reframe the act of acknowledging stress as a sign of self-awareness and honest engagement with one's own wellbeing, not a sign of weakness or inadequacy."
+  }
+}

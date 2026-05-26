@@ -79,6 +79,10 @@ KNOWN_HITS = [
     # Psychoeducation — depression (no 'depression' keyword, no technique name)
     ("I have been feeling grey and flat for weeks and I cannot explain why", "psychoed_depression"),
     ("everything feels heavy and I have lost interest in things I used to enjoy", "psychoed_depression"),
+
+    # Psychoeducation — stress (no 'stress' keyword, no technique name)
+    ("I feel like I am constantly running on empty and my body is always on edge", "psychoed_stress"),
+    ("I cannot switch off, I am always braced for the next thing to go wrong", "psychoed_stress"),
 ]
 
 # Messages that should NOT match any skill
