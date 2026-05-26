@@ -11,6 +11,7 @@
       "step_id": "acknowledge_and_check",
       "goal": "Acknowledge what the user has been through and gently check in on how they are right now",
       "technique": "Active listening, validation, open check-in",
+      "technique_description": "Active listening and open-ended checking in, without clinical probing or re-processing. The goal is to confirm current safety and convey continued presence. A post-crisis user does not need to explain themselves; they need to feel heard and safe.",
       "tone": "warm, unhurried, non-intrusive",
       "contraindications": "Do NOT ask probing questions about the crisis content. Do NOT say 'tell me more about what happened' or 'what made you feel that way.' The goal is to confirm current safety, not re-process the event. Re-processing a crisis without clinical containment can re-traumatise. Do NOT use clinical language ('how is your suicidal ideation?'). Do NOT express relief in a way that signals the conversation is over ('I am glad you are okay now').",
       "completion_criteria": "User has explicitly or implicitly confirmed current safety status, 'I am okay now,' 'a bit calmer,' 'still here' all qualify. Any ambiguity about current safety triggers L2 escalation and safety clarification before proceeding. Do NOT advance to bridge_or_close if safety status is unclear.",
@@ -25,6 +26,7 @@
       "step_id": "bridge_or_close",
       "goal": "Based on how the user responds, either bridge toward continued support or gently close the check-in",
       "technique": "Safety planning bridge or warm closure",
+      "technique_description": "Safety planning bridge or warm closure depending on the user's signal. If the user wants to continue talking, shift to freeflow support. If they want to close, leave the door explicitly open and provide the crisis line. The close must always include a help-available reminder.",
       "tone": "warm, steady, forward-looking",
       "contraindications": "Do NOT introduce new therapeutic content, skills, or coping strategies unprompted at this step. A post-crisis user does not need a skill introduction, they need steadiness. Do NOT ask what caused the crisis or explore the precipitant. Do NOT give the impression that the conversation is now 'done' or 'resolved.' Always leave the door explicitly open. If closing, the crisis line number (800 46342) must be included.",
       "completion_criteria": "User has acknowledged the closing message or has indicated they want to continue talking. If they want to continue, the session may shift to freeflow support, which is appropriate. If they want to stop, they have been explicitly reminded that help is available at any time and the crisis line has been provided. A close without the help-available reminder does not meet this criterion.",
@@ -101,6 +103,9 @@
     "L3": "Exit immediately to crisis protocol if any new crisis signal",
     "L4": "Trigger human handoff if 3 or more crises detected in last 30 days"
   },
-  "cultural_overrides": null,
+  "cultural_overrides": {
+    "islamic_relief_language": "If the user expresses relief in Islamic terms ('الحمد لله على السلامة'), mirror this warmly. Islamic spiritual expression is a genuine coping resource, not avoidance. Do not redirect away from it.",
+    "shame_help_seeking": "Post-crisis, Gulf users, particularly male users, may feel ashamed of having reached a crisis point. Actively counter this: frame reaching out as courage and strength. Never treat the check-in as a clinical debrief."
+  },
   "cultural_note": "REQUIRES GULF-NATIVE CLINICAL REVIEW before deployment. Two cultural considerations specific to Gulf post-crisis context: (1) ISLAMIC SPIRITUAL FRAMING: After a crisis, Islamic expression of relief is appropriate and meaningful. If the user says 'الحمد لله على السلامة' (praise be to Allah for your safety) or uses similar language, mirror it warmly rather than treating it as avoidance. 'إن شاء الله' in the context of 'I will be okay, inshallah' is not denial, it is trust in God's plan while accepting the present. Spiritual language is a genuine coping resource in this cultural context. Do not redirect away from it. (2) SHAME AND HELP-SEEKING: In Gulf culture, mental health crises may carry significant shame, particularly for male users and in contexts involving family honour. Post-crisis, a user may feel ashamed that they reached a crisis point at all or that they sought help. The check-in should actively counter this: acknowledge courage explicitly, frame reaching out as strength not weakness, and do not treat the check-in as a clinical debrief, treat it as one person genuinely caring about another."
 }

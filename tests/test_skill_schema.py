@@ -69,8 +69,8 @@ def test_cbt_thought_record_steps_have_technique_descriptions():
 
 def test_load_skill_without_technique_description_defaults_empty():
     from sage_poc.skills.schema import load_skill
-    # post_crisis_check_in.json has no technique_description field
-    skill = load_skill("post_crisis_check_in")
+    # behavioral_activation.json has no technique_description field on steps
+    skill = load_skill("behavioral_activation")
     for step in skill.steps:
         assert step.technique_description == "", (
             f"Step '{step.step_id}' should default to empty technique_description"
@@ -133,3 +133,19 @@ def test_sleep_hygiene_cultural_overrides_is_populated_dict():
     skill = load_skill("sleep_hygiene")
     assert isinstance(skill.cultural_overrides, dict)
     assert len(skill.cultural_overrides) > 0, "sleep_hygiene cultural_overrides must be populated, not null/empty"
+
+
+def test_post_crisis_check_in_cultural_overrides_is_populated_dict():
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("post_crisis_check_in")
+    assert isinstance(skill.cultural_overrides, dict)
+    assert len(skill.cultural_overrides) > 0
+
+
+def test_post_crisis_check_in_steps_have_technique_description():
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("post_crisis_check_in")
+    for step in skill.steps:
+        assert step.technique_description, (
+            f"step '{step.step_id}' is missing technique_description"
+        )
