@@ -7,6 +7,7 @@ fighting deferred-import mechanics for server/pool/repository objects.
 The tool-loop helper _invoke_with_tool_loop is tested via direct import.
 """
 import asyncio
+import importlib
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -124,6 +125,10 @@ def test_prior_context_skipped_when_no_user_id():
 # Test 3: prior context skipped when pool is None
 # ---------------------------------------------------------------------------
 
+@pytest.mark.skipif(
+    importlib.util.find_spec("asyncpg") is None,
+    reason="asyncpg not installed — requires Postgres",
+)
 def test_prior_context_skipped_when_pool_is_none():
     """When db pool is None, prior context must be empty and layer must be absent."""
     import server as server_module  # top-level server.py on pythonpath

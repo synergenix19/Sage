@@ -1,4 +1,5 @@
 import pytest
+asyncpg = pytest.importorskip("asyncpg", reason="asyncpg not installed — requires Postgres")
 from unittest.mock import AsyncMock, patch, MagicMock
 
 @pytest.mark.asyncio
