@@ -29,3 +29,16 @@ def test_knowledge_result_with_passages():
     r = KnowledgeResult(passages=[p], abstain=False)
     assert not r.abstain
     assert len(r.passages) == 1
+
+
+def test_rewriter_normalizes_common_alef_variants():
+    from sage_poc.knowledge.rewriter import normalize_arabic_query
+    assert normalize_arabic_query("أنا") == "انا"
+    assert normalize_arabic_query("إنسان") == "انسان"
+    assert normalize_arabic_query("آخر") == "اخر"
+
+
+def test_rewriter_passthrough_for_english():
+    from sage_poc.knowledge.rewriter import normalize_arabic_query
+    result = normalize_arabic_query("what is CBT?")
+    assert result == "what is CBT?"
