@@ -105,13 +105,6 @@ def _route_after_intent(state: SageState) -> str:
     return "freeflow"
 
 
-def _set_gate_path_node(state: SageState) -> dict:
-    """Intermediate node: stamps gate_path from primary_intent before output_gate."""
-    intent = state.get("primary_intent", "standard")
-    gate_path = intent if intent in ("scope_refusal", "jailbreak") else "standard"
-    return {"gate_path": gate_path, "path": state["path"] + ["gate_path_set"]}
-
-
 def _route_after_skill_select(state: SageState) -> str:
     return "skill_executor" if state.get("active_skill_id") else "freeflow"
 
@@ -127,7 +120,6 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     graph.add_node("freeflow_respond", freeflow_respond_node)
     graph.add_node("output_gate", output_gate_node)
     graph.add_node("crisis_response", _crisis_response_node)
-    graph.add_node("gate_path_set", _set_gate_path_node)
 
     graph.set_entry_point("safety_check")
 
@@ -143,9 +135,8 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
         "freeflow": "freeflow_respond",
         "crisis": "crisis_response",
         "low_confidence": "low_confidence_respond",
-        "gate": "gate_path_set",
+        "gate": "output_gate",
     })
-    graph.add_edge("gate_path_set", "output_gate")
     graph.add_edge("low_confidence_respond", "output_gate")
 
     graph.add_conditional_edges("skill_select", _route_after_skill_select, {

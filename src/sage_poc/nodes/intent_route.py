@@ -61,11 +61,15 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
     except json.JSONDecodeError:
         data = {}
 
-    return {
-        "primary_intent": data.get("primary_intent", "general_chat"),
+    primary_intent = data.get("primary_intent", "general_chat")
+    result = {
+        "primary_intent": primary_intent,
         "secondary_intent": data.get("secondary_intent"),
         "intent_confidence": float(data.get("intent_confidence", 0.5)),
         "emotional_intensity": _safe_int(data.get("emotional_intensity"), 5),
         "engagement": _safe_int(data.get("engagement"), 5),
         "path": state["path"] + ["intent_route"],
     }
+    if primary_intent in ("scope_refusal", "jailbreak"):
+        result["gate_path"] = primary_intent
+    return result
