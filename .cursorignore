@@ -1,0 +1,33 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# build and cache artifacts
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# model weights and inference artifacts
+*.bin
+*.safetensors
+*.pt
+*.onnx
+*.gguf
+.cache/
+
+# local embedding / vector store caches
+.embeddings/
+
+# training data (TD1–TD8)
+data/**/*.parquet
+data/**/*.jsonl
+*.npy
+
+# logs
+*.log
+uv.lock
