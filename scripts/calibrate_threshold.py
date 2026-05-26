@@ -71,6 +71,10 @@ KNOWN_HITS = [
     # Note: 'guided imagery', 'visualization', 'calm place' are in keyword tier for this skill
     ("I want to use mental imagery to create an inner sanctuary where I feel completely safe", "safe_place_visualization"),
     ("I want to find a safe imaginary refuge to calm down when reality feels overwhelming", "safe_place_visualization"),
+
+    # Psychoeducation — anxiety (no 'anxiety' keyword, no technique name)
+    ("I do not understand why my body reacts this way when I am nervous", "psychoed_anxiety"),
+    ("I get these waves of fear for no reason and I do not know what is happening to me", "psychoed_anxiety"),
 ]
 
 # Messages that should NOT match any skill

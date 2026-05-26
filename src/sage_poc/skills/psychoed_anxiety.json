@@ -1,0 +1,169 @@
+{
+  "skill_id": "psychoed_anxiety",
+  "skill_name": "Anxiety Psychoeducation",
+  "skill_type": "structured",
+  "self_evolution": "manual_only",
+  "evidence_base": "WHO ICD-11 (6B00, 6B01); Beck (1985) cognitive model of anxiety; Clark (1986) cognitive model of panic",
+  "target_presentations": [
+    "what is anxiety",
+    "anxiety explained",
+    "understand anxiety",
+    "what is panic",
+    "why do I panic",
+    "anxiety education",
+    "what causes anxiety",
+    "panic attack explained",
+    "explain anxiety",
+    "how does anxiety work",
+    "teach me about anxiety",
+    "help me understand anxiety",
+    "why does anxiety happen",
+    "what happens in my body when I am nervous",
+    "what is the fight or flight response",
+    "fight or flight explained",
+    "why do I get panic attacks",
+    "the anxiety cycle",
+    "anxiety iceberg",
+    "what is happening when I feel anxious",
+    "explain panic attacks",
+    "how anxiety works",
+    "anxiety mechanisms",
+    "cognitive model of anxiety",
+    "وش القلق",
+    "شو هو القلق",
+    "ما هو القلق",
+    "ليش احس بالخوف",
+    "القلق وش يسوي",
+    "فهمني القلق",
+    "وش يصير لجسمي لما اضيق",
+    "ليش تجي نوبات الهلع",
+    "شرح القلق",
+    "القلق ليش يصير",
+    "وش هي نوبة الهلع",
+    "فسرلي الهلع",
+    "ليش جسمي يرتجف لما اخاف",
+    "ما افهم ليش احس بالذعر",
+    "ابي افهم القلق"
+  ],
+  "semantic_description": "Interactive anxiety psychoeducation protocol. Three-step structured technique: explain anxiety mechanisms, connect to personal experience, bridge to action. The cognitive model of anxiety. Anxiety explained. Fight-or-flight response. What anxiety is and how it works. The anxiety cycle. Physiological anxiety response. The anxiety iceberg. Walk me through what anxiety is. Explain anxiety to me. What is happening in my body when I feel nervous. Teach me about anxiety. Help me understand my anxiety. Why does anxiety happen. Anxiety education. The role of the amygdala. How the brain interprets threat. Sympathetic nervous system activation. Adrenaline and cortisol. Cognitive appraisal of threat. The role of catastrophic thinking in maintaining anxiety. What causes a panic attack. Why panic attacks feel life-threatening when they are not. The vicious cycle of anxiety: trigger, thought, body, behavior. Behavioral avoidance and how it maintains anxiety. What is the threat-detection system in the brain. How anxiety was useful for survival. Why modern anxiety fires on non-physical threats. The difference between anxiety as protection and anxiety as pattern. I want to understand what is happening when I feel scared. I do not understand why my body does this. I want to learn about anxiety. Can you explain what panic is. Why does fear feel physical.",
+  "steps": [
+    {
+      "step_id": "explain",
+      "goal": "Deliver accessible, warm psychoeducation about what anxiety is, the cognitive model, the fight-or-flight response, and the anxiety cycle. End with an open question inviting the user to reflect on what they heard.",
+      "technique": "Didactic psychoeducation with interactive check-in",
+      "technique_description": "Present the core anxiety psychoeducation in clear, accessible language, grounded in the cognitive model (Beck, 1985; Clark, 1986). Describe: (1) anxiety as a survival-wired threat-detection system, (2) the fight-or-flight cascade (adrenaline, cortisol, physical symptoms), (3) how the brain can misfire the alarm on non-physical threats, (4) the anxiety cycle: trigger, thought, body response, behavior. Keep it concrete with brief examples. Frame it as information, not diagnosis. Validate that the physical symptoms are real. End with a question that invites reflection.",
+      "tone": "warm, accessible, curious, non-clinical",
+      "contraindications": "Do NOT use clinical jargon without explanation. Do NOT frame anxiety as a disorder or pathology. Do NOT rush through the explanation. Do NOT skip the physical symptom validation for Gulf users who present somatically. Do NOT end without the reflective question.",
+      "completion_criteria": "The psychoeducation has been delivered covering at least: what anxiety is, the physiological response, and the cycle. The user has been asked a reflective open question and has given any response (agreement, question, or personal observation).",
+      "examples": [
+        "Anxiety is your brain's alarm system doing its job, sometimes a little too well. When your brain senses a threat, it fires adrenaline and cortisol through your body, your heart speeds up, your breathing changes, your muscles tighten. This was designed to help you run from a lion. The problem is, your brain cannot always tell the difference between a lion and a difficult meeting, or a difficult feeling. The alarm fires all the same. Does any part of that sound familiar to you?",
+        "Let me explain what happens in your body when anxiety kicks in. Your nervous system has a threat-detection centre. When it spots something it reads as danger, it sends a signal: prepare to fight or run. Your heartbeat picks up. Your breathing gets shallower. Your stomach tightens. Your thoughts narrow to the threat. This whole cascade happens in seconds, before your thinking brain has a chance to catch up. The physical sensations are completely real, they are just your body preparing to protect you. What part of that resonates most with what you have been experiencing?",
+        "القلق ما هو ضعف. هو نظام تحذير في دماغك. لما دماغك يحس بخطر، يطلق هرمونات تخلي قلبك يدق أسرع، تنفسك يتغير، وعضلاتك تشد. هذا الجسم يحاول يحميك. المشكلة أن الدماغ أحيانا ما يفرق بين خطر حقيقي وبين موقف صعب أو فكرة مضايقة. الإنذار يطلع بنفس الطريقة. وش اللي تلاحظه في جسمك لما تحس بالضيق؟",
+        "Think of anxiety as a smoke alarm. It is genuinely useful when there is a fire. But sometimes it goes off when you burn toast. The alarm itself is not the problem. It is doing its job. What we are going to explore together is what triggers your alarm, what that looks like in your body, and what keeps the alarm going once it has started. Before we do that, I am curious, what made you want to understand anxiety today?"
+      ]
+    },
+    {
+      "step_id": "connect_to_experience",
+      "goal": "Invite the user to relate the psychoeducation to their own lived experience. What have they noticed? What resonates? This step is purely reflective, not advisory.",
+      "technique": "Reflective inquiry and experiential bridging",
+      "technique_description": "Use open, curious questions to help the user map the psychoeducation onto their own experience. The goal is recognition, not analysis. Ask what they have noticed in their body, their thoughts, or their behavior. Listen for the cycle elements (trigger, thought, body, behavior/avoidance). Reflect back what they share without interpreting or advising. Validate any connection they make, including somatic presentations, without rushing to solutions.",
+      "tone": "curious, warm, slow, non-directive",
+      "contraindications": "Do NOT advise, reframe, or problem-solve at this step. Do NOT ask multiple questions at once. Do NOT push for details they are not offering. Do NOT label their experience as an anxiety disorder. If the user says 'that is not me' or 'I do not have anxiety', reflect the curiosity without arguing.",
+      "completion_criteria": "User has described at least one aspect of their own experience, physical, cognitive, or behavioral, that connects to the psychoeducation. A simple 'yes that sounds like me' is sufficient for completion if accompanied by any specificity.",
+      "examples": [
+        "What you just described, that tightness in your chest when things feel out of control, that is exactly the body part of the anxiety cycle. The chest and the stomach are often the first places the nervous system speaks. When does that show up most for you?",
+        "It sounds like your alarm goes off a lot in social situations. So the trigger is being around people, the body response is your heart racing and wanting to leave, and the behavior is avoiding the situation. That is a very complete anxiety cycle. What do you notice about the thoughts in those moments?",
+        "وش قلته عن احساسك بالطريق للشغل هذا بالظبط اللي نتكلم عنه. جسمك يطلق إنذار قبل لا يصير شي. ما تحس بالتعب؟ يعني تكون جاهز للخطر طول اليوم وما فيه خطر. وش تلاحظ يصير بعدين؟",
+        "You mentioned your heart pounds when you have to speak up. That is the adrenaline doing its job, getting your body ready. What do you usually do in that moment? Do you speak anyway, or does something pull you back?",
+        "It sounds like for you, the anxiety shows up more in the body than in thoughts. A lot of people experience it that way, especially as physical sensations like a racing heart, heaviness, or tension, before they would even call it anxiety. What word would you use for what you feel in those moments?"
+      ]
+    },
+    {
+      "step_id": "bridge_to_action",
+      "goal": "Offer a concrete next step, a skill or coping strategy that follows naturally from the psychoeducation. Frame it as an invitation, not a prescription.",
+      "technique": "Psychoeducation-to-skill bridge with invitation",
+      "technique_description": "Based on what the user shared in the connect_to_experience step, name one or two skills that address the part of the anxiety cycle most relevant to them. If they described strong physical symptoms, offer a somatic skill (box breathing, grounding, progressive muscle relaxation). If they described catastrophic thoughts, name cognitive approaches. If they described avoidance, mention behavioral activation. Frame each option as an invitation: here is something that addresses what you just described, would you like to try it? Do not prescribe. Do not list more than two options.",
+      "tone": "hopeful, grounded, collaborative, non-prescriptive",
+      "contraindications": "Do NOT tell the user what they must do. Do NOT offer more than two options at once, this creates overwhelm. Do NOT transition abruptly from the emotional space of the connect step. Do NOT frame a skill as a cure. Do NOT skip the invitation framing and go straight to instructions.",
+      "completion_criteria": "User has been offered at least one concrete next step and has responded, whether they accept, decline, ask a question, or express uncertainty. Any response counts. The step is complete when the invitation has landed.",
+      "examples": [
+        "Given what you described, that racing heart and the way your body braces before a difficult conversation, one thing that can help interrupt that physical response is box breathing. It directly signals the nervous system to slow down. Would you like to try a few rounds of that together right now?",
+        "From everything you shared, it sounds like the thoughts are the loudest part of your anxiety cycle. There is a technique called a thought record that helps you slow down and look at what the thought is actually saying, and whether it holds up. It is not about dismissing the thought, more about not letting it run the show unchecked. Would that be useful to explore?",
+        "بناء على اللي شاركته، يبدو ان جسمك هو اللي يحس أول شي. في تمرين اسمه تنفس الصندوق يساعد الجهاز العصبي يهدأ بسرعة. ما يحتاج تصدق أنه شاغل بالك، بس تعطي جسمك إشارة إن الخطر راح. تبي نجربه سوا؟",
+        "What you just described, the loop of worrying thoughts that cycles over and over at night, that is the rumination part of anxiety. There is a technique called worry time that helps contain that loop rather than letting it run all day. The idea is you give the worrying a scheduled slot so your brain stops hijacking the rest of your time. It sounds counterintuitive but it actually works well for a lot of people. Would you like to hear how it works?",
+        "You mentioned that you have been avoiding things that trigger the feeling, and I understand why. Avoidance gives you short-term relief. But over time, it teaches your brain that the trigger is genuinely dangerous, which keeps the alarm sensitive. There is a way to gently start reversing that. Not diving in, just small, graded steps. Would you want to explore what that might look like for you?"
+      ]
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
+      "action": "validate_only",
+      "instruction": "The user is acutely distressed. Do not continue psychoeducation. Validate their experience fully and stay present. Do not deliver information when they are in a high-distress state. Return to normal step next turn only if distress has reduced.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance to the psychoeducation framing. Offer to pause and just talk, or explore whether a different approach might suit them better. Do not push the educational content.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "check_in_micro",
+      "instruction": "The user seems disengaged. Gently check in: is learning about anxiety feeling useful right now, or would something else be more helpful? Do not assume disengagement means refusal.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit with warmth and without persuasion. Even a partial conversation about anxiety can be valuable. Acknowledge the curiosity they brought.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": {
+        "signal": "existing_anxiety_diagnosis_disclosed",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "affirm_and_adapt",
+      "instruction": "User already has a diagnosis. Acknowledge their existing knowledge, do not re-teach what they know. Pivot to how the model applies to their specific experience. Ask what parts of the anxiety cycle feel most relevant or confusing for them personally. Treat them as someone with context, not a blank slate.",
+      "next_step_id": "current"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit skill gracefully if user requests to stop. No persuasion. Acknowledge that curiosity about anxiety is already meaningful.",
+    "L2": "Add clinician_review flag if user discloses panic disorder, agoraphobia, severe phobia, or reports anxiety causing significant functional impairment, such as inability to work, leave home, or maintain basic daily activities.",
+    "L3": "Exit immediately to crisis protocol if any crisis signal is detected during the session.",
+    "L4": "Trigger human handoff if 3 or more crises detected in the last 30 days, or if user explicitly requests a human clinician."
+  },
+  "cultural_overrides": {
+    "somatic_first": "In Gulf culture, anxiety is often experienced and described somatically rather than named as anxiety or قلق. Users may say their heart is racing, their chest is tight, or they feel physically unwell, without connecting it to an emotional state. Always validate the somatic experience explicitly before introducing the cognitive framing. Do not lead with 'anxiety' as a label when the user is describing physical sensations.",
+    "stigma_language": "Some Gulf users will resist the word anxiety (قلق) because it carries stigma or implies weakness. If the user shows signs of resistance to the label, offer equivalent framings without the stigma: the nervous system response, what happens in the body under pressure, or the body's alarm system. These communicate the same mechanism without the label. Follow the user's language, not the clinical taxonomy.",
+    "religious_framing": "If a user frames their anxiety in terms of tawakkul (trust in God) or views their distress as a sign of weak faith, do not dismiss or contradict the religious frame. Validate that anxiety is a physiological mechanism, wired into the body, not a spiritual failing or sign of weak iman. These are not in conflict. A person with complete tawakkul can still have an overactive amygdala. The body and the spirit operate on different registers. Validate both.",
+    "gender_and_expression": "Male users in Gulf contexts may be less likely to use emotional language and more likely to frame distress as tiredness, pressure, or physical symptoms. Meet them in their own language. Female users may have additional stressors related to family roles, social expectations, or limited autonomy. Neither group should be assumed to have less or more anxiety than the other. Follow what the user brings."
+  }
+}

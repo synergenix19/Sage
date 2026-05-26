@@ -12,4 +12,5 @@ SKILL_REGISTRY = [
     "progressive_muscle_relaxation",
     "safe_place_visualization",
     "dbt_tipp",
+    "psychoed_anxiety",
 ]
