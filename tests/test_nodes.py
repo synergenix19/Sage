@@ -35,6 +35,9 @@ def make_state(**kwargs):
         "path": [],
         "turn_count": 0,
         "conversation_history": [],
+        "knowledge_passages": [],
+        "knowledge_abstain": False,
+        "knowledge_source": "",
     }
     return {**defaults, **kwargs}
 
@@ -673,7 +676,7 @@ def test_compose_prompt_without_skill_instruction():
     assert "wellness" in system_str.lower() or "companion" in system_str.lower()
 
 def test_compose_prompt_blended_intent_injects_knowledge():
-    """secondary_intent=info_request injects knowledge snippet into user role."""
+    """secondary_intent=info_request with knowledge_passages in state injects evidence into user role."""
     state = make_state(
         message_en="I feel hopeless. Also, what is CBT?",
         primary_intent="new_skill",
@@ -681,13 +684,16 @@ def test_compose_prompt_blended_intent_injects_knowledge():
         step_instruction=None,
         conversation_history=[],
         emotional_intensity=5,
+        knowledge_passages=[{"text": "Cognitive Behavioral Therapy is an evidence-based approach.", "source_id": "cbt-001-en", "citation": "Beck (1979)", "relevance_score": 0.88}],
+        knowledge_abstain=False,
+        knowledge_source="node_6",
     )
     system_str, user_str, _ = compose_prompt(state)
     assert "blended" in user_str.lower() or "info_request" in user_str.lower()
-    assert "cognitive behavioral" in user_str.lower()  # knowledge snippet in user role
+    assert "cognitive behavioral" in user_str.lower()  # knowledge passage injected from state
 
 def test_compose_prompt_primary_info_request_injects_knowledge():
-    """P2-8: primary_intent=info_request alone must also inject knowledge (not only secondary)."""
+    """P2-8: primary_intent=info_request with knowledge_passages in state injects evidence."""
     state = make_state(
         message_en="what is CBT and how does it work?",
         primary_intent="info_request",
@@ -695,10 +701,13 @@ def test_compose_prompt_primary_info_request_injects_knowledge():
         step_instruction=None,
         conversation_history=[],
         emotional_intensity=3,
+        knowledge_passages=[{"text": "Cognitive Behavioral Therapy is an evidence-based approach.", "source_id": "cbt-001-en", "citation": "Beck (1979)", "relevance_score": 0.88}],
+        knowledge_abstain=False,
+        knowledge_source="node_6",
     )
     system_str, user_str, _ = compose_prompt(state)
     assert "cognitive behavioral" in user_str.lower(), \
-        "Primary info_request intent must inject knowledge snippet into prompt"
+        "info_request with knowledge_passages in state must inject evidence into prompt"
 
 def test_compose_prompt_clinical_flag_injects_adaptation():
     """Clinical adaptations belong in the system role (behavioral constraints)."""
