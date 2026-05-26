@@ -75,3 +75,40 @@ def test_load_skill_without_technique_description_defaults_empty():
         assert step.technique_description == "", (
             f"Step '{step.step_id}' should default to empty technique_description"
         )
+
+
+def test_cultural_overrides_field_is_not_dropped():
+    """Skills with cultural_overrides in JSON must have the field accessible on the model."""
+    from sage_poc.skills.schema import Skill
+    raw = {
+        "skill_id": "test_skill",
+        "skill_name": "Test Skill",
+        "skill_type": "structured",
+        "evidence_base": "Test evidence",
+        "target_presentations": ["test phrase"],
+        "steps": [],
+        "step_policy": [],
+        "escalation_matrix": {"L1": "exit", "L2": "flag", "L3": "crisis", "L4": "handoff"},
+        "cultural_overrides": {"gulf_arab": "adjust tone"},
+    }
+    skill = Skill.model_validate(raw)
+    assert skill.cultural_overrides == {"gulf_arab": "adjust tone"}
+
+
+def test_cultural_overrides_null_coerced_to_empty_dict():
+    """Skills with cultural_overrides: null in JSON must load as empty dict, not None."""
+    from sage_poc.skills.schema import Skill
+    raw = {
+        "skill_id": "test_skill2",
+        "skill_name": "Test Skill 2",
+        "skill_type": "structured",
+        "evidence_base": "Test evidence",
+        "target_presentations": [],
+        "steps": [],
+        "step_policy": [],
+        "escalation_matrix": {"L1": "exit", "L2": "flag", "L3": "crisis", "L4": "handoff"},
+        "cultural_overrides": None,
+    }
+    skill = Skill.model_validate(raw)
+    assert skill.cultural_overrides == {}
+    assert isinstance(skill.cultural_overrides, dict)

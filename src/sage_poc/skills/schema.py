@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 SKILLS_DIR = Path(__file__).parent
 
@@ -41,6 +41,12 @@ class Skill(BaseModel):
     steps: list[SkillStep]
     step_policy: list[StepPolicyRule]
     escalation_matrix: dict[str, str]
+    cultural_overrides: dict = Field(default_factory=dict)
+
+    @field_validator("cultural_overrides", mode="before")
+    @classmethod
+    def coerce_none_to_dict(cls, v):
+        return v if v is not None else {}
 
 
 def load_skill(skill_id: str) -> Skill:
