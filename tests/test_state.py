@@ -82,3 +82,9 @@ def test_state_path_is_list():
     }
     assert len(state["path"]) == 4
     assert state["crisis_state"] == "none"
+
+def test_state_has_knowledge_fields():
+    hints = typing.get_type_hints(SageState)
+    assert "knowledge_passages" in hints, "knowledge_passages missing from SageState"
+    assert "knowledge_abstain" in hints, "knowledge_abstain missing from SageState"
+    assert "knowledge_source" in hints, "knowledge_source missing from SageState"

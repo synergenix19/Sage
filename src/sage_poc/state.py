@@ -42,6 +42,10 @@ class SageState(TypedDict):
 
     cultural_output_violations: list[str]  # rule_ids fired in output_gate cultural check
 
+    knowledge_passages: list[dict]  # [{text, source_id, citation, relevance_score}]
+    knowledge_abstain: bool         # True when no relevant evidence found
+    knowledge_source: str           # "node_6" | "tool_lookup" | "" (empty when no retrieval)
+
     gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak", "crisis"]]
 
     response_en: Optional[str]
