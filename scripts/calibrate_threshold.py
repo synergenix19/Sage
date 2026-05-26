@@ -75,6 +75,10 @@ KNOWN_HITS = [
     # Psychoeducation — anxiety (no 'anxiety' keyword, no technique name)
     ("I do not understand why my body reacts this way when I am nervous", "psychoed_anxiety"),
     ("I get these waves of fear for no reason and I do not know what is happening to me", "psychoed_anxiety"),
+
+    # Psychoeducation — depression (no 'depression' keyword, no technique name)
+    ("I have been feeling grey and flat for weeks and I cannot explain why", "psychoed_depression"),
+    ("everything feels heavy and I have lost interest in things I used to enjoy", "psychoed_depression"),
 ]
 
 # Messages that should NOT match any skill

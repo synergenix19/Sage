@@ -13,4 +13,5 @@ SKILL_REGISTRY = [
     "safe_place_visualization",
     "dbt_tipp",
     "psychoed_anxiety",
+    "psychoed_depression",
 ]

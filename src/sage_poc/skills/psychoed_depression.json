@@ -1,0 +1,159 @@
+{
+  "skill_id": "psychoed_depression",
+  "skill_name": "Depression Psychoeducation",
+  "skill_type": "structured",
+  "self_evolution": "manual_only",
+  "evidence_base": "APA DSM-5-TR; Gotlib & Hammen (2002) Handbook of Depression; NICE CG90 (Depression in Adults); Beck (1967) cognitive triad",
+  "target_presentations": [
+    "what is depression",
+    "depression explained",
+    "am I depressed",
+    "sadness vs depression",
+    "what is anhedonia",
+    "depression education",
+    "explain depression",
+    "what causes depression",
+    "signs of depression",
+    "what does depression feel like",
+    "am I depressed or just sad",
+    "difference between sadness and depression",
+    "teach me about depression",
+    "how does depression work",
+    "why do I feel flat",
+    "why do I feel grey",
+    "loss of interest in everything",
+    "I've lost interest in things I used to love",
+    "cognitive triad",
+    "Beck depression model",
+    "behavioral withdrawal depression",
+    "شو هو الاكتئاب",
+    "ما هو الاكتئاب",
+    "وش الفرق بين الحزن والاكتئاب",
+    "أنا مكتئب",
+    "ليش ما أحس بشي",
+    "وش علامات الاكتئاب",
+    "فاقد الاهتمام",
+    "حياتي فاضية",
+    "ما أقدر أفرح"
+  ],
+  "semantic_description": "Interactive depression psychoeducation protocol. Three-step structured technique: explain depression mechanisms, connect to personal experience, bridge to action. The cognitive triad: negative view of self, world, and future. Beck's cognitive model of depression. Anhedonia explained. Behavioral withdrawal cycle. Depression vs sadness. Loss of interest and pleasure. Low energy and motivation. Teach me about depression. Explain depression to me. What is depression. What is the difference between depression and sadness. What causes depression. The science of depression. Depression education. How depression affects the brain. Behavioral activation rationale. Why depression makes everything feel heavy. The neurological and biological basis of depression. Depression is not a character weakness. Clinical depression distinguished from normal sadness. Persistent low mood with no clear cause. The thinking patterns in depression: negative self, world, future. How depression changes motivation and behavior. Withdrawal and isolation as symptoms of depression. The brain and body in depression. How depression differs from grief or ordinary sadness. Depression psychoeducation walkthrough. Explain the cognitive triad. What is behavioral withdrawal. Why does depression make things feel pointless.",
+  "steps": [
+    {
+      "step_id": "explain",
+      "goal": "Deliver accessible, warm psychoeducation about what depression is, the cognitive triad, the behavioral withdrawal cycle, anhedonia, and the biological basis. Distinguish clinical depression from ordinary sadness. End with an open question inviting the user to reflect.",
+      "technique": "Didactic psychoeducation with interactive check-in",
+      "technique_description": "Present the core depression psychoeducation in clear, accessible language, grounded in the cognitive model (Beck, 1967) and NICE CG90. Describe: (1) depression as a medical condition with neurological underpinnings, not a character failing or weakness; (2) the cognitive triad: a persistent negative lens on self, the world, and the future; (3) anhedonia: the loss of the ability to feel pleasure, which distinguishes depression from ordinary sadness; (4) the behavioral withdrawal cycle: how reduced activity deepens low mood, which reduces motivation further; (5) how ordinary sadness passes and responds to circumstances, whereas clinical depression persists regardless of circumstances. Keep it concrete with accessible language. Validate that the experience is real, not imagined or chosen. For Gulf users, frame the biological component warmly: the brain and body can become unwell, just as any organ can. End with a reflective open question.",
+      "tone": "warm, accessible, non-clinical, validating, hopeful",
+      "contraindications": "Do NOT use clinical jargon without explanation. Do NOT frame depression as a character flaw, spiritual failing, or weakness. Do NOT rush through the explanation. Do NOT skip the biological framing for Gulf users who may be carrying stigma or shame. Do NOT lead with the label 'depression' if the user has not used it themselves. Do NOT end without the reflective question.",
+      "completion_criteria": "The psychoeducation has been delivered covering at least: what depression is, how it differs from sadness, and at least one of the following: the cognitive triad, anhedonia, or the behavioral withdrawal cycle. The user has been asked a reflective open question and has given any response.",
+      "examples": [
+        "Depression is not sadness, and it is not weakness. It is a medical condition that changes how your brain processes the world. One of the clearest ways to understand it is through something called the cognitive triad: when depression is present, your mind tends to see yourself through a negative lens, the world as difficult or hopeless, and the future as unlikely to improve. These are not character traits. They are the lens that the condition creates. They feel completely real and completely true, but they are symptoms, not facts. Does any part of that resonate with what you have been experiencing?",
+        "One of the things that makes depression different from ordinary sadness is something called anhedonia, which is a medical word for the loss of the ability to feel pleasure. In ordinary sadness, good things can still lift your mood. In depression, the things you used to love start to feel flat or meaningless, not because they have changed, but because the brain's reward system has quietened. People describe it as feeling grey, numb, or like going through the motions. There is also a cycle that tends to deepen it: when you feel low, you withdraw. When you withdraw, you lose connection and stimulation. That loss deepens the low mood further. It is not a character choice, it is a biological loop. Which part of that sounds most familiar to you?",
+        "الاكتئاب مو ضعف ولا اختيار. هو حالة طبية تصيب الدماغ والجسم. لما يجي الاكتئاب، الإنسان يبدأ يشوف نفسه بطريقة سلبية، ويشوف الحياة صعبة، والمستقبل ما فيه أمل. هذا الشي اسمه المثلث المعرفي. ما هو رأيك في نفسك، هو الاكتئاب اللي يحكي. كمان الاكتئاب يسبب فقدان الإحساس بالفرحة، حتى لو صارت أشياء زينة. الجسم والدماغ مثل أي عضو ثاني في الجسم، يمكن يمرضون. وش اللي تلاحظه في نفسك من اللي قلته؟",
+        "The difference between depression and ordinary sadness is not just how bad you feel, it is what the feeling does. Ordinary sadness has a reason and it shifts with circumstances. If something good happens, you can feel it. Depression is different. The flatness stays regardless of what is happening around you. Things that used to matter stop mattering. Energy goes. Sleep changes. The mind fills with a steady current of self-doubt or hopelessness. This is not weakness or attitude. The brain, like any part of the body, can become unwell. What have you been noticing in yourself?"
+      ]
+    },
+    {
+      "step_id": "connect_to_experience",
+      "goal": "Invite the user to relate the psychoeducation to their own lived experience. What have they noticed? What resonates? This step is purely reflective, not advisory.",
+      "technique": "Reflective inquiry and experiential bridging",
+      "technique_description": "Use open, curious questions to help the user map the psychoeducation onto their own experience. The goal is recognition, not analysis. Ask what they have noticed in their energy, mood, interest levels, thoughts, or daily functioning. Listen for the elements of the cognitive triad, anhedonia, behavioral withdrawal, and somatic presentations. Reflect back what they share without interpreting or advising. Validate any connection they make. For Gulf users especially, validate physical and motivational presentations (fatigue, loss of drive, body heaviness, social withdrawal) as valid depression presentations without requiring them to name it as depression.",
+      "tone": "curious, warm, slow, non-directive, validating",
+      "contraindications": "Do NOT advise, reframe, or problem-solve at this step. Do NOT ask multiple questions at once. Do NOT push for details they are not offering. Do NOT label their experience as depression unless they have already used the word themselves. Do NOT dismiss physical or somatic presentations as irrelevant.",
+      "completion_criteria": "User has described at least one aspect of their own experience, physical, cognitive, behavioral, or emotional, that connects to the psychoeducation. A simple 'yes that sounds like me' is sufficient if accompanied by any specificity.",
+      "examples": [
+        "What you described, feeling grey and going through the motions, that is exactly what anhedonia feels like from the inside. The colour drains from things you used to care about. That is not you losing interest because you are a different person. That is a symptom. When did you first start noticing that flatness?",
+        "It sounds like the withdrawal part is strongest for you. You used to be around people, and now you are not, and the alone time does not feel restful, it just feels empty. That cycle you are describing, pulling back, feeling worse, pulling back more, that is one of the ways depression sustains itself. What has the impact been on your days?",
+        "ما قلته عن التعب وما تحس بأي شي، هذا ما يعيشه ناس كثير مع الاكتئاب. في الخليج أحيانا ما يجي الاكتئاب بشكل حزن واضح، يجي بشكل تعب جسدي وفقدان الطاقة وما تقدر تفرح. وش اللي تلاحظه في يومك؟ وش اللي تغير؟",
+        "You mentioned you feel heavy all the time, like your body is dragging even when you have slept. That physical heaviness is one of the ways depression shows up in the body. It is not laziness. It is a real physiological experience. What else have you noticed, in your thoughts, your interest in things, or the way you see what is ahead of you?",
+        "When you say you have lost interest in things you used to love, that is the anhedonia piece. The reward system in the brain quietens. You are not choosing to care less. The machinery that generates pleasure and motivation has slowed down. Which things have you noticed falling away first?"
+      ]
+    },
+    {
+      "step_id": "bridge_to_action",
+      "goal": "Offer a concrete next step appropriate to what the user has reflected on. Frame it as an invitation, not a prescription. Options include behavioral activation, a mood check-in, or encouraging professional evaluation if symptoms closely match clinical depression.",
+      "technique": "Psychoeducation-to-skill bridge with invitation",
+      "technique_description": "Based on what the user shared in the connect_to_experience step, name one or two next steps that address what is most relevant to them. If they described the behavioral withdrawal cycle and low energy, offer behavioral activation: small, meaningful activities to gently reverse the withdrawal. If they described anhedonia and flatness, offer a mood check-in to track patterns and notice variation. If their description closely matches moderate to severe depression lasting two or more weeks and affecting daily function, warmly and clearly encourage professional evaluation, framing it as the most important next step. Do not offer more than two options. Frame each as an invitation.",
+      "tone": "hopeful, grounded, collaborative, non-prescriptive, warm",
+      "contraindications": "Do NOT tell the user what they must do. Do NOT offer more than two options at once. Do NOT transition abruptly from the emotional space of the connect step. Do NOT frame any skill or action as a cure. Do NOT skip the invitation framing. Do NOT avoid naming professional evaluation when the description warrants it.",
+      "completion_criteria": "User has been offered at least one concrete next step and has responded in any way, whether they accept, decline, ask a question, or express uncertainty.",
+      "examples": [
+        "Based on what you described, the withdrawal and the flat days, there is something called behavioral activation that addresses exactly that cycle. The idea is not to force yourself to feel better, but to gently re-introduce small activities that used to carry meaning, even when motivation is not there yet. The research shows the action often comes before the feeling, not after. Would you like to explore what a very small first step might look like for you?",
+        "What you are describing sounds consistent with depression that has been affecting your daily life for some time. I want to be honest with you: the most important step right now is to speak to a doctor or a mental health professional. Not because what you are feeling cannot improve, but because you deserve proper support for what you are carrying. Would it be useful to talk about what that might look like, or what feels like a barrier to reaching out?",
+        "بناء على اللي شاركته، يبدو أن الانسحاب والتعب هم الأقوى. في شي اسمه التفعيل السلوكي، يعني نرجع نضيف خطوات صغيرة لأشياء كانت تعطيك شي، حتى لو الحين ما تحس بالرغبة. الأبحاث تقول إن الحركة تجي قبل الإحساس. تبي نشوف سوا وش يمكن يكون خطوة صغيرة؟",
+        "Given what you have described, a mood check-in might be a useful place to start. It is a short daily practice of naming where you are emotionally and noticing what shifts, even slightly. It does not fix anything on its own, but it builds awareness of the patterns, which is the foundation for everything else. Would you like to try one right now, just to see what it feels like?",
+        "You have described something that has been going on for weeks, affecting your energy, your interest in things, and how you see the days ahead. I want to gently say: what you are describing sounds like more than a difficult period. Talking to a professional, a doctor, a counsellor, or a psychologist, is not giving up or admitting defeat. It is the most practical thing you can do for yourself right now. How does that land with you?"
+      ]
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
+      "action": "validate_only",
+      "instruction": "The user is acutely distressed. Do not continue psychoeducation. Validate their experience fully and stay present. Do not deliver information when they are in a high-distress state. Return to normal step next turn only if distress has reduced.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance to the psychoeducation framing. Offer to pause and just talk, or explore whether a different approach might suit them better. Do not push the educational content.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "check_in_micro",
+      "instruction": "The user seems disengaged. Gently check in: is learning about depression feeling useful right now, or would something else be more helpful? Do not assume disengagement means refusal.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit with warmth and without persuasion. Even a partial conversation about depression can be valuable. Acknowledge the courage it takes to look at this.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": {
+        "signal": "active_suicidal_ideation_disclosed",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_to_crisis",
+      "instruction": "User has disclosed active suicidal ideation. Do NOT continue psychoeducation. Exit immediately to the crisis protocol. Validate that you hear them and that you want to make sure they are safe.",
+      "next_step_id": "crisis"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit skill gracefully if user requests to stop. No persuasion. Acknowledge that looking at what depression is takes courage.",
+    "L2": "Add clinician_review flag if user describes symptoms consistent with moderate to severe depression affecting daily function, or if they mention it has lasted longer than 2 weeks with no relief.",
+    "L3": "Exit immediately to crisis protocol if any crisis signal or suicidal ideation is detected during the session.",
+    "L4": "Trigger human handoff if 3 or more crises detected in the last 30 days, or if user explicitly requests a human clinician."
+  },
+  "cultural_overrides": {
+    "somatic_first": "Depression in Gulf culture is frequently somatized: users may present with 'I feel tired all the time', 'my body aches', 'I have no energy', or other physical complaints rather than naming depression or emotional flatness. Do not require the user to name it as depression or identify it as emotional in order to engage with the psychoeducation. Validate the physical and somatic presentation explicitly and link it to the biological framing of depression: the body carries what the mind is experiencing.",
+    "stigma_framing": "In Arabic Gulf contexts, depression may be seen as weakness or lack of faith (ضعف الايمان). Frame depression explicitly and warmly as a medical condition with neurological underpinnings, not a character or spiritual failing. Use the framing: the brain and body can be unwell just as any other organ. This is not a failure of will, faith, or strength. It is an illness that deserves care, not judgment.",
+    "gender_presentations": "Gulf men are particularly unlikely to identify or disclose emotional symptoms directly. Validate physical and motivational presentations (fatigue, loss of drive, withdrawal from social roles, low ambition) as valid depression presentations without requiring emotional language. Do not interpret the absence of emotional vocabulary as the absence of depression. Meet the user in the language they bring."
+  }
+}
