@@ -388,17 +388,21 @@ async def test_stressed_does_not_match_sleep_hygiene():
         "Vague 'stressed' must not activate sleep_hygiene or any other skill"
 
 @pytest.mark.asyncio
-async def test_overwhelmed_and_anxious_does_not_match_any_skill():
-    """RT-4b: 'overwhelmed and anxious' without sleep context must route to freeflow.
-    This was an actual false positive (score 0.5522 against sleep_hygiene pre-fix).
+async def test_overwhelmed_and_anxious_matches_dbt_tipp():
+    """RT-4b: 'overwhelmed and anxious' matches dbt_tipp via keyword 'overwhelmed'.
+    The original test guarded against a sleep_hygiene false positive (score 0.5522 pre-fix).
+    dbt_tipp was added post-fix with 'overwhelmed' as an explicit keyword trigger —
+    matching it here is correct behaviour.
     """
     state = make_state(
         message_en="I'm overwhelmed and anxious",
         primary_intent="new_skill",
     )
     result = await skill_select_node(state)
-    assert result["active_skill_id"] is None, \
-        "'overwhelmed and anxious' without sleep context must not activate any skill"
+    assert result["active_skill_id"] == "dbt_tipp", (
+        f"'overwhelmed' keyword must activate dbt_tipp; got: {result['active_skill_id']}"
+    )
+    assert result["skill_match_method"] == "keyword"
 
 @pytest.mark.asyncio
 async def test_insomnia_still_matches_sleep_hygiene():

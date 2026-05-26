@@ -2,7 +2,7 @@
 
 State construction is intentionally kept local to each test module so the full
 21-field SageState schema is visible at the call site. This file holds only
-pytest-level configuration and shared markers.
+pytest-level configuration and shared fixtures.
 
 Test module responsibilities:
 - test_nodes.py  — unit tests for individual nodes; uses local make_state()
@@ -15,6 +15,19 @@ import pytest
 from unittest.mock import MagicMock
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _warm_bge_m3_once():
+    """Pre-warm the shared BGE-M3 model exactly once per session.
+
+    BGE-M3 first load on 16GB M4 triggers ANE recompilation and takes >10s,
+    exceeding the asyncio.wait_for timeout in skill_select_node. Loading here
+    keeps the model resident for all subsequent @pytest.mark.slow tests.
+    """
+    import sage_poc.nodes.skill_select as ss
+    if ss._embed_model is None:
+        ss._ensure_semantic_ready()
+
+
 @pytest.fixture(autouse=True)
 def _stub_bge_m3(request):
     """Gate BGE-M3 loading per test.
@@ -22,8 +35,9 @@ def _stub_bge_m3(request):
     Non-slow tests: zero-vector stub so cosine similarity is always 0.0 (below
     threshold) — semantic tier never fires, no model loads, saves ~2.3 GB RAM.
 
-    @pytest.mark.slow tests: reset globals so _ensure_semantic_ready() loads the
-    real BAAI/bge-m3 model, which these tests require for semantic accuracy checks.
+    @pytest.mark.slow tests: preserve the session-warmed model; clear only the
+    embeddings matrix so _ensure_semantic_ready() re-indexes against the live
+    model without triggering a cold-start reload from disk.
 
     State is saved and restored around every test so tests cannot bleed into
     each other regardless of execution order.
@@ -35,8 +49,9 @@ def _stub_bge_m3(request):
     saved_ids = ss._semantic_skill_ids[:]
 
     if request.node.get_closest_marker("slow"):
-        # Reset so _ensure_semantic_ready() fires and loads the real model
-        ss._embed_model = None
+        # Clear embeddings so _ensure_semantic_ready() re-indexes, but keep
+        # _embed_model resident (pre-warmed by _warm_bge_m3_once) to avoid
+        # the cold-start ANE recompilation timeout.
         ss._semantic_embeddings = None
         ss._semantic_skill_ids = []
         yield

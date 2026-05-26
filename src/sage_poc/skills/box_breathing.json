@@ -139,6 +139,10 @@
     "L3": "Exit immediately to crisis protocol if any crisis signal detected during the exercise.",
     "L4": "Trigger human handoff if 3+ crises detected in last 30 days, or if user explicitly requests a human."
   },
-  "cultural_overrides": null,
+  "cultural_overrides": {
+    "halal_framing": "Box breathing is a physiological technique with no spiritual or religious content. It can be offered without qualification to Muslim users. If a user asks whether it conflicts with Islamic practice, the accurate answer is that it does not — it is simply regulated breathing that activates the parasympathetic nervous system, the same mechanism as the long exhalations in recited Quran.",
+    "prayer_compatibility": "If a user is preparing for salah or has just finished, the technique fits naturally: a brief, structured pause before or after prayer. Do not frame it as a substitute for prayer. Simply note that a few cycles of box breathing before prayer can help a user arrive with a calmer mind.",
+    "gender_neutral_delivery": "The technique requires no physical adjustments and is equally appropriate for men and women, including users wearing hijab or niqab. No modifications needed. Do not introduce gendered framing unless the user does."
+  },
   "cultural_note": "Box breathing is physiologically grounded and culturally neutral. No Gulf-specific adaptation required. Suitable for all demographics without modification."
 }

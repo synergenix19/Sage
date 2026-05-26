@@ -4,13 +4,14 @@
 # classifier) OR S3 (semantic crisis embeddings) OR S6 (clinical flag escalation).
 # Any layer catching a phrase is sufficient; the layers provide redundancy.
 #
-# CURRENT STATE: S1 only. S2 and S3 are not implemented.
-# Every safety gap is a lexicon gap with no fallback. Phrases not in
-# passive_si_patterns.json or crisis_keywords.json will be missed entirely.
+# CURRENT STATE: S1 (lexicon) + S3 (BGE-M3 semantic). S2 (MARBERT classifier) not implemented.
+# S3 was added in V7 Door 1.5 (2026-05-26). OR-fusion: either layer catching → crisis protocol.
+# Phrases not caught by S1 keywords AND scoring < S3_THRESHOLD (0.8059) will be missed.
 #
-# IMPLICATION: The whack-a-mole problem. Lexicon expansion (e.g. SK-EN-002 v1.1.0,
-# 2026-05-26) catches phrases we thought of. MARBERT and semantic search catch
-# phrases we didn't. Until S2/S3 exist, coverage is bounded by human enumeration.
+# IMPLICATION: S3 extends coverage beyond enumerable keywords to semantic neighbours of
+# the 48-phrase crisis corpus. Short hopelessness phrases (e.g. "no future for me")
+# are covered by SK-EN-002 keyword expansion. Remaining gap: novel phrasing not
+# semantically close to the existing corpus — add to crisis_phrases.json and re-calibrate.
 #
 # NEXT STEPS (priority order before feature expansion):
 #   S2: off-the-shelf MARBERT binary classifier (crisis/not-crisis) — no fine-tuning

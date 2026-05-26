@@ -31,23 +31,25 @@ _init_lock = threading.Lock()
 
 
 def _ensure_semantic_ready() -> None:
-    """Load BGE-M3 and embed all skill descriptions. No-op after first call."""
+    """Load BGE-M3 and embed all skill descriptions. No-op when both model and embeddings are ready."""
     global _embed_model, _semantic_skill_ids, _semantic_embeddings
-    if _embed_model is not None:
+    if _embed_model is not None and _semantic_embeddings is not None:
         return
     with _init_lock:
-        if _embed_model is not None:  # re-check under lock: another thread may have loaded first
+        if _embed_model is not None and _semantic_embeddings is not None:
             return
-        from sentence_transformers import SentenceTransformer
-        _REVISION = "5617a9f61b028005a4858fdac845db406aefb181"
-        try:
-            model = SentenceTransformer(
-                "BAAI/bge-m3",
-                local_files_only=True,
-                revision=_REVISION,
-            )
-        except (OSError, EnvironmentError):
-            model = SentenceTransformer("BAAI/bge-m3", revision=_REVISION)
+        model = _embed_model  # reuse resident model if available (avoids ANE recompilation)
+        if model is None:
+            from sentence_transformers import SentenceTransformer
+            _REVISION = "5617a9f61b028005a4858fdac845db406aefb181"
+            try:
+                model = SentenceTransformer(
+                    "BAAI/bge-m3",
+                    local_files_only=True,
+                    revision=_REVISION,
+                )
+            except (OSError, EnvironmentError):
+                model = SentenceTransformer("BAAI/bge-m3", revision=_REVISION)
         ids, texts = [], []
         for sid, skill in _SKILLS.items():
             if skill.semantic_description:
