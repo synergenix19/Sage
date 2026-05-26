@@ -51,7 +51,7 @@ def test_route_after_safety(is_safe, expected_route):
 
     # High-confidence normal routing
     ("general_chat",       0.9,  None,                "freeflow"),
-    ("info_request",       0.8,  None,                "freeflow"),
+    ("info_request",       0.8,  None,                "skill_select"),
     ("new_skill",          0.8,  None,                "skill_select"),
     ("skill_continuation", 0.85, "cbt_thought_record", "skill_executor"),
 

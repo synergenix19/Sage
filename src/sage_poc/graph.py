@@ -98,7 +98,7 @@ def _route_after_intent(state: SageState) -> str:
         return "low_confidence"
     if intent == "exit_skill":
         return "skill_executor" if state.get("active_skill_id") else "freeflow"
-    if intent == "new_skill":
+    if intent in ("new_skill", "info_request"):
         return "skill_select"
     if intent == "skill_continuation" and state.get("active_skill_id"):
         return "skill_executor"
