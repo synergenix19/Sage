@@ -42,3 +42,77 @@ def test_rewriter_passthrough_for_english():
     from sage_poc.knowledge.rewriter import normalize_arabic_query
     result = normalize_arabic_query("what is CBT?")
     assert result == "what is CBT?"
+
+
+@pytest.mark.asyncio
+async def test_postgres_repo_returns_passages_on_match():
+    """Hybrid search returns KnowledgeResult with passages when rows are found."""
+    from sage_poc.knowledge.postgres_repository import PostgresKnowledgeRepository
+    from sage_poc.knowledge.models import KnowledgePassage
+
+    fake_row = {
+        "article_id": "cbt-001-en",
+        "chunk_text": "CBT is an evidence-based therapy.",
+        "citation_metadata": {"citation": "Beck (1979)"},
+        "rrf_score": 0.042,
+    }
+
+    mock_conn = AsyncMock()
+    mock_conn.fetch = AsyncMock(return_value=[fake_row])
+    mock_pool = MagicMock()
+    mock_pool.acquire = MagicMock(return_value=AsyncMock(
+        __aenter__=AsyncMock(return_value=mock_conn),
+        __aexit__=AsyncMock(return_value=None),
+    ))
+
+    with patch("sage_poc.knowledge.postgres_repository._get_embedding", return_value=[0.1] * 1024):
+        repo = PostgresKnowledgeRepository(mock_pool)
+        result = await repo.retrieve("what is CBT", language="en", top_k=5)
+
+    assert not result.abstain
+    assert len(result.passages) == 1
+    assert result.passages[0].source_id == "cbt-001-en"
+    assert result.passages[0].citation == "Beck (1979)"
+
+
+@pytest.mark.asyncio
+async def test_postgres_repo_abstains_when_no_rows():
+    """Returns abstain=True when no rows are returned."""
+    from sage_poc.knowledge.postgres_repository import PostgresKnowledgeRepository
+
+    mock_conn = AsyncMock()
+    mock_conn.fetch = AsyncMock(return_value=[])
+    mock_pool = MagicMock()
+    mock_pool.acquire = MagicMock(return_value=AsyncMock(
+        __aenter__=AsyncMock(return_value=mock_conn),
+        __aexit__=AsyncMock(return_value=None),
+    ))
+
+    with patch("sage_poc.knowledge.postgres_repository._get_embedding", return_value=[0.1] * 1024):
+        repo = PostgresKnowledgeRepository(mock_pool)
+        result = await repo.retrieve("completely unrelated query xyz", language="en")
+
+    assert result.abstain is True
+    assert result.passages == []
+
+
+@pytest.mark.asyncio
+async def test_postgres_repo_filters_by_language():
+    """Language filter is passed to DB query."""
+    from sage_poc.knowledge.postgres_repository import PostgresKnowledgeRepository
+
+    mock_conn = AsyncMock()
+    mock_conn.fetch = AsyncMock(return_value=[])
+    mock_pool = MagicMock()
+    mock_pool.acquire = MagicMock(return_value=AsyncMock(
+        __aenter__=AsyncMock(return_value=mock_conn),
+        __aexit__=AsyncMock(return_value=None),
+    ))
+
+    with patch("sage_poc.knowledge.postgres_repository._get_embedding", return_value=[0.1] * 1024):
+        repo = PostgresKnowledgeRepository(mock_pool)
+        await repo.retrieve("ما هو العلاج المعرفي", language="ar")
+
+    call_args = mock_conn.fetch.call_args
+    # The SQL query or its arguments must include the language filter value "ar"
+    assert any("ar" in str(a) for a in call_args.args + tuple(call_args.kwargs.values()))
