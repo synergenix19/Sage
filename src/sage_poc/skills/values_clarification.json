@@ -1,0 +1,152 @@
+{
+  "skill_id": "values_clarification",
+  "skill_name": "ACT Values Clarification",
+  "skill_type": "structured",
+  "self_evolution": "manual_only",
+  "evidence_base": "Hayes, Strosahl & Wilson (1999) Acceptance and Commitment Therapy; Wilson & Murrell (2004) values work in ACT; Russ Harris (2009) The Happiness Trap",
+  "target_presentations": [
+    "what do I value",
+    "values clarification",
+    "what matters to me",
+    "living by my values",
+    "I feel lost in life",
+    "I don't know what I want",
+    "finding meaning",
+    "life direction",
+    "ACT values",
+    "committed action",
+    "شو اللي يهمني",
+    "ما أدري وش أبي بحياتي",
+    "ما أحس بمعنى",
+    "قيمي وش هي",
+    "أبي أعيش بطريقتي",
+    "ما أعرف وين رايح",
+    "حياتي مو حياتي",
+    "اللي يهمني في الحياة"
+  ],
+  "semantic_description": "ACT values clarification protocol. Values identification and committed action technique from Acceptance and Commitment Therapy. Identify what matters most. Discover personal values. Values exploration. What do I value. What matters to me. Living by my values. Values-based committed action. Life direction and meaning. ACT values work. Wilson and Murrell values inventory approach. What kind of person do I want to be. What are my core values. Values clarification exercise. Committed action planning. Values versus rules. Values versus goals. Intrinsic motivation. Life areas values work: relationships, work, health, community, faith. Hayes Strosahl Wilson ACT framework. The Happiness Trap values identification. Psychological flexibility and values. Committed action toward a valued life. Defusion from unhelpful rules. Values as chosen life directions. Naming your compass. Life domains values exploration. Russ Harris values exercise. Vital living. What kind of partner, parent, friend, or professional do I want to be. Values-based behavioral activation. Inner compass work. Meaning-making through values. ACT life values inventory.",
+  "steps": [
+    {
+      "step_id": "identify_values",
+      "goal": "Help the user discover what genuinely matters to them through open-ended reflective questions. This step is exploratory only, not prescriptive. Do not offer a list of values to choose from.",
+      "technique": "ACT open-question values elicitation",
+      "technique_description": "Use open, curious questions drawn from ACT values work to help the user surface what matters most to them. Questions should invite reflection on lived experience, not abstraction. The funeral question, the life-story question, the moments-of-aliveness question, and the legacy question are all appropriate here. Examples use Gulf context: family role, contribution to community, faith expression, service to others. Do not suggest values. Do not offer a checklist or menu of options. Wait for the user to find their own words. One question at a time.",
+      "tone": "warm, curious, unhurried, non-directive",
+      "contraindications": "Do NOT offer a list of values for the user to pick from. Do NOT suggest that their values should be individual or self-focused. Do NOT rush through to committed action. Do NOT frame values as goals or achievements. Do NOT use the word 'values' exclusively, as it may feel abstract or foreign to some users. If the user says 'I do not know', normalize this and offer a different angle question rather than repeating.",
+      "completion_criteria": "The user has named or pointed toward at least one thing that matters to them, whether concrete (family, faith, honesty, work) or direction-like (being present, contributing, being trusted). A vague answer like 'I just want to feel okay' is not sufficient. Offer one more angle question if needed.",
+      "examples": [
+        "Imagine looking back on your life from the very end of it. What would you most want to have stood for? What would you hope the people who know you best would say about the kind of person you were?",
+        "Think of a moment in your life when you felt most alive, most like yourself. It does not have to be a big moment. What was happening? What made it feel real?",
+        "If nothing in your life could get in the way, no pressure, no fear, no one else's expectations, what would you want your days to be about? What kind of person would you be showing up as?",
+        "فكر في اللحظات اللي حسيت فيها إنك عايش فعلاً، مو بس ماشي في حياتك. وش كان يصير؟ وش كان مهم في تلك اللحظة؟",
+        "لو الناس اللي تحبهم، عيلتك وأقرب الناس لك، كانوا يتكلمون عنك بعد سنين، وش تتمنى يقولون عنك؟ مو عن نجاحاتك، عن إنت وش نوع الشخص اللي كنت.",
+        "في حياتك كلها، وش هو الشي اللي لو ما سويته تحس إنك ما عشت صح؟"
+      ]
+    },
+    {
+      "step_id": "rank_and_explore",
+      "goal": "Explore the relative importance of the values the user named. Help them distinguish between values that feel truly their own versus values that may come from others' expectations. Use gentle, culturally sensitive questioning.",
+      "technique": "ACT values depth exploration and ownership inquiry",
+      "technique_description": "Build on the values named in step one. Explore their relative weight and their origin. Are these values the user's own, or inherited from family, culture, or religion without reflection? Both are valid, including collective and faith-based values, but the distinction matters for committed action. Use the life-story question or the funeral question gently to help the user feel the difference between a value they truly live by and one they feel they should live by. If the user named several values, invite them to sense which one feels most core, without forcing a ranking. Do not create a numbered list. Use language like 'which of these feels closest to the centre of who you are'. In Gulf context: family and faith values may be deeply owned as well as culturally reinforced. Do not treat them as suspect. Hold both respectfully.",
+      "tone": "curious, gentle, non-judgmental, spacious",
+      "contraindications": "Do NOT frame the question as which values are right or wrong. Do NOT position individual values as superior to collective ones. Do NOT push the user to reject family or cultural values. Do NOT ask 'are these really your values or someone else's?' directly, as this can feel confrontational. Frame it as exploring the felt sense of ownership rather than a test of authenticity. If the user reveals a deep conflict between their values and their family's expectations, move to the step_policy rule immediately.",
+      "completion_criteria": "The user has identified at least one value that feels most central or most owned, even tentatively. They have reflected on whether it feels genuinely theirs or partly from external pressure. A response like 'I think being a good father is the thing that matters most to me, not just something I am supposed to do' is sufficient completion.",
+      "examples": [
+        "Of everything you mentioned, which one do you feel most in your chest when you think about it? Not the one you think you should value most, the one that when you imagine not living by it, you feel the loss.",
+        "Sometimes the values we hold most deeply are ones we chose, and sometimes they are ones we inherited. Both can be genuinely ours. Which of these feels like something you would choose even if no one was watching?",
+        "You mentioned family being central. I want to sit with that for a moment. When you imagine what being a good family member means to you, what comes up? Not what the role demands, but what it means when it feels most true to who you are.",
+        "اللي ذكرته عن الأهل والمسؤولية، هل تحس إنه شي اخترته لأنه يجيك من داخلك، ولا تحس إنه شي مفروض عليك من الحياة؟ ما فيه جواب صح أو غلط، بس حاول تحس وين الفرق.",
+        "بين كل القيم اللي تكلمنا عنها، وش هو الشي اللي لو عشت خلافه تحس فيك شي ينكسر؟ ذاك هو اللي يهمني نفهمه.",
+        "في ثقافتنا كثير من القيم تجي من الدين والعيلة، وهذا ليس ضعفاً بل قوة. لكن أحياناً نحتاج نسأل نفسنا: هذه القيمة أنا اخترتها أم بس ورثتها؟ وش تحس لما تسأل نفسك هذا السؤال؟"
+      ]
+    },
+    {
+      "step_id": "committed_action",
+      "goal": "Bridge from the values identified to one concrete, small, achievable action this week that is aligned with a named value. Not a life plan, one specific step. Keep it behavioral and feasible within the user's actual life context.",
+      "technique": "ACT committed action planning",
+      "technique_description": "Take the value or values the user identified and help them name one specific behavioral action they can take this week that moves toward that value, even a small one. The action must be concrete (not 'be more present', but 'put my phone away during dinner for the next three evenings'). It must be feasible within the user's actual circumstances, not an idealized version of their life. For users with constrained autonomy (due to family context, gender role, or circumstances), the action should work within realistic constraints. For collective values (family, community, faith), the action can be relational or contributory rather than individually expressive. Do not propose the action yourself. Ask the user to generate it, then help them make it more specific if it is vague. One action only. Do not generate a list.",
+      "tone": "grounded, collaborative, hopeful, concrete",
+      "contraindications": "Do NOT suggest that the action must be a major life change. Do NOT propose actions that assume full personal autonomy. Do NOT offer more than one action at a time. Do NOT skip asking the user to generate the action themselves. Do NOT frame committed action as goal-setting or achievement. The distinction in ACT: goals are outcomes (milestones you reach), committed actions are directions (the kind of person you are being in this moment). Frame it as a direction, not a destination.",
+      "completion_criteria": "The user has named one specific behavioral action they are willing to try this week, linked to a named value. The action is concrete enough to be done or not done. 'I will call my mother on Thursday evening' is complete. 'I will try to be a better son' is not. If the user offers the vague version, help them make it specific with one follow-up question.",
+      "examples": [
+        "Given what you said about honesty being central to who you want to be, what is one moment this week where you could show up that way? It does not have to be big. It just has to be real.",
+        "You said being present for your children is the thing that matters most right now. What would that look like in the smallest possible version, something you could actually do this week without rearranging your whole life?",
+        "This value you named, being someone your community can count on, what is one thing you could do in the next seven days that moves toward that, even a small thing?",
+        "اللي قلته عن إنك تبي تكون أب يكون موجود فعلاً مو بس جسمياً، وش تقدر تسوي هالأسبوع يكون خطوة صغيرة بس حقيقية في هذا الاتجاه؟",
+        "قلت إن خدمة الناس اللي حواليك يهمك. في حياتك الحالية، بكل ضغوطها، وش شي واحد ممكن تسويه هالأسبوع يقربك من هذا القيمة؟ حتى لو بسيط.",
+        "الخطوة ما لازم تكون كبيرة. في ACT نسميها committed action، يعني خطوة صغيرة في اتجاه اللي يهمك. وش هي خطوتك الأسبوع هذا؟"
+      ]
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
+      "action": "validate_only",
+      "instruction": "The user is acutely distressed. Do not continue values clarification work. Validate their experience fully and stay present. Values work requires psychological safety. Return to normal step next turn only if distress has reduced.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance to values clarification. Some people find the questions too abstract or too exposing at this point. Offer to pause and just talk, or explore whether a different approach might suit them better right now. Do not push the values work.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "check_in_micro",
+      "instruction": "The user seems disengaged. Gently check in: is this kind of reflection feeling useful right now, or would something else be more helpful? Do not assume disengagement means refusal. It may mean the questions need reframing.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit with warmth and without persuasion. Even beginning to name what matters is meaningful work. Acknowledge any values they surfaced, however partial.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": {
+        "signal": "family_values_conflict_detected",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "hold_and_validate",
+      "instruction": "The user is disclosing a value conflict with family. Do NOT push toward autonomous action immediately. Validate the pain of this conflict. In Gulf family contexts, value conflicts with family are complex and can carry real consequences. Hold this tension without resolving it, and gently explore whether there are any areas of alignment to start from before committed action is possible.",
+      "next_step_id": "current"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit skill gracefully if user requests to stop. No persuasion. Acknowledge that beginning to name what matters is already meaningful.",
+    "L2": "Add clinician_review flag if values clarification reveals a profound sense of meaninglessness or hopelessness about the future, not just confusion or uncertainty, but despair about whether life can hold anything worth living for.",
+    "L3": "Exit immediately to crisis protocol if any crisis signal is detected during the session.",
+    "L4": "Trigger human handoff if 3 or more crises detected in the last 30 days, or if user explicitly requests a human clinician."
+  },
+  "cultural_overrides": {
+    "collective_values_framing": "In Gulf culture, many values are collective rather than individual: family honor, community contribution, faith expression, filial duty. Do NOT frame values clarification as individual self-discovery in opposition to family or community. The ACT framework is fully compatible with collective values. Committed action can be toward fulfilling a family role, contributing to the community, or deepening faith practice. These are genuine values, not obstacles to values work.",
+    "arabic_language_for_values": "Gulf Arabic has no single word that maps cleanly onto 'values' in the ACT sense. Use qiyam (قيم) as the primary term, but also offer awlawiyyat (أولويات, priorities), mabadi (مبادئ, principles), and the natural phrase ma yuhimmuni (ما يهمني, what matters to me) as culturally resonant alternatives. The phrase 'ما يهمني' is often more accessible and emotionally real than the more abstract 'قيمي'.",
+    "gender_and_autonomy": "Women in Gulf contexts may have constrained ability to act on individually identified values due to family structure, social expectations, or practical circumstances. Do NOT push committed action that assumes full personal autonomy. Explore what committed action is feasible within the user's actual life context. An action within a constrained life is not lesser. A small expression of a value, even within constraint, is still committed action. Meet the user in their real world, not an idealized one.",
+    "faith_and_values": "For many Gulf users, faith (iman, taqwa) is not separate from values but the foundation of them. If the user frames their values in Islamic terms, hold this respectfully and work within that frame. Committed action toward faith expression (prayer, charity, family duty, truthfulness) is entirely consonant with ACT values work. Do not secularize the conversation if the user brings a religious frame."
+  }
+}

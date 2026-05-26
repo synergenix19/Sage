@@ -83,6 +83,10 @@ KNOWN_HITS = [
     # Psychoeducation — stress (no 'stress' keyword, no technique name)
     ("I feel like I am constantly running on empty and my body is always on edge", "psychoed_stress"),
     ("I cannot switch off, I am always braced for the next thing to go wrong", "psychoed_stress"),
+
+    # Values clarification (no 'values' or 'ACT' keyword)
+    ("I feel like I am living someone else's life and not my own", "values_clarification"),
+    ("I do not know what actually matters to me anymore or what direction to go in", "values_clarification"),
 ]
 
 # Messages that should NOT match any skill

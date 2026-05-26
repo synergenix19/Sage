@@ -15,4 +15,5 @@ SKILL_REGISTRY = [
     "psychoed_anxiety",
     "psychoed_depression",
     "psychoed_stress",
+    "values_clarification",
 ]
