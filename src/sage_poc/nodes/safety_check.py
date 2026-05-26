@@ -21,10 +21,12 @@
 #   Reference: CRISP-DM plan, Experiment 4.2 (Week N).
 
 import re
+import asyncio
 from sage_poc.state import SageState
 from sage_poc.language import detect_language, translate_to_english
 from sage_poc.rules import engine as rules_engine
 from sage_poc.nodes.post_crisis_classifier import evaluate_s7
+from sage_poc.safety.s3_semantic import check_s3, S3_THRESHOLD
 
 _HAS_ARABIC_RE = re.compile(r'[؀-ۿ]')
 _HAS_LATIN_RE = re.compile(r'[A-Za-z]')
@@ -104,6 +106,25 @@ async def safety_check_node(state: SageState) -> dict:
     # Third-party crisis overrides direct crisis — more specific pattern wins
     if third_party_flags:
         new_crisis_flags = []
+
+    # S3: semantic crisis detection — OR-fusion with S1
+    # Fail-open: exceptions and timeouts → score 0.0, no crash, S1 result stands.
+    # TODO: Run S3 on both message_en and raw Arabic text for bilingual coverage. Currently EN-only.
+    try:
+        s3_score = await asyncio.wait_for(
+            asyncio.to_thread(check_s3, message_en),
+            timeout=5.0,
+        )
+        if s3_score >= S3_THRESHOLD:
+            s3_suppressed = any(
+                a.get("type") == "crisis_suppress" for a in safety_result.actions
+            )
+            if not s3_suppressed and "s3_semantic" not in new_crisis_flags:
+                new_crisis_flags.append("s3_semantic")
+    except asyncio.TimeoutError:
+        pass
+    except Exception:
+        pass
 
     trajectory, escalating = _update_distress_trajectory(state)
     engagement_trajectory, engagement_declining = _update_engagement_trajectory(state)
