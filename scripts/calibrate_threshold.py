@@ -95,6 +95,10 @@ KNOWN_HITS = [
     # Self-compassion break (no 'self-compassion' or 'Neff' keyword)
     ("I would never speak to a friend the way I speak to myself, the inner critic is so loud", "self_compassion_break"),
     ("I feel like I am not allowed to be kind to myself until I fix everything that is wrong", "self_compassion_break"),
+
+    # Mindfulness body scan (no 'mindfulness' or 'body scan' keyword)
+    ("my thoughts race constantly and I cannot get out of my head and into my body", "mindfulness_body_scan"),
+    ("I feel completely disconnected from my physical self, like I am just a floating head", "mindfulness_body_scan"),
 ]
 
 # Messages that should NOT match any skill

@@ -1,0 +1,168 @@
+{
+  "skill_id": "mindfulness_body_scan",
+  "skill_name": "Mindfulness Body Scan",
+  "skill_type": "structured",
+  "evidence_base": "Kabat-Zinn (1990) Full Catastrophe Living; Williams, Teasdale, Segal and Kabat-Zinn (2007) The Mindful Way through Depression; Ong et al. (2014) mindfulness-based therapy for insomnia; MBSR and MBCT clinical protocols",
+  "self_evolution": "manual_only",
+  "target_presentations": [
+    "body scan",
+    "mindfulness body scan",
+    "feel my body",
+    "feel grounded",
+    "body awareness",
+    "can't stop thinking",
+    "get out of my head",
+    "disconnected from body",
+    "guide me through body scan",
+    "مسح الجسم",
+    "وعي الجسم",
+    "ما أحس بجسمي",
+    "أبي أتوازن",
+    "ما أقدر أوقف تفكيري",
+    "اشعر بجسمي",
+    "تأمل الجسم",
+    "ركز معي على جسمك"
+  ],
+  "semantic_description": "Mindfulness body scan protocol. Progressive body awareness technique from MBSR Mindfulness-Based Stress Reduction. Kabat-Zinn body scan. Anchoring attention in physical sensation. Progressive attention sweep from feet to face. Somatic grounding through body awareness. Body scan meditation. MBCT body scan exercise. Body region by region attention practice. Bottom-up body awareness technique. Feet, legs, torso, shoulders, face, progressive sensation focus. Kinesthetic awareness training. Interoceptive awareness practice. Guided body scan. Sweeping body attention upward. Body region noticing. Physical sensation anchoring. Floor contact and weight awareness. Ong mindfulness-based insomnia protocol. Feeling weight. Feeling warmth. Feeling breath in the belly. Present moment somatic experience.",
+  "steps": [
+    {
+      "step_id": "lower_body",
+      "goal": "Direct attention to the feet and legs. Invite noticing without judgment, whatever is actually present: warmth, contact with the floor, weight, tingling, pressure. Do not instruct the user what they should feel; invite them to notice what is actually there.",
+      "technique": "Anchored attention to lower body, non-directive sensation noticing",
+      "technique_description": "Guide the user to bring their full attention to their feet and legs, beginning the bottom-up sweep. The instruction is always to notice, not to feel a particular sensation. The aim is to gently land attention in the body without agenda. Use language that acknowledges variation: some people notice warmth, some notice pressure, some notice nothing at all, and all of these are fine. The point is to look, not to find something specific. If the user is sitting, invite them to notice the contact of their feet with the floor. If lying down, the contact of their heels with the surface. Do not rush. Give the noticing space.",
+      "tone": "slow, quiet, unhurried, non-directive",
+      "contraindications": "Do NOT tell the user what they should be feeling. Do NOT interpret sensations for them before they report anything. Do NOT skip the lower body, even if the user seems impatient. The sequential sweep is the technique. If the user reports dissociation, dizziness, or distressing detachment at any point, stop the scan immediately and orient them to the room.",
+      "completion_criteria": "User has brought attention to the lower body and reported something, even if only 'I don't notice anything' or 'just heaviness'. Any honest noticing, however brief, is sufficient to move on.",
+      "examples": [
+        "Let us start at the very bottom. Bring your attention down to your feet, wherever they are right now. You do not need to move them. Just notice: what is actually there? Is there warmth? Pressure from the floor? Tingling? Or maybe nothing in particular. Whatever is there, just observe it. We are just looking, not trying to feel any particular thing.",
+        "We'll begin with your feet and legs. Bring your attention there, not to change anything, just to notice. Feel the contact of your feet with the floor or the ground beneath you. Notice the weight of your legs. What do you actually find when you pay attention there?",
+        "Start by letting your attention settle into your feet. Notice the floor beneath them, the weight, any temperature. Then slowly let your awareness move up your legs, the calves, the knees, the thighs. Not looking for anything specific, just noticing what is actually present.",
+        "خلنا نبدأ من تحت. وجه انتباهك لقدميك الحين. ما تحتاج تحرك شي. بس لاحظ: وش موجود هناك؟ في دفا؟ ثقل؟ ضغط من الأرض؟ أو ما في شي واضح. كل شي مقبول. بس لاحظ وش هناك فعلاً.",
+        "اترك انتباهك ينزل شوي شوي لساقيك. لاحظ لمس الأرض تحت قدميك. ثقل الساقين. أي إحساس موجود، دفا أو برودة أو ضغط. ما نحتاج نحس بشي معين، بس نشوف وش هناك.",
+        "Bring your awareness to your legs now. Notice where they make contact with the seat or the floor. Notice the temperature, the weight, any tingling or pressure. You are just taking a slow look at what is actually there."
+      ]
+    },
+    {
+      "step_id": "torso",
+      "goal": "Move attention to the torso, the belly, centre of the body, and back. Notice the breath happening naturally here. Notice any tension, tightness, or ease. Just observe.",
+      "technique": "Attentional sweep to torso, breath and tension awareness",
+      "technique_description": "Guide the user to bring attention upward into the core of the body. The torso holds the breath, and this step gives the user a chance to notice respiration happening on its own, without any instruction to change it. Also invite noticing of any held tension, tightness in the stomach, or holding in the back. The tone here should begin to slow further: the torso is where most people carry held stress, and noticing it is often the first moment of real presence in the body. Do not instruct relaxation. Do not tell the user to breathe differently. Simply invite them to notice what is already happening. If they notice something unexpected (pain, tightness, emotion), acknowledge it gently and stay with the noticing rather than moving past it.",
+      "tone": "slow, quieting, gently curious",
+      "contraindications": "Do NOT instruct the user to breathe in any particular way. The body scan does not modify the breath, it notices it. Do NOT skip this step if the user seems disengaged, this step often surfaces the first real body connection. Do NOT interpret tension as indicating a problem. Just invite noticing. If the user reports dissociation, dizziness, or distressing detachment, stop immediately and ground them.",
+      "completion_criteria": "User has turned attention to the torso area and noticed something, even briefly. A simple 'yes, I notice my belly rising and falling' or 'there is some tightness there' is sufficient.",
+      "examples": [
+        "Now let your attention move up slowly into your torso, your belly and the centre of your body. Notice the breath happening here, naturally, on its own. You are not being asked to change it, just to notice it. The belly rising and falling. And as you look around this area, what else do you notice? Any tightness? Any ease? Any holding?",
+        "Bring your awareness up to the centre of your body now. The belly, the back, the whole trunk. Notice your breath first, it is happening here without any effort from you. Then notice the quality of this area. Is it tight? Spacious? Held somewhere? Just observe.",
+        "Let your attention travel upward to your torso. Notice the movement of breath in the belly, rising on the inhale, falling on the exhale. Then look a little wider: what is the quality of this whole area right now? Any tension you are carrying? Any places that feel more at ease?",
+        "الحين، خلي انتباهك يصعد لبطنك ووسط جسمك. لاحظ التنفس يصير هناك من تلقاء نفسه، من غير ما تغير شي. ما نطلب منك تتنفس بطريقة معينة، بس لاحظه. وبعدين شوف: في توتر؟ في شد؟ أو في راحة؟",
+        "وجه انتباهك لوسط جسمك الحين، البطن والظهر. لاحظ التنفس أولاً، كيف يصعد ينزل لحاله. وبعدين لاحظ المنطقة كلها: وش تحس فيها؟ شد؟ راحة؟ في شي مسكته من غير ما تدري؟",
+        "Shift your attention now to your belly and back, the whole centre of your body. Notice the breath moving through here without any effort. And then look gently around the area: what do you actually find? Any tightness, any holding, or any ease?"
+      ]
+    },
+    {
+      "step_id": "upper_body",
+      "goal": "Move attention to the shoulders, arms, hands, and neck. These areas hold stress. Invite softening without forcing it. Notice the weight of the shoulders, the temperature of the hands.",
+      "technique": "Attentional sweep to upper body, stress-holding areas, optional softening invitation",
+      "technique_description": "Guide the user to bring attention upward through the upper body. The shoulders and neck are the most common sites of chronic stress-holding, and most users will notice something here. The instruction to soften is an invitation, not a command: 'if your shoulders want to soften, let them, but do not force it.' This is an important distinction. The body scan does not impose relaxation, it creates the conditions for the body to release what is ready to release. The temperature of the hands is a specific sensory anchor that is reliably noticeable and grounds attention in the present physical moment. Invite it as a gentle curiosity: 'what temperature are your hands right now?' This grounds abstract awareness in a specific sensory fact.",
+      "tone": "warm, gentle, slightly slower",
+      "contraindications": "Do NOT tell the user their shoulders should be relaxed. Do NOT make the softening instruction a command. Resistance to softening is information, not failure. Do NOT rush past this step: the upper body often requires more time because of the density of held tension. If the user reports dissociation, dizziness, or distressing detachment, stop immediately and ground them in the room.",
+      "completion_criteria": "User has brought attention to the upper body and noticed something in at least one area: shoulders, arms, hands, or neck. Even brief noticing is sufficient.",
+      "examples": [
+        "Now let your attention move up through your shoulders, arms, and hands. These areas tend to carry a lot. What do you notice in your shoulders right now? Any weight there, any holding? And if they want to soften, just a little, let them. Not forcing anything, just allowing. And then notice your hands: what temperature are they?",
+        "Bring your awareness to your shoulders now. Just notice the weight of them, whatever is there. No need to change anything. If there is tension and it wants to release, let it. And then move your attention down through your arms to your hands. Notice the temperature of your hands, the contact of your palms or fingers. What do you find?",
+        "Let your attention travel to your shoulders and neck. These often carry the weight of the day. Just notice what is there, not to fix it, just to see it clearly. And then let your awareness drift down your arms to your hands. The temperature, the texture of contact. What do you actually notice?",
+        "الحين وجه انتباهك لكتفيك وذراعيك وإيديك. هذي المناطق كثير تشيل توتراً. وش تلاحظ في كتفيك الحين؟ في ثقل؟ في شد؟ ولو أرادت تسترخي شوي، خليها. ما نجبر شي. وبعدين شوف إيديك: وش درجة حرارتهم الحين؟",
+        "خلي انتباهك يصعد لكتفيك ورقبتك. بس لاحظ الثقل الموجود هناك، بدون ما تحاول تغيره. ولو في توتر وحاب يروح، خله يروح. وبعدين نزل انتباهك لذراعيك وإيديك. لاحظ الدفا أو البرودة فيهم. وش تحس؟",
+        "Shift your attention to your shoulders and arms now. These hold so much. Just notice what is there, the weight, any tightening, any ease. If you feel your shoulders wanting to drop just a little, let them. And then bring your attention all the way to your hands. What temperature are they right now?"
+      ]
+    },
+    {
+      "step_id": "face_and_close",
+      "goal": "Bring attention to the face and head, the jaw, around the eyes, the forehead. These hold a great deal of tension. Then widen awareness to the whole body as a single felt experience. Close with a gentle return to the room.",
+      "technique": "Final sweep to face and head, whole-body integration, gentle close",
+      "technique_description": "Guide the user through the final region of the body scan. The face, particularly the jaw, eyes, and forehead, carries concentrated tension and is often the last place people think to attend to. The jaw especially: many people clench without awareness. An invitation to let the jaw hang slightly heavier can produce an immediate release. After the face, the final instruction is to widen awareness to take in the whole body as a single present-moment experience, not the sum of its parts but a unified felt sense. Then gently return the user to the room: eyes opening if they were closed, awareness of where they are sitting. The close should be warm and unhurried. Ask them what they notice now compared to before. This check-in is important for both the user and for routing: if they report feeling worse, more dissociated, or more distressed, flag for clinical follow-up.",
+      "tone": "very slow, warm, integrative, closing",
+      "contraindications": "Do NOT end abruptly. The whole-body integration and room return are essential parts of the protocol. Do NOT skip the closing check-in. If the user reports dizziness, depersonalization, or distressing detachment at this stage, ground them immediately: eyes open, feet on the floor, name five things they can see. Do NOT restart the scan after a dissociative response.",
+      "completion_criteria": "User has attended to the face and head, widened awareness to the whole body, and been gently returned to the room. A brief closing check-in on how they feel now has been offered.",
+      "examples": [
+        "Now bring your attention all the way up to your face. The jaw first: is it clenched at all? Let it hang just a little heavier if it wants to. Then the area around your eyes, and your forehead. Just notice what is there. And then, slowly, widen your awareness to take in your whole body at once, from feet to face, as a single experience. Not the parts, but the whole. Stay here for a moment. Then, when you are ready, let your eyes open gently and come back to the room. What do you notice now, compared to when we began?",
+        "Let your attention arrive at your face and head. The jaw, the eyes, the forehead. These areas hold so much tension without us realising. Just notice what is there. Let the jaw be heavy if it wants to. And then slowly let your awareness widen until it holds your whole body as one thing, a single felt sense. Sit with that for a moment. Then gently return to the room. How do you feel right now?",
+        "Last stop: your face and head. Notice your jaw, let it drop just slightly if it wants to. Notice around the eyes, and the forehead. And then let your awareness expand until it holds all of you, feet to face, as a single present experience. Take a breath. And whenever you are ready, come back to the room. What do you notice now?",
+        "الحين وجه انتباهك لوجهك ورأسك. الفك أولاً: هل مسكته؟ خله يكون أثقل شوي لو أراد. وبعدين المنطقة حول عيونك وجبهتك. بس لاحظ وش موجود. وبعدين، ببطء، وسع انتباهك حتى يشمل جسمك كله من القدمين للرأس، كتجربة وحدة كاملة. خذ لحظة. وبعدين افتح عيونك بهدوء وارجع للغرفة. وش تحس فيه الحين مقارنة باللي بديناه؟",
+        "خلي انتباهك يوصل لوجهك الحين. الفك، وحول العيون، والجبهة. هذي المناطق تشيل توتراً كثير من غير ما نحس. بس لاحظ. وبعدين وسع وعيك حتى يحضن جسمك كله كشي وحد. وخذ نفس. ومتى ما كنت جاهز، ارجع للغرفة. كيف تحس الحين؟",
+        "Bring your attention to your face now: the jaw, the area around the eyes, and the forehead. Just notice. Let the jaw soften if it wants to. And then slowly widen your awareness to hold your whole body at once, everything we have visited, as one complete experience. Breathe. And then gently open your eyes and return to the room. What do you notice now?"
+      ]
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
+      "action": "validate_only",
+      "instruction": "User is in acute distress. Do not start the body scan when someone is in crisis-level intensity. Slow down, validate that you are present with them, and gently ground them in the room first before considering whether to return to the scan.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance to the body scan. Some people find body attention uncomfortable, especially if they have a difficult relationship with their body. Offer to stop and simply talk, or to try a different approach. Do not pressure the user to continue.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "check_in_micro",
+      "instruction": "User is disengaged. Gently check in: is this kind of body attention feeling helpful, or would something else suit them better right now? Do not assume disengagement means refusal. The pacing or framing may need to shift.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit immediately with warmth. No persuasion. Acknowledge that they brought attention to their body, even briefly, and that this takes practice.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": {
+        "signal": "dissociation_or_dizziness_reported",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "ground_and_pause",
+      "instruction": "Stop the body scan immediately. The scan has triggered a dissociative or destabilizing response. DO NOT continue. Orient the user to the room: eyes open, feet on the floor, name 5 things they can see. Use grounding technique, not continued body attention. Do NOT restart the scan in this session.",
+      "next_step_id": "exit"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit skill gracefully if user requests to stop. No pressure to continue. Acknowledge whatever body attention they engaged with, even briefly.",
+    "L2": "Add clinician_review flag if user reports persistent dissociation, depersonalization, or if the body scan consistently triggers distress rather than relief across multiple sessions. These may indicate trauma-related somatic difficulties requiring clinical support.",
+    "L3": "Exit immediately to crisis protocol if any crisis signal is detected during the scan.",
+    "L4": "Trigger human handoff if 3 or more crises detected in the last 30 days, or if user explicitly requests a human clinician."
+  },
+  "cultural_overrides": {
+    "religious_compatibility": "The body scan is a physiological attention practice, not a spiritual or meditative practice in a religious sense. It is fully compatible with Islamic practice. If a user asks whether it conflicts with Islamic prayer or zikr, the accurate answer is that it does not. Directing attention to the body is not worship. It is a secular observational technique that can be done fully clothed, seated, with eyes open or closed, at any time. It does not involve any beliefs, rituals, or spiritual content. This is a neutral technique with a clinical evidence base.",
+    "gender_appropriate_body_language": "When guiding through body regions, use neutral, non-sexualized language. Avoid specific reference to body parts that carry gender sensitivity in Gulf contexts. Use 'torso', 'centre of the body', or 'the belly area' rather than 'chest' when gender is unknown or mixed. Always specify that the practice can be done fully clothed, sitting upright in a chair. Do not describe the practice in a way that requires lying down or physical adjustment that may feel inappropriate in a Gulf context.",
+    "privacy_and_practicality": "The body scan does not require lying down. It can be done sitting in a chair or on the floor in any setting. In Gulf contexts, users may be in shared spaces, family homes, or offices without private space. Reassure them that this can be practiced quietly and discreetly, without any external movement or visible ritual. Eyes can remain open. No special posture is required. The practice takes place entirely in attention, not in the body's visible position."
+  },
+  "cultural_note": "The body scan is culturally neutral and clinically grounded. No Gulf-specific content modifications required beyond the three cultural_overrides noted above."
+}

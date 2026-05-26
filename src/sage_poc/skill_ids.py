@@ -18,4 +18,5 @@ SKILL_REGISTRY = [
     "values_clarification",
     "assertive_communication",
     "self_compassion_break",
+    "mindfulness_body_scan",
 ]
