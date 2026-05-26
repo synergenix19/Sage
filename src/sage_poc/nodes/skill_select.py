@@ -46,7 +46,15 @@ def _ensure_semantic_ready() -> None:
         if _embed_model is not None:  # re-check under lock: another thread may have loaded first
             return
         from sentence_transformers import SentenceTransformer
-        model = SentenceTransformer("BAAI/bge-m3")
+        _REVISION = "5617a9f61b028005a4858fdac845db406aefb181"
+        try:
+            model = SentenceTransformer(
+                "BAAI/bge-m3",
+                local_files_only=True,
+                revision=_REVISION,
+            )
+        except (OSError, EnvironmentError):
+            model = SentenceTransformer("BAAI/bge-m3", revision=_REVISION)
         ids, texts = [], []
         for sid, skill in _SKILLS.items():
             if skill.semantic_description:
