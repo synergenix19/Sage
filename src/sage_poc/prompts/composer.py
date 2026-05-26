@@ -4,7 +4,6 @@ import logging
 from sage_poc.state import SageState
 from sage_poc.skills.schema import SkillStep, load_skill
 from sage_poc.rules import engine as rules_engine
-from sage_poc.knowledge import lookup_knowledge
 from .loader import get_template, get_intent_template
 from .tokens import count_words, count_words_in_parts
 
@@ -160,13 +159,26 @@ _FLAG_DESCRIPTIONS: dict[str, str] = {
 }
 
 
-def _build_l4_knowledge_block(snippet: str | None, variant: str | None = None) -> str | None:
-    if not snippet:
+def _build_l4_knowledge_block(
+    passages: list[dict],
+    abstain: bool,
+    variant: str | None = None,
+) -> str | None:
+    if abstain and not passages:
+        return (
+            "KNOWLEDGE: No relevant clinical evidence found for this query. "
+            "Do not fabricate clinical facts. If asked, tell the user you do not have "
+            "specific information on that topic and offer to help them find a professional resource."
+        )
+    if not passages:
         return None
     tmpl = get_template("L4_knowledge", variant=variant)
-    passages = f"[1] {snippet}"
-    content = tmpl.content.format(passages=_esc(passages))
-    _log.debug("L4_knowledge@%s loaded", tmpl.version)
+    passage_lines = "\n".join(
+        f"[{i+1}] {p['text']} (Source: {p.get('citation', p.get('source_id', ''))})"
+        for i, p in enumerate(passages[:5])
+    )
+    content = tmpl.content.format(passages=_esc(passage_lines))
+    _log.debug("L4_knowledge@%s loaded (%d passages)", tmpl.version, len(passages))
     return content
 
 
@@ -439,11 +451,11 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
             user_parts.append(f"SKILL INSTRUCTION:\n{step_instruction}")
             layers.append("skill_instruction")
 
-    # L4: Knowledge context (only for info_request intent)
-    intent_set = {primary_intent, secondary_intent}
-    if "info_request" in intent_set:
-        snippet = lookup_knowledge(message_en)
-        l4_block = _build_l4_knowledge_block(snippet)
+    # L4: Knowledge context — from Node 6 retrieval or knowledge_lookup tool result in state
+    knowledge_passages = state.get("knowledge_passages") or []
+    knowledge_abstain = state.get("knowledge_abstain", False)
+    if knowledge_passages or knowledge_abstain:
+        l4_block = _build_l4_knowledge_block(knowledge_passages, knowledge_abstain)
         if l4_block:
             user_parts.append(l4_block)
             layers.append("knowledge")

@@ -275,19 +275,26 @@ from sage_poc.prompts.composer import _build_l4_knowledge_block, _build_l5_user_
 
 
 def test_l4_knowledge_block_formats_with_citation_marker():
-    block = _build_l4_knowledge_block("Anxiety is a feeling of worry or fear.")
+    passages = [{"text": "Anxiety is a feeling of worry or fear.", "source_id": "ax-001", "citation": "APA (2013)"}]
+    block = _build_l4_knowledge_block(passages, abstain=False)
     assert "[1]" in block
     assert "Anxiety is a feeling" in block
 
 
 def test_l4_knowledge_block_includes_abstain_instruction():
-    block = _build_l4_knowledge_block("Some snippet.")
+    passages = [{"text": "Some snippet.", "source_id": "src-001", "citation": ""}]
+    block = _build_l4_knowledge_block(passages, abstain=False)
     assert "not certain" in block
 
 
-def test_l4_knowledge_block_returns_none_for_empty_snippet():
-    assert _build_l4_knowledge_block(None) is None
-    assert _build_l4_knowledge_block("") is None
+def test_l4_knowledge_block_returns_none_for_empty_passages():
+    assert _build_l4_knowledge_block([], abstain=False) is None
+
+
+def test_l4_knowledge_block_abstain_returns_no_fabricate_instruction():
+    block = _build_l4_knowledge_block([], abstain=True)
+    assert block is not None
+    assert "fabricate" in block.lower()
 
 
 def test_l5_user_context_returns_none_when_no_relevant_flags():
@@ -438,7 +445,14 @@ def test_compose_prompt_clinical_adaptation_layer_tracked():
 
 
 def test_compose_prompt_knowledge_layer_fires_for_info_request():
-    state = _make_state(primary_intent="info_request", message_en="what is anxiety")
+    state = _make_state(
+        primary_intent="info_request",
+        message_en="what is anxiety",
+        knowledge_passages=[
+            {"text": "Anxiety is a feeling of worry or fear.", "source_id": "ax-001", "citation": "APA (2013)"}
+        ],
+        knowledge_abstain=False,
+    )
     with patch("sage_poc.prompts.composer.rules_engine.evaluate", side_effect=_no_rules()):
         _, user_str, layers = compose_prompt(state)
     assert "knowledge" in layers
@@ -545,3 +559,69 @@ def test_l1_history_no_summary_prefix_when_summary_is_none():
     history = [{"role": "user", "content": "Hello"}]
     block = _build_l1_history_block(history, conversation_summary=None)
     assert "SUMMARY" not in block
+
+
+def test_l4_block_uses_knowledge_passages_from_state():
+    """When state has knowledge_passages, L4 evidence block includes citation text."""
+    from sage_poc.prompts.composer import compose_prompt
+    state = {
+        "message_en": "what is CBT?",
+        "detected_language": "en",
+        "raw_message": "what is CBT?",
+        "primary_intent": "info_request",
+        "secondary_intent": None,
+        "clinical_flags": [],
+        "emotional_intensity": 4,
+        "engagement": 6,
+        "active_skill_id": None,
+        "step_instruction": None,
+        "executed_step_id": None,
+        "conversation_history": [],
+        "conversation_summary": None,
+        "therapeutic_profile": None,
+        "code_switching": False,
+        "crisis_state": "none",
+        "third_party_crisis": False,
+        "knowledge_passages": [
+            {
+                "text": "CBT is Cognitive Behavioral Therapy, evidence-based for depression.",
+                "source_id": "cbt-001-en",
+                "citation": "Beck (1979)",
+                "relevance_score": 0.88,
+            }
+        ],
+        "knowledge_abstain": False,
+        "knowledge_source": "node_6",
+    }
+    _, user_str, layers = compose_prompt(state)
+    assert "knowledge" in layers
+    assert "Beck (1979)" in user_str or "cbt-001-en" in user_str
+
+
+def test_l4_block_injects_abstain_instruction_when_no_passages():
+    """When knowledge_abstain is True, L4 injects 'do not fabricate' instruction."""
+    from sage_poc.prompts.composer import compose_prompt
+    state = {
+        "message_en": "what is advanced EMDR?",
+        "detected_language": "en",
+        "raw_message": "what is advanced EMDR?",
+        "primary_intent": "info_request",
+        "secondary_intent": None,
+        "clinical_flags": [],
+        "emotional_intensity": 4,
+        "engagement": 6,
+        "active_skill_id": None,
+        "step_instruction": None,
+        "executed_step_id": None,
+        "conversation_history": [],
+        "conversation_summary": None,
+        "therapeutic_profile": None,
+        "code_switching": False,
+        "crisis_state": "none",
+        "third_party_crisis": False,
+        "knowledge_passages": [],
+        "knowledge_abstain": True,
+        "knowledge_source": "node_6",
+    }
+    _, user_str, layers = compose_prompt(state)
+    assert "fabricate" in user_str.lower() or "do not invent" in user_str.lower() or "no evidence" in user_str.lower() or "no relevant" in user_str.lower()
