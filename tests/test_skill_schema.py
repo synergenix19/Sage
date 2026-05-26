@@ -126,3 +126,10 @@ def test_grounding_has_cultural_overrides():
     skill = load_skill("grounding_5_4_3_2_1")
     assert isinstance(skill.cultural_overrides, dict)
     assert len(skill.cultural_overrides) > 0
+
+
+def test_sleep_hygiene_cultural_overrides_is_populated_dict():
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("sleep_hygiene")
+    assert isinstance(skill.cultural_overrides, dict)
+    assert len(skill.cultural_overrides) > 0, "sleep_hygiene cultural_overrides must be populated, not null/empty"
