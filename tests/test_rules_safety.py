@@ -436,6 +436,35 @@ def test_fpe_does_not_suppress_genuine_si_in_same_message(text, text_ar, languag
     )
 
 
+# ── SF-1 hopelessness cluster (SK-EN-002 v1.1.0) ─────────────────────────────
+# Phrases in the futurelessness/anhedonia clinical cluster that were MISSING
+# from S1 prior to 2026-05-26. All carry low FP risk in a mental-health chat
+# context. They receive the negation_check modifier via SK-EN-002.
+
+@pytest.mark.parametrize("text", [
+    "I have no future",
+    "i see no future",
+    "there is nothing to live for",
+    "I have nothing to live for",
+    "no reason to go on",
+    "there's really no reason to go on anymore",
+])
+def test_sf1_hopelessness_cluster_triggers_crisis(text):
+    result = engine.evaluate("safety", {"text_en": text, "language": "en"})
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert crisis_actions, f"SF-1 gap: expected crisis flag for hopelessness phrase: {text!r}"
+
+
+@pytest.mark.parametrize("text", [
+    "I don't have no future",
+    "I do not see no reason to go on",
+])
+def test_sf1_hopelessness_negation_suppresses(text):
+    result = engine.evaluate("safety", {"text_en": text, "language": "en"})
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert not crisis_actions, f"Expected negation suppression for: {text!r}"
+
+
 # ── Third-party crisis detection (SK-EN-004) ─────────────────────────────────
 
 @pytest.mark.parametrize("text", [

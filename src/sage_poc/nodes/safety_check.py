@@ -1,3 +1,25 @@
+# ARCHITECTURE WARNING — SINGLE-LAYER SAFETY (2026-05-26)
+#
+# v7 spec §5.1 defines Layer 1 as OR-fusion: S1 (crisis lexicon) OR S2 (MARBERT
+# classifier) OR S3 (semantic crisis embeddings) OR S6 (clinical flag escalation).
+# Any layer catching a phrase is sufficient; the layers provide redundancy.
+#
+# CURRENT STATE: S1 only. S2 and S3 are not implemented.
+# Every safety gap is a lexicon gap with no fallback. Phrases not in
+# passive_si_patterns.json or crisis_keywords.json will be missed entirely.
+#
+# IMPLICATION: The whack-a-mole problem. Lexicon expansion (e.g. SK-EN-002 v1.1.0,
+# 2026-05-26) catches phrases we thought of. MARBERT and semantic search catch
+# phrases we didn't. Until S2/S3 exist, coverage is bounded by human enumeration.
+#
+# NEXT STEPS (priority order before feature expansion):
+#   S2: off-the-shelf MARBERT binary classifier (crisis/not-crisis) — no fine-tuning
+#       required for baseline coverage. Route Arabic text through MARBERT before
+#       lexicon to catch dialectal expressions outside the keyword vocabulary.
+#   S3: BGE-M3 semantic similarity against a crisis phrase embedding index.
+#       Infrastructure is now available (see sage_poc/memory/embedding.py).
+#   Reference: CRISP-DM plan, Experiment 4.2 (Week N).
+
 import re
 from sage_poc.state import SageState
 from sage_poc.language import detect_language, translate_to_english
@@ -51,7 +73,7 @@ def _update_engagement_trajectory(state: SageState) -> tuple[list[int], bool]:
     return trajectory, declining
 
 
-def safety_check_node(state: SageState) -> dict:
+async def safety_check_node(state: SageState) -> dict:
     raw = state["raw_message"]
     code_switching = bool(_HAS_ARABIC_RE.search(raw) and _HAS_LATIN_RE.search(raw))
     lang = detect_language(raw)
@@ -106,7 +128,7 @@ def safety_check_node(state: SageState) -> dict:
     s7_method: str | None = None
 
     if crisis_state == "monitoring":
-        s7_result, s7_method = evaluate_s7(message_en)
+        s7_result, s7_method = await evaluate_s7(message_en)
 
     return {
         "detected_language": lang,

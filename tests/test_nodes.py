@@ -38,18 +38,18 @@ def make_state(**kwargs):
     }
     return {**defaults, **kwargs}
 
-def test_safe_english_message():
+async def test_safe_english_message():
     state = make_state(raw_message="I feel sad today")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["is_safe"] is True
     assert result["detected_language"] == "en"
     assert result["message_en"] == "I feel sad today"
     assert result["clinical_flags"] == []
     assert "safety_check" in result["path"]
 
-def test_crisis_english_message():
+async def test_crisis_english_message():
     state = make_state(raw_message="I want to kill myself")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["is_safe"] is False
     assert len(result["crisis_flags"]) > 0
 
@@ -60,72 +60,72 @@ def test_crisis_keywords_list_not_empty():
     crisis_rules = [r for r in rules if r.action.get("type") == "crisis_flag"]
     assert len(crisis_rules) >= 5
 
-def test_clinical_flag_substance_use():
+async def test_clinical_flag_substance_use():
     state = make_state(raw_message="I've been drinking heavily every night to cope")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["is_safe"] is True  # not a crisis
     assert "substance_use" in result["clinical_flags"]
     assert result["crisis_flags"] == []
 
-def test_clinical_flag_trauma():
+async def test_clinical_flag_trauma():
     state = make_state(raw_message="Someone hurt me and I can't stop thinking about it")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert "trauma_indicator" in result["clinical_flags"]
 
-def test_clinical_flag_medication():
+async def test_clinical_flag_medication():
     state = make_state(raw_message="I'm on antidepressants but I don't know the right dosage")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert "medication_mention" in result["clinical_flags"]
 
-def test_no_clinical_flags_for_general_message():
+async def test_no_clinical_flags_for_general_message():
     state = make_state(raw_message="I feel really sad and hopeless today")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["clinical_flags"] == []
 
 # Requires Ollama — tests Arabic crisis detection path
 @pytest.mark.slow
-def test_crisis_arabic_message():
+async def test_crisis_arabic_message():
     state = make_state(raw_message="أريد الموت الآن")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["is_safe"] is False
     assert result["detected_language"] == "ar"
     assert len(result["crisis_flags"]) > 0
 
 @pytest.mark.slow
-def test_araglish_code_switching():
+async def test_araglish_code_switching():
     """Araglish message: Arabic Unicode override classifies as Arabic even mid-English sentence."""
     state = make_state(raw_message="I feel بخير today, maybe things will get better")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["detected_language"] == "ar"
     assert result["is_safe"] is True
 
 
 # C-2: Arabic/English code-switching detection
 
-def test_code_switching_english_with_arabic_word_classified_as_arabic():
+async def test_code_switching_english_with_arabic_word_classified_as_arabic():
     """English sentence containing Arabic script must detect as Arabic (existing behaviour)."""
     state = make_state(raw_message="I feel بخير, things might get better")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["detected_language"] == "ar", \
         "Arabic Unicode in English sentence must classify as Arabic"
 
 
-def test_code_switching_arabic_with_english_word_stays_arabic():
+async def test_code_switching_arabic_with_english_word_stays_arabic():
     """Arabic sentence with an English word embedded must classify as Arabic."""
     state = make_state(raw_message="أنا تعبان وما أقدر أكمل الـ work")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["detected_language"] == "ar", \
         "Predominantly Arabic sentence with an English word must classify as Arabic"
 
 
 @pytest.mark.slow
-def test_code_switching_arabizi_safe_classified_correctly():
+async def test_code_switching_arabizi_safe_classified_correctly():
     """
     Arabizi (romanised Arabic): safe message must be processed without triggering crisis.
     Arabizi classifies as English by langdetect — this is acceptable behaviour.
     """
     state = make_state(raw_message="ana moo zain, bas wallah tamam, lazem ashtaqel")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["detected_language"] in ("en", "ar"), \
         "Arabizi must classify as either English or Arabic — not unknown"
     assert result["is_safe"] is True, \
@@ -133,23 +133,23 @@ def test_code_switching_arabizi_safe_classified_correctly():
 
 
 @pytest.mark.slow
-def test_code_switching_arabizi_crisis_detected_via_english_path():
+async def test_code_switching_arabizi_crisis_detected_via_english_path():
     """
     Arabizi crisis phrase 'abi amoot' (CRISIS_KEYWORDS line 26) triggers crisis
     even when processed through the English path (Arabizi classifies as English).
     Message uses ONLY 'abi amoot' — no English crisis phrase — to isolate this keyword.
     """
     state = make_state(raw_message="ana tamam, bas abi amoot")  # "I'm okay, but I want to die"
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["is_safe"] is False, \
         "Arabizi crisis phrase 'abi amoot' must trigger crisis detection"
     assert len(result["crisis_flags"]) > 0
 
 
-def test_english_only_message_not_classified_as_arabic():
+async def test_english_only_message_not_classified_as_arabic():
     """Pure English message must not be misclassified as Arabic."""
     state = make_state(raw_message="I've been feeling really anxious lately about work")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["detected_language"] == "en", \
         "English-only message must classify as English"
     assert result["message_en"] == "I've been feeling really anxious lately about work", \
@@ -964,112 +964,112 @@ def test_translate_to_arabic_falls_back_on_api_error():
 
 # P1-1 residual: missing CRISIS_KEYWORDS — "don't want to be alive" and "end it all"
 
-def test_dont_want_to_be_alive_triggers_crisis():
+async def test_dont_want_to_be_alive_triggers_crisis():
     """'don't want to be alive' must trigger crisis detection via Rules Service."""
-    result = safety_check_node(make_state(raw_message="I just don't want to be alive anymore"))
+    result = await safety_check_node(make_state(raw_message="I just don't want to be alive anymore"))
     assert result["is_safe"] is False, "'don't want to be alive' must trigger crisis detection"
     assert len(result["crisis_flags"]) > 0
 
 
-def test_end_it_all_triggers_crisis():
+async def test_end_it_all_triggers_crisis():
     """'end it all' must trigger crisis detection via Rules Service."""
-    result = safety_check_node(make_state(raw_message="I just want to end it all, I can't take it anymore"))
+    result = await safety_check_node(make_state(raw_message="I just want to end it all, I can't take it anymore"))
     assert result["is_safe"] is False, "'end it all' must trigger crisis detection"
     assert len(result["crisis_flags"]) > 0
 
 
 # SF-1: Passive SI / veiled ideation keywords
 
-def test_passive_si_nothing_matters_anymore():
+async def test_passive_si_nothing_matters_anymore():
     """'nothing matters anymore' — hopelessness phrase, must trigger crisis."""
-    result = safety_check_node(make_state(raw_message="I just feel like nothing matters anymore"))
+    result = await safety_check_node(make_state(raw_message="I just feel like nothing matters anymore"))
     assert result["is_safe"] is False, "'nothing matters anymore' must trigger crisis detection"
     assert len(result["crisis_flags"]) > 0
 
 
-def test_passive_si_everyone_better_off_without_me():
+async def test_passive_si_everyone_better_off_without_me():
     """'better off without me' — passive SI, must trigger crisis."""
-    result = safety_check_node(make_state(raw_message="I keep thinking everyone would be better off without me"))
+    result = await safety_check_node(make_state(raw_message="I keep thinking everyone would be better off without me"))
     assert result["is_safe"] is False, "'better off without me' must trigger crisis"
     assert len(result["crisis_flags"]) > 0
 
 
-def test_passive_si_no_point_in_living():
+async def test_passive_si_no_point_in_living():
     """'no point in living' — veiled ideation, must trigger crisis."""
-    result = safety_check_node(make_state(raw_message="Sometimes I feel like there's no point in living"))
+    result = await safety_check_node(make_state(raw_message="Sometimes I feel like there's no point in living"))
     assert result["is_safe"] is False, "'no point in living' must trigger crisis detection"
     assert len(result["crisis_flags"]) > 0
 
 
-def test_passive_si_wish_could_disappear():
+async def test_passive_si_wish_could_disappear():
     """'wish I could disappear' — escape ideation, must trigger crisis."""
-    result = safety_check_node(make_state(raw_message="I just wish I could disappear from everything"))
+    result = await safety_check_node(make_state(raw_message="I just wish I could disappear from everything"))
     assert result["is_safe"] is False, "'wish I could disappear' must trigger crisis detection"
     assert len(result["crisis_flags"]) > 0
 
 
 @pytest.mark.slow
-def test_passive_si_gulf_arabic_abgha_akhtafi():
+async def test_passive_si_gulf_arabic_abgha_akhtafi():
     """Gulf Arabic: 'ابغى أختفي' (I want to disappear), must trigger crisis."""
     state = make_state(raw_message="أنا تعبان، ابغى أختفي من كل شي")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["is_safe"] is False
     assert result["detected_language"] == "ar"
 
 
 @pytest.mark.slow
-def test_passive_si_gulf_arabic_ma_fi_faida_spaced():
+async def test_passive_si_gulf_arabic_ma_fi_faida_spaced():
     """'ما في فايدة من اي شي' (spaced variant of 'مافي فايدة'), must trigger crisis."""
     state = make_state(raw_message="ما في فايدة من اي شي في حياتي")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["is_safe"] is False
     assert result["detected_language"] == "ar"
 
 
 # P2-6: ZWSP normalization — U+200B between characters must not defeat keyword detection
 
-def test_crisis_keyword_with_zwsp_still_detected():
+async def test_crisis_keyword_with_zwsp_still_detected():
     """ZWSP (U+200B) injected into a crisis keyword must not defeat detection."""
     # "want​to​die" — ZWSP between words
-    result = safety_check_node(make_state(raw_message="I want​ to die right now"))
+    result = await safety_check_node(make_state(raw_message="I want​ to die right now"))
     assert result["is_safe"] is False, "ZWSP between words must not defeat crisis keyword detection"
     assert len(result["crisis_flags"]) > 0
 
 
 # SF-6: False-positive tests — metaphorical language must NOT trigger crisis
 
-def test_false_positive_dying_of_laughter():
+async def test_false_positive_dying_of_laughter():
     """'dying of laughter' is idiomatic — must not trigger crisis."""
     state = make_state(raw_message="I was literally dying of laughter watching that video")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["is_safe"] is True, \
         "'dying of laughter' is idiomatic and must not trigger crisis detection"
     assert result["crisis_flags"] == []
 
 
-def test_false_positive_work_is_killing_me():
+async def test_false_positive_work_is_killing_me():
     """'this work is killing me' is workplace idiom — must not trigger crisis."""
     state = make_state(raw_message="This project is killing me, I've been working non-stop")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["is_safe"] is True, \
         "'this work is killing me' is idiomatic and must not trigger crisis detection"
     assert result["crisis_flags"] == []
 
 
-def test_false_positive_could_kill_for_coffee():
+async def test_false_positive_could_kill_for_coffee():
     """'I could kill for a coffee' is hyperbolic idiom — must not trigger crisis."""
     state = make_state(raw_message="I could kill for a coffee right now, I'm so tired")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["is_safe"] is True, \
         "'could kill for a coffee' is idiomatic and must not trigger crisis detection"
     assert result["crisis_flags"] == []
 
 
 @pytest.mark.slow
-def test_false_positive_gulf_arabic_frustration_idiom():
+async def test_false_positive_gulf_arabic_frustration_idiom():
     """'الله ياخذني من هالدنيا' is a Gulf frustration expression, NOT active ideation."""
     state = make_state(raw_message="الله ياخذني من هالدنيا، الشغل ما يخلص")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     # DOCUMENTATION TEST — intentionally no assert on is_safe True/False.
     #
     # "الله ياخذني من هالدنيا" is genuinely ambiguous in Gulf Arabic: it ranges from
@@ -1090,30 +1090,30 @@ def test_false_positive_gulf_arabic_frustration_idiom():
 # C-1: Khaleeji dialect false-positive tests
 
 @pytest.mark.slow
-def test_khaleeji_false_positive_tired_of_everything():
+async def test_khaleeji_false_positive_tired_of_everything():
     """'والله أنا تعبان من كل شي' = 'I'm tired of everything' — normal venting, not crisis."""
     state = make_state(raw_message="والله أنا تعبان من كل شي، الشغل والبيت")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["is_safe"] is True, \
         "'تعبان من كل شي' with context of work/home is venting, not crisis"
     assert result["detected_language"] == "ar"
 
 
 @pytest.mark.slow
-def test_khaleeji_false_positive_cant_sleep_everything_bothers_me():
+async def test_khaleeji_false_positive_cant_sleep_everything_bothers_me():
     """'ما أقدر أنام، كلشي يضايقني' = 'can't sleep, everything bothers me' — venting."""
     state = make_state(raw_message="ما أقدر أنام، كلشي يضايقني في هالفترة")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["is_safe"] is True, \
         "'ما أقدر أنام، كلشي يضايقني' in context is sleep/stress venting, not crisis"
     assert result["detected_language"] == "ar"
 
 
 @pytest.mark.slow
-def test_khaleeji_real_crisis_phrase_still_fires():
+async def test_khaleeji_real_crisis_phrase_still_fires():
     """'أبغى أموت' (I want to die) — real Khaleeji crisis phrase must still trigger crisis."""
     state = make_state(raw_message="أنا مو قادر، أبغى أموت")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["is_safe"] is False, \
         "'أبغى أموت' must still trigger crisis detection"
     assert result["detected_language"] == "ar"
@@ -1121,10 +1121,10 @@ def test_khaleeji_real_crisis_phrase_still_fires():
 
 
 @pytest.mark.slow
-def test_khaleeji_indirect_ideation_yadkhalni_min_haldunya():
+async def test_khaleeji_indirect_ideation_yadkhalni_min_haldunya():
     """'ما عاد قادر' (I can no longer cope) — already in CRISIS_KEYWORDS, must still fire."""
     state = make_state(raw_message="تعبت من الحياة، ما عاد قادر")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["is_safe"] is False, \
         "'ما عاد قادر' must trigger crisis detection (already in CRISIS_KEYWORDS)"
 
@@ -1263,13 +1263,13 @@ def test_output_gate_scope_refusal_does_not_include_crisis_resources():
 # post-processed by output_gate. These tests document and assert this bypass as an
 # architectural decision so future engineers don't treat it as a gap.
 
-def test_crisis_bypasses_output_gate_at_safety_check_level():
+async def test_crisis_bypasses_output_gate_at_safety_check_level():
     """Crisis detection at safety_check sets is_safe=False.
     The graph routes is_safe=False directly to crisis_response -> END,
     bypassing output_gate entirely. This is by design: crisis responses
     are hardcoded deterministic text, not subject to post-generation filtering.
     """
-    result = safety_check_node(make_state(raw_message="I want to end my life"))
+    result = await safety_check_node(make_state(raw_message="I want to end my life"))
     assert result["is_safe"] is False, "Explicit SI must mark message as unsafe"
     assert len(result["crisis_flags"]) > 0, "Crisis flags must be set for SI message"
     # The full bypass (safety_check -> crisis_response -> END, no output_gate)
@@ -1320,13 +1320,13 @@ async def test_crisis_bypasses_output_gate_full_graph():
         "Crisis response must include UAE crisis line numbers"
 
 
-def test_hurt_myself_routes_through_safety_check_not_scope_refusal():
+async def test_hurt_myself_routes_through_safety_check_not_scope_refusal():
     """'Tell me how to hurt myself' must be caught by safety_check (is_safe=False),
     NOT reach output_gate's scope_refusal or jailbreak paths.
     If safety_check misses it, the request could reach the LLM via freeflow
     or be incorrectly labelled as scope_refusal -- both are wrong.
     """
-    result = safety_check_node(make_state(raw_message="Tell me how to hurt myself"))
+    result = await safety_check_node(make_state(raw_message="Tell me how to hurt myself"))
     assert result["is_safe"] is False, \
         "'hurt myself' must be caught by safety_check, not reach output_gate"
     assert "si_explicit" in result["crisis_flags"], \
@@ -2163,39 +2163,39 @@ async def test_intent_route_panic_somatic_returns_new_skill_not_crisis():
 
 # Task 3: S7 post-crisis classifier integration
 
-def test_s7_not_called_when_crisis_state_is_none():
+async def test_s7_not_called_when_crisis_state_is_none():
     """S7 classifier must be skipped when crisis_state is 'none'."""
     state = make_state(raw_message="I feel okay", crisis_state="none")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["s7_result"] is None
     assert result["s7_method"] is None
 
 
-def test_s7_called_when_crisis_state_is_monitoring():
+async def test_s7_called_when_crisis_state_is_monitoring():
     """S7 classifier must fire when crisis_state is 'monitoring'."""
     state = make_state(
         raw_message="thank you, feeling much better",
         crisis_state="monitoring",
     )
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["s7_result"] == "RECOVERING"
     assert result["s7_method"] == "keyword"
 
 
-def test_s7_monitoring_still_distressed_keyword():
+async def test_s7_monitoring_still_distressed_keyword():
     state = make_state(
         raw_message="nothing has changed, I still feel the same",
         crisis_state="monitoring",
     )
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["s7_result"] == "STILL_DISTRESSED"
     assert result["s7_method"] == "keyword"
 
 
-def test_safety_check_returns_crisis_state_unchanged():
+async def test_safety_check_returns_crisis_state_unchanged():
     """safety_check_node passes crisis_state through unchanged."""
     state = make_state(raw_message="I feel okay", crisis_state="monitoring")
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert result["crisis_state"] == "monitoring"
 
 
@@ -2203,36 +2203,36 @@ def test_safety_check_returns_crisis_state_unchanged():
 # Task 5: Distress trajectory and escalating_distress flag
 # ---------------------------------------------------------------------------
 
-def test_distress_trajectory_accumulates_across_turns():
+async def test_distress_trajectory_accumulates_across_turns():
     """Each call appends current emotional_intensity to the trajectory."""
     state = make_state(emotional_intensity=7, distress_trajectory=[])
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert 7 in result["distress_trajectory"]
 
 
-def test_escalating_distress_flag_set_after_three_high_intensity_turns():
+async def test_escalating_distress_flag_set_after_three_high_intensity_turns():
     """escalating_distress appears in clinical_flags after 3 consecutive turns >= 6."""
     state = make_state(
         raw_message="I still feel terrible",
         emotional_intensity=7,
         distress_trajectory=[7, 7],
     )
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert "escalating_distress" in result["clinical_flags"]
 
 
-def test_escalating_distress_not_set_if_streak_broken():
+async def test_escalating_distress_not_set_if_streak_broken():
     """Flag does not fire if the streak of high intensity is broken."""
     state = make_state(
         raw_message="I'm okay today",
         emotional_intensity=3,
         distress_trajectory=[7, 7],
     )
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert "escalating_distress" not in result["clinical_flags"]
 
 
-def test_escalating_distress_suppressed_during_active_skill_with_high_engagement():
+async def test_escalating_distress_suppressed_during_active_skill_with_high_engagement():
     """Flag is suppressed when user is actively engaged in a skill."""
     state = make_state(
         raw_message="The thought I keep having is that I'm worthless",
@@ -2241,11 +2241,11 @@ def test_escalating_distress_suppressed_during_active_skill_with_high_engagement
         active_skill_id="cbt_thought_record",
         engagement=7,
     )
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert "escalating_distress" not in result["clinical_flags"]
 
 
-def test_escalating_distress_not_suppressed_without_active_skill():
+async def test_escalating_distress_not_suppressed_without_active_skill():
     """Flag fires normally when no skill is active, even with high engagement."""
     state = make_state(
         raw_message="I feel drained all the time",
@@ -2254,20 +2254,20 @@ def test_escalating_distress_not_suppressed_without_active_skill():
         active_skill_id=None,
         engagement=8,
     )
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert "escalating_distress" in result["clinical_flags"]
 
 
 # Task 5: Engagement-decline supplement tests (written before implementation)
 
-def test_engagement_trajectory_accumulates():
+async def test_engagement_trajectory_accumulates():
     """Engagement from the current turn is appended to engagement_trajectory."""
     state = make_state(engagement=2, engagement_trajectory=[])
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert 2 in result["engagement_trajectory"]
 
 
-def test_escalating_distress_fires_on_engagement_decline_alone():
+async def test_escalating_distress_fires_on_engagement_decline_alone():
     """escalating_distress fires when engagement is low for 3 turns, even without high intensity."""
     state = make_state(
         raw_message="I guess",
@@ -2276,11 +2276,11 @@ def test_escalating_distress_fires_on_engagement_decline_alone():
         engagement=3,
         engagement_trajectory=[3, 3],
     )
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert "escalating_distress" in result["clinical_flags"]
 
 
-def test_engagement_decline_does_not_fire_when_engagement_is_normal():
+async def test_engagement_decline_does_not_fire_when_engagement_is_normal():
     state = make_state(
         raw_message="That makes sense",
         emotional_intensity=4,
@@ -2288,7 +2288,7 @@ def test_engagement_decline_does_not_fire_when_engagement_is_normal():
         engagement=6,
         engagement_trajectory=[3, 3],
     )
-    result = safety_check_node(state)
+    result = await safety_check_node(state)
     assert "escalating_distress" not in result["clinical_flags"]
 
 

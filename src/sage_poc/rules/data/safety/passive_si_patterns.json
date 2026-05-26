@@ -3,9 +3,9 @@
   "rules": [
     {
       "rule_id": "SK-EN-002",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "authored_by": "sage_clinics",
-      "effective_date": "2026-05-21",
+      "effective_date": "2026-05-26",
       "active": true,
       "description": "English passive SI and veiled ideation",
       "category": "safety",
@@ -66,7 +66,12 @@
         "i don't see a reason to go on",
         "thinking about not being here",
         "sometimes i think about not being here",
-        "don't want to be here anymore"
+        "don't want to be here anymore",
+        "i have no future",
+        "i see no future",
+        "nothing to live for",
+        "i have nothing to live for",
+        "no reason to go on"
       ],
       "language": "en",
       "modifiers": ["negation_check"],

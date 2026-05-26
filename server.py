@@ -35,11 +35,14 @@ def _warmup_bge_m3() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    try:
-        await asyncio.to_thread(_warmup_bge_m3)
-        _log.info("[sage/startup] BGE-M3 warmup complete")
-    except Exception as exc:
-        _log.warning("[sage/startup] BGE-M3 warmup failed: %s", exc)
+    if os.environ.get("SAGE_WARMUP_BGE", "1") != "0":
+        try:
+            await asyncio.to_thread(_warmup_bge_m3)
+            _log.info("[sage/startup] BGE-M3 warmup complete")
+        except Exception as exc:
+            _log.warning("[sage/startup] BGE-M3 warmup failed: %s", exc)
+    else:
+        _log.info("[sage/startup] BGE-M3 warmup skipped (SAGE_WARMUP_BGE=0)")
 
     if os.environ.get("DATABASE_URL"):
         # Two connection objects:
