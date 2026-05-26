@@ -1,5 +1,6 @@
 // apps/web/app/api/chat/route.ts
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { CRISIS_SIGNAL, SERVER_ERROR_SIGNAL } from '@/lib/constants'
 import { z } from 'zod'
 
@@ -136,7 +137,10 @@ export async function POST(req: Request) {
       // Both rows carry the same intent values for query convenience (no join needed to
       // filter by intent). The AI message row is the authoritative source — it reflects
       // the intent the graph actually processed. See migration 008 for full design rationale.
-      const { error: insertError } = await supabase.from('messages').insert([
+      // Service-role client bypasses RLS: the background persist block runs
+      // outside the Next.js request context, so the user JWT is no longer
+      // available for auth.uid(). Ownership was already validated above.
+      const { error: insertError } = await createAdminClient().from('messages').insert([
         {
           session_id:                      sessionId,
           role:                            'user',

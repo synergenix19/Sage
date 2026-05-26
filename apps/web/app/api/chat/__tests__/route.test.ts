@@ -36,6 +36,14 @@ vi.mock('@/lib/supabase/server', () => ({
   }),
 }))
 
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: vi.fn().mockReturnValue({
+    from: () => ({
+      insert: mockInsert,
+    }),
+  }),
+}))
+
 import { POST } from '../route'
 
 function makeSageResponse(
