@@ -188,5 +188,9 @@
     "L2": "Add clinician_review flag if trauma or substance mention detected during exercise",
     "L3": "Exit immediately to crisis protocol if any crisis signal",
     "L4": "Trigger human handoff if 3+ crises detected in last 30 days"
+  },
+  "cultural_overrides": {
+    "gender_touch": "For users who may feel discomfort with sensory touch prompts involving the face or body, redirect to furniture, fabric texture, or temperature. The see_5 and touch_4 steps are most affected.",
+    "prayer_space": "If the user is in a prayer space (masjid, prayer room), adapt sensory prompts to avoid disrupting the space. Breath, fabric, and temperature are appropriate, movement is not."
   }
 }

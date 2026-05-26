@@ -119,3 +119,10 @@ def test_cbt_thought_record_has_cultural_overrides():
     skill = load_skill("cbt_thought_record")
     assert isinstance(skill.cultural_overrides, dict)
     assert len(skill.cultural_overrides) > 0, "cultural_overrides must be populated, not empty"
+
+
+def test_grounding_has_cultural_overrides():
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("grounding_5_4_3_2_1")
+    assert isinstance(skill.cultural_overrides, dict)
+    assert len(skill.cultural_overrides) > 0
