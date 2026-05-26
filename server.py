@@ -315,9 +315,11 @@ async def name_session(
             )},
         ])
         name = response.content.strip()[:60]
+        if not name:
+            name = req.message.strip()[:30]
     except Exception as exc:
         _log.warning("[name-session] LLM failed: %s", exc)
-        name = req.message[:30]
+        name = req.message.strip()[:30]
 
     await app.state._db_pool.execute(
         "UPDATE chat_sessions SET name = $1, updated_at = now() WHERE id = $2",

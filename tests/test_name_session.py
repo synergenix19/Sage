@@ -20,6 +20,15 @@ def _make_llm_response(text: str):
     return llm
 
 
+@pytest.fixture(autouse=True)
+def reset_app_db_pool():
+    """Reset app.state._db_pool before each test to prevent state leakage."""
+    from server import app
+    original = getattr(app.state, "_db_pool", None)
+    yield
+    app.state._db_pool = original
+
+
 @pytest.mark.asyncio
 async def test_name_session_generates_and_saves_name():
     """When session has no name, LLM generates one and DB is updated."""
@@ -125,3 +134,25 @@ async def test_name_session_requires_auth_when_api_key_set(monkeypatch):
         })
 
     assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_name_session_falls_back_when_llm_returns_whitespace():
+    """When LLM returns whitespace-only, falls back to message truncation (not empty string)."""
+    from server import app
+
+    app.state._db_pool = _make_pool({"name": None})
+
+    with patch("server.get_classifier", return_value=_make_llm_response("   ")):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post("/name-session", json={
+                "session_id": "sess-006",
+                "user_id": "user-001",
+                "message": "I've been feeling really anxious and overwhelmed",
+            })
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "ok"
+    assert body["name"] != ""
+    assert body["name"] == "I've been feeling really anxio"
