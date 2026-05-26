@@ -281,3 +281,31 @@ async def test_turn_count_incremented():
     assert result["turn_count"] == 4, (
         f"turn_count=3 must become 4 after output_gate_node, got: {result['turn_count']}"
     )
+
+
+@pytest.mark.asyncio
+async def test_output_gate_audit_includes_knowledge_fields(capsys):
+    """Audit log must include knowledge_source and passage count when retrieval fired."""
+    import json as _json
+    from sage_poc.nodes.output_gate import output_gate_node
+    from sage_poc.config import AUDIT_LOG_ENABLED
+
+    if not AUDIT_LOG_ENABLED:
+        pytest.skip("AUDIT_LOG_ENABLED is False")
+
+    state = make_state(
+        gate_path=None,
+        knowledge_source="node_6",
+        knowledge_passages=[
+            {"text": "CBT is...", "source_id": "cbt-001-en", "citation": "Beck (1979)", "relevance_score": 0.88}
+        ],
+        knowledge_abstain=False,
+    )
+
+    with patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()):
+        await output_gate_node(state)
+
+    captured = capsys.readouterr()
+    assert "knowledge_source" in captured.out, "Audit log must include knowledge_source"
+    assert "node_6" in captured.out, "Audit log must include the knowledge source value"
+    assert "cbt-001-en" in captured.out, "Audit log must include passage source_id"
