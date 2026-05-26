@@ -53,7 +53,7 @@ async def test_knowledge_lookup_always_wired_in_freeflow():
 
     captured_tools = []
 
-    async def capture_tools(llm, messages, tools, *, node, language, fallback_llm):
+    async def capture_tools(llm, messages, tools, *, node, language, fallback_llm, **kwargs):
         captured_tools.extend(tools)
         return "response"
 
