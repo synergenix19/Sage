@@ -71,7 +71,7 @@ def test_prior_context_injected_when_user_id_set():
     """System message must include prior context; prompt_layers must record it."""
     captured_messages = []
 
-    async def fake_invoke_with_tool_loop(llm, messages, tools, *, node, language, fallback_llm):
+    async def fake_invoke_with_tool_loop(llm, messages, tools, *, node, language, fallback_llm, **kwargs):
         captured_messages.extend(messages)
         return "That sounds really difficult."
 

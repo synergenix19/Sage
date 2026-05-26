@@ -168,3 +168,55 @@ def test_dialect_mirroring_fires_on_any_arabic_message():
     assert "Arabic" in system_str or "LANGUAGE" in system_str, (
         "Arabic language instruction must appear in system prompt"
     )
+
+
+@pytest.mark.asyncio
+async def test_freeflow_sets_knowledge_source_tool_lookup_when_tool_fires():
+    """When knowledge_lookup tool fires in the tool loop, freeflow_respond writes knowledge_source='tool_lookup'."""
+    from sage_poc.nodes.freeflow_respond import freeflow_respond_node
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    state = {
+        "message_en": "what is CBT?",
+        "detected_language": "en",
+        "raw_message": "what is CBT?",
+        "primary_intent": "info_request",
+        "secondary_intent": None,
+        "clinical_flags": [],
+        "emotional_intensity": 4,
+        "engagement": 7,
+        "active_skill_id": None,
+        "active_step_id": None,
+        "executed_step_id": None,
+        "step_instruction": None,
+        "skill_match_method": None,
+        "semantic_score": None,
+        "escalation_triggered": None,
+        "gate_path": None,
+        "response_en": None,
+        "response": None,
+        "path": ["safety_check", "intent_route", "skill_select", "knowledge_retrieve"],
+        "turn_count": 0,
+        "conversation_history": [],
+        "crisis_state": "none",
+        "therapeutic_profile": None,
+        "user_id": None,
+        "session_id": None,
+        "code_switching": False,
+        "knowledge_passages": [],
+        "knowledge_abstain": False,
+        "knowledge_source": "node_6",
+        "conversation_summary": None,
+        "third_party_crisis": False,
+        "token_usage": {},
+        "prompt_layers": [],
+    }
+
+    mock_llm = MagicMock()
+
+    with patch("sage_poc.nodes.freeflow_respond._invoke_with_tool_loop", AsyncMock(return_value="CBT is Cognitive Behavioral Therapy.")):
+        with patch("sage_poc.nodes.freeflow_respond._get_prior_context", AsyncMock(return_value="")):
+            with patch("sage_poc.nodes.freeflow_respond._knowledge_lookup_fired", return_value=True):
+                result = await freeflow_respond_node(state, llm=mock_llm)
+
+    assert result.get("knowledge_source") == "tool_lookup"

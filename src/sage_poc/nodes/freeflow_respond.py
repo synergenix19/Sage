@@ -4,7 +4,7 @@ from sage_poc.prompts import compose_prompt, PERSONA  # re-exported for backward
 from sage_poc.prompts.composer import _sanitize_assistant_turn  # re-exported for backward compat
 from sage_poc.resilience import resilient_invoke
 
-__all__ = ["compose_prompt", "PERSONA", "freeflow_respond_node", "_sanitize_assistant_turn"]
+__all__ = ["compose_prompt", "PERSONA", "freeflow_respond_node", "_sanitize_assistant_turn", "_knowledge_lookup_fired"]
 
 
 async def _get_prior_context(state: SageState) -> str:
@@ -32,6 +32,16 @@ async def _get_prior_context(state: SageState) -> str:
         return ""  # non-fatal — degrade gracefully if pool unavailable
 
 
+def _knowledge_lookup_fired(messages: list) -> bool:
+    """Check if knowledge_lookup was invoked in the completed tool-call message list."""
+    for msg in messages:
+        if hasattr(msg, "tool_calls"):
+            for tc in (msg.tool_calls or []):
+                if tc.get("name") == "knowledge_lookup":
+                    return True
+    return False
+
+
 async def _invoke_with_tool_loop(
     llm,
     messages: list[dict],
@@ -40,10 +50,13 @@ async def _invoke_with_tool_loop(
     node: str,
     language: str,
     fallback_llm,
+    _tool_messages: list | None = None,
 ) -> str:
     """Invoke LLM, executing any tool calls until a plain text response is returned.
 
     When tools is empty, falls back to resilient_invoke (identical to prior behaviour).
+    If _tool_messages is provided (a mutable list), all AI messages that contain tool
+    calls will be appended to it so callers can inspect which tools fired.
     """
     if not tools:
         return await resilient_invoke(
@@ -60,6 +73,8 @@ async def _invoke_with_tool_loop(
         if not getattr(ai_message, "tool_calls", None):
             return ai_message.content or ""
         messages = list(messages) + [ai_message]
+        if _tool_messages is not None:
+            _tool_messages.append(ai_message)
         for tc in ai_message.tool_calls:
             # find the tool matching tc["name"]
             fn = next((t for t in tools if t.name == tc["name"]), None)
@@ -120,6 +135,7 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
         except Exception as exc:
             import logging; logging.getLogger(__name__).warning("[freeflow] tool setup failed: %s", exc)
 
+    tool_ai_messages: list = []
     response = await _invoke_with_tool_loop(
         llm,
         messages,
@@ -127,6 +143,7 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
         node="freeflow_respond",
         language=state.get("detected_language", "en"),
         fallback_llm=fallback_llm,
+        _tool_messages=tool_ai_messages,
     )
 
     if not response:
@@ -140,9 +157,15 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
             fallback_llm=fallback_llm,
         )
 
+    # Determine knowledge_source: if knowledge_lookup tool was invoked, override with "tool_lookup"
+    knowledge_source_update = {}
+    if _knowledge_lookup_fired(tool_ai_messages):
+        knowledge_source_update = {"knowledge_source": "tool_lookup"}
+
     return {
         "response_en":   response,
         "prompt_layers": prompt_layers,
         "token_usage":   {},
         "path":          (state.get("path") or []) + ["freeflow_respond"],
+        **knowledge_source_update,
     }
