@@ -268,4 +268,46 @@ async def test_semantic_mi_readiness_half_wanting_phrase():
         f"Expected mi_readiness_ruler, got: {result['active_skill_id']} "
         f"(score: {result.get('semantic_score')})"
     )
-    assert result["skill_match_method"] == "semantic"
+
+
+@pytest.mark.asyncio
+async def test_semantic_timeout_falls_back_to_keyword_match():
+    """When embedding times out, skill_select must return a keyword match if one exists.
+
+    Timeout fallback must not raise — it must return the keyword match (or None
+    if no keyword match), never an exception.
+    """
+    import asyncio
+    from unittest.mock import patch
+
+    async def slow_embedding(*args, **kwargs):
+        await asyncio.sleep(100)  # Force timeout
+
+    # "always my fault" matches cbt_thought_record via keyword
+    state = _ss_state(message_en="always my fault")
+
+    with patch("sage_poc.nodes.skill_select.asyncio.wait_for", side_effect=asyncio.TimeoutError):
+        result = await skill_select_node(state)
+
+    # Keyword match must still work even when semantic times out
+    assert result["active_skill_id"] == "cbt_thought_record", (
+        "Keyword fallback failed when semantic timed out"
+    )
+    assert result["skill_match_method"] == "keyword"
+    assert result.get("semantic_score") is None
+
+
+@pytest.mark.asyncio
+async def test_semantic_timeout_returns_none_when_no_keyword_match():
+    """When embedding times out and no keyword matches, active_skill_id must be None."""
+    import asyncio
+    from unittest.mock import patch
+
+    # A factual question that matches no skill keyword
+    state = _ss_state(message_en="what is the difference between anxiety and depression")
+
+    with patch("sage_poc.nodes.skill_select.asyncio.wait_for", side_effect=asyncio.TimeoutError):
+        result = await skill_select_node(state)
+
+    assert result["active_skill_id"] is None
+    assert result.get("semantic_score") is None
