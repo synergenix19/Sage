@@ -11,6 +11,7 @@ Threshold calibrated by scripts/calibrate_s3_threshold.py.
 Must satisfy: all SF-1 GATE phrases score >= threshold, all SF-6 FP phrases score < threshold.
 Re-run calibration after editing crisis_phrases.json.
 """
+# TODO: Run S3 on both message_en and raw Arabic text for bilingual coverage. Currently EN-only.
 from __future__ import annotations
 import json
 import logging
@@ -21,10 +22,12 @@ _log = logging.getLogger(__name__)
 
 _PHRASES_PATH = pathlib.Path(__file__).parent / "crisis_phrases.json"
 
-# Calibrated placeholder — updated after Task 3 (calibrate_s3_threshold.py) completes.
+# Calibrated 2026-05-26 via scripts/calibrate_s3_threshold.py.
+# Gap = 0.3234. Re-run after editing crisis_phrases.json.
+# SF-6 "الله ياخذني من هالدنيا" scored 0.6087 (must be < threshold).
 # v7 target: <50ms total for Layer 1. S3 embedding adds ~200-500ms per turn.
 # Acceptable for POC; production requires async pre-warm and potential GPU inference.
-S3_THRESHOLD: float = 0.82
+S3_THRESHOLD: float = 0.8059
 
 _phrase_texts: list[str] = []
 _embedding_index: np.ndarray | None = None  # shape (N, 1024), L2-normalised rows
