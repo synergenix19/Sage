@@ -20,6 +20,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from sage_poc.graph import build_graph
 from sage_poc.config import RESPONDER_MODEL
 from sage_poc.server_helpers import _build_state
+from sage_poc.llm import get_classifier
 
 _log = logging.getLogger(__name__)
 CRISIS_SIGNAL = "[[CRISIS_DETECTED]]"
@@ -109,6 +110,12 @@ class ChatRequest(BaseModel):
 class ExtractProfileRequest(BaseModel):
     session_id: str
     user_id:    str
+
+
+class NameSessionRequest(BaseModel):
+    session_id: str
+    user_id:    str
+    message:    str
 
 
 @app.post("/chat")
@@ -276,3 +283,45 @@ async def extract_profile(
         session_id=req.session_id,
     )
     return {"status": "ok", "turns_extracted": turn_count - last_extraction_turn}
+
+
+@app.post("/name-session")
+async def name_session(
+    req: NameSessionRequest,
+    x_sage_api_key: str | None = Header(default=None),
+):
+    _expected_key = os.environ.get("SAGE_API_KEY", "")
+    if _expected_key and (
+        x_sage_api_key is None
+        or not hmac.compare_digest(x_sage_api_key, _expected_key)
+    ):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    if not app.state._db_pool:
+        return {"status": "skipped", "detail": "no database"}
+
+    row = await app.state._db_pool.fetchrow(
+        "SELECT name FROM chat_sessions WHERE id = $1",
+        req.session_id,
+    )
+    if not row or row["name"]:
+        return {"status": "skipped", "detail": "already named"}
+
+    llm = get_classifier()
+    try:
+        response = await llm.ainvoke([
+            {"role": "user", "content": (
+                f'Give this conversation a short title (3-5 words, no quotes, no punctuation):\n\n"{req.message}"'
+            )},
+        ])
+        name = response.content.strip()[:60]
+    except Exception as exc:
+        _log.warning("[name-session] LLM failed: %s", exc)
+        name = req.message[:30]
+
+    await app.state._db_pool.execute(
+        "UPDATE chat_sessions SET name = $1, updated_at = now() WHERE id = $2",
+        name,
+        req.session_id,
+    )
+    return {"status": "ok", "name": name}
