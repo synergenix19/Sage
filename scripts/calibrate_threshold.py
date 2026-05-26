@@ -91,6 +91,10 @@ KNOWN_HITS = [
     # Assertive communication (no 'assertive' or 'communication' keyword)
     ("I always end up saying yes when I mean no and then resent the person for it", "assertive_communication"),
     ("I cannot stand up for myself without it turning into a fight or me backing down", "assertive_communication"),
+
+    # Self-compassion break (no 'self-compassion' or 'Neff' keyword)
+    ("I would never speak to a friend the way I speak to myself, the inner critic is so loud", "self_compassion_break"),
+    ("I feel like I am not allowed to be kind to myself until I fix everything that is wrong", "self_compassion_break"),
 ]
 
 # Messages that should NOT match any skill

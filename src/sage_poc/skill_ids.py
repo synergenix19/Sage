@@ -17,4 +17,5 @@ SKILL_REGISTRY = [
     "psychoed_stress",
     "values_clarification",
     "assertive_communication",
+    "self_compassion_break",
 ]

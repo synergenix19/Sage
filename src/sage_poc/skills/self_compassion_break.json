@@ -1,0 +1,149 @@
+{
+  "skill_id": "self_compassion_break",
+  "skill_name": "Self-Compassion Break",
+  "skill_type": "structured",
+  "self_evolution": "manual_only",
+  "evidence_base": "Neff (2011) Self-Compassion: The Proven Power of Being Kind to Yourself; Germer (2009) The Mindful Path to Self-Compassion; Neff & Germer (2013) MSC program; NICE-endorsed mindful self-compassion protocol",
+  "target_presentations": [
+    "self-compassion",
+    "being kind to myself",
+    "I'm too hard on myself",
+    "inner critic",
+    "self-criticism",
+    "self-blame",
+    "compassion break",
+    "treating myself like a friend",
+    "قاسي على نفسي",
+    "ما أرحم نفسي",
+    "أنا أسوأ عدوي",
+    "دايم ألوم نفسي",
+    "كيف أكون رحيم مع نفسي",
+    "ما أتقبل نفسي",
+    "الانتقاد الداخلي",
+    "أكون لطيف مع نفسي"
+  ],
+  "semantic_description": "Self-compassion break protocol. Neff three-component self-compassion technique: mindfulness, common humanity, self-kindness. MSC mindful self-compassion pause. Compassion fatigue antidote. Self-kindness versus self-judgment. Common humanity versus isolation. Mindfulness versus over-identification. Neff and Germer mindful self-compassion program. The compassionate friend technique. Self-compassion pause. Treating yourself as you would treat a good friend. Inner critic and self-compassion. Soften, soothe, allow method. Self-compassion break walkthrough. The self-compassion mantra. Three-step compassion pause technique.",
+  "steps": [
+    {
+      "step_id": "mindfulness",
+      "goal": "Help the user notice and acknowledge their pain without suppressing it or amplifying it. Name what is happening right now, clearly and without catastrophizing. This is a moment of suffering, and it is real.",
+      "technique": "Mindful acknowledgment of present-moment pain",
+      "technique_description": "Guide the user to simply notice what they are feeling right now, without pushing it away and without dramatizing it. The goal is to name the experience honestly, using language that acknowledges pain without deepening the spiral. Avoid clinical language. Keep it close to lived experience. Ask the user to place one hand on their chest if it feels comfortable, a small physical anchor for the present moment. The core teaching is: you do not have to fix this right now, you do not have to explain it, you do not have to justify it. You only have to notice it. Invite them to say something like, 'this is a moment of difficulty,' or 'something hard is happening right now.' These simple phrases do not dramatize and do not minimize. They just acknowledge. Do not rush. Allow a breath. Do not move on until the user has named something, even briefly.",
+      "tone": "slow, gentle, grounded, unhurried",
+      "contraindications": "Do NOT push for precise emotional vocabulary. Do NOT interpret what they are feeling before they have named it. Do NOT minimize with reassurance ('it will be okay'). Do NOT catastrophize with the user. If the user is tearful or overwhelmed, simply stay present. Do NOT skip to the next step. Acknowledgment must come first.",
+      "completion_criteria": "The user has named or acknowledged their pain in some form, even in a single word or phrase. 'Hard', 'heavy', 'I don't know', 'a lot' are all acceptable. Any honest acknowledgment, however brief, is sufficient to proceed. Deflection ('I'm fine') requires one gentle prompt before moving on.",
+      "examples": [
+        "Before we do anything else, let us just pause for a moment. If it feels comfortable, you can place one hand on your chest, gently. Then just notice: what is happening inside right now? You do not need to fix it or explain it. Just notice it is there. What would you call what you are feeling?",
+        "Sometimes the most powerful thing we can do is simply acknowledge that something hard is happening, without rushing past it. Right now, in this moment, there is something difficult present for you. Can you say that out loud in some way, even just to yourself? 'This is hard.' 'Something is hurting right now.' Whatever feels true.",
+        "I want to try something with you, something that comes from a practice called mindful self-compassion. The first step is the simplest and often the hardest: just noticing. Not solving, not explaining, just honestly seeing what is here. What is here for you right now? What word or phrase comes closest?",
+        "قبل ما نسوي أي شي، خلينا نوقف لحظة. لو ما فيه مانع، حط يدك على صدرك بهدوء. وبس لاحظ: وش اللي تحس فيه الحين؟ ما تحتاج تصلحه أو تفسره. بس شوف: وش موجود؟",
+        "في بعض الأحيان، أول خطوة هي الأصعب: إننا نعترف بإن في شي صعب يصير، بدون ما نتجاهله أو نبالغ فيه. الحين، في هذي اللحظة، في شي ثقيل عليك. ممكن تسميه؟ ولو كلمة وحدة؟",
+        "ما نبي نهرب من اللي تحس فيه ولا نغرق فيه. بس نشوفه بوضوح. وش تقدر تقول الحين عن اللي تمر فيه؟"
+      ]
+    },
+    {
+      "step_id": "common_humanity",
+      "goal": "Bring in the recognition that suffering is a shared human experience, not a personal failure or sign that something is uniquely wrong with the user. They are not alone in this moment.",
+      "technique": "Common humanity reframe, suffering as shared experience",
+      "technique_description": "Gently introduce the idea that what the user is experiencing, however personal and painful it feels, is part of being human. This is not a technique for minimizing the pain or making comparisons. It is an invitation to release the additional layer of isolation that often accompanies suffering: the belief that 'I am the only one who feels this way' or 'something is wrong with me for feeling this.' That belief compounds the pain. The common humanity frame says: many people, across many different lives, feel what you are feeling right now. This is not unique to you. This does not make your pain smaller. It makes you less alone in it. You can acknowledge what is hard while also knowing that you are part of a wider human experience of difficulty, loss, shame, exhaustion, or whatever is present for them. Offer this gently, not as a lecture. One sentence is enough. Then ask the user if this lands for them, if it shifts anything, even slightly.",
+      "tone": "warm, gentle, unhurried, non-comparative",
+      "contraindications": "Do NOT say 'other people have it worse' or use comparison to minimize the user's pain. Do NOT lecture about shared humanity in a philosophical or detached way. Do NOT skip this step if the user has expressed shame or isolation, this step is particularly important in those cases. Do NOT rush to step 3 without checking whether this step has landed.",
+      "completion_criteria": "The user has engaged with the idea of common humanity in some way, even briefly. A nod, a 'yes', or 'I didn't think of it that way' is sufficient. Dismissal ('but mine is different') requires one gentle clarification before moving on. The point is not agreement but a moment of contact with the idea.",
+      "examples": [
+        "Here is something that is easy to forget in a hard moment: you are not alone in this. Not because your situation is not unique, it is, but because suffering itself is part of being human. Right now, as you feel this, other people in other places are feeling something very similar. You are not somehow more broken or more flawed for being in pain. This is what pain feels like. Does that land for you at all?",
+        "One of the things that makes difficult feelings harder is the sense that we should not be feeling them, that something is wrong with us for struggling. But struggling is part of being human. Every person who has ever lived has known moments of this kind of weight. You are not the exception who should somehow be immune. You are a person in a hard moment, and that is entirely human. Can you feel that, even slightly?",
+        "The suffering you are experiencing right now is part of being human. You are not alone in this. This does not make it easier, but it does mean you are not separated from everyone else by your pain. You are connected to them through it.",
+        "شي سهل ننساه لما نكون في لحظة صعبة: إننا مو لحالنا. مو لأن موقفك مو خاص، هو خاص، لكن لأن الألم نفسه جزء من كوننا بشر. الحين، وأنت تحس بهذا، ناس ثانية في أماكن مختلفة يحسون بشي قريب جداً. أنت مو مكسور أكثر من الثاني. هذا هو الألم. هل هذا الكلام يوصل لك؟",
+        "اللي تمر فيه الحين هو جزء من تجربة الإنسان. الألم، الإرهاق، اللوم، الثقل، كل الناس عرفوا هذي اللحظات. أنت مو استثناء المفروض يكون محصن منها. أنت إنسان في لحظة صعبة، وهذا طبيعي تماماً.",
+        "ما أنت مو لحالك في هذا. كثير من الناس يحسون بنفس الشي اللي تحس فيه الحين، ما يعني إن ألمك صغير، يعني إنك جزء من الإنسانية المشتركة."
+      ]
+    },
+    {
+      "step_id": "self_kindness",
+      "goal": "Invite the user to offer themselves the same warmth they would offer a close friend in pain. A brief compassionate gesture or phrase directed inward, grounded in what they themselves would say to someone they love.",
+      "technique": "Self-kindness: the compassionate friend prompt",
+      "technique_description": "The anchor question for this step is: 'What would you say to a good friend who was feeling exactly what you are feeling right now? Can you say that to yourself?' This question works because most people can access compassion for others far more easily than compassion for themselves. By first asking what they would say to a friend, you invite them to generate the compassionate content themselves, then redirect it inward. Do not supply the compassionate phrase for the user. Ask the question and wait. If they struggle to answer ('I don't know' or 'nothing'), reflect that back gently: 'Notice that. You would know what to say to someone you care about. That same care is available to you.' You may also invite a physical gesture: placing a hand on the heart or chest, if it feels comfortable, as a concrete expression of self-directed care. Keep the gesture optional and low-pressure. Do not make it strange or overly ritualistic. For users who are resistant to self-kindness phrases, offer an alternative: 'You do not have to speak kindly to yourself yet. Can you simply decide not to speak harshly to yourself for the next few minutes?'",
+      "tone": "warm, unhurried, inviting, non-coercive",
+      "contraindications": "Do NOT supply the compassionate phrase. The user must generate it. Do NOT push if the user expresses strong resistance ('I don't deserve kindness', 'this feels fake'). Resistance to self-compassion is itself significant. Acknowledge it and soften, do not push through it. Do NOT make the hand-on-heart gesture mandatory or describe it as essential. Do NOT end the session without checking how the user feels after all three steps, even briefly.",
+      "completion_criteria": "The user has either offered themselves a compassionate phrase or gesture, or has engaged meaningfully with the question of what they would say to a friend. Partial engagement is sufficient. If they reach for but cannot quite land on self-kindness, acknowledge the reaching as meaningful and close warmly without forcing an outcome.",
+      "examples": [
+        "Here is the question at the heart of this practice: if a close friend, someone you truly care about, came to you feeling exactly what you are feeling right now, what would you say to them? Take a moment. What would you offer them? And can you say that same thing to yourself, right now, in this moment?",
+        "You may find it helpful to place one hand gently on your chest as you do this, a small gesture of care toward yourself. And then, speak to yourself the way you would speak to someone you love who is in pain. What do you want to say?",
+        "If you are finding it hard to say something kind to yourself, that is okay. That difficulty is itself worth noticing. For now, you do not have to speak kindly. Can you simply decide, for the next few minutes, not to speak harshly to yourself? That is a beginning.",
+        "السؤال اللي في قلب هذي الخطوة: لو صديق قريب منك جاك وهو يحس بنفس اللي تحس فيه الحين، وش كنت تقوله له؟ خذ لحظة. وش كنت تعطيه؟ وهل تقدر تقول نفس الشي لنفسك الحين؟",
+        "لو صعب عليك تقول شي لطيف لنفسك، هذا مو مشكلة. هذي الصعوبة نفسها تستاهل تنتبه لها. للحين، ما تحتاج تقول شي جميل. تقدر بس تقرر إنك ما تكلم نفسك بقسوة للدقايق الجاية؟ هذي بداية.",
+        "اللي تعطيه لأخوك أو ولدك لو كان في نفس موقفك، هذا الشي نفسه أنت تستاهله. وش تقدر تقوله لنفسك من هذا المكان؟"
+      ]
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
+      "action": "validate_only",
+      "instruction": "The user is acutely distressed. Do not proceed with self-compassion steps until the emotional intensity has lowered. Just be present. Stay warm and unhurried. Do not attempt the three-step protocol while the user is in acute distress. Return to the current step next turn only if distress has reduced.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance to the self-compassion practice. Some people find the practice unfamiliar, uncomfortable, or culturally misaligned at this point. Offer to pause and simply talk, or explore whether a different approach might suit them better right now. Do not push the practice.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "check_in_micro",
+      "instruction": "The user seems disengaged. Gently check in: is this kind of compassion practice feeling useful right now, or would something else be more helpful? Do not assume disengagement means refusal. It may mean the framing needs to shift, or the pacing needs to slow.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit with warmth and without persuasion. Even pausing to notice what is present, without running from it, is meaningful work. Acknowledge whatever they engaged with in the session.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": {
+        "signal": "self_kindness_rejection_detected",
+        "operator": "==",
+        "value": true,
+        "step": "self_kindness"
+      },
+      "action": "soften_and_hold",
+      "instruction": "Resistance to self-compassion is itself a sign of how much the inner critic has taken hold. Do NOT push the self-kindness step. Acknowledge that this feels difficult, that resistance itself is normal. Simply stay with the user in the discomfort. Return to common humanity: many people find self-compassion the hardest thing to offer themselves. There is no failure here.",
+      "next_step_id": "current"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit skill gracefully if user requests to stop. No persuasion. Acknowledge that pausing to notice what is present, without running from it, is itself meaningful.",
+    "L2": "Add clinician_review flag if user expresses persistent belief that they fundamentally do not deserve kindness or care, consistent with deep shame or identity-level self-rejection.",
+    "L3": "Exit immediately to crisis protocol if any crisis signal is detected during the session.",
+    "L4": "Trigger human handoff if 3 or more crises detected in the last 30 days, or if user explicitly requests a human clinician."
+  },
+  "cultural_overrides": {
+    "shame_and_self_compassion": "In Gulf culture, self-compassion may be perceived as narcissism, weakness, or selfishness (أناني). Frame self-compassion explicitly as NOT self-pity (إشفاق على الذات) and NOT self-indulgence. The concept of rahma (رحمة, divine mercy) offers an Islamic anchor: God is merciful (الرحمن الرحيم) and calls on humans to embody mercy. Being merciful to oneself is consistent with Islamic teaching on rahma. When this concern arises, address it directly rather than skirting it: self-compassion is not indulgence, it is a recognition that you are a human being who carries pain, and that you deserve the same care you would offer to others.",
+    "islamic_framing": "Self-compassion can be grounded in the Islamic concept of treating oneself as an amanah (trust, أمانة) entrusted to you by God. Being harsh and self-destructive violates the amanah of your own soul. Use this frame ONLY when the user has already engaged with religious framing in the conversation, not proactively. If they have referenced God, prayer, or Islamic teaching, this anchor may resonate deeply. If they have not, do not introduce it.",
+    "gender_differences": "Gulf men may find self-kindness phrases embarrassing or culturally alien. Offer alternative framings: 'the strength to acknowledge your own effort' or 'giving yourself what you would give a brother or son in pain', language that fits masculine honour codes without requiring explicit tenderness. For Gulf women: they may be more comfortable with the friend metaphor, but may also carry more shame load requiring gentler pacing. Check the framing before assuming which resonates. Ask rather than assume."
+  }
+}
