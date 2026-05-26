@@ -1,23 +1,27 @@
 """LLM-callable tool: retrieve validated mental health knowledge (v7 §6.5.2).
 
-Architecture note: this tool shares the same RAG pipeline as Node 6
-(knowledge_retrieve) but is invoked by the LLM on demand rather than by the
-graph router. The LLM calls this when the user asks a factual question that
-requires clinical accuracy — not for emotional support queries.
+Upgraded from static dict to PostgresKnowledgeRepository (hybrid BM25+vector).
+Falls back to {passages: [], abstain: True} when the DB pool is unavailable
+(test environments, offline mode) — never raises, never blocks the tool loop.
 
-POC implementation: wraps the static KNOWLEDGE_DICT (10 entries, substring match).
-Production target: Azure AI Search hybrid BM25+vector with BGE-M3 reranker,
-query rewriting, and citation metadata from a populated knowledge index.
-
-Contract: when abstain=true, the LLM must acknowledge uncertainty and not
-fabricate an answer. The abstain flag is the safety valve against hallucination
-on clinical facts.
+knowledge_source in state is set by freeflow_respond after the tool loop,
+not by this tool directly (tools return to LLM, not to state).
 """
 from __future__ import annotations
 import json
+import logging
 from langchain_core.tools import tool
+from sage_poc.knowledge.postgres_repository import PostgresKnowledgeRepository
 
-from sage_poc.knowledge import lookup_knowledge
+_log = logging.getLogger(__name__)
+
+
+def _get_pool():
+    try:
+        from server import app  # noqa: PLC0415
+        return getattr(app.state, "_db_pool", None)
+    except Exception:
+        return None
 
 
 @tool
@@ -26,16 +30,25 @@ async def knowledge_lookup(query: str) -> str:
 
     Call this when the user asks a factual question about mental health,
     therapy modalities, psychological concepts, or evidence-based treatment.
-    Do NOT call for personal/emotional support — only for factual questions
-    where clinical accuracy matters (e.g. 'what is CBT?', 'what causes burnout?').
+    Do NOT call for personal or emotional support queries.
 
-    When the returned JSON has abstain=true, tell the user you don't have
+    When the returned JSON has abstain=true, tell the user you do not have
     specific information on that topic. Do not invent clinical facts.
 
     Args:
         query: The user's factual question (1-2 sentences).
     """
-    result = lookup_knowledge(query)
-    if result is None:
-        return json.dumps({"result": None, "source": None, "abstain": True})
-    return json.dumps({"result": result, "source": "knowledge_base_v1", "abstain": False})
+    pool = _get_pool()
+    if pool is None:
+        return json.dumps({"passages": [], "abstain": True})
+
+    try:
+        repo = PostgresKnowledgeRepository(pool)
+        result = await repo.retrieve(query, language="en", top_k=5)
+        return json.dumps({
+            "passages": [p.to_dict() for p in result.passages],
+            "abstain": result.abstain,
+        })
+    except Exception as exc:
+        _log.warning("[knowledge_lookup] retrieval failed: %s", exc)
+        return json.dumps({"passages": [], "abstain": True})
