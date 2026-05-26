@@ -112,3 +112,10 @@ def test_cultural_overrides_null_coerced_to_empty_dict():
     skill = Skill.model_validate(raw)
     assert skill.cultural_overrides == {}
     assert isinstance(skill.cultural_overrides, dict)
+
+
+def test_cbt_thought_record_has_cultural_overrides():
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("cbt_thought_record")
+    assert isinstance(skill.cultural_overrides, dict)
+    assert len(skill.cultural_overrides) > 0, "cultural_overrides must be populated, not empty"

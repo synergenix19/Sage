@@ -164,5 +164,9 @@
     "L2": "Add clinician_review flag if trauma or substance mention detected",
     "L3": "Exit immediately to crisis protocol if any crisis signal",
     "L4": "Trigger human handoff if 3+ crises detected in last 30 days"
+  },
+  "cultural_overrides": {
+    "shame_honour": "When the user frames self-blame in terms of family honour or shame, acknowledge the collective dimension of the distress before moving to individual cognitive work. Do not bypass the relational layer.",
+    "religious_self_blame": "If the user blames themselves in a religious frame ('Allah is punishing me'), do not challenge the religious belief. Validate the pain, then gently note that Islamic scholars broadly consider self-compassion an obligation (رحمة بالنفس). Never argue theology."
   }
 }
