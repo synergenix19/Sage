@@ -87,6 +87,10 @@ KNOWN_HITS = [
     # Values clarification (no 'values' or 'ACT' keyword)
     ("I feel like I am living someone else's life and not my own", "values_clarification"),
     ("I do not know what actually matters to me anymore or what direction to go in", "values_clarification"),
+
+    # Assertive communication (no 'assertive' or 'communication' keyword)
+    ("I always end up saying yes when I mean no and then resent the person for it", "assertive_communication"),
+    ("I cannot stand up for myself without it turning into a fight or me backing down", "assertive_communication"),
 ]
 
 # Messages that should NOT match any skill

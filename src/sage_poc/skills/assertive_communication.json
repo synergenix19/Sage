@@ -1,0 +1,151 @@
+{
+  "skill_id": "assertive_communication",
+  "skill_name": "Assertive Communication Training",
+  "skill_type": "structured",
+  "self_evolution": "manual_only",
+  "evidence_base": "Wolpe (1990) The Practice of Behavior Therapy; Alberti & Emmons (2008) Your Perfect Right; Smith (1975) When I Say No I Feel Guilty (DESC model)",
+  "target_presentations": [
+    "can't say no",
+    "setting limits",
+    "saying no",
+    "assertiveness",
+    "express myself",
+    "assertive communication",
+    "setting boundaries",
+    "I keep saying yes",
+    "how to say no",
+    "ما أقدر أقول لا",
+    "كيف أعبر عن نفسي",
+    "دايم أقول نعم وأنا ما أبي",
+    "أبي أتعلم أقول لا",
+    "التعبير عن رأيي",
+    "كيف أرفض بدون ما أجرح احد",
+    "تواصل حازم",
+    "أقول رأيي"
+  ],
+  "semantic_description": "Assertiveness training protocol. DESC formula: Describe, Express, Specify, Consequence. Assertive communication technique. Passive versus assertive versus aggressive communication styles. Communication assertiveness training. Assertive self-expression. Setting limits. Saying no with clarity. The art of the assertive request. Interpersonal effectiveness skills. DESC communication formula application. Wolpe assertiveness training. Assertive boundary-setting protocol. Role-play rehearsal for assertive communication. Communication style identification and training. Expressing needs directly. The no-guilt assertive refusal technique. Smith assertive communication protocol.",
+  "steps": [
+    {
+      "step_id": "understand_assertiveness",
+      "goal": "Distinguish assertive, passive, and aggressive communication styles. Establish that assertiveness is not disrespect, it is clarity and honesty. Use Gulf-sensitive framing: assertiveness as wisdom and strength, not rebellion. Validate why saying no has felt impossible.",
+      "technique": "Psychoeducation and communication style identification",
+      "technique_description": "Introduce the three communication styles, passive, assertive, and aggressive, through concrete examples the user can recognise in their own life. The key teaching is that assertiveness is not the same as aggression or selfishness. It is the middle path: clear, respectful, and honest. In Gulf relational context, frame assertiveness as mature self-leadership and as an expression of self-respect, not as defiance of family or social norms. Validate that saying no has carried real costs for this person, whether social disapproval, family conflict, or internal guilt. That experience is legitimate. Do not minimize it. Invite the user to name a situation where they wished they had been able to express themselves differently. Use this as the anchor for the rest of the skill. One example at a time. Do not lecture.",
+      "tone": "warm, validating, psychoeducational, culturally grounded",
+      "contraindications": "Do NOT use individualistic Western framing that positions family and community obligations as obstacles to assertiveness. Do NOT suggest that the user has been weak or wrong for struggling with this. Do NOT frame assertiveness as confrontation. Do NOT rush past the validation phase into the formula. If the user reveals a situation where they were punished for expressing themselves, pause and assess safety before continuing.",
+      "completion_criteria": "The user has engaged with the distinction between passive, assertive, and aggressive styles and has named at least one real situation where assertiveness felt difficult or impossible. A response like 'yes, with my mother, I can never say what I actually want' is sufficient. Vague agreement without a named situation requires one more question.",
+      "examples": [
+        "There are three ways we tend to respond when someone asks something of us that we cannot or do not want to give. The passive response: we say yes when we mean no, and carry the resentment alone. The aggressive response: we push back in a way that damages the relationship. And then there is the assertive response: we express what we need clearly, honestly, and with respect for the other person. Not rebellion, not conflict, just clarity. Which of these patterns do you recognise most in yourself?",
+        "I want to name something important before we go further. Saying no, or expressing what you actually need, can feel impossible, especially when you love the people around you and do not want to hurt them or create conflict. That feeling makes complete sense. It is not weakness. It is care. The question is whether there is a way to still be caring and also be honest about your needs. Can you think of one situation, maybe recently, where you wished you had been able to say what you actually felt?",
+        "In my experience, people who struggle to say no are often the ones who care most about others. The very thing that makes saying no hard, your sense of responsibility and love for your family, is also a strength. What we are going to look at is how to channel that care into honest communication, rather than carrying it silently.",
+        "فيه ثلاث طرق نتعامل فيها مع الطلبات اللي ما نقدر أو ما نبي نسويها: الطريقة السلبية، نقول نعم وأنا في داخلنا نبي نقول لا ونحمل الزعل لحالنا. الطريقة العدوانية، نرفض بطريقة تأذي العلاقة. والطريقة الحازمة، نعبر عن احتياجنا بوضوح واحترام. مو تمرد، مو مشكلة، بس صراحة بأدب. وش الأسلوب اللي تشوف نفسك فيه أكثر؟",
+        "قبل ما نكمل، أبي أعترف بشي. إن ما تقدر تقول لا لأهلك أو لناس قريبين منك مو معناته ضعف. العكس، الناس اللي يصعب عليهم يقولوا لا غالباً هم أكثر الناس اهتماماً بالثاني. السؤال هو: كيف نحافظ على هذا الاهتمام مع الصدق في التعبير عن حالنا؟ ممكن تفكر في موقف قريب حسيت فيه إنك ما قدرت تقول اللي تحس فيه؟",
+        "الصراحة في التعبير مو معناتها الغطرسة أو قلة الأدب. في تراثنا الإسلامي، التعبير عن الحق والمطالبة بالإنصاف هو من صفات الشخص الحكيم، مو المتمرد. كيف تشوف الفرق؟"
+      ]
+    },
+    {
+      "step_id": "practice_the_formula",
+      "goal": "Introduce the DESC formula, Describe, Express, Specify, Consequence, and walk the user through applying it to a real situation they choose. Examples emphasize Gulf relational contexts.",
+      "technique": "DESC formula application and behavioural rehearsal",
+      "technique_description": "Introduce the DESC model step by step using the situation the user named in step one. Do not present all four steps at once as a list. Walk through each element collaboratively, asking the user to supply the content. Describe: what is the situation, stated factually, without accusation or blame? Express: what do I feel or need, using 'I' language rather than 'you' accusations? Specify: what exactly am I asking for, one clear, concrete request? Consequence: what will I say about what this means for me or for us, framed as an outcome, not a threat? In Gulf relational contexts, adapt the language to be face-saving and indirect where needed. The DESC formula does not require blunt Western directness. 'I need to think about this' is as valid as 'no'. The goal is honesty within a culturally fitting register. Never present the formula as a script to memorize. It is a structure for thinking.",
+      "tone": "collaborative, practical, encouraging, culturally flexible",
+      "contraindications": "Do NOT present DESC as a rigid script. Do NOT insist on blunt, direct Western-style refusals if the user's cultural context calls for face-saving indirect language. Do NOT skip the 'Specify' step, it is the one most users omit and most need. Do NOT allow the 'Consequence' step to become a threat. Frame it as an outcome or a statement of impact, not a warning. If the user cannot generate the content for any step, offer one example and ask them to adapt it to their own words.",
+      "completion_criteria": "The user has worked through all four elements of DESC applied to a real situation, even approximately. A rough, imperfect version in their own words is better than a polished version supplied by the system. They should be able to say, in some form, what the situation is, what they feel or need, what they are asking for, and what it means to them. If any element is missing, prompt for it once before moving on.",
+      "examples": [
+        "Let me walk you through a way of structuring what you want to say. It is called DESC. Describe, Express, Specify, Consequence. We will go through it using the situation you described. First, Describe: what is the actual situation, just the facts, no blame? Try to state it in one sentence. What happened or keeps happening?",
+        "Good. Now the second part: Express. Not what they did wrong, but what you feel or what you need. Starting with 'I' rather than 'you'. So instead of 'you always put pressure on me', it might be 'I feel overwhelmed when I am asked to do more than I can manage'. What would your version of that sound like?",
+        "Now Specify. This is the part most of us skip, and it is the most important. What exactly are you asking for? One clear, specific request. Not 'I need more respect' but 'I am asking for two days to think before I give you an answer'. What is your specific ask?",
+        "الـ DESC طريقة لتنظيم اللي تبي تقوله. أربع خطوات: صف الموقف، عبر عن حاجتك، حدد طلبك، واذكر النتيجة. خلينا نطبقها على الموقف اللي ذكرته. أول شي، صف: وش اللي يصير بالظبط؟ بدون لوم، بس الحقائق. ممكن تقول الجملة هذي؟",
+        "تمام. الخطوة الثانية: عبر عن حاجتك. مو عن غلطة الثاني، عن اللي تحس فيه أنت. بدل ما تقول 'أنت دايم تضغط علي'، ممكن تقول 'أنا أحس بضغط كبير لما يُطلب مني بدون وقت أفكر'. وش يكون نسختك من هذي الجملة؟",
+        "الخطوة الثالثة هي اللي أغلبنا يتخطاها: حدد طلبك. مو 'أبي احترام أكثر'، بل 'أبيك تعطيني يومين قبل ما تنتظر ردي'. شي واحد، واضح، ومحدد. وش هو طلبك؟"
+      ]
+    },
+    {
+      "step_id": "plan_a_real_situation",
+      "goal": "Help the user identify one specific real situation where they want to be more assertive. Plan what they will say. Rehearse it in the session. Build their confidence before they face it.",
+      "technique": "Assertive communication planning and in-session rehearsal",
+      "technique_description": "Consolidate the learning by helping the user apply it to one real, upcoming situation they are likely to face. This may be the same situation from step one, or a different one they nominate. Help them draft their DESC-structured response in their own words. Then invite them to rehearse it, saying it out loud or writing it, as if they were in the moment. Anticipate the responses they are most afraid of, the guilt, the other person's reaction, the silence. Name these ahead of time so they feel less surprising. Validate that assertiveness rarely feels good in the moment, especially the first few times. The discomfort is not evidence that it is wrong. Help them identify one anchor word or phrase they can return to when they feel the pull to collapse back into people-pleasing. Close with genuine encouragement grounded in what they have already demonstrated in this session.",
+      "tone": "warm, grounded, hopeful, preparatory, honest about difficulty",
+      "contraindications": "Do NOT tell the user that assertiveness will be easy or that the other person will respond well. Do NOT rehearse a script that is too polished or formal, it will not hold under emotional pressure. Do NOT ignore the possibility that the relationship context makes assertiveness genuinely risky. If the user expresses fear of real consequences, not just discomfort, pause and assess whether this is a safety concern before continuing. Do NOT end the session without naming the likely discomfort they will feel and normalizing it explicitly.",
+      "completion_criteria": "The user has named one specific upcoming situation, drafted or verbalized an assertive response, and identified what they will do when they feel the pull to back down. A concrete commitment is not required, but a verbalized plan is. 'I am going to say something like this when my manager asks me to stay late again' is sufficient.",
+      "examples": [
+        "We have done the hard thinking. Now let us make this real. Is there a specific situation coming up, something you actually have to face in the next few days, where you want to try expressing yourself differently? It does not have to be the biggest situation. In fact, starting with a medium-difficulty one is usually smarter.",
+        "Let us run through what you would actually say. Use the DESC structure, but in your own words, the way you would actually speak to this person. Do not aim for perfect. Aim for honest and clear. Say it out loud to me as if you were in that moment. I will not judge it. We are just practicing.",
+        "Here is something important to know before you go into this: the first time you say something assertive, you will probably feel guilty, or scared, or like you have done something wrong. That feeling is normal. It is your nervous system catching up with a new pattern. The guilt is not evidence that assertiveness was wrong. It is evidence that you are doing something new. What will you say to yourself in that moment to stay grounded?",
+        "الحين خلينا نحول اللي تعلمته لخطة حقيقية. فيه موقف قريب في حياتك تحتاج فيه تعبر عن نفسك بشكل مختلف؟ مو لازم يكون أصعب موقف عندك. الأفضل تبدأ بشي في المنتصف في الصعوبة.",
+        "جرب تقول لي اللي ستقوله للشخص الثاني، بكلامك أنت، بالطريقة اللي ستكلمه فيها فعلاً. مو لازم يكون مثالياً. اللي يهم أنه صادق وواضح. قوله لي وكأنك في اللحظة تلك.",
+        "شي مهم تعرفه قبل ما تروح: أول مرة تقول شي حازم، على الأغلب بتحس بذنب أو خوف. هذا الإحساس طبيعي، ما معناه إنك غلطت. معناه إنك تسوي شي جديد. وش اللي ستقوله لنفسك في تلك اللحظة عشان تثبت على موقفك؟"
+      ]
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
+      "action": "validate_only",
+      "instruction": "The user is acutely distressed. Do not continue assertiveness training. Validate their experience fully and stay present. Assertiveness work requires psychological safety. Return to normal step next turn only if distress has reduced.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance to assertiveness training. Some people find the approach too confronting or too technique-focused at this point. Offer to pause and just talk, or explore whether a different approach might suit them better right now. Do not push the training.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "check_in_micro",
+      "instruction": "The user seems disengaged. Gently check in: is this kind of structured communication practice feeling useful right now, or would something else be more helpful? Do not assume disengagement means refusal. It may mean the framing needs to shift.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit with warmth and without persuasion. Even recognizing the communication patterns and naming what you want to change is meaningful work. Acknowledge whatever progress they made in the session.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": {
+        "signal": "coercive_relationship_indicators_detected",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "flag_safety_concern",
+      "instruction": "The user is not describing difficulty with assertiveness, they may be describing a controlling or unsafe relationship. Do NOT continue the assertiveness training protocol as designed. Validate first. Do not normalize the situation. Gently explore safety: is this a relationship where expressing needs has led to harm? Add clinician_review flag. Offer to focus on safety rather than communication technique.",
+      "next_step_id": "current"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit skill gracefully if user requests to stop. No persuasion. Acknowledge that naming communication patterns and beginning to practice is already meaningful work.",
+    "L2": "Add clinician_review flag if the user describes persistent fear of consequences for self-expression, or emotional or physical harm in relationships where assertiveness would apply. Coercive control indicators override the assertiveness training protocol entirely.",
+    "L3": "Exit immediately to crisis protocol if any crisis signal is detected during the session.",
+    "L4": "Trigger human handoff if 3 or more crises detected in the last 30 days, or if user explicitly requests a human clinician."
+  },
+  "cultural_overrides": {
+    "family_hierarchy_ird": "In Gulf Arab culture, maintaining family harmony and honour (ird) takes precedence over individual self-expression. Assertiveness must be framed as working within this framework, not against it. The goal is not to challenge hierarchy but to express needs with wisdom and respect. Frame assertiveness as mature leadership of self, not rebellion. A person who can express their needs clearly and calmly, without escalating into conflict, is demonstrating strength of character and emotional maturity, qualities that command respect in Gulf relational culture. The DESC formula should be presented as a tool for preserving relationships through honest communication, not a tool for defying them.",
+    "indirect_communication_norms": "Gulf communication culture values indirect, face-saving expression. Direct refusals can feel culturally alien and even disrespectful in many relational contexts. Adapt the DESC formula to allow softer, more culturally aligned phrasing. 'I need to think about this' is as valid as 'no'. 'This is difficult for me' is as valid as 'I do not want to'. Validate that their indirect style is not weakness, it is cultural competence. Assertiveness in Gulf context can use softened, honorific, and face-saving language and still be genuinely assertive. The measure of assertiveness is not directness of language but honesty of communication. A face-saving refusal that is genuinely communicated is more assertive than a blunt refusal that is never delivered.",
+    "gender_dynamics": "For women in Gulf contexts, assertiveness may carry different costs and risks than for men. Social expectations, family structure, and relational consequences can make assertiveness genuinely more costly for women in some contexts. For men, the framing of assertiveness as strength and leadership may be more immediately accessible, connecting to existing cultural scripts around masculine self-mastery and wisdom. For women, framing assertiveness as wisdom, self-care, and personal integrity may be more resonant, bypassing the concern that assertiveness is unfeminine or disrespectful. Do NOT apply a single gender-neutral assertiveness model without first checking which framing fits the user's own experience and context. Ask, rather than assume.",
+    "assertiveness_as_strength": "Pre-empt the common concern that assertiveness is disrespectful or un-Islamic before it becomes a barrier to engagement. Islamic scholarly tradition explicitly validates the right to fair treatment (حق) and the duty to speak truth. Concepts such as haqq (right), adl (justice in relationships), and the Prophetic tradition of speaking truth even when difficult all support the idea that honest self-expression is not just permitted but may be an ethical obligation. Use light, non-prescriptive references to these concepts if the user is coming from a religious frame and if it fits naturally into the conversation. Do not theologize or lecture. Hold the frame that assertiveness, properly understood, is consonant with Islamic values of justice, honesty, and self-respect."
+  }
+}
