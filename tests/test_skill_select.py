@@ -130,3 +130,17 @@ def test_skill_executor_sets_resolved_when_post_crisis_skill_completes():
     assert result.get("crisis_state") == "resolved", (
         "crisis_state must transition to 'resolved' when post_crisis_check_in finishes"
     )
+
+
+@pytest.mark.asyncio
+async def test_dbt_tipp_keyword_match():
+    state = _ss_state(message_en="I need to calm down fast, I'm overwhelmed and losing control")
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] == "dbt_tipp"
+    assert result["skill_match_method"] == "keyword"
+
+@pytest.mark.asyncio
+async def test_dbt_tipp_keyword_arabic():
+    state = _ss_state(message_en="محتاج أهدى بسرعة", detected_language="ar")
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] == "dbt_tipp"

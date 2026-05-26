@@ -11,4 +11,5 @@ SKILL_REGISTRY = [
     "stop_technique",
     "progressive_muscle_relaxation",
     "safe_place_visualization",
+    "dbt_tipp",
 ]

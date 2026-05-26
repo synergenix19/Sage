@@ -149,3 +149,34 @@ def test_post_crisis_check_in_steps_have_technique_description():
         assert step.technique_description, (
             f"step '{step.step_id}' is missing technique_description"
         )
+
+
+def test_dbt_tipp_loads_and_validates():
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("dbt_tipp")
+    assert skill.skill_id == "dbt_tipp"
+    assert skill.skill_type == "structured"
+    assert len(skill.steps) == 4
+    assert skill.steps[0].step_id == "temperature"
+    assert skill.steps[1].step_id == "intense_exercise"
+    assert skill.steps[2].step_id == "paced_breathing"
+    assert skill.steps[3].step_id == "check_in"
+
+def test_dbt_tipp_all_steps_fully_populated():
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("dbt_tipp")
+    for step in skill.steps:
+        assert step.technique_description, f"step '{step.step_id}' missing technique_description"
+        assert step.contraindications, f"step '{step.step_id}' missing contraindications"
+        assert step.completion_criteria, f"step '{step.step_id}' missing completion_criteria"
+        arabic_examples = [e for e in step.examples if any('؀' <= c <= 'ۿ' for c in e)]
+        assert arabic_examples, f"step '{step.step_id}' has no Arabic examples"
+
+def test_dbt_tipp_has_cultural_overrides():
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("dbt_tipp")
+    assert len(skill.cultural_overrides) > 0
+
+def test_dbt_tipp_in_skill_registry():
+    from sage_poc.skill_ids import SKILL_REGISTRY
+    assert "dbt_tipp" in SKILL_REGISTRY

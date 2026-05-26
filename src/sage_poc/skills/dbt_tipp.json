@@ -1,0 +1,165 @@
+{
+  "skill_id": "dbt_tipp",
+  "skill_name": "DBT TIPP",
+  "skill_type": "structured",
+  "self_evolution": "manual_only",
+  "evidence_base": "Linehan (1993); DBT Skills Training Manual, Distress Tolerance Module",
+  "target_presentations": [
+    "overwhelmed",
+    "I'm overwhelmed",
+    "im overwhelmed",
+    "can't calm down",
+    "cant calm down",
+    "need to calm down fast",
+    "I need to calm down",
+    "feeling out of control",
+    "losing control",
+    "emotions too intense",
+    "I'm too activated",
+    "flooded",
+    "unbearable feelings",
+    "feelings are unbearable",
+    "I can't handle this",
+    "cant handle this",
+    "I'm losing it",
+    "im losing it",
+    "emotions are too much",
+    "urge to act out",
+    "TIPP",
+    "tipp technique",
+    "distress tolerance",
+    "cold water technique",
+    "I'm about to explode",
+    "im about to explode",
+    "شعور طاغي",
+    "ما أقدر أتحكم",
+    "مشاعري أقوى مني",
+    "محتاج أهدى بسرعة",
+    "ما أتحمل",
+    "غاضب جداً",
+    "أشعر إني سأنفجر",
+    "مشاعري فوق طاقتي"
+  ],
+  "semantic_description": "DBT distress tolerance TIPP protocol: Temperature-Intensity-Paced breathing-Progressive muscle relaxation. Cold water exposure to activate the mammalian dive reflex and rapidly lower heart rate. Brief intense exercise to metabolise adrenaline and cortisol. Extended-exhale ratio breathing to engage the parasympathetic nervous system (5-count inhale, 7-count exhale). Progressive muscle tension-and-release cycle. Linehan (1993) DBT Skills Training Manual, distress tolerance module, Crisis Survival Skills. Physiological downregulation before cognitive processing. For states of acute emotional flooding where the nervous system is too activated for talk-based processing.",
+  "cultural_overrides": {
+    "temperature_adjustment": "Cold water face submersion may not be comfortable for users wearing hijab or niqab. Always offer cold water on wrists or back of neck as an equally effective alternative. Never present face submersion as the only option.",
+    "exercise_modesty": "Jumping jacks or vigorous movement may not be appropriate in formal settings or traditional clothing. Offer desk pushups, rapid seated leg lifts, squeezing fists hard, or brisk stair-climbing as alternatives. The goal is a brief heart rate rise, not a specific exercise.",
+    "halal_framing": "Paced breathing has documented support in Islamic tradition. If a user expresses unfamiliarity with breathwork, frame it as controlled breathing without any mindfulness or meditative language."
+  },
+  "steps": [
+    {
+      "step_id": "temperature",
+      "goal": "Use cold water to activate the mammalian dive reflex and rapidly lower physiological arousal",
+      "technique": "Temperature: cold water application",
+      "technique_description": "Cold water applied to the face, wrists, or back of neck triggers the mammalian dive reflex, which lowers heart rate within 30-60 seconds. This is a physiological interrupt, not a coping thought. The mechanism is involuntary: the body responds to cold regardless of whether the user believes it will work.",
+      "tone": "direct, calm, brief",
+      "contraindications": "Do NOT suggest face submersion as the only option. Wrists and back of neck work equally well and are accessible regardless of clothing. Do NOT recommend for users who have disclosed heart conditions or Raynaud's disease. If water is unavailable, redirect immediately to intense_exercise.",
+      "completion_criteria": "User has applied cold water to any body surface for approximately 30 seconds and reported back. Any acknowledgement of attempting the step counts. Proceed even if the user says the water was not very cold.",
+      "examples": [
+        "Run cold water over your wrists for 30 seconds. If you can splash cold water on your face, even better. What have you got access to right now?",
+        "Get cold water on your skin for 30 seconds: wrists, face, or back of the neck. I will wait.",
+        "جرب تشيل مياه باردة على معصمك أو وجهك لثلاثين ثانية. شو متاح عندك الحين؟",
+        "صب ماء بارد على يدك أو عنقك من الخلف. ثلاثين ثانية بس."
+      ]
+    },
+    {
+      "step_id": "intense_exercise",
+      "goal": "Briefly raise then lower the heart rate to metabolise stress hormones",
+      "technique": "Intensity: brief vigorous exercise",
+      "technique_description": "30-60 seconds of vigorous movement discharges adrenaline and cortisol. After the activity stops, the parasympathetic rebound lowers arousal. The exercise must be vigorous enough to noticeably raise the heart rate.",
+      "tone": "energetic, direct, brief",
+      "contraindications": "Do NOT suggest jumping jacks or running if the user is in a formal setting, wearing traditional clothing, or at a workplace where this is inappropriate. Seated alternatives: press both palms hard against a desk for 30 seconds, rapid seated leg lifts, squeeze fists repeatedly. Do NOT recommend vigorous exercise for users who have disclosed heart conditions or recent physical injury.",
+      "completion_criteria": "User has engaged in any vigorous movement for at least 20-30 seconds. A self-report of a slightly elevated heart rate counts. If the user says they cannot move in their context, acknowledge and skip to paced_breathing.",
+      "examples": [
+        "Do 20 seconds of something vigorous: jumping jacks, running on the spot, or press your palms hard against a desk. Whatever works where you are.",
+        "Stand up and sit down quickly ten times, or do ten fast pushups. Get your heart rate up, then stop.",
+        "اعمل أي حركة قوية لعشرين ثانية. وثب، اضغط يدك على الطاولة بقوة، أو قف واجلس عشر مرات بسرعة.",
+        "اضغط كفوفك على أقرب سطح بكل قوتك لثلاثين ثانية. هذا يكفي."
+      ]
+    },
+    {
+      "step_id": "paced_breathing",
+      "goal": "Slow the breath with an extended exhale to activate the parasympathetic nervous system",
+      "technique": "Paced breathing: 5-7 inhale-exhale ratio",
+      "technique_description": "Inhaling for 5 counts and exhaling for 7 counts extends the exhale beyond the inhale. Longer exhales activate the vagus nerve, triggering the parasympathetic response. The asymmetric ratio is designed to maximise downregulation speed compared to equal-count breathing.",
+      "tone": "slow, calm, pacing the user through each count",
+      "contraindications": "Do NOT rush the breathing instruction. The pacing must be delivered slowly or the user will breathe too fast. If the user has disclosed asthma or breathing difficulties, use a shorter ratio (4:6) or simple slow breathing without a count. Do NOT label this as meditation or mindfulness if the user has expressed discomfort with those terms.",
+      "completion_criteria": "User has completed at least 3-5 breath cycles with the extended exhale. Any self-report of slight calming counts as completion. If the user says the counting makes things worse, switch to 'breathe in slowly, breathe out more slowly' without a count.",
+      "examples": [
+        "Breathe in for 5 counts: 1, 2, 3, 4, 5. Now breathe out for 7 counts: 1, 2, 3, 4, 5, 6, 7. Do this four times. The longer exhale is the key.",
+        "In for 5, out for 7. The exhale longer than the inhale is what calms the nervous system.",
+        "تنفس للداخل مع العد: واحد، اثنين، ثلاثة، أربعة، خمسة. ثم للخارج ببطء: واحد، اثنين، ثلاثة، أربعة، خمسة، ستة، سبعة. كرر أربع مرات.",
+        "شهيق ببطء لخمسة، زفير أطول لسبعة. الزفير أطول من الشهيق هو اللي يهدي جسمك."
+      ]
+    },
+    {
+      "step_id": "check_in",
+      "goal": "Check the user's current state after the TIPP sequence and reflect what shifted",
+      "technique": "Integration: state comparison",
+      "technique_description": "After the physiological sequence, inviting the user to compare their current state to their starting state builds metacognitive awareness of their own regulation capacity. This encodes the memory that TIPP was effective, making it more accessible in future crises.",
+      "tone": "warm, curious, affirming without overclaiming",
+      "contraindications": "Do NOT claim success or tell the user they are better. Ask them. If they say nothing changed, acknowledge the honesty and stay present. Not every technique works every time. Do NOT introduce new content at this step. The skill is complete.",
+      "completion_criteria": "User has offered any reflection on their current state compared to before the sequence. 'A bit better' and 'still pretty bad' both count. No reflection warrants one gentle prompt before accepting silence.",
+      "examples": [
+        "Take a breath. How does your body feel right now compared to when we started?",
+        "You did all of that. What do you notice in yourself right now?",
+        "خذ نفس. كيف تحس الحين مقارنة بأول ما تواصلت؟",
+        "شو تلاحظ في نفسك الحين؟"
+      ]
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 8,
+        "step": "temperature"
+      },
+      "action": "validate_only",
+      "instruction": "Intensity is very high. Do not advance from the temperature step. Re-offer cold water or redirect to wrists or neck. Stay present and pacing.",
+      "next_step_id": "temperature"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 2,
+        "step": "ANY"
+      },
+      "action": "offer_alternative_component",
+      "instruction": "User is resisting the current TIPP component. TIPP is a menu: offer to skip to the paced breathing step or to simply breathe together. Say: 'That component is not working right now, want to skip to the breathing part?'",
+      "next_step_id": "paced_breathing"
+    },
+    {
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "turns": 2,
+        "step": "ANY"
+      },
+      "action": "check_in_micro",
+      "instruction": "User seems disengaged. Check in: is TIPP feeling useful, or would they prefer to just breathe together or talk?",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit with warmth. Getting this far in the sequence was already helpful for the nervous system, even if it did not feel like much.",
+      "next_step_id": "exit"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit skill gracefully if user requests to stop",
+    "L2": "Add clinician_review flag if trauma disclosure or self-harm urge detected during technique",
+    "L3": "L3 is handled by Node 1 (safety_check) before the executor is reached, not by the skill",
+    "L4": "Trigger human handoff if 3+ crises detected in last 30 days, requires cross-session crisis counting (post-Gitex)"
+  }
+}
