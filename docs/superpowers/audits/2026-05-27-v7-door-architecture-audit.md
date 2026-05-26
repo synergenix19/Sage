@@ -45,7 +45,7 @@ These failures existed before V7 work began and are excluded from V7 verdicts.
 - `dbt_tipp` is a valid therapeutic skill (DBT Temperature/Intense exercise/Paced breathing/Paired muscle relaxation) and belongs in the registry
 - The pre-existing test `test_skill_ids_importable_and_complete` is wrong (asserts 12); this is a test maintenance issue, not a registry defect
 
-Skills in registry: `cbt_thought_record`, `grounding_5_4_3_2_1`, `sleep_hygiene`, `post_crisis_check_in`, `box_breathing`, `behavioral_activation`, `worry_time`, `mi_readiness_ruler`, `progressive_muscle_relaxation`, `mindfulness_body_scan`, `journaling_prompts`, `problem_solving`, `dbt_tipp`
+Skills in registry: `cbt_thought_record`, `grounding_5_4_3_2_1`, `sleep_hygiene`, `post_crisis_check_in`, `box_breathing`, `mood_check_in`, `behavioral_activation`, `worry_time`, `mi_readiness_ruler`, `stop_technique`, `progressive_muscle_relaxation`, `safe_place_visualization`, `dbt_tipp`
 
 ---
 
