@@ -1556,6 +1556,50 @@ def test_frustration_hyperbole_does_not_trigger_crisis(frustration_phrase):
     )
 
 
+@pytest.mark.asyncio
+async def test_crisis_response_sets_reescalation_flag_when_already_monitoring():
+    """If crisis_state was monitoring when _crisis_response_node fires, re_escalation_within_monitoring must be True."""
+    import sys; sys.path.insert(0, 'src')
+    from sage_poc.graph import _crisis_response_node
+
+    state = make_e2e_state(
+        "I'm going to do it now",
+        message_en="I'm going to do it now",
+        crisis_state="monitoring",
+        crisis_flags=["s1_self_harm"],
+        is_safe=False,
+        detected_language="en",
+        path=[],
+        turn_count=2,
+    )
+    result = await _crisis_response_node(state)
+    assert result.get("re_escalation_within_monitoring") is True, (
+        "Re-entry into crisis_response while already monitoring must set re_escalation_within_monitoring=True"
+    )
+
+
+@pytest.mark.asyncio
+async def test_crisis_response_sets_reescalation_false_for_initial_crisis():
+    """If crisis_state was not monitoring when _crisis_response_node fires, re_escalation must be False."""
+    import sys; sys.path.insert(0, 'src')
+    from sage_poc.graph import _crisis_response_node
+
+    state = make_e2e_state(
+        "I want to die",
+        message_en="I want to die",
+        crisis_state="none",
+        crisis_flags=["s1_self_harm"],
+        is_safe=False,
+        detected_language="en",
+        path=[],
+        turn_count=1,
+    )
+    result = await _crisis_response_node(state)
+    assert result.get("re_escalation_within_monitoring") is False, (
+        "Initial crisis (crisis_state='none') must not set re_escalation_within_monitoring=True"
+    )
+
+
 def test_build_graph_without_checkpointer():
     from sage_poc.graph import build_graph
     g = build_graph()

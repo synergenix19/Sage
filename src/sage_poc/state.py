@@ -20,6 +20,7 @@ class SageState(TypedDict):
     crisis_state: str              # "none" | "active" | "monitoring" | "resolved"
     s7_result: Optional[str]       # "RECOVERING" | "STILL_DISTRESSED" | "UNCLEAR" | "NEW_CRISIS"
     s7_method: Optional[str]       # "keyword" | "llm"
+    re_escalation_within_monitoring: Optional[bool]  # True when crisis fires while crisis_state was already "monitoring"
     distress_trajectory: list[int]
     engagement_trajectory: list[int]
     conversation_summary: Optional[str]
