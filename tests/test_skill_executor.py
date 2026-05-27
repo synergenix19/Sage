@@ -260,41 +260,36 @@ class TestT7ForTurnsCondition:
                 == _condition_met(cond_without, signal_value, resistance_history=[])
             )
 
-    async def test_evaluate_step_policy_fires_resistance_rule_after_consecutive_turns(self):
+    def test_evaluate_step_policy_fires_resistance_rule_after_consecutive_turns(self):
         """Full evaluate_step_policy path: resistance rule with for_turns=3 fires only
-        after sufficient consecutive turns."""
+        after sufficient consecutive turns. evaluate_step_policy is synchronous;
+        resistance_score is passed directly by the caller."""
         skill = _make_skill(with_resistance_rule=True, for_turns=3)
 
-        # Only 1 prior turn — rule must not fire
-        with patch(
-            "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
-            new=AsyncMock(return_value=8),
-        ):
-            result_early, _ = await evaluate_step_policy(
-                skill=skill,
-                current_step_id="step_1",
-                emotional_intensity=5,
-                engagement=7,
-                message_en="This exercise isn't for me.",
-                resistance_history=[8],   # only 1 prior — need 2
-            )
+        # Only 1 prior turn — rule must not fire (resistance_score=8, but only 1 prior)
+        result_early = evaluate_step_policy(
+            skill=skill,
+            current_step_id="step_1",
+            emotional_intensity=5,
+            engagement=7,
+            message_en="This exercise isn't for me.",
+            resistance_history=[8],   # only 1 prior — need 2
+            resistance_score=8,
+        )
         assert result_early["action"] != "offer_break", (
             "for_turns=3 must not fire with only 1 prior turn in history"
         )
 
         # 2 prior turns — all > 6 + current > 6 → rule fires
-        with patch(
-            "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
-            new=AsyncMock(return_value=8),
-        ):
-            result_full, _ = await evaluate_step_policy(
-                skill=skill,
-                current_step_id="step_1",
-                emotional_intensity=5,
-                engagement=7,
-                message_en="This exercise isn't for me.",
-                resistance_history=[7, 8],  # 2 prior turns > 6
-            )
+        result_full = evaluate_step_policy(
+            skill=skill,
+            current_step_id="step_1",
+            emotional_intensity=5,
+            engagement=7,
+            message_en="This exercise isn't for me.",
+            resistance_history=[7, 8],  # 2 prior turns > 6
+            resistance_score=8,
+        )
         assert result_full["action"] == "offer_break", (
             "for_turns=3 must fire when 2 prior turns + current all satisfy the condition"
         )

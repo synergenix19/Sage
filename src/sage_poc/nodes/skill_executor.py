@@ -119,13 +119,20 @@ def _condition_met(
     signal_value: int,
     resistance_history: list[int],
 ) -> bool:
-    """Check whether a step_policy condition is satisfied, honouring for_turns if set."""
+    """Check whether a step_policy condition is satisfied, honouring for_turns if set.
+
+    for_turns temporal check is only meaningful for the 'resistance' signal, which has
+    a rolling resistance_history. For other signals (emotional_intensity, engagement)
+    there is no per-signal history, so for_turns is ignored and only the current value
+    is checked.
+    """
     op_fn = _OPERATOR_MAP.get(cond.operator)
     if op_fn is None:
         return False
 
     for_turns = getattr(cond, "for_turns", None)
-    if for_turns is None or for_turns <= 1:
+    # Only apply for_turns temporal logic when signal is 'resistance'
+    if for_turns is None or for_turns <= 1 or cond.signal != "resistance":
         return op_fn(signal_value, cond.value)
 
     # Need (for_turns - 1) prior turns + current turn all satisfying the condition.
@@ -136,27 +143,30 @@ def _condition_met(
     return all(op_fn(v, cond.value) for v in prior + [signal_value])
 
 
-async def evaluate_step_policy(
+def evaluate_step_policy(
     skill: Skill,
     current_step_id: str,
     emotional_intensity: int,
     engagement: int,
     message_en: str = "",
     resistance_history: list[int] | None = None,
-) -> tuple[dict, int | None]:
-    """Two-phase policy evaluation. Returns (result_dict, new_resistance_score).
+    resistance_score: int | None = None,
+) -> dict:
+    """Synchronous two-phase policy evaluation. Returns a result dict.
 
-    Phase 1 — deterministic: emotional_intensity and engagement rules evaluated instantly.
-    Phase 2 — LLM: resistance scoring fired only when any rule references 'resistance',
-               adding ~400-800ms. Score returned so caller can append to resistance_history.
+    Phase 1 — deterministic: emotional_intensity and engagement rules evaluated
+    instantly. If any fires, returns immediately (no LLM call).
+
+    Phase 2 — resistance: evaluated only when the caller provides a resistance_score.
+    Caller (skill_executor_node) fetches the resistance score via LLM only after Phase 1
+    finds no match, avoiding the 400-800ms cost on turns where a deterministic rule fires.
+
+    When resistance_score is None, resistance rules are silently skipped (signal not
+    present in signals dict → signal_value is None → continue).
     """
     resistance_history = resistance_history or []
 
-    needs_resistance = any(r.condition.signal == "resistance" for r in skill.step_policy)
-    resistance_score: int | None = None
-    if needs_resistance:
-        resistance_score = await _score_resistance_via_rules_service(message_en)
-
+    # Build signals dict. Resistance is included only when caller provides a score.
     signals: dict[str, int] = {
         "emotional_intensity": emotional_intensity,
         "engagement":          engagement,
@@ -164,22 +174,44 @@ async def evaluate_step_policy(
     if resistance_score is not None:
         signals["resistance"] = resistance_score
 
+    # Phase 1: deterministic rules (non-resistance signals only).
+    # Resistance rules are skipped here because signals["resistance"] is absent when
+    # resistance_score=None — the `if signal_value is None: continue` guard handles it.
     for rule in skill.step_policy:
         cond = rule.condition
+        if cond.signal == "resistance":
+            continue  # explicit skip: resistance is Phase 2 only
         if cond.step not in ("ANY", current_step_id):
             continue
-        signal_value = signals.get(cond.signal)
-        if signal_value is None:
+        val = signals.get(cond.signal)
+        if val is None:
             continue
-        if _condition_met(cond, signal_value, resistance_history):
+        if _condition_met(cond, val, resistance_history):
             return {
-                "action":        rule.action,
-                "instruction":   rule.instruction,
-                "next_step_id":  current_step_id if rule.next_step_id == "current" else rule.next_step_id,
-                "skill_complete": False,
-            }, resistance_score
+                "action":           rule.action,
+                "instruction":      rule.instruction,
+                "next_step_id":     current_step_id if rule.next_step_id == "current" else rule.next_step_id,
+                "skill_complete":   False,
+                "_det_rule_fired":  True,  # sentinel: Phase 1 fired; skip Phase 2 in node
+            }
 
-    # No rule fired — check completion_criteria before advancing
+    # Phase 2: resistance rules — only when caller provides a score.
+    if resistance_score is not None:
+        for rule in skill.step_policy:
+            cond = rule.condition
+            if cond.signal != "resistance":
+                continue
+            if cond.step not in ("ANY", current_step_id):
+                continue
+            if _condition_met(cond, resistance_score, resistance_history):
+                return {
+                    "action":        rule.action,
+                    "instruction":   rule.instruction,
+                    "next_step_id":  current_step_id if rule.next_step_id == "current" else rule.next_step_id,
+                    "skill_complete": False,
+                }
+
+    # No rule fired — check completion criteria before advancing.
     step = next((s for s in skill.steps if s.step_id == current_step_id), None)
     if step is None:
         return {
@@ -187,7 +219,7 @@ async def evaluate_step_policy(
             "instruction":   f"[Step '{current_step_id}' not found in skill — holding position]",
             "next_step_id":  current_step_id,
             "skill_complete": False,
-        }, resistance_score
+        }
 
     step_instruction = (
         f"Goal: {step.goal}. "
@@ -202,9 +234,9 @@ async def evaluate_step_policy(
             "instruction":   step_instruction,
             "next_step_id":  current_step_id,
             "skill_complete": False,
-        }, resistance_score
+        }
 
-    # Criteria met — advance to next step in sequence
+    # Criteria met — advance to next step in sequence.
     step_ids = [s.step_id for s in skill.steps]
     current_idx = step_ids.index(current_step_id)
     next_id = step_ids[current_idx + 1] if current_idx + 1 < len(step_ids) else None
@@ -214,7 +246,7 @@ async def evaluate_step_policy(
         "instruction":   step_instruction,
         "next_step_id":  next_id or current_step_id,
         "skill_complete": next_id is None,
-    }, resistance_score
+    }
 
 
 async def skill_executor_node(state: SageState) -> dict:
@@ -251,14 +283,41 @@ async def skill_executor_node(state: SageState) -> dict:
         }
 
     resistance_history = list(state.get("resistance_history") or [])
-    result, new_resistance_score = await evaluate_step_policy(
+
+    # Phase 1: deterministic rules only (resistance_score=None → resistance rules skipped).
+    # Returns a result dict. If a deterministic rule fires, its action will be present.
+    # We detect "Phase 1 fired a rule" by checking the private sentinel key.
+    p1_result = evaluate_step_policy(
         skill=skill,
         current_step_id=step_id,
         emotional_intensity=state["emotional_intensity"],
         engagement=state["engagement"],
         message_en=state["message_en"],
         resistance_history=resistance_history,
+        resistance_score=None,
     )
+
+    # Phase 2: resistance scoring — only if the skill references 'resistance' rules AND
+    # Phase 1 did not fire a deterministic rule. Phase 1 exclusively evaluates non-resistance
+    # rules; when it fires one, it sets "_det_rule_fired": True in the result.
+    new_resistance_score: int | None = None
+    needs_resistance = any(r.condition.signal == "resistance" for r in skill.step_policy)
+    p1_det_fired = p1_result.pop("_det_rule_fired", False)
+
+    result = p1_result
+    if needs_resistance and not p1_det_fired:
+        new_resistance_score = await _score_resistance_via_rules_service(state["message_en"])
+        if new_resistance_score is not None:
+            result = evaluate_step_policy(
+                skill=skill,
+                current_step_id=step_id,
+                emotional_intensity=state["emotional_intensity"],
+                engagement=state["engagement"],
+                message_en=state["message_en"],
+                resistance_history=resistance_history,
+                resistance_score=new_resistance_score,
+            )
+            result.pop("_det_rule_fired", None)
 
     if new_resistance_score is not None:
         resistance_history = (resistance_history + [new_resistance_score])[-3:]
