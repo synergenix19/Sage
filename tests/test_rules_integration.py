@@ -605,3 +605,85 @@ def test_pi_ei_001_fires_on_paraphrase_expat_isolation(text):
     })
     rule_ids = [r.rule_id for r in result.fired]
     assert "PI-EI-001" in rule_ids, f"Expected PI-EI-001 for: {text!r}"
+
+
+# ── PI-ID-001: identity question injection ───────────────────────────────────
+
+@pytest.mark.parametrize("text,text_ar", [
+    ("what are you", None),
+    ("who are you", None),
+    ("are you a therapist", None),
+    ("are you my therapist", None),
+    ("are you a coach", None),
+    ("are you my coach", None),
+    ("are you a counsellor", None),
+    ("are you a mental health", None),
+    ("you're a therapist", None),
+    ("are you human", None),
+    ("enta therapist", None),
+    ("inta therapist", None),
+    ("enta coach", None),
+    ("inta doctor", None),
+    # Arabic script keywords matched against text_ar
+    ("", "ما أنت"),
+    ("", "من أنت"),
+    ("", "أنت معالج"),
+    ("", "أنت مدرب"),
+    ("", "أنت مستشار"),
+])
+def test_pi_id_001_fires_on_identity_question(text, text_ar):
+    """PI-ID-001 must fire for identity question keywords — English, Arabic, and Arabizi."""
+    from sage_poc.rules import engine
+    result = engine.evaluate("prompt_injection", {
+        "text": text,
+        "text_ar": text_ar,
+        "clinical_flags": [],
+        "primary_intent": "general_chat",
+        "secondary_intent": None,
+        "session_flags": [],
+    })
+    rule_ids = [r.rule_id for r in result.fired]
+    assert "PI-ID-001" in rule_ids, (
+        f"Expected PI-ID-001 for identity question text={text!r} text_ar={text_ar!r}"
+    )
+
+
+def test_pi_id_001_action_injects_to_system():
+    """PI-ID-001 action must inject to the system role with 'wellness companion' framing."""
+    from sage_poc.rules import engine
+    result = engine.evaluate("prompt_injection", {
+        "text": "what are you exactly",
+        "text_ar": None,
+        "clinical_flags": [],
+        "primary_intent": "general_chat",
+        "secondary_intent": None,
+        "session_flags": [],
+    })
+    id_rules = [r for r in result.fired if r.rule_id == "PI-ID-001"]
+    assert id_rules, "PI-ID-001 must fire for 'what are you exactly'"
+    action = id_rules[0].action
+    assert action["target"] == "system"
+    assert "wellness companion" in action["content"].lower()
+    assert "therapist" in action["content"].lower()
+    assert "coach" in action["content"].lower()
+
+
+def test_pi_id_001_rule_file_loads_and_is_valid():
+    """identity_question.json must load as a valid PromptInjectionRule."""
+    import json
+    from pathlib import Path
+    from sage_poc.rules.schemas import PromptInjectionRule
+
+    rule_path = (
+        Path(__file__).parent.parent
+        / "src" / "sage_poc" / "rules" / "data" / "prompt_injection" / "identity_question.json"
+    )
+    data = json.loads(rule_path.read_text())
+    rules = [PromptInjectionRule(**r) for r in data["rules"]]
+    assert len(rules) == 1
+    rule = rules[0]
+    assert rule.rule_id == "PI-ID-001"
+    assert rule.trigger_type == "keyword_match"
+    assert "what are you" in rule.trigger_keywords
+    assert "ما أنت" in rule.trigger_keywords
+    assert "enta therapist" in rule.trigger_keywords

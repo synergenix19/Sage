@@ -1,0 +1,57 @@
+{
+  "category": "prompt_injection",
+  "rules": [
+    {
+      "rule_id": "PI-ID-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "approved_by": null,
+      "effective_date": "2026-05-27",
+      "active": true,
+      "description": "Identity question detection — user asks what Sage is. Reinforces the 'wellness companion' self-description and explicitly prohibits claiming therapist/coach/counsellor identity before the LLM generates a response.",
+      "category": "prompt_injection",
+      "trigger_type": "keyword_match",
+      "trigger_value": "",
+      "trigger_keywords": [
+        "what are you",
+        "who are you",
+        "what exactly are you",
+        "what kind of",
+        "are you a therapist",
+        "are you my therapist",
+        "are you a coach",
+        "are you my coach",
+        "are you a counsellor",
+        "are you a counselor",
+        "are you a mental health",
+        "are you like a",
+        "you're a therapist",
+        "you're my therapist",
+        "you're a coach",
+        "you're my coach",
+        "are you human",
+        "ما أنت",
+        "من أنت",
+        "شنو أنت",
+        "شو أنت",
+        "إيش أنت",
+        "أنت معالج",
+        "أنت مدرب",
+        "أنت مستشار",
+        "أنتي مستشارة",
+        "أنت دكتور نفسي",
+        "إنت دكتور",
+        "أنت نفسانية",
+        "enta therapist",
+        "inta therapist",
+        "enta coach",
+        "inta doctor"
+      ],
+      "action": {
+        "type": "inject",
+        "target": "system",
+        "content": "IDENTITY QUESTION (this turn): The user is asking what you are. Answer directly and honestly.\n\nYOU ARE: Sage, a wellness companion. Not a therapist, not a counsellor, not a mental health coach, not a doctor.\n\nSay exactly this in your own words: You are a wellness companion called Sage. You offer emotional support and evidence-based coping tools. You do not diagnose, prescribe, or replace professional mental health care.\n\nDo NOT describe yourself as a coach, therapist, counsellor, or any clinical role. Do NOT hedge with 'something like a therapist'. Be warm, brief, and clear."
+      }
+    }
+  ]
+}
