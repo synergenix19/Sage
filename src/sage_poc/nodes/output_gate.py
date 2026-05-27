@@ -1,8 +1,10 @@
 import asyncio
 import json
 import logging
+import os
 import re
 from datetime import datetime, timezone
+from pathlib import Path
 from sage_poc.state import SageState
 from sage_poc.language import async_translate_to_arabic
 from sage_poc.config import AUDIT_LOG_ENABLED
@@ -10,6 +12,11 @@ from sage_poc.rules import engine as rules_engine
 from sage_poc.prompts.summarizer import summarise_history
 
 _log = logging.getLogger(__name__)
+
+_FLAG_CONFIG_PATH = Path(__file__).parent.parent / "rules" / "data" / "flag_lifecycle_config.json"
+with _FLAG_CONFIG_PATH.open() as _f:
+    _FLAG_LIFECYCLE_CONFIG: dict = json.load(_f)
+_CROSS_SESSION_FLAGS: dict[str, bool] = _FLAG_LIFECYCLE_CONFIG.get("cross_session_persistence", {})
 
 SCOPE_REFUSAL_RESPONSE = (
     "That's a question better answered by a medical professional or licensed therapist. "
@@ -68,6 +75,27 @@ async def _log_clinical_review(
         _log.warning("[output_gate] _log_clinical_review failed: %s", exc)
 
 
+async def _write_persisted_clinical_flags(
+    user_id: str,
+    clinical_flags: list[str],
+) -> None:
+    """Write cross-session-eligible flags to user_therapeutic_profiles.
+    Gated by flag_lifecycle_config.json cross_session_persistence values.
+    Non-fatal — errors are logged only.
+    """
+    flags_to_persist = [f for f in clinical_flags if _CROSS_SESSION_FLAGS.get(f, False)]
+    try:
+        from server import app  # noqa: PLC0415
+        from sage_poc.memory.postgres_repository import PostgresMemoryRepository  # noqa: PLC0415
+        pool = getattr(app.state, "_db_pool", None)
+        if pool is None:
+            return
+        repo = PostgresMemoryRepository(pool)
+        await repo.write_persisted_clinical_flags(user_id, flags_to_persist)
+    except Exception as exc:
+        _log.warning("[output_gate] write_persisted_clinical_flags failed: %s", exc)
+
+
 async def _persist_session_summary(
     session_id: str,
     user_id: str,
@@ -99,6 +127,7 @@ async def _persist_session_summary(
         )
     except Exception:
         _log.warning("Failed to persist session summary for session %s", session_id)
+    await _write_persisted_clinical_flags(user_id, clinical_flags)
 
 
 async def output_gate_node(state: SageState) -> dict:

@@ -34,7 +34,7 @@ dev = [
 markers = [
     "slow: marks tests as slow (requires Ollama or real LLM)",
 ]
-pythonpath = ["."]
+pythonpath = ["src", "."]
 asyncio_mode = "auto"
 
 [tool.hatch.build.targets.wheel]
