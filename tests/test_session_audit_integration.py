@@ -6,6 +6,7 @@ import httpx
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
+SAGE_API_KEY = os.environ.get("SAGE_API_KEY", "")
 
 pytestmark = pytest.mark.integration
 
@@ -27,6 +28,7 @@ async def test_session_audit_row_written_after_turn():
                 "messages": [{"role": "user", "content": "I feel a bit stressed today"}],
                 "session_id": session_id,
             },
+            headers={"X-Sage-Api-Key": SAGE_API_KEY} if SAGE_API_KEY else {},
         )
         assert resp.status_code == 200
 
