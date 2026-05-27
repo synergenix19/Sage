@@ -143,13 +143,44 @@ All 7 skills authored and passing calibration gate:
 
 ## Test Suite Status (pre-demo)
 
-Unit/integration suite run excluding slow BGE-M3 tests (ANE contention on 16GB M4):
+Full non-slow suite: `uv run pytest tests/ --ignore=tests/test_server.py -q --tb=short -m "not slow"`
 
-- **57 passed** (full suite with `-m "not slow"` equivalent)
-- **2 known failures** (BGE-M3 embedding timeout in full sequential suite — infrastructure, not code):
+- **982 passed, 10 skipped** (pre-content baseline was 971; +11 net gain from new tests)
+- **0 failures** in the non-slow suite
+- **2 known slow-suite failures** (BGE-M3 embedding timeout — infrastructure, not code):
   - `test_semantic_fallback_catches_rt4_long_tail[there is something fundamentally broken...]`
   - `test_semantic_fallback_catches_spiralling`
   - Both pass in isolation; fail only under ANE memory pressure from 60+ sequential BGE-M3 calls
+
+*Note: An earlier report cited "57 passed" — that was from a debug run filtered to `skill_select or info_request or knowledge` only. Not a regression.*
+
+## Architectural Guard Query Verification
+
+**info_request bypass side-effect check:**  
+"I need help with my breathing right now" → `intent: new_skill` → `box_breathing` → `skill_executor`  
+Action phrasing correctly classified; early-return in skill_select for info_request does not interfere.
+
+**Bare emotional word guard check:**
+
+Semantic-tier scores in isolation (above 0.4972 — would route if reached):
+| Phrase | Score | Would-match skill |
+|--------|-------|-------------------|
+| "stressed" | 0.5765 | psychoed_stress |
+| "anxious" | 0.5703 | psychoed_anxiety |
+| "depressed" | 0.5467 | psychoed_depression |
+| "I feel sad" | 0.5119 | psychoed_depression |
+| "I feel lost" | 0.4786 (safe) | — |
+| "overwhelmed" | 0.4672 (safe) | — |
+
+End-to-end pipeline result for all four above-threshold phrases:
+```
+intent: general_chat  →  freeflow_respond
+(skill_select never reached — architectural defence holds)
+```
+
+intent_route classifies bare emotional words as `general_chat`, not `new_skill`, so they route to freeflow_respond before skill_select is called. The semantic scores are accurate but describe a path that is unreachable in production.
+
+**Risk register:** If intent_route were ever tuned to classify bare emotional words as `new_skill`, these four would misroute to psychoeducation skills. The defence is intent_route's LLM classification, not the semantic threshold. Recheck after any intent_route prompt change.
 
 ---
 
