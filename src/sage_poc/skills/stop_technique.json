@@ -5,17 +5,29 @@
   "evidence_base": "Linehan (1993) DBT distress tolerance; Kabat-Zinn (1990) MBSR mindfulness pause; adapted as STOP in mindfulness-based interventions",
   "self_evolution": "manual_only",
   "target_presentations": [
-    "spiraling", "spiralling", "about to lose it", "losing it",
-    "cant think straight", "about to react badly",
+    "spiraling",
+    "spiralling",
+    "about to lose it",
+    "losing it",
+    "cant think straight",
+    "about to react badly",
     "about to say something ill regret",
     "about to say something i will regret",
     "about to do something ill regret",
     "going to say something i regret",
-    "cant control my reaction", "getting overwhelmed",
-    "overwhelmed right now", "triggered", "flooded",
-    "need to pause", "need a moment", "just breathe",
-    "losing control of my emotions", "emotional flooding",
-    "reactive", "about to blow up", "about to explode emotionally",
+    "cant control my reaction",
+    "getting overwhelmed",
+    "overwhelmed right now",
+    "triggered",
+    "flooded",
+    "need to pause",
+    "need a moment",
+    "just breathe",
+    "losing control of my emotions",
+    "emotional flooding",
+    "reactive",
+    "about to blow up",
+    "about to explode emotionally",
     "need to ground myself quickly",
     "أحس إني راح أنفجر",
     "مو قادر أفكر بشكل صح",
@@ -30,47 +42,89 @@
   "semantic_description": "STOP technique: Stop, Take a breath, Observe, Proceed. Four-step pre-response interruption protocol. DBT-adapted micro-pause acronym: freeze, breathe once, observe the impulse, then choose the response. Behavioral interruption: insert a deliberate pause between trigger and reaction. STOP acronym applied before reactive behavior. Stimulus-response gap technique. Four-step pause before acting: stop, breath, observe, proceed.",
   "steps": [
     {
+      "step_id": "introduce_stop",
+      "goal": "Validate the reactive impulse and introduce the STOP technique before guiding through it",
+      "technique": "Psychoeducation micro-frame: name the pattern, introduce the tool",
+      "technique_description": "Briefly acknowledge what the user is experiencing (the impulse to react, the regret, the flooding) and introduce STOP as a four-step pause they can do right now. This frame is intentionally short — the goal is to buy a moment of consent and orientation before the technique itself. Do not explain at length.",
+      "tone": "calm, validating, direct — model brevity as the first demonstration of the technique",
+      "contraindications": "Do NOT give a lecture about impulsivity. Do NOT ask the user to explain what happened in detail. One or two sentences of validation, then immediately move to the technique. If emotional intensity is above 8, skip the frame and go directly to stop_pause or redirect to grounding.",
+      "completion_criteria": "User has acknowledged the technique or shown any signal of readiness to try it. A simple 'ok' or 'sure' is enough. If user is non-responsive, proceed anyway — silence is consent in an acute moment.",
+      "examples": [
+        "It sounds like you are right in the middle of it. Let us try something quick called STOP, four seconds, then you can decide what to do.",
+        "Before you say or do anything, let me offer you a four-step pause. STOP: Stop, Take a breath, Observe, Proceed. Let us do it together.",
+        "يبدو إنك في لحظة صعبة. أقترح نجرب شي بسيط اسمه STOP، أربع خطوات بس. جاهز؟"
+      ]
+    },
+    {
       "step_id": "stop_pause",
       "goal": "Walk the user through the 4-part STOP sequence: Stop, Take a breath, Observe, Proceed",
       "technique": "STOP mindfulness pause, 4-part structured interruption of emotional flooding",
-      "tone": "calm, slow, directive but gentle, model the slowness through pacing and brevity",
+      "technique_description": "Guide the user through the STOP acronym as a real-time exercise. S: Stop — pause completely. T: Take a breath — one slow breath, in through the nose, out through the mouth. O: Observe — notice body sensations, feelings, impulse without acting on them. P: Proceed — move forward with awareness and choice rather than reactivity. Check in briefly after completion.",
+      "tone": "calm, slow, directive but gentle — model the slowness through pacing and brevity",
+      "contraindications": "Do NOT over-explain the technique. Keep it brief and paced. Do NOT turn this into a therapy session. STOP is a quick pause tool. If emotional intensity is very high (above 8), move to grounding or crisis protocol rather than continuing STOP alone.",
+      "completion_criteria": "User has completed at least one STOP cycle and has checked in on their current state.",
       "examples": [
         "Let us do STOP together. First: Stop. Whatever you are doing, just pause. Take a breath right now, in through your nose, out through your mouth. Now observe without judging: what are you feeling in your body right now? And when you are ready, proceed with a little more awareness than before.",
         "S: Stop. T: Take a breath, do it with me. O: Observe, what is happening inside right now? Body sensations, thoughts, feelings. P: Proceed when you are ready. How do you feel after that pause?",
         "خلنا نسوي STOP سوا. الأول: قف. أي شي تسويه, وقف. بعدين: تنفس, شهيق من أنفك وزفير من فمك. بعدين: راقب نفسك, وش تحس فيه الحين في جسمك؟ وبعدين: تقدر تكمل بوعي أكثر. كيف تحس الحين؟",
         "Sometimes one STOP cycle is not enough. You can do it again. Stop. Breathe. Observe. Proceed. As many times as you need."
-      ],
-      "contraindications": "Do NOT over-explain the technique. Keep it brief and paced. Do NOT turn this into a therapy session. STOP is a quick pause tool. If emotional intensity is very high (above 8), move to grounding or crisis protocol rather than continuing STOP alone.",
-      "completion_criteria": "User has completed at least one STOP cycle and has checked in on their current state."
+      ]
     }
   ],
   "step_policy": [
     {
-      "condition": { "signal": "emotional_intensity", "operator": ">", "value": 7, "step": "ANY" },
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
       "action": "validate_only",
       "instruction": "User is highly distressed. Slow down. Stay present. Gently re-invite the STOP breath without rushing.",
       "next_step_id": "current"
     },
     {
-      "condition": { "signal": "resistance", "operator": ">", "value": 6, "turns": 3, "step": "ANY" },
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
       "action": "offer_skill_switch_or_break",
       "instruction": "User is resistant. Offer to stop and just talk, or try a different approach.",
       "next_step_id": "current"
     },
     {
-      "condition": { "signal": "engagement", "operator": "<", "value": 3, "turns": 3, "step": "ANY" },
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "turns": 3,
+        "step": "ANY"
+      },
       "action": "check_in_micro",
       "instruction": "User seems disengaged. Check in gently.",
       "next_step_id": "current"
     },
     {
-      "condition": { "signal": "user_stop_request", "operator": "==", "value": true, "step": "ANY" },
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit with warmth. No persuasion.",
       "next_step_id": "exit"
     },
     {
-      "condition": { "signal": "emotional_intensity", "operator": ">", "value": 8, "step": "stop_pause" },
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 8,
+        "step": "stop_pause"
+      },
       "action": "escalate_to_grounding",
       "instruction": "Emotional intensity is too high for STOP alone. Offer to move to a full grounding exercise or check if crisis protocol is needed.",
       "next_step_id": "exit"
@@ -83,9 +137,8 @@
     "L4": "Trigger human handoff if user explicitly requests a human or 3+ crises in last 30 days."
   },
   "cultural_overrides": {
-    "family_honour_context": "In Gulf culture, reactive behaviour including verbal outbursts or impulsive actions may occur in the context of family honour (ird, karama) — situations involving perceived slights to family reputation, a relative's behaviour, or perceived public shame. These situations carry real social and relational weight. When the STOP technique is delivered in this context, do not frame the impulse as irrational or the situation as ordinary frustration. Acknowledge that the situation is genuinely difficult and the pressure is real, then invite reflection on what action would best serve the user's own values and longer-term interests.",
-    "pause_framing": "Framing the pause as a sign of strength rather than restraint is more effective in Gulf contexts. A man who pauses before reacting demonstrates self-mastery (dabt al-nafs), not weakness. This framing is culturally legible and clinically sound — use it when male users show resistance to the technique.",
+    "family_honour_context": "In Gulf culture, reactive behaviour including verbal outbursts or impulsive actions may occur in the context of family honour (ird, karama): situations involving perceived slights to family reputation, a relative's behaviour, or perceived public shame. These situations carry real social and relational weight. When the STOP technique is delivered in this context, do not frame the impulse as irrational or the situation as ordinary frustration. Acknowledge that the situation is genuinely difficult and the pressure is real, then invite reflection on what action would best serve the user's own values and longer-term interests.",
+    "pause_framing": "Framing the pause as a sign of strength rather than restraint is more effective in Gulf contexts. A man who pauses before reacting demonstrates self-mastery (dabt al-nafs), not weakness. This framing is culturally legible and clinically sound, so use it when male users show resistance to the technique.",
     "consult_before_examples": "Do not finalise worked examples for family honour scenarios without Gulf-native clinical review. The cultural nuance in these situations is significant and incorrect examples risk minimising legitimate grievances or appearing dismissive of real social obligations."
-  },
-  "cultural_note": "REQUIRES GULF-NATIVE CLINICAL REVIEW before deployment. One cultural consideration: FAMILY HONOUR REACTIVE SITUATIONS. In Gulf culture, reactive behaviour including verbal outbursts or impulsive actions may occur in the context of family honour (ird, karama) — situations involving perceived slights to family reputation, a relative's behaviour, or perceived public shame. These situations carry real social and relational weight and are not comparable to ordinary frustration. When the STOP technique is delivered in a family honour context, the pause-and-choose framing is clinically appropriate, but the instruction must acknowledge the real pressure the user is experiencing, not minimise it. Do not frame the impulse as irrational — acknowledge that the situation is genuinely difficult, and then invite reflection on what action would best serve the user's own values. Consult clinician before finalising example content for this scenario."
+  }
 }

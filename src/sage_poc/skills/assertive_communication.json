@@ -29,9 +29,10 @@
     "always saying yes",
     "backing down",
     "always back down",
-    "can't hold my ground"
+    "can't hold my ground",
+    "ما أقدر أدافع عن نفسي"
   ],
-  "semantic_description": "Assertiveness training protocol. DESC formula: Describe, Express, Specify, Consequence. Assertive communication technique. Passive versus assertive versus aggressive communication styles. Communication assertiveness training. Assertive self-expression. Setting limits. Saying no with clarity. The art of the assertive request. Interpersonal effectiveness skills. DESC communication formula application. Wolpe assertiveness training. Assertive boundary-setting protocol. Role-play rehearsal for assertive communication. Communication style identification and training. Expressing needs directly. The no-guilt assertive refusal technique. Smith assertive communication protocol. Automatically agreeing when the true answer is no. The pattern of capitulation or escalation when limits are needed. Resentment that follows compulsive compliance. Difficulty maintaining a position without breakdown or explosion. The either-or communication pattern: either complete surrender or escalation to conflict, no middle ground. Unable to hold a stated position under social pressure without total capitulation or blowup. Saying yes when the honest answer is no, then carrying the resentment that follows. Cannot maintain a stated limit without relationship rupture or complete surrender. Giving in against one's own wishes to avoid conflict, then feeling angry about it afterward. Wanting to state a need or decline a request without it becoming a fight or a cave-in.",
+  "semantic_description": "Assertiveness training protocol. DESC formula: Describe, Express, Specify, Consequence. Assertive communication technique. Passive versus assertive versus aggressive communication styles. Communication assertiveness training. Assertive self-expression. Setting limits. Saying no with clarity. The art of the assertive request. Interpersonal effectiveness skills. DESC communication formula application. Wolpe assertiveness training. Assertive boundary-setting protocol. Role-play rehearsal for assertive communication. Communication style identification and training. Expressing needs directly. The no-guilt assertive refusal technique. Smith assertive communication protocol.",
   "steps": [
     {
       "step_id": "understand_assertiveness",

@@ -8,6 +8,7 @@
     "can't stop worrying",
     "cant stop worrying",
     "worrying all the time",
+    "I keep worrying about everything",
     "constantly worrying",
     "my mind won't stop",
     "mind wont stop",
@@ -37,9 +38,15 @@
     "cant stop overthinking",
     "cant stop thinking about it",
     "my mind wont stop overthinking",
+    "caught in a loop",
+    "loop of anxious",
+    "anxious thoughts cycling",
+    "same thoughts cycling",
+    "thoughts cycling",
+    "break the cycle of",
     "أفكر وايد"
   ],
-  "semantic_description": "Worry time technique: scheduling a dedicated 30-minute window each day to contain chronic worry. I keep worrying about the same things repeatedly and cannot stop. What if thoughts that recur constantly. Scheduled worry postponement: when a worry comes outside the window, postpone it to worry time. Metacognitive approach to rumination. I need a structured technique to organize my worrying into one slot rather than all day. Chronic repetitive worry, persistent what-if loops, recurring intrusive worry thoughts. Borkovec scheduled worry containment method.",
+  "semantic_description": "Worry time technique: scheduling a dedicated 30-minute window each day to contain chronic worry. What if thoughts that recur constantly. Scheduled worry postponement: when a worry comes outside the window, postpone it to worry time. Metacognitive approach to rumination. Chronic repetitive worry, persistent what-if loops, recurring intrusive worry thoughts. Borkovec scheduled worry containment method.",
   "steps": [
     {
       "step_id": "schedule_worry",
@@ -138,9 +145,8 @@
     "L4": "Trigger human handoff if 3 or more crises in last 30 days or user explicitly requests human."
   },
   "cultural_overrides": {
-    "tawakkul_framing": "For religious users, the idea of scheduling worry may initially feel like it conflicts with tawakkul — trust in Allah's plan and acceptance of His will. Clarify that worry time is not about dismissing God's will or treating anxiety as a problem to be solved by willpower alone. Frame it as using one's reason and self-discipline as God intended, taking practical action while trusting in the outcome. Scheduling worry is an act of responsible stewardship of the mind, not a rejection of reliance on Allah.",
+    "tawakkul_framing": "For religious users, the idea of scheduling worry may initially feel like it conflicts with tawakkul, trust in Allah's plan and acceptance of His will. Clarify that worry time is not about dismissing God's will or treating anxiety as a problem to be solved by willpower alone. Frame it as using one's reason and self-discipline as God intended, taking practical action while trusting in the outcome. Scheduling worry is an act of responsible stewardship of the mind, not a rejection of reliance on Allah.",
     "arabic_example_language": "Worked examples should use natural colloquial Gulf Arabic phrasing, not Modern Standard Arabic. The concern list step should feel like everyday thinking, not a formal exercise. If the user is Arabic-dominant, prompt the concern list in Arabic and accept Arabic responses throughout the skill.",
-    "practical_identity_framing": "If religious framing feels forced or the user does not identify as religious, present worry time as a practical productivity technique: disciplined people do not let worry run in the background all day — they address it intentionally. This framing works well for high-achieving Gulf users who respond better to self-management language than to therapeutic language."
-  },
-  "cultural_note": "Worry time is a cognitive-behavioral technique that is culturally transferable. Arabic examples use natural colloquial phrasing. The technique should be framed as a skill, not as dismissing God's will. For religious users, frame it as using one's reason as God intended, alongside trust in His plan (tawakkul)."
+    "practical_identity_framing": "If religious framing feels forced or the user does not identify as religious, present worry time as a practical productivity technique: disciplined people do not let worry run in the background all day, they address it intentionally. This framing works well for high-achieving Gulf users who respond better to self-management language than to therapeutic language."
+  }
 }

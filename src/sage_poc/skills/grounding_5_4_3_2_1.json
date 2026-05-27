@@ -35,6 +35,13 @@
     "feel like i'm dissociating",
     "feel like im dissociating",
     "freaking out",
+    "five things i can see",
+    "name five things",
+    "five senses",
+    "5-4-3-2-1",
+    "54321",
+    "five four three two one",
+    "name what i can see",
     "ما أقدر أركز",
     "حاسس إني مو هني",
     "مشتت",
@@ -50,7 +57,7 @@
     "كل شي مو حقيقي",
     "خايف أجنن"
   ],
-  "semantic_description": "Acute panic attack or dissociative episode. Somatic panic symptoms: heart pounding violently, chest tight and unable to expand, hyperventilation and rapid shallow breath, hands and limbs trembling and shaking, skin cold and clammy with tingling or pins-and-needles, dizziness, vertigo, feeling faint, vision narrowing. Dissociation: the room feels unreal, surroundings appear dreamlike or distorted, derealization, depersonalization, watching from outside the body, not feeling real or present, disconnected from the environment, the world looks wrong. Frozen, numb, blank, hollowed out. Sudden acute onset, not everyday stress or chronic worry. Five-four-three-two-one grounding: five things seen, four touched, three heard, two smelled, one tasted, to interrupt an acute panic or dissociative state.",
+  "semantic_description": "Five-four-three-two-one grounding technique: five things seen, four touched, three heard, two smelled, one tasted. Sequential sensory anchoring across five modalities. Sensory circuit completion protocol. DBT distress tolerance grounding exercise. Somatic re-anchoring through progressive sensory inventory. Sensory grounding exercise to interrupt acute panic or dissociative state. Naming environmental objects, textures, and sounds around the user. Counting inventory of immediate surroundings. Indicated for acute panic, hyperventilation, somatic flooding, and acute dissociative states.",
   "steps": [
     {
       "step_id": "see_5",
@@ -112,7 +119,7 @@
       "step_id": "taste_1",
       "goal": "Complete the 5-4-3-2-1 sequence and check in on the user's state",
       "technique": "Sensory grounding: taste / integration",
-      "technique_description": "Complete the sensory circuit and use the integration pause — slow breath, compare now to before — to let the user register their own shift in state.",
+      "technique_description": "Complete the sensory circuit and use the integration pause, a slow breath and comparison of now to before, to let the user register their own shift in state.",
       "tone": "warm, encouraging, checking in",
       "contraindications": "Do NOT close the exercise without checking in on the user's current state. The integration moment, slow breath, compare now to before, is clinically important. Do NOT claim success or tell the user they are better; ask them how they feel.",
       "completion_criteria": "User has named 1 taste. User has taken a breath and offered some reflection on how they feel now compared to when the exercise started. Any indication of reduced distress or increased present-moment awareness marks completion. If distress has not reduced, acknowledge the effort and offer to sit together rather than retry immediately.",
@@ -128,7 +135,7 @@
       "condition": {
         "signal": "emotional_intensity",
         "operator": ">",
-        "value": 8,
+        "value": 7,
         "step": "ANY"
       },
       "action": "validate_only",

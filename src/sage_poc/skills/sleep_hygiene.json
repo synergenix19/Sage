@@ -29,6 +29,7 @@
     "keep waking up",
     "wide awake at night",
     "mind racing at night",
+    "racing thoughts at night",
     "mind won't stop",
     "mind wont stop",
     "waking up in the middle of the night",
@@ -47,9 +48,11 @@
     "نومي مو زين",
     "أصحى بنص الليل",
     "أفكاري ما تخليني أنام",
+    "صاحي وما أقدر أرقد",
+    "أفكاري ما تهدى بالليل",
     "تعبان من قلة النوم"
   ],
-  "semantic_description": "Difficulty falling asleep or staying asleep. Sleep onset insomnia: lying in bed in the dark unable to fall asleep, watching the clock, waiting for sleep that will not come. Sleep maintenance insomnia: waking at two or three in the morning unable to get back to sleep. Tossing and turning all night. Early-morning awakening. At bedtime the mind activates, thoughts racing, ruminating, replaying the day, unable to switch off when the lights go out and the head hits the pillow. Exhausted but unable to sleep. Tired all day but wide awake at night. Bedtime, bedroom, pillow, duvet, alarm clock, three a.m. Non-restorative sleep. Persistent insomnia affecting sleep onset, sleep continuity, or sleep duration.",
+  "semantic_description": "Sleep hygiene psychoeducation: CBT-I behavioral sleep principles. Stimulus control, sleep restriction, relaxation techniques, and cognitive restructuring for insomnia. Sleep consolidation protocol. Behavioral sleep medicine intervention. Circadian rhythm regulation through behavioral modification. Sleep onset and continuity improvement techniques. Pre-sleep wind-down routine. Stimulus control therapy: reserving bed only for sleep. Bedtime arousal reversal.",
   "steps": [
     {
       "step_id": "assess_sleep",
@@ -163,6 +166,5 @@
     "ramadan": "During Ramadan, standard advice about fixed wake times does not apply. Acknowledge the Ramadan schedule as a culturally normal polyphasic pattern. Adapt all timing advice to Suhoor, Fajr, and Tarawih anchors rather than a single wake time. Never frame Ramadan sleep patterns as disordered.",
     "qahwa": "Name qahwa (Arabic cardamom coffee) explicitly when discussing caffeine. Do not say 'coffee' only. Frame any caffeine guidance as a practical option, not a prohibition. Qahwa is culturally significant.",
     "shared_sleeping": "Many Gulf users share bedrooms with family members. Advice assuming a private sleep environment must be adapted. Acknowledge the structural constraint before suggesting environmental changes."
-  },
-  "cultural_note": "REQUIRES GULF-NATIVE CLINICAL REVIEW before deployment. Three cultural considerations specific to Gulf users: (1) RAMADAN: During Ramadan, sleep timing shifts to a culturally normal polyphasic pattern, late sleep after Tarawih prayers, Suhoor wake before Fajr, then a return to sleep. This is not a disorder. Standard advice about fixed wake times or nocturnal sleep windows does not apply during Ramadan without modification. If the user mentions Ramadan, acknowledge the context explicitly and adapt advice to the Ramadan schedule rather than correcting it. (2) QAHWA: Arabic coffee (qahwa, cardamom-spiced) is a ceremonial and social drink consumed throughout the day and evening in Gulf households. Caffeine advice must name qahwa specifically, not just 'coffee,' and must be framed as a practical option rather than a prohibition, qahwa has deep cultural significance and a blunt 'stop drinking coffee' instruction is culturally tone-deaf. (3) SHARED SLEEPING: Extended-family households are common. Users may share a bedroom with a spouse, child, parent, or sibling and have no independent control over light, noise, or temperature. Advice assuming a private sleep environment must be adapted to shared-room realities. Do not suggest changes the user structurally cannot make."
+  }
 }

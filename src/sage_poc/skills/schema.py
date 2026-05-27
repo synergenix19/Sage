@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
-from pydantic import BaseModel, Field, field_validator
+from typing import Literal
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 SKILLS_DIR = Path(__file__).parent
 
@@ -17,6 +18,14 @@ class StepPolicyRule(BaseModel):
     action: str
     instruction: str
     next_step_id: str = "current"
+
+    @model_validator(mode='after')
+    def validate_exit_warm_closing(self) -> 'StepPolicyRule':
+        if self.action == "exit_warm_closing" and self.next_step_id != "exit":
+            raise ValueError(
+                f"exit_warm_closing rule must have next_step_id='exit', got '{self.next_step_id}'"
+            )
+        return self
 
 
 class SkillStep(BaseModel):
@@ -35,7 +44,7 @@ class Skill(BaseModel):
     skill_name: str
     skill_type: str
     evidence_base: str
-    self_evolution: str = "manual_only"
+    self_evolution: Literal["manual_only"] = "manual_only"
     target_presentations: list[str]
     semantic_description: str = ""   # rich description for embedding-based skill matching
     steps: list[SkillStep]

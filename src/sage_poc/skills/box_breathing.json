@@ -16,6 +16,14 @@
     "teach me to breathe",
     "walk me through breathing",
     "try box breathing",
+    "paced breathing",
+    "slow my breathing",
+    "slow my breath",
+    "count my breaths",
+    "breathing slowly",
+    "breath control",
+    "4-7-8 breathing",
+    "controlled breathing",
     "تنفس معي",
     "علمني أتنفس",
     "ساعدني أتنفس",
@@ -23,7 +31,7 @@
     "تمرين تنفس الصندوق",
     "تعلمت تنفس الصندوق"
   ],
-  "semantic_description": "Box breathing: four-count inhale, four-count hold, four-count exhale, four-count hold. Square breathing. Teach me box breathing. Walk me through the four-count breathing cycle. Paced breathing exercise: count with me while I breathe. I want to do box breathing with you. Can you guide me through box breathing? Inhale four, hold four, exhale four, hold four. I want to practice the box breathing technique. Guide me through the counting. Let us do box breathing together.",
+  "semantic_description": "Box breathing: four-count inhale, four-count hold, four-count exhale, four-count hold. Square breathing. Paced breathing exercise. Walk me through the four-count breathing cycle.",
   "steps": [
     {
       "step_id": "inhale",
@@ -140,9 +148,8 @@
     "L4": "Trigger human handoff if 3+ crises detected in last 30 days, or if user explicitly requests a human."
   },
   "cultural_overrides": {
-    "halal_framing": "Box breathing is a physiological technique with no spiritual or religious content. It can be offered without qualification to Muslim users. If a user asks whether it conflicts with Islamic practice, the accurate answer is that it does not — it is simply regulated breathing that activates the parasympathetic nervous system, the same mechanism as the long exhalations in recited Quran.",
+    "halal_framing": "Box breathing is a physiological technique with no spiritual or religious content. It can be offered without qualification to Muslim users. If a user asks whether it conflicts with Islamic practice, the accurate answer is that it does not, it is simply regulated breathing that activates the parasympathetic nervous system, the same mechanism as the long exhalations in recited Quran.",
     "prayer_compatibility": "If a user is preparing for salah or has just finished, the technique fits naturally: a brief, structured pause before or after prayer. Do not frame it as a substitute for prayer. Simply note that a few cycles of box breathing before prayer can help a user arrive with a calmer mind.",
     "gender_neutral_delivery": "The technique requires no physical adjustments and is equally appropriate for men and women, including users wearing hijab or niqab. No modifications needed. Do not introduce gendered framing unless the user does."
-  },
-  "cultural_note": "Box breathing is physiologically grounded and culturally neutral. No Gulf-specific adaptation required. Suitable for all demographics without modification."
+  }
 }

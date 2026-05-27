@@ -15,13 +15,13 @@ logger = logging.getLogger(__name__)
 
 _SKILLS = {sid: load_skill(sid) for sid in SKILL_REGISTRY}
 
-# Calibrated 2026-05-27 after extending to 20 skills (v7 Gitex sprint, 7 new skills).
-# Gap = 0.0422 (lowest hit=0.5267, highest miss=0.4845). Threshold = max_miss + gap*0.3.
-# Re-run scripts/calibrate_threshold.py after any semantic_description or keyword edit.
-# NOTE: At 20 skills, broad emotional phrases ("I've been feeling stressed") score above
-# the floor semantically but are protected by intent_route (Node 2) classifying them as
-# general_chat before reaching skill_select (Node 4). See calibrate_threshold.py notes.
-SEMANTIC_THRESHOLD: float = 0.4972
+# Calibrated 2026-05-27 post-audit-fix (v7 sprint + 13-item audit remediation).
+# Architecture: gap test is cross-cluster only. Within-cluster somatic_distress overlap
+# is expected and handled by Tier 1 keyword rules. See calibrate_threshold.py.
+# Gap = 0.0533 (lowest cross-cluster hit=0.4856, highest off-topic miss=0.4323).
+# Threshold = midpoint = 0.459. Re-run scripts/calibrate_threshold.py after any
+# semantic_description or keyword edit.
+SEMANTIC_THRESHOLD: float = 0.459
 
 _embed_model = None
 _semantic_skill_ids: list[str] = []

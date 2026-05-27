@@ -5,14 +5,30 @@
   "evidence_base": "Miller & Rollnick (2013) Motivational Interviewing 3rd ed.; Rollnick et al. (1999) readiness ruler; NICE PH49 behavior change",
   "self_evolution": "manual_only",
   "target_presentations": [
-    "want to change", "trying to change", "know i should change",
-    "should stop drinking", "should stop smoking", "should exercise more",
-    "keep failing", "keep going back to it", "cant seem to stop",
-    "addicted", "habit i cant break", "bad habit",
-    "stuck in a bad pattern", "know what i should do but cant do it",
-    "relapsed", "relapse", "going in circles",
-    "trying to quit", "want to quit", "ambivalent",
+    "want to change",
+    "trying to change",
+    "know i should change",
+    "should stop drinking",
+    "should stop smoking",
+    "should exercise more",
+    "keep failing",
+    "keep going back to it",
+    "cant seem to stop",
+    "addicted",
+    "habit i cant break",
+    "bad habit",
+    "stuck in a bad pattern",
+    "know what i should do but cant do it",
+    "relapsed",
+    "relapse",
+    "going in circles",
+    "trying to quit",
+    "want to quit",
+    "ambivalent",
     "dont know if i want to change",
+    "how ready am i to change",
+    "explore my readiness for change",
+    "rate my readiness to change",
     "أبي أتغير بس ما أقدر",
     "أعرف إن هذا غلط بس ما أوقف",
     "رجعت لنفس الشي",
@@ -22,7 +38,7 @@
     "أبي أوقف بس صعب",
     "ما عندي قوة إرادة"
   ],
-  "semantic_description": "Motivational Interviewing readiness ruler: rating importance and confidence for behavior change on a 1-to-10 scale. Where am I on readiness to change? Rollnick importance ruler, confidence ruler. I want to explore how ready I am to make a change. What would make the number higher? MI ambivalence exploration: both wanting and not wanting change at the same time. Rate how much this change matters to me and how confident I am I could do it. Change talk elicitation, readiness assessment, decisional balance.",
+  "semantic_description": "Motivational Interviewing readiness ruler: rating importance and confidence for behavior change on a 1-to-10 scale. Rollnick importance ruler, confidence ruler. MI ambivalence exploration: both wanting and not wanting change at the same time. Change talk elicitation, readiness assessment, decisional balance.",
   "steps": [
     {
       "step_id": "importance_ruler",
@@ -72,31 +88,58 @@
   ],
   "step_policy": [
     {
-      "condition": { "signal": "emotional_intensity", "operator": ">", "value": 7, "step": "ANY" },
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
       "action": "validate_only",
       "instruction": "User is highly distressed. Do not advance the ruler exercise. Validate the emotion and stay present.",
       "next_step_id": "current"
     },
     {
-      "condition": { "signal": "resistance", "operator": ">", "value": 6, "turns": 3, "step": "ANY" },
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
       "action": "offer_skill_switch_or_break",
       "instruction": "User has shown sustained resistance. Offer to stop and just talk, or explore what feels wrong about this approach.",
       "next_step_id": "current"
     },
     {
-      "condition": { "signal": "engagement", "operator": "<", "value": 3, "turns": 3, "step": "ANY" },
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "turns": 3,
+        "step": "ANY"
+      },
       "action": "check_in_micro",
       "instruction": "User is disengaged. Gently check in: is exploring change helpful right now, or would they prefer something else?",
       "next_step_id": "current"
     },
     {
-      "condition": { "signal": "user_stop_request", "operator": "==", "value": true, "step": "ANY" },
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit with warmth. Ambivalence about change is completely normal. No persuasion.",
       "next_step_id": "exit"
     },
     {
-      "condition": { "signal": "prior_exposure", "operator": ">=", "value": 3, "step": "importance_ruler" },
+      "condition": {
+        "signal": "prior_exposure",
+        "operator": ">=",
+        "value": 3,
+        "step": "importance_ruler"
+      },
       "action": "skip_psychoeducation",
       "instruction": "User has done the ruler exercise before. Skip the scale explanation and go straight to the question.",
       "next_step_id": "importance_ruler"

@@ -1,3 +1,4 @@
+import asyncio
 import json
 from datetime import datetime, timezone
 
@@ -13,6 +14,7 @@ from sage_poc.nodes.freeflow_respond import freeflow_respond_node
 from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
 from sage_poc.nodes.output_gate import output_gate_node
 from sage_poc.config import AUDIT_LOG_ENABLED
+from sage_poc.audit import write_session_audit
 
 def _crisis_response_node(state: SageState) -> dict:
     from sage_poc.rules import engine as rules_engine
@@ -35,6 +37,13 @@ def _crisis_response_node(state: SageState) -> dict:
         )
 
     path = state["path"] + ["crisis_response"]
+
+    asyncio.create_task(write_session_audit({
+        **state,
+        "path": path,
+        "gate_path": "crisis",
+        "crisis_state": "monitoring",
+    }))
 
     if AUDIT_LOG_ENABLED:
         audit = {

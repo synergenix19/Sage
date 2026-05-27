@@ -138,3 +138,76 @@ async def test_write_swallows_network_error(monkeypatch):
     with patch("httpx.AsyncClient", return_value=BrokenClient()):
         # Must not raise
         await audit_mod.write_session_audit(make_audit_state())
+
+
+@pytest.mark.asyncio
+async def test_output_gate_schedules_audit_write(monkeypatch):
+    """output_gate must schedule a write_session_audit task."""
+    monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "test-service-key")
+
+    write_calls = []
+
+    async def mock_write(state):
+        write_calls.append(state)
+
+    monkeypatch.setattr("sage_poc.audit.write_session_audit", mock_write)
+    monkeypatch.setattr("sage_poc.nodes.output_gate.write_session_audit", mock_write)
+
+    from sage_poc.nodes.output_gate import output_gate_node
+    from tests.test_nodes import make_state  # reuse existing helper
+
+    state = make_state(
+        raw_message="hello",
+        response_en="I hear you.",
+        gate_path="standard",
+        path=["safety_check", "intent_route", "freeflow_respond"],
+        turn_number=1,
+        session_id="test-sess",
+        user_id=None,
+    )
+
+    await output_gate_node(state)
+    # Give the event loop a tick to run the task
+    await asyncio.sleep(0)
+    assert len(write_calls) == 1
+    assert write_calls[0].get("session_id") == "test-sess"
+
+
+@pytest.mark.asyncio
+async def test_crisis_response_schedules_audit_write(monkeypatch):
+    """crisis_response must schedule a write_session_audit task on crisis paths."""
+    monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "test-service-key")
+
+    write_calls = []
+
+    async def mock_write(state):
+        write_calls.append(state)
+
+    monkeypatch.setattr("sage_poc.audit.write_session_audit", mock_write)
+    monkeypatch.setattr("sage_poc.graph.write_session_audit", mock_write)
+
+    # Import graph to access _crisis_response_node
+    from sage_poc import graph as graph_mod
+
+    state = {
+        "path": ["safety_check"],
+        "session_id": "crisis-sess",
+        "turn_number": 2,
+        "detected_language": "en",
+        "crisis_flags": ["S1_keyword"],
+        "clinical_flags": [],
+        "active_skill_id": None,
+        "crisis_state": "none",
+        "conversation_history": [],
+        "raw_message": "I want to end it",
+        "message_en": "I want to end it",
+    }
+
+    graph_mod._crisis_response_node(state)
+    await asyncio.sleep(0)
+    assert len(write_calls) == 1
+    assert write_calls[0].get("session_id") == "crisis-sess"
+    assert "crisis_response" in write_calls[0].get("path", [])
+    assert write_calls[0].get("crisis_state") == "monitoring"

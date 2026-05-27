@@ -8,6 +8,7 @@ from sage_poc.language import async_translate_to_arabic
 from sage_poc.config import AUDIT_LOG_ENABLED
 from sage_poc.rules import engine as rules_engine
 from sage_poc.prompts.summarizer import summarise_history
+from sage_poc.audit import write_session_audit
 
 _log = logging.getLogger(__name__)
 
@@ -213,6 +214,8 @@ async def output_gate_node(state: SageState) -> dict:
             lambda t: _log.warning("[output_gate] clinical review error: %s", t.exception())
             if not t.cancelled() and t.exception() else None
         )
+
+    asyncio.create_task(write_session_audit({**state, "path": path, "gate_path": gate_path or "standard"}))
 
     return {
         "response": final_response,
