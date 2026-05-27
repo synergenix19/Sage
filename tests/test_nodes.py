@@ -34,6 +34,7 @@ def make_state(**kwargs):
         "response": None,
         "path": [],
         "turn_count": 0,
+        "turn_number": 0,
         "conversation_history": [],
         "knowledge_passages": [],
         "knowledge_abstain": False,
@@ -1578,8 +1579,8 @@ def test_grounding_high_intensity_triggers_validate_only():
     assert result["next_step_id"] == "see_5"  # held in place
 
 
-def test_grounding_intensity_8_does_not_trigger_validate_only():
-    """Grounding skill: intensity == 8 does NOT trigger validate_only (operator is >, not >=)."""
+def test_grounding_intensity_8_triggers_validate_only():
+    """Grounding skill: intensity == 8 triggers validate_only (threshold is > 7, so 8 qualifies)."""
     from sage_poc.skills.schema import load_skill
     skill = load_skill("grounding_5_4_3_2_1")
     result = evaluate_step_policy(
@@ -1589,7 +1590,20 @@ def test_grounding_intensity_8_does_not_trigger_validate_only():
         engagement=7,
         message_en="I can see my desk, my lamp, my hands, the window, and the door.",
     )
-    # Should advance (intensity == 8 does not satisfy > 8)
+    assert result["action"] == "validate_only"
+
+def test_grounding_intensity_7_does_not_trigger_validate_only():
+    """Grounding skill: intensity == 7 does NOT trigger validate_only (operator is >, not >=)."""
+    from sage_poc.skills.schema import load_skill
+    skill = load_skill("grounding_5_4_3_2_1")
+    result = evaluate_step_policy(
+        skill=skill,
+        current_step_id="see_5",
+        emotional_intensity=7,
+        engagement=7,
+        message_en="I can see my desk, my lamp, my hands, the window, and the door.",
+    )
+    # intensity == 7 does not satisfy > 7
     assert result["action"] == "advance"
     assert result["next_step_id"] == "touch_4"
 
@@ -2410,3 +2424,16 @@ async def test_output_gate_does_not_call_summariser_at_other_turns():
 
     mock_summarise.assert_not_called()
     assert result.get("conversation_summary") is None
+
+
+@pytest.mark.asyncio
+async def test_safety_check_increments_turn_number():
+    state = make_state(raw_message="I feel stressed", turn_number=0)
+    result = await safety_check_node(state)
+    assert result["turn_number"] == 1
+
+@pytest.mark.asyncio
+async def test_safety_check_increments_turn_number_from_existing():
+    state = make_state(raw_message="I feel stressed", turn_number=3)
+    result = await safety_check_node(state)
+    assert result["turn_number"] == 4

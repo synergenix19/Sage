@@ -53,6 +53,7 @@ class SageState(TypedDict):
 
     path: list[str]
     turn_count: int
+    turn_number: int   # incremented by safety_check_node on every message; used for session_audit
     conversation_history: list[dict]
     therapeutic_profile: Optional[dict]  # loaded at turn start; injected into L5
     user_id:    Optional[str]            # authenticated user UUID from request

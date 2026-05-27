@@ -168,4 +168,5 @@ async def safety_check_node(state: SageState) -> dict:
         "s7_result": s7_result,
         "s7_method": s7_method,
         "path": state["path"] + ["safety_check"],
+        "turn_number": state.get("turn_number", 0) + 1,
     }
