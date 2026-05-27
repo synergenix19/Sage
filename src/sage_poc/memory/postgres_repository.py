@@ -118,6 +118,34 @@ class PostgresMemoryRepository(MemoryRepository):
                 skills_used or [], mood_score,
             )
 
+    async def get_persisted_clinical_flags(self, user_id: str) -> list[str]:
+        async with self._pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT persisted_clinical_flags FROM public.user_therapeutic_profiles WHERE user_id = $1",
+                user_id,
+            )
+            if row is None:
+                return []
+            raw = row["persisted_clinical_flags"]
+            if isinstance(raw, str):
+                raw = json.loads(raw)
+            return raw or []
+
+    async def write_persisted_clinical_flags(
+        self, user_id: str, flags: list[str]
+    ) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                """
+                INSERT INTO public.user_therapeutic_profiles (user_id, persisted_clinical_flags)
+                VALUES ($1, $2::jsonb)
+                ON CONFLICT (user_id) DO UPDATE SET
+                  persisted_clinical_flags = EXCLUDED.persisted_clinical_flags
+                """,
+                user_id,
+                json.dumps(flags),
+            )
+
     async def search_session_summaries(
         self,
         user_id: str,

@@ -55,3 +55,19 @@ class MemoryRepository(ABC):
         exclude_safety_levels=['crisis'] is the recommended default for therapeutic retrieval.
         """
         ...
+
+    @abstractmethod
+    async def get_persisted_clinical_flags(self, user_id: str) -> list[str]:
+        """Return the list of Category A clinical flags persisted across sessions.
+        Returns [] if no profile row exists or the column is empty.
+        """
+        ...
+
+    @abstractmethod
+    async def write_persisted_clinical_flags(
+        self, user_id: str, flags: list[str]
+    ) -> None:
+        """Upsert persisted_clinical_flags for user_id.
+        Creates a minimal profile row if none exists yet.
+        """
+        ...
