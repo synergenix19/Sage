@@ -16,7 +16,7 @@ from sage_poc.nodes.output_gate import output_gate_node
 from sage_poc.config import AUDIT_LOG_ENABLED
 from sage_poc.audit import write_session_audit
 
-def _crisis_response_node(state: SageState) -> dict:
+async def _crisis_response_node(state: SageState) -> dict:
     from sage_poc.rules import engine as rules_engine
 
     lang = state.get("detected_language", "en")
@@ -38,18 +38,12 @@ def _crisis_response_node(state: SageState) -> dict:
 
     path = state["path"] + ["crisis_response"]
 
-    _audit_payload = {
+    asyncio.create_task(write_session_audit({
         **state,
         "path": path,
         "gate_path": "crisis",
         "crisis_state": "monitoring",
-    }
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            loop.create_task(write_session_audit(_audit_payload))
-    except RuntimeError:
-        pass
+    }))
 
     if AUDIT_LOG_ENABLED:
         audit = {
