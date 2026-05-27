@@ -132,3 +132,34 @@ def test_load_l5_user_context():
     assert tmpl.layer == "L5"
     assert "{flags_summary}" in tmpl.content
     assert "{distress_note}" in tmpl.content
+
+
+def test_l0_persona_no_explicit_therapy_technique_names():
+    """L0_persona must not name specific clinical techniques (CBT, DBT, MI).
+    These map to 'mental health coach' in LLM training data.
+    """
+    tmpl = get_template("L0_persona")
+    content_lower = tmpl.content.lower()
+    assert "cbt" not in content_lower, "L0_persona must not reference CBT by name"
+    assert "dbt" not in content_lower, "L0_persona must not reference DBT by name"
+    assert "motivational interviewing" not in content_lower, (
+        "L0_persona must not reference MI by name"
+    )
+
+
+def test_l0_persona_has_negative_identity_constraint():
+    """L0_persona must explicitly prohibit coach/therapist/counsellor self-labelling."""
+    tmpl = get_template("L0_persona")
+    content_lower = tmpl.content.lower()
+    assert "not a therapist" in content_lower or "not a coach" in content_lower, (
+        "L0_persona must contain an explicit negative identity constraint"
+    )
+
+
+def test_l0_persona_has_prescribed_self_description():
+    """L0_persona must tell the LLM what to say when asked what it is."""
+    tmpl = get_template("L0_persona")
+    content_lower = tmpl.content.lower()
+    assert "wellness companion" in content_lower, (
+        "L0_persona must contain 'wellness companion' as the prescribed self-description"
+    )
