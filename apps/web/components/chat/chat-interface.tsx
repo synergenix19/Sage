@@ -19,6 +19,7 @@ interface SdkMessage {
   role: SdkRole
   content: string
   supabaseId?: string  // Supabase UUID from X-Sage-Ai-Message-Id header
+  isCrisis?: boolean
 }
 
 interface Props {
@@ -79,11 +80,14 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
           const { done, value } = await reader.read()
           if (done) break
           accumulated += decoder.decode(value, { stream: true })
-          const displayContent = accumulated.startsWith(CRISIS_SIGNAL)
+          const isCrisisMsg = accumulated.startsWith(CRISIS_SIGNAL)
+          const displayContent = isCrisisMsg
             ? accumulated.slice(CRISIS_SIGNAL.length).trimStart()
             : accumulated
           setMessages((curr) =>
-            curr.map((m) => (m.id === assistantId ? { ...m, content: displayContent } : m))
+            curr.map((m) =>
+              m.id === assistantId ? { ...m, content: displayContent, isCrisis: isCrisisMsg } : m
+            )
           )
         }
         accumulated += decoder.decode() // flush trailing multi-byte sequence
@@ -159,20 +163,9 @@ export function ChatInterface({ initialSession, initialMessages = [], userName, 
   const hasSignaledInstall = useRef(false)
   const { messages, append, isLoading, error, reload } = useStreamingChat(initialSession?.id, userId, initialMessages)
   const locale = useLocaleStore((s) => s.locale)
-  // Pin the crisis card only while the last assistant message is still a crisis.
-  // Once the user receives a normal reply the crisis is considered addressed
-  // for this turn and the pin is cleared.
-  const pinnedCrisis = (() => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === 'assistant') {
-        if (messages[i].content.startsWith(CRISIS_SIGNAL)) {
-          return messages[i].content.replace(CRISIS_SIGNAL, '').trimStart()
-        }
-        return null
-      }
-    }
-    return null
-  })()
+  // Pin the crisis card for the entire crisis/post-crisis monitoring sequence.
+  // Content is already CRISIS_SIGNAL-stripped on the message during streaming.
+  const pinnedCrisis = messages.find((m) => m.isCrisis)?.content ?? null
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: isLoading ? 'instant' : 'smooth' })
@@ -218,12 +211,9 @@ export function ChatInterface({ initialSession, initialMessages = [], userName, 
           <EmptyState userName={userName} onChipClick={handleSend} />
         ) : (
           messages.map((m) => {
-            const isCrisis =
-              m.role === 'assistant' && m.content.startsWith(CRISIS_SIGNAL)
-            const content = isCrisis
-              ? m.content.replace(CRISIS_SIGNAL, '').trimStart()
-              : m.content
+            const isCrisis = m.isCrisis === true
             if (isCrisis) return null
+            const content = m.content
             const role: MessageRole = mapSdkRole(m.role)
             return (
               <MessageBubble
