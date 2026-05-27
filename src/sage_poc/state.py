@@ -14,6 +14,7 @@ class SageState(TypedDict):
     is_safe: bool
     crisis_flags: list[str]
     clinical_flags: list[str]   # substance_use, trauma_indicator, eating_concern, medication_mention
+    new_clinical_flags_turn: list[str]  # flags detected THIS turn only; reset each turn in _build_state()
     third_party_crisis: bool    # user is concerned about someone else's safety, not their own
 
     crisis_state: str              # "none" | "active" | "monitoring" | "resolved"
@@ -39,6 +40,8 @@ class SageState(TypedDict):
     prompt_layers: list[str]            # layer names included in the composed LLM prompt
     token_usage: dict                   # {"input": N, "output": N, "total": N} from LLM
     escalation_triggered: Optional[dict]  # {"level": "L1"|"L2", "reason": str, "action": str}
+    resistance_history: list[int]       # rolling 3-turn Falcon-3B resistance scores; persists via LangGraph checkpoint across turns within a session
+    resistance_score: Optional[int]     # current turn's resistance score; reset each turn in _build_state()
 
     cultural_output_violations: list[str]  # rule_ids fired in output_gate cultural check
 
