@@ -312,3 +312,62 @@ class TestT7ForTurnsCondition:
         history = result["resistance_history"]
         assert history[-1] == 4
         assert len(history) <= 3
+
+
+# ── M5 fix: re_escalation_detected wired from s7_result into step_policy ──────
+
+class TestM5ReEscalationDetected:
+    """M5 fix: when s7_result == "NEW_CRISIS" during post-crisis monitoring, the
+    re_escalation_detected signal must reach evaluate_step_policy() so the
+    step_policy rule in post_crisis_check_in.json can fire."""
+
+    def test_re_escalation_detected_fires_step_policy_rule(self):
+        """evaluate_step_policy: re_escalation_detected=True fires matching rule."""
+        from sage_poc.skills.schema import load_skill
+        skill = load_skill("post_crisis_check_in")
+        result = evaluate_step_policy(
+            skill=skill,
+            current_step_id=skill.steps[0].step_id,
+            emotional_intensity=4,
+            engagement=6,
+            re_escalation_detected=True,
+        )
+        assert result["action"] == "exit_to_crisis_protocol", (
+            "re_escalation_detected=True must fire the exit_to_crisis_protocol rule"
+        )
+
+    def test_re_escalation_not_detected_does_not_fire_rule(self):
+        """evaluate_step_policy: re_escalation_detected=False must not fire the rule."""
+        from sage_poc.skills.schema import load_skill
+        skill = load_skill("post_crisis_check_in")
+        result = evaluate_step_policy(
+            skill=skill,
+            current_step_id=skill.steps[0].step_id,
+            emotional_intensity=4,
+            engagement=6,
+            re_escalation_detected=False,
+        )
+        assert result["action"] != "exit_to_crisis_protocol", (
+            "re_escalation_detected=False must not fire the re-escalation rule"
+        )
+
+    async def test_s7_new_crisis_triggers_re_escalation_in_node(self):
+        """skill_executor_node: s7_result='NEW_CRISIS' must cause the
+        re_escalation_detected step_policy rule to fire in post_crisis_check_in."""
+        from sage_poc.skills.schema import load_skill
+        skill = load_skill("post_crisis_check_in")
+        state = _make_executor_state(
+            active_skill_id="post_crisis_check_in",
+            active_step_id=skill.steps[0].step_id,
+            s7_result="NEW_CRISIS",
+            crisis_state="monitoring",
+            emotional_intensity=4,
+            engagement=6,
+            new_clinical_flags_turn=[],
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+            result = await skill_executor_node(state)
+
+        assert result.get("step_instruction") and "Exit" in result["step_instruction"], (
+            "s7_result=NEW_CRISIS must produce the exit_to_crisis_protocol instruction"
+        )

@@ -151,11 +151,12 @@ def evaluate_step_policy(
     message_en: str = "",
     resistance_history: list[int] | None = None,
     resistance_score: int | None = None,
+    re_escalation_detected: bool = False,
 ) -> dict:
     """Synchronous two-phase policy evaluation. Returns a result dict.
 
-    Phase 1 — deterministic: emotional_intensity and engagement rules evaluated
-    instantly. If any fires, returns immediately (no LLM call).
+    Phase 1 — deterministic: emotional_intensity, engagement, and boolean event signals
+    (re_escalation_detected) evaluated instantly. If any fires, returns immediately.
 
     Phase 2 — resistance: evaluated only when the caller provides a resistance_score.
     Caller (skill_executor_node) fetches the resistance score via LLM only after Phase 1
@@ -167,9 +168,10 @@ def evaluate_step_policy(
     resistance_history = resistance_history or []
 
     # Build signals dict. Resistance is included only when caller provides a score.
-    signals: dict[str, int] = {
-        "emotional_intensity": emotional_intensity,
-        "engagement":          engagement,
+    signals: dict[str, int | bool] = {
+        "emotional_intensity":    emotional_intensity,
+        "engagement":             engagement,
+        "re_escalation_detected": re_escalation_detected,
     }
     if resistance_score is not None:
         signals["resistance"] = resistance_score
@@ -283,6 +285,7 @@ async def skill_executor_node(state: SageState) -> dict:
         }
 
     resistance_history = list(state.get("resistance_history") or [])
+    re_escalation_detected = state.get("s7_result") == "NEW_CRISIS"
 
     # Phase 1: deterministic rules only (resistance_score=None → resistance rules skipped).
     # Returns a result dict. If a deterministic rule fires, its action will be present.
@@ -295,6 +298,7 @@ async def skill_executor_node(state: SageState) -> dict:
         message_en=state["message_en"],
         resistance_history=resistance_history,
         resistance_score=None,
+        re_escalation_detected=re_escalation_detected,
     )
 
     # Phase 2: resistance scoring — only if the skill references 'resistance' rules AND
@@ -316,6 +320,7 @@ async def skill_executor_node(state: SageState) -> dict:
                 message_en=state["message_en"],
                 resistance_history=resistance_history,
                 resistance_score=new_resistance_score,
+                re_escalation_detected=re_escalation_detected,
             )
             result.pop("_det_rule_fired", None)
 

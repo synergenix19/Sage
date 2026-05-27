@@ -73,3 +73,22 @@ def test_T9_new_clinical_flags_turn_and_resistance_score_reset_each_turn():
     assert state["resistance_score"] is None, (
         "resistance_score must reset to None each turn — it is computed by skill_executor"
     )
+
+
+def test_M4_knowledge_fields_reset_each_turn():
+    """M4 fix: knowledge_abstain, knowledge_passages, and knowledge_source must reset
+    each turn so that an info_request turn's retrieval state does not bleed into the
+    next turn's prompt composition (e.g. skill_continuation).
+    """
+    req = _Req([_Msg("user", "what is CBT?")])
+    state = _build_state(req)
+
+    assert state.get("knowledge_abstain") is False, (
+        "knowledge_abstain must reset to False so stale abstain block is not injected"
+    )
+    assert state.get("knowledge_passages") == [], (
+        "knowledge_passages must reset to [] so prior-turn passages are not reused"
+    )
+    assert state.get("knowledge_source") == "", (
+        "knowledge_source must reset to '' so audit log shows correct source"
+    )

@@ -63,6 +63,8 @@ def _build_state(req: _RequestLike) -> dict:
         "new_clinical_flags_turn": [],
         "resistance_score":        None,
         "knowledge_source":        "",
+        "knowledge_abstain":       False,
+        "knowledge_passages":      [],
         # Set from request — needed by tools and summary persistence
         "session_id": req.session_id,
         "user_id":    req.user_id,
