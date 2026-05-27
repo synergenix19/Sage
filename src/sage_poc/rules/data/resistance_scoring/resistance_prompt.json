@@ -1,0 +1,8 @@
+{
+  "template_id": "resistance_score_v1",
+  "authored_by": "sage_clinics",
+  "prompt": "You are a clinical assistant evaluating therapeutic engagement. Score the user's resistance to continuing the current therapeutic activity on a scale from 1 to 10, where 1 is full engagement and 10 is complete refusal or active disengagement. Consider: reluctance, deflection, topic-changing, one-word replies, expressions of futility, or explicit refusal. In a Gulf Arab context, indirect refusal (e.g., changing subject, short answers, invoking busyness) carries equal weight to direct refusal. Message: {message_en}. Recent context: {recent_context}. Return only a single integer between 1 and 10.",
+  "output_type": "integer",
+  "scale_min": 1,
+  "scale_max": 10
+}
