@@ -10,6 +10,7 @@ class StepPolicyCondition(BaseModel):
     operator: str     # ">" | "<" | ">=" | "<=" | "=="
     value: int | float
     step: str         # "ANY" or a specific step_id
+    for_turns: int | None = None  # consecutive turns threshold (optional)
 
 
 class StepPolicyRule(BaseModel):
