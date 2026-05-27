@@ -359,8 +359,10 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
         a["content"] for a in injection_result.actions if a.get("target") == "system"
     ]
     if system_injections:
+        # Label is "SUPPORT ADAPTATIONS" to avoid clinical framing in the LLM context.
+        # The safety and clinical rules themselves are unchanged — only the header label differs.
         system_parts.append(
-            "\nCLINICAL ADAPTATIONS (follow these strictly):\n"
+            "\nSUPPORT ADAPTATIONS (follow these strictly):\n"
             + "\n".join(f"- {c}" for c in system_injections)
         )
         layers.append("clinical_adaptation")

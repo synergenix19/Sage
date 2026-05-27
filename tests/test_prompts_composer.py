@@ -394,7 +394,7 @@ def test_compose_prompt_l3_wrapper_fires_for_normal_skill_step():
     with patch("sage_poc.prompts.composer.rules_engine.evaluate", side_effect=_no_rules()):
         _, user_str, layers = compose_prompt(state)
     assert "L3_skill_wrapper" in layers
-    assert "THERAPEUTIC APPROACH" in user_str
+    assert "SUPPORT APPROACH" in user_str
     assert "Goal:" not in user_str  # P1-4 fix: old form format gone
 
 
@@ -440,8 +440,12 @@ def test_compose_prompt_clinical_adaptation_layer_tracked():
         return cultural if cat == "cultural" else injection
     with patch("sage_poc.prompts.composer.rules_engine.evaluate", side_effect=_eval):
         state = _make_state(clinical_flags=["substance_use"])
-        _, _, layers = compose_prompt(state)
+        system_str, _, layers = compose_prompt(state)
     assert "clinical_adaptation" in layers
+    assert "SUPPORT ADAPTATIONS" in system_str, (
+        "Injected adaptation header must say 'SUPPORT ADAPTATIONS', not 'CLINICAL ADAPTATIONS'"
+    )
+    assert "CLINICAL ADAPTATIONS" not in system_str
 
 
 def test_compose_prompt_knowledge_layer_fires_for_info_request():

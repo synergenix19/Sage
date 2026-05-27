@@ -1828,11 +1828,11 @@ def test_compose_prompt_warmth_gradient_crisis_vs_positive():
     P-2: compose_prompt must produce contextually different prompts for crisis vs. positive check-in.
 
     Crisis context: high intensity + trauma_indicator flag ->
-        system_str includes CLINICAL ADAPTATIONS with trauma-sensitive language
+        system_str includes SUPPORT ADAPTATIONS with trauma-sensitive language
         user_str surfaces high emotional intensity (9/10)
 
     Positive check-in: low intensity, no clinical flags ->
-        system_str is PERSONA only -- no CLINICAL ADAPTATIONS section
+        system_str is PERSONA only -- no SUPPORT ADAPTATIONS section
         user_str surfaces low emotional intensity (2/10)
 
     If this test fails (both contexts produce identical system prompts), it is a
@@ -1858,13 +1858,13 @@ def test_compose_prompt_warmth_gradient_crisis_vs_positive():
     )
     checkin_system, checkin_user, _ = compose_prompt(checkin_state)
 
-    # System role: crisis must inject clinical adaptation; check-in must not
-    assert "CLINICAL ADAPTATIONS" in crisis_system, \
-        "P-2: Crisis context must include CLINICAL ADAPTATIONS in system role"
+    # System role: crisis must inject support adaptation; check-in must not
+    assert "SUPPORT ADAPTATIONS" in crisis_system, \
+        "P-2: Crisis context must include SUPPORT ADAPTATIONS in system role"
     assert "trauma-sensitive" in crisis_system.lower(), \
         "P-2: trauma_indicator flag must inject trauma-sensitive language into system role"
-    assert "CLINICAL ADAPTATIONS" not in checkin_system, \
-        "P-2: Positive check-in must not include CLINICAL ADAPTATIONS (no flags present)"
+    assert "SUPPORT ADAPTATIONS" not in checkin_system, \
+        "P-2: Positive check-in must not include SUPPORT ADAPTATIONS (no flags present)"
 
     # User role: intensity signal must differ meaningfully between contexts
     assert "9/10" in crisis_user, \
