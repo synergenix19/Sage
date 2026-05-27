@@ -164,6 +164,7 @@ def evaluate_step_policy(
     re_escalation_detected: bool = False,
     engagement_trajectory: list[int] | None = None,
     prior_exposure: int = 0,
+    criteria_met: bool | None = None,
 ) -> dict:
     """Synchronous two-phase policy evaluation. Returns a result dict.
 
@@ -247,12 +248,14 @@ def evaluate_step_policy(
         f"Example approaches: {'; '.join(step.examples[:2])}"
     )
 
-    if not _meets_completion_criteria(message_en):
+    met = criteria_met if criteria_met is not None else _meets_completion_criteria(message_en)
+    if not met:
         return {
-            "action":        "stay",
-            "instruction":   step_instruction,
-            "next_step_id":  current_step_id,
-            "skill_complete": False,
+            "action":            "stay",
+            "instruction":       step_instruction,
+            "next_step_id":      current_step_id,
+            "skill_complete":    False,
+            "_criteria_blocked": True,
         }
 
     # Criteria met — advance to next step in sequence.

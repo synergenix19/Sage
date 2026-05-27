@@ -378,3 +378,113 @@ class TestM5ReEscalationDetected:
         assert result.get("step_instruction") and "Exit" in result["step_instruction"], (
             "s7_result=NEW_CRISIS must produce the exit_to_crisis_protocol instruction"
         )
+
+
+# ── Task 7: criteria_met param and _criteria_blocked sentinel ─────────────────
+
+def test_evaluate_step_policy_criteria_blocked_sentinel():
+    """When heuristic blocks advancement (single-word response), result must contain _criteria_blocked=True."""
+    skill = Skill(
+        skill_id="test_cbt",
+        skill_name="Test CBT",
+        skill_type="cbt",
+        evidence_base="test",
+        target_presentations=[],
+        steps=[
+            SkillStep(
+                step_id="step_1",
+                goal="Share a thought",
+                technique="Cognitive",
+                tone="warm",
+                examples=["example"],
+                completion_criteria="User has shared a specific thought they are struggling with",
+            )
+        ],
+        step_policy=[],
+        escalation_matrix={"L1": "Exit"},
+    )
+    result = evaluate_step_policy(
+        skill=skill,
+        current_step_id="step_1",
+        emotional_intensity=5,
+        engagement=7,
+        message_en="ok",  # single word — heuristic blocks
+    )
+    assert result.get("_criteria_blocked") is True
+    assert result["skill_complete"] is False
+
+
+def test_evaluate_step_policy_criteria_met_true_advances():
+    """When criteria_met=True is passed, step must advance regardless of word count."""
+    skill = Skill(
+        skill_id="test_cbt",
+        skill_name="Test CBT",
+        skill_type="cbt",
+        evidence_base="test",
+        target_presentations=[],
+        steps=[
+            SkillStep(
+                step_id="step_1",
+                goal="Share a thought",
+                technique="Cognitive",
+                tone="warm",
+                examples=["example"],
+                completion_criteria="User has shared a specific thought",
+            ),
+            SkillStep(
+                step_id="step_2",
+                goal="Challenge it",
+                technique="Socratic",
+                tone="warm",
+                examples=["example"],
+                completion_criteria="",
+            ),
+        ],
+        step_policy=[],
+        escalation_matrix={"L1": "Exit"},
+    )
+    result = evaluate_step_policy(
+        skill=skill,
+        current_step_id="step_1",
+        emotional_intensity=5,
+        engagement=7,
+        message_en="ok",  # single word — would fail heuristic
+        criteria_met=True,  # LLM says yes
+    )
+    assert result["action"] == "advance"
+    assert result["next_step_id"] == "step_2"
+    assert result.get("_criteria_blocked") is None
+
+
+def test_evaluate_step_policy_criteria_met_false_blocks():
+    """When criteria_met=False is passed, step must stay even for multi-word message."""
+    skill = Skill(
+        skill_id="test_cbt",
+        skill_name="Test CBT",
+        skill_type="cbt",
+        evidence_base="test",
+        target_presentations=[],
+        steps=[
+            SkillStep(
+                step_id="step_1",
+                goal="Share a thought",
+                technique="Cognitive",
+                tone="warm",
+                examples=["example"],
+                completion_criteria="User has named a specific thought",
+            )
+        ],
+        step_policy=[],
+        escalation_matrix={"L1": "Exit"},
+    )
+    result = evaluate_step_policy(
+        skill=skill,
+        current_step_id="step_1",
+        emotional_intensity=5,
+        engagement=7,
+        message_en="I guess I feel bad",  # multi-word — would pass heuristic
+        criteria_met=False,  # LLM says no
+    )
+    assert result["action"] == "stay"
+    assert result["skill_complete"] is False
+    assert result.get("_criteria_blocked") is True
