@@ -52,8 +52,8 @@ export function ClinicalStateCard({ row }: Props) {
         </div>
         {row.crisis_flags && row.crisis_flags.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {row.crisis_flags.map(f => (
-              <span key={f} className="text-[10px] bg-red-900 text-red-200 px-1.5 py-0.5 rounded">{f}</span>
+            {row.crisis_flags.map((f, i) => (
+              <span key={`${f}-${i}`} className="text-[10px] bg-red-900 text-red-200 px-1.5 py-0.5 rounded">{f}</span>
             ))}
           </div>
         )}
@@ -67,8 +67,8 @@ export function ClinicalStateCard({ row }: Props) {
         </div>
         {row.clinical_flags && row.clinical_flags.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {row.clinical_flags.map(f => (
-              <span key={f} className="text-[10px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded">{f}</span>
+            {row.clinical_flags.map((f, i) => (
+              <span key={`${f}-${i}`} className="text-[10px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded">{f}</span>
             ))}
           </div>
         )}
@@ -101,8 +101,8 @@ export function ClinicalStateCard({ row }: Props) {
             <span className="text-slate-400 w-20 flex-shrink-0">Passages</span>
             <div className="flex flex-col gap-0.5">
               {row.knowledge_passage_ids?.length
-                ? row.knowledge_passage_ids.map(p => (
-                    <span key={p} className="text-teal-300 font-mono">{p}</span>
+                ? row.knowledge_passage_ids.map((p, i) => (
+                    <span key={`${p}-${i}`} className="text-teal-300 font-mono">{p}</span>
                   ))
                 : <span className="text-slate-100 font-mono">—</span>
               }
