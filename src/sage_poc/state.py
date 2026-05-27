@@ -35,6 +35,7 @@ class SageState(TypedDict):
     active_step_id: Optional[str]      # step the NEXT turn will start from
     executed_step_id: Optional[str]    # step whose instruction was used THIS turn (for audit)
     step_instruction: Optional[str]
+    rule_fired: Optional[bool]         # True when a step_policy rule override replaced the default step instruction; reset each turn
     skill_match_method: Optional[str]   # "keyword" | "semantic" | None
     semantic_score: Optional[float]     # cosine similarity if semantic match
     prompt_layers: list[str]            # layer names included in the composed LLM prompt

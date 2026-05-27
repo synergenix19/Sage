@@ -365,6 +365,7 @@ async def skill_executor_node(state: SageState) -> dict:
         "executed_step_id":    step_id,
         "active_step_id":      result["next_step_id"],
         "active_skill_id":     None if result.get("skill_complete") else skill_id,
+        "rule_fired":          result.get("action") not in ("advance", "complete", "stay", None),
         "escalation_triggered": l2,  # advisory stored for audit; None if no L2 this turn
         "resistance_score":    new_resistance_score,
         "resistance_history":  resistance_history,

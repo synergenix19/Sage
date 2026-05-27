@@ -80,6 +80,7 @@ def _build_state(req: _RequestLike) -> dict:
         "engagement":          7,
         "executed_step_id":   None,
         "step_instruction":   None,
+        "rule_fired":         None,
         "escalation_triggered": None,
         "gate_path":          None,
         "response_en":        None,
