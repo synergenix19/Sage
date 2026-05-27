@@ -56,14 +56,15 @@ class PostgresNotifier(ReviewNotifier):
             await conn.execute(
                 """
                 INSERT INTO public.clinician_review_queue
-                  (user_id, session_id, reason, source, severity, payload, status)
-                VALUES ($1, $2::uuid, $3, $4, $5, $6::jsonb, 'pending')
+                  (user_id, session_id, reason, source, severity, payload, status, flags_timeline)
+                VALUES ($1, $2::uuid, $3, $4, $5, $6::jsonb, 'pending', jsonb_build_array($6::jsonb))
                 ON CONFLICT (session_id) DO UPDATE SET
-                  reason     = EXCLUDED.reason,
-                  source     = EXCLUDED.source,
-                  severity   = EXCLUDED.severity,
-                  payload    = EXCLUDED.payload,
-                  updated_at = now()
+                  reason          = EXCLUDED.reason,
+                  source          = EXCLUDED.source,
+                  severity        = EXCLUDED.severity,
+                  payload         = EXCLUDED.payload,
+                  flags_timeline  = clinician_review_queue.flags_timeline || jsonb_build_array(EXCLUDED.payload::jsonb),
+                  updated_at      = now()
                 """,
                 user_id, session_id, reason, source, severity, message,
             )
