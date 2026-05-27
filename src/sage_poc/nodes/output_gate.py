@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import json
 import logging
 import os
@@ -151,13 +152,25 @@ async def output_gate_node(state: SageState) -> dict:
             "message_en": state.get("message_en", ""),
             "clinical_flags": state.get("clinical_flags", []),
         })
+        _identity_sub_rule_id: str | None = None
+        _original_response_hash: str | None = None
         for rule in cultural_violations.fired:
             print(
                 f"\n[CULTURAL OUTPUT VIOLATION] {rule.rule_id} v{rule.version}: "
                 f"{rule.action.get('message', rule.action.get('type', ''))}"
             )
+            if rule.action.get("type") == "substitute" and _identity_sub_rule_id is None:
+                _original_response_hash = hashlib.sha256(response_en.encode()).hexdigest()[:16]
+                _identity_sub_rule_id = rule.rule_id
+                response_en = rule.action["substitute_with"]
+                _log.warning(
+                    "[output_gate] Rule %s substituted response (hash: %s)",
+                    rule.rule_id, _original_response_hash,
+                )
         cultural_output_violations = [r.rule_id for r in cultural_violations.fired]
     else:
+        _identity_sub_rule_id = None
+        _original_response_hash = None
         cultural_output_violations = []
 
     violations = _FORMAT_VIOLATIONS.findall(response_en)
@@ -196,6 +209,10 @@ async def output_gate_node(state: SageState) -> dict:
                 p.get("source_id") for p in (state.get("knowledge_passages") or [])
             ],
             "knowledge_abstain": state.get("knowledge_abstain", False),
+            "identity_substitution": (
+                {"rule_id": _identity_sub_rule_id, "original_response_hash": _original_response_hash}
+                if _identity_sub_rule_id else None
+            ),
         }
         print(f"\n[AUDIT] {json.dumps(audit, indent=2)}")
 
@@ -254,5 +271,7 @@ async def output_gate_node(state: SageState) -> dict:
         "conversation_history": new_history,
         "conversation_summary": new_summary,
         "cultural_output_violations": cultural_output_violations,
+        "identity_substitution_rule_id": _identity_sub_rule_id,
+        "original_response_hash": _original_response_hash,
         "last_turn_at": datetime.now(timezone.utc).isoformat(),
     }

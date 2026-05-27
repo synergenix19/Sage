@@ -1,0 +1,48 @@
+{
+  "category": "cultural_output",
+  "rules": [
+    {
+      "rule_id": "CUO-ID-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "approved_by": null,
+      "effective_date": "2026-05-27",
+      "active": true,
+      "description": "Blocks LLM responses that self-identify Sage as a mental health coach, therapist, or counsellor. Substitutes a canonical wellness companion statement. Applied post-generation so the LLM cannot bypass it.",
+      "category": "cultural_output",
+      "check_type": "blocklist",
+      "condition_type": "always",
+      "condition_keywords": [],
+      "condition_value": null,
+      "patterns": [
+        "mental health coach",
+        "your mental health coach",
+        "i am your coach",
+        "i'm your coach",
+        "as your therapist",
+        "as a therapist",
+        "i am your therapist",
+        "i'm your therapist",
+        "i am a therapist",
+        "i'm a therapist",
+        "as your counsellor",
+        "as a counsellor",
+        "as your counselor",
+        "as a counselor",
+        "i am a counsellor",
+        "i'm a counsellor",
+        "i am a counselor",
+        "i'm a counselor",
+        "i am a mental health professional",
+        "i'm a mental health professional",
+        "as a mental health professional"
+      ],
+      "action": {
+        "type": "substitute",
+        "substitute_with": "I'm Sage, a wellness companion here to offer emotional support and evidence-based coping tools. That's my role. What's been on your mind today?",
+        "severity": "high",
+        "message": "Response contained a prohibited identity claim (coach/therapist/counsellor). Substituted with canonical wellness companion statement."
+      }
+    }
+  ]
+}

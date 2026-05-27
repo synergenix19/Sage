@@ -309,3 +309,125 @@ async def test_output_gate_audit_includes_knowledge_fields(capsys):
     assert "knowledge_source" in captured.out, "Audit log must include knowledge_source"
     assert "node_6" in captured.out, "Audit log must include the knowledge source value"
     assert "cbt-001-en" in captured.out, "Audit log must include passage source_id"
+
+
+# ---------------------------------------------------------------------------
+# Tests — CUO-ID-001 identity substitution (Task 7)
+# ---------------------------------------------------------------------------
+
+def _make_fired_rule(rule_id, action):
+    from unittest.mock import MagicMock
+    r = MagicMock()
+    r.rule_id = rule_id
+    r.version = "1.0.0"
+    r.action = action
+    return r
+
+
+@pytest.mark.asyncio
+async def test_cuo_id_001_substitute_replaces_response():
+    """CUO-ID-001: when LLM says 'mental health coach', output_gate must substitute with canonical wellness statement."""
+    from sage_poc.nodes.output_gate import output_gate_node
+
+    coach_response = "I am your mental health coach and I am here to help."
+    state = make_state(gate_path=None, response_en=coach_response)
+
+    sub_action = {
+        "type": "substitute",
+        "substitute_with": "I'm Sage, a wellness companion here to offer emotional support and evidence-based coping tools. That's my role. What's been on your mind today?",
+        "severity": "high",
+        "message": "Identity claim substituted.",
+    }
+    fired_rule = _make_fired_rule("CUO-ID-001", sub_action)
+    mock_result = MagicMock()
+    mock_result.fired = [fired_rule]
+
+    with (
+        patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()),
+        patch("sage_poc.nodes.output_gate.rules_engine.evaluate", return_value=mock_result),
+    ):
+        result = await output_gate_node(state)
+
+    assert "wellness companion" in result["response"], (
+        f"Response must be substituted with wellness companion statement, got: {result['response']!r}"
+    )
+    assert "mental health coach" not in result["response"], (
+        f"Original identity claim must not appear in final response, got: {result['response']!r}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_cuo_id_001_substitute_records_rule_id_and_hash():
+    """CUO-ID-001 substitution must record rule_id and sha256 hash of original response for PDPL audit."""
+    from sage_poc.nodes.output_gate import output_gate_node
+
+    original = "I am your mental health coach here."
+    state = make_state(gate_path=None, response_en=original)
+
+    sub_action = {
+        "type": "substitute",
+        "substitute_with": "I'm Sage, a wellness companion.",
+        "severity": "high",
+        "message": "Substituted.",
+    }
+    fired_rule = _make_fired_rule("CUO-ID-001", sub_action)
+    mock_result = MagicMock()
+    mock_result.fired = [fired_rule]
+
+    with (
+        patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()),
+        patch("sage_poc.nodes.output_gate.rules_engine.evaluate", return_value=mock_result),
+    ):
+        result = await output_gate_node(state)
+
+    assert result["identity_substitution_rule_id"] == "CUO-ID-001", (
+        f"identity_substitution_rule_id must be 'CUO-ID-001', got: {result.get('identity_substitution_rule_id')!r}"
+    )
+    assert result["original_response_hash"] is not None, (
+        "original_response_hash must be set when substitution fires"
+    )
+    assert len(result["original_response_hash"]) == 16, (
+        f"original_response_hash must be 16-char sha256 prefix, got: {result['original_response_hash']!r}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_no_substitution_leaves_rule_id_and_hash_none():
+    """When no substitute rule fires, identity_substitution_rule_id and original_response_hash must be None."""
+    from sage_poc.nodes.output_gate import output_gate_node
+
+    state = make_state(gate_path=None, response_en="I hear that things are tough right now.")
+
+    mock_result = MagicMock()
+    mock_result.fired = []
+
+    with (
+        patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()),
+        patch("sage_poc.nodes.output_gate.rules_engine.evaluate", return_value=mock_result),
+    ):
+        result = await output_gate_node(state)
+
+    assert result["identity_substitution_rule_id"] is None
+    assert result["original_response_hash"] is None
+
+
+def test_wellness_identity_rule_file_loads_and_is_valid():
+    """wellness_identity.json must load as a valid CulturalOutputRule and have correct check_type."""
+    import json
+    from pathlib import Path
+    from sage_poc.rules.schemas import CulturalOutputRule
+
+    rule_path = (
+        Path(__file__).parent.parent
+        / "src" / "sage_poc" / "rules" / "data" / "cultural_output" / "wellness_identity.json"
+    )
+    data = json.loads(rule_path.read_text())
+    rules = [CulturalOutputRule(**r) for r in data["rules"]]
+    assert len(rules) == 1
+    rule = rules[0]
+    assert rule.rule_id == "CUO-ID-001"
+    assert rule.check_type == "blocklist"
+    assert rule.active is True
+    assert rule.action["type"] == "substitute"
+    assert "wellness companion" in rule.action["substitute_with"]
+    assert "mental health coach" in rule.patterns
