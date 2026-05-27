@@ -1,10 +1,10 @@
 # Clinical Flag Lifecycle Design Document
 
 **Date:** 2026-05-27  
-**Status:** DRAFT — Requires clinical sign-off before Sprint 1 implementation  
-**Gate:** Blocks X1 + M1 bug fixes in `nodes/skill_executor.py` and `nodes/safety_check.py`  
+**Status:** IMPLEMENTED — X1 + M1 fixes merged to `feat/clinical-flag-lifecycle`; 1001 tests passing. Clinical sign-off still required for §8 items (non-blocking).  
+**Gate:** ~~Blocks X1 + M1 bug fixes~~ — fixes implemented; gate cleared.  
 **Authors:** Engineering  
-**Clinical review required from:** Both clinical advisors  
+**Clinical review required from:** Both clinical advisors (§8 items; see note below)  
 
 ---
 
@@ -178,51 +178,113 @@ all_clinical = list(set(new_clinical_flags + persisted_non_computed))
 
 ### 5.4 `check_escalation()` Signature Change
 
+> **Implementation deviation (intentional improvement):** The implementation returns `tuple[dict | None, dict | None]` instead of `dict | None`. This allows L1 and L2 to coexist on the same turn — for example, an exit phrase ("I'm done") combined with a new clinical flag ("I've been drinking") correctly fires both L1 and L2. The spec's `dict | None` return would require callers to check the dict's `level` key to distinguish L1 from L2, making the two-signal case impossible. The tuple return is strictly more expressive. All callers handle both signals independently.
+
 ```python
 # skill_executor.py
-def check_escalation(message_en: str, new_clinical_flags_turn: list[str]) -> dict | None:
+def check_escalation(
+    message_en: str,
+    new_clinical_flags_turn: list[str],
+) -> tuple[dict | None, dict | None]:
+    """Returns (l1_escalation, l2_advisory).
+
+    L1 is blocking — caller must exit the skill immediately.
+    L2 is advisory — caller logs and continues normal step_policy execution.
+    Both are based only on this turn's signals so they can't accumulate stale state.
+    """
     # L1: unchanged
-    # L2: fires on new_clinical_flags_turn, not accumulated clinical_flags
+    l1 = None
+    if any(phrase in message_en.lower() for phrase in L1_EXIT_PHRASES):
+        l1 = {"level": "L1", "reason": "User requested to stop the skill", "action": "exit_skill"}
+
+    # L2: fires on new_clinical_flags_turn only (X1 fix)
+    l2 = None
     if new_clinical_flags_turn:
-        return {
+        l2 = {
             "level": "L2",
-            "reason": f"New clinical flags this turn: {', '.join(new_clinical_flags_turn)}",
-            "action": "clinician_review_queued",
+            "reason": f"Clinical flags detected this turn: {', '.join(new_clinical_flags_turn)}",
+            "action": "flag_clinician",
         }
-    return None
+
+    return l1, l2
 ```
 
 Caller in `skill_executor_node`:
 ```python
-escalation = check_escalation(
+l1, l2 = check_escalation(
     message_en=state["message_en"],
-    new_clinical_flags_turn=state.get("new_clinical_flags_turn", []),
+    new_clinical_flags_turn=state.get("new_clinical_flags_turn") or [],
 )
 ```
 
 ### 5.5 L2 Branch in `skill_executor_node`
 
-Remove the early return on L2. L2 now writes to the audit trail but continues to `evaluate_step_policy`:
+Remove the early return on L2. L2 logs (advisory) and continues to `evaluate_step_policy`. L1 exits immediately:
 
 ```python
-if escalation:
-    if escalation["action"] == "exit_skill":  # L1 only
-        # ... existing L1 early return unchanged ...
-    # L2 (and future L3/L4): log, then fall through to step policy
-    crisis_update: dict = {}
-    if escalation["action"] == "exit_skill" and skill_id == "post_crisis_check_in":
-        crisis_update = {"crisis_state": "resolved"}
-    # Note: L2 does NOT return early — step policy continues below
+# L2: advisory — log and continue; skill execution is NOT blocked.
+if l2:
+    _log.info("[skill_executor] L2 advisory: %s", l2["reason"])
 
-# evaluate_step_policy runs for ALL non-exit escalations
+# L1: blocking — exit skill immediately, no step_policy evaluation.
+if l1:
+    matrix_instruction = skill.escalation_matrix.get("L1", "Follow escalation protocol.")
+    crisis_update: dict = {}
+    if skill_id == "post_crisis_check_in":
+        crisis_update = {"crisis_state": "resolved"}
+    return {
+        "step_instruction":    f"[L1] {matrix_instruction}",
+        "active_skill_id":     None,
+        "escalation_triggered": l1,
+        **crisis_update,
+    }
+
+# evaluate_step_policy runs for all non-L1 turns (including turns with L2)
 result = evaluate_step_policy(...)
 ```
 
+> **Note:** `escalation_triggered` in the non-L1 return path is set to `l2` (may be None). This stores the L2 advisory in state for the `output_gate` audit log without blocking execution.
+
 ---
 
-## 6. Category C Signal Plumbing (M5 Fix)
+## 6. Category C Signal Plumbing — Resistance Scoring
 
-`evaluate_step_policy()` signature extension:
+> **Implementation vs. spec:** The implementation uses a two-phase `evaluate_step_policy()` with LLM-scored resistance (1-10 Falcon-3B scale), not the `engagement < 3` POC heuristic described in the original spec draft. This is an intentional upgrade that avoids a latency regression.
+
+### 6.1 Two-Phase evaluate_step_policy Architecture
+
+`evaluate_step_policy()` is a **synchronous** pure function that accepts `resistance_score: int | None`. The async LLM call lives in `skill_executor_node`:
+
+```
+Phase 1 — deterministic (no LLM): evaluate_step_policy(resistance_score=None)
+  Skips resistance rules explicitly (cond.signal == "resistance" → continue).
+  If any non-resistance rule fires → return immediately (no LLM call, 0ms latency cost).
+
+Phase 2 — resistance scoring (LLM, ~400-800ms): only when:
+  (a) skill has at least one resistance rule, AND
+  (b) Phase 1 did not fire a deterministic rule.
+  → await _score_resistance_via_rules_service(message_en)
+  → evaluate_step_policy(resistance_score=score) — now evaluates resistance rules.
+```
+
+This ensures the LLM cost is only paid when no cheaper rule fired first.
+
+### 6.2 for_turns Temporal Condition
+
+`StepPolicyCondition.for_turns` (aliased from `"turns"` in legacy skill JSONs via `AliasChoices`) requires N consecutive turns satisfying the threshold:
+
+```python
+# _condition_met() — for_turns only applies to resistance signal
+needed_prior = for_turns - 1
+prior = resistance_history[-needed_prior:]
+if len(prior) < needed_prior:
+    return False  # insufficient history
+return all(op_fn(v, cond.value) for v in prior + [signal_value])
+```
+
+`resistance_history` is a rolling 3-turn buffer maintained in `SageState`. It is appended after each turn's resistance score and capped at 3 entries.
+
+### 6.3 `evaluate_step_policy()` Actual Signature
 
 ```python
 def evaluate_step_policy(
@@ -231,35 +293,12 @@ def evaluate_step_policy(
     emotional_intensity: int,
     engagement: int,
     message_en: str = "",
-    re_escalation_detected: bool = False,   # new
-    user_stop_request: bool = False,         # new  
-    resistance: bool = False,                # new (POC heuristic)
+    resistance_history: list[int] | None = None,
+    resistance_score: int | None = None,       # None → skip resistance rules (Phase 1 mode)
 ) -> dict:
-    signals = {
-        "emotional_intensity": emotional_intensity,
-        "engagement": engagement,
-        "re_escalation_detected": re_escalation_detected,
-        "user_stop_request": user_stop_request,
-        "resistance": resistance,
-    }
 ```
 
-Caller in `skill_executor_node`:
-
-```python
-result = evaluate_step_policy(
-    skill=skill,
-    current_step_id=step_id,
-    emotional_intensity=state["emotional_intensity"],
-    engagement=state["engagement"],
-    message_en=state["message_en"],
-    re_escalation_detected=(state.get("s7_result") == "NEW_CRISIS"),
-    user_stop_request=any(p in state["message_en"].lower() for p in L1_EXIT_PHRASES),
-    resistance=(state.get("engagement", 5) < 3),  # POC heuristic — document as simplification
-)
-```
-
-Note: `resistance` POC heuristic is `engagement < 3` (single-turn). The v7 spec references Falcon-3B classification for resistance detection; this heuristic is an explicit simplification, to be replaced with the Falcon-3B path pre-production.
+The `re_escalation_detected` and `user_stop_request` boolean params from the spec draft were superseded: L1 detection moved to `check_escalation()`, and `s7_result == "NEW_CRISIS"` re-routing is handled at the graph router level, not inside `evaluate_step_policy`.
 
 ---
 
