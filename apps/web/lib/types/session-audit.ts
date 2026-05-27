@@ -20,4 +20,5 @@ export type AuditRow = {
   emotional_intensity: number | null
   model_version: string | null
   latency_ms: number | null
+  user_id: string | null
 }
