@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test'
 
 const POC_URL = process.env.POC_URL ?? 'http://localhost:8765'
-const SESSION_ID = `playwright-${Date.now()}`
 
 test.describe('Clinical Intelligence Panel (/live)', () => {
   test('panel updates after chat message is sent', async ({ page }) => {
+    const SESSION_ID = `playwright-t1-${Date.now()}`
+
     // Open the /live panel in follow-latest mode
     await page.goto('/live')
 
@@ -30,10 +31,12 @@ test.describe('Clinical Intelligence Panel (/live)', () => {
     await expect(page.getByText('T1')).toBeVisible({ timeout: 5000 })
 
     // Intent should be visible
-    await expect(page.getByText('general_chat')).toBeVisible()
+    await expect(page.getByText('general_chat')).toBeVisible({ timeout: 5000 })
   })
 
   test('?session= lock shows specific session', async ({ page }) => {
+    const SESSION_ID = `playwright-t2-${Date.now()}`
+
     // Pre-send a turn to create session data
     const resp = await page.request.post(`${POC_URL}/chat`, {
       data: {
