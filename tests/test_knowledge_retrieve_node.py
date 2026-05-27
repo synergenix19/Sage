@@ -56,7 +56,13 @@ async def test_knowledge_retrieve_abstains_on_db_unavailable():
 
 
 @pytest.mark.asyncio
-async def test_knowledge_retrieve_calls_rewriter_for_arabic():
+async def test_knowledge_retrieve_uses_en_query_for_arabic():
+    """Arabic messages use message_en (pre-translated) and always retrieve with language='en'.
+
+    The translation node (Node 2) normalises all messages to English before retrieval.
+    knowledge_retrieve_node therefore always calls repo.retrieve(..., language='en')
+    regardless of detected_language, using the already-translated message_en value.
+    """
     from sage_poc.knowledge.models import KnowledgeResult
     from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
 
@@ -65,7 +71,10 @@ async def test_knowledge_retrieve_calls_rewriter_for_arabic():
 
     with patch("sage_poc.nodes.knowledge_retrieve.PostgresKnowledgeRepository", return_value=mock_repo):
         with patch("sage_poc.nodes.knowledge_retrieve._get_pool", return_value=MagicMock()):
-            with patch("sage_poc.nodes.knowledge_retrieve.normalize_arabic_query", return_value="normalized") as mock_rw:
-                await knowledge_retrieve_node(_kr_state(detected_language="ar", message_en="ما هو CBT"))
+            await knowledge_retrieve_node(_kr_state(detected_language="ar", message_en="what is CBT"))
 
-    mock_rw.assert_called_once()
+    mock_repo.retrieve.assert_called_once()
+    call_kwargs = mock_repo.retrieve.call_args
+    assert call_kwargs.kwargs.get("language") == "en" or (
+        len(call_kwargs.args) > 1 and call_kwargs.args[1] == "en"
+    ), f"Expected language='en', got: {call_kwargs}"

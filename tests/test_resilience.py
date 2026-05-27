@@ -374,7 +374,10 @@ async def test_skill_select_embedding_timeout_falls_to_freeflow():
     from sage_poc.nodes.skill_select import skill_select_node
 
     state = {
-        "message_en": "I have racing thoughts at night",
+        # Generic phrase: no keyword matches any skill, so semantic tier is reached.
+        # "racing thoughts at night" was promoted to mindfulness_body_scan keyword tier
+        # (2026-05-27 v7), so a phrase without specific skill keywords is needed here.
+        "message_en": "I am just having a hard time right now",
         "crisis_state": "none",
         "active_skill_id": None,
         "active_step_id": None,

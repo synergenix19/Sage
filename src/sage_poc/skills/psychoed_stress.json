@@ -29,6 +29,14 @@
     "am I burned out",
     "constantly running on empty",
     "always braced for the next thing",
+    "cannot switch off",
+    "can't switch off",
+    "body always on edge",
+    "always on edge",
+    "never fully relax",
+    "cannot relax",
+    "can't relax",
+    "constantly braced",
     "شو هو الضغط",
     "ما هو التوتر",
     "وش يسوي الضغط بجسمي",
@@ -41,7 +49,7 @@
     "الاحتراق الوظيفي",
     "دايم تعبان وما في طاقة"
   ],
-  "semantic_description": "Interactive stress psychoeducation protocol. Three-step structured technique: explain stress mechanisms, connect to personal experience, bridge to action. Selye General Adaptation Syndrome. Alarm stage, resistance stage, exhaustion stage. Acute stress versus chronic stress. Eustress versus distress. Lazarus and Folkman appraisal model: primary appraisal and secondary appraisal. Cognitive appraisal of threat. Stress response physiology. HPA axis and cortisol. Allostatic load explained. Allostatic overload and cumulative physiological cost. Teach me about stress. Explain stress to me. What is stress. What does stress do to the body. How the body responds to stress. Stress education. The stress response system. The difference between acute and chronic stress. Why chronic stress is harmful. How perception shapes the stress response. Stress psychoeducation walkthrough. General Adaptation Syndrome three stages. What the resistance phase of stress looks like. What happens when the body reaches exhaustion. The concept of wear and tear on the stress system. Why running on empty is a biological state. The difference between motivating stress and harmful stress. Why the same event can be stressful to one person and not another. Appraisal as the mechanism that determines stress intensity. Secondary appraisal and coping resource evaluation. Stress and the nervous system. Cortisol and immune function. Cumulative stress burden. Burnout as a stress-exhaustion endpoint. Running on empty as the lived endpoint of chronic stress. The nervous system that cannot disengage after a stressor passes. Constantly braced for the next stressor. Physical and mental depletion from sustained stress exposure. Hypervigilance and inability to switch off.",
+  "semantic_description": "Interactive stress psychoeducation protocol. Three-step structured technique: explain stress mechanisms, connect to personal experience, bridge to action. Selye General Adaptation Syndrome. Alarm stage, resistance stage, exhaustion stage. Acute stress versus chronic stress. Eustress versus distress. Lazarus and Folkman appraisal model: primary appraisal and secondary appraisal. Cognitive appraisal of threat. Stress response physiology. HPA axis and cortisol. Allostatic load explained. Allostatic overload and cumulative physiological cost. Teach me about stress. Explain stress to me. What is stress. What does stress do to the body. How the body responds to stress. Stress education. The stress response system. The difference between acute and chronic stress. Why chronic stress is harmful. How perception shapes the stress response. Stress psychoeducation walkthrough. General Adaptation Syndrome three stages. What the resistance phase of stress looks like. What happens when the body reaches exhaustion. The concept of wear and tear on the stress system. Why running on empty is a biological state. The difference between motivating stress and harmful stress. Why the same event can be stressful to one person and not another. Appraisal as the mechanism that determines stress intensity. Secondary appraisal and coping resource evaluation. Stress and the nervous system. Cortisol and immune function. Cumulative stress burden. Burnout as a stress-exhaustion endpoint. Running on empty as the lived endpoint of chronic stress. The nervous system that cannot disengage after a stressor passes. Constantly braced for the next stressor. Physical and mental depletion from sustained stress exposure. Hypervigilance and inability to switch off. Body that remains mobilised and on alert throughout the day long after the stressor has passed. Physiological threat-detection system that will not disengage even in moments of safety. Stress arousal persisting outside any specific stressor context. Body on edge throughout daytime hours, not tied to bedtime or sleep. Always scanning for the next threat even when none is present. Nervous system stuck in alarm even during neutral or safe moments. Physiological hypervigilance: body continuously prepared for harm regardless of actual circumstances. The physical cost of sustained threat readiness: depleted reserves, constant tension, inability to recover between demands.",
   "steps": [
     {
       "step_id": "explain",

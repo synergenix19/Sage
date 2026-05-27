@@ -7,7 +7,6 @@ Both paths use PostgresKnowledgeRepository — invocation path differs, not retr
 from __future__ import annotations
 import logging
 from sage_poc.state import SageState
-from sage_poc.knowledge.rewriter import normalize_arabic_query
 from sage_poc.knowledge.postgres_repository import PostgresKnowledgeRepository
 
 _log = logging.getLogger(__name__)
@@ -36,13 +35,9 @@ async def knowledge_retrieve_node(state: SageState) -> dict:
         }
 
     query = state.get("message_en", "")
-    language = state.get("detected_language", "en")
-
-    if language == "ar":
-        query = normalize_arabic_query(query)
 
     repo = PostgresKnowledgeRepository(pool)
-    result = await repo.retrieve(query, language=language, top_k=5)
+    result = await repo.retrieve(query, language="en", top_k=5)
 
     return {
         "knowledge_passages": [p.to_dict() for p in result.passages],

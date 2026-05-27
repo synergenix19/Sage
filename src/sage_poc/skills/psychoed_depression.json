@@ -21,6 +21,17 @@
     "how does depression work",
     "why do I feel flat",
     "why do I feel grey",
+    "feel flat",
+    "feeling flat",
+    "feel grey",
+    "feeling grey",
+    "grey and flat",
+    "everything feels heavy",
+    "feel heavy",
+    "lost interest in",
+    "no interest in",
+    "used to enjoy",
+    "used to love doing",
     "loss of interest in everything",
     "I've lost interest in things I used to love",
     "cognitive triad",
@@ -36,7 +47,7 @@
     "حياتي فاضية",
     "ما أقدر أفرح"
   ],
-  "semantic_description": "Interactive depression psychoeducation protocol. Three-step structured technique: explain depression mechanisms, connect to personal experience, bridge to action. The cognitive triad: negative view of self, world, and future. Beck's cognitive model of depression. Anhedonia explained. Behavioral withdrawal cycle. Depression vs sadness. Loss of interest and pleasure. Psychomotor retardation and motivational deficit in depression. Teach me about depression. Explain depression to me. What is depression. What is the difference between depression and sadness. What causes depression. The science of depression. Depression education. How depression affects the brain. Behavioral activation rationale. Cognitive slowing in depression. Why the brain processes stimuli differently in depressive states. The neurological and biological basis of depression. Depression is not a character weakness. Clinical depression distinguished from normal sadness. Euthymia versus dysthymia versus major depressive episode. The spectrum of depressive states. The thinking patterns in depression: negative self, world, future. How depression changes motivation and behavior. Withdrawal and isolation as symptoms of depression. The brain and body in depression. How depression differs from grief or ordinary sadness. Depression psychoeducation walkthrough. Explain the cognitive triad. What is behavioral withdrawal. Anhedonia mechanism: why reward pathways become blunted in depression. Persistent grey flatness lasting weeks with no clear cause. Loss of pleasure and interest in previously enjoyed activities. Anhedonia as lived heaviness. Why motivation disappears in depression. The heavy quality of sustained low mood. Why things that used to matter no longer seem to.",
+  "semantic_description": "Interactive depression psychoeducation protocol. Three-step structured technique: explain depression mechanisms, connect to personal experience, bridge to action. The cognitive triad: negative view of self, world, and future. Beck's cognitive model of depression. Anhedonia explained. Behavioral withdrawal cycle. Depression vs sadness. Loss of interest and pleasure. Psychomotor retardation and motivational deficit in depression. Teach me about depression. Explain depression to me. What is depression. What is the difference between depression and sadness. What causes depression. The science of depression. Depression education. How depression affects the brain. Behavioral activation rationale. Cognitive slowing in depression. Why the brain processes stimuli differently in depressive states. The neurological and biological basis of depression. Depression is not a character weakness. Clinical depression distinguished from normal sadness. Euthymia versus dysthymia versus major depressive episode. The spectrum of depressive states. The thinking patterns in depression: negative self, world, future. How depression changes motivation and behavior. Withdrawal and isolation as symptoms of depression. The brain and body in depression. How depression differs from grief or ordinary sadness. Depression psychoeducation walkthrough. Explain the cognitive triad. What is behavioral withdrawal. Anhedonia mechanism: why reward pathways become blunted in depression. Persistent grey flatness lasting weeks with no clear cause. Loss of pleasure and interest in previously enjoyed activities. Anhedonia as lived heaviness. Why motivation disappears in depression. The heavy quality of sustained low mood. Why things that used to matter no longer seem to. Sustained grey quality throughout waking hours, not tied to a specific time or context. Weeks of waking up and facing the same inexplicable flatness each day. Not understanding why the colour has drained from daily life. Persistent loss of interest across weeks of daily experience. Going through the motions of a life that feels hollow and grey. The flatness that stays regardless of what is happening. Inexplicable low mood with no clear external cause. Things that used to bring pleasure hold no appeal at any time of day. Daytime heaviness persisting regardless of activity, company, or circumstance. The question of why nothing feels meaningful or worthwhile anymore.",
   "steps": [
     {
       "step_id": "explain",

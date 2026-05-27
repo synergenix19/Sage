@@ -21,9 +21,14 @@
     "ما أقدر أوقف تفكيري",
     "اشعر بجسمي",
     "تأمل الجسم",
-    "ركز معي على جسمك"
+    "ركز معي على جسمك",
+    "floating head",
+    "disconnected from my physical",
+    "living in my head",
+    "trapped in my head",
+    "racing thoughts"
   ],
-  "semantic_description": "Mindfulness body scan protocol. Progressive body awareness technique from MBSR Mindfulness-Based Stress Reduction. Kabat-Zinn body scan. Anchoring attention in physical sensation. Progressive attention sweep from feet to face. Somatic grounding through body awareness. Body scan meditation. MBCT body scan exercise. Body region by region attention practice. Bottom-up body awareness technique. Feet, legs, torso, shoulders, face, progressive sensation focus. Kinesthetic awareness training. Interoceptive awareness practice. Guided body scan. Sweeping body attention upward. Body region noticing. Physical sensation anchoring. Floor contact and weight awareness. Ong mindfulness-based insomnia protocol. Feeling weight. Feeling warmth. Feeling breath in the belly. Present moment somatic experience. Racing thoughts that keep attention trapped in cognitive activity rather than physical sensation. Somatic disconnection: the floating-head experience. Returning to the physical self through progressive sensory attention. Head-body split from rumination. Inability to get out of the head and into the body.",
+  "semantic_description": "Mindfulness body scan protocol. Progressive body awareness technique from MBSR Mindfulness-Based Stress Reduction. Kabat-Zinn body scan. Anchoring attention in physical sensation. Progressive attention sweep from feet to face. Somatic grounding through body awareness. Body scan meditation. MBCT body scan exercise. Body region by region attention practice. Bottom-up body awareness technique. Feet, legs, torso, shoulders, face, progressive sensation focus. Kinesthetic awareness training. Interoceptive awareness practice. Guided body scan. Sweeping body attention upward. Body region noticing. Physical sensation anchoring. Floor contact and weight awareness. Ong mindfulness-based insomnia protocol. Feeling weight. Feeling warmth. Feeling breath in the belly. Present moment somatic experience. Racing thoughts that keep attention trapped in cognitive activity rather than physical sensation. Somatic disconnection: the floating-head experience. Returning to the physical self through progressive sensory attention. Head-body split from rumination. Inability to get out of the head and into the body. Habitual chronic disconnection from physical sensation through sustained cognitive overactivity, not an acute crisis or panic episode. The chronic pattern of living above the neck, caught in thought rather than inhabiting the body. Attention redirected deliberately from cognitive activity into physical sensation during this practice. Using progressive body awareness to interrupt habitual cognitive overactivity. Returning from thought into sensation as a trained skill. The felt experience of thoughts racing while the body is unfelt and unoccupied. Bringing attention back down from the thinking mind into the physical self, step by step through each body region.",
   "steps": [
     {
       "step_id": "lower_body",

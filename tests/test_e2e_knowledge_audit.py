@@ -94,17 +94,23 @@ async def test_e2e_info_request_audit_trail():
 
     graph = build_graph(checkpointer=None)
 
+    fixed_response = "CBT stands for Cognitive Behavioral Therapy. It is an evidence-based approach."
+
+    async def mock_tool_loop(llm, messages, tools, *, node, language, fallback_llm, _tool_messages=None):
+        return fixed_response
+
     with patch("sage_poc.nodes.freeflow_respond.resilient_invoke", side_effect=mock_resilient_invoke):
         with patch("sage_poc.nodes.intent_route.resilient_invoke", side_effect=mock_resilient_invoke):
-            with patch(
-                "sage_poc.nodes.knowledge_retrieve.PostgresKnowledgeRepository",
-                return_value=mock_repo,
-            ):
-                with patch("sage_poc.nodes.knowledge_retrieve._get_pool", return_value=MagicMock()):
-                    result = await graph.ainvoke(
-                        _full_state(),
-                        config={"configurable": {"thread_id": "test-e2e-knowledge-001"}},
-                    )
+            with patch("sage_poc.nodes.freeflow_respond._invoke_with_tool_loop", side_effect=mock_tool_loop):
+                with patch(
+                    "sage_poc.nodes.knowledge_retrieve.PostgresKnowledgeRepository",
+                    return_value=mock_repo,
+                ):
+                    with patch("sage_poc.nodes.knowledge_retrieve._get_pool", return_value=MagicMock()):
+                        result = await graph.ainvoke(
+                            _full_state(),
+                            config={"configurable": {"thread_id": "test-e2e-knowledge-001"}},
+                        )
 
     # 1. Knowledge retrieval state fields
     assert result["knowledge_source"] == "node_6", (

@@ -15,14 +15,13 @@ logger = logging.getLogger(__name__)
 
 _SKILLS = {sid: load_skill(sid) for sid in SKILL_REGISTRY}
 
-# Calibrated 2026-05-26 after extending corpus to 13 skills (added dbt_tipp and
-# added 9-new-skill phrases to KNOWN_HITS). Gap = 0.0010 (lowest hit=0.5267,
-# highest miss=0.5257). Narrow-gap formula applied: max_miss + gap*0.3.
-# Re-run scripts/calibrate_threshold.py after any semantic_description edit.
-# NOTE: CBT semantic_description has inherent overlap with vague negative-affect
-# language in BGE-M3 embedding space. Architectural defence: intent_route (Node 2)
-# classifies vague openings as general_chat before they reach skill_select (Node 4).
-SEMANTIC_THRESHOLD: float = 0.526
+# Calibrated 2026-05-27 after extending to 20 skills (v7 Gitex sprint, 7 new skills).
+# Gap = 0.0422 (lowest hit=0.5267, highest miss=0.4845). Threshold = max_miss + gap*0.3.
+# Re-run scripts/calibrate_threshold.py after any semantic_description or keyword edit.
+# NOTE: At 20 skills, broad emotional phrases ("I've been feeling stressed") score above
+# the floor semantically but are protected by intent_route (Node 2) classifying them as
+# general_chat before reaching skill_select (Node 4). See calibrate_threshold.py notes.
+SEMANTIC_THRESHOLD: float = 0.4972
 
 _embed_model = None
 _semantic_skill_ids: list[str] = []
