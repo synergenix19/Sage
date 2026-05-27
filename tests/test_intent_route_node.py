@@ -129,3 +129,16 @@ async def test_intent_route_path_appended():
         result = await intent_route_node(state)
 
     assert result["path"] == ["safety_check", "intent_route"]
+
+
+def test_intent_system_prompt_does_not_say_mental_health_assistant():
+    """INTENT_SYSTEM must not describe the system as 'mental health assistant'.
+    Internal framing consistency: matches the public 'wellbeing companion' identity.
+    """
+    from sage_poc.nodes.intent_route import INTENT_SYSTEM
+    assert "mental health assistant" not in INTENT_SYSTEM.lower(), (
+        "INTENT_SYSTEM should say 'wellbeing companion app', not 'mental health assistant'"
+    )
+    assert "wellbeing companion" in INTENT_SYSTEM.lower(), (
+        "INTENT_SYSTEM should reference 'wellbeing companion app called Sage'"
+    )

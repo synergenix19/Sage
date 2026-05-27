@@ -28,15 +28,18 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
-# Ensure sage_poc is importable when running from repo root
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+_REPO = Path(__file__).parent.parent.parent
+# Ensure both sage_poc and the tests package are importable when run as a script
+sys.path.insert(0, str(_REPO / "src"))
+sys.path.insert(0, str(_REPO))
 
 from sage_poc.nodes.skill_executor import skill_executor_node
 from sage_poc.nodes.freeflow_respond import freeflow_respond_node
 from sage_poc.skills.schema import load_skill
 
-from .conftest import make_executor_state
-from .scenarios import ALL_SCENARIOS
+# Absolute imports — works both as `python script.py` and `python -m ...`
+from tests.experiment_4_4.conftest import make_executor_state
+from tests.experiment_4_4.scenarios import ALL_SCENARIOS
 
 _LONG_MSG = (
     "I have been thinking carefully about what you asked and I feel like I am "
