@@ -24,7 +24,7 @@
 import re
 import asyncio
 from sage_poc.state import SageState
-from sage_poc.language import detect_language, translate_to_english
+from sage_poc.language import detect_language, translate_to_english, async_translate_to_english
 from sage_poc.rules import engine as rules_engine
 from sage_poc.nodes.post_crisis_classifier import evaluate_s7
 from sage_poc.safety.s3_semantic import check_s3, S3_THRESHOLD
@@ -82,7 +82,7 @@ async def safety_check_node(state: SageState) -> dict:
     lang = detect_language(raw)
 
     if lang == "ar":
-        message_en = translate_to_english(raw)
+        message_en = await async_translate_to_english(raw)
         text_ar = raw
     else:
         message_en = raw

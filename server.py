@@ -180,7 +180,6 @@ async def chat(
             yield (CRISIS_SIGNAL + "\n").encode()
         for word in response_text.split():
             yield (word + " ").encode()
-            await asyncio.sleep(0.025)
 
     return StreamingResponse(
         _body(),
