@@ -41,7 +41,7 @@ def test_no_stale_skill_does_not_touch_crisis_state():
 
 
 def test_stale_non_crisis_skill_preserves_none_crisis_state():
-    """A stale non-crisis skill must clear active_skill_id and set crisis_state=none."""
+    """A stale non-crisis skill must include crisis_state=none in overrides."""
     snap = _checkpoint(
         active_skill_id="box_breathing",
         crisis_state="none",
@@ -49,6 +49,20 @@ def test_stale_non_crisis_skill_preserves_none_crisis_state():
     )
     overrides = _stale_skill_overrides(snap)
     assert overrides["active_skill_id"] is None
+    assert "crisis_state" in overrides, (
+        "crisis_state must always be in overrides for stale skills, regardless of incoming value"
+    )
+    assert overrides["crisis_state"] == "none"
+
+
+def test_stale_skill_clears_active_crisis_state():
+    """A stale skill with crisis_state=active must also reset to none."""
+    snap = _checkpoint(
+        active_skill_id="grounding_exercise",
+        crisis_state="active",
+        hours_ago=5,
+    )
+    overrides = _stale_skill_overrides(snap)
     assert overrides["crisis_state"] == "none"
 
 
