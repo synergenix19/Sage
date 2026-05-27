@@ -38,12 +38,18 @@ def _crisis_response_node(state: SageState) -> dict:
 
     path = state["path"] + ["crisis_response"]
 
-    asyncio.create_task(write_session_audit({
+    _audit_payload = {
         **state,
         "path": path,
         "gate_path": "crisis",
         "crisis_state": "monitoring",
-    }))
+    }
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            loop.create_task(write_session_audit(_audit_payload))
+    except RuntimeError:
+        pass
 
     if AUDIT_LOG_ENABLED:
         audit = {
