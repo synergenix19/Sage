@@ -78,10 +78,10 @@ def check_escalation(
 
 
 def _meets_completion_criteria(message_en: str) -> bool:
-    """Heuristic: > 10 words signals the user engaged with the step. Empty string → skip check."""
+    """Heuristic: > 1 word signals the user engaged with the step. Empty string → skip check."""
     if not message_en:
         return True
-    return len(message_en.split()) > 10
+    return len(message_en.split()) > 1
 
 
 async def _score_resistance_via_rules_service(
