@@ -19,7 +19,7 @@ export function AuditLog({ rows }: Props) {
 
   return (
     <div className="overflow-auto max-h-48">
-      <table className="w-full text-xs font-mono border-collapse">
+      <table className="min-w-max text-xs font-mono border-collapse">
         <thead>
           <tr>
             {COLS.map(c => (
@@ -34,14 +34,14 @@ export function AuditLog({ rows }: Props) {
               data-turn={String(row.turn_number)}
               className="border-t border-slate-800 hover:bg-slate-800/40"
             >
-              <td className="py-0.5 pr-3 text-slate-300">T{row.turn_number}</td>
-              <td className="py-0.5 pr-3 text-slate-300">{row.primary_intent ?? '—'}</td>
-              <td className="py-0.5 pr-3 text-teal-400">{row.active_skill_id ?? '—'}</td>
-              <td className="py-0.5 pr-3 text-slate-400">{row.active_step_id ?? '—'}</td>
-              <td className="py-0.5 pr-3 text-slate-300">{row.crisis_state ?? '—'}</td>
-              <td className="py-0.5 pr-3 text-slate-400">{row.engagement ?? '—'}</td>
-              <td className="py-0.5 pr-3 text-slate-400">{row.emotional_intensity ?? '—'}</td>
-              <td className="py-0.5 text-slate-500">{row.latency_ms != null ? `${row.latency_ms}` : '—'}</td>
+              <td className="py-1.5 pr-3 text-slate-300">T{row.turn_number}</td>
+              <td className="py-1.5 pr-3 text-slate-300">{row.primary_intent ?? '—'}</td>
+              <td className="py-1.5 pr-3 text-teal-400">{row.active_skill_id ?? '—'}</td>
+              <td className="py-1.5 pr-3 text-slate-400">{row.active_step_id ?? '—'}</td>
+              <td className="py-1.5 pr-3 text-slate-300">{row.crisis_state ?? '—'}</td>
+              <td className="py-1.5 pr-3 text-slate-400">{row.engagement ?? '—'}</td>
+              <td className="py-1.5 pr-3 text-slate-400">{row.emotional_intensity ?? '—'}</td>
+              <td className="py-1.5 text-slate-500">{row.latency_ms != null ? `${row.latency_ms}` : '—'}</td>
             </tr>
           ))}
         </tbody>

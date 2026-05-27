@@ -4,8 +4,8 @@ const NODES = [
   { id: 'safety_check',       label: 'Safety' },
   { id: 'intent_route',       label: 'Intent' },
   { id: 'low_confidence',     label: 'Low Conf.' },
-  { id: 'skill_select',       label: 'Skill Select' },
-  { id: 'skill_executor',     label: 'Skill Exec' },
+  { id: 'skill_select',       label: 'Select' },
+  { id: 'skill_executor',     label: 'Exec' },
   { id: 'knowledge_retrieve', label: 'Knowledge' },
   { id: 'freeflow_respond',   label: 'Respond' },
   { id: 'output_gate',        label: 'Gate' },
@@ -24,7 +24,7 @@ export function NodePathVisualizer({ firedNodes, turnNumber }: Props) {
       {turnNumber > 0 && (
         <p className="text-xs text-slate-500 mb-2">Turn {turnNumber}</p>
       )}
-      <div className="flex items-center gap-0 overflow-x-auto">
+      <div className="flex items-center gap-0 overflow-x-auto" dir="ltr">
         {NODES.map((node, i) => {
           const isFired = firedSet.has(node.id)
           const prevFired = i > 0 && firedSet.has(NODES[i - 1].id)
@@ -34,7 +34,7 @@ export function NodePathVisualizer({ firedNodes, turnNumber }: Props) {
               {i > 0 && (
                 <div
                   {...(bothFired ? { 'data-connector': 'true', 'data-both-fired': 'true' } : {})}
-                  className={`w-4 h-px flex-shrink-0 ${bothFired ? 'bg-teal-400' : 'bg-slate-700'}`}
+                  className={`w-2 h-px flex-shrink-0 ${bothFired ? 'bg-teal-400' : 'bg-slate-700'}`}
                 />
               )}
               <div

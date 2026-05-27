@@ -59,7 +59,7 @@ export default async function globalSetup() {
 
   // 2. Ensure user_profiles row exists (page.tsx reads name from here)
   await admin.from('user_profiles').upsert(
-    { id: userId, name: 'E2E Test', locale: 'en', onboarding_complete: true },
+    { id: userId, name: 'E2E Test', locale: 'en', onboarding_complete: true, is_admin: true },
     { onConflict: 'id' }
   )
 

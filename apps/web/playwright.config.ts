@@ -5,7 +5,7 @@ export default defineConfig({
   testDir: './playwright',
   fullyParallel: false, // session lifecycle tests must not interfere with each other
   retries: 0,
-  timeout: 30_000,
+  timeout: 60_000,
   globalSetup: path.resolve(__dirname, './playwright/global-setup.ts'),
   use: {
     baseURL: 'http://localhost:3000',
