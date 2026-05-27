@@ -118,26 +118,36 @@ def _condition_met(
     cond,
     signal_value: int,
     resistance_history: list[int],
+    engagement_trajectory: list[int] | None = None,
 ) -> bool:
     """Check whether a step_policy condition is satisfied, honouring for_turns if set.
 
-    for_turns temporal check is only meaningful for the 'resistance' signal, which has
-    a rolling resistance_history. For other signals (emotional_intensity, engagement)
-    there is no per-signal history, so for_turns is ignored and only the current value
-    is checked.
+    for_turns temporal logic is supported for two signals:
+    - 'resistance': uses resistance_history (rolling 3-turn buffer, current turn appended by caller)
+    - 'engagement': uses engagement_trajectory (4-turn window, one-turn lagged — safety_check
+      appends the prior turn's score; intent_route sets the current turn's score afterward).
+      signal_value is the current turn's engagement, so trajectory[-N:] + [signal_value]
+      forms N+1 consecutive turns.
+    For all other signals, for_turns is ignored and only the current value is checked.
     """
     op_fn = _OPERATOR_MAP.get(cond.operator)
     if op_fn is None:
         return False
 
     for_turns = getattr(cond, "for_turns", None)
-    # Only apply for_turns temporal logic when signal is 'resistance'
-    if for_turns is None or for_turns <= 1 or cond.signal != "resistance":
+    if for_turns is None or for_turns <= 1:
         return op_fn(signal_value, cond.value)
 
-    # Need (for_turns - 1) prior turns + current turn all satisfying the condition.
+    if cond.signal == "resistance":
+        history = resistance_history
+    elif cond.signal == "engagement":
+        history = list(engagement_trajectory or [])
+    else:
+        # for_turns not supported for this signal — evaluate current value only.
+        return op_fn(signal_value, cond.value)
+
     needed_prior = for_turns - 1
-    prior = resistance_history[-needed_prior:]
+    prior = history[-needed_prior:]
     if len(prior) < needed_prior:
         return False  # insufficient history — wait for more turns
     return all(op_fn(v, cond.value) for v in prior + [signal_value])
@@ -152,11 +162,14 @@ def evaluate_step_policy(
     resistance_history: list[int] | None = None,
     resistance_score: int | None = None,
     re_escalation_detected: bool = False,
+    engagement_trajectory: list[int] | None = None,
+    prior_exposure: int = 0,
 ) -> dict:
     """Synchronous two-phase policy evaluation. Returns a result dict.
 
-    Phase 1 — deterministic: emotional_intensity, engagement, and boolean event signals
-    (re_escalation_detected) evaluated instantly. If any fires, returns immediately.
+    Phase 1 — deterministic: emotional_intensity, engagement (with for_turns via
+    engagement_trajectory), prior_exposure, and boolean event signals evaluated instantly.
+    If any fires, returns immediately.
 
     Phase 2 — resistance: evaluated only when the caller provides a resistance_score.
     Caller (skill_executor_node) fetches the resistance score via LLM only after Phase 1
@@ -164,6 +177,9 @@ def evaluate_step_policy(
 
     When resistance_score is None, resistance rules are silently skipped (signal not
     present in signals dict → signal_value is None → continue).
+
+    prior_exposure reflects cross-session skill usage only (techniques_used is updated
+    at end-of-session). Within a first session, prior_exposure=0 regardless of repetitions.
     """
     resistance_history = resistance_history or []
 
@@ -172,6 +188,7 @@ def evaluate_step_policy(
         "emotional_intensity":    emotional_intensity,
         "engagement":             engagement,
         "re_escalation_detected": re_escalation_detected,
+        "prior_exposure":         prior_exposure,
     }
     if resistance_score is not None:
         signals["resistance"] = resistance_score
@@ -188,7 +205,7 @@ def evaluate_step_policy(
         val = signals.get(cond.signal)
         if val is None:
             continue
-        if _condition_met(cond, val, resistance_history):
+        if _condition_met(cond, val, resistance_history, engagement_trajectory):
             return {
                 "action":           rule.action,
                 "instruction":      rule.instruction,
@@ -284,8 +301,16 @@ async def skill_executor_node(state: SageState) -> dict:
             **crisis_update,
         }
 
-    resistance_history = list(state.get("resistance_history") or [])
+    resistance_history    = list(state.get("resistance_history") or [])
+    engagement_trajectory = list(state.get("engagement_trajectory") or [])
     re_escalation_detected = state.get("s7_result") == "NEW_CRISIS"
+
+    # prior_exposure: number of times this skill appears in techniques_used from the
+    # therapeutic profile. Reflects cross-session usage only — techniques_used is
+    # updated at end-of-session, so within a first session prior_exposure=0.
+    therapeutic_profile = state.get("therapeutic_profile") or {}
+    techniques_used = therapeutic_profile.get("techniques_used") or []
+    prior_exposure = techniques_used.count(skill_id)
 
     # Phase 1: deterministic rules only (resistance_score=None → resistance rules skipped).
     # Returns a result dict. If a deterministic rule fires, its action will be present.
@@ -299,6 +324,8 @@ async def skill_executor_node(state: SageState) -> dict:
         resistance_history=resistance_history,
         resistance_score=None,
         re_escalation_detected=re_escalation_detected,
+        engagement_trajectory=engagement_trajectory,
+        prior_exposure=prior_exposure,
     )
 
     # Phase 2: resistance scoring — only if the skill references 'resistance' rules AND
@@ -321,6 +348,8 @@ async def skill_executor_node(state: SageState) -> dict:
                 resistance_history=resistance_history,
                 resistance_score=new_resistance_score,
                 re_escalation_detected=re_escalation_detected,
+                engagement_trajectory=engagement_trajectory,
+                prior_exposure=prior_exposure,
             )
             result.pop("_det_rule_fired", None)
 

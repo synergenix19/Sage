@@ -510,15 +510,31 @@ def test_recovery_from_validate_only_override():
     assert normal["next_step_id"] == "explore_distortion"  # resumes
 
 def test_evaluate_step_policy_low_engagement_triggers_check_in():
+    """engagement < 3 for_turns=3 requires 2 prior low turns + current low turn."""
     from sage_poc.skills.schema import load_skill
     skill = load_skill("cbt_thought_record")
-    action = evaluate_step_policy(
+    # Single low-engagement turn must NOT fire (for_turns=3 requires history).
+    action_no_history = evaluate_step_policy(
         skill=skill,
         current_step_id="explore_distortion",
         emotional_intensity=4,
         engagement=2,
+        engagement_trajectory=[],
     )
-    assert action["action"] == "check_in_micro"
+    assert action_no_history["action"] != "check_in_micro", (
+        "for_turns=3 must not fire on a single low-engagement turn"
+    )
+    # Two prior low-engagement turns + current low turn → rule fires.
+    action_with_history = evaluate_step_policy(
+        skill=skill,
+        current_step_id="explore_distortion",
+        emotional_intensity=4,
+        engagement=2,
+        engagement_trajectory=[2, 2],   # 2 prior turns both < 3
+    )
+    assert action_with_history["action"] == "check_in_micro", (
+        "for_turns=3 must fire when 2 prior + 1 current all have engagement < 3"
+    )
 
 async def test_skill_executor_node_produces_instruction():
     # message_en must be > 10 words for completion_criteria to allow advancement
