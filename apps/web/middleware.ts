@@ -56,14 +56,15 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    if (pathname.startsWith('/admin') && !profile?.is_admin) {
+    const isAdminRoute = pathname.startsWith('/admin') || pathname.startsWith('/live')
+    if (isAdminRoute && !profile?.is_admin) {
       return new NextResponse(null, { status: 403 })
     }
 
     // Character class [1-N] assumes single-digit step count — see comment in lib/onboarding-constants.ts
     const isOnboardingStep = new RegExp(`^/step-[1-${TOTAL_ONBOARDING_STEPS}]$`).test(pathname)
     const needsOnboarding = !profile || !profile.onboarding_complete
-    if (!pathname.startsWith('/admin') && !isOnboardingStep && needsOnboarding) {
+    if (!pathname.startsWith('/admin') && !pathname.startsWith('/live') && !isOnboardingStep && needsOnboarding) {
       const step = profile?.onboarding_step
       const target = step && step > 0 ? `/step-${step}` : '/step-1'
       return NextResponse.redirect(new URL(target, request.url))
