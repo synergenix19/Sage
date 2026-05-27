@@ -387,6 +387,37 @@ async def test_stressed_does_not_match_sleep_hygiene():
     assert result["active_skill_id"] is None, \
         "Vague 'stressed' must not activate sleep_hygiene or any other skill"
 
+@pytest.mark.slow
+async def test_bare_emotional_words_classified_as_general_chat():
+    """GUARD: bare emotional words must reach general_chat → freeflow, not skill_select.
+
+    intent_route is the SOLE gate between these phrases and skill_select. At SEMANTIC_THRESHOLD
+    0.4972, bare words like "stressed" (0.5765), "anxious" (0.5703), "depressed" (0.5467),
+    "I feel sad" (0.5119) would all activate psychoed skills if they ever reached skill_select.
+    The only thing stopping them is intent_route classifying them as general_chat.
+
+    BEFORE editing INTENT_SYSTEM general_chat definition: run this test first.
+    If any phrase flips to new_skill, the guard breaks and the phrase misroutes to
+    a psychoeducation skill instead of empathic freeflow.
+    """
+    from sage_poc.nodes.intent_route import intent_route_node
+    guard_phrases = [
+        ("stressed", "psychoed_stress would activate at score 0.5765"),
+        ("depressed", "psychoed_depression would activate at score 0.5467"),
+        ("anxious", "psychoed_anxiety would activate at score 0.5703"),
+        ("I feel sad", "psychoed_depression would activate at score 0.5119"),
+    ]
+    for phrase, risk_note in guard_phrases:
+        state = make_state(raw_message=phrase, message_en=phrase)
+        result = await intent_route_node(state)
+        assert result["primary_intent"] == "general_chat", (
+            f"GUARD FAILURE: {phrase!r} classified as {result['primary_intent']!r}. "
+            f"Risk: {risk_note}. "
+            f"Check INTENT_SYSTEM general_chat definition — bare emotional affect must "
+            f"stay general_chat until the user provides specific symptoms or duration."
+        )
+
+
 @pytest.mark.asyncio
 async def test_overwhelmed_and_anxious_matches_dbt_tipp():
     """RT-4b: 'overwhelmed and anxious' matches dbt_tipp via keyword 'overwhelmed'.
