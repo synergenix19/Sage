@@ -1,0 +1,3 @@
+{
+  "prompt": "You are evaluating whether a therapy session participant has met a step completion criterion.\n\nCompletion criterion: {criterion}\n\nParticipant message: \"{message_en}\"\n\nHas the participant met this criterion? Consider: a dismissive or evasive response ('I guess', 'whatever', 'fine', 'ok') does NOT meet a criterion requiring specific content or confirmation. A vague acknowledgment does NOT confirm safety status.\n\nRespond with exactly one word: 'yes' or 'no'."
+}
