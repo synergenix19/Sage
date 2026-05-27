@@ -4,6 +4,14 @@ from sage_poc.state import SageState
 from sage_poc.llm import get_classifier, get_fallback_classifier
 from sage_poc.resilience import resilient_invoke
 
+# SINGLE-POINT-OF-FAILURE WARNING: The general_chat classification below is the sole
+# gate preventing bare emotional words ("stressed", "depressed", "anxious", "I feel sad")
+# from reaching skill_select, where they score above SEMANTIC_THRESHOLD (0.4972) and
+# would activate psychoeducation skills. Verified 2026-05-27 (scores: stressed=0.5765,
+# anxious=0.5703, depressed=0.5467, I feel sad=0.5119).
+# Before editing the general_chat definition, run:
+#   uv run pytest tests/test_nodes.py -k "bare_emotional_words" -m "slow"
+# and verify all 4 guard phrases still classify as general_chat.
 INTENT_SYSTEM = """You are a routing classifier for a mental health assistant.
 Analyse the user's message and return ONLY valid JSON with these fields:
 - primary_intent: one of "skill_continuation" | "new_skill" | "general_chat" | "crisis" | "info_request" | "exit_skill" | "scope_refusal" | "jailbreak"
