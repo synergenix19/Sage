@@ -12,7 +12,7 @@ from sage_poc.resilience import resilient_invoke
 # Before editing the general_chat definition, run:
 #   uv run pytest tests/test_nodes.py -k "bare_emotional_words" -m "slow"
 # and verify all 4 guard phrases still classify as general_chat.
-INTENT_SYSTEM = """You are a routing classifier for a mental health assistant.
+INTENT_SYSTEM = """You are a routing classifier for a wellbeing companion app called Sage.
 Analyse the user's message and return ONLY valid JSON with these fields:
 - primary_intent: one of "skill_continuation" | "new_skill" | "general_chat" | "crisis" | "info_request" | "exit_skill" | "scope_refusal" | "jailbreak"
 - secondary_intent: the SECOND intent if two are present, or null if only one. Example: user expresses distress AND asks a factual question → primary "new_skill", secondary "info_request".
