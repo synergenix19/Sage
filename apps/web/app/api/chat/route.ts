@@ -142,6 +142,7 @@ export async function POST(req: Request) {
       // available for auth.uid(). Ownership was already validated above.
       const { error: insertError } = await createAdminClient().from('messages').insert([
         {
+          id:                              crypto.randomUUID(),
           session_id:                      sessionId,
           role:                            'user',
           content:                         lastMessage,
