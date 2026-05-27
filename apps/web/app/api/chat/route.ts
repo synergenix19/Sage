@@ -219,6 +219,10 @@ export async function POST(req: Request) {
     'X-Sage-Ai-Message-Id': aiMessageId,
   }
 
+  // Crisis state is always forwarded — functional header, not diagnostic.
+  const crisisStateHeader = sageRes.headers.get('X-Sage-Crisis-State')
+  if (crisisStateHeader) responseHeaders['X-Sage-Crisis-State'] = crisisStateHeader
+
   if (process.env.SAGE_EXPOSE_DIAGNOSTIC_HEADERS === 'true') {
     for (const header of SAGE_HEADERS_WHITELIST) {
       const value = sageRes.headers.get(header)

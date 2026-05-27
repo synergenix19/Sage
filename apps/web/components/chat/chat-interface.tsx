@@ -36,10 +36,11 @@ interface Props {
 // a dep, we consume the raw text stream directly.
 // Exported for testability only — not part of the public component API.
 export function useStreamingChat(sessionId: string | undefined, userId: string | undefined, initialMessages: SdkMessage[] = []) {
-  const [messages, setMessages]   = useState<SdkMessage[]>(initialMessages)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError]         = useState<Error | null>(null)
-  const abortRef                  = useRef<AbortController | null>(null)
+  const [messages, setMessages]     = useState<SdkMessage[]>(initialMessages)
+  const [isLoading, setIsLoading]   = useState(false)
+  const [error, setError]           = useState<Error | null>(null)
+  const [crisisState, setCrisisState] = useState<string | null>(null)
+  const abortRef                    = useRef<AbortController | null>(null)
 
   const stream = useCallback(
     async (history: SdkMessage[]) => {
@@ -71,6 +72,8 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
         }
 
         const aiSupabaseId = res.headers.get('X-Sage-Ai-Message-Id') ?? undefined
+        const newCrisisState = res.headers.get('X-Sage-Crisis-State')
+        if (newCrisisState) setCrisisState(newCrisisState)
 
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
@@ -155,17 +158,20 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
     return () => abortRef.current?.abort()
   }, [])
 
-  return { messages, append, isLoading, error, reload }
+  return { messages, append, isLoading, error, reload, crisisState }
 }
 
 export function ChatInterface({ initialSession, initialMessages = [], userName, userId }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const hasSignaledInstall = useRef(false)
-  const { messages, append, isLoading, error, reload } = useStreamingChat(initialSession?.id, userId, initialMessages)
+  const { messages, append, isLoading, error, reload, crisisState } = useStreamingChat(initialSession?.id, userId, initialMessages)
   const locale = useLocaleStore((s) => s.locale)
-  // Pin the crisis card for the entire crisis/post-crisis monitoring sequence.
+  // Pin the crisis card while in monitoring; dismiss when backend signals resolved.
   // Content is already CRISIS_SIGNAL-stripped on the message during streaming.
-  const pinnedCrisis = messages.find((m) => m.isCrisis)?.content ?? null
+  const pinnedCrisis =
+    crisisState !== 'resolved'
+      ? (messages.find((m) => m.isCrisis)?.content ?? null)
+      : null
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: isLoading ? 'instant' : 'smooth' })
