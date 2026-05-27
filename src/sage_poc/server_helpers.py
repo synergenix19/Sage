@@ -19,8 +19,12 @@ def _stale_skill_overrides(checkpoint_values: dict) -> dict:
       - clear active_skill_id / active_step_id (stop silent skill continuation)
       - set stale_skill_id (let the composer inject a re-entry prompt)
 
-    Clinical flags and crisis_state are intentionally NOT cleared — they are
-    longitudinal signals (v7 §6.3), not in-session workflow position.
+    Clinical flags are intentionally NOT cleared — they are true longitudinal
+    signals (v7 §6.3), not in-session workflow position.
+
+    crisis_state IS cleared: it is a state machine position, not a longitudinal
+    flag. After a 4h+ gap, preserving crisis_state='monitoring' causes silent
+    re-enrollment into post_crisis_check_in on session resume (CSM-3).
     """
     last_turn_at = checkpoint_values.get("last_turn_at")
     active_skill_id = checkpoint_values.get("active_skill_id")
@@ -29,11 +33,16 @@ def _stale_skill_overrides(checkpoint_values: dict) -> dict:
     try:
         last = datetime.fromisoformat(last_turn_at)
         gap_hours = (datetime.now(timezone.utc) - last).total_seconds() / 3600
+        # crisis_state="monitoring" is a state machine position, not a longitudinal flag.
+        # After a 4h+ gap, silently resuming a monitoring session causes unintended re-enrollment.
+        # We reset it to "none" here alongside the skill clear. clinical_flags are NOT cleared —
+        # those are the true longitudinal signals (v7 §6.3).
         if gap_hours >= _SKILL_STALE_HOURS:
             return {
                 "active_skill_id":  None,
                 "active_step_id":   None,
                 "stale_skill_id":   active_skill_id,
+                "crisis_state":     "none",
             }
     except (ValueError, TypeError):
         pass
