@@ -8,4 +8,4 @@ ALTER TABLE public.user_therapeutic_profiles
   ADD COLUMN IF NOT EXISTS persisted_clinical_flags JSONB DEFAULT '[]'::jsonb;
 
 COMMENT ON COLUMN public.user_therapeutic_profiles.persisted_clinical_flags IS
-  'Array of clinical flags set during the session. Category A flags (substance_use, trauma_indicator, eating_concern, medication_mention, domestic_situation, third_party_si) that persist for the duration of the session. Informs prompt framing via Rules Service (PI-CF-001 through PI-CF-005). Non-blocking; does not gate skill delivery.';
+  'Array of Category A clinical flags that cross-session persistence is enabled for in flag_lifecycle_config.json. Valid values: substance_use, trauma_indicator, eating_concern, medication_mention, domestic_situation. third_party_si is NOT a clinical flag and never appears here. Informs prompt framing via Rules Service (PI-CF-001 through PI-CF-005). Non-blocking; does not gate skill delivery.';
