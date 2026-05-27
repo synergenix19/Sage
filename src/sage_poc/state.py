@@ -65,4 +65,5 @@ class SageState(TypedDict):
     last_turn_at: Optional[str]          # UTC ISO timestamp of last completed turn (output_gate)
     stale_skill_id: Optional[str]        # skill parked due to session gap; cleared after re-entry prompt fires
     identity_substitution_rule_id: Optional[str]  # rule_id of CUO-ID-001 if response was substituted
-    original_response_hash: Optional[str]          # sha256[:16] of original response before substitution (PDPL audit trail)
+    original_response_hash: Optional[str]          # sha256[:16] of original response — tamper-proof reference in main audit log
+    original_response_text: Optional[str]          # full original response — written to restricted identity_substitution_audit table only

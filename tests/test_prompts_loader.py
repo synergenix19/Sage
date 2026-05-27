@@ -165,6 +165,20 @@ def test_l0_persona_has_prescribed_self_description():
     )
 
 
+def test_l0_persona_no_sycophantic_openers():
+    """P0-B fix: L0 persona must explicitly prohibit generic praise openers.
+    OPENERS block must name the forbidden phrases so the LLM treats them as hard constraints."""
+    tmpl = get_template("L0_persona")
+    content = tmpl.content
+    assert "OPENERS" in content, "L0 persona must contain an OPENERS constraint block"
+    assert "That's great to hear" in content, (
+        "L0 persona must name 'That's great to hear' as a forbidden opener"
+    )
+    assert "That's really good to hear" in content, (
+        "L0 persona must name 'That's really good to hear' as a forbidden opener"
+    )
+
+
 def test_l3_skill_wrapper_no_therapeutic_framing():
     """L3_skill_wrapper must not use 'therapeutic' in its header.
     Cumulative clinical framing contributes to identity drift toward 'mental health coach'.

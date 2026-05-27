@@ -210,7 +210,7 @@ def evaluate_step_policy(
                 "action":           rule.action,
                 "instruction":      rule.instruction,
                 "next_step_id":     current_step_id if rule.next_step_id == "current" else rule.next_step_id,
-                "skill_complete":   False,
+                "skill_complete":   rule.action == "complete",
                 "_det_rule_fired":  True,  # sentinel: Phase 1 fired; skip Phase 2 in node
             }
 
@@ -227,7 +227,7 @@ def evaluate_step_policy(
                     "action":        rule.action,
                     "instruction":   rule.instruction,
                     "next_step_id":  current_step_id if rule.next_step_id == "current" else rule.next_step_id,
-                    "skill_complete": False,
+                    "skill_complete": rule.action == "complete",
                 }
 
     # No rule fired — check completion criteria before advancing.

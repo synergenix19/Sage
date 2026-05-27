@@ -15,6 +15,55 @@ _HEADERS = {
 }
 
 
+async def write_identity_substitution_audit(
+    session_id: str,
+    turn_number: int,
+    rule_id: str,
+    original_response_hash: str,
+    original_response_text: str,
+    substitute_with: str,
+    user_id: str | None,
+) -> None:
+    """Write the full original response to a RESTRICTED audit table.
+
+    This table is separate from session_audit and must have row-level security
+    permitting access only to the DPO role and authorized clinicians.
+    It exists to satisfy PDPL Art. 6 right-to-challenge: if a user asks
+    'why did you say that?', the original automated-decision output is
+    recoverable without relying on sha256 reversal.
+
+    Table: identity_substitution_audit
+    Required columns: session_id, turn_number, rule_id, original_response_hash,
+                      original_response_text, substitute_with, user_id, created_at
+    RLS policy: SELECT restricted to dpo_role and clinician_admin_role only.
+    """
+    if not _URL or not _KEY:
+        return
+    row = {
+        "session_id":             session_id,
+        "turn_number":            turn_number,
+        "rule_id":                rule_id,
+        "original_response_hash": original_response_hash,
+        "original_response_text": original_response_text,
+        "substitute_with":        substitute_with,
+        "user_id":                user_id,
+    }
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            r = await client.post(
+                f"{_URL}/rest/v1/identity_substitution_audit",
+                headers=_HEADERS,
+                json=row,
+            )
+            r.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        logger.error(
+            "identity_substitution_audit write failed: %s — body: %s", exc, exc.response.text
+        )
+    except Exception as exc:
+        logger.error("identity_substitution_audit write failed: %s", exc)
+
+
 async def write_session_audit(state: SageState) -> None:
     if not _URL or not _KEY:
         return

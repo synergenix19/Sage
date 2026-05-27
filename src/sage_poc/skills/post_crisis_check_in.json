@@ -52,6 +52,28 @@
     {
       "condition": {
         "signal": "emotional_intensity",
+        "operator": "<=",
+        "value": 4,
+        "step": "acknowledge_and_check"
+      },
+      "action": "advance",
+      "instruction": "User is calm and stable. Warmly acknowledge their improved state and transition to bridge_or_close: offer continued conversation or a gentle close, whichever feels right. Leave the door explicitly open.",
+      "next_step_id": "bridge_or_close"
+    },
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": "<=",
+        "value": 4,
+        "step": "bridge_or_close"
+      },
+      "action": "complete",
+      "instruction": "User is stable and the check-in is complete. Close warmly: affirm that reaching out took courage, remind them support is always available at 800 46342, and leave the door explicitly open for future conversations. Do not introduce new content.",
+      "next_step_id": "bridge_or_close"
+    },
+    {
+      "condition": {
+        "signal": "emotional_intensity",
         "operator": ">",
         "value": 7,
         "step": "ANY"

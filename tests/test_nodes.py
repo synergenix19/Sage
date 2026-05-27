@@ -571,8 +571,8 @@ def test_completion_criteria_short_response_holds_step():
 
 # R-5: Completion signal calibration tests
 
-def test_completion_criteria_11_words_advances():
-    """11-word response must cross the > 10 word threshold and allow advancement."""
+def test_completion_criteria_multi_word_advances():
+    """Any response with 2+ words satisfies > 1 and advances."""
     from sage_poc.skills.schema import load_skill
     skill = load_skill("cbt_thought_record")
     result = evaluate_step_policy(
@@ -583,11 +583,11 @@ def test_completion_criteria_11_words_advances():
         message_en="I think the thought is that I am not good enough.",
     )
     assert result["action"] == "advance", \
-        "11-word response must cross completion threshold and advance"
+        "Multi-word response must cross completion threshold and advance"
 
 
-def test_completion_criteria_10_words_holds():
-    """Exactly 10 words does NOT satisfy > 10 — step must hold."""
+def test_completion_criteria_10_words_advances():
+    """10-word response satisfies the > 1 threshold — step must advance."""
     from sage_poc.skills.schema import load_skill
     skill = load_skill("cbt_thought_record")
     result = evaluate_step_policy(
@@ -597,9 +597,8 @@ def test_completion_criteria_10_words_holds():
         engagement=7,
         message_en="I feel like a failure every single day always now.",
     )
-    assert result["action"] == "stay", \
-        "10-word response must not cross > 10 threshold"
-    assert result["next_step_id"] == "identify_thought"
+    assert result["action"] == "advance", \
+        "10-word response satisfies > 1 threshold and must advance"
 
 
 def test_completion_criteria_empty_message_advances():
@@ -618,7 +617,7 @@ def test_completion_criteria_empty_message_advances():
 
 
 def test_completion_criteria_single_word_holds():
-    """Single word 'okay' must not advance — 1 word does not satisfy > 10."""
+    """Single word 'okay' must not advance — 1 word does not satisfy > 1."""
     from sage_poc.skills.schema import load_skill
     skill = load_skill("cbt_thought_record")
     result = evaluate_step_policy(
@@ -632,12 +631,8 @@ def test_completion_criteria_single_word_holds():
         "Single-word response must not advance"
 
 
-def test_completion_criteria_heuristic_limitation_documented():
-    """
-    KNOWN LIMITATION: A short but genuinely engaged response ('I feel worthless')
-    will NOT advance — the word count heuristic cannot assess engagement quality.
-    This test documents the limitation without asserting it as a bug.
-    """
+def test_completion_criteria_two_words_advance():
+    """Two-word response satisfies > 1 — even a brief meaningful reply advances the step."""
     from sage_poc.skills.schema import load_skill
     skill = load_skill("cbt_thought_record")
     result = evaluate_step_policy(
@@ -647,9 +642,8 @@ def test_completion_criteria_heuristic_limitation_documented():
         engagement=7,
         message_en="I feel worthless.",
     )
-    assert result["action"] == "stay", \
-        "KNOWN LIMITATION: Short meaningful response holds step (word-count heuristic)"
-    assert result["next_step_id"] == "identify_thought"
+    assert result["action"] == "advance", \
+        "3-word response satisfies > 1 threshold and must advance"
 
 
 async def test_skill_executor_l1_exit_when_user_wants_to_stop():
@@ -726,6 +720,48 @@ def test_compose_prompt_without_skill_instruction():
     )
     system_str, user_str, _ = compose_prompt(state)
     assert "wellness" in system_str.lower() or "companion" in system_str.lower()
+
+def test_compose_prompt_uses_step_instruction_when_rule_fired():
+    """RC-1 fix: when rule_fired=True, step_instruction must pass through directly.
+    The L3 wrapper must NOT be rebuilt from the skill step — that would discard the override."""
+    state = make_state(
+        message_en="I feel like everything is hopeless.",
+        primary_intent="skill_continuation",
+        active_skill_id="cbt_thought_record",
+        executed_step_id="explore_distortion",
+        step_instruction="User is highly distressed. Do not advance the thought record. Validate the emotion and stay present.",
+        rule_fired=True,
+        conversation_history=[],
+        emotional_intensity=9,
+    )
+    _, user_str, layers = compose_prompt(state)
+    assert "Validate the emotion" in user_str, (
+        "Rule override instruction must appear in the prompt"
+    )
+    assert "skill_instruction_override" in layers, (
+        "Layer must be 'skill_instruction_override' when rule_fired=True"
+    )
+    assert "L3_skill_wrapper" not in layers, (
+        "L3 wrapper must NOT be used when rule_fired=True"
+    )
+
+def test_compose_prompt_uses_l3_wrapper_when_rule_not_fired():
+    """RC-1 fix: normal step execution (rule_fired=False) must still use L3 wrapper."""
+    state = make_state(
+        message_en="I keep thinking about how I messed everything up.",
+        primary_intent="skill_continuation",
+        active_skill_id="cbt_thought_record",
+        executed_step_id="identify_thought",
+        step_instruction="Goal: identify thought. Technique: Socratic questioning. Tone: warm.",
+        rule_fired=False,
+        conversation_history=[],
+        emotional_intensity=5,
+    )
+    _, user_str, layers = compose_prompt(state)
+    assert "L3_skill_wrapper" in layers, (
+        "L3 wrapper must be used for normal step execution (rule_fired=False)"
+    )
+    assert "skill_instruction_override" not in layers
 
 def test_compose_prompt_blended_intent_injects_knowledge():
     """secondary_intent=info_request with knowledge_passages in state injects evidence into user role."""

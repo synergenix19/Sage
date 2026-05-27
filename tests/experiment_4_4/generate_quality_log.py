@@ -95,16 +95,13 @@ async def _run_scenario(
             exec_result = await skill_executor_node(state)
 
         step_instruction = exec_result.get("step_instruction", "")
-        rule_fired = None
+        # Use the authoritative rule_fired flag from skill_executor_node directly.
+        # exec_result["rule_fired"] is True when a step_policy rule override fired
+        # (action not in advance/complete/stay/None). Fall back to escalation level
+        # for L1/L2 audit labelling.
+        rule_fired: bool | str | None = exec_result.get("rule_fired") or None
         if exec_result.get("escalation_triggered"):
             rule_fired = exec_result["escalation_triggered"].get("level")
-
-        # Detect rule action from step_instruction prefix (heuristic)
-        for keyword in ("validate_only", "offer_skill_switch", "check_in_micro",
-                        "skip_psychoeducation", "exit"):
-            if keyword in step_instruction.lower():
-                rule_fired = rule_fired or keyword
-                break
 
         skill_complete = exec_result.get("skill_complete", False)
         skill_exited   = exec_result.get("active_skill_id") is None
@@ -117,6 +114,7 @@ async def _run_scenario(
             "active_step_id":   exec_result.get("active_step_id"),
             "active_skill_id":  exec_result.get("active_skill_id"),
             "escalation_triggered": exec_result.get("escalation_triggered"),
+            "rule_fired":       exec_result.get("rule_fired"),
         }
         if dry_run:
             llm_response = "[DRY RUN — LLM not called]"

@@ -11,7 +11,7 @@ from sage_poc.language import async_translate_to_arabic
 from sage_poc.config import AUDIT_LOG_ENABLED
 from sage_poc.rules import engine as rules_engine
 from sage_poc.prompts.summarizer import summarise_history
-from sage_poc.audit import write_session_audit
+from sage_poc.audit import write_session_audit, write_identity_substitution_audit
 
 _log = logging.getLogger(__name__)
 
@@ -154,12 +154,14 @@ async def output_gate_node(state: SageState) -> dict:
         })
         _identity_sub_rule_id: str | None = None
         _original_response_hash: str | None = None
+        _original_response_text: str | None = None
         for rule in cultural_violations.fired:
             print(
                 f"\n[CULTURAL OUTPUT VIOLATION] {rule.rule_id} v{rule.version}: "
                 f"{rule.action.get('message', rule.action.get('type', ''))}"
             )
             if rule.action.get("type") == "substitute" and _identity_sub_rule_id is None:
+                _original_response_text = response_en
                 _original_response_hash = hashlib.sha256(response_en.encode()).hexdigest()[:16]
                 _identity_sub_rule_id = rule.rule_id
                 response_en = rule.action["substitute_with"]
@@ -167,10 +169,26 @@ async def output_gate_node(state: SageState) -> dict:
                     "[output_gate] Rule %s substituted response (hash: %s)",
                     rule.rule_id, _original_response_hash,
                 )
+                # Write full original text to restricted PDPL audit table (non-fatal).
+                # The main audit log records only the hash; the original text lives here
+                # under RLS policies permitting DPO and clinician_admin access only.
+                if session_id:
+                    asyncio.create_task(
+                        write_identity_substitution_audit(
+                            session_id=session_id,
+                            turn_number=state.get("turn_number", 0),
+                            rule_id=rule.rule_id,
+                            original_response_hash=_original_response_hash,
+                            original_response_text=_original_response_text,
+                            substitute_with=rule.action["substitute_with"],
+                            user_id=user_id,
+                        )
+                    )
         cultural_output_violations = [r.rule_id for r in cultural_violations.fired]
     else:
         _identity_sub_rule_id = None
         _original_response_hash = None
+        _original_response_text = None
         cultural_output_violations = []
 
     violations = _FORMAT_VIOLATIONS.findall(response_en)
@@ -273,5 +291,6 @@ async def output_gate_node(state: SageState) -> dict:
         "cultural_output_violations": cultural_output_violations,
         "identity_substitution_rule_id": _identity_sub_rule_id,
         "original_response_hash": _original_response_hash,
+        "original_response_text": _original_response_text,
         "last_turn_at": datetime.now(timezone.utc).isoformat(),
     }

@@ -146,7 +146,12 @@ class TestT4L2Advisory:
     return an early [L2] escalation response."""
 
     async def test_l2_does_not_exit_skill(self):
-        state = _make_executor_state(new_clinical_flags_turn=["substance_use"])
+        # Use a 1-word message so completion criteria (> 1) doesn't fire and the
+        # skill stays active — isolating the L2 advisory behaviour.
+        state = _make_executor_state(
+            new_clinical_flags_turn=["substance_use"],
+            message_en="okay",
+        )
         with patch("sage_poc.nodes.skill_executor.load_skill", return_value=_make_skill()):
             result = await skill_executor_node(state)
 
@@ -199,9 +204,11 @@ class TestT6PostCrisisL1Resolution:
 
     async def test_l2_does_not_resolve_crisis_state(self):
         """L2 advisory must not set crisis_state='resolved' — only L1 does."""
+        # Use a 1-word message so completion criteria (> 1) doesn't fire;
+        # otherwise the single-step mock skill completes and sets crisis_state='resolved'.
         state = _make_executor_state(
             active_skill_id="post_crisis_check_in",
-            message_en="I'm feeling a bit off.",
+            message_en="okay",
             new_clinical_flags_turn=["medication_mention"],
         )
         pci_skill = _make_skill(skill_id="post_crisis_check_in")

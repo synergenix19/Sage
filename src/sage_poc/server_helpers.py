@@ -96,6 +96,7 @@ def _build_state(req: _RequestLike) -> dict:
         "cultural_output_violations": [],
         # Turn-level fields reset each turn (Category B/C signals)
         "new_clinical_flags_turn": [],
+        "rule_fired":              None,
         "resistance_score":        None,
         "knowledge_source":        "",
         "knowledge_abstain":       False,

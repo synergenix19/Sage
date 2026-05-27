@@ -450,6 +450,11 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
         if state.get("escalation_triggered"):
             user_parts.append(f"SKILL INSTRUCTION:\n{step_instruction}")
             layers.append("skill_instruction")
+        elif state.get("rule_fired"):
+            # A step_policy rule overrode the default step instruction. Use it directly —
+            # rebuilding L3 from the skill step would discard the clinical override.
+            user_parts.append(f"SKILL INSTRUCTION:\n{step_instruction}")
+            layers.append("skill_instruction_override")
         elif state.get("active_skill_id") and state.get("executed_step_id"):
             try:
                 skill = load_skill(state["active_skill_id"])

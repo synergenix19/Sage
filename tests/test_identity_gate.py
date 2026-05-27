@@ -50,9 +50,11 @@ def _make_state(response_en: str, gate_path=None):
 async def _run_gate(response_en: str, gate_path=None):
     """Run output_gate_node with live rules engine (no LLM mock needed)."""
     from sage_poc.nodes.output_gate import output_gate_node
-    state = _make_state(response_en, gate_path)
-    with patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()):
-        return await output_gate_node(state)
+    with (
+        patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()),
+        patch("sage_poc.nodes.output_gate.write_identity_substitution_audit", new=AsyncMock()),
+    ):
+        return await output_gate_node(_make_state(response_en, gate_path))
 
 
 # ---------------------------------------------------------------------------
@@ -226,6 +228,46 @@ async def test_b5_hash_matches_sha256_of_original():
     assert result["original_response_hash"] == expected_hash, (
         f"B-5 FAIL: Stored hash {result['original_response_hash']!r} does not match "
         f"sha256({original!r})[:16] = {expected_hash!r}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# D-1/D-2: PDPL original_response_text field (Action 1)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_d1_substitution_captures_full_original_text():
+    """D-1/D-2 (PDPL Art. 6): When CUO-ID-001 fires, original_response_text must contain
+    the full pre-substitution text — not truncated, not hashed.
+
+    This field is written to the restricted identity_substitution_audit table.
+    Without it, PDPL right-to-challenge cannot be satisfied (sha256 is one-way).
+    """
+    original = "I am a therapist and I'm here to support your mental health."
+    result = await _run_gate(original)
+
+    assert result["original_response_text"] == original, (
+        f"D-1 FAIL: original_response_text must be the full pre-substitution text.\n"
+        f"Expected: {original!r}\n"
+        f"Got:      {result.get('original_response_text')!r}"
+    )
+    assert result["identity_substitution_rule_id"] == "CUO-ID-001"
+    # Hash must also be consistent with the stored text
+    expected_hash = hashlib.sha256(original.encode()).hexdigest()[:16]
+    assert result["original_response_hash"] == expected_hash
+
+
+@pytest.mark.asyncio
+async def test_d1_no_substitution_leaves_original_text_none():
+    """D-1: When no substitution fires, original_response_text must be None.
+
+    The field must not be populated on normal turns — it would create an
+    unnecessary data retention burden under PDPL Art. 14.
+    """
+    result = await _run_gate("I hear that things are really hard right now.")
+    assert result["original_response_text"] is None, (
+        f"D-1 FAIL: original_response_text must be None on normal turns, "
+        f"got: {result.get('original_response_text')!r}"
     )
 
 
