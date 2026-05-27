@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
       <div className="text-center">
         <h1 className="text-2xl font-semibold">Reset password</h1>
         <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-          We'll send a reset link to your email
+          We&apos;ll send a reset link to your email
         </p>
       </div>
       <form onSubmit={submit} className="flex flex-col gap-4">

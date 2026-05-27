@@ -16,9 +16,11 @@ export function Language() {
   function choose(locale: Locale) {
     setAnswer('locale', locale)
     setLocale(locale)
+    // eslint-disable-next-line react-hooks/immutability
     document.cookie = `cdai-locale=${locale};path=/;max-age=31536000;SameSite=Lax;Secure`
     setStep(3)
     // Reload to flip dir immediately, then navigate
+    // eslint-disable-next-line react-hooks/immutability
     window.location.href = '/step-3'
   }
 

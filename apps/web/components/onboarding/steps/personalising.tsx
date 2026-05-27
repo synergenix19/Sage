@@ -71,7 +71,7 @@ export function Personalising() {
     return (
       <div className="flex flex-col items-center gap-4 text-center">
         <p className="text-sm text-[var(--color-text-secondary)]">
-          We're having trouble setting things up — tap to try again.
+          We&apos;re having trouble setting things up — tap to try again.
         </p>
         <button
           onClick={retry}

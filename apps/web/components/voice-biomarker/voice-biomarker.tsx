@@ -41,6 +41,7 @@ export function VoiceBiomarker() {
 
   // Side effect separated from state updater: transition when countdown hits 0 during recording.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (countdown === 0 && phase === 'recording') stopRecording()
   }, [countdown, phase, stopRecording])
 

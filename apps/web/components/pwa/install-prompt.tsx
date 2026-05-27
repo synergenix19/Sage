@@ -12,14 +12,15 @@ const DISMISSED_KEY = 'cdai-install-dismissed'
 export const FIRST_CHAT_EVENT = 'sage:first-chat-complete'
 
 export function InstallPrompt() {
+  // Store in state (not ref.current) so the render can read it without violating rules-of-refs
+  const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null)
   const promptRef = useRef<BeforeInstallPromptEvent | null>(null)
-  const [showBanner, setShowBanner] = useState(false)
 
   useEffect(() => {
     if (localStorage.getItem(DISMISSED_KEY)) return
 
     function tryShow() {
-      if (promptRef.current) setShowBanner(true)
+      if (promptRef.current) setPromptEvent(promptRef.current)
     }
 
     const installHandler = (e: Event) => {
@@ -39,23 +40,21 @@ export function InstallPrompt() {
     }
   }, [])
 
-  const promptEvent = showBanner ? promptRef.current : null
-
   if (!promptEvent) return null
 
   function handleDismiss() {
     localStorage.setItem(DISMISSED_KEY, '1')
-    setShowBanner(false)
+    setPromptEvent(null)
   }
 
   async function handleInstall() {
-    if (!promptRef.current) return
-    await promptRef.current.prompt()
-    await promptRef.current.userChoice
+    if (!promptEvent) return
+    await promptEvent.prompt()
+    await promptEvent.userChoice
     // prompt() can only be called once per event; always persist so the banner
     // never reappears even if the browser fires a new beforeinstallprompt later.
     localStorage.setItem(DISMISSED_KEY, '1')
-    setShowBanner(false)
+    setPromptEvent(null)
   }
 
   return (

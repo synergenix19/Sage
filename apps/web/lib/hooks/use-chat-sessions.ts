@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useState } from 'react'
+import { startTransition, useCallback, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 export interface SessionSummary {
@@ -23,8 +23,10 @@ export function useChatSessions(): {
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    setError(null)
+    startTransition(() => {
+      setLoading(true)
+      setError(null)
+    })
 
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user }, error: userError }) => {
