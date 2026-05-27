@@ -163,3 +163,16 @@ def test_l0_persona_has_prescribed_self_description():
     assert "wellness companion" in content_lower, (
         "L0_persona must contain 'wellness companion' as the prescribed self-description"
     )
+
+
+def test_l3_skill_wrapper_no_therapeutic_framing():
+    """L3_skill_wrapper must not use 'therapeutic' in its header.
+    Cumulative clinical framing contributes to identity drift toward 'mental health coach'.
+    """
+    tmpl = get_template("L3_skill_wrapper")
+    assert "THERAPEUTIC APPROACH" not in tmpl.content, (
+        "L3_skill_wrapper header must not use 'THERAPEUTIC APPROACH' — use 'SUPPORT APPROACH'"
+    )
+    assert "SUPPORT APPROACH" in tmpl.content, (
+        "L3_skill_wrapper header must use 'SUPPORT APPROACH FOR THIS TURN'"
+    )

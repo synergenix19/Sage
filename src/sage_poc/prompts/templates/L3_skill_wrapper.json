@@ -8,7 +8,7 @@
   "role": "user",
   "always_include": false,
   "word_budget": 200,
-  "content": "THERAPEUTIC APPROACH FOR THIS TURN:\nYou are gently guiding the user through {skill_name}. The current focus is: {step_goal}\n\nApproach: Use {technique_name}. {technique_description}Match the tone: {tone_instruction}.\n\n{contraindication_block}Example phrases that convey this well (use as inspiration, not scripts):\n{few_shot_block}\n\nIMPORTANT: Weave this naturally into conversation. Do NOT announce the technique name or read these instructions aloud. The user should feel heard, not assessed.",
+  "content": "SUPPORT APPROACH FOR THIS TURN:\nYou are gently guiding the user through {skill_name}. The current focus is: {step_goal}\n\nApproach: Use {technique_name}. {technique_description}Match the tone: {tone_instruction}.\n\n{contraindication_block}Example phrases that convey this well (use as inspiration, not scripts):\n{few_shot_block}\n\nIMPORTANT: Weave this naturally into conversation. Do NOT announce the technique name or read these instructions aloud. The user should feel heard, not assessed.",
   "variables": [
     "skill_name",
     "step_goal",
