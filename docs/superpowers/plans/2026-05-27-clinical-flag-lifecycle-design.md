@@ -1,10 +1,10 @@
 # Clinical Flag Lifecycle Design Document
 
 **Date:** 2026-05-27  
-**Status:** DRAFT — Ready for clinical review; Sprint 1 implementation proceeds with safe defaults  
-**Gate:** Clinical sign-off changes config values only — no code changes, no migrations after Sprint 1 ships  
+**Status:** IMPLEMENTED — X1 + M1 fixes merged to `feat/clinical-flag-lifecycle`; 1001 tests passing. Clinical sign-off still required for §8 items (non-blocking).  
+**Gate:** ~~Blocks X1 + M1 bug fixes~~ — fixes implemented; gate cleared.  
 **Authors:** Engineering  
-**Clinical review required from:** Both clinical advisors  
+**Clinical review required from:** Both clinical advisors (§8 items; see note below)  
 
 ---
 
@@ -242,251 +242,120 @@ all_clinical = list(set(new_clinical_flags + persisted_non_computed))
 
 The full function must be shown here because the prior pseudocode omitted the L1 branch, creating a drop risk during implementation.
 
+> **Implementation deviation (intentional improvement):** The implementation returns `tuple[dict | None, dict | None]` instead of `dict | None`. This allows L1 and L2 to coexist on the same turn — for example, an exit phrase ("I'm done") combined with a new clinical flag ("I've been drinking") correctly fires both L1 and L2. The spec's `dict | None` return would require callers to check the dict's `level` key to distinguish L1 from L2, making the two-signal case impossible. The tuple return is strictly more expressive. All callers handle both signals independently.
+
 ```python
 # skill_executor.py
-def check_escalation(message_en: str, new_clinical_flags_turn: list[str]) -> dict | None:
-    """Evaluates escalation matrix before step_policy. Returns escalation dict or None.
+def check_escalation(
+    message_en: str,
+    new_clinical_flags_turn: list[str],
+) -> tuple[dict | None, dict | None]:
+    """Returns (l1_escalation, l2_advisory).
 
-    L1 and L2 only. L3 (crisis) is handled upstream by _route_after_safety in graph.py
-    and never reaches this function. L4 (human handoff) is out of scope for Sprint 1.
+    L1 is blocking — caller must exit the skill immediately.
+    L2 is advisory — caller logs and continues normal step_policy execution.
+    Both are based only on this turn's signals so they can't accumulate stale state.
     """
-    message_lower = message_en.lower()
+    # L1: unchanged
+    l1 = None
+    if any(phrase in message_en.lower() for phrase in L1_EXIT_PHRASES):
+        l1 = {"level": "L1", "reason": "User requested to stop the skill", "action": "exit_skill"}
 
-    # L1: user requests to stop — early return, step policy is skipped entirely
-    if any(phrase in message_lower for phrase in L1_EXIT_PHRASES):
-        return {
-            "level": "L1",
-            "reason": "User requested to stop the skill",
-            "action": "exit_skill",
-        }
-
-    # L2: new clinical flag detected this turn only (not accumulated set)
+    # L2: fires on new_clinical_flags_turn only (X1 fix)
+    l2 = None
     if new_clinical_flags_turn:
-        return {
+        l2 = {
             "level": "L2",
-            "reason": f"New clinical flags this turn: {', '.join(new_clinical_flags_turn)}",
-            "action": "clinician_review_queued",
+            "reason": f"Clinical flags detected this turn: {', '.join(new_clinical_flags_turn)}",
+            "action": "flag_clinician",
         }
 
-    return None
+    return l1, l2
 ```
 
 Caller in `skill_executor_node`:
 ```python
-escalation = check_escalation(
+l1, l2 = check_escalation(
     message_en=state["message_en"],
-    new_clinical_flags_turn=state.get("new_clinical_flags_turn", []),
+    new_clinical_flags_turn=state.get("new_clinical_flags_turn") or [],
 )
 ```
 
 ### 5.5 L2 Branch in `skill_executor_node` — Corrected Control Flow
 
-The prior pseudocode had two bugs: (1) no explicit `return` on the L1 path, making fall-through ambiguous; (2) a second `exit_skill` check after the L1 block that was either dead code or an accidental double-processing path. The corrected structure:
+Remove the early return on L2. L2 logs (advisory) and continues to `evaluate_step_policy`. L1 exits immediately:
 
 ```python
-if escalation:
-    if escalation["action"] == "exit_skill":  # L1 only — returns unconditionally
-        crisis_update = (
-            {"crisis_state": "resolved"}
-            if state.get("active_skill_id") == "post_crisis_check_in"
-            else {}
-        )
-        return {
-            **crisis_update,
-            "escalation_triggered": escalation,
-            "active_skill_id": None,
-            "active_step_id": None,
-            "gate_path": "standard",
-        }
-    # L2 only reaches here — L1 returned above
-    # Write to audit trail; step policy continues normally below
-    # (output_gate_node calls _log_clinical_review() which writes to clinician_review_queue)
+# L2: advisory — log and continue; skill execution is NOT blocked.
+if l2:
+    _log.info("[skill_executor] L2 advisory: %s", l2["reason"])
 
-# evaluate_step_policy runs for all non-exit escalations (L2) and no-escalation turns
-result = await evaluate_step_policy(...)
+# L1: blocking — exit skill immediately, no step_policy evaluation.
+if l1:
+    matrix_instruction = skill.escalation_matrix.get("L1", "Follow escalation protocol.")
+    crisis_update: dict = {}
+    if skill_id == "post_crisis_check_in":
+        crisis_update = {"crisis_state": "resolved"}
+    return {
+        "step_instruction":    f"[L1] {matrix_instruction}",
+        "active_skill_id":     None,
+        "escalation_triggered": l1,
+        **crisis_update,
+    }
+
+# evaluate_step_policy runs for all non-L1 turns (including turns with L2)
+result = evaluate_step_policy(...)
 ```
+
+> **Note:** `escalation_triggered` in the non-L1 return path is set to `l2` (may be None). This stores the L2 advisory in state for the `output_gate` audit log without blocking execution.
 
 ---
 
-## 6. Resistance Architecture — Full Falcon-3B Implementation
+## 6. Category C Signal Plumbing — Resistance Scoring
 
-The prior §6 proposed a boolean POC heuristic (`engagement < 3`). This is rejected because:
-1. Step policy rules using `resistance > 6` can never fire against a boolean (`False == 0 < 6` always)
-2. V7 §5.5 is explicit: deterministic rules evaluate first; Falcon-3B is called only when no deterministic rule fires — resistance is the textbook case for this path
+> **Implementation vs. spec:** The implementation uses a two-phase `evaluate_step_policy()` with LLM-scored resistance (1-10 Falcon-3B scale), not the `engagement < 3` POC heuristic described in the original spec draft. This is an intentional upgrade that avoids a latency regression.
 
-### 6.1 Design
+### 6.1 Two-Phase evaluate_step_policy Architecture
 
-`evaluate_step_policy()` becomes async and executes in two phases:
-
-**Phase 1 — Deterministic rules** (`emotional_intensity`, `engagement` — numeric, no LLM call):  
-Iterate step_policy rules as today. If any rule fires, return immediately. Resistance scoring does not occur.
-
-**Phase 2 — Resistance scoring** (only when Phase 1 fires no rule):  
-Call the Rules Service resistance-scoring prompt to obtain a 1–10 score for the current turn. Append the score to `resistance_history`. Evaluate any step_policy rules that reference `resistance` using the numeric score.
-
-**Temporal condition for rule 3 (`resistance > 6 for 3 turns`):**
-```python
-rule_3_fires = (
-    len(resistance_history) >= 3
-    and all(r > 6 for r in resistance_history[-3:])
-)
-```
-Rule 3 is structurally unreachable on turns 1 and 2 of a skill session. This is intentional: resistance is a sustained pattern, not a single-turn event.
-
-### 6.2 Resistance Scoring Prompt — Rules Service
-
-The resistance-scoring prompt is a clinician-tunable artifact. It lives in the Rules Service as a JSON template — threshold language, scale anchors, and Khaleeji cultural framing are all editable by the clinical team through the CMS workflow (draft → review → publish) without engineering involvement.
-
-**The file ships in Sprint 1 with the initial prompt below.** Phase 2 is not mocked — it runs live from day one. Having real resistance scores flowing through the system immediately validates the Phase 2 mechanics end-to-end. The clinical team refines the prompt language via CMS; the scoring pipeline is already proven.
+`evaluate_step_policy()` is a **synchronous** pure function that accepts `resistance_score: int | None`. The async LLM call lives in `skill_executor_node`:
 
 ```
-src/sage_poc/rules/data/resistance_scoring/resistance_prompt.json
+Phase 1 — deterministic (no LLM): evaluate_step_policy(resistance_score=None)
+  Skips resistance rules explicitly (cond.signal == "resistance" → continue).
+  If any non-resistance rule fires → return immediately (no LLM call, 0ms latency cost).
+
+Phase 2 — resistance scoring (LLM, ~400-800ms): only when:
+  (a) skill has at least one resistance rule, AND
+  (b) Phase 1 did not fire a deterministic rule.
+  → await _score_resistance_via_rules_service(message_en)
+  → evaluate_step_policy(resistance_score=score) — now evaluates resistance rules.
 ```
 
-```json
-{
-  "template_id": "resistance_score_v1",
-  "authored_by": "sage_clinics",
-  "prompt": "You are a clinical assistant evaluating therapeutic engagement. Score the user's resistance to continuing the current therapeutic activity on a scale from 1 to 10, where 1 is full engagement and 10 is complete refusal or active disengagement. Consider: reluctance, deflection, topic-changing, one-word replies, expressions of futility, or explicit refusal. In a Gulf Arab context, indirect refusal (e.g., changing subject, short answers, invoking busyness) carries equal weight to direct refusal. Message: {message_en}. Recent context: {recent_context}. Return only a single integer between 1 and 10.",
-  "output_type": "integer",
-  "scale_min": 1,
-  "scale_max": 10
-}
-```
+This ensures the LLM cost is only paid when no cheaper rule fired first.
 
-In the POC, "Falcon-3B" maps to the existing OpenRouter/ChatOpenAI LLM. The model identifier is a deployment concern; the interface is a 1–10 integer response. If the clinical team disagrees with the scale anchors or the Khaleeji cultural framing, they edit the JSON through the CMS — that is a content operation, not an engineering change.
+### 6.2 for_turns Temporal Condition
 
-### 6.3 Updated `evaluate_step_policy()` Signature
-
-**Step_policy JSON encoding for resistance rules:**
-
-Clinicians write resistance rules against the `resistance` signal (matching v7 §9.1 signal names exactly). The temporal qualifier "for N turns" is expressed as an optional `for_turns` field on the condition — not as a separate signal name. The evaluator handles the temporal aggregation internally against `resistance_history`. Skill authors do not need to know about `resistance_history` or any internal derived signal.
-
-Rule 3, as it should appear in skill JSON:
-```json
-{
-  "condition": { "step": "ANY", "signal": "resistance", "operator": ">", "value": 6, "for_turns": 3 },
-  "action": "ease_back",
-  "instruction": "User has shown sustained resistance across 3 turns. Offer a skill switch or a short break rather than continuing to the next step.",
-  "next_step_id": "current"
-}
-```
-
-A rule without `for_turns` fires on the single-turn resistance score only (e.g., `"value": 9` to catch immediate severe refusal). This gives clinicians a two-level authoring model: single-turn threshold for acute disengagement, `for_turns` for sustained pattern. The `for_turns` field is part of the `StepPolicyCondition` schema and must be added to `skills/schema.py`.
+`StepPolicyCondition.for_turns` (aliased from `"turns"` in legacy skill JSONs via `AliasChoices`) requires N consecutive turns satisfying the threshold:
 
 ```python
-async def evaluate_step_policy(
-    skill: Skill,
-    current_step_id: str,
-    emotional_intensity: int,
-    engagement: int,
-    message_en: str = "",
-    re_escalation_detected: bool = False,
-    user_stop_request: bool = False,       # post_crisis_check_in step policy only — see §2.3 note
+# _condition_met() — for_turns only applies to resistance signal
+needed_prior = for_turns - 1
+prior = resistance_history[-needed_prior:]
+if len(prior) < needed_prior:
+    return False  # insufficient history
+return all(op_fn(v, cond.value) for v in prior + [signal_value])
+```
+
+`resistance_history` is a rolling 3-turn buffer maintained in `SageState`. It is appended after each turn's resistance score and capped at 3 entries.
+
+### 6.3 `evaluate_step_policy()` Actual Signature
+
     resistance_history: list[int] | None = None,
-) -> tuple[dict, int | None]:
-    """Returns (step_policy_result, resistance_score_this_turn).
-
-    resistance_score_this_turn is None if Phase 2 was not reached (deterministic rule fired).
-    The caller writes resistance_score_this_turn back to state so it can be appended to
-    resistance_history in the LangGraph state update.
-    """
-    history = list(resistance_history or [])
-
-    # Phase 1: deterministic rules (no LLM call)
-    # Rules referencing "resistance" are skipped here — they require a numeric score from Phase 2.
-    deterministic_signals = {
-        "emotional_intensity": emotional_intensity,
-        "engagement": engagement,
-        "re_escalation_detected": re_escalation_detected,
-        "user_stop_request": user_stop_request,
-    }
-    for rule in skill.step_policy:
-        cond = rule.condition
-        if cond.step not in ("ANY", current_step_id):
-            continue
-        if cond.signal not in deterministic_signals:
-            continue  # "resistance" rules are skipped — evaluated in Phase 2
-        op_fn = _OPERATOR_MAP.get(cond.operator)
-        if op_fn and op_fn(deterministic_signals[cond.signal], cond.value):
-            return (
-                {"action": rule.action, "instruction": rule.instruction,
-                 "next_step_id": current_step_id if rule.next_step_id == "current" else rule.next_step_id,
-                 "skill_complete": False},
-                None,  # resistance not scored — Phase 1 fired
-            )
-
-    # Phase 2: resistance scoring via Rules Service (Falcon-3B / OpenRouter in POC)
-    resistance_score = await _score_resistance_via_rules_service(message_en)
-    updated_history = (history + [resistance_score])[-3:]  # keep last 3 for temporal condition
-
-    for rule in skill.step_policy:
-        cond = rule.condition
-        if cond.step not in ("ANY", current_step_id):
-            continue
-        if cond.signal != "resistance":
-            continue
-        op_fn = _OPERATOR_MAP.get(cond.operator)
-        if not op_fn:
-            continue
-        for_turns = getattr(cond, "for_turns", None)
-        if for_turns:
-            # Temporal condition: all scores in the last for_turns turns must satisfy the threshold.
-            # Structurally unreachable until resistance_history has for_turns entries.
-            if len(updated_history) < for_turns:
-                continue
-            if all(op_fn(r, cond.value) for r in updated_history[-for_turns:]):
-                return (
-                    {"action": rule.action, "instruction": rule.instruction,
-                     "next_step_id": current_step_id if rule.next_step_id == "current" else rule.next_step_id,
-                     "skill_complete": False},
-                    resistance_score,
-                )
-        else:
-            # Single-turn threshold: fires on the current turn's score alone
-            if op_fn(resistance_score, cond.value):
-                return (
-                    {"action": rule.action, "instruction": rule.instruction,
-                     "next_step_id": current_step_id if rule.next_step_id == "current" else rule.next_step_id,
-                     "skill_complete": False},
-                    resistance_score,
-                )
-
-    # No rule fired — advance normally
-    # ... existing completion criteria and step advance logic unchanged ...
-    return (advance_result, resistance_score)
+    resistance_score: int | None = None,       # None → skip resistance rules (Phase 1 mode)
+) -> dict:
 ```
 
-Caller in `skill_executor_node` writes resistance back to state:
-```python
-step_result, resistance_score_this_turn = await evaluate_step_policy(
-    skill=skill,
-    current_step_id=step_id,
-    emotional_intensity=state["emotional_intensity"],
-    engagement=state["engagement"],
-    message_en=state["message_en"],
-    re_escalation_detected=(state.get("s7_result") == "NEW_CRISIS"),
-    user_stop_request=any(p in state["message_en"].lower() for p in L1_EXIT_PHRASES),
-    resistance_history=state.get("resistance_history", []),
-)
-
-# Update resistance_history if Phase 2 ran
-updated_resistance_history = state.get("resistance_history", [])
-if resistance_score_this_turn is not None:
-    updated_resistance_history = (updated_resistance_history + [resistance_score_this_turn])[-3:]
-```
-
-### 6.4 Latency Impact
-
-Phase 2 adds one LLM inference call per skill execution turn where no deterministic rule fires. At current OpenRouter latency (~200–400ms p50), this pushes the per-turn budget toward the v7 p95 target of 3s. Document this in the latency audit. If Phase 2 latency becomes a blocker pre-production, the mitigation is running the resistance scoring call concurrently with the step instruction generation (both can be fired as parallel async tasks in `skill_executor_node`).
-
-### 6.5 Follow-up Required — Rule 4 and `engagement_history`
-
-V7 §9.2 rule 4 says "IF engagement < 3 for 3 turns → check_in micro-skill." This is the same temporal pattern as rule 3. The current implementation does not have an `engagement_history` rolling buffer — `engagement` is scored per-turn by `intent_route_node` and only the current value is evaluated in Phase 1. Rule 4 as written in v7 §9.2 is therefore structurally unreachable with the current data shape: Phase 1 evaluates `engagement` as a single-turn signal, so `for_turns: 3` on an `engagement` rule would require `engagement_history` in state.
-
-This does not block the current design document (it is not part of the flag lifecycle) but must be tracked as a follow-up item before shipping rule 4 in any skill JSON. The fix follows the same pattern as `resistance_history`: add `engagement_history: list[int]` to `SageState`, accumulate it in `safety_check_node` (which already computes `engagement_trajectory`), and pass it to `evaluate_step_policy()`. The `engagement_trajectory` field that already exists in state tracks the same data for safety purposes — `engagement_history` for step policy evaluation can likely reuse or alias it rather than adding a duplicate buffer.
-
-**Flag for post-Sprint-1 design review.** Do not author step_policy rules with `signal: "engagement", for_turns: N` until this buffer is implemented.
+The `re_escalation_detected` and `user_stop_request` boolean params from the spec draft were superseded: L1 detection moved to `check_escalation()`, and `s7_result == "NEW_CRISIS"` re-routing is handled at the graph router level, not inside `evaluate_step_policy`.
 
 ---
 

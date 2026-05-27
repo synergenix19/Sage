@@ -22,7 +22,7 @@ class PostgresMemoryRepository(MemoryRepository):
                        communication_style, cultural_preferences,
                        mood_trajectory, total_skills_completed,
                        session_count, last_extraction_turn, last_updated_at,
-                       observations
+                       observations, persisted_clinical_flags
                 FROM public.user_therapeutic_profiles
                 WHERE user_id = $1
                 """,
@@ -32,9 +32,11 @@ class PostgresMemoryRepository(MemoryRepository):
                 return None
             d = dict(row)
             # asyncpg returns jsonb as str — parse if needed
-            for key in ("cultural_preferences", "mood_trajectory", "observations"):
+            for key in ("cultural_preferences", "mood_trajectory", "observations", "persisted_clinical_flags"):
                 if isinstance(d.get(key), str):
                     d[key] = json.loads(d[key])
+            if d.get("persisted_clinical_flags") is None:
+                d["persisted_clinical_flags"] = []
             return d
 
     async def upsert_therapeutic_profile(
@@ -116,6 +118,34 @@ class PostgresMemoryRepository(MemoryRepository):
                 """,
                 session_id, user_id, summary_text, vector_str, safety_level,
                 skills_used or [], mood_score,
+            )
+
+    async def get_persisted_clinical_flags(self, user_id: str) -> list[str]:
+        async with self._pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT persisted_clinical_flags FROM public.user_therapeutic_profiles WHERE user_id = $1",
+                user_id,
+            )
+            if row is None:
+                return []
+            raw = row["persisted_clinical_flags"]
+            if isinstance(raw, str):
+                raw = json.loads(raw)
+            return raw or []
+
+    async def write_persisted_clinical_flags(
+        self, user_id: str, flags: list[str]
+    ) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                """
+                INSERT INTO public.user_therapeutic_profiles (user_id, persisted_clinical_flags)
+                VALUES ($1, $2::jsonb)
+                ON CONFLICT (user_id) DO UPDATE SET
+                  persisted_clinical_flags = EXCLUDED.persisted_clinical_flags
+                """,
+                user_id,
+                json.dumps(flags),
             )
 
     async def search_session_summaries(

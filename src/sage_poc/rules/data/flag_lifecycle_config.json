@@ -1,0 +1,10 @@
+{
+  "cross_session_persistence": {
+    "substance_use": false,
+    "trauma_indicator": false,
+    "eating_concern": false,
+    "medication_mention": false,
+    "domestic_situation": false
+  },
+  "flag_immutable_within_session": true
+}

@@ -35,7 +35,7 @@ markers = [
     "slow: marks tests as slow (requires Ollama or real LLM)",
     "integration: marks tests requiring live external services (SUPABASE_URL, SUPABASE_SERVICE_KEY)",
 ]
-pythonpath = ["."]
+pythonpath = ["src", "."]
 asyncio_mode = "auto"
 
 [tool.hatch.build.targets.wheel]

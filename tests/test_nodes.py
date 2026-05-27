@@ -520,7 +520,7 @@ def test_evaluate_step_policy_low_engagement_triggers_check_in():
     )
     assert action["action"] == "check_in_micro"
 
-def test_skill_executor_node_produces_instruction():
+async def test_skill_executor_node_produces_instruction():
     # message_en must be > 10 words for completion_criteria to allow advancement
     state = make_state(
         message_en="I don't know what to do, everything is always my fault.",
@@ -529,7 +529,7 @@ def test_skill_executor_node_produces_instruction():
         emotional_intensity=6,
         engagement=7,
     )
-    result = skill_executor_node(state)
+    result = await skill_executor_node(state)
     assert result["step_instruction"] is not None
     assert len(result["step_instruction"]) > 20
     assert result["executed_step_id"] == "identify_thought"
@@ -636,7 +636,7 @@ def test_completion_criteria_heuristic_limitation_documented():
     assert result["next_step_id"] == "identify_thought"
 
 
-def test_skill_executor_l1_exit_when_user_wants_to_stop():
+async def test_skill_executor_l1_exit_when_user_wants_to_stop():
     state = make_state(
         message_en="I don't want to do this anymore, let's stop.",
         active_skill_id="cbt_thought_record",
@@ -645,21 +645,21 @@ def test_skill_executor_l1_exit_when_user_wants_to_stop():
         engagement=3,
         clinical_flags=[],
     )
-    result = skill_executor_node(state)
+    result = await skill_executor_node(state)
     assert result["escalation_triggered"]["level"] == "L1"
     assert result["active_skill_id"] is None  # skill exited
     assert result["executed_step_id"] == "explore_distortion"
 
-def test_skill_executor_l2_flag_on_clinical_signal():
+async def test_skill_executor_l2_flag_on_clinical_signal():
     state = make_state(
         message_en="I've been drinking every night to cope",
         active_skill_id="cbt_thought_record",
         active_step_id="identify_thought",
         emotional_intensity=6,
         engagement=6,
-        clinical_flags=["substance_use"],
+        new_clinical_flags_turn=["substance_use"],
     )
-    result = skill_executor_node(state)
+    result = await skill_executor_node(state)
     assert result["escalation_triggered"]["level"] == "L2"
     # Skill stays active for L2 (flag only, not exit)
     assert result["active_skill_id"] == "cbt_thought_record"
@@ -849,7 +849,7 @@ async def test_low_confidence_respond_with_mocked_llm():
 # Sprint 2+3 — error handling and false-positive fixes
 
 # P1-2: L1 exit whole-word matching
-def test_l1_does_not_fire_on_stop_as_substring():
+async def test_l1_does_not_fire_on_stop_as_substring():
     """'I can't stop thinking' must not trigger L1 — 'stop' is a substring, not a standalone intent."""
     state = make_state(
         message_en="I can't stop thinking about what happened, it keeps replaying in my mind",
@@ -859,13 +859,13 @@ def test_l1_does_not_fire_on_stop_as_substring():
         engagement=6,
         clinical_flags=[],
     )
-    result = skill_executor_node(state)
+    result = await skill_executor_node(state)
     assert result.get("escalation_triggered") is None, \
         "Substring 'stop' in 'can\'t stop thinking' must not trigger L1 exit"
     assert result["active_skill_id"] == "cbt_thought_record", "Skill must remain active"
 
 
-def test_l1_does_not_fire_on_leave_as_substring():
+async def test_l1_does_not_fire_on_leave_as_substring():
     """'I can't leave my house' must not trigger L1 via 'leave' substring."""
     state = make_state(
         message_en="I feel so anxious I can't leave my house anymore",
@@ -875,12 +875,12 @@ def test_l1_does_not_fire_on_leave_as_substring():
         engagement=5,
         clinical_flags=[],
     )
-    result = skill_executor_node(state)
+    result = await skill_executor_node(state)
     assert result.get("escalation_triggered") is None, \
         "Substring 'leave' in 'can\'t leave my house' must not trigger L1 exit"
 
 
-def test_l1_still_fires_on_explicit_stop_request():
+async def test_l1_still_fires_on_explicit_stop_request():
     """Explicit 'let's stop' must still trigger L1 exit after the whole-word fix."""
     state = make_state(
         message_en="Let's stop, I don't want to do this anymore.",
@@ -890,7 +890,7 @@ def test_l1_still_fires_on_explicit_stop_request():
         engagement=3,
         clinical_flags=[],
     )
-    result = skill_executor_node(state)
+    result = await skill_executor_node(state)
     assert result.get("escalation_triggered") is not None
     assert result["escalation_triggered"]["level"] == "L1"
 
@@ -1176,7 +1176,7 @@ async def test_khaleeji_indirect_ideation_yadkhalni_min_haldunya():
 
 # NEW-2: L1 false-positive regression tests — overly broad phrases removed
 
-def test_l1_does_not_fire_on_dont_want_to_burden_you():
+async def test_l1_does_not_fire_on_dont_want_to_burden_you():
     """'I don't want to burden you' must not trigger L1 exit after removing 'don't want to'."""
     state = make_state(
         message_en="I really don't want to burden you with all of this",
@@ -1186,13 +1186,13 @@ def test_l1_does_not_fire_on_dont_want_to_burden_you():
         engagement=6,
         clinical_flags=[],
     )
-    result = skill_executor_node(state)
+    result = await skill_executor_node(state)
     assert result.get("escalation_triggered") is None, \
         "'don't want to burden you' must not trigger L1 exit"
     assert result["active_skill_id"] == "cbt_thought_record"
 
 
-def test_l1_does_not_fire_on_want_to_stop_feeling_anxious():
+async def test_l1_does_not_fire_on_want_to_stop_feeling_anxious():
     """'I want to stop feeling anxious' must not trigger L1 exit."""
     state = make_state(
         message_en="I want to stop feeling so anxious all the time",
@@ -1202,13 +1202,13 @@ def test_l1_does_not_fire_on_want_to_stop_feeling_anxious():
         engagement=6,
         clinical_flags=[],
     )
-    result = skill_executor_node(state)
+    result = await skill_executor_node(state)
     assert result.get("escalation_triggered") is None, \
         "'want to stop feeling anxious' must not trigger L1 exit"
     assert result["active_skill_id"] == "cbt_thought_record"
 
 
-def test_l1_does_not_fire_on_please_stop_being_harsh():
+async def test_l1_does_not_fire_on_please_stop_being_harsh():
     """'please stop being so harsh on yourself' must not trigger L1 exit."""
     state = make_state(
         # 7 words — below completion_criteria threshold, so skill stays on identify_thought
@@ -1219,7 +1219,7 @@ def test_l1_does_not_fire_on_please_stop_being_harsh():
         engagement=7,
         clinical_flags=[],
     )
-    result = skill_executor_node(state)
+    result = await skill_executor_node(state)
     assert result.get("escalation_triggered") is None, \
         "'please stop being harsh on yourself' must not trigger L1 exit"
     assert result["active_skill_id"] == "cbt_thought_record"
@@ -1445,7 +1445,7 @@ async def test_output_gate_jailbreak_arabic_user_gets_translated_response():
     "Talk about something else",
     "Not doing this anymore",
 ])
-def test_l1_fires_on_natural_exit_phrases(message):
+async def test_l1_fires_on_natural_exit_phrases(message):
     """Natural exit phrases real users produce must trigger L1 exit."""
     state = make_state(
         message_en=message,
@@ -1455,7 +1455,7 @@ def test_l1_fires_on_natural_exit_phrases(message):
         engagement=3,
         clinical_flags=[],
     )
-    result = skill_executor_node(state)
+    result = await skill_executor_node(state)
     assert result.get("escalation_triggered") is not None, \
         f"Natural exit phrase '{message}' must trigger L1"
     assert result["escalation_triggered"]["level"] == "L1"
@@ -1474,7 +1474,7 @@ def test_l1_fires_on_natural_exit_phrases(message):
     "I keep wondering if we can stop fighting about the same things",
     "I really want to quit my job, it's exhausting me",
 ])
-def test_l1_does_not_fire_on_false_positive_messages(message):
+async def test_l1_does_not_fire_on_false_positive_messages(message):
     """Therapeutic phrases that contain exit-adjacent words must NOT trigger L1."""
     state = make_state(
         message_en=message,
@@ -1484,7 +1484,7 @@ def test_l1_does_not_fire_on_false_positive_messages(message):
         engagement=6,
         clinical_flags=[],
     )
-    result = skill_executor_node(state)
+    result = await skill_executor_node(state)
     assert result.get("escalation_triggered") is None, \
         f"False-positive phrase '{message}' must not trigger L1"
 

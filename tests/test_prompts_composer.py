@@ -598,6 +598,27 @@ def test_l4_block_uses_knowledge_passages_from_state():
     assert "Beck (1979)" in user_str or "cbt-001-en" in user_str
 
 
+# ── T3/T5: _FLAG_DESCRIPTIONS lifecycle (composer dead-code and regression) ──
+
+def test_T3_third_party_si_removed_from_flag_descriptions():
+    """T3: third_party_si was dead code — it never entered clinical_flags (detection
+    path is third_party_crisis, not clinical_flag). It must not appear in
+    _FLAG_DESCRIPTIONS after the Task 9 cleanup."""
+    from sage_poc.prompts.composer import _FLAG_DESCRIPTIONS
+    assert "third_party_si" not in _FLAG_DESCRIPTIONS, (
+        "third_party_si must be removed from _FLAG_DESCRIPTIONS — it is never a clinical_flag"
+    )
+
+
+def test_T5_escalating_distress_still_in_flag_descriptions():
+    """T5: escalating_distress IS a live signal (computed this turn, injected via extra[]).
+    It must remain in _FLAG_DESCRIPTIONS so the L5 prompt layer fires correctly."""
+    from sage_poc.prompts.composer import _FLAG_DESCRIPTIONS
+    assert "escalating_distress" in _FLAG_DESCRIPTIONS, (
+        "escalating_distress must remain in _FLAG_DESCRIPTIONS — it is still a live current-turn signal"
+    )
+
+
 def test_l4_block_injects_abstain_instruction_when_no_passages():
     """When knowledge_abstain is True, L4 injects 'do not fabricate' instruction."""
     from sage_poc.prompts.composer import compose_prompt
