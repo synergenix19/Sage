@@ -33,3 +33,16 @@ async def test_extract_returns_none_on_bad_json():
     with patch("sage_poc.memory.profile_extractor.resilient_invoke", return_value="not json"):
         result = await extract_session_profile(SAMPLE_HISTORY, llm=AsyncMock())
     assert result is None
+
+
+def test_extraction_system_does_not_say_mental_health():
+    """_EXTRACTION_SYSTEM must not frame Sage as a 'mental health' tool.
+    Internal framing consistency: matches the public 'wellbeing' identity.
+    """
+    from sage_poc.memory.profile_extractor import _EXTRACTION_SYSTEM
+    assert "mental health" not in _EXTRACTION_SYSTEM.lower(), (
+        "_EXTRACTION_SYSTEM must say 'wellbeing support conversation', not 'mental health support conversation'"
+    )
+    assert "wellbeing" in _EXTRACTION_SYSTEM.lower(), (
+        "_EXTRACTION_SYSTEM should reference 'wellbeing support conversation'"
+    )

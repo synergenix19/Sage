@@ -9,7 +9,7 @@ from sage_poc.resilience import resilient_invoke
 _log = logging.getLogger(__name__)
 
 _EXTRACTION_SYSTEM = (
-    "You are extracting structured facts from a mental health support conversation "
+    "You are extracting structured facts from a wellbeing support conversation "
     "to update a cross-session user profile. Extract only what was explicitly stated. "
     "Return valid JSON with these exact keys:\n"
     "  effective_techniques: list of technique names the user said helped (strings)\n"
