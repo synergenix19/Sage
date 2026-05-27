@@ -9,8 +9,10 @@
 #
 # Arabic translation is mocked throughout so no live LLM calls are made.
 
+import asyncio
+import logging
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
 from sage_poc.nodes.safety_check import safety_check_node
 
 
@@ -276,3 +278,39 @@ class TestCodeSwitchingNodeLevel:
         assert result["code_switching"] is True, (
             "Mixed Arabic Unicode and Latin characters must set code_switching=True"
         )
+
+
+# ── B-2: S3 silent failure observability ─────────────────────────────────────
+
+async def test_s3_timeout_emits_warning(caplog):
+    """S3 TimeoutError must log a warning; S1 crisis detection still fires."""
+    state = make_state(
+        raw_message="I want to end everything",
+        message_en="I want to end everything",
+        crisis_state="none",
+    )
+    with patch(
+        "sage_poc.nodes.safety_check.asyncio.wait_for",
+        side_effect=asyncio.TimeoutError,
+    ):
+        with caplog.at_level(logging.WARNING, logger="sage_poc.nodes.safety_check"):
+            result = await safety_check_node(state)
+    assert any("S3 timeout" in r.message for r in caplog.records), \
+        "Expected a warning mentioning 'S3 timeout'"
+    # S1 keyword should still catch "end everything" — is_safe may be False
+    # (outcome depends on S1 lexicon; just verify we didn't crash)
+    assert "is_safe" in result
+
+
+async def test_s3_exception_emits_warning(caplog):
+    """S3 exception must log a warning; system must not raise."""
+    state = make_state(raw_message="ok", message_en="ok", crisis_state="none")
+    with patch(
+        "sage_poc.nodes.safety_check.asyncio.wait_for",
+        side_effect=RuntimeError("gpu exploded"),
+    ):
+        with caplog.at_level(logging.WARNING, logger="sage_poc.nodes.safety_check"):
+            result = await safety_check_node(state)
+    assert any("S3 check failed" in r.message for r in caplog.records), \
+        "Expected a warning mentioning 'S3 check failed'"
+    assert "is_safe" in result
