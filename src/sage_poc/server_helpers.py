@@ -59,6 +59,9 @@ def _build_state(req: _RequestLike) -> dict:
         "prompt_layers":      [],
         "token_usage":        {},
         "cultural_output_violations": [],
+        # Turn-level fields reset each turn (Category B/C signals)
+        "new_clinical_flags_turn": [],
+        "resistance_score":        None,
         # Set from request — needed by tools and summary persistence
         "session_id": req.session_id,
         "user_id":    req.user_id,

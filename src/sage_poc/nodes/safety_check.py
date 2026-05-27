@@ -140,9 +140,14 @@ async def safety_check_node(state: SageState) -> dict:
     engagement_ok = state.get("engagement", 5) >= 5
 
     # Carry forward clinical flags from prior turns (set union — flags don't reset).
+    # Also seed from cross-session persisted flags stored in therapeutic_profile.
     # third_party_flags are intentionally excluded: they signal concern about someone else,
     # not the current user's own clinical state. They flow through third_party_crisis instead.
-    persisted_non_computed = [f for f in state.get("clinical_flags", []) if f != "escalating_distress"]
+    profile_persisted = (state.get("therapeutic_profile") or {}).get("persisted_clinical_flags") or []
+    persisted_non_computed = list(set(
+        [f for f in state.get("clinical_flags", []) if f != "escalating_distress"]
+        + profile_persisted
+    ))
     distress_signal = escalating or engagement_declining
     extra = ["escalating_distress"] if distress_signal and not (skill_active and engagement_ok) else []
     all_clinical = list(set(new_clinical_flags + extra + persisted_non_computed))

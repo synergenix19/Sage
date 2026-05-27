@@ -22,7 +22,7 @@ class PostgresMemoryRepository(MemoryRepository):
                        communication_style, cultural_preferences,
                        mood_trajectory, total_skills_completed,
                        session_count, last_extraction_turn, last_updated_at,
-                       observations
+                       observations, persisted_clinical_flags
                 FROM public.user_therapeutic_profiles
                 WHERE user_id = $1
                 """,
@@ -32,9 +32,11 @@ class PostgresMemoryRepository(MemoryRepository):
                 return None
             d = dict(row)
             # asyncpg returns jsonb as str — parse if needed
-            for key in ("cultural_preferences", "mood_trajectory", "observations"):
+            for key in ("cultural_preferences", "mood_trajectory", "observations", "persisted_clinical_flags"):
                 if isinstance(d.get(key), str):
                     d[key] = json.loads(d[key])
+            if d.get("persisted_clinical_flags") is None:
+                d["persisted_clinical_flags"] = []
             return d
 
     async def upsert_therapeutic_profile(
