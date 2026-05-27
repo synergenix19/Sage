@@ -16,6 +16,7 @@ Chunk IDs: "{article_id}-{language}-{chunk_index:03d}" for multi-chunk articles.
           "{article_id}-{language}" for single-chunk (crisis) articles.
 """
 from __future__ import annotations
+import json
 import re
 import logging
 from typing import Any
@@ -114,7 +115,7 @@ async def ingest_article(article: dict[str, Any], pool) -> int:
                 is_crisis,
                 article.get("title", ""),
                 article.get("source_url", ""),
-                citation_meta,
+                json.dumps(citation_meta),
             )
             inserted += 1
 
