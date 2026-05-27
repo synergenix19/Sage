@@ -1,7 +1,7 @@
 {
   "name": "Sage by CDA",
   "short_name": "Sage",
-  "description": "Your AI wellbeing companion — مرافقك الذكي للصحة النفسية",
+  "description": "Your AI wellbeing companion — مرافقك الذكي للعافية",
   "start_url": "/chat",
   "scope": "/",
   "display": "standalone",
