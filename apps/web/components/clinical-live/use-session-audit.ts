@@ -25,8 +25,8 @@ export function useSessionAudit(lockedSessionId: string | null) {
         if (data?.length) {
           setRows(data as AuditRow[])
           setActiveSessionId(lockedSessionId)
-          setStatus('locked')
         }
+        setStatus('locked')
       } else {
         const { data } = await supabase
           .from('session_audit')
