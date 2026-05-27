@@ -154,7 +154,6 @@ _FLAG_DESCRIPTIONS: dict[str, str] = {
     "trauma_indicator": "This user has indicated trauma history. Be sensitive and do not probe for details.",
     "eating_concern": "This user has disclosed eating concerns. Do not comment on food, weight, or body image.",
     "medication_mention": "This user has mentioned medication. Do not advise on dosing or stopping medication.",
-    "third_party_si": "This user has expressed concern about someone else's safety. Take this seriously.",
     "escalating_distress": "This user's distress has been elevated across multiple turns.",
 }
 
