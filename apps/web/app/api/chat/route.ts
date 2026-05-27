@@ -1,9 +1,7 @@
 // apps/web/app/api/chat/route.ts
-import { generateText } from 'ai'
-import { createOpenAI } from '@ai-sdk/openai'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { CRISIS_SIGNAL, SERVER_ERROR_SIGNAL } from '@/lib/constants'
-import type { Intent } from '@cdai/types'
 import { z } from 'zod'
 
 const MessageSchema = z.object({
@@ -17,22 +15,7 @@ const ChatRequestSchema = z.object({
   userId: z.string().optional(),
 })
 
-const openrouter = createOpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY!,
-})
-
-const CLASSIFIER_MODEL = 'anthropic/claude-haiku-4-5-20251001'
 const SAGE_API_URL = process.env.SAGE_API_URL ?? 'http://localhost:8000'
-
-async function classifyIntent(message: string): Promise<Intent> {
-  const { text } = await generateText({
-    model: openrouter(CLASSIFIER_MODEL),
-    prompt: `Classify this message as "knowledge" (asking for information or resources) or "emotional" (seeking support, sharing feelings). Reply with exactly one word.\n\nMessage: "${message}"`,
-    maxOutputTokens: 5,
-  })
-  return text.trim().toLowerCase().startsWith('k') ? 'knowledge' : 'emotional'
-}
 
 function parseJsonHeader<T>(raw: string | null, fallback: T): T {
   if (!raw) return fallback
@@ -43,10 +26,7 @@ export async function POST(req: Request) {
   const parsed = ChatRequestSchema.safeParse(await req.json().catch(() => null))
   if (!parsed.success) return new Response('Bad Request', { status: 400 })
 
-  const {
-    messages,
-    sessionId,
-  } = parsed.data
+  const { messages, sessionId } = parsed.data
 
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -61,14 +41,6 @@ export async function POST(req: Request) {
   if (!ownedSession) return new Response('Forbidden', { status: 403 })
 
   const lastMessage = messages[messages.length - 1]?.content ?? ''
-  const intent = await classifyIntent(lastMessage).catch(() => 'emotional' as Intent)
-
-  await supabase.from('messages').insert({
-    session_id: sessionId,
-    role: 'user',
-    content: lastMessage,
-    intent,
-  })
 
   const sageStart = Date.now()
   let sageRes: Response
@@ -85,6 +57,11 @@ export async function POST(req: Request) {
         user_id:    user.id,
       }),
     })
+  // NOTE: On sage-poc failure (503/502/SERVER_ERROR_SIGNAL), neither the user message nor
+  // the AI message is persisted. This is intentional — the design requires a single
+  // post-response write so that intent (from X-Sage-Intent header) is always present on
+  // both rows. Orphaned user messages without a corresponding AI response and intent label
+  // would corrupt the audit trail. The client must handle retries.
   } catch (err) {
     console.error('[chat/route] sage backend unreachable:', err)
     return new Response(
@@ -100,7 +77,11 @@ export async function POST(req: Request) {
     )
   }
 
-  // Existing metadata headers
+  // Intent — authoritative source is Node 2 (intent_route) inside sage-poc graph.
+  // Primary intent: 8-way v7 classification. Secondary: blended intent when present.
+  const intentClassification          = sageRes.headers.get('X-Sage-Intent') || null
+  const secondaryIntentClassification = sageRes.headers.get('X-Sage-Secondary-Intent') || null
+
   const sageModel    = sageRes.headers.get('X-Sage-Model')
   const skillId      = sageRes.headers.get('X-Sage-Skill-Id') || null
   const stepId       = sageRes.headers.get('X-Sage-Step-Id') || null
@@ -113,21 +94,17 @@ export async function POST(req: Request) {
   const intensityStr       = sageRes.headers.get('X-Sage-Emotional-Intensity')
   const emotionalIntensity = intensityStr ? (parseInt(intensityStr, 10) || null) : null
 
-  // New trace headers (Priority 1)
-  const intentClassification = sageRes.headers.get('X-Sage-Intent') || null
-  const semanticScoreStr     = sageRes.headers.get('X-Sage-Semantic-Score')
-  const semanticScore        = (() => {
+  const semanticScoreStr = sageRes.headers.get('X-Sage-Semantic-Score')
+  const semanticScore    = (() => {
     if (!semanticScoreStr) return null
     const n = parseFloat(semanticScoreStr)
     return Number.isNaN(n) ? null : n
   })()
-  const promptLayers         = parseJsonHeader<string[] | null>(sageRes.headers.get('X-Sage-Prompt-Layers'), null)
-  const tokenUsage           = parseJsonHeader<object | null>(sageRes.headers.get('X-Sage-Token-Usage'), null)
-  const turnNumberStr        = sageRes.headers.get('X-Sage-Turn-Number')
-  const turnNumber           = turnNumberStr ? (parseInt(turnNumberStr, 10) || null) : null
+  const promptLayers  = parseJsonHeader<string[] | null>(sageRes.headers.get('X-Sage-Prompt-Layers'), null)
+  const tokenUsage    = parseJsonHeader<object | null>(sageRes.headers.get('X-Sage-Token-Usage'), null)
+  const turnNumberStr = sageRes.headers.get('X-Sage-Turn-Number')
+  const turnNumber    = turnNumberStr ? (parseInt(turnNumberStr, 10) || null) : null
 
-  // Deterministic AI message UUID: generated here so it can be used in both
-  // the Supabase insert and the response header for the feedback flow.
   const aiMessageId = crypto.randomUUID()
 
   const [clientStream, persistStream] = sageRes.body.tee()
@@ -147,36 +124,52 @@ export async function POST(req: Request) {
 
       if (accumulated.includes(SERVER_ERROR_SIGNAL)) {
         console.error('[chat/persist] server error sentinel received, skipping persist')
-      } else {
-        const isCrisis = accumulated.startsWith(CRISIS_SIGNAL)
-        const content = isCrisis
-          ? accumulated.slice(CRISIS_SIGNAL.length).trimStart()
-          : accumulated
+        return
+      }
 
-        await supabase.from('messages').insert({
-          id:                    aiMessageId,
-          session_id:            sessionId,
-          role:                  isCrisis ? 'crisis' : 'ai',
+      const isCrisis = accumulated.startsWith(CRISIS_SIGNAL)
+      const content  = isCrisis
+        ? accumulated.slice(CRISIS_SIGNAL.length).trimStart()
+        : accumulated
+
+      // Single post-response write: user message + AI message in one batch.
+      // Intent is authoritative from sage-poc (X-Sage-Intent / X-Sage-Secondary-Intent).
+      // Both rows carry the same intent values for query convenience (no join needed to
+      // filter by intent). The AI message row is the authoritative source — it reflects
+      // the intent the graph actually processed. See migration 008 for full design rationale.
+      // Service-role client bypasses RLS: the background persist block runs
+      // outside the Next.js request context, so the user JWT is no longer
+      // available for auth.uid(). Ownership was already validated above.
+      const { error: insertError } = await createAdminClient().from('messages').insert([
+        {
+          id:                              crypto.randomUUID(),
+          session_id:                      sessionId,
+          role:                            'user',
+          content:                         lastMessage,
+          intent_classification:           intentClassification,
+          secondary_intent_classification: secondaryIntentClassification,
+        },
+        {
+          id:                              aiMessageId,
+          session_id:                      sessionId,
+          role:                            isCrisis ? 'crisis' : 'ai',
           content,
-          intent,
-          model:                 sageModel,
-          latency_ms:            latencyMs,
-          node_path:             sageNodePath,
-          skill_id:              skillId,
-          step_id:               stepId,
-          gate_path:             gatePath,
-          crisis_flags:          crisisFlags,
-          clinical_flags:        sageClinicalFlags,
-          emotional_intensity:   emotionalIntensity,
-          // New trace fields
-          intent_classification: intentClassification,
-          semantic_score:        semanticScore,
-          prompt_layers:         promptLayers,
-          token_usage:           tokenUsage,
-          turn_number:           turnNumber,
-          // Timestamped clinical flag detail for clinician timeline and
-          // cross-session aggregation (Priority 3). Only written when flags present.
-          clinical_flags_detail: sageClinicalFlags?.length
+          model:                           sageModel,
+          latency_ms:                      latencyMs,
+          node_path:                       sageNodePath,
+          skill_id:                        skillId,
+          step_id:                         stepId,
+          gate_path:                       gatePath,
+          crisis_flags:                    crisisFlags,
+          clinical_flags:                  sageClinicalFlags,
+          emotional_intensity:             emotionalIntensity,
+          intent_classification:           intentClassification,
+          secondary_intent_classification: secondaryIntentClassification,
+          semantic_score:                  semanticScore,
+          prompt_layers:                   promptLayers,
+          token_usage:                     tokenUsage,
+          turn_number:                     turnNumber,
+          clinical_flags_detail:           sageClinicalFlags?.length
             ? Object.fromEntries(
                 sageClinicalFlags.map(flag => [
                   flag,
@@ -184,27 +177,21 @@ export async function POST(req: Request) {
                 ])
               )
             : null,
-        })
+        },
+      ])
+      if (insertError) {
+        console.error('[chat/persist] message insert failed:', insertError)
       }
 
-      const { data: session } = await supabase
-        .from('chat_sessions')
-        .select('name')
-        .eq('id', sessionId)
-        .single()
+      void fetch(`${SAGE_API_URL}/name-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(process.env.SAGE_API_KEY ? { 'X-Sage-Api-Key': process.env.SAGE_API_KEY } : {}),
+        },
+        body: JSON.stringify({ session_id: sessionId, user_id: user.id, message: lastMessage }),
+      }).catch((err) => console.warn('[chat/route] name-session error:', err))
 
-      if (session && !session.name) {
-        const { text: sessionName } = await generateText({
-          model: openrouter(CLASSIFIER_MODEL),
-          prompt: `Give this conversation a short title (3-5 words, no quotes):\n\nUser: "${lastMessage}"`,
-          maxOutputTokens: 15,
-        }).catch(() => ({ text: lastMessage.slice(0, 30) }))
-        await supabase.from('chat_sessions')
-          .update({ name: sessionName.trim(), updated_at: new Date().toISOString() })
-          .eq('id', sessionId)
-      }
-      // Trigger incremental profile extraction — fires every request but
-      // sage-poc's /extract-profile skips if fewer than 5 new turns since last extraction.
       void fetch(`${SAGE_API_URL}/extract-profile`, {
         method: 'POST',
         headers: {
@@ -218,9 +205,6 @@ export async function POST(req: Request) {
     }
   })()
 
-  // Diagnostic headers forwarded to the browser — controlled by SAGE_EXPOSE_DIAGNOSTIC_HEADERS.
-  // Off by default in production. Set to "true" in .env.local or test environment.
-  // NOTE: x-sage-crisis-flags contains clinical flag identifiers — review before enabling in prod.
   const SAGE_HEADERS_WHITELIST = [
     'x-sage-node-path',
     'x-sage-gate-path',

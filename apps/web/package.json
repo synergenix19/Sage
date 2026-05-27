@@ -10,7 +10,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^3.0.64",
     "@cdai/tenant": "^0.0.1",
     "@cdai/theme": "^0.0.1",
     "@cdai/types": "^0.0.1",
@@ -18,7 +17,6 @@
     "@hookform/resolvers": "^5.2.2",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.0",
-    "ai": "^6.0.185",
     "next": "^15.5.18",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
