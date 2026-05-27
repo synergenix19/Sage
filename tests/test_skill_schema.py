@@ -39,8 +39,8 @@ def test_post_crisis_check_in_skill_loads_and_validates():
     assert skill.steps[1].step_id == "bridge_or_close"
     assert len(skill.target_presentations) >= 1  # populated in 7-pass audit (was empty [])
     assert skill.semantic_description != ""
-    assert len(skill.step_policy) == 5  # M-7: upgraded from 1 to 5 rules
-    assert skill.step_policy[0].condition.signal == "emotional_intensity"
+    assert len(skill.step_policy) == 7  # upgraded to 7 rules post M-7 audit
+    assert skill.step_policy[0].condition.signal == "re_escalation_detected"  # highest priority: NEW_CRISIS
 
 
 def test_skill_step_has_technique_description_field():

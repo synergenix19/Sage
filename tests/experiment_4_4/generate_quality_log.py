@@ -41,6 +41,8 @@ from sage_poc.skills.schema import load_skill
 from tests.experiment_4_4.conftest import make_executor_state
 from tests.experiment_4_4.scenarios import ALL_SCENARIOS
 
+# Default cooperative follow-up used when a scenario doesn't specify a recurring message.
+# Only appropriate for happy-path scenarios where the user is engaged and progressing.
 _LONG_MSG = (
     "I have been thinking carefully about what you asked and I feel like I am "
     "making some progress with this exercise today."
@@ -82,6 +84,11 @@ async def _run_scenario(
     state = _build_initial_state(scenario)
     skill = load_skill(skill_id)
     entries: list[dict] = []
+    conversation_history: list[dict] = []
+
+    # Recurring message used for turns 2+. Rule scenarios supply their own to keep
+    # the conversation context consistent with the state signals the rule relies on.
+    recurring_message = scenario.get("_recurring_message", _LONG_MSG)
 
     resistance_score = scenario.get("_requires_resistance_score")
 
@@ -109,12 +116,14 @@ async def _run_scenario(
         # ── Node 7: freeflow_respond ──────────────────────────────────────────
         freeflow_state = {
             **state,
-            "step_instruction": step_instruction,
-            "executed_step_id": exec_result.get("executed_step_id"),
-            "active_step_id":   exec_result.get("active_step_id"),
-            "active_skill_id":  exec_result.get("active_skill_id"),
+            "step_instruction":     step_instruction,
+            "executed_step_id":     exec_result.get("executed_step_id"),
+            "active_step_id":       exec_result.get("active_step_id"),
+            "active_skill_id":      exec_result.get("active_skill_id"),
             "escalation_triggered": exec_result.get("escalation_triggered"),
-            "rule_fired":       exec_result.get("rule_fired"),
+            "rule_fired":           exec_result.get("rule_fired"),
+            # L1 history: accumulated from prior turns so the LLM sees realistic context.
+            "conversation_history": list(conversation_history),
         }
         if dry_run:
             llm_response = "[DRY RUN — LLM not called]"
@@ -148,11 +157,18 @@ async def _run_scenario(
         entries.append(entry)
 
         # ── Advance state for next turn ───────────────────────────────────────
+        # Accumulate history so L1 reflects prior conversation context.
+        conversation_history.append({"role": "user",      "content": state["message_en"]})
+        conversation_history.append({"role": "assistant", "content": llm_response or ""})
+
         state["active_skill_id"] = exec_result.get("active_skill_id")
         state["active_step_id"]  = exec_result.get("active_step_id", state["active_step_id"])
         state["resistance_history"] = list(exec_result.get("resistance_history") or state["resistance_history"])
-        state["message_en"] = _LONG_MSG  # cooperative user every turn
-        state["raw_message"] = _LONG_MSG
+        state["conversation_history"] = list(conversation_history)
+        # Use the scenario's recurring message (matches state signals) rather than
+        # the generic cooperative _LONG_MSG, which contradicts rule instructions.
+        state["message_en"] = recurring_message
+        state["raw_message"] = recurring_message
         state["path"] = []
         state["new_clinical_flags_turn"] = []  # flags only new once
 

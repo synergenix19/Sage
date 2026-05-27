@@ -51,6 +51,17 @@
   "step_policy": [
     {
       "condition": {
+        "signal": "re_escalation_detected",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_to_crisis_protocol",
+      "instruction": "New crisis signals have appeared during the post-crisis check-in. Exit the check-in immediately and re-enter the crisis protocol. Do not attempt to continue the check-in. Treat this as a new acute crisis.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": {
         "signal": "emotional_intensity",
         "operator": "<=",
         "value": 4,
@@ -115,17 +126,6 @@
       },
       "action": "exit_warm_closing",
       "instruction": "User wants to stop the check-in. Exit with warmth. Let them know help is always available and they can come back whenever they are ready. A post-crisis user stopping a check-in may be overwhelmed, not disengaged. Do not interpret this as a sign they are fine.",
-      "next_step_id": "exit"
-    },
-    {
-      "condition": {
-        "signal": "re_escalation_detected",
-        "operator": "==",
-        "value": true,
-        "step": "ANY"
-      },
-      "action": "exit_to_crisis_protocol",
-      "instruction": "New crisis signals have appeared during the post-crisis check-in. Exit the check-in immediately and re-enter the crisis protocol. Do not attempt to continue the check-in. Treat this as a new acute crisis.",
       "next_step_id": "exit"
     }
   ],

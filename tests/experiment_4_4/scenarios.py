@@ -95,7 +95,10 @@ S08_RULE1_EMOTIONAL_INTENSITY = {
     "initial_state_overrides": {
         "emotional_intensity": 9,
         "engagement": 7,
+        "message_en": "I don't know... everything is my fault, it always has been and always will be.",
     },
+    # Rule fires every turn (intensity stays high) — use a persistently distressed message.
+    "_recurring_message": "I just keep thinking about it. I can't stop. It all feels too much.",
     "kpi_targets": {"completion": False, "rule_id": "validate_only"},
 }
 
@@ -108,7 +111,9 @@ S09_RULE2_RESISTANCE_FOR_TURNS = {
         "resistance_history": [7, 8],   # 2 prior turns above threshold
         "emotional_intensity": 4,
         "engagement": 5,
+        "message_en": "I don't really see the point in this. I've tried this kind of thing before and it doesn't help.",
     },
+    "_recurring_message": "I guess... but honestly I don't think anything is going to change for me.",
     # resistance_score must be >= 7 for the rule to fire; provided via fixture
     "kpi_targets": {"completion": False, "rule_id": "offer_skill_switch_or_break"},
     "_requires_resistance_score": 8,
@@ -123,7 +128,9 @@ S10_RULE3_ENGAGEMENT_FOR_TURNS = {
         "engagement_trajectory": [2, 2],    # 2 prior turns both < 3
         "engagement": 2,                    # current turn also < 3
         "emotional_intensity": 4,
+        "message_en": "yeah",
     },
+    "_recurring_message": "ok",
     "kpi_targets": {"completion": False, "rule_id": "check_in_micro"},
 }
 
@@ -157,6 +164,8 @@ S12_RULE5_PRIOR_EXPOSURE = {
         },
         "emotional_intensity": 4,
         "engagement": 7,
+        # User is returning to MI ruler — they know the exercise. Skip the scale explanation.
+        "message_en": "I've been thinking about exercising more. I used to go every morning and I want to get back to it.",
     },
     "kpi_targets": {"completion": False, "rule_id": "skip_psychoeducation"},
 }
@@ -250,7 +259,10 @@ S19_PRIOR_EXPOSURE_ENRICHED = {
                 "mi_readiness_ruler",
             ],
         },
+        # Returning user — they know the exercise, have a specific change in mind.
+        "message_en": "I've been thinking about cutting down on my phone use before bed. I want to sleep better.",
     },
+    "_recurring_message": "Maybe a 7 out of 10 for importance. I really do want this.",
     "kpi_targets": {"completion": False, "rule_id": "skip_psychoeducation"},
 }
 
@@ -263,7 +275,9 @@ S20_ENGAGEMENT_TRAJECTORY_ENRICHED = {
         "engagement_trajectory": [2, 2],
         "engagement": 2,
         "emotional_intensity": 4,
+        "message_en": "ok",
     },
+    "_recurring_message": "yeah",
     "kpi_targets": {"completion": False, "rule_id": "check_in_micro"},
 }
 

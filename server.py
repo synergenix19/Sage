@@ -135,6 +135,7 @@ async def chat(
         raise HTTPException(status_code=400, detail="Last message must be from the user")
 
     state = _build_state(req)
+    graph = app.state._graph
 
     # Session-resume staleness: park skill context if the checkpoint is too old.
     # Runs before ainvoke so nodes see a clean active_skill_id and stale_skill_id is set.
@@ -157,8 +158,6 @@ async def chat(
             state["therapeutic_profile"] = await repo.get_therapeutic_profile(req.user_id)
         except Exception as exc:
             _log.warning("[sage/chat] therapeutic profile load failed: %s", exc)
-
-    graph = app.state._graph
     try:
         result = await graph.ainvoke(
             state,

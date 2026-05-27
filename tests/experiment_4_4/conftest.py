@@ -52,6 +52,7 @@ def make_executor_state(
     clinical_flags: list | None = None,
     therapeutic_profile: dict | None = None,
     crisis_state: str = "none",
+    conversation_history: list | None = None,
     **kwargs,
 ) -> dict:
     """Build a minimal SageState dict for skill_executor_node tests."""
@@ -69,6 +70,7 @@ def make_executor_state(
         "clinical_flags":          list(clinical_flags or []),
         "therapeutic_profile":     therapeutic_profile or {},
         "crisis_state":            crisis_state,
+        "conversation_history":    list(conversation_history or []),
         "s7_result":               None,
         "path":                    [],
         **kwargs,
