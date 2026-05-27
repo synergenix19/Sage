@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from pydantic import BaseModel, Field, field_validator
+from pydantic import AliasChoices, BaseModel, Field, field_validator
 
 SKILLS_DIR = Path(__file__).parent
 
@@ -10,7 +10,11 @@ class StepPolicyCondition(BaseModel):
     operator: str     # ">" | "<" | ">=" | "<=" | "=="
     value: int | float
     step: str         # "ANY" or a specific step_id
-    for_turns: int | None = None  # consecutive turns threshold (optional)
+    # Accepts both "for_turns" (canonical) and legacy "turns" field name used in skill JSONs.
+    for_turns: int | None = Field(
+        default=None,
+        validation_alias=AliasChoices("for_turns", "turns"),
+    )
 
 
 class StepPolicyRule(BaseModel):
