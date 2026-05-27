@@ -6,6 +6,7 @@ from pathlib import Path
 
 from sage_poc.state import SageState
 from sage_poc.skills.schema import Skill, load_skill
+from sage_poc.nodes.criteria_eval import evaluate_completion_criteria
 
 _log = logging.getLogger(__name__)
 
@@ -21,6 +22,15 @@ _RESISTANCE_PROMPT_PATH = (
     Path(__file__).parent.parent
     / "rules" / "data" / "resistance_scoring" / "resistance_prompt.json"
 )
+
+# Skills where word-count heuristic is clinically insufficient — these require
+# LLM evaluation of completion_criteria after Phase 1 returns _criteria_blocked.
+_LLM_CRITERIA_SKILLS: frozenset[str] = frozenset({
+    "post_crisis_check_in",
+    "cbt_thought_record",
+    "behavioral_activation",
+    "assertive_communication",
+})
 
 # L1 escalation: user wants to stop the skill.
 # Bare single words ("stop", "quit", "leave") excluded: too many false positives in therapeutic
@@ -339,6 +349,36 @@ async def skill_executor_node(state: SageState) -> dict:
     p1_det_fired = p1_result.pop("_det_rule_fired", False)
 
     result = p1_result
+
+    # LLM criteria evaluation — only for the 4 target skills, only when Phase 1
+    # returned _criteria_blocked (word-count heuristic blocked advancement, no rule fired).
+    p1_criteria_blocked = result.pop("_criteria_blocked", False)
+    # Track whether the LLM confirmed criteria met, so resistance Phase 2 re-run can
+    # honour it (avoids the heuristic re-blocking an LLM-approved advance).
+    llm_criteria_met: bool | None = None
+    if p1_criteria_blocked and skill_id in _LLM_CRITERIA_SKILLS:
+        step_obj = next((s for s in skill.steps if s.step_id == step_id), None)
+        if step_obj and step_obj.completion_criteria:
+            llm_criteria_met = await evaluate_completion_criteria(
+                state["message_en"], step_obj.completion_criteria
+            )
+            if llm_criteria_met:
+                result = evaluate_step_policy(
+                    skill=skill,
+                    current_step_id=step_id,
+                    emotional_intensity=state["emotional_intensity"],
+                    engagement=state["engagement"],
+                    message_en=state["message_en"],
+                    resistance_history=resistance_history,
+                    resistance_score=None,
+                    re_escalation_detected=re_escalation_detected,
+                    engagement_trajectory=engagement_trajectory,
+                    prior_exposure=prior_exposure,
+                    criteria_met=True,
+                )
+                result.pop("_det_rule_fired", None)
+                result.pop("_criteria_blocked", None)
+
     if needs_resistance and not p1_det_fired:
         new_resistance_score = await _score_resistance_via_rules_service(state["message_en"])
         if new_resistance_score is not None:
@@ -353,8 +393,10 @@ async def skill_executor_node(state: SageState) -> dict:
                 re_escalation_detected=re_escalation_detected,
                 engagement_trajectory=engagement_trajectory,
                 prior_exposure=prior_exposure,
+                criteria_met=llm_criteria_met,
             )
             result.pop("_det_rule_fired", None)
+            result.pop("_criteria_blocked", None)
 
     if new_resistance_score is not None:
         resistance_history = (resistance_history + [new_resistance_score])[-3:]
