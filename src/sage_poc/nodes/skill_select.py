@@ -91,6 +91,16 @@ async def skill_select_node(state: SageState) -> dict:
             "path": state["path"] + ["skill_select"],
         }
 
+    # Info requests go directly to knowledge_retrieve — never activate a skill
+    if state.get("primary_intent") == "info_request":
+        return {
+            "active_skill_id": None,
+            "active_step_id": None,
+            "skill_match_method": None,
+            "semantic_score": None,
+            "path": state["path"] + ["skill_select"],
+        }
+
     message = state["message_en"].lower()
 
     # Tier 1: Keyword matching — synchronous, deterministic, fast

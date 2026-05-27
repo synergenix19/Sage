@@ -1,4 +1,5 @@
 from __future__ import annotations
+import json
 import logging
 from sage_poc.knowledge.models import KnowledgePassage, KnowledgeResult
 from sage_poc.knowledge.repository import KnowledgeRepository
@@ -97,7 +98,8 @@ class PostgresKnowledgeRepository(KnowledgeRepository):
         for row in rows:
             if row["rrf_score"] <= KNOWLEDGE_ABSTAIN_THRESHOLD:
                 continue
-            meta = row["citation_metadata"] or {}
+            raw_meta = row["citation_metadata"] or {}
+            meta = json.loads(raw_meta) if isinstance(raw_meta, str) else raw_meta
             passages.append(KnowledgePassage(
                 text=row["chunk_text"],
                 source_id=row["article_id"],
