@@ -254,4 +254,5 @@ async def output_gate_node(state: SageState) -> dict:
         "conversation_history": new_history,
         "conversation_summary": new_summary,
         "cultural_output_violations": cultural_output_violations,
+        "last_turn_at": datetime.now(timezone.utc).isoformat(),
     }

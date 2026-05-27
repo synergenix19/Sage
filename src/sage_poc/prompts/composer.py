@@ -417,6 +417,24 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
         )
         layers.append("post_crisis_context")
 
+    # Stale skill re-entry: prior skill was parked (session gap > 4h); active_skill_id is now None.
+    # Prompt the LLM to acknowledge the prior work naturally — let the user guide direction.
+    stale_skill_id = state.get("stale_skill_id")
+    if stale_skill_id:
+        try:
+            skill = load_skill(stale_skill_id)
+            skill_display = skill.skill_name
+        except Exception:
+            skill_display = stale_skill_id.replace("_", " ")
+        user_parts.append(
+            f"PARKED SKILL CONTEXT: The user was previously working through '{skill_display}' "
+            f"but is returning after an extended break. "
+            f"If their current message suggests they want to continue that work, gently acknowledge it "
+            f"and offer to pick up where they left off or explore what is on their mind today. "
+            f"If their message is about something unrelated or more urgent, focus on that first."
+        )
+        layers.append("stale_skill_context")
+
     # User-targeted prompt_injection actions (Rules Service, unchanged)
     user_injections = [
         a["content"] for a in injection_result.actions if a.get("target") == "user"

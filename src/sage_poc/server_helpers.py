@@ -3,7 +3,41 @@ Must not import FastAPI or any module that opens DB connections at import time.
 """
 from __future__ import annotations
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Optional
+
+# Skill context (active_skill_id/active_step_id) is in-session workflow position.
+# It should not survive a multi-hour gap — 4h covers long pauses, resets overnight.
+_SKILL_STALE_HOURS = 4
+
+
+def _stale_skill_overrides(checkpoint_values: dict) -> dict:
+    """Return state overrides to park a stale skill on session resume.
+
+    Reads last_turn_at and active_skill_id from the checkpoint snapshot.
+    If the gap exceeds _SKILL_STALE_HOURS, returns overrides that:
+      - clear active_skill_id / active_step_id (stop silent skill continuation)
+      - set stale_skill_id (let the composer inject a re-entry prompt)
+
+    Clinical flags and crisis_state are intentionally NOT cleared — they are
+    longitudinal signals (v7 §6.3), not in-session workflow position.
+    """
+    last_turn_at = checkpoint_values.get("last_turn_at")
+    active_skill_id = checkpoint_values.get("active_skill_id")
+    if not last_turn_at or not active_skill_id:
+        return {}
+    try:
+        last = datetime.fromisoformat(last_turn_at)
+        gap_hours = (datetime.now(timezone.utc) - last).total_seconds() / 3600
+        if gap_hours >= _SKILL_STALE_HOURS:
+            return {
+                "active_skill_id":  None,
+                "active_step_id":   None,
+                "stale_skill_id":   active_skill_id,
+            }
+    except (ValueError, TypeError):
+        pass
+    return {}
 
 
 @dataclass

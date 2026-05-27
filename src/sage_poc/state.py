@@ -61,3 +61,5 @@ class SageState(TypedDict):
     therapeutic_profile: Optional[dict]  # loaded at turn start; injected into L5
     user_id:    Optional[str]            # authenticated user UUID from request
     session_id: Optional[str]            # = thread_id; needed by tools and summary persistence
+    last_turn_at: Optional[str]          # UTC ISO timestamp of last completed turn (output_gate)
+    stale_skill_id: Optional[str]        # skill parked due to session gap; cleared after re-entry prompt fires

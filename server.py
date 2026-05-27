@@ -19,7 +19,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from sage_poc.graph import build_graph
 from sage_poc.config import RESPONDER_MODEL
-from sage_poc.server_helpers import _build_state
+from sage_poc.server_helpers import _build_state, _stale_skill_overrides
 from sage_poc.llm import get_classifier
 
 _log = logging.getLogger(__name__)
@@ -135,6 +135,18 @@ async def chat(
         raise HTTPException(status_code=400, detail="Last message must be from the user")
 
     state = _build_state(req)
+
+    # Session-resume staleness: park skill context if the checkpoint is too old.
+    # Runs before ainvoke so nodes see a clean active_skill_id and stale_skill_id is set.
+    # Non-fatal — any failure leaves state unchanged (skill context persists as-is).
+    try:
+        snap = await graph.checkpointer.aget({"configurable": {"thread_id": req.session_id}})
+        if snap:
+            checkpoint_values = snap.get("channel_values") or {}
+            overrides = _stale_skill_overrides(checkpoint_values)
+            state.update(overrides)
+    except Exception as exc:
+        _log.warning("[sage/chat] stale-skill check failed: %s", exc)
 
     # Load therapeutic profile for L5 injection — non-fatal if DB is unavailable
     state["therapeutic_profile"] = None

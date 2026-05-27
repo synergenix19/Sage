@@ -284,7 +284,8 @@ def test_session_full_lifecycle_e2e():
 
 # Sprint 1 — crisis path remediation tests
 
-def test_crisis_clears_active_skill_and_returns_arabic_when_ar_detected():
+@pytest.mark.asyncio
+async def test_crisis_clears_active_skill_and_returns_arabic_when_ar_detected():
     """P0-A + P0-B: Arabic crisis gets Arabic response; skill cleared."""
     import sys; sys.path.insert(0, 'src')
     from sage_poc.graph import _crisis_response_node
@@ -296,7 +297,7 @@ def test_crisis_clears_active_skill_and_returns_arabic_when_ar_detected():
         turn_count=2,
         conversation_history=[{"role": "user", "content": "hi"}, {"role": "assistant", "content": "hello"}],
     )
-    result = _crisis_response_node(state)
+    result = await _crisis_response_node(state)
     # P0-A: Arabic response — contains UAE crisis number
     assert "800" in result["response"] and "46342" in result["response"], \
         "Arabic user must receive Arabic crisis response with UAE crisis line number"
@@ -309,7 +310,8 @@ def test_crisis_clears_active_skill_and_returns_arabic_when_ar_detected():
     # P1-4: audit fields present (spot check)
     assert "crisis_response" in result["path"]
 
-def test_crisis_english_user_gets_english_response():
+@pytest.mark.asyncio
+async def test_crisis_english_user_gets_english_response():
     """English crisis user gets English response."""
     import sys; sys.path.insert(0, 'src')
     from sage_poc.graph import _crisis_response_node
@@ -319,7 +321,7 @@ def test_crisis_english_user_gets_english_response():
         turn_count=0,
         conversation_history=[],
     )
-    result = _crisis_response_node(state)
+    result = await _crisis_response_node(state)
     assert "800" in result["response"] and "46342" in result["response"], \
         "English crisis response must contain UAE crisis line number"
     assert result["active_skill_id"] is None

@@ -205,7 +205,7 @@ async def test_crisis_response_schedules_audit_write(monkeypatch):
         "message_en": "I want to end it",
     }
 
-    graph_mod._crisis_response_node(state)
+    await graph_mod._crisis_response_node(state)
     await asyncio.sleep(0)
     assert len(write_calls) == 1
     assert write_calls[0].get("session_id") == "crisis-sess"
