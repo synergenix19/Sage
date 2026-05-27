@@ -31,7 +31,7 @@ async def write_session_audit(state: SageState) -> None:
         "skill_match_method":     state.get("skill_match_method") or None,
         "knowledge_source":       state.get("knowledge_source") or None,
         "knowledge_passage_ids":  [p.get("source_id", "") for p in state.get("knowledge_passages") or []],
-        "knowledge_abstain":      state.get("knowledge_abstain"),
+        "knowledge_abstain":      bool(state.get("knowledge_abstain", False)),
         "crisis_state":           state.get("crisis_state"),
         "crisis_flags":           state.get("crisis_flags") or [],
         "clinical_flags":         state.get("clinical_flags") or [],
@@ -49,5 +49,7 @@ async def write_session_audit(state: SageState) -> None:
                 json=row,
             )
             r.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        logger.error("session_audit write failed: %s — body: %s", exc, exc.response.text)
     except Exception as exc:
         logger.error("session_audit write failed: %s", exc)

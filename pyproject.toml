@@ -33,6 +33,7 @@ dev = [
 [tool.pytest.ini_options]
 markers = [
     "slow: marks tests as slow (requires Ollama or real LLM)",
+    "integration: marks tests requiring live external services (SUPABASE_URL, SUPABASE_SERVICE_KEY)",
 ]
 pythonpath = ["."]
 asyncio_mode = "auto"
