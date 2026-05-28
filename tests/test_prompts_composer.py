@@ -97,6 +97,132 @@ def test_sanitize_assistant_turn_strips_triple_asterisk():
     assert _sanitize_assistant_turn("Hello ***world***") == "Hello world"
 
 
+# ---- cultural_overrides injection tests ----
+
+from unittest.mock import MagicMock, patch
+from sage_poc.prompts.composer import compose_prompt
+from sage_poc.skills.schema import Skill, SkillStep
+
+
+def _no_rules_mock():
+    r = MagicMock()
+    r.actions = []
+    return r
+
+
+def _make_composer_state(**overrides):
+    base = {
+        "raw_message": "I feel better now",
+        "detected_language": "en",
+        "message_en": "I feel better now",
+        "is_safe": True, "crisis_flags": [], "clinical_flags": [],
+        "crisis_state": "monitoring", "s7_result": None, "s7_method": None,
+        "distress_trajectory": [], "code_switching": False,
+        "primary_intent": "skill_continuation", "secondary_intent": None,
+        "intent_confidence": 0.9, "emotional_intensity": 4, "engagement": 6,
+        "active_skill_id": None, "active_step_id": None, "executed_step_id": None,
+        "step_instruction": None, "skill_match_method": None, "semantic_score": None,
+        "escalation_triggered": None, "gate_path": None, "rule_fired": None,
+        "stale_skill_id": None, "re_escalation_within_monitoring": None,
+        "response_en": None, "response": None, "path": [],
+        "turn_count": 1, "conversation_history": [],
+        "prompt_layers": [], "token_usage": {},
+        "knowledge_passages": None, "knowledge_abstain": False,
+        "knowledge_source": None,
+    }
+    return {**base, **overrides}
+
+
+def _make_skill_with_overrides(overrides: dict | None = None) -> Skill:
+    return Skill(
+        skill_id="post_crisis_check_in",
+        skill_name="Post-Crisis Check-In",
+        skill_type="check_in",
+        evidence_base="Clinical protocol",
+        target_presentations=["post_crisis"],
+        semantic_description="",
+        steps=[SkillStep(
+            step_id="s1",
+            goal="Confirm safety",
+            technique="Open check-in",
+            tone="warm",
+            examples=["How are you feeling right now?"],
+            contraindications="",
+            completion_criteria="",
+        )],
+        step_policy=[],
+        escalation_matrix={"L1": "Exit gracefully"},
+        cultural_overrides=overrides if overrides is not None else {
+            "islamic_relief_language": "Mirror Islamic relief expressions warmly.",
+            "shame_help_seeking": "Frame help-seeking as courage, not weakness.",
+        },
+    )
+
+
+def test_cultural_overrides_injected_into_system_when_skill_active():
+    skill = _make_skill_with_overrides()
+    state = _make_composer_state(active_skill_id="post_crisis_check_in")
+    with (
+        patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules_mock()),
+        patch("sage_poc.prompts.composer.load_skill", return_value=skill),
+    ):
+        system_str, _, layers = compose_prompt(state)
+
+    assert "SKILL-SPECIFIC CULTURAL CONTEXT" in system_str
+    assert "Mirror Islamic relief expressions warmly." in system_str
+    assert "Frame help-seeking as courage, not weakness." in system_str
+    assert "cultural_skill_overrides" in layers
+
+
+def test_cultural_overrides_not_injected_when_no_active_skill():
+    state = _make_composer_state(active_skill_id=None)
+    with patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules_mock()):
+        system_str, _, layers = compose_prompt(state)
+
+    assert "SKILL-SPECIFIC CULTURAL CONTEXT" not in system_str
+    assert "cultural_skill_overrides" not in layers
+
+
+def test_cultural_overrides_empty_dict_not_injected():
+    skill = _make_skill_with_overrides(overrides={})
+    state = _make_composer_state(active_skill_id="post_crisis_check_in")
+    with (
+        patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules_mock()),
+        patch("sage_poc.prompts.composer.load_skill", return_value=skill),
+    ):
+        system_str, _, layers = compose_prompt(state)
+
+    assert "SKILL-SPECIFIC CULTURAL CONTEXT" not in system_str
+    assert "cultural_skill_overrides" not in layers
+
+
+def test_cultural_overrides_load_failure_does_not_crash_composer():
+    state = _make_composer_state(active_skill_id="post_crisis_check_in")
+    with (
+        patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules_mock()),
+        patch("sage_poc.prompts.composer.load_skill", side_effect=FileNotFoundError("missing")),
+    ):
+        system_str, _, layers = compose_prompt(state)
+
+    assert "cultural_skill_overrides" not in layers
+
+
+def test_cultural_overrides_budget_exceeded_does_not_append_layer_tag():
+    # Build overrides that exceed 200 words
+    long_text = "This is a very long cultural override instruction. " * 30  # ~210 words
+    skill = _make_skill_with_overrides(overrides={"long_override": long_text})
+    state = _make_composer_state(active_skill_id="post_crisis_check_in")
+    with (
+        patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules_mock()),
+        patch("sage_poc.prompts.composer.load_skill", return_value=skill),
+    ):
+        system_str, _, layers = compose_prompt(state)
+
+    # Budget exceeded: block NOT injected, layer tag NOT added
+    assert "cultural_skill_overrides" not in layers
+    assert "SKILL-SPECIFIC CULTURAL CONTEXT" not in system_str
+
+
 def test_sanitize_assistant_turn_strips_emoji():
     from sage_poc.prompts.composer import _sanitize_assistant_turn
     result = _sanitize_assistant_turn("Hello \U0001f60a world")

@@ -293,6 +293,7 @@ def _build_l1_history_block(
 
 
 _CULTURAL_BUDGET_WORDS = 250
+_CULTURAL_OVERRIDE_BUDGET_WORDS = 200  # per-skill cultural override budget
 _TOTAL_WORD_BUDGET = 1100
 
 
@@ -342,6 +343,27 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
             break
     if cultural_actions:
         layers.append("cultural")
+
+    # Skill-specific cultural overrides — more specific than global rules; injected after them.
+    _active_for_overrides = state.get("active_skill_id")
+    if _active_for_overrides:
+        try:
+            _override_skill = load_skill(_active_for_overrides)
+            if _override_skill.cultural_overrides:
+                _override_lines = "\n".join(
+                    f"- {v}" for v in _override_skill.cultural_overrides.values()
+                )
+                _override_block = f"SKILL-SPECIFIC CULTURAL CONTEXT:\n{_override_lines}"
+                if count_words(_override_block) <= _CULTURAL_OVERRIDE_BUDGET_WORDS:
+                    system_parts.append(_override_block)
+                    layers.append("cultural_skill_overrides")  # only when actually injected
+                else:
+                    _log.warning(
+                        "cultural_overrides exceeds budget for %s", _active_for_overrides
+                    )
+                    # Block not injected; no layer tag — audit trail must reflect reality
+        except Exception as exc:
+            _log.warning("cultural_overrides load failed for %s: %s", _active_for_overrides, exc)
 
     session_flags: list[str] = []
     if state.get("crisis_state") in ("active", "monitoring", "resolved"):
