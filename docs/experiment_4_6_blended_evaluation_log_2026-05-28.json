@@ -1,6 +1,6 @@
 {
   "experiment": "4.6",
-  "generated_at": "2026-05-28T11:45:39.527119",
+  "generated_at": "2026-05-28T11:49:56.750989",
   "scenario_count": 20,
   "kpi_target": ">=80% successfully_blended (>=16/20 scenarios)",
   "reviewer_instructions": {
@@ -17,7 +17,7 @@
       "message": "I've been doing the thought record — also, is CBT evidence-based?",
       "expected_route": "skill_executor",
       "knowledge_expected": true,
-      "llm_response": "[ERROR: Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 573. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_3D5dhJJtkJxQnirPqUwpnJVKQ9k'}]",
+      "llm_response": "It's great that you're working on the thought record. I don't have specific information on whether CBT is evidence-based, but it is widely used and supported by many mental health professionals. How has the thought record been going for you?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -29,7 +29,7 @@
       "message": "I did my activity scheduling today — what exactly is behavioral activation?",
       "expected_route": "skill_executor",
       "knowledge_expected": true,
-      "llm_response": "[ERROR: Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 573. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_3D5dhJJtkJxQnirPqUwpnJVKQ9k'}]",
+      "llm_response": "I don't have specific information on behavioral activation, but I can share that it's generally about engaging in activities to improve your mood and energy. It makes sense that you're curious about the details AND that you've already started with activity scheduling. Both your interest and your action are valuable. How did the scheduling go for you today?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -41,7 +41,7 @@
       "message": "I rated my readiness a 6 — how does motivational interviewing work exactly?",
       "expected_route": "skill_executor",
       "knowledge_expected": true,
-      "llm_response": "[ERROR: Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 573. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_3D5dhJJtkJxQnirPqUwpnJVKQ9k'}]",
+      "llm_response": "I don't have specific information on motivational interviewing right now. But it's great that you're exploring your readiness. It makes sense to feel curious about this method, and it's okay to want more clarity. Both are important in your journey. Is there more about your readiness that you'd like to discuss?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -53,7 +53,7 @@
       "message": "I practiced the assertive script — is this type of communication therapy proven to work?",
       "expected_route": "skill_executor",
       "knowledge_expected": true,
-      "llm_response": "[ERROR: Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 573. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_3D5dhJJtkJxQnirPqUwpnJVKQ9k'}]",
+      "llm_response": "I don't have specific information on the proven effectiveness of assertive communication therapy. It's great that you're practicing the assertive script. It makes sense to be curious about its effectiveness, and it's also important to note that practicing new skills can be a valuable step in itself. Both your practice and curiosity are valid. How did it feel to use the script?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -65,7 +65,7 @@
       "message": "I keep blaming myself for everything — also, is CBT something that could help?",
       "expected_route": "skill_select",
       "knowledge_expected": true,
-      "llm_response": "[ERROR: Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 573. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_3D5dhJJtkJxQnirPqUwpnJVKQ9k'}]",
+      "llm_response": "Blaming yourself for everything can be tough to manage. It makes sense that you feel this way and that you're also looking for ways to help yourself. Both are important. I don't have specific information on how CBT might help with self-blame, but it's often used to address negative thinking patterns. What's been the hardest part of dealing with self-blame lately?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -77,7 +77,7 @@
       "message": "I've been having panic attacks every morning — what kind of therapy is recommended for anxiety?",
       "expected_route": "skill_select",
       "knowledge_expected": true,
-      "llm_response": "[ERROR: Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 573. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_3D5dhJJtkJxQnirPqUwpnJVKQ9k'}]",
+      "llm_response": "I'm sorry to hear about the panic attacks. That sounds really tough to deal with every morning. I don't have specific information on therapy recommendations for anxiety and panic attacks, but it makes sense that you're feeling overwhelmed by this AND that you're looking for ways to manage it. Both are real and valid. What's been the hardest part for you?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -89,7 +89,7 @@
       "message": "I've felt flat and joyless for weeks — is there evidence that exercises like this actually help depression?",
       "expected_route": "skill_select",
       "knowledge_expected": true,
-      "llm_response": "[ERROR: Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 573. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_3D5dhJJtkJxQnirPqUwpnJVKQ9k'}]",
+      "llm_response": "I don't have specific information on the evidence for exercises helping depression, but I know that it's common for people to feel both hesitant and hopeful about trying new things when they're feeling down. Both feelings are valid. What's been the hardest part of feeling this way for you?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -101,7 +101,7 @@
       "message": "I've been really struggling with intrusive thoughts lately — anyway, how are you doing?",
       "expected_route": "skill_select",
       "knowledge_expected": false,
-      "llm_response": "[ERROR: Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 573. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_3D5dhJJtkJxQnirPqUwpnJVKQ9k'}]",
+      "llm_response": "It sounds like those intrusive thoughts have been difficult to handle. It's understandable to feel overwhelmed by them and still be curious about how others are doing. Both feelings are real. What's been the hardest part of dealing with those thoughts?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -113,7 +113,7 @@
       "message": "Everything feels overwhelming and I can't seem to cope — oh, it's been a long week.",
       "expected_route": "skill_select",
       "knowledge_expected": false,
-      "llm_response": "[ERROR: Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 573. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_3D5dhJJtkJxQnirPqUwpnJVKQ9k'}]",
+      "llm_response": "It sounds like things have been really tough for you this week. It's understandable to feel overwhelmed when so much is happening. It's okay to feel this way and still be looking for a way to manage it. What's been the hardest part for you?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -125,7 +125,7 @@
       "message": "Hey, I'm having a decent day! By the way, what is CBT?",
       "expected_route": "freeflow",
       "knowledge_expected": true,
-      "llm_response": "[ERROR: Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 573. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_3D5dhJJtkJxQnirPqUwpnJVKQ9k'}]",
+      "llm_response": "I'm glad to hear you're having a decent day! I don't have specific information on CBT, but I can tell you it's a common therapy approach that focuses on changing unhelpful thinking and behavior patterns. It makes sense that you're curious about it and that you're having a pretty good day. Both are important.",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -137,7 +137,7 @@
       "message": "I'm feeling pretty good today — quick question, does therapy actually work for most people?",
       "expected_route": "freeflow",
       "knowledge_expected": true,
-      "llm_response": "[ERROR: Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 573. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_3D5dhJJtkJxQnirPqUwpnJVKQ9k'}]",
+      "llm_response": "I'm glad you're having a good day. About your question, I don't have specific information at hand on how therapy works for most people. However, many people do find it helpful. It's perfectly okay to feel curious about this while also feeling good today. Both feelings are valid.",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -149,7 +149,7 @@
       "message": "I've been curious — what is DBT and how does it differ from CBT? I'm feeling okay today.",
       "expected_route": "skill_select",
       "knowledge_expected": false,
-      "llm_response": "[ERROR: Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 573. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_3D5dhJJtkJxQnirPqUwpnJVKQ9k'}]",
+      "llm_response": "I don't have specific information on DBT and how it differs from CBT. Both are types of therapy, but they have different approaches and techniques. It's great that you're feeling okay today, and it's also natural to be curious about these topics. Both feelings are valid.",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -161,7 +161,7 @@
       "message": "What does mindfulness-based therapy involve? Not looking for a skill today, just curious.",
       "expected_route": "skill_select",
       "knowledge_expected": false,
-      "llm_response": "[ERROR: Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 573. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_3D5dhJJtkJxQnirPqUwpnJVKQ9k'}]",
+      "llm_response": "I don't have specific information on mindfulness-based therapy right now. It's understandable to be curious about how different therapies work, and it's also okay to not want to dive deep into practicing a skill today. Both are valid. If you'd like, I can help with another question or topic.",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -173,7 +173,7 @@
       "message": "I'm still going with the thought record I think... actually maybe I want to stop?",
       "expected_route": "skill_executor",
       "knowledge_expected": false,
-      "llm_response": "[ERROR: Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 573. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_3D5dhJJtkJxQnirPqUwpnJVKQ9k'}]",
+      "llm_response": "It makes sense that you're feeling unsure about continuing with the thought record. It's okay to question things and to want to pause or change course. Both feelings are valid. What's making you consider stopping?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -185,7 +185,7 @@
       "message": "I completed the activity schedule... part of me wonders if I should just stop here.",
       "expected_route": "skill_executor",
       "knowledge_expected": false,
-      "llm_response": "[ERROR: Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 573. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_3D5dhJJtkJxQnirPqUwpnJVKQ9k'}]",
+      "llm_response": "You've completed the activity schedule, which is an achievement in itself, and it's natural to feel uncertain about whether to continue. It's okay to feel accomplished and to question what's next. Both are real and valid feelings. What do you think would be most helpful to focus on now?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -221,7 +221,7 @@
       "message": "I think I want to stop the thought record for now — but what does research say about CBT success rates?",
       "expected_route": "skill_executor",
       "knowledge_expected": true,
-      "llm_response": "[ERROR: Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 1024 tokens, but can only afford 573. To increase, visit https://openrouter.ai/settings/credits and add more credits', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_3D5dhJJtkJxQnirPqUwpnJVKQ9k'}]",
+      "llm_response": "It makes sense that you might want to pause the thought record for now, and it's also natural to be curious about how well CBT works. I don't have specific success rates for CBT, but it's widely used and many people find it helpful. What are you thinking about doing next?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
