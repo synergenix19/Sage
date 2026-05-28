@@ -157,8 +157,10 @@ describe('POST /api/chat', () => {
     expect(body.distress_trajectory).toBeUndefined()
   })
 
-  // ── INT-C2: ferry headers must NOT be forwarded to the browser ────────────
-  it('does not forward X-Sage-Crisis-State to the browser response', async () => {
+  // ── INT-C2: X-Sage-Crisis-State is a functional header — always forwarded ──
+  // The frontend reads this header in chat-interface.tsx:75 to drive crisis card
+  // rendering (crisisState !== 'resolved'). It is NOT a ferry/diagnostic header.
+  it('forwards X-Sage-Crisis-State to the browser response', async () => {
     ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
       makeSageResponse('hello', { 'X-Sage-Crisis-State': 'monitoring' })
     )
@@ -170,7 +172,7 @@ describe('POST /api/chat', () => {
       }),
     })
     const res = await POST(req)
-    expect(res.headers.get('X-Sage-Crisis-State')).toBeNull()
+    expect(res.headers.get('X-Sage-Crisis-State')).toBe('monitoring')
   })
 
   it('does not forward X-Sage-Skill-Id and X-Sage-Active-Step-Id to the browser response', async () => {
