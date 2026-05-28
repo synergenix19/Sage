@@ -89,7 +89,7 @@ S07_MOOD_HAPPY_PATH = {
 
 S08_RULE1_EMOTIONAL_INTENSITY = {
     "id": "S08",
-    "description": "R1: emotional_intensity > 7 → validate_only (CBT)",
+    "description": "R1: emotional_intensity > 7 → validate_only (CBT), then intensity drops and skill advances",
     "skill_id": "cbt_thought_record",
     "initial_step": "explore_distortion",
     "initial_state_overrides": {
@@ -97,8 +97,13 @@ S08_RULE1_EMOTIONAL_INTENSITY = {
         "engagement": 7,
         "message_en": "I don't know... everything is my fault, it always has been and always will be.",
     },
-    # Rule fires every turn (intensity stays high) — use a persistently distressed message.
     "_recurring_message": "I just keep thinking about it. I can't stop. It all feels too much.",
+    # Turn 2: still distressed, rule fires again. Turn 3: intensity drops — skill should advance.
+    "_turn_overrides": {
+        2: {"emotional_intensity": 9, "message_en": "I just keep thinking about it. I can't stop. It all feels too much."},
+        3: {"emotional_intensity": 5, "message_en": "I feel a bit calmer now. Thank you for staying with me. What do we do next?"},
+    },
+    "_max_turns": 3,
     "kpi_targets": {"completion": False, "rule_id": "validate_only"},
 }
 
@@ -114,6 +119,7 @@ S09_RULE2_RESISTANCE_FOR_TURNS = {
         "message_en": "I don't really see the point in this. I've tried this kind of thing before and it doesn't help.",
     },
     "_recurring_message": "I guess... but honestly I don't think anything is going to change for me.",
+    "_max_turns": 2,  # rule fires turn 1; turn 2 shows response to the offer
     # resistance_score must be >= 7 for the rule to fire; provided via fixture
     "kpi_targets": {"completion": False, "rule_id": "offer_skill_switch_or_break"},
     "_requires_resistance_score": 8,
@@ -131,6 +137,7 @@ S10_RULE3_ENGAGEMENT_FOR_TURNS = {
         "message_en": "yeah",
     },
     "_recurring_message": "ok",
+    "_max_turns": 2,  # rule fires turn 1; turn 2 shows the check-in response
     "kpi_targets": {"completion": False, "rule_id": "check_in_micro"},
 }
 
@@ -151,7 +158,7 @@ S11_RULE4_L1_EXIT = {
 
 S12_RULE5_PRIOR_EXPOSURE = {
     "id": "S12",
-    "description": "R5: prior_exposure >= 3 → skip_psychoeducation (MI ruler)",
+    "description": "R5: prior_exposure >= 3 → skip_psychoeducation (MI ruler), then full skill completion",
     "skill_id": "mi_readiness_ruler",
     "initial_step": "importance_ruler",
     "initial_state_overrides": {
@@ -167,7 +174,14 @@ S12_RULE5_PRIOR_EXPOSURE = {
         # User is returning to MI ruler — they know the exercise. Skip the scale explanation.
         "message_en": "I've been thinking about exercising more. I used to go every morning and I want to get back to it.",
     },
-    "kpi_targets": {"completion": False, "rule_id": "skip_psychoeducation"},
+    # Turns 2-4: user gives ratings and skill advances through all three steps.
+    "_turn_overrides": {
+        2: {"message_en": "I'd say about a 7. It's important to me but I've tried before and I always stop after a week."},
+        3: {"message_en": "Confidence? Maybe a 5. I want to but I struggle with consistency when work gets busy."},
+        4: {"message_en": "I think I could start with just 20 minutes, three times a week. That feels manageable."},
+    },
+    "_max_turns": 4,
+    "kpi_targets": {"completion": True, "rule_id": "skip_psychoeducation"},
 }
 
 S13_RULE6_SKILL_SPECIFIC_GAP = {
@@ -248,7 +262,7 @@ S18_CLINICAL_FLAGS_NO_BLOCK = {
 
 S19_PRIOR_EXPOSURE_ENRICHED = {
     "id": "S19",
-    "description": "Enriched state: therapeutic_profile drives R5 skip on first turn",
+    "description": "Enriched state: therapeutic_profile drives R5 skip on first turn, then skill completes",
     "skill_id": "mi_readiness_ruler",
     "initial_step": "importance_ruler",
     "initial_state_overrides": {
@@ -262,8 +276,13 @@ S19_PRIOR_EXPOSURE_ENRICHED = {
         # Returning user — they know the exercise, have a specific change in mind.
         "message_en": "I've been thinking about cutting down on my phone use before bed. I want to sleep better.",
     },
-    "_recurring_message": "Maybe a 7 out of 10 for importance. I really do want this.",
-    "kpi_targets": {"completion": False, "rule_id": "skip_psychoeducation"},
+    "_turn_overrides": {
+        2: {"message_en": "I'd say about a 7. Sleeping better would really help my mood and focus at work."},
+        3: {"message_en": "Confidence... maybe a 6. I've tried limiting screen time before but it's hard to stick to."},
+        4: {"message_en": "I could put my phone on charge in another room from 10pm. That's concrete enough."},
+    },
+    "_max_turns": 4,
+    "kpi_targets": {"completion": True, "rule_id": "skip_psychoeducation"},
 }
 
 S20_ENGAGEMENT_TRAJECTORY_ENRICHED = {
@@ -278,6 +297,7 @@ S20_ENGAGEMENT_TRAJECTORY_ENRICHED = {
         "message_en": "ok",
     },
     "_recurring_message": "yeah",
+    "_max_turns": 2,  # rule fires turn 1; turn 2 shows the check-in response
     "kpi_targets": {"completion": False, "rule_id": "check_in_micro"},
 }
 

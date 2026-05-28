@@ -23,11 +23,14 @@
 
 import re
 import asyncio
+import logging
 from sage_poc.state import SageState
 from sage_poc.language import detect_language, translate_to_english, async_translate_to_english
 from sage_poc.rules import engine as rules_engine
 from sage_poc.nodes.post_crisis_classifier import evaluate_s7
 from sage_poc.safety.s3_semantic import check_s3, S3_THRESHOLD
+
+_log = logging.getLogger(__name__)
 
 _HAS_ARABIC_RE = re.compile(r'[؀-ۿ]')
 _HAS_LATIN_RE = re.compile(r'[A-Za-z]')
@@ -125,9 +128,13 @@ async def safety_check_node(state: SageState) -> dict:
             if not s3_suppressed and "s3_semantic" not in new_crisis_flags:
                 new_crisis_flags.append("s3_semantic")
     except asyncio.TimeoutError:
-        pass
-    except Exception:
-        pass
+        _log.warning(
+            "[safety_check] S3 timeout after 5.0s; crisis detection degraded to S1 only"
+        )
+    except Exception as exc:
+        _log.warning(
+            "[safety_check] S3 check failed: %s; crisis detection degraded to S1 only", exc
+        )
 
     trajectory, escalating = _update_distress_trajectory(state)
     engagement_trajectory, engagement_declining = _update_engagement_trajectory(state)

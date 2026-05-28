@@ -20,6 +20,7 @@ class SageState(TypedDict):
     crisis_state: str              # "none" | "active" | "monitoring" | "resolved"
     s7_result: Optional[str]       # "RECOVERING" | "STILL_DISTRESSED" | "UNCLEAR" | "NEW_CRISIS"
     s7_method: Optional[str]       # "keyword" | "llm"
+    re_escalation_within_monitoring: Optional[bool]  # True when crisis fires while crisis_state was already "monitoring"
     distress_trajectory: list[int]
     engagement_trajectory: list[int]
     conversation_summary: Optional[str]
@@ -36,6 +37,7 @@ class SageState(TypedDict):
     executed_step_id: Optional[str]    # step whose instruction was used THIS turn (for audit)
     step_instruction: Optional[str]
     rule_fired: Optional[bool]         # True when a step_policy rule override replaced the default step instruction; reset each turn
+    prev_step_id: Optional[str]        # step executed on the PREVIOUS turn; persists via LangGraph checkpoint for continuation detection
     skill_match_method: Optional[str]   # "keyword" | "semantic" | None
     semantic_score: Optional[float]     # cosine similarity if semantic match
     prompt_layers: list[str]            # layer names included in the composed LLM prompt

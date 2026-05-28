@@ -19,6 +19,9 @@ from sage_poc.audit import write_session_audit
 async def _crisis_response_node(state: SageState) -> dict:
     from sage_poc.rules import engine as rules_engine
 
+    prior_crisis_state = state.get("crisis_state", "none")
+    is_reescalation = prior_crisis_state == "monitoring"
+
     lang = state.get("detected_language", "en")
 
     crisis_result = rules_engine.evaluate("crisis_content", {
@@ -43,6 +46,7 @@ async def _crisis_response_node(state: SageState) -> dict:
         "path": path,
         "gate_path": "crisis",
         "crisis_state": "monitoring",
+        "re_escalation_within_monitoring": is_reescalation,
     }))
 
     if AUDIT_LOG_ENABLED:
@@ -55,6 +59,7 @@ async def _crisis_response_node(state: SageState) -> dict:
             "clinical_flags": state.get("clinical_flags", []),
             "active_skill_cleared": state.get("active_skill_id"),
             "crisis_content_rule": crisis_result.fired[0].rule_id if crisis_result.fired else "fallback",
+            "re_escalation_within_monitoring": is_reescalation,
         }
         print(f"\n[AUDIT:CRISIS] {json.dumps(audit, indent=2)}")
 
@@ -76,6 +81,11 @@ async def _crisis_response_node(state: SageState) -> dict:
         "crisis_state": "monitoring",
         "s7_result": None,
         "s7_method": None,
+        "re_escalation_within_monitoring": is_reescalation,
+        # output_gate is bypassed for crisis responses (routes to END directly).
+        # Without this, the stale-check gap is measured from the pre-crisis turn,
+        # potentially under-counting by the duration of the crisis turn itself.
+        "last_turn_at": datetime.now(timezone.utc).isoformat(),
     }
 
 

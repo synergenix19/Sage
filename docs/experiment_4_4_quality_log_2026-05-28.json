@@ -1,13 +1,18 @@
 {
   "experiment": "4.4",
-  "generated_at": "2026-05-28T00:11:06.866243",
+  "generated_at": "2026-05-28T10:46:29.585195",
   "scenario_count": 20,
-  "total_turns": 90,
+  "total_turns": 59,
   "kpi_targets": {
     "completion_rate": "≥80% (≥6/7 happy-path scenarios)",
     "quality_score": "≥4.0/5.0 clinician-scored",
     "rule_accuracy": "binary per rule (see test_rule_accuracy.py)",
     "turn_latency": "<3s p95 (see test_latency.py)"
+  },
+  "clinician_notes": {
+    "harness_limitations": "This log uses a synthetic test harness. Turns 2+ send a fixed follow-up message ('I feel like I am making some progress with this exercise today') rather than a real user response. When the LLM references 'the exercise', 'progress', or similar context the user did not provide, this is a harness artifact — the model is filling a gap in L1 (conversation history) that real production turns would supply. Score based on whether the response follows the step_instruction and is clinically appropriate for that step, not on whether it matches context the harness omitted.",
+    "rule_scenarios": "S08, S09, S10, S11, S12, S13, S19, S20 test specific step_policy rules. State signals (emotional_intensity, engagement, resistance_history) are set programmatically to trigger each rule — they do not reflect a real user trajectory. Evaluate the LLM response against the step_instruction for that turn.",
+    "crisis_scenarios": "No crisis scenarios are included in this log. Crisis pathway testing is covered separately under safety_check and output_gate test suites."
   },
   "rubric_fields": {
     "tone_appropriate": "1-5: emotionally attuned tone for this therapeutic moment",
@@ -36,7 +41,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "I'm glad to hear the exercise is starting to click for you. What's been on your mind as you're working through it?",
+      "llm_response": "It sounds like you're really engaging with the exercise today. When you think about making progress, is there a specific thought that keeps coming up for you? Something you've been telling yourself?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -65,7 +70,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "That's great to hear. As you're making progress with the exercise, what evidence have you found that supports your thought? And what evidence goes against it?",
+      "llm_response": "That's great to hear you're engaging with the exercise. When you think about the negative thought you've been examining, what evidence do you see that supports it? And is there anything that goes against it?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -94,7 +99,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "It sounds like you're reflecting deeply on this. As you make progress, what evidence have you found that supports your thoughts, and what evidence might challenge them?",
+      "llm_response": "It seems like you're really focused on this exercise and noticing some progress. With the negative thought you've been working on, what evidence do you find that challenges it? And what evidence supports it?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -123,7 +128,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like focusing on the exercise has been helpful. If you have access to cold water, try running it over your wrists or splashing it on your face or neck for about 30 seconds. It can help calm you down quickly. What do you have available right now?",
+      "llm_response": "I'm glad to hear that you're finding the exercise helpful. Let's keep going with it. Try running cold water over your wrists for 30 seconds, or splash some on your face if you can. It helps lower your heart rate quickly. What have you got access to right now?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -152,7 +157,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It's great that you're feeling progress with the exercise. Let's try a quick burst of energy. If it fits where you are, stand up and sit down quickly ten times, or do ten fast pushups. If you're seated, press your palms hard against a desk for 30 seconds. What seems doable for you right now?",
+      "llm_response": "That's good to hear. Let's keep the momentum going with a quick burst of energy. Try standing up and sitting down quickly ten times, or if you're seated, press your palms hard against a desk for 30 seconds. It's a great way to get your heart rate up, then let it come back down. What works best for you right now?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -181,7 +186,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It seems like the exercise is helping you focus more deeply. Let's try something with your breathing to help you feel even calmer. Breathe in slowly for 5 counts: 1, 2, 3, 4, 5. Then breathe out for 7 counts: 1, 2, 3, 4, 5, 6, 7. Try doing this four times. The longer exhale helps relax your body. How does that feel?",
+      "llm_response": "That's good. Let's try a breathing exercise to keep up the progress. Breathe in for five counts: 1, 2, 3, 4, 5. Now breathe out for seven counts: 1, 2, 3, 4, 5, 6, 7. Repeat this four times. The longer exhale helps calm your nervous system. How does that feel?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -210,7 +215,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "You mentioned feeling some progress with the exercise. How does your body feel right now compared to when you first started? What do you notice in yourself?",
+      "llm_response": "You've been putting in the effort with the exercises today. What do you notice in yourself right now compared to when we started?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -239,7 +244,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like you're finding some clarity with this exercise. On a scale from 1 to 10, how important does making this change feel to you right now? What makes it that important, even if part of you is still unsure?",
+      "llm_response": "That's good to hear. When you think about making this change, how important does it feel to you on a scale from 1 to 10, where 1 is not important at all and 10 is the most important thing in your life right now?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -268,7 +273,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like you're finding some clarity with this exercise. How confident do you feel that if you decided to make this change, you'd be able to do it? If 1 is not confident at all and 10 is completely confident, where do you see yourself? What do you think could help boost that confidence even more?",
+      "llm_response": "It's great to hear you're making progress with the exercise. How confident do you feel that you could make this change if you decided to? On a scale from 1 to 10, where 1 is not confident at all and 10 is completely confident, where do you stand?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -297,7 +302,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "It sounds like you're continuing to find clarity with this exercise. Based on where you are right now, what feels like one small step you might be willing to try next? It doesn't have to be a full plan, just something small.",
+      "llm_response": "Making progress with the exercise is a positive step. Based on everything you've shared, what feels like one small thing you might be willing to try next? It doesn't have to be a full plan, just one step forward.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -326,7 +331,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "What kinds of things were you doing before, things you enjoyed or that kept you going? And what's changed recently?",
+      "llm_response": "That's good to hear about the exercise. What have your days been like lately? Could you share what a typical day looks like for you, from when you wake up to when you go to sleep?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -355,7 +360,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like the exercise is starting to click for you. Is there one small thing you might try this week that could feel like a little win? It doesn't have to be anything major, just something simple that you can manage.",
+      "llm_response": "It's great that you're making progress with the exercise. What's one small thing you could try this week that might feel like a win, even if it's tiny? It doesn't have to be a big task—something simple like making a cup of tea or stepping outside for a couple of minutes could make a difference.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -384,7 +389,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "It sounds like you're finding a rhythm with the exercise. When do you think you'll try it next? Even a rough time, like morning or evening, can help make it feel more real. Also, can you think of anything that might get in the way? Having a backup plan can make a big difference.",
+      "llm_response": "It sounds like you're really focusing on the exercise today. When do you plan to do it next? A rough time like morning, after lunch, or before bed can help make it more likely to happen. Is there anything you think might get in the way of doing it? Planning for obstacles can make things easier.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -413,7 +418,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like you're starting to get more clarity. Can you tell me more about your sleep? Is it hard to fall asleep, or do you wake up during the night and can't get back to sleep, or both?",
+      "llm_response": "That's good to hear. Tell me more about your sleep. Do you find it hard to fall asleep, or do you wake up and can't get back to sleep, or maybe both? Walk me through what a typical night looks like for you.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -442,7 +447,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It's great that you're making progress. When it comes to sleep, one thing that can help is keeping a consistent sleep schedule. Going to bed and waking up at the same time every day helps your body clock stay in sync. Also, if you use screens at night, reducing blue light exposure by dimming the screen or switching to a reading app can make a difference. Does that sound like something you might try?",
+      "llm_response": "It's great that you're making progress. When thinking about sleep, one helpful tip is to keep a consistent wake-up time every day, even on weekends. This helps regulate your body's internal clock. Another thing to consider is the impact of screens before bed. The blue light can interfere with sleep, so dimming your phone or switching to a reading app might help. Do either of these feel like changes you could try?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -471,7 +476,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "It's good to hear you're making progress with the exercise. Out of everything we've discussed, what's one small thing you feel you could try this week to help improve your sleep? Even if it's something simple, it can make a difference.",
+      "llm_response": "It’s good to hear you’re making progress with the exercise. What's one small change you feel ready to try this week to improve your sleep? Even if it's just a tiny step, it can make a difference.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -500,7 +505,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like the exercise is starting to click for you. Let's keep going. Can you look around and name five things you can see right now? Take your time. I'm here with you.",
+      "llm_response": "That's good to hear. Let's keep going together. Can you look around and tell me five things you can see right now? Anything at all.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -529,7 +534,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like the exercise is starting to click for you. Let's keep going. Can you notice four things you can physically feel right now? Maybe it's the surface you're sitting on, your clothes, or the temperature of the air. Take your time. I'm right here with you.",
+      "llm_response": "What are four things you can physically feel or touch right now? It could be the surface you're sitting on, the feel of your clothes, or the temperature of the air.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -558,7 +563,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It seems like you're really getting into this exercise. Let's shift our focus to sounds now. What are three things you can hear around you? Take your time and notice even the faintest sounds. I'm here with you.",
+      "llm_response": "That's good to know. Now, let's focus on sound. What are three things you can hear right now? It could be anything around you or even your own breathing.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -587,7 +592,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like you're really engaged with the exercise. Let's explore your sense of smell now. Can you notice two things you can smell? If nothing comes to mind, you might want to get up and smell something nearby, like coffee, a book, or your clothes. Take your time. I'm here with you.",
+      "llm_response": "It sounds like you're moving forward with this. Let's focus on smell now. Can you find two things you can smell? If nothing comes to mind, you can get up and smell something nearby, like coffee, a book, or your clothes.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -616,7 +621,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "You've been doing great with this exercise. Let's focus on the last sense now. Can you notice one thing you can taste? Even if it's just the inside of your mouth. Once you've done that, take a slow breath and let me know how you're feeling compared to when we started.",
+      "llm_response": "It seems like you've been making some progress with this exercise. Let's wrap up the sequence by finding one thing you can taste. It might be the taste inside your mouth, or something nearby. Then take a slow breath and let me know how you're feeling compared to when we started.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -645,7 +650,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like the exercise is starting to click for you. How's your mood sitting today? If you had to give it a number between 1 and 10, what would it be?",
+      "llm_response": "I'm glad to hear the exercise is helping a bit. Let's take a moment to check in. On a scale from 1 to 10, with 1 being really low and 10 being really good, where would you say your mood is sitting today?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -674,7 +679,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "It sounds like you're really engaging with the exercise. What's been on your mind as you've been working through it? Anything in particular that's been helping or standing out to you?",
+      "llm_response": "The exercise seems to be landing. What's been making it feel like progress?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -686,7 +691,7 @@
     },
     {
       "scenario_id": "S08",
-      "scenario_description": "R1: emotional_intensity > 7 → validate_only (CBT)",
+      "scenario_description": "R1: emotional_intensity > 7 → validate_only (CBT), then intensity drops and skill advances",
       "turn": 1,
       "state_snapshot": {
         "active_skill_id": "cbt_thought_record",
@@ -703,7 +708,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like you're feeling overwhelmed and blaming yourself for a lot of things right now. That must be incredibly difficult to carry. I'm here to listen.",
+      "llm_response": "It sounds like you're feeling really overwhelmed right now. That can be so heavy. I'm here with you. What's been the hardest part of this for you?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -715,7 +720,7 @@
     },
     {
       "scenario_id": "S08",
-      "scenario_description": "R1: emotional_intensity > 7 → validate_only (CBT)",
+      "scenario_description": "R1: emotional_intensity > 7 → validate_only (CBT), then intensity drops and skill advances",
       "turn": 2,
       "state_snapshot": {
         "active_skill_id": "cbt_thought_record",
@@ -732,7 +737,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like these thoughts are really consuming you right now. It must feel overwhelming to have them constantly on your mind. I'm here with you.",
+      "llm_response": "I'm really sorry you're feeling this way. It sounds like it's been really overwhelming. What's been on your mind the most?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -744,12 +749,12 @@
     },
     {
       "scenario_id": "S08",
-      "scenario_description": "R1: emotional_intensity > 7 → validate_only (CBT)",
+      "scenario_description": "R1: emotional_intensity > 7 → validate_only (CBT), then intensity drops and skill advances",
       "turn": 3,
       "state_snapshot": {
         "active_skill_id": "cbt_thought_record",
         "active_step_id": "explore_distortion",
-        "emotional_intensity": 9,
+        "emotional_intensity": 5,
         "engagement": 7,
         "resistance_history": [],
         "engagement_trajectory": [],
@@ -757,156 +762,11 @@
         "new_clinical_flags_turn": [],
         "therapeutic_profile": {}
       },
-      "step_instruction": "The user is highly distressed. Validate their emotion fully and do NOT challenge the thought yet. Stay warm and present. Return to normal step next turn.",
-      "rule_fired": true,
+      "step_instruction": "Goal: Gently explore the evidence for and against the negative thought. Technique: Thought challenging. Tone: warm, collaborative, curious. Example approaches: What evidence do you have that supports this thought? And what evidence goes against it?; If a close friend told you this about themselves, what would you say to them?",
+      "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like your mind is really stuck in these thoughts, and it's making everything feel overwhelming. That must be so hard to deal with. I'm here to support you through this.",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S08",
-      "scenario_description": "R1: emotional_intensity > 7 → validate_only (CBT)",
-      "turn": 4,
-      "state_snapshot": {
-        "active_skill_id": "cbt_thought_record",
-        "active_step_id": "explore_distortion",
-        "emotional_intensity": 9,
-        "engagement": 7,
-        "resistance_history": [],
-        "engagement_trajectory": [],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "The user is highly distressed. Validate their emotion fully and do NOT challenge the thought yet. Stay warm and present. Return to normal step next turn.",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "It really sounds like you're feeling trapped in these thoughts, and it's making everything feel overwhelming. I'm here with you, and you're not alone in this moment.",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S08",
-      "scenario_description": "R1: emotional_intensity > 7 → validate_only (CBT)",
-      "turn": 5,
-      "state_snapshot": {
-        "active_skill_id": "cbt_thought_record",
-        "active_step_id": "explore_distortion",
-        "emotional_intensity": 9,
-        "engagement": 7,
-        "resistance_history": [],
-        "engagement_trajectory": [],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "The user is highly distressed. Validate their emotion fully and do NOT challenge the thought yet. Stay warm and present. Return to normal step next turn.",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "It sounds like you're really stuck in these thoughts, and it's making everything feel overwhelming. That must be incredibly hard to handle. I'm here with you, and you don't have to face this alone.",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S08",
-      "scenario_description": "R1: emotional_intensity > 7 → validate_only (CBT)",
-      "turn": 6,
-      "state_snapshot": {
-        "active_skill_id": "cbt_thought_record",
-        "active_step_id": "explore_distortion",
-        "emotional_intensity": 9,
-        "engagement": 7,
-        "resistance_history": [],
-        "engagement_trajectory": [],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "The user is highly distressed. Validate their emotion fully and do NOT challenge the thought yet. Stay warm and present. Return to normal step next turn.",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "It sounds like these thoughts are really overwhelming you, and it feels like they're never-ending. It's okay to feel this way, and I'm here with you. You don't have to go through this alone.",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S08",
-      "scenario_description": "R1: emotional_intensity > 7 → validate_only (CBT)",
-      "turn": 7,
-      "state_snapshot": {
-        "active_skill_id": "cbt_thought_record",
-        "active_step_id": "explore_distortion",
-        "emotional_intensity": 9,
-        "engagement": 7,
-        "resistance_history": [],
-        "engagement_trajectory": [],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "The user is highly distressed. Validate their emotion fully and do NOT challenge the thought yet. Stay warm and present. Return to normal step next turn.",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "It sounds like you're really overwhelmed by these thoughts right now, and it's just too much to handle. I'm here for you, and you're not alone in this.",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S08",
-      "scenario_description": "R1: emotional_intensity > 7 → validate_only (CBT)",
-      "turn": 8,
-      "state_snapshot": {
-        "active_skill_id": "cbt_thought_record",
-        "active_step_id": "explore_distortion",
-        "emotional_intensity": 9,
-        "engagement": 7,
-        "resistance_history": [],
-        "engagement_trajectory": [],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "The user is highly distressed. Validate their emotion fully and do NOT challenge the thought yet. Stay warm and present. Return to normal step next turn.",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "It really sounds like you're feeling overwhelmed by these thoughts, and it's just too much to bear right now. I'm here with you, and you're not alone in this moment.",
+      "llm_response": "I'm glad you're feeling a bit calmer. Let's take a closer look at the thought you mentioned about everything being your fault. What evidence do you have that supports this thought? And, what evidence might go against it? We can explore this together if you're up for it.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -938,7 +798,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like the thought record hasn't worked for you in the past. Would you like to take a break and just chat for a bit, or maybe try a different approach that might suit you better?",
+      "llm_response": "It sounds like you're finding the thought record unhelpful. Would you like to pause and chat about what's on your mind instead? Or maybe there's another approach we could try that might feel more useful to you. Let me know what feels right for you.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -971,205 +831,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like things have been feeling pretty stuck for you. What's been making you feel like change is hard right now?",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S09",
-      "scenario_description": "R2: resistance > 6 for 3 turns → offer_skill_switch_or_break (CBT)",
-      "turn": 3,
-      "state_snapshot": {
-        "active_skill_id": "cbt_thought_record",
-        "active_step_id": "explore_distortion",
-        "emotional_intensity": 4,
-        "engagement": 5,
-        "resistance_history": [
-          8,
-          8,
-          8
-        ],
-        "engagement_trajectory": [],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "User has shown sustained resistance to the thought record. Offer to pause and just talk, or explore whether a different approach might suit them better.",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "It sounds like you're feeling a bit discouraged about things changing. What's been on your mind lately that's making it feel this way?",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S09",
-      "scenario_description": "R2: resistance > 6 for 3 turns → offer_skill_switch_or_break (CBT)",
-      "turn": 4,
-      "state_snapshot": {
-        "active_skill_id": "cbt_thought_record",
-        "active_step_id": "explore_distortion",
-        "emotional_intensity": 4,
-        "engagement": 5,
-        "resistance_history": [
-          8,
-          8,
-          8
-        ],
-        "engagement_trajectory": [],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "User has shown sustained resistance to the thought record. Offer to pause and just talk, or explore whether a different approach might suit them better.",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "It sounds like you're feeling unsure about change right now. What's been making you feel this way?",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S09",
-      "scenario_description": "R2: resistance > 6 for 3 turns → offer_skill_switch_or_break (CBT)",
-      "turn": 5,
-      "state_snapshot": {
-        "active_skill_id": "cbt_thought_record",
-        "active_step_id": "explore_distortion",
-        "emotional_intensity": 4,
-        "engagement": 5,
-        "resistance_history": [
-          8,
-          8,
-          8
-        ],
-        "engagement_trajectory": [],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "User has shown sustained resistance to the thought record. Offer to pause and just talk, or explore whether a different approach might suit them better.",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "It seems like you're feeling pretty stuck right now. Would you like to talk more about what's been going on, or maybe explore another way to approach things?",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S09",
-      "scenario_description": "R2: resistance > 6 for 3 turns → offer_skill_switch_or_break (CBT)",
-      "turn": 6,
-      "state_snapshot": {
-        "active_skill_id": "cbt_thought_record",
-        "active_step_id": "explore_distortion",
-        "emotional_intensity": 4,
-        "engagement": 5,
-        "resistance_history": [
-          8,
-          8,
-          8
-        ],
-        "engagement_trajectory": [],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "User has shown sustained resistance to the thought record. Offer to pause and just talk, or explore whether a different approach might suit them better.",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "It sounds like you're feeling really stuck and maybe a bit frustrated. Would you like to talk more about what's been on your mind, or perhaps try a different approach to see if it feels more helpful?",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S09",
-      "scenario_description": "R2: resistance > 6 for 3 turns → offer_skill_switch_or_break (CBT)",
-      "turn": 7,
-      "state_snapshot": {
-        "active_skill_id": "cbt_thought_record",
-        "active_step_id": "explore_distortion",
-        "emotional_intensity": 4,
-        "engagement": 5,
-        "resistance_history": [
-          8,
-          8,
-          8
-        ],
-        "engagement_trajectory": [],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "User has shown sustained resistance to the thought record. Offer to pause and just talk, or explore whether a different approach might suit them better.",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "It sounds like you're feeling really stuck and maybe a bit frustrated. Would you like to just talk about what's been on your mind, or perhaps explore a different approach that might feel more helpful for you?",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S09",
-      "scenario_description": "R2: resistance > 6 for 3 turns → offer_skill_switch_or_break (CBT)",
-      "turn": 8,
-      "state_snapshot": {
-        "active_skill_id": "cbt_thought_record",
-        "active_step_id": "explore_distortion",
-        "emotional_intensity": 4,
-        "engagement": 5,
-        "resistance_history": [
-          8,
-          8,
-          8
-        ],
-        "engagement_trajectory": [],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "User has shown sustained resistance to the thought record. Offer to pause and just talk, or explore whether a different approach might suit them better.",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "It seems like you're feeling really stuck and maybe a bit frustrated. Would it help to just talk about what's on your mind right now, or do you want to try something different to see if it feels more helpful?",
+      "llm_response": "It sounds like you're feeling pretty stuck right now. What's been making you feel like change isn't possible?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1201,7 +863,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "Would you like to talk a bit, or maybe try some breathing together?",
+      "llm_response": "Would you like to try using TIPP, or do you prefer to just breathe together or have a chat?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1233,199 +895,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "Is there something specific you feel like talking about, or would you prefer to try some breathing exercises together?",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S10",
-      "scenario_description": "R3: engagement < 3 for 3 turns → check_in_micro (DBT TIPP)",
-      "turn": 3,
-      "state_snapshot": {
-        "active_skill_id": "dbt_tipp",
-        "active_step_id": "paced_breathing",
-        "emotional_intensity": 4,
-        "engagement": 2,
-        "resistance_history": [],
-        "engagement_trajectory": [
-          2,
-          2
-        ],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "User seems disengaged. Check in: is TIPP feeling useful, or would they prefer to just breathe together or talk?",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "Would you like to try some breathing exercises together, or is there something you'd like to talk about?",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S10",
-      "scenario_description": "R3: engagement < 3 for 3 turns → check_in_micro (DBT TIPP)",
-      "turn": 4,
-      "state_snapshot": {
-        "active_skill_id": "dbt_tipp",
-        "active_step_id": "paced_breathing",
-        "emotional_intensity": 4,
-        "engagement": 2,
-        "resistance_history": [],
-        "engagement_trajectory": [
-          2,
-          2
-        ],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "User seems disengaged. Check in: is TIPP feeling useful, or would they prefer to just breathe together or talk?",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "It sounds like you're open to different options. Would you like to try a breathing exercise, or is there something on your mind you'd like to talk about?",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S10",
-      "scenario_description": "R3: engagement < 3 for 3 turns → check_in_micro (DBT TIPP)",
-      "turn": 5,
-      "state_snapshot": {
-        "active_skill_id": "dbt_tipp",
-        "active_step_id": "paced_breathing",
-        "emotional_intensity": 4,
-        "engagement": 2,
-        "resistance_history": [],
-        "engagement_trajectory": [
-          2,
-          2
-        ],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "User seems disengaged. Check in: is TIPP feeling useful, or would they prefer to just breathe together or talk?",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "Would you like to just chat for a bit, or try a simple breathing exercise together?",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S10",
-      "scenario_description": "R3: engagement < 3 for 3 turns → check_in_micro (DBT TIPP)",
-      "turn": 6,
-      "state_snapshot": {
-        "active_skill_id": "dbt_tipp",
-        "active_step_id": "paced_breathing",
-        "emotional_intensity": 4,
-        "engagement": 2,
-        "resistance_history": [],
-        "engagement_trajectory": [
-          2,
-          2
-        ],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "User seems disengaged. Check in: is TIPP feeling useful, or would they prefer to just breathe together or talk?",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "Would you like to try a simple breathing exercise together, or is there something on your mind you'd like to share?",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S10",
-      "scenario_description": "R3: engagement < 3 for 3 turns → check_in_micro (DBT TIPP)",
-      "turn": 7,
-      "state_snapshot": {
-        "active_skill_id": "dbt_tipp",
-        "active_step_id": "paced_breathing",
-        "emotional_intensity": 4,
-        "engagement": 2,
-        "resistance_history": [],
-        "engagement_trajectory": [
-          2,
-          2
-        ],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "User seems disengaged. Check in: is TIPP feeling useful, or would they prefer to just breathe together or talk?",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "Would you prefer to do a breathing exercise together, or is there something you'd like to talk about?",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S10",
-      "scenario_description": "R3: engagement < 3 for 3 turns → check_in_micro (DBT TIPP)",
-      "turn": 8,
-      "state_snapshot": {
-        "active_skill_id": "dbt_tipp",
-        "active_step_id": "paced_breathing",
-        "emotional_intensity": 4,
-        "engagement": 2,
-        "resistance_history": [],
-        "engagement_trajectory": [
-          2,
-          2
-        ],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "User seems disengaged. Check in: is TIPP feeling useful, or would they prefer to just breathe together or talk?",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "Are you finding our conversation helpful, or would you prefer we try a breathing exercise together? ",
+      "llm_response": "Is there something specific on your mind, or would you like to try a breathing exercise together?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1454,7 +924,7 @@
       "rule_fired": "L1",
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "Alright, if you'd like to stop, that's completely okay. If you ever want to talk again, I'm here for you. Take care.",
+      "llm_response": "Alright, if you want to stop here, that's perfectly fine. I'm here whenever you feel like talking again. Take care.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1466,7 +936,7 @@
     },
     {
       "scenario_id": "S12",
-      "scenario_description": "R5: prior_exposure >= 3 → skip_psychoeducation (MI ruler)",
+      "scenario_description": "R5: prior_exposure >= 3 → skip_psychoeducation (MI ruler), then full skill completion",
       "turn": 1,
       "state_snapshot": {
         "active_skill_id": "mi_readiness_ruler",
@@ -1485,11 +955,11 @@
           ]
         }
       },
-      "step_instruction": "User has done the ruler exercise before. Skip the scale explanation and go straight to the question.",
+      "step_instruction": "This user has done the readiness ruler before. Skip any explanation of how the 0-to-10 scale works. Ask what change they have in mind today, then go straight to the importance question: where they would put it on the scale, and why not lower.",
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "Getting back into a routine can be really motivating. What's inspiring you to start exercising more again?",
+      "llm_response": "Exercising more sounds like a great goal. Where would you put its importance on the scale right now, and why not lower?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1501,7 +971,7 @@
     },
     {
       "scenario_id": "S12",
-      "scenario_description": "R5: prior_exposure >= 3 → skip_psychoeducation (MI ruler)",
+      "scenario_description": "R5: prior_exposure >= 3 → skip_psychoeducation (MI ruler), then full skill completion",
       "turn": 2,
       "state_snapshot": {
         "active_skill_id": "mi_readiness_ruler",
@@ -1520,11 +990,11 @@
           ]
         }
       },
-      "step_instruction": "User has done the ruler exercise before. Skip the scale explanation and go straight to the question.",
+      "step_instruction": "This user has done the readiness ruler before. Skip any explanation of how the 0-to-10 scale works. Ask what change they have in mind today, then go straight to the importance question: where they would put it on the scale, and why not lower.",
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like reflecting on the exercise is helping. What feels different to you today?",
+      "llm_response": "What change are you thinking of making today to help keep going past that first week this time?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1536,7 +1006,7 @@
     },
     {
       "scenario_id": "S12",
-      "scenario_description": "R5: prior_exposure >= 3 → skip_psychoeducation (MI ruler)",
+      "scenario_description": "R5: prior_exposure >= 3 → skip_psychoeducation (MI ruler), then full skill completion",
       "turn": 3,
       "state_snapshot": {
         "active_skill_id": "mi_readiness_ruler",
@@ -1555,11 +1025,11 @@
           ]
         }
       },
-      "step_instruction": "User has done the ruler exercise before. Skip the scale explanation and go straight to the question.",
+      "step_instruction": "This user has done the readiness ruler before. Skip any explanation of how the 0-to-10 scale works. Ask what change they have in mind today, then go straight to the importance question: where they would put it on the scale, and why not lower.",
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "Reflecting on the exercise seems to be having a positive effect. What's standing out to you as you think about it today?",
+      "llm_response": "What small step could you take today to help build that consistency, even when work gets busy?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1571,7 +1041,7 @@
     },
     {
       "scenario_id": "S12",
-      "scenario_description": "R5: prior_exposure >= 3 → skip_psychoeducation (MI ruler)",
+      "scenario_description": "R5: prior_exposure >= 3 → skip_psychoeducation (MI ruler), then full skill completion",
       "turn": 4,
       "state_snapshot": {
         "active_skill_id": "mi_readiness_ruler",
@@ -1590,151 +1060,11 @@
           ]
         }
       },
-      "step_instruction": "User has done the ruler exercise before. Skip the scale explanation and go straight to the question.",
+      "step_instruction": "This user has done the readiness ruler before. Skip any explanation of how the 0-to-10 scale works. Ask what change they have in mind today, then go straight to the importance question: where they would put it on the scale, and why not lower.",
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "That's good to hear. What's been standing out to you as you think about it today?",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S12",
-      "scenario_description": "R5: prior_exposure >= 3 → skip_psychoeducation (MI ruler)",
-      "turn": 5,
-      "state_snapshot": {
-        "active_skill_id": "mi_readiness_ruler",
-        "active_step_id": "importance_ruler",
-        "emotional_intensity": 4,
-        "engagement": 7,
-        "resistance_history": [],
-        "engagement_trajectory": [],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {
-          "techniques_used": [
-            "mi_readiness_ruler",
-            "mi_readiness_ruler",
-            "mi_readiness_ruler"
-          ]
-        }
-      },
-      "step_instruction": "User has done the ruler exercise before. Skip the scale explanation and go straight to the question.",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "It sounds like you're finding value in thinking things through. What's been standing out to you about the exercise today?",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S12",
-      "scenario_description": "R5: prior_exposure >= 3 → skip_psychoeducation (MI ruler)",
-      "turn": 6,
-      "state_snapshot": {
-        "active_skill_id": "mi_readiness_ruler",
-        "active_step_id": "importance_ruler",
-        "emotional_intensity": 4,
-        "engagement": 7,
-        "resistance_history": [],
-        "engagement_trajectory": [],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {
-          "techniques_used": [
-            "mi_readiness_ruler",
-            "mi_readiness_ruler",
-            "mi_readiness_ruler"
-          ]
-        }
-      },
-      "step_instruction": "User has done the ruler exercise before. Skip the scale explanation and go straight to the question.",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "It seems like you're finding some clarity with this exercise. What's been the most helpful insight for you today?",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S12",
-      "scenario_description": "R5: prior_exposure >= 3 → skip_psychoeducation (MI ruler)",
-      "turn": 7,
-      "state_snapshot": {
-        "active_skill_id": "mi_readiness_ruler",
-        "active_step_id": "importance_ruler",
-        "emotional_intensity": 4,
-        "engagement": 7,
-        "resistance_history": [],
-        "engagement_trajectory": [],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {
-          "techniques_used": [
-            "mi_readiness_ruler",
-            "mi_readiness_ruler",
-            "mi_readiness_ruler"
-          ]
-        }
-      },
-      "step_instruction": "User has done the ruler exercise before. Skip the scale explanation and go straight to the question.",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "It sounds like the exercise is starting to click for you. What's been the most helpful part of it today?",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S12",
-      "scenario_description": "R5: prior_exposure >= 3 → skip_psychoeducation (MI ruler)",
-      "turn": 8,
-      "state_snapshot": {
-        "active_skill_id": "mi_readiness_ruler",
-        "active_step_id": "importance_ruler",
-        "emotional_intensity": 4,
-        "engagement": 7,
-        "resistance_history": [],
-        "engagement_trajectory": [],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {
-          "techniques_used": [
-            "mi_readiness_ruler",
-            "mi_readiness_ruler",
-            "mi_readiness_ruler"
-          ]
-        }
-      },
-      "step_instruction": "User has done the ruler exercise before. Skip the scale explanation and go straight to the question.",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "It seems like you're reflecting deeply. What's been the most helpful part of the exercise for you today?",
+      "llm_response": "Starting with 20 minutes, three times a week, sounds like a solid plan. How do you feel about setting a reminder or scheduling it into your week to help make it a consistent habit? ",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1763,7 +1093,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like you're starting to see some progress with the exercise. How's your mood sitting today? If you had to give it a number between 1 and 10, what would it be?",
+      "llm_response": "That's good to hear. How's your mood sitting today? If you had to give it a number between 1 and 10, what would it be?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1792,7 +1122,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "It sounds like you've been reflecting on the exercise and noticing some progress. What's been making today feel like a step forward? Anything specific that's been helping, or is it more of a general feeling?",
+      "llm_response": "The exercise seems to be landing. What's been making you feel like you're making progress? Is there anything specific that's been helping, or is it more of a general feeling?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1821,7 +1151,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like you're getting somewhere with the exercise. What specific thought is going through your mind as you work on it today?",
+      "llm_response": "That's good to hear. What's the specific thought that keeps coming back to you right now? ",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1850,7 +1180,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like you're getting somewhere with the exercise. As you're thinking this through, what evidence do you find that supports your thought? And what do you notice that might go against it?",
+      "llm_response": "That's great to hear about your progress. Can we explore more about the thought that's been on your mind? What evidence do you have that supports it, and what evidence might go against it?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1879,7 +1209,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "It seems like you're reflecting a lot on this exercise. What new understanding or perspective are you gaining from thinking it through today?",
+      "llm_response": "You're thinking carefully about the exercise and feeling some progress. What feels different now compared to before? Is there a specific thought or realization that stands out to you?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1908,7 +1238,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like you're starting to get a handle on things. What's been standing out for you as you think about your daily routine? Are there activities you used to enjoy or find fulfilling that have shifted or dropped away?",
+      "llm_response": "It's good to hear you're finding the exercise helpful. Could you tell me about your days lately? What does a typical day look like for you, from when you wake up to when you go to sleep?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1937,7 +1267,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "That's great to hear. As you think about making progress, is there one small thing you could try this week that might feel like a win, even if it's tiny? Maybe something as simple as making a cup of tea or spending a couple of minutes outside.",
+      "llm_response": "That's great to hear. As you think about your days, what's one small thing you could try doing this week that might feel like a win? It could be something as simple as stepping outside for a couple of minutes or making a cup of tea. Something small that feels doable.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1966,7 +1296,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "It sounds like you're making some headway with the exercise. Have you thought about when you might try that small thing you mentioned? Even having a rough time, like morning or evening, can make it more likely to happen. What do you think could get in the way, and if it does, what's your backup plan?",
+      "llm_response": "The exercise seems to be landing for you. What's one thing you're planning to try this week that feels manageable? When do you think you'll do it? Having a rough time can help make it happen.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1995,7 +1325,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "That's good to hear. What have you noticed about your sleep patterns? Is it more about having trouble falling asleep, waking up during the night, or waking up too early?",
+      "llm_response": "I'm glad to hear you're finding the exercise helpful. Could you share a bit more about your sleep? Are you finding it hard to fall asleep, or do you wake up and can't get back to sleep, or is it a mix of both?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -2024,7 +1354,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like the exercise is starting to click. Have you noticed any specific changes in your sleep patterns? Are you finding it easier to fall asleep, or is there another aspect that's been improving?",
+      "llm_response": "It's great that you're finding the exercise helpful. If you're having trouble falling asleep, one thing that can make a difference is keeping your bedroom dark and cool. This helps signal to your body that it's time to rest. Another idea is to try a relaxing bedtime routine, like reading or listening to calming music, to ease into sleep. Do any of these sound like something you'd want to try?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -2053,7 +1383,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "It sounds like you've been putting in some thought and effort. Out of everything we've talked about, what's one small change you'd like to try this week? Even if it's something tiny.",
+      "llm_response": "It's good to hear you're making progress with the exercise. Out of everything we've talked about, what's one small change you feel you could try this week to help with your sleep? Even if it's something tiny, it can make a difference.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -2082,7 +1412,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like you're finding your way with the exercise. If you're feeling a bit tense, using cold water can help calm that down quickly. Running cold water over your wrists or splashing it on your face for 30 seconds can make a real difference. Do you have access to cold water right now?",
+      "llm_response": "The cold water can be a great way to help lower your heart rate quickly. Do you have access to some cold water right now? You can run it over your wrists",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -2111,7 +1441,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It's great that you're making progress with the exercise. To help release any remaining stress, try doing something vigorous for about 30 seconds. You could press your palms hard against a desk or do rapid seated leg lifts, depending on where you are. How does that sound to you?",
+      "llm_response": "That's great. Let's keep the momentum going. How about doing something vigorous for a short burst? Maybe stand up and sit down quickly ten times, or press your palms hard against a desk. Whatever works for you right now.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -2140,7 +1470,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like you're continuing to make progress with the exercise. Let's try something calming together. Breathe in for 5 counts: 1, 2, 3, 4, 5. Then breathe out for 7 counts: 1, 2, 3, 4, 5, 6, 7. Let's do this a few times. How does that feel for you?",
+      "llm_response": "That's good to hear. Let's try some paced breathing to help slow things down. Breathe in for 5 counts: 1, 2, 3, 4, 5. Now breathe out for 7 counts: 1, 2, 3, 4, 5, 6, 7. Let's do this four times, focusing on that longer exhale to help calm your system.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -2169,7 +1499,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "You've been really focused on this exercise. What do you notice in yourself right now compared to when you first started?",
+      "llm_response": "You've been considering things carefully and feel like you're making some progress. What do you notice in yourself right now compared to when you started?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -2203,7 +1533,7 @@
       "rule_fired": "L2",
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like you're finding some clarity with the exercise. What's one of the specific thoughts you've noticed coming up for you today?",
+      "llm_response": "That's great to hear. What specific thought has been on your mind today as you work through the exercise?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -2235,7 +1565,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It's great to hear you're making progress with the exercise. What's one of the thoughts you've been exploring today?",
+      "llm_response": "That's promising. As you're working through the exercise, what evidence or experiences have you noticed that support your thoughts? And what might challenge them or suggest a different perspective?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -2267,7 +1597,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "It sounds like you're engaging deeply with the exercise. What thoughts have you been working through today?",
+      "llm_response": "It seems like you're finding some clarity as you work through this exercise. What feels like progress to you? Is there a particular thought or perspective that's shifting for you right now?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -2279,7 +1609,7 @@
     },
     {
       "scenario_id": "S19",
-      "scenario_description": "Enriched state: therapeutic_profile drives R5 skip on first turn",
+      "scenario_description": "Enriched state: therapeutic_profile drives R5 skip on first turn, then skill completes",
       "turn": 1,
       "state_snapshot": {
         "active_skill_id": "mi_readiness_ruler",
@@ -2298,11 +1628,11 @@
           ]
         }
       },
-      "step_instruction": "User has done the ruler exercise before. Skip the scale explanation and go straight to the question.",
+      "step_instruction": "This user has done the readiness ruler before. Skip any explanation of how the 0-to-10 scale works. Ask what change they have in mind today, then go straight to the importance question: where they would put it on the scale, and why not lower.",
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "What do you think would be a good first step to help you reduce phone use before bed?",
+      "llm_response": "What change are you thinking about making with your phone use before bed? Where would you put the importance of this change on a scale from 0 to 10, and why not lower?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -2314,7 +1644,7 @@
     },
     {
       "scenario_id": "S19",
-      "scenario_description": "Enriched state: therapeutic_profile drives R5 skip on first turn",
+      "scenario_description": "Enriched state: therapeutic_profile drives R5 skip on first turn, then skill completes",
       "turn": 2,
       "state_snapshot": {
         "active_skill_id": "mi_readiness_ruler",
@@ -2333,11 +1663,11 @@
           ]
         }
       },
-      "step_instruction": "User has done the ruler exercise before. Skip the scale explanation and go straight to the question.",
+      "step_instruction": "This user has done the readiness ruler before. Skip any explanation of how the 0-to-10 scale works. Ask what change they have in mind today, then go straight to the importance question: where they would put it on the scale, and why not lower.",
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It's great to hear you're prioritizing this. What do you think might help you stick to this goal of using your phone less before bed?",
+      "llm_response": "Improving your sleep sounds important for your mood and focus. What's been the hardest part about reducing phone use before bed?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -2349,7 +1679,7 @@
     },
     {
       "scenario_id": "S19",
-      "scenario_description": "Enriched state: therapeutic_profile drives R5 skip on first turn",
+      "scenario_description": "Enriched state: therapeutic_profile drives R5 skip on first turn, then skill completes",
       "turn": 3,
       "state_snapshot": {
         "active_skill_id": "mi_readiness_ruler",
@@ -2368,11 +1698,11 @@
           ]
         }
       },
-      "step_instruction": "User has done the ruler exercise before. Skip the scale explanation and go straight to the question.",
+      "step_instruction": "This user has done the readiness ruler before. Skip any explanation of how the 0-to-10 scale works. Ask what change they have in mind today, then go straight to the importance question: where they would put it on the scale, and why not lower.",
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "What might make it easier for you to reduce your phone use before bed? Is there a specific change you have in mind to help with this?",
+      "llm_response": "What's made it hard to stick to limiting screen time before? Are there specific moments or habits that make it challenging?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -2384,7 +1714,7 @@
     },
     {
       "scenario_id": "S19",
-      "scenario_description": "Enriched state: therapeutic_profile drives R5 skip on first turn",
+      "scenario_description": "Enriched state: therapeutic_profile drives R5 skip on first turn, then skill completes",
       "turn": 4,
       "state_snapshot": {
         "active_skill_id": "mi_readiness_ruler",
@@ -2403,151 +1733,11 @@
           ]
         }
       },
-      "step_instruction": "User has done the ruler exercise before. Skip the scale explanation and go straight to the question.",
+      "step_instruction": "This user has done the readiness ruler before. Skip any explanation of how the 0-to-10 scale works. Ask what change they have in mind today, then go straight to the importance question: where they would put it on the scale, and why not lower.",
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like this is something you really care about. Have you thought about any specific strategies that could help you cut down on phone use before bed?",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S19",
-      "scenario_description": "Enriched state: therapeutic_profile drives R5 skip on first turn",
-      "turn": 5,
-      "state_snapshot": {
-        "active_skill_id": "mi_readiness_ruler",
-        "active_step_id": "importance_ruler",
-        "emotional_intensity": 5,
-        "engagement": 7,
-        "resistance_history": [],
-        "engagement_trajectory": [],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {
-          "techniques_used": [
-            "mi_readiness_ruler",
-            "mi_readiness_ruler",
-            "mi_readiness_ruler"
-          ]
-        }
-      },
-      "step_instruction": "User has done the ruler exercise before. Skip the scale explanation and go straight to the question.",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "It seems like you're really committed to this change. Have you considered setting a specific time to put your phone away each night or maybe finding an activity to do instead before bed?",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S19",
-      "scenario_description": "Enriched state: therapeutic_profile drives R5 skip on first turn",
-      "turn": 6,
-      "state_snapshot": {
-        "active_skill_id": "mi_readiness_ruler",
-        "active_step_id": "importance_ruler",
-        "emotional_intensity": 5,
-        "engagement": 7,
-        "resistance_history": [],
-        "engagement_trajectory": [],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {
-          "techniques_used": [
-            "mi_readiness_ruler",
-            "mi_readiness_ruler",
-            "mi_readiness_ruler"
-          ]
-        }
-      },
-      "step_instruction": "User has done the ruler exercise before. Skip the scale explanation and go straight to the question.",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "You seem really committed to this goal. What do you think would make the biggest difference in helping you use your phone less before bed?",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S19",
-      "scenario_description": "Enriched state: therapeutic_profile drives R5 skip on first turn",
-      "turn": 7,
-      "state_snapshot": {
-        "active_skill_id": "mi_readiness_ruler",
-        "active_step_id": "importance_ruler",
-        "emotional_intensity": 5,
-        "engagement": 7,
-        "resistance_history": [],
-        "engagement_trajectory": [],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {
-          "techniques_used": [
-            "mi_readiness_ruler",
-            "mi_readiness_ruler",
-            "mi_readiness_ruler"
-          ]
-        }
-      },
-      "step_instruction": "User has done the ruler exercise before. Skip the scale explanation and go straight to the question.",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "I can tell this matters to you. What do you think would be the most helpful first step to start cutting down on phone use before bed?",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S19",
-      "scenario_description": "Enriched state: therapeutic_profile drives R5 skip on first turn",
-      "turn": 8,
-      "state_snapshot": {
-        "active_skill_id": "mi_readiness_ruler",
-        "active_step_id": "importance_ruler",
-        "emotional_intensity": 5,
-        "engagement": 7,
-        "resistance_history": [],
-        "engagement_trajectory": [],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {
-          "techniques_used": [
-            "mi_readiness_ruler",
-            "mi_readiness_ruler",
-            "mi_readiness_ruler"
-          ]
-        }
-      },
-      "step_instruction": "User has done the ruler exercise before. Skip the scale explanation and go straight to the question.",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "It sounds like you're really determined to make this change. What's one small action you feel ready to try tonight to help reduce your phone use before bed?",
+      "llm_response": "That sounds like a solid plan. How important does this change feel to you on a scale from 0 to 10, and why not lower?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -2579,7 +1769,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "Is everything alright? Would you like to continue with this exercise, or would you prefer to just chat or take a moment to breathe together?",
+      "llm_response": "Is this exercise helping, or would you prefer to just breathe together or talk?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -2611,199 +1801,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "Would you like to chat for a bit, or maybe just take a moment to breathe together? Whatever feels right for you.",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S20",
-      "scenario_description": "Enriched state: engagement_trajectory [2,2] + current 2 fires R3",
-      "turn": 3,
-      "state_snapshot": {
-        "active_skill_id": "grounding_5_4_3_2_1",
-        "active_step_id": "see_5",
-        "emotional_intensity": 4,
-        "engagement": 2,
-        "resistance_history": [],
-        "engagement_trajectory": [
-          2,
-          2
-        ],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "The user seems disengaged or unable to focus. Gently check in: is this exercise helping? Would they prefer to just breathe together or talk?",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "Would you like to talk about something specific, or should we just take a moment to breathe together? Whatever you feel like doing is fine.",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S20",
-      "scenario_description": "Enriched state: engagement_trajectory [2,2] + current 2 fires R3",
-      "turn": 4,
-      "state_snapshot": {
-        "active_skill_id": "grounding_5_4_3_2_1",
-        "active_step_id": "see_5",
-        "emotional_intensity": 4,
-        "engagement": 2,
-        "resistance_history": [],
-        "engagement_trajectory": [
-          2,
-          2
-        ],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "The user seems disengaged or unable to focus. Gently check in: is this exercise helping? Would they prefer to just breathe together or talk?",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "Would you like to take a moment to breathe together, or is there something specific you'd like to talk about? Whatever feels right for you is okay.",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S20",
-      "scenario_description": "Enriched state: engagement_trajectory [2,2] + current 2 fires R3",
-      "turn": 5,
-      "state_snapshot": {
-        "active_skill_id": "grounding_5_4_3_2_1",
-        "active_step_id": "see_5",
-        "emotional_intensity": 4,
-        "engagement": 2,
-        "resistance_history": [],
-        "engagement_trajectory": [
-          2,
-          2
-        ],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "The user seems disengaged or unable to focus. Gently check in: is this exercise helping? Would they prefer to just breathe together or talk?",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "Is this exercise helping, or would you prefer just to chat or take a moment to breathe together? Whatever feels best for you right now.",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S20",
-      "scenario_description": "Enriched state: engagement_trajectory [2,2] + current 2 fires R3",
-      "turn": 6,
-      "state_snapshot": {
-        "active_skill_id": "grounding_5_4_3_2_1",
-        "active_step_id": "see_5",
-        "emotional_intensity": 4,
-        "engagement": 2,
-        "resistance_history": [],
-        "engagement_trajectory": [
-          2,
-          2
-        ],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "The user seems disengaged or unable to focus. Gently check in: is this exercise helping? Would they prefer to just breathe together or talk?",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "Is there something specific you want to talk about, or would you like to just take a moment to breathe together? Whatever feels best for you right now is okay.",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S20",
-      "scenario_description": "Enriched state: engagement_trajectory [2,2] + current 2 fires R3",
-      "turn": 7,
-      "state_snapshot": {
-        "active_skill_id": "grounding_5_4_3_2_1",
-        "active_step_id": "see_5",
-        "emotional_intensity": 4,
-        "engagement": 2,
-        "resistance_history": [],
-        "engagement_trajectory": [
-          2,
-          2
-        ],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "The user seems disengaged or unable to focus. Gently check in: is this exercise helping? Would they prefer to just breathe together or talk?",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "Is there anything specific on your mind, or would you like to take a moment to just breathe together? Whatever feels right for you is okay.",
-      "rubric": {
-        "tone_appropriate": null,
-        "matches_instruction": null,
-        "validation_genuine": null,
-        "socratic_quality": null,
-        "overall": null,
-        "reviewer_notes": null
-      }
-    },
-    {
-      "scenario_id": "S20",
-      "scenario_description": "Enriched state: engagement_trajectory [2,2] + current 2 fires R3",
-      "turn": 8,
-      "state_snapshot": {
-        "active_skill_id": "grounding_5_4_3_2_1",
-        "active_step_id": "see_5",
-        "emotional_intensity": 4,
-        "engagement": 2,
-        "resistance_history": [],
-        "engagement_trajectory": [
-          2,
-          2
-        ],
-        "clinical_flags": [],
-        "new_clinical_flags_turn": [],
-        "therapeutic_profile": {}
-      },
-      "step_instruction": "The user seems disengaged or unable to focus. Gently check in: is this exercise helping? Would they prefer to just breathe together or talk?",
-      "rule_fired": true,
-      "skill_complete": false,
-      "skill_exited": false,
-      "llm_response": "Would you like to take a moment to breathe together, or is there something specific you'd like to talk about? Whatever feels right for you is okay.",
+      "llm_response": "What part of the exercise has been most helpful for you? Or is there something else you'd like to talk about or focus on?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,

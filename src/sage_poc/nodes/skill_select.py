@@ -74,6 +74,17 @@ def _semantic_match_sync(message_en: str) -> tuple[str | None, float]:
 
 
 async def skill_select_node(state: SageState) -> dict:
+    # Info requests always go directly to knowledge_retrieve, even during crisis monitoring.
+    # A user in post-crisis check-in asking for a phone number or resource must be served.
+    if state.get("primary_intent") == "info_request":
+        return {
+            "active_skill_id": None,
+            "active_step_id": None,
+            "skill_match_method": None,
+            "semantic_score": None,
+            "path": state["path"] + ["skill_select"],
+        }
+
     # Post-crisis auto-select bypasses keyword and semantic matching
     if state.get("crisis_state") == "monitoring":
         skill_id = "post_crisis_check_in"
@@ -85,22 +96,12 @@ async def skill_select_node(state: SageState) -> dict:
         }
         # Guard: if the check-in is already active, pass through to executor without
         # re-initialising. Prevents step regression when active_skill_id is cleared
-        # mid-check-in by a blended intent, info_request, or low-confidence path.
+        # mid-check-in by a blended intent, low-confidence path.
         if state.get("active_skill_id") == skill_id:
             return {**base, "active_step_id": state.get("active_step_id")}
         # Not yet active — start from step 1.
         skill = _SKILLS[skill_id]
         return {**base, "active_step_id": skill.steps[0].step_id}
-
-    # Info requests go directly to knowledge_retrieve — never activate a skill
-    if state.get("primary_intent") == "info_request":
-        return {
-            "active_skill_id": None,
-            "active_step_id": None,
-            "skill_match_method": None,
-            "semantic_score": None,
-            "path": state["path"] + ["skill_select"],
-        }
 
     message = state["message_en"].lower()
 

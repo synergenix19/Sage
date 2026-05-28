@@ -46,6 +46,12 @@ def test_load_l3_skill_wrapper():
     assert "Do NOT announce the technique name" in tmpl.content
 
 
+def test_l3_skill_wrapper_tone_appears_before_skill_name():
+    """Tone instruction must be the first variable in L3 so it primes the LLM before technique detail."""
+    tmpl = get_template("L3_skill_wrapper")
+    assert tmpl.content.index("{tone_instruction}") < tmpl.content.index("{skill_name}")
+
+
 def test_get_template_loads_from_disk(tmp_path, monkeypatch):
     """Verify the loader actually reads JSON files from disk and parses them."""
     import sage_poc.prompts.loader as loader_module

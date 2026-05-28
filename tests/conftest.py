@@ -13,6 +13,13 @@ Test module responsibilities:
 import numpy as np
 import pytest
 from unittest.mock import MagicMock
+from sage_poc.llm import reset_singletons
+
+
+@pytest.fixture(autouse=True)
+def _reset_llm_singletons():
+    yield
+    reset_singletons()
 
 
 @pytest.fixture(autouse=True, scope="session")

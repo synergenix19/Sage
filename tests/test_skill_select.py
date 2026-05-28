@@ -298,6 +298,24 @@ async def test_semantic_timeout_falls_back_to_keyword_match():
 
 
 @pytest.mark.asyncio
+async def test_info_request_bypasses_crisis_monitoring():
+    """info_request intent must route to knowledge_retrieve even when crisis_state=monitoring."""
+    state = _ss_state(
+        message_en="what is the number for the crisis line",
+        crisis_state="monitoring",
+        primary_intent="info_request",
+        active_skill_id="post_crisis_check_in",
+        active_step_id="acknowledge_and_check",
+    )
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] is None, (
+        "info_request during monitoring must clear active_skill_id so router goes to knowledge_retrieve"
+    )
+    assert result["active_step_id"] is None
+    assert result["skill_match_method"] is None
+
+
+@pytest.mark.asyncio
 async def test_semantic_timeout_returns_none_when_no_keyword_match():
     """When embedding times out and no keyword matches, active_skill_id must be None."""
     import asyncio

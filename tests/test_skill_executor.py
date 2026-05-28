@@ -378,3 +378,262 @@ class TestM5ReEscalationDetected:
         assert result.get("step_instruction") and "Exit" in result["step_instruction"], (
             "s7_result=NEW_CRISIS must produce the exit_to_crisis_protocol instruction"
         )
+
+
+# ── Task 7: criteria_met param and _criteria_blocked sentinel ─────────────────
+
+def test_evaluate_step_policy_criteria_blocked_sentinel():
+    """When heuristic blocks advancement (single-word response), result must contain _criteria_blocked=True."""
+    skill = Skill(
+        skill_id="test_cbt",
+        skill_name="Test CBT",
+        skill_type="cbt",
+        evidence_base="test",
+        target_presentations=[],
+        steps=[
+            SkillStep(
+                step_id="step_1",
+                goal="Share a thought",
+                technique="Cognitive",
+                tone="warm",
+                examples=["example"],
+                completion_criteria="User has shared a specific thought they are struggling with",
+            )
+        ],
+        step_policy=[],
+        escalation_matrix={"L1": "Exit"},
+    )
+    result = evaluate_step_policy(
+        skill=skill,
+        current_step_id="step_1",
+        emotional_intensity=5,
+        engagement=7,
+        message_en="ok",  # single word — heuristic blocks
+    )
+    assert result.get("_criteria_blocked") is True
+    assert result["skill_complete"] is False
+
+
+def test_evaluate_step_policy_criteria_met_true_advances():
+    """When criteria_met=True is passed, step must advance regardless of word count."""
+    skill = Skill(
+        skill_id="test_cbt",
+        skill_name="Test CBT",
+        skill_type="cbt",
+        evidence_base="test",
+        target_presentations=[],
+        steps=[
+            SkillStep(
+                step_id="step_1",
+                goal="Share a thought",
+                technique="Cognitive",
+                tone="warm",
+                examples=["example"],
+                completion_criteria="User has shared a specific thought",
+            ),
+            SkillStep(
+                step_id="step_2",
+                goal="Challenge it",
+                technique="Socratic",
+                tone="warm",
+                examples=["example"],
+                completion_criteria="",
+            ),
+        ],
+        step_policy=[],
+        escalation_matrix={"L1": "Exit"},
+    )
+    result = evaluate_step_policy(
+        skill=skill,
+        current_step_id="step_1",
+        emotional_intensity=5,
+        engagement=7,
+        message_en="ok",  # single word — would fail heuristic
+        criteria_met=True,  # LLM says yes
+    )
+    assert result["action"] == "advance"
+    assert result["next_step_id"] == "step_2"
+    assert result.get("_criteria_blocked") is None
+
+
+def test_evaluate_step_policy_criteria_met_false_blocks():
+    """When criteria_met=False is passed, step must stay even for multi-word message."""
+    skill = Skill(
+        skill_id="test_cbt",
+        skill_name="Test CBT",
+        skill_type="cbt",
+        evidence_base="test",
+        target_presentations=[],
+        steps=[
+            SkillStep(
+                step_id="step_1",
+                goal="Share a thought",
+                technique="Cognitive",
+                tone="warm",
+                examples=["example"],
+                completion_criteria="User has named a specific thought",
+            )
+        ],
+        step_policy=[],
+        escalation_matrix={"L1": "Exit"},
+    )
+    result = evaluate_step_policy(
+        skill=skill,
+        current_step_id="step_1",
+        emotional_intensity=5,
+        engagement=7,
+        message_en="I guess I feel bad",  # multi-word — would pass heuristic
+        criteria_met=False,  # LLM says no
+    )
+    assert result["action"] == "stay"
+    assert result["skill_complete"] is False
+    assert result.get("_criteria_blocked") is True
+
+
+# ── Task 8: LLM criteria evaluator wired for 4 target skills ─────────────────
+
+@pytest.mark.asyncio
+async def test_post_crisis_check_in_uses_llm_evaluator_when_heuristic_fails():
+    """For post_crisis_check_in, a dismissive single-word response must trigger LLM evaluation.
+
+    If LLM says 'no', the step stays.
+    """
+    from sage_poc.nodes.skill_executor import skill_executor_node
+
+    state = {
+        "active_skill_id":   "post_crisis_check_in",
+        "active_step_id":    "acknowledge_and_check",
+        "message_en":        "ok",   # single word — heuristic would block
+        "emotional_intensity": 5,
+        "engagement":          7,
+        "new_clinical_flags_turn": [],
+        "resistance_history":  [],
+        "engagement_trajectory": [],
+        "s7_result":           None,
+        "therapeutic_profile": {},
+        "path":                [],
+        "crisis_state":        "monitoring",
+    }
+
+    # LLM says "no" — user hasn't confirmed safety
+    with patch(
+        "sage_poc.nodes.criteria_eval._call_llm",
+        new_callable=AsyncMock,
+        return_value="no",
+    ), patch(
+        "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        result = await skill_executor_node(state)
+
+    assert result["active_step_id"] == "acknowledge_and_check", \
+        "LLM said no; step should stay at acknowledge_and_check"
+    assert result["active_skill_id"] == "post_crisis_check_in"
+
+
+@pytest.mark.asyncio
+async def test_post_crisis_check_in_step_policy_rule_priority():
+    """When step_policy advance rule fires (intensity <= 4), criteria_eval is never called.
+
+    This validates rule priority — Phase 1 deterministic rules take precedence
+    over the criteria check. The LLM-advances case requires intensity above the
+    advance threshold so Phase 1 returns _criteria_blocked, not an advance action.
+    """
+    from sage_poc.nodes.skill_executor import skill_executor_node
+
+    state = {
+        "active_skill_id":   "post_crisis_check_in",
+        "active_step_id":    "acknowledge_and_check",
+        "message_en":        "ok",  # single word — heuristic would block
+        "emotional_intensity": 3,   # <= 4, triggers step_policy advance rule before criteria check
+        "engagement":          7,
+        "new_clinical_flags_turn": [],
+        "resistance_history":  [],
+        "engagement_trajectory": [],
+        "s7_result":           None,
+        "therapeutic_profile": {},
+        "path":                [],
+        "crisis_state":        "monitoring",
+    }
+
+    with patch(
+        "sage_poc.nodes.criteria_eval._call_llm",
+        new_callable=AsyncMock,
+    ) as mock_llm:
+        result = await skill_executor_node(state)
+
+    mock_llm.assert_not_called()
+    assert result["active_step_id"] == "bridge_or_close"
+
+
+@pytest.mark.asyncio
+async def test_post_crisis_check_in_llm_yes_advances_step():
+    """When no step_policy rule fires, LLM 'yes' must advance the step.
+
+    Uses emotional_intensity=6: above the advance threshold (<=4) so no rule fires,
+    but below any validate_only threshold. Phase 1 returns _criteria_blocked, then
+    the LLM evaluator is called and its 'yes' causes a re-run with criteria_met=True.
+    """
+    from sage_poc.nodes.skill_executor import skill_executor_node
+
+    state = {
+        "active_skill_id":   "post_crisis_check_in",
+        "active_step_id":    "acknowledge_and_check",
+        "message_en":        "ok",  # single word — heuristic blocks
+        "emotional_intensity": 6,   # above advance threshold — no step_policy rule fires
+        "engagement":          7,
+        "new_clinical_flags_turn": [],
+        "resistance_history":  [],
+        "engagement_trajectory": [],
+        "s7_result":           None,
+        "therapeutic_profile": {},
+        "path":                [],
+        "crisis_state":        "monitoring",
+    }
+
+    with patch(
+        "sage_poc.nodes.criteria_eval._call_llm",
+        new_callable=AsyncMock,
+        return_value="yes",
+    ) as mock_llm, patch(
+        "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        result = await skill_executor_node(state)
+
+    mock_llm.assert_called_once()
+    assert result["active_step_id"] == "bridge_or_close", \
+        "LLM said yes; step should advance to bridge_or_close"
+
+
+@pytest.mark.asyncio
+async def test_non_target_skill_does_not_use_llm_evaluator():
+    """box_breathing (not in the 4 target skills) must never call the LLM evaluator."""
+    from sage_poc.nodes.skill_executor import skill_executor_node
+
+    state = {
+        "active_skill_id":   "box_breathing",
+        "active_step_id":    "inhale",
+        "message_en":        "ok",   # single word
+        "emotional_intensity": 5,
+        "engagement":          7,
+        "new_clinical_flags_turn": [],
+        "resistance_history":  [],
+        "engagement_trajectory": [],
+        "s7_result":           None,
+        "therapeutic_profile": {},
+        "path":                [],
+        "crisis_state":        "none",
+    }
+
+    with patch(
+        "sage_poc.nodes.criteria_eval.evaluate_completion_criteria",
+        new_callable=AsyncMock,
+    ) as mock_eval:
+        result = await skill_executor_node(state)
+
+    mock_eval.assert_not_called()
+    # Single word — heuristic fails — step stays
+    assert result["active_step_id"] == "inhale"

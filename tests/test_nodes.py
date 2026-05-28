@@ -1939,15 +1939,15 @@ async def test_semantic_fallback_catches_nothing_good_enough():
 async def test_semantic_fallback_catches_spiralling():
     """Dissociative derealization keyword-misses; semantic fallback must catch → grounding.
 
-    NOTE: Original message 'things are spiralling out of control right now' scored 0.48–0.52
-    against the first-person somatic grounding description (below threshold).
-    Second substitution 'I feel like I'm falling apart and I can't stop it' scored higher
-    against cbt_thought_record (0.5893) than grounding (0.5596) after v3 description tightening.
-    Current phrase uses derealization/dissociative framing — confirmed grounding-best above
-    threshold (0.5790 vs threshold 0.5416) with no keyword hits.
+    NOTE: Original message 'things are spiralling out of control right now' scored 0.48–0.52.
+    Second substitution 'I feel like I'm falling apart and I can't stop it' pulled to cbt_thought_record.
+    Third substitution 'everything suddenly feels unreal...' pulled to mindfulness_body_scan after
+    its description was enriched with somatic/body-awareness language (scores: m=0.4945, g=0.4818).
+    Current phrase: derealization loss-of-reality framing — g=0.4622 (above threshold 0.459),
+    mindfulness_body_scan=0.4350 (below threshold), gap=+0.027, no keyword hits.
     """
     state = make_state(
-        message_en="everything suddenly feels unreal and I feel like I am watching from outside my body"
+        message_en="I feel like I am losing touch with reality, everything looks strange and distant"
     )
     result = await skill_select_node(state)
     assert result["active_skill_id"] == "grounding_5_4_3_2_1", (
