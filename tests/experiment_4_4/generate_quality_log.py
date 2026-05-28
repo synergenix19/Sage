@@ -179,6 +179,7 @@ async def _run_scenario(
 
         state["active_skill_id"] = exec_result.get("active_skill_id")
         state["active_step_id"]  = exec_result.get("active_step_id", state["active_step_id"])
+        state["prev_step_id"]    = exec_result.get("prev_step_id")
         state["resistance_history"] = list(exec_result.get("resistance_history") or state["resistance_history"])
         state["conversation_history"] = list(conversation_history)
         # Use the scenario's recurring message (matches state signals) rather than
