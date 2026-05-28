@@ -195,16 +195,151 @@ export interface ProgressData {
   clinicalFlags: { flag: string; copy: string }[]
 }
 
+// ── Internal helpers for fetchAllProgressData ──────────────────────────────────
+// These accept pre-fetched session data to avoid redundant DB round-trips.
+
+async function _fetchEngagement(
+  client: SupabaseClient,
+  recentSessionIds: string[],
+  cutoff: string,
+): Promise<EngagementStats> {
+  if (recentSessionIds.length === 0) return { sessionCount: 0, skillsUsedCount: 0 }
+  const { data: skillMsgs } = await client
+    .from('messages')
+    .select('skill_id')
+    .in('session_id', recentSessionIds)
+    .gte('created_at', cutoff)
+    .not('skill_id', 'is', null)
+  const distinctSkills = new Set((skillMsgs ?? []).map(m => m.skill_id as string))
+  return { sessionCount: recentSessionIds.length, skillsUsedCount: distinctSkills.size }
+}
+
+async function _fetchMoodTrajectory(
+  client: SupabaseClient,
+  allSessionIds: string[],
+  sessionNameMap: Map<string, string | null>,
+): Promise<MoodPoint[]> {
+  if (allSessionIds.length === 0) return []
+  const { data: rows } = await client
+    .from('messages')
+    .select('created_at, emotional_intensity, session_id')
+    .in('session_id', allSessionIds)
+    .eq('role', 'ai')
+    .gte('created_at', TWENTY_ONE_DAYS_AGO())
+    .not('emotional_intensity', 'is', null)
+    .order('created_at')
+  const groups: Record<string, { intensities: number[]; lastSessionId: string }> = {}
+  for (const row of rows ?? []) {
+    const day = (row.created_at as string).slice(0, 10)
+    if (!groups[day]) groups[day] = { intensities: [], lastSessionId: row.session_id as string }
+    groups[day].intensities.push(row.emotional_intensity as number)
+    groups[day].lastSessionId = row.session_id as string
+  }
+  return Object.entries(groups)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([day, { intensities, lastSessionId }]) => {
+      const avg = intensities.reduce((s, v) => s + v, 0) / intensities.length
+      return {
+        day,
+        avgIntensity: Math.round((5 - avg / 2) * 10) / 10,
+        sessionName: sessionNameMap.get(lastSessionId) ?? null,
+      }
+    })
+}
+
+async function _fetchRecentTopics(
+  client: SupabaseClient,
+  allSessionIds: string[],
+): Promise<TopicStat[]> {
+  if (allSessionIds.length === 0) return []
+  const { data: rows } = await client
+    .from('messages')
+    .select('intent_classification')
+    .in('session_id', allSessionIds)
+    .gte('created_at', THIRTY_DAYS_AGO())
+    .not('intent_classification', 'is', null)
+  const EXCLUDED = new Set(['scope_refusal', 'jailbreak', 'exit_skill', 'unknown'])
+  const counts: Record<string, number> = {}
+  for (const row of rows ?? []) {
+    const topic = row.intent_classification as string
+    if (EXCLUDED.has(topic)) continue
+    counts[topic] = (counts[topic] ?? 0) + 1
+  }
+  return Object.entries(counts)
+    .map(([topic, count]) => ({ topic, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6)
+}
+
+async function _fetchSkillsUsed(
+  client: SupabaseClient,
+  allSessionIds: string[],
+): Promise<SkillStat[]> {
+  if (allSessionIds.length === 0) return []
+  const { data: rows } = await client
+    .from('messages')
+    .select('skill_id')
+    .in('session_id', allSessionIds)
+    .not('skill_id', 'is', null)
+  const seen = new Set<string>()
+  const result: SkillStat[] = []
+  for (const row of rows ?? []) {
+    const id = row.skill_id as string
+    if (!seen.has(id)) { seen.add(id); result.push({ skillId: id }) }
+  }
+  return result
+}
+
+async function _fetchClinicalFlags(
+  client: SupabaseClient,
+  allSessionIds: string[],
+): Promise<{ flag: string; copy: string }[]> {
+  if (allSessionIds.length === 0) return []
+  const { data: rows } = await client
+    .from('messages')
+    .select('clinical_flags')
+    .in('session_id', allSessionIds)
+    .not('clinical_flags', 'is', null)
+  const seen = new Set<string>()
+  const result: { flag: string; copy: string }[] = []
+  for (const row of rows ?? []) {
+    for (const flag of (row.clinical_flags as string[]) ?? []) {
+      if (!seen.has(flag) && CLINICAL_FLAG_COPY[flag]) {
+        seen.add(flag)
+        result.push({ flag, copy: CLINICAL_FLAG_COPY[flag] })
+      }
+    }
+  }
+  return result
+}
+
 export async function fetchAllProgressData(
   client: SupabaseClient,
   userId: string
 ): Promise<ProgressData> {
+  const cutoff21 = TWENTY_ONE_DAYS_AGO()
+
+  // Single session fetch shared across all five queries — avoids 5 redundant DB round-trips.
+  const { data: allSessions } = await client
+    .from('chat_sessions')
+    .select('id, name, created_at')
+    .eq('user_id', userId)
+
+  const sessions = allSessions ?? []
+  const allIds = sessions.map(s => s.id as string)
+  const recentIds = sessions
+    .filter(s => (s.created_at as string) >= cutoff21)
+    .map(s => s.id as string)
+  const sessionNameMap = new Map<string, string | null>(
+    sessions.map(s => [s.id as string, s.name as string | null])
+  )
+
   const [engagement, moodTrajectory, topics, skills, clinicalFlags] = await Promise.all([
-    fetchEngagement(client, userId),
-    fetchMoodTrajectory(client, userId),
-    fetchRecentTopics(client, userId),
-    fetchSkillsUsed(client, userId),
-    fetchClinicalFlagsForUser(client, userId),
+    _fetchEngagement(client, recentIds, cutoff21),
+    _fetchMoodTrajectory(client, allIds, sessionNameMap),
+    _fetchRecentTopics(client, allIds),
+    _fetchSkillsUsed(client, allIds),
+    _fetchClinicalFlags(client, allIds),
   ])
   return { engagement, moodTrajectory, topics, skills, clinicalFlags }
 }
