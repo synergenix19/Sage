@@ -29,7 +29,10 @@ SCHEMA_CONFORMANCE: dict[str, dict] = {
     "step.examples": {
         "status": "USED",
         "injected_by": "compose_prompt → _build_l3_skill_block → _select_few_shot_examples ({few_shot_block})",
-        "note": "Up to 2 examples selected; Arabic examples prioritised for ar-language users.",
+        "note": (
+            "Up to 2 examples selected. For Arabic users, an Arabic example is prioritised first "
+            "when multiple examples exist. Single-example steps are returned as-is regardless of language."
+        ),
     },
     "step.contraindications": {
         "status": "USED",
@@ -56,13 +59,21 @@ SCHEMA_CONFORMANCE: dict[str, dict] = {
     },
     "skill.escalation_matrix.L1": {
         "status": "USED",
-        "injected_by": "skill_executor_node",
-        "note": "Read as the exit instruction when primary_intent=exit_skill.",
+        "injected_by": "skill_executor_node → check_escalation (phrase-triggered hard exit)",
+        "note": (
+            "Read as the step instruction when the user's message matches an explicit stop-phrase "
+            "(e.g., 'I'm done', 'can we stop'). Also invoked when primary_intent=exit_skill routes "
+            "to skill_executor. Editing this text changes what the LLM is instructed to say on exit."
+        ),
     },
     "skill.escalation_matrix.L2": {
         "status": "STORED_ONLY",
         "injected_by": None,
-        "note": "Parsed and validated. Not evaluated at runtime in this version.",
+        "note": (
+            "The text value is not read at runtime. A separate L2 advisory mechanism in "
+            "skill_executor (clinical flag phrase detection) does fire independently, "
+            "but uses a hardcoded action, not this field's text."
+        ),
     },
     "skill.escalation_matrix.L3": {
         "status": "STORED_ONLY",
@@ -104,5 +115,5 @@ def get_conformance_report() -> dict:
             "stored_only": len(stored_only),
             "total": len(SCHEMA_CONFORMANCE),
         },
-        "fields": SCHEMA_CONFORMANCE,
+        "fields": dict(SCHEMA_CONFORMANCE),
     }

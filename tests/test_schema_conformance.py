@@ -74,4 +74,14 @@ def test_get_conformance_report_is_json_serializable():
 
 
 def test_total_field_count_is_15():
-    assert len(SCHEMA_CONFORMANCE) == 15
+    assert len(SCHEMA_CONFORMANCE) == 15, (
+        f"Got {len(SCHEMA_CONFORMANCE)} fields — update this count when adding new schema fields"
+    )
+
+
+def test_used_and_partial_fields_have_injected_by():
+    for field, info in SCHEMA_CONFORMANCE.items():
+        if info["status"] in ("USED", "PARTIAL"):
+            assert info.get("injected_by") is not None, (
+                f"{field} has status {info['status']!r} but injected_by is None"
+            )
