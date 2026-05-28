@@ -827,6 +827,423 @@ Sage's knowledge base contains four crisis-related articles that can surface whe
 
 ---
 
+---
+
+# SECTION F — Arabic Output Quality: Khaleeji Translation Validation
+
+## What is this?
+
+Sage responds to Arabic-speaking users by generating an English therapeutic response and then translating it to Gulf Arabic (Khaleeji dialect) using a dedicated translation step. This section documents the first validation run of that translation pipeline after the prompt was updated from generic "Modern Standard Arabic" to a Khaleeji-specific, therapeutic-register-aware instruction.
+
+**Your review is required for two purposes:**
+
+1. **Translation quality scoring (F-01 to F-14):** Confirm that the 14 Arabic outputs meet clinical standards for dialect, warmth, naturalness, and appropriateness. The outputs are a mix of isolated translations (F-01 to F-10) and end-to-end pipeline outputs where GPT-4o generated a response and it was then translated (F-11 to F-14).
+
+2. **Three specific clinical questions (F-Q1 to F-Q3):** Three findings emerged during the validation run that require a clinical judgment, not a technical one.
+
+**KPI gate (translation quality):** Average score ≥ 3.5 / 5.0 across all 4 scoring dimensions for every output. No single dimension may score below 3.0 for any output.
+
+---
+
+## Scoring rubric
+
+For each output, score on 4 dimensions (1–5):
+
+| Dimension | 5 | 1 |
+|---|---|---|
+| **Dialect** | Clearly Khaleeji Gulf Arabic — sounds like someone from the Gulf | Formal MSA or non-Gulf Arabic |
+| **Warmth** | Emotional warmth of the source is fully preserved | Flat, cold, or emotionally distant |
+| **Naturalness** | Sounds like something a real person would say | Sounds like it was translated by a machine |
+| **Appropriateness** | No clinical jargon, culturally sensitive | Formal medical terminology or culturally tone-deaf |
+
+---
+
+## F-01 to F-10 — Isolated Translation Outputs
+
+These 10 outputs test the translation step in isolation. The English input is a hand-crafted representative therapeutic response. The Arabic output is what the user would receive.
+
+---
+
+### F-01 — High-emotion, warmth survival
+
+**English input:**
+> I hear you. Carrying that kind of heaviness every single day is exhausting. What has been the hardest part for you this week?
+
+**Arabic output:**
+> أسمعك. تحمل هالعبء كل يوم شي متعب. شنو كان أصعب شي مر عليك هالأسبوع؟
+
+**REVIEWER SCORING — F-01**
+
+| Dimension | Score (1–5) | Notes |
+|---|---|---|
+| Dialect | | |
+| Warmth | | |
+| Naturalness | | |
+| Appropriateness | | |
+
+---
+
+### F-02 — Invalidation/invisibility, warmth survival
+
+**English input:**
+> That makes complete sense. When you give so much to everyone else and still feel invisible, it wears you down in a way that is hard to explain to people.
+
+**Arabic output:**
+> هذا الكلام منطقي تمامًا. لما تعطي كل شيء للناس حولك وتحس إنك غير مرئي، هالشي يرهقك بطريقة صعبة توصفها للناس.
+
+**REVIEWER SCORING — F-02**
+
+| Dimension | Score (1–5) | Notes |
+|---|---|---|
+| Dialect | | |
+| Warmth | | |
+| Naturalness | | |
+| Appropriateness | | |
+
+---
+
+### F-03 — Anxiety psychoeducation, clinical language check
+
+**English input:**
+> Anxiety sometimes shows up in the body as tension or tightness. We could try something simple together that might help things settle a little. Would that be okay?
+
+**Arabic output:**
+> القلق أحيانًا يظهر في الجسم كتوتر أو شد. ممكن نجرب شي بسيط مع بعض يمكن يساعد الأمور تهدأ شوي. شرايك؟
+
+**Note:** `القلق` (anxiety) and `توتر` (tension) are common everyday words in Gulf Arabic, not clinical jargon. Confirm this reads naturally to a Gulf user.
+
+**REVIEWER SCORING — F-03**
+
+| Dimension | Score (1–5) | Notes |
+|---|---|---|
+| Dialect | | |
+| Warmth | | |
+| Naturalness | | |
+| Appropriateness | | |
+
+---
+
+### F-04 — Depression normalisation, clinical language check
+
+**English input:**
+> What you are describing, the low energy, the loss of interest in things you used to enjoy, makes sense as your mind protecting itself when things get too heavy.
+
+**Arabic output:**
+> اللي قاعد تقوله، الطاقة المنخفضة وفقدان الاهتمام بالأشياء اللي كنت تحبها، هالشي طبيعي لأن عقلك يحاول يحمي نفسه لما الأمور تصير ثقيلة.
+
+**REVIEWER SCORING — F-04**
+
+| Dimension | Score (1–5) | Notes |
+|---|---|---|
+| Dialect | | |
+| Warmth | | |
+| Naturalness | | |
+| Appropriateness | | |
+
+---
+
+### F-05 — Soul fatigue, warmth survival
+
+**English input:**
+> That kind of tiredness, when you are exhausted in your soul and not just your body, is real. What do you need most right now?
+
+**Arabic output:**
+> ذاك التعب اللي تحس فيه مو بس في جسمك، لكن في روحك بعد، هو شي حقيقي. شنو تحتاج الحين أكثر؟
+
+**REVIEWER SCORING — F-05**
+
+| Dimension | Score (1–5) | Notes |
+|---|---|---|
+| Dialect | | |
+| Warmth | | |
+| Naturalness | | |
+| Appropriateness | | |
+
+---
+
+### F-06 — Caretaking burden, normalisation
+
+**English input:**
+> Sometimes the weight of feeling like you have to hold everything together, especially when no one asks how you are, really gets to you. That is not weakness.
+
+**Arabic output:**
+> أحيانًا تحس إنك مضغوط تحافظ على كل شيء، خصوصًا لما ما حد يسألك عن حالك، وهذا فعلاً يأثر عليك. بس هذي مو ضعف.
+
+**REVIEWER SCORING — F-06**
+
+| Dimension | Score (1–5) | Notes |
+|---|---|---|
+| Dialect | | |
+| Warmth | | |
+| Naturalness | | |
+| Appropriateness | | |
+
+---
+
+### F-07 — Patience and courage (gender-neutral English → note gender default)
+
+**English input:**
+> You have been carrying this with so much patience. Asking for support when things are this heavy takes real courage.
+
+**Arabic output:**
+> أنت تحمل هالشي بقدر كبير من الصبر. تطلب الدعم لما تكون الأمور ثقيلة مثل هالشي يحتاج شجاعة حقيقية.
+
+**Note:** The English source is gender-neutral. The Arabic defaulted to masculine forms (`أنت تحمل`, `تطلب`). See Clinical Question F-Q3 below.
+
+**REVIEWER SCORING — F-07**
+
+| Dimension | Score (1–5) | Notes |
+|---|---|---|
+| Dialect | | |
+| Warmth | | |
+| Naturalness | | |
+| Appropriateness | | |
+
+---
+
+### F-08 — Insight and self-recognition (gender-neutral English)
+
+**English input:**
+> That is a real insight about yourself. Recognising your own strength even in difficult moments is something worth holding onto.
+
+**Arabic output:**
+> هذي نظرة حقيقية عن نفسك. إنك تعرف قوتك حتى في الأوقات الصعبة شي يستاهل إنك تتمسك فيه.
+
+**Note:** Same gender default observation as F-07. `يستاهل` (worth it) is Khaleeji dialect — confirm this reads naturally.
+
+**REVIEWER SCORING — F-08**
+
+| Dimension | Score (1–5) | Notes |
+|---|---|---|
+| Dialect | | |
+| Warmth | | |
+| Naturalness | | |
+| Appropriateness | | |
+
+---
+
+### F-09 — Strength in reaching out
+
+**English input:**
+> There is something meaningful in the fact that you are here today. Finding support when you are struggling is a kind of strength too.
+
+**Arabic output:**
+> فيه شي مهم إنك موجود اليوم. إنك تلاقي دعم لما تكون تعاني هذي قوة بحد ذاتها.
+
+**REVIEWER SCORING — F-09**
+
+| Dimension | Score (1–5) | Notes |
+|---|---|---|
+| Dialect | | |
+| Warmth | | |
+| Naturalness | | |
+| Appropriateness | | |
+
+---
+
+### F-10 — Not carrying it alone
+
+**English input:**
+> You have been patient with yourself through a lot. Whatever today brings, you do not have to carry it alone.
+
+**Arabic output:**
+> أنت صبرت على نفسك كثير. مهما كان اللي يجي اليوم، ما تحتاج تتحمله بروحك.
+
+**Note:** `بروحك` (alone / by yourself) is a Khaleeji expression — confirm this reads naturally and carries the intended warmth.
+
+**REVIEWER SCORING — F-10**
+
+| Dimension | Score (1–5) | Notes |
+|---|---|---|
+| Dialect | | |
+| Warmth | | |
+| Naturalness | | |
+| Appropriateness | | |
+
+---
+
+## F-11 to F-14 — End-to-End Pipeline Outputs
+
+These 4 outputs test the full pipeline: a real Arabic or Arabizi user message was processed by Sage's intent and skill routing, GPT-4o generated a therapeutic response, and that response was translated to Arabic. You are reviewing the final Arabic output the user would see.
+
+---
+
+### F-11 — High-emotion freeflow response to Arabic input
+
+**User message (Arabic):** `والله أنا تعبان من كل شي ومو قادر أكمل`
+
+**GPT-4o English response (intermediate):**
+> It sounds like you're really overwhelmed right now. What's been the hardest part for you lately?
+
+**Arabic output (user sees):**
+> يبدو إنك مرهق حيل هالأيام. شنو أصعب شي مريت فيه مؤخراً؟
+
+**Technical note:** `حيل` (very/really), `هالأيام` (these days), `شنو` (what), `مريت فيه` (you went through) are Khaleeji markers. See Clinical Question F-Q1 regarding the opener.
+
+**REVIEWER SCORING — F-11**
+
+| Dimension | Score (1–5) | Notes |
+|---|---|---|
+| Dialect | | |
+| Warmth | | |
+| Naturalness | | |
+| Appropriateness | | |
+
+---
+
+### F-12 — CBT Socratic step response to Arabic self-blame input
+
+**User message (Arabic):** `أحس إن كل شي غلطتي دايم`
+
+**GPT-4o response (generated directly in Arabic due to Arabic examples in skill context):**
+> هالشعور صعب وايد. لما تحس إن كل شي عليك، شنو تحديدًا يدور في بالك؟ شنو الأفكار اللي تطري عليك لما تحس بهالشعور؟
+
+**Arabic output (user sees, after translation pass):**
+> هالشعور صعب وايد. لما تحس إن كل شي عليك، شنو بالضبط يدور في بالك؟ شنو الأفكار اللي تخطر على بالك لما تحس بهالشعور؟
+
+**Technical note:** GPT-4o generated Arabic directly when Arabic CBT examples were present in the prompt context. The translation pass produced near-identical Khaleeji Arabic with minor rewording. `وايد` (very/a lot — Khaleeji), `شنو` (what), `يدور في بالك` (on your mind).
+
+**Clinical question for this output:** Do both therapeutic questions (`شنو تحديدًا يدور في بالك؟` / `شنو الأفكار اللي تطري عليك؟`) preserve valid Socratic quality? Are they genuinely open and non-leading in Arabic as intended?
+
+**REVIEWER SCORING — F-12**
+
+| Dimension | Score (1–5) | Notes |
+|---|---|---|
+| Dialect | | |
+| Warmth | | |
+| Naturalness | | |
+| Appropriateness | | |
+| **Socratic questions are open and non-leading (yes/no):** | | |
+
+---
+
+### F-13 — Response to Arabizi input *(future capability — not current pipeline behaviour)*
+
+**User message (Arabizi/Latin script):** `ta3abt wallah mn el7ayat ma abga akamil`
+
+**GPT-4o English response:**
+> That sounds really tough. I'm here for you. Can you tell me more about what's been happening?
+
+**Arabic output (user sees):**
+> هذا يبدو صعب مرة. أنا هنا معك. ممكن تحكي لي أكثر عن اللي قاعد يصير؟
+
+**Important note:** In the current live pipeline, a user writing Arabizi (Latin-script Arabic) is classified as an English-speaking user and receives an English response — the Arabic translation step is never triggered. This output tests what the translation *would* produce if a future version of Sage extends Khaleeji responses to Arabizi users. **Do not interpret this output as current system behaviour.** `مرة` (very — Khaleeji), `قاعد يصير` (is happening — Gulf progressive marker). See Clinical Question F-Q1 for the opener.
+
+**REVIEWER SCORING — F-13 (score as future capability)**
+
+| Dimension | Score (1–5) | Notes |
+|---|---|---|
+| Dialect | | |
+| Warmth | | |
+| Naturalness | | |
+| Appropriateness | | |
+
+---
+
+### F-14 — Response to religious framing input
+
+**User message (Arabic):** `ربي يصبرني أنا مو عارف كيف أكمل مع أهلي`
+
+**GPT-4o response (generated directly in Arabic):**
+> تبدو الأمور صعبة عليك الآن مع عائلتك. شلون أقدر أساعدك؟
+
+**Arabic output (user sees, after translation pass):**
+> أشوف الأمور صعبة عليك مع عائلتك الحين. شلون أقدر أساعدك؟
+
+**`شلون`** (how — Khaleeji), **`الحين`** (now — Gulf).
+
+**Clinical question for this output:** The user opened with `ربي يصبرني` — a religious expression asking God for patience. Sage's response did not acknowledge this expression and moved directly to empathy and an offer of help. See Clinical Question F-Q2 below for the specific judgment needed.
+
+**REVIEWER SCORING — F-14**
+
+| Dimension | Score (1–5) | Notes |
+|---|---|---|
+| Dialect | | |
+| Warmth | | |
+| Naturalness | | |
+| Appropriateness | | |
+
+---
+
+## Clinical Questions Requiring Judgment
+
+### F-Q1 — "It sounds like / يبدو" as an opener
+
+**Context:** Outputs F-11 and F-13 both begin with a formula Sage's persona guidelines explicitly ban in English: "It sounds like…" and "That sounds really tough." In Arabic translation these became `يبدو إنك مرهق` and `هذا يبدو صعب مرة`.
+
+**Technical background:** The English persona rule bans these openers because they sound formulaic and impersonal. Whether the same rule applies to the Arabic rendering — or whether `يبدو إنك مرهق حيل هالأيام` reads naturally and warmly in Khaleeji — is a clinical/cultural question, not a technical one.
+
+**Your judgment needed:**
+
+- [ ] **In Arabic/Khaleeji, these openers are natural and warm — no change needed**
+- [ ] **In Arabic/Khaleeji, these openers also feel formulaic — Sage should be instructed to avoid them in Arabic as well**
+- [ ] **Mixed — يبدو is acceptable, but the full "That sounds really tough → هذا يبدو صعب" is not (or vice versa)**
+
+**Notes:**  
+&nbsp;  
+&nbsp;  
+&nbsp;
+
+---
+
+### F-Q2 — Responding to a religious expression without acknowledging it
+
+**Context:** In F-14 the user opened with `ربي يصبرني` (God grant me patience). Sage's response did not acknowledge this expression — it moved directly to empathy for the family difficulty. Two clinical positions are possible:
+
+**Position A — Acknowledge the expression:** Responding to `ربي يصبرني` without acknowledging it may feel dismissive to a religiously observant Gulf user. A response that briefly receives the religious register before moving to support (e.g., "الصبر شي عظيم — وإنت تحتاجه الحين") better meets the user where they are.
+
+**Position B — Proceeding to support is appropriate:** `ربي يصبرني` is a common emotional expression in Gulf Arabic, not a specifically religious statement requiring religious engagement. Acknowledging it explicitly risks introducing unsolicited religious framing. Moving directly to empathy and an offer of help is clinically appropriate.
+
+**Your judgment needed:**
+
+- [ ] **Position A — Sage should acknowledge the expression before moving to support**
+- [ ] **Position B — Proceeding directly to support is appropriate**
+- [ ] **Context-dependent — describe the rule below**
+
+**Notes:**  
+&nbsp;  
+&nbsp;  
+&nbsp;
+
+---
+
+### F-Q3 — Gender default: masculine forms when speaker's gender is unknown
+
+**Context:** Outputs F-07, F-08, and F-14 use masculine grammatical forms (`أنت تحمل`, `تطلب`, `صعبة عليك`) when the user's gender is not known from context. Arabic requires grammatical gender agreement throughout a sentence; the translation function does not currently receive the user's profile data, so it defaults to one form.
+
+**Clinical question:** Is masculine-default acceptable for a Gulf wellness application — i.e., is this a normal expectation in Gulf Arabic communication when gender is ambiguous — or does it risk alienating female users?
+
+**Your judgment needed:**
+
+- [ ] **Masculine default is acceptable in Gulf Arabic when gender is ambiguous — no change needed for MVP**
+- [ ] **Female users are a core demographic and masculine default is clinically unacceptable — prioritise a fix before demo**
+- [ ] **Acceptable for MVP, but must be addressed before full production launch**
+
+**Notes:**  
+&nbsp;  
+&nbsp;  
+&nbsp;
+
+---
+
+**SECTION F CONFIRMATION**
+
+- [ ] **SCORING COMPLETE** — I have scored all 14 outputs (F-01 to F-14) across all 4 dimensions
+- [ ] **KPI PASS** — All 14 outputs average ≥ 3.5/5.0, no dimension below 3.0 for any output
+- [ ] **KPI FAIL** — One or more outputs below threshold — flag for remediation
+- [ ] **F-Q1 judgment recorded** — opener convention in Arabic
+- [ ] **F-Q2 judgment recorded** — religious expression acknowledgement
+- [ ] **F-Q3 judgment recorded** — gender default policy
+
+**Reviewer name/initials:** _______________  
+**Date of review:** _______________  
+**Notes (overall observations, dialect concerns, outputs that raised unexpected questions):**  
+&nbsp;  
+&nbsp;  
+&nbsp;
+
+---
+
 ## Return Instructions
 
 When you have completed your review:

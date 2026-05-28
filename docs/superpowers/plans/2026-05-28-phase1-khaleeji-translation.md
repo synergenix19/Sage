@@ -679,6 +679,7 @@ GPT-4o's therapeutic phrasing (complex embedded clauses, hedged multi-part quest
 - ✅ Arabizi register-shift check: Task 5 E2E-3
 - ✅ Socratic question structure preservation check: Task 5 E2E-2
 - ✅ Gender limitation documented: Task 4 known limitation section
+- ⏳ Phase 2 (conversation history stores English; conditional Arabic write for Falcon deferred to Falcon transition milestone): A4.5
 
 **Placeholder scan:** None found.
 
