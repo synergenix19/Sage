@@ -637,3 +637,89 @@ async def test_non_target_skill_does_not_use_llm_evaluator():
     mock_eval.assert_not_called()
     # Single word — heuristic fails — step stays
     assert result["active_step_id"] == "inhale"
+
+
+# ── Fix 2: skip-once continuation advancement ─────────────────────────────────
+
+class TestSkipOnceAdvancement:
+    """_SKIP_ONCE_ACTIONS: entry turn fires rule; continuation turn with completion met advances."""
+
+    def _mi_skill(self):
+        from sage_poc.skills.schema import load_skill
+        return load_skill("mi_readiness_ruler")
+
+    def test_entry_turn_skip_rule_fires(self):
+        """Turn 1 (prev_step_id=None): skip_psychoeducation fires, step stays on importance_ruler."""
+        skill = self._mi_skill()
+        result = evaluate_step_policy(
+            skill=skill,
+            current_step_id="importance_ruler",
+            emotional_intensity=4,
+            engagement=7,
+            message_en="I've been thinking about exercising more.",
+            prior_exposure=3,
+            prev_step_id=None,
+        )
+        assert result["action"] == "skip_psychoeducation"
+        assert result["next_step_id"] == "importance_ruler"
+        assert result.get("_det_rule_fired") is True
+
+    def test_continuation_turn_advances_past_skip_rule(self):
+        """Turn 2 (prev_step_id==current): skip rule bypassed, completion advances step."""
+        skill = self._mi_skill()
+        result = evaluate_step_policy(
+            skill=skill,
+            current_step_id="importance_ruler",
+            emotional_intensity=4,
+            engagement=7,
+            message_en="I'd say about a 7. It matters to me but I keep stopping.",
+            prior_exposure=3,
+            prev_step_id="importance_ruler",
+        )
+        assert result["action"] == "advance"
+        assert result["next_step_id"] == "confidence_ruler"
+
+    def test_hold_rule_blocks_continuation_advancement(self):
+        """validate_only is NOT in _SKIP_ONCE_ACTIONS — holds even on continuation turns."""
+        skill = self._mi_skill()
+        result = evaluate_step_policy(
+            skill=skill,
+            current_step_id="importance_ruler",
+            emotional_intensity=9,
+            engagement=7,
+            message_en="I'd say about a 7. It matters to me.",
+            prior_exposure=3,
+            prev_step_id="importance_ruler",
+        )
+        assert result["action"] == "validate_only"
+        assert result["next_step_id"] == "importance_ruler"
+
+    @pytest.mark.asyncio
+    async def test_node_returns_prev_step_id_for_checkpoint(self):
+        """skill_executor_node must return prev_step_id so it persists via LangGraph checkpoint."""
+        from sage_poc.nodes.skill_executor import skill_executor_node
+
+        state = {
+            "active_skill_id":         "mi_readiness_ruler",
+            "active_step_id":          "importance_ruler",
+            "message_en":              "I've been thinking about exercising more.",
+            "emotional_intensity":     4,
+            "engagement":              7,
+            "new_clinical_flags_turn": [],
+            "resistance_history":      [],
+            "engagement_trajectory":   [],
+            "s7_result":               None,
+            "therapeutic_profile":     {"techniques_used": ["mi_readiness_ruler"] * 3},
+            "path":                    [],
+            "crisis_state":            "none",
+            "prev_step_id":            None,
+        }
+
+        with patch(
+            "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
+            new=AsyncMock(return_value=None),
+        ):
+            result = await skill_executor_node(state)
+
+        assert result["prev_step_id"] == "importance_ruler"
+        assert result["active_step_id"] == "importance_ruler"  # stays on entry turn
