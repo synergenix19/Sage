@@ -1,0 +1,298 @@
+"""
+Experiment 4.6 — 20 blended intent scenario definitions.
+
+Each scenario dict:
+  id                : unique identifier (B01–B20)
+  primary_intent    : primary routing intent
+  secondary_intent  : secondary intent (or None)
+  message           : representative user message
+  expected_route    : expected _route_after_intent output
+  active_skill_id   : active skill (or None)
+  confidence        : intent_confidence value (≥0.6 so routing is deterministic)
+  emotional_intensity : 1-10
+  engagement        : 1-10
+  description       : human-readable label
+  knowledge_expected: True when secondary=info_request → knowledge injection expected
+
+Routing reference (_route_after_intent in graph.py):
+  - crisis   → "crisis"  (regardless of secondary)
+  - scope_refusal/jailbreak → "gate"  (secondary ignored)
+  - exit_skill + active_skill_id → "skill_executor"
+  - exit_skill + no active_skill_id → "freeflow"
+  - new_skill / info_request → "skill_select"
+  - skill_continuation + active_skill_id → "skill_executor"
+  - skill_continuation + no active_skill_id → "freeflow"
+  - general_chat → "freeflow"
+"""
+
+ALL_SCENARIOS: list[dict] = [
+    # ── B01-B04: skill_continuation + info_request (active skill present) ──
+    {
+        "id": "B01",
+        "primary_intent": "skill_continuation",
+        "secondary_intent": "info_request",
+        "message": "I've been doing the thought record — also, is CBT evidence-based?",
+        "expected_route": "skill_executor",
+        "active_skill_id": "cbt_thought_record",
+        "confidence": 0.85,
+        "emotional_intensity": 5,
+        "engagement": 7,
+        "description": "Skill continuation with factual question",
+        "knowledge_expected": True,
+    },
+    {
+        "id": "B02",
+        "primary_intent": "skill_continuation",
+        "secondary_intent": "info_request",
+        "message": "I did my activity scheduling today — what exactly is behavioral activation?",
+        "expected_route": "skill_executor",
+        "active_skill_id": "behavioral_activation",
+        "confidence": 0.83,
+        "emotional_intensity": 4,
+        "engagement": 8,
+        "description": "BA skill continuation with factual question",
+        "knowledge_expected": True,
+    },
+    {
+        "id": "B03",
+        "primary_intent": "skill_continuation",
+        "secondary_intent": "info_request",
+        "message": "I rated my readiness a 6 — how does motivational interviewing work exactly?",
+        "expected_route": "skill_executor",
+        "active_skill_id": "mi_readiness_ruler",
+        "confidence": 0.84,
+        "emotional_intensity": 4,
+        "engagement": 7,
+        "description": "MI skill continuation with factual question",
+        "knowledge_expected": True,
+    },
+    {
+        "id": "B04",
+        "primary_intent": "skill_continuation",
+        "secondary_intent": "info_request",
+        "message": "I practiced the assertive script — is this type of communication therapy proven to work?",
+        "expected_route": "skill_executor",
+        "active_skill_id": "assertive_communication",
+        "confidence": 0.82,
+        "emotional_intensity": 5,
+        "engagement": 7,
+        "description": "Assertive communication skill + factual question",
+        "knowledge_expected": True,
+    },
+    # ── B05-B07: new_skill + info_request ──
+    {
+        "id": "B05",
+        "primary_intent": "new_skill",
+        "secondary_intent": "info_request",
+        "message": "I keep blaming myself for everything — also, is CBT something that could help?",
+        "expected_route": "skill_select",
+        "active_skill_id": None,
+        "confidence": 0.87,
+        "emotional_intensity": 6,
+        "engagement": 7,
+        "description": "Distress + what is CBT",
+        "knowledge_expected": True,
+    },
+    {
+        "id": "B06",
+        "primary_intent": "new_skill",
+        "secondary_intent": "info_request",
+        "message": "I've been having panic attacks every morning — what kind of therapy is recommended for anxiety?",
+        "expected_route": "skill_select",
+        "active_skill_id": None,
+        "confidence": 0.86,
+        "emotional_intensity": 7,
+        "engagement": 6,
+        "description": "Anxiety + therapy question",
+        "knowledge_expected": True,
+    },
+    {
+        "id": "B07",
+        "primary_intent": "new_skill",
+        "secondary_intent": "info_request",
+        "message": "I've felt flat and joyless for weeks — is there evidence that exercises like this actually help depression?",
+        "expected_route": "skill_select",
+        "active_skill_id": None,
+        "confidence": 0.85,
+        "emotional_intensity": 7,
+        "engagement": 6,
+        "description": "Depression + evidence question",
+        "knowledge_expected": True,
+    },
+    # ── B08-B09: new_skill + general_chat ──
+    {
+        "id": "B08",
+        "primary_intent": "new_skill",
+        "secondary_intent": "general_chat",
+        "message": "I've been really struggling with intrusive thoughts lately — anyway, how are you doing?",
+        "expected_route": "skill_select",
+        "active_skill_id": None,
+        "confidence": 0.80,
+        "emotional_intensity": 6,
+        "engagement": 6,
+        "description": "Distress + contextual affect (small talk blend)",
+        "knowledge_expected": False,
+    },
+    {
+        "id": "B09",
+        "primary_intent": "new_skill",
+        "secondary_intent": "general_chat",
+        "message": "Everything feels overwhelming and I can't seem to cope — oh, it's been a long week.",
+        "expected_route": "skill_select",
+        "active_skill_id": None,
+        "confidence": 0.81,
+        "emotional_intensity": 7,
+        "engagement": 5,
+        "description": "Overwhelm + small talk blend",
+        "knowledge_expected": False,
+    },
+    # ── B10-B11: general_chat + info_request ──
+    {
+        "id": "B10",
+        "primary_intent": "general_chat",
+        "secondary_intent": "info_request",
+        "message": "Hey, I'm having a decent day! By the way, what is CBT?",
+        "expected_route": "freeflow",
+        "active_skill_id": None,
+        "confidence": 0.88,
+        "emotional_intensity": 3,
+        "engagement": 8,
+        "description": "Casual check-in + factual question (no skill)",
+        "knowledge_expected": True,
+    },
+    {
+        "id": "B11",
+        "primary_intent": "general_chat",
+        "secondary_intent": "info_request",
+        "message": "I'm feeling pretty good today — quick question, does therapy actually work for most people?",
+        "expected_route": "freeflow",
+        "active_skill_id": None,
+        "confidence": 0.87,
+        "emotional_intensity": 3,
+        "engagement": 8,
+        "description": "Friendly + therapy evidence question",
+        "knowledge_expected": True,
+    },
+    # ── B12-B13: info_request + general_chat ──
+    {
+        "id": "B12",
+        "primary_intent": "info_request",
+        "secondary_intent": "general_chat",
+        "message": "I've been curious — what is DBT and how does it differ from CBT? I'm feeling okay today.",
+        "expected_route": "skill_select",
+        "active_skill_id": None,
+        "confidence": 0.84,
+        "emotional_intensity": 3,
+        "engagement": 8,
+        "description": "Factual primary + emotional context",
+        "knowledge_expected": False,
+    },
+    {
+        "id": "B13",
+        "primary_intent": "info_request",
+        "secondary_intent": "general_chat",
+        "message": "What does mindfulness-based therapy involve? Not looking for a skill today, just curious.",
+        "expected_route": "skill_select",
+        "active_skill_id": None,
+        "confidence": 0.85,
+        "emotional_intensity": 3,
+        "engagement": 7,
+        "description": "Info primary + casual affect",
+        "knowledge_expected": False,
+    },
+    # ── B14-B15: skill_continuation + exit_skill (primary wins) ──
+    {
+        "id": "B14",
+        "primary_intent": "skill_continuation",
+        "secondary_intent": "exit_skill",
+        "message": "I'm still going with the thought record I think... actually maybe I want to stop?",
+        "expected_route": "skill_executor",
+        "active_skill_id": "cbt_thought_record",
+        "confidence": 0.75,
+        "emotional_intensity": 5,
+        "engagement": 5,
+        "description": "Ambivalent mid-CBT-skill (primary skill_continuation wins)",
+        "knowledge_expected": False,
+    },
+    {
+        "id": "B15",
+        "primary_intent": "skill_continuation",
+        "secondary_intent": "exit_skill",
+        "message": "I completed the activity schedule... part of me wonders if I should just stop here.",
+        "expected_route": "skill_executor",
+        "active_skill_id": "behavioral_activation",
+        "confidence": 0.76,
+        "emotional_intensity": 4,
+        "engagement": 5,
+        "description": "BA mid-skill ambivalence (primary skill_continuation wins)",
+        "knowledge_expected": False,
+    },
+    # ── B16-B17: crisis overrides secondary ──
+    {
+        "id": "B16",
+        "primary_intent": "crisis",
+        "secondary_intent": "general_chat",
+        "message": "I want to end it all — I guess I was trying to make small talk but I can't.",
+        "expected_route": "crisis",
+        "active_skill_id": None,
+        "confidence": 0.95,
+        "emotional_intensity": 10,
+        "engagement": 2,
+        "description": "Crisis overrides general_chat secondary",
+        "knowledge_expected": False,
+    },
+    {
+        "id": "B17",
+        "primary_intent": "crisis",
+        "secondary_intent": "info_request",
+        "message": "I'm thinking about hurting myself — also I wanted to know if there's research on this.",
+        "expected_route": "crisis",
+        "active_skill_id": None,
+        "confidence": 0.97,
+        "emotional_intensity": 10,
+        "engagement": 3,
+        "description": "Crisis overrides info_request secondary",
+        "knowledge_expected": False,
+    },
+    # ── B18: exit_skill + info_request with active skill → skill_executor ──
+    {
+        "id": "B18",
+        "primary_intent": "exit_skill",
+        "secondary_intent": "info_request",
+        "message": "I think I want to stop the thought record for now — but what does research say about CBT success rates?",
+        "expected_route": "skill_executor",
+        "active_skill_id": "cbt_thought_record",
+        "confidence": 0.80,
+        "emotional_intensity": 5,
+        "engagement": 6,
+        "description": "Exit request + info need (active skill present → skill_executor handles graceful close)",
+        "knowledge_expected": True,
+    },
+    # ── B19-B20: scope_refusal overrides secondary ──
+    {
+        "id": "B19",
+        "primary_intent": "scope_refusal",
+        "secondary_intent": "info_request",
+        "message": "Can you diagnose me with borderline personality disorder? Also, what is BPD?",
+        "expected_route": "gate",
+        "active_skill_id": None,
+        "confidence": 0.92,
+        "emotional_intensity": 4,
+        "engagement": 6,
+        "description": "Boundary violation (diagnosis request); secondary info_request ignored",
+        "knowledge_expected": False,
+    },
+    {
+        "id": "B20",
+        "primary_intent": "scope_refusal",
+        "secondary_intent": "general_chat",
+        "message": "Prescribe me some medication — I know that's not your thing, just venting I guess.",
+        "expected_route": "gate",
+        "active_skill_id": None,
+        "confidence": 0.91,
+        "emotional_intensity": 5,
+        "engagement": 4,
+        "description": "Boundary violation (prescription request); secondary general_chat ignored",
+        "knowledge_expected": False,
+    },
+]
