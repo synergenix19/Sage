@@ -23,6 +23,13 @@ _RESISTANCE_PROMPT_PATH = (
     / "rules" / "data" / "resistance_scoring" / "resistance_prompt.json"
 )
 
+# Actions that should fire once (entry turn) then allow normal step advancement.
+# Default for any action NOT in this set: hold the step (fire every turn until
+# the triggering condition resolves). This is intentionally conservative —
+# new actions default to hold behavior. Add here only after verifying the
+# action's instruction is a one-time modification, not an ongoing clinical hold.
+_SKIP_ONCE_ACTIONS: frozenset[str] = frozenset({"skip_psychoeducation"})
+
 # Skills where word-count heuristic is clinically insufficient — these require
 # LLM evaluation of completion_criteria after Phase 1 returns _criteria_blocked.
 _LLM_CRITERIA_SKILLS: frozenset[str] = frozenset({
@@ -175,6 +182,7 @@ def evaluate_step_policy(
     engagement_trajectory: list[int] | None = None,
     prior_exposure: int = 0,
     criteria_met: bool | None = None,
+    prev_step_id: str | None = None,
 ) -> dict:
     """Synchronous two-phase policy evaluation. Returns a result dict.
 
@@ -217,6 +225,14 @@ def evaluate_step_policy(
         if val is None:
             continue
         if _condition_met(cond, val, resistance_history, engagement_trajectory):
+            _completion = criteria_met if criteria_met is not None else _meets_completion_criteria(message_en)
+            if (                                                    # continuation-turn skip
+                rule.action in _SKIP_ONCE_ACTIONS
+                and rule.next_step_id in ("current", current_step_id)
+                and prev_step_id == current_step_id
+                and _completion
+            ):
+                continue                                            # let completion advance naturally
             return {
                 "action":           rule.action,
                 "instruction":      rule.instruction,
@@ -234,6 +250,14 @@ def evaluate_step_policy(
             if cond.step not in ("ANY", current_step_id):
                 continue
             if _condition_met(cond, resistance_score, resistance_history):
+                _completion = criteria_met if criteria_met is not None else _meets_completion_criteria(message_en)
+                if (                                                # continuation-turn skip (Phase 2)
+                    rule.action in _SKIP_ONCE_ACTIONS
+                    and rule.next_step_id in ("current", current_step_id)
+                    and prev_step_id == current_step_id
+                    and _completion
+                ):
+                    continue
                 return {
                     "action":        rule.action,
                     "instruction":   rule.instruction,
@@ -325,6 +349,11 @@ async def skill_executor_node(state: SageState) -> dict:
     techniques_used = therapeutic_profile.get("techniques_used") or []
     prior_exposure = techniques_used.count(skill_id)
 
+    # prev_step_id: the step executed on the PREVIOUS turn (persists via LangGraph checkpoint;
+    # absent from _build_state so it is NOT reset each turn). When prev_step_id == step_id,
+    # we are on a continuation turn — skip-once rules may be bypassed so completion can advance.
+    prev_step_id: str | None = state.get("prev_step_id")
+
     # Phase 1: deterministic rules only (resistance_score=None → resistance rules skipped).
     # Returns a result dict. If a deterministic rule fires, its action will be present.
     # We detect "Phase 1 fired a rule" by checking the private sentinel key.
@@ -339,6 +368,7 @@ async def skill_executor_node(state: SageState) -> dict:
         re_escalation_detected=re_escalation_detected,
         engagement_trajectory=engagement_trajectory,
         prior_exposure=prior_exposure,
+        prev_step_id=prev_step_id,
     )
 
     # Phase 2: resistance scoring — only if the skill references 'resistance' rules AND
@@ -375,6 +405,7 @@ async def skill_executor_node(state: SageState) -> dict:
                     engagement_trajectory=engagement_trajectory,
                     prior_exposure=prior_exposure,
                     criteria_met=True,
+                    prev_step_id=prev_step_id,
                 )
                 result.pop("_det_rule_fired", None)
                 result.pop("_criteria_blocked", None)
@@ -394,6 +425,7 @@ async def skill_executor_node(state: SageState) -> dict:
                 engagement_trajectory=engagement_trajectory,
                 prior_exposure=prior_exposure,
                 criteria_met=llm_criteria_met,
+                prev_step_id=prev_step_id,
             )
             result.pop("_det_rule_fired", None)
             result.pop("_criteria_blocked", None)
@@ -411,6 +443,7 @@ async def skill_executor_node(state: SageState) -> dict:
         "active_step_id":      result["next_step_id"],
         "active_skill_id":     None if result.get("skill_complete") else skill_id,
         "rule_fired":          result.get("action") not in ("advance", "complete", "stay", None),
+        "prev_step_id":        step_id,   # persists via LangGraph checkpoint; absent from _build_state
         "escalation_triggered": l2,  # advisory stored for audit; None if no L2 this turn
         "resistance_score":    new_resistance_score,
         "resistance_history":  resistance_history,
