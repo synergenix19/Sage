@@ -1,6 +1,6 @@
 {
   "experiment": "4.4",
-  "generated_at": "2026-05-28T01:09:23.720928",
+  "generated_at": "2026-05-28T10:46:29.585195",
   "scenario_count": 20,
   "total_turns": 59,
   "kpi_targets": {
@@ -41,7 +41,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "That's good to hear. What specific thought has been going through your mind as you work through this?",
+      "llm_response": "It sounds like you're really engaging with the exercise today. When you think about making progress, is there a specific thought that keeps coming up for you? Something you've been telling yourself?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -70,7 +70,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "What part of the exercise feels like it's helping you the most? Is there a particular thought you're focusing on?",
+      "llm_response": "That's great to hear you're engaging with the exercise. When you think about the negative thought you've been examining, what evidence do you see that supports it? And is there anything that goes against it?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -99,7 +99,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "The exercise seems to be landing for you. What feels different now compared to when you started?",
+      "llm_response": "It seems like you're really focused on this exercise and noticing some progress. With the negative thought you've been working on, what evidence do you find that challenges it? And what evidence supports it?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -128,7 +128,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "That's good to hear. Using cold water can help calm things down quickly. If you have access to cold water, try running it over your wrists, splashing it on your face, or applying it to the back of your neck for about 30 seconds. Let me know how it goes.",
+      "llm_response": "I'm glad to hear that you're finding the exercise helpful. Let's keep going with it. Try running cold water over your wrists for 30 seconds, or splash some on your face if you can. It helps lower your heart rate quickly. What have you got access to right now?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -157,7 +157,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like the exercise is helping. Let's add a quick boost to it. Try doing something vigorous for 30 seconds. You could press your palms hard against a desk, do some rapid seated leg lifts, or squeeze your fists repeatedly. This can help shift stress and settle things down. Let me know if you notice any changes.",
+      "llm_response": "That's good to hear. Let's keep the momentum going with a quick burst of energy. Try standing up and sitting down quickly ten times, or if you're seated, press your palms hard against a desk for 30 seconds. It's a great way to get your heart rate up, then let it come back down. What works best for you right now?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -186,7 +186,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "The exercise seems to be landing. Let's add a calming breathing technique to it. Breathe in slowly for 5 counts: 1, 2, 3, 4, 5. Now breathe out gently for 7 counts: 1, 2, 3, 4, 5, 6, 7. Try this a few times. The longer exhale is what helps calm things down. How does that feel?",
+      "llm_response": "That's good. Let's try a breathing exercise to keep up the progress. Breathe in for five counts: 1, 2, 3, 4, 5. Now breathe out for seven counts: 1, 2, 3, 4, 5, 6, 7. Repeat this four times. The longer exhale helps calm your nervous system. How does that feel?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -215,7 +215,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "What do you notice in yourself right now after doing the exercise? How does your body feel compared to before?",
+      "llm_response": "You've been putting in the effort with the exercises today. What do you notice in yourself right now compared to when we started?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -244,7 +244,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "That's good to hear. What change are you thinking about right now? If you were to rate how important it is to make this change on a scale from 1 to 10, where would you put it?",
+      "llm_response": "That's good to hear. When you think about making this change, how important does it feel to you on a scale from 1 to 10, where 1 is not important at all and 10 is the most important thing in your life right now?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -273,7 +273,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like you're really engaging with the exercise. How confident do you feel about making this change, if you decided to do it? On a scale from 1 to 10, where would you place your confidence?",
+      "llm_response": "It's great to hear you're making progress with the exercise. How confident do you feel that you could make this change if you decided to? On a scale from 1 to 10, where 1 is not confident at all and 10 is completely confident, where do you stand?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -302,7 +302,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "The exercise seems to be landing. What's one small step you might be willing to try next, based on what you've been working on?",
+      "llm_response": "Making progress with the exercise is a positive step. Based on everything you've shared, what feels like one small thing you might be willing to try next? It doesn't have to be a full plan, just one step forward.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -331,7 +331,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "That's good to hear. What have you been noticing about your days lately? Are there any changes in what you're doing or how you're feeling?",
+      "llm_response": "That's good to hear about the exercise. What have your days been like lately? Could you share what a typical day looks like for you, from when you wake up to when you go to sleep?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -360,7 +360,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "That's great to hear. What do you think is one small thing you could try this week that might feel like a little win? It doesn't have to be big, even something like making a cup of tea or stepping outside for a minute.",
+      "llm_response": "It's great that you're making progress with the exercise. What's one small thing you could try this week that might feel like a win, even if it's tiny? It doesn't have to be a big task—something simple like making a cup of tea or stepping outside for a couple of minutes could make a difference.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -389,7 +389,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "It's great that you're feeling progress with the exercise. When do you plan to do it next? Even a rough time can help. Also, is there anything you think might get in the way, and if so, what's your backup plan?",
+      "llm_response": "It sounds like you're really focusing on the exercise today. When do you plan to do it next? A rough time like morning, after lunch, or before bed can help make it more likely to happen. Is there anything you think might get in the way of doing it? Planning for obstacles can make things easier.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -418,7 +418,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "That's good to hear. What are you noticing about your sleep patterns? Is it hard to fall asleep, or do you wake up and can't get back to sleep, or both?",
+      "llm_response": "That's good to hear. Tell me more about your sleep. Do you find it hard to fall asleep, or do you wake up and can't get back to sleep, or maybe both? Walk me through what a typical night looks like for you.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -447,7 +447,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It’s great that you’re making progress with the exercise. Have you noticed if keeping a consistent bedtime is helping? Going to bed and waking up at the same time every day can really help regulate your sleep cycle. Another thing to consider is reducing screen time before bed. The blue light can make it harder to fall asleep. Do you think these are things you might try?",
+      "llm_response": "It's great that you're making progress. When thinking about sleep, one helpful tip is to keep a consistent wake-up time every day, even on weekends. This helps regulate your body's internal clock. Another thing to consider is the impact of screens before bed. The blue light can interfere with sleep, so dimming your phone or switching to a reading app might help. Do either of these feel like changes you could try?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -476,7 +476,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "It's good that you're noticing some progress with the exercise. Out of everything we've talked about, what's one small change you feel is doable for you this week? Even if it's something tiny, it can make a difference.",
+      "llm_response": "It’s good to hear you’re making progress with the exercise. What's one small change you feel ready to try this week to improve your sleep? Even if it's just a tiny step, it can make a difference.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -505,7 +505,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "That's good to hear. Let's take it slow. Can you look around where you are and tell me five things you can see right now? Anything that catches your eye.",
+      "llm_response": "That's good to hear. Let's keep going together. Can you look around and tell me five things you can see right now? Anything at all.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -534,7 +534,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "The exercise seems to be landing. Let's keep going. Can you tell me four things you can physically feel right now? It could be the chair you're sitting on, the fabric of your clothes, or even the temperature in the room.",
+      "llm_response": "What are four things you can physically feel or touch right now? It could be the surface you're sitting on, the feel of your clothes, or the temperature of the air.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -563,7 +563,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It's good to hear that you're finding this exercise helpful. Let's expand on it a bit more. What are three sounds you can hear right now? They could be in the room, outside, or even very quiet sounds.",
+      "llm_response": "That's good to know. Now, let's focus on sound. What are three things you can hear right now? It could be anything around you or even your own breathing.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -592,7 +592,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "You're really engaging with this exercise. Let's keep exploring it. Can you notice two different smells around you right now? If you're not picking up on anything, feel free to move around a bit and find something to smell, like a book or your clothes.",
+      "llm_response": "It sounds like you're moving forward with this. Let's focus on smell now. Can you find two things you can smell? If nothing comes to mind, you can get up and smell something nearby, like coffee, a book, or your clothes.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -621,7 +621,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "You seem to be really connecting with this exercise. Let's wrap it up with one last step. Can you focus on one thing you can taste right now, even if it's just the inside of your mouth? After that, take a slow breath and let me know how you're feeling compared to when we started.",
+      "llm_response": "It seems like you've been making some progress with this exercise. Let's wrap up the sequence by finding one thing you can taste. It might be the taste inside your mouth, or something nearby. Then take a slow breath and let me know how you're feeling compared to when we started.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -650,7 +650,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "The exercise seems to be landing. If you had to rate your mood from 1 to 10 right now, where do you think it would fall? And what feelings are coming up for you?",
+      "llm_response": "I'm glad to hear the exercise is helping a bit. Let's take a moment to check in. On a scale from 1 to 10, with 1 being really low and 10 being really good, where would you say your mood is sitting today?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -679,7 +679,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "That's good to hear about the progress. What's been making it a positive experience for you so far?",
+      "llm_response": "The exercise seems to be landing. What's been making it feel like progress?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -708,7 +708,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like you're feeling really overwhelmed right now. I'm here with you. What's been making you feel like everything is your fault?",
+      "llm_response": "It sounds like you're feeling really overwhelmed right now. That can be so heavy. I'm here with you. What's been the hardest part of this for you?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -737,7 +737,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds really overwhelming to have these thoughts going round and round. What's been weighing on you the most right now?",
+      "llm_response": "I'm really sorry you're feeling this way. It sounds like it's been really overwhelming. What's been on your mind the most?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -766,7 +766,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "I'm glad you're feeling a bit calmer. Let's explore the thought you shared about everything being your fault. What evidence do you have that supports this thought? And what evidence goes against it?",
+      "llm_response": "I'm glad you're feeling a bit calmer. Let's take a closer look at the thought you mentioned about everything being your fault. What evidence do you have that supports this thought? And, what evidence might go against it? We can explore this together if you're up for it.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -798,7 +798,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like the thought record hasn't been helpful for you in the past. Would you like to pause and just chat for a bit, or explore other approaches that might suit you better?",
+      "llm_response": "It sounds like you're finding the thought record unhelpful. Would you like to pause and chat about what's on your mind instead? Or maybe there's another approach we could try that might feel more useful to you. Let me know what feels right for you.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -831,7 +831,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It seems like you're feeling stuck right now. What's been making it feel like change is so hard?",
+      "llm_response": "It sounds like you're feeling pretty stuck right now. What's been making you feel like change isn't possible?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -863,7 +863,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "Would you like to try the TIPP exercise, or just talk for a bit?",
+      "llm_response": "Would you like to try using TIPP, or do you prefer to just breathe together or have a chat?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -895,7 +895,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "Is TIPP feeling useful for you, or would you like to try something else like just breathing together or talking more?",
+      "llm_response": "Is there something specific on your mind, or would you like to try a breathing exercise together?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -924,7 +924,7 @@
       "rule_fired": "L1",
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "Alright, I understand. If you ever want to talk again, I'm here. Take care.",
+      "llm_response": "Alright, if you want to stop here, that's perfectly fine. I'm here whenever you feel like talking again. Take care.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -959,7 +959,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "What change do you have in mind today for getting back into exercising? Where would you put its importance on a scale from 0 to 10, and why not lower?",
+      "llm_response": "Exercising more sounds like a great goal. Where would you put its importance on the scale right now, and why not lower?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -994,7 +994,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "What do you think has been the main hurdle in keeping up with your exercise routine in the past?",
+      "llm_response": "What change are you thinking of making today to help keep going past that first week this time?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1029,7 +1029,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It sounds like balancing work and exercise is a challenge. What helps you stay consistent when things get busy?",
+      "llm_response": "What small step could you take today to help build that consistency, even when work gets busy?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1064,7 +1064,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "Starting with 20 minutes, three times a week, sounds like a great plan. What might help you stick to this routine even when work gets busy?",
+      "llm_response": "Starting with 20 minutes, three times a week, sounds like a solid plan. How do you feel about setting a reminder or scheduling it into your week to help make it a consistent habit? ",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1093,7 +1093,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "You're making some progress with the exercise. That's great to hear. How's your mood sitting today? If you had to give it a number between 1 and 10, what would it be?",
+      "llm_response": "That's good to hear. How's your mood sitting today? If you had to give it a number between 1 and 10, what would it be?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1122,7 +1122,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "The exercise seems to be landing. What's been making today feel like a day of progress? Anything specific happening, or is it more of a general feeling?",
+      "llm_response": "The exercise seems to be landing. What's been making you feel like you're making progress? Is there anything specific that's been helping, or is it more of a general feeling?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1151,7 +1151,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "What specific thought is coming to mind as you work through this?",
+      "llm_response": "That's good to hear. What's the specific thought that keeps coming back to you right now? ",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1180,7 +1180,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "What thoughts have you been exploring as you work through the exercise? Are there any that stand out to you right now?",
+      "llm_response": "That's great to hear about your progress. Can we explore more about the thought that's been on your mind? What evidence do you have that supports it, and what evidence might go against it?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1209,7 +1209,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "What part of the exercise do you feel you're making progress with? Is there a specific thought you're finding easier to view in a new light?",
+      "llm_response": "You're thinking carefully about the exercise and feeling some progress. What feels different now compared to before? Is there a specific thought or realization that stands out to you?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1238,7 +1238,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "What changes have you noticed today? What's been different about your day or your activities?",
+      "llm_response": "It's good to hear you're finding the exercise helpful. Could you tell me about your days lately? What does a typical day look like for you, from when you wake up to when you go to sleep?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1267,7 +1267,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "That's good to hear. Is there one small thing you've thought about doing today that might feel like a win, even if it's tiny? It could be something as simple as making a cup of tea or stepping outside for a couple of minutes.",
+      "llm_response": "That's great to hear. As you think about your days, what's one small thing you could try doing this week that might feel like a win? It could be something as simple as stepping outside for a couple of minutes or making a cup of tea. Something small that feels doable.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1296,7 +1296,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "That's good to hear. When do you plan to do the exercise again? Even a rough time, like morning or evening, can help keep you on track. What might get in the way, and what's your backup plan if that happens?",
+      "llm_response": "The exercise seems to be landing for you. What's one thing you're planning to try this week that feels manageable? When do you think you'll do it? Having a rough time can help make it happen.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1325,7 +1325,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "I'm glad to hear that you're finding the exercise helpful. Can you tell me more about your sleep pattern? Is it hard to fall asleep, or do you find yourself waking up during the night and struggling to get back to sleep?",
+      "llm_response": "I'm glad to hear you're finding the exercise helpful. Could you share a bit more about your sleep? Are you finding it hard to fall asleep, or do you wake up and can't get back to sleep, or is it a mix of both?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1354,7 +1354,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It's great that you're making progress. When it comes to sleep, one thing that can really help is keeping your bedroom environment comfortable and quiet. This means keeping it cool, dark, and free from noise. Another useful tip is to limit screen time before bed. The blue light from devices can make it harder to fall asleep, so even dimming your phone or switching to a reading app can help. Do any of these feel doable for you?",
+      "llm_response": "It's great that you're finding the exercise helpful. If you're having trouble falling asleep, one thing that can make a difference is keeping your bedroom dark and cool. This helps signal to your body that it's time to rest. Another idea is to try a relaxing bedtime routine, like reading or listening to calming music, to ease into sleep. Do any of these sound like something you'd want to try?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1383,7 +1383,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "It sounds like the exercise is helping you think things through. Out of everything we've talked about, what's one small thing you feel you could try this week to improve your sleep? Even a tiny change can be a good start.",
+      "llm_response": "It's good to hear you're making progress with the exercise. Out of everything we've talked about, what's one small change you feel you could try this week to help with your sleep? Even if it's something tiny, it can make a difference.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1412,7 +1412,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "That's good to hear. Let's try something with cold water. It can really help calm your body down quickly. Can you run cold water over your wrists for about 30 seconds? If you have a chance to splash some on your face or the back of your neck, that works too. Do you have access to water right now?",
+      "llm_response": "The cold water can be a great way to help lower your heart rate quickly. Do you have access to some cold water right now? You can run it over your wrists",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1441,7 +1441,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "The exercise seems to be landing with you. Let's try a quick, vigorous movement to help with stress. Can you do something like standing up and sitting down quickly ten times, or pressing your palms hard against a desk for about 30 seconds? This can help get your heart rate up and then bring it back down.",
+      "llm_response": "That's great. Let's keep the momentum going. How about doing something vigorous for a short burst? Maybe stand up and sit down quickly ten times, or press your palms hard against a desk. Whatever works for you right now.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1470,7 +1470,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "The exercise seems to be making a difference for you. Let's try something with your breath now. Breathe in slowly for 5 counts: 1, 2, 3, 4, 5. Then breathe out gently for 7 counts: 1, 2, 3, 4, 5, 6, 7. Try this a few times. The longer exhale can really help calm your system.",
+      "llm_response": "That's good to hear. Let's try some paced breathing to help slow things down. Breathe in for 5 counts: 1, 2, 3, 4, 5. Now breathe out for 7 counts: 1, 2, 3, 4, 5, 6, 7. Let's do this four times, focusing on that longer exhale to help calm your system.",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1499,7 +1499,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "You've been reflecting on the exercise, and it seems to be helping. How do you feel right now compared to when we started? What's different for you?",
+      "llm_response": "You've been considering things carefully and feel like you're making some progress. What do you notice in yourself right now compared to when you started?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1533,7 +1533,7 @@
       "rule_fired": "L2",
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "That's good to hear. What specific thoughts have been coming up for you as you've been working through this exercise today?",
+      "llm_response": "That's great to hear. What specific thought has been on your mind today as you work through the exercise?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1565,7 +1565,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "What specific thoughts have been coming up for you as you've been working through this exercise today?",
+      "llm_response": "That's promising. As you're working through the exercise, what evidence or experiences have you noticed that support your thoughts? And what might challenge them or suggest a different perspective?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1597,7 +1597,7 @@
       "rule_fired": null,
       "skill_complete": false,
       "skill_exited": true,
-      "llm_response": "What part of the exercise has felt most helpful or different for you today?",
+      "llm_response": "It seems like you're finding some clarity as you work through this exercise. What feels like progress to you? Is there a particular thought or perspective that's shifting for you right now?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1632,7 +1632,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "What change do you have in mind with your phone use before bed? On a scale from 0 to 10, how important is it for you to make this change, and why would you say it's not lower on the scale?",
+      "llm_response": "What change are you thinking about making with your phone use before bed? Where would you put the importance of this change on a scale from 0 to 10, and why not lower?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1667,7 +1667,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "Improving your sleep sounds like it could make a real difference for you. What do you think could help you reach that goal of cutting down on phone use before bed?",
+      "llm_response": "Improving your sleep sounds important for your mood and focus. What's been the hardest part about reducing phone use before bed?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1702,7 +1702,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "It can be tough to break habits, especially with screens. What do you think might make it easier to stick to limiting screen time this time around?",
+      "llm_response": "What's made it hard to stick to limiting screen time before? Are there specific moments or habits that make it challenging?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1737,7 +1737,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "Putting your phone on charge in another room sounds like a solid plan. How confident are you that you can stick to that change?",
+      "llm_response": "That sounds like a solid plan. How important does this change feel to you on a scale from 0 to 10, and why not lower?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1769,7 +1769,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "Is this exercise helping? Or would you prefer to just breathe together or chat?",
+      "llm_response": "Is this exercise helping, or would you prefer to just breathe together or talk?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
@@ -1801,7 +1801,7 @@
       "rule_fired": true,
       "skill_complete": false,
       "skill_exited": false,
-      "llm_response": "Would you like to continue with the exercise, or is there something else you'd like to talk about or do together?",
+      "llm_response": "What part of the exercise has been most helpful for you? Or is there something else you'd like to talk about or focus on?",
       "rubric": {
         "tone_appropriate": null,
         "matches_instruction": null,
