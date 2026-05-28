@@ -14,36 +14,45 @@ _SKILL_STALE_HOURS = 4
 def _stale_skill_overrides(checkpoint_values: dict) -> dict:
     """Return state overrides to park a stale skill on session resume.
 
-    Reads last_turn_at and active_skill_id from the checkpoint snapshot.
+    Reads last_turn_at, active_skill_id, and crisis_state from the checkpoint.
     If the gap exceeds _SKILL_STALE_HOURS, returns overrides that:
       - clear active_skill_id / active_step_id (stop silent skill continuation)
       - set stale_skill_id (let the composer inject a re-entry prompt)
+      - reset crisis_state to "none" (state machine position, not longitudinal signal)
+
+    The early-return gate allows through any checkpoint where crisis_state is
+    "monitoring" or "active", even if active_skill_id is None. This covers the
+    canonical CSM-3 gap: _crisis_response_node sets active_skill_id=None, so a
+    user who hit crisis and disappeared for 4h+ had their monitoring state survive
+    the old early-return guard.
+
+    When active_skill_id is None (crisis-only stale session), only crisis_state
+    is reset — there is no skill to clear, so active_skill_id / active_step_id /
+    stale_skill_id are not included in overrides.
 
     Clinical flags are intentionally NOT cleared — they are true longitudinal
     signals (v7 §6.3), not in-session workflow position.
-
-    crisis_state IS cleared: it is a state machine position, not a longitudinal
-    flag. After a 4h+ gap, preserving crisis_state='monitoring' causes silent
-    re-enrollment into post_crisis_check_in on session resume (CSM-3).
     """
     last_turn_at = checkpoint_values.get("last_turn_at")
     active_skill_id = checkpoint_values.get("active_skill_id")
-    if not last_turn_at or not active_skill_id:
+    crisis_state = checkpoint_values.get("crisis_state", "none")
+    is_stale_crisis = crisis_state in ("monitoring", "active")
+    if not last_turn_at or (not active_skill_id and not is_stale_crisis):
         return {}
     try:
         last = datetime.fromisoformat(last_turn_at)
         gap_hours = (datetime.now(timezone.utc) - last).total_seconds() / 3600
-        # crisis_state="monitoring" is a state machine position, not a longitudinal flag.
+        # crisis_state="monitoring"/"active" is a state machine position, not a longitudinal flag.
         # After a 4h+ gap, silently resuming a monitoring session causes unintended re-enrollment.
-        # We reset it to "none" here alongside the skill clear. clinical_flags are NOT cleared —
+        # We reset it to "none" here. clinical_flags are NOT cleared —
         # those are the true longitudinal signals (v7 §6.3).
         if gap_hours >= _SKILL_STALE_HOURS:
-            return {
-                "active_skill_id":  None,
-                "active_step_id":   None,
-                "stale_skill_id":   active_skill_id,
-                "crisis_state":     "none",
-            }
+            overrides: dict = {"crisis_state": "none"}
+            if active_skill_id:
+                overrides["active_skill_id"] = None
+                overrides["active_step_id"] = None
+                overrides["stale_skill_id"] = active_skill_id
+            return overrides
     except (ValueError, TypeError):
         pass
     return {}

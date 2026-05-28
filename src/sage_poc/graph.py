@@ -82,6 +82,10 @@ async def _crisis_response_node(state: SageState) -> dict:
         "s7_result": None,
         "s7_method": None,
         "re_escalation_within_monitoring": is_reescalation,
+        # output_gate is bypassed for crisis responses (routes to END directly).
+        # Without this, the stale-check gap is measured from the pre-crisis turn,
+        # potentially under-counting by the duration of the crisis turn itself.
+        "last_turn_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
