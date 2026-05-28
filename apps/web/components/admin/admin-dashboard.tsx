@@ -10,12 +10,15 @@ import { ResponseQualityPanel } from './response-quality'
 import { ConversationIntelligencePanel } from './conversation-intelligence'
 import { getAdminDemoData } from '@/lib/admin-seed'
 import type { AdminData } from '@/lib/admin-queries'
+import { SchemaConformancePanel } from './schema-conformance-panel'
+import type { ConformanceReport } from './schema-conformance-panel'
 
 interface Props {
   data: AdminData
+  conformance: ConformanceReport | null
 }
 
-export function AdminDashboard({ data }: Props) {
+export function AdminDashboard({ data, conformance }: Props) {
   const [highlightSection, setHighlightSection] = useState<string | null>(null)
   const demo = getAdminDemoData()
 
@@ -87,6 +90,16 @@ export function AdminDashboard({ data }: Props) {
         <div className="mt-4">
           <AlertsPanel alerts={demo.recentAlerts} onAlertClick={handleAlertClick} />
         </div>
+      </section>
+
+      <section id="schema-conformance">
+        <h2 className="mb-4 text-lg font-semibold text-[var(--color-text-primary)]">
+          Schema Conformance
+          <span className="ml-2 text-xs font-normal text-[var(--color-text-secondary)]">
+            which clinician-authored fields are enforced at runtime
+          </span>
+        </h2>
+        <SchemaConformancePanel report={conformance} />
       </section>
     </div>
   )
