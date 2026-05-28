@@ -38,6 +38,10 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+_REPO = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(_REPO / "src"))
+sys.path.insert(0, str(_REPO))
+
 # ---------------------------------------------------------------------------
 # Stub corpus: source_id prefix → representative passage
 # Update when new seed articles are ingested.
