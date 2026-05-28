@@ -216,8 +216,8 @@ export async function fetchConversationIntelligence(admin: SupabaseClient): Prom
   const allRows = rows ?? []
   const total = allRows.length
 
-  // mirrors SEMANTIC_THRESHOLD in sage-poc/nodes/skill_select.py
-  const withSemantic = allRows.filter(r => (r.semantic_score as number | null) != null && (r.semantic_score as number) >= 0.5295).length
+  // mirrors SEMANTIC_THRESHOLD in sage-poc/src/sage_poc/nodes/skill_select.py
+  const withSemantic = allRows.filter(r => (r.semantic_score as number | null) != null && (r.semantic_score as number) >= 0.459).length
   const semanticMatchRate = total > 0 ? Math.round((withSemantic / total) * 100) / 100 : null
 
   const skillCounts: Record<string, number> = {}
