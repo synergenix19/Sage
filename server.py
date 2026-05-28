@@ -21,6 +21,7 @@ from sage_poc.graph import build_graph
 from sage_poc.config import RESPONDER_MODEL
 from sage_poc.server_helpers import _build_state, _stale_skill_overrides
 from sage_poc.llm import get_classifier
+from sage_poc.skills.conformance import SCHEMA_CONFORMANCE, get_conformance_report
 
 _log = logging.getLogger(__name__)
 CRISIS_SIGNAL = "[[CRISIS_DETECTED]]"
@@ -53,6 +54,9 @@ async def lifespan(app: FastAPI):
             _log.warning("[sage/startup] BGE-M3 warmup failed: %s", exc)
     else:
         _log.info("[sage/startup] BGE-M3 warmup skipped (SAGE_WARMUP_BGE=0)")
+
+    for _field, _info in SCHEMA_CONFORMANCE.items():
+        _log.info("[sage/startup] schema %-42s → %s", _field, _info["status"])
 
     if os.environ.get("DATABASE_URL"):
         # Two connection objects:
@@ -328,3 +332,8 @@ async def name_session(
         req.session_id,
     )
     return {"status": "ok", "name": name}
+
+
+@app.get("/health/schema-conformance")
+async def health_schema_conformance():
+    return get_conformance_report()

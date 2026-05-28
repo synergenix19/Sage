@@ -78,7 +78,7 @@ def translate_to_english(text: str) -> str:
 
 
 def translate_to_arabic(text: str) -> str:
-    """Translate *text* to Modern Standard Arabic.
+    """Translate *text* to Khaleeji Gulf Arabic.
 
     Falls back to the original English text if the API is unavailable so the
     user receives a response rather than a crash.
@@ -89,8 +89,9 @@ def translate_to_arabic(text: str) -> str:
         response = llm.invoke([{
             "role": "user",
             "content": (
-                "Translate the following text to Modern Standard Arabic. "
-                "Return ONLY the Arabic translation, nothing else:\n\n"
+                "You are translating warm, supportive messages from a wellness companion named Sage. "
+                "Translate to informal Gulf Arabic (Khaleeji dialect). Preserve emotional warmth and "
+                "conversational tone. Avoid formal or clinical Arabic. Return only the translation.\n\n"
                 f"{text}"
             ),
         }])
@@ -103,15 +104,16 @@ TRANSLATION_TIMEOUT_SECONDS: float = 30.0
 
 
 async def async_translate_to_arabic(text: str) -> str:
-    """Translate text to Arabic using resilient_invoke. Returns original on failure."""
+    """Translate text to Khaleeji Gulf Arabic using resilient_invoke. Returns original on failure."""
     from sage_poc.resilience import resilient_invoke
     result = await resilient_invoke(
         get_translator(),
         [{
             "role": "user",
             "content": (
-                "Translate the following text to Modern Standard Arabic. "
-                "Return ONLY the Arabic translation, nothing else:\n\n"
+                "You are translating warm, supportive messages from a wellness companion named Sage. "
+                "Translate to informal Gulf Arabic (Khaleeji dialect). Preserve emotional warmth and "
+                "conversational tone. Avoid formal or clinical Arabic. Return only the translation.\n\n"
                 f"{text}"
             ),
         }],

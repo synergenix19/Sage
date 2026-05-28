@@ -1,6 +1,15 @@
 """Tests for the schema field conformance registry."""
 import pytest
 from sage_poc.skills.conformance import SCHEMA_CONFORMANCE, get_conformance_report
+from fastapi.testclient import TestClient
+
+
+@pytest.fixture(scope="module")
+def client():
+    """TestClient for testing endpoints."""
+    from server import app
+    with TestClient(app) as c:
+        yield c
 
 
 VALID_STATUSES = {"USED", "STORED_ONLY", "PARTIAL"}
@@ -85,3 +94,22 @@ def test_used_and_partial_fields_have_injected_by():
             assert info.get("injected_by") is not None, (
                 f"{field} has status {info['status']!r} but injected_by is None"
             )
+
+
+# ---- endpoint tests ----
+
+def test_schema_conformance_endpoint_returns_200(client):
+    response = client.get("/health/schema-conformance")
+    assert response.status_code == 200
+
+
+def test_schema_conformance_endpoint_returns_expected_shape(client):
+    data = client.get("/health/schema-conformance").json()
+    assert "summary" in data
+    assert "fields" in data
+    assert data["summary"]["total"] == 15
+
+
+def test_schema_conformance_endpoint_cultural_overrides_is_used(client):
+    data = client.get("/health/schema-conformance").json()
+    assert data["fields"]["skill.cultural_overrides"]["status"] == "USED"

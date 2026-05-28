@@ -442,9 +442,11 @@ INPUTS = [
 async def main():
     for i, text in enumerate(INPUTS, 1):
         result = await async_translate_to_arabic(text)
+        ratio = len(result) / len(text) if text else 0
+        length_flag = '  *** LENGTH REVIEW REQUIRED ***' if ratio > 1.8 else ''
         print(f'--- Output {i} ---')
-        print(f'EN: {text}')
-        print(f'AR: {result}')
+        print(f'EN ({len(text)} chars): {text}')
+        print(f'AR ({len(result)} chars, ratio {ratio:.2f}){length_flag}: {result}')
         print()
 
 asyncio.run(main())
@@ -472,9 +474,194 @@ Outputs 7 and 8 use gender-neutral English. Arabic requires gendered verb and ad
 
 ### If validation fails
 
-If 3 or more outputs score below threshold on **Dialect** or **Warmth**: the `gpt-4o-mini` translator is not respecting the Khaleeji register instruction even with the enriched prompt. Escalate to Experiment 4.1 — this indicates the translation step may need a more capable model or a different architecture (e.g., pass the L0 persona excerpt to the translator as a system prompt).
+**Length inflation (flagged in script output):** Any output marked `*** LENGTH REVIEW REQUIRED ***` (Arabic > 1.8× English character count) needs manual review by the native speaker. Ask: does the Arabic feel padded, or is the length natural for Gulf Arabic phrasing? If padded, the prompt is encouraging elaboration — shorten the warmth instruction to remove "Preserve emotional warmth and conversational tone" and replace with "Match the length and register of the original."
 
-If only 1–2 outputs fail on **Naturalness**: acceptable for POC. Document as a known gap.
+**Contingency 1 — try GPT-4o as translator before any architecture change:** If 3 or more outputs score below threshold on **Dialect** or **Warmth**, retry with GPT-4o as the translator. The translator model is controlled by `SAGE_TRANSLATOR_MODEL` in `config.py` (default: `openai/gpt-4o-mini`). Re-run the validation script with:
+
+```bash
+cd sage-poc && SAGE_TRANSLATOR_MODEL=openai/gpt-4o uv run python -c "
+import asyncio, os
+# Script body identical to the validation script above
+" 2>&1 | tee /tmp/khaleeji_validation_gpt4o.txt
+```
+
+GPT-4o has significantly stronger dialect-specific Arabic generation than gpt-4o-mini, whose Arabic training data skews heavily toward MSA (MSA dominates Arabic web text; Khaleeji is low-resource even within Arabic NLP). At POC scale, translation is a single short call per turn — the cost difference between models is marginal. If GPT-4o passes where gpt-4o-mini failed: update `TRANSLATOR_MODEL` default in `config.py` from `"openai/gpt-4o-mini"` to `"openai/gpt-4o"` and run Task 5.
+
+**Contingency 2 — escalate to Experiment 4.1:** If GPT-4o also fails Khaleeji validation (3+ outputs below threshold on Dialect or Warmth): escalate to Experiment 4.1. This indicates the translation step needs architectural review — e.g., passing the L0 persona as a system prompt to the translator, or switching to a model with native Gulf Arabic dialect coverage.
+
+**Minor failures acceptable:** If only 1–2 outputs fail on **Naturalness** and all others pass all 4 dimensions: acceptable for POC. Document the specific failing outputs as known gaps.
+
+---
+
+## Task 5 — End-to-End Two-Stage Pipeline Validation
+
+**Why this step exists:** Task 4 tests whether gpt-4o-mini translates warm English to warm Khaleeji in isolation, using hand-crafted inputs. This step tests whether GPT-4o's actual therapeutic responses — which have different hedging patterns, sentence rhythms, and length characteristics than the hand-crafted inputs — translate well through the same pipeline. The failure mode this catches: gpt-4o-mini handles curated inputs correctly but produces flat or clinical Arabic when GPT-4o generates more complex therapeutic phrasing with embedded questions and hedged requests.
+
+This task runs **after Task 4 passes**. It uses the same native speaker and scoring rubric.
+
+**Architecture:** Partial pipeline — compose prompt → GPT-4o responder → translate. No running database or server required. The LangGraph graph is not invoked; routing and skill executor are bypassed. The stage under test is GPT-4o response generation + translation.
+
+### How to run
+
+```bash
+cd sage-poc && uv run python -c "
+import asyncio
+from sage_poc.prompts.composer import compose_prompt
+from sage_poc.llm import get_responder
+from sage_poc.language import async_translate_to_arabic
+from sage_poc.resilience import resilient_invoke
+
+SCENARIOS = [
+    {
+        'label': 'E2E-1: High-emotion freeflow (Arabic input)',
+        'state': {
+            'raw_message': 'والله أنا تعبان من كل شي ومو قادر أكمل',
+            'message_en': 'By God, I am tired of everything and I cannot continue',
+            'detected_language': 'ar',
+            'primary_intent': 'general_chat',
+            'secondary_intent': None,
+            'emotional_intensity': 8,
+            'engagement': 4,
+            'active_skill_id': None,
+            'executed_step_id': None,
+            'step_instruction': None,
+            'rule_fired': None,
+            'escalation_triggered': None,
+            'clinical_flags': [],
+            'crisis_state': 'none',
+            'third_party_crisis': False,
+            'code_switching': False,
+            's7_result': None,
+            'conversation_history': [],
+            'conversation_summary': None,
+            'therapeutic_profile': None,
+            'knowledge_passages': [],
+            'knowledge_abstain': False,
+            'stale_skill_id': None,
+        },
+    },
+    {
+        'label': 'E2E-2: CBT skill step (Arabic input, identify_thought)',
+        'state': {
+            'raw_message': 'أحس إن كل شي غلطتي دايم',
+            'message_en': 'I feel like everything is always my fault',
+            'detected_language': 'ar',
+            'primary_intent': 'new_skill',
+            'secondary_intent': None,
+            'emotional_intensity': 7,
+            'engagement': 6,
+            'active_skill_id': 'cbt_thought_record',
+            'executed_step_id': 'identify_thought',
+            'step_instruction': 'Help the user identify and clearly articulate the specific negative thought.',
+            'rule_fired': None,
+            'escalation_triggered': None,
+            'clinical_flags': [],
+            'crisis_state': 'none',
+            'third_party_crisis': False,
+            'code_switching': False,
+            's7_result': None,
+            'conversation_history': [],
+            'conversation_summary': None,
+            'therapeutic_profile': None,
+            'knowledge_passages': [],
+            'knowledge_abstain': False,
+            'stale_skill_id': None,
+        },
+    },
+    {
+        'label': 'E2E-3: Arabizi code-switching input',
+        'state': {
+            'raw_message': 'ta3abt wallah mn el7ayat ma abga akamil',
+            'message_en': 'I am so tired of life by God I cannot continue anymore',
+            'detected_language': 'en',
+            'primary_intent': 'general_chat',
+            'secondary_intent': None,
+            'emotional_intensity': 8,
+            'engagement': 5,
+            'active_skill_id': None,
+            'executed_step_id': None,
+            'step_instruction': None,
+            'rule_fired': None,
+            'escalation_triggered': None,
+            'clinical_flags': [],
+            'crisis_state': 'none',
+            'third_party_crisis': False,
+            'code_switching': True,
+            's7_result': None,
+            'conversation_history': [],
+            'conversation_summary': None,
+            'therapeutic_profile': None,
+            'knowledge_passages': [],
+            'knowledge_abstain': False,
+            'stale_skill_id': None,
+        },
+    },
+    {
+        'label': 'E2E-4: Cultural/religious framing (Arabic)',
+        'state': {
+            'raw_message': 'ربي يصبرني أنا مو عارف كيف أكمل مع أهلي',
+            'message_en': 'God grant me patience, I do not know how to continue with my family',
+            'detected_language': 'ar',
+            'primary_intent': 'general_chat',
+            'secondary_intent': None,
+            'emotional_intensity': 7,
+            'engagement': 6,
+            'active_skill_id': None,
+            'executed_step_id': None,
+            'step_instruction': None,
+            'rule_fired': None,
+            'escalation_triggered': None,
+            'clinical_flags': [],
+            'crisis_state': 'none',
+            'third_party_crisis': False,
+            'code_switching': False,
+            's7_result': None,
+            'conversation_history': [],
+            'conversation_summary': None,
+            'therapeutic_profile': None,
+            'knowledge_passages': [],
+            'knowledge_abstain': False,
+            'stale_skill_id': None,
+        },
+    },
+]
+
+async def main():
+    llm = get_responder()
+    for scenario in SCENARIOS:
+        system_str, user_str, layers = compose_prompt(scenario['state'])
+        messages = [
+            {'role': 'system', 'content': system_str},
+            {'role': 'user', 'content': user_str},
+        ]
+        response_en = await resilient_invoke(llm, messages, node='freeflow_respond', language='en')
+        response_ar = await async_translate_to_arabic(response_en)
+        ratio = len(response_ar) / len(response_en) if response_en else 0
+        length_flag = '  *** LENGTH REVIEW REQUIRED ***' if ratio > 1.8 else ''
+        print(f'=== {scenario[\"label\"]} ===')
+        print(f'Input: {scenario[\"state\"][\"raw_message\"]}')
+        print(f'EN response ({len(response_en)} chars): {response_en}')
+        print(f'AR response ({len(response_ar)} chars, ratio {ratio:.2f}){length_flag}: {response_ar}')
+        print()
+
+asyncio.run(main())
+" 2>&1 | tee /tmp/khaleeji_e2e_validation.txt
+```
+
+Expected: 4 English responses and their Arabic translations printed to `/tmp/khaleeji_e2e_validation.txt`. If any `response_en` is empty, the responder LLM failed — check API key.
+
+### What the native speaker evaluates
+
+The reviewer receives the Arabic output only (not the English intermediate). They score using the same 4-dimension rubric and pass threshold as Task 4.
+
+**Pay particular attention to:**
+- **E2E-2 (CBT Socratic step):** Does the Arabic preserve the question structure? Therapeutic Socratic questions that become declarative statements are a clinical failure, not just a quality failure.
+- **E2E-3 (Arabizi input, future capability):** Note for the native speaker: in the live POC today, a user writing in Arabizi (Latin-script Arabic) is classified as `detected_language: "en"` and receives an English response — `async_translate_to_arabic` is never called. Task 5 bypasses the graph and calls translation explicitly, so this test works, but it is testing a **future capability**, not current pipeline behaviour. Gap 4 in the architecture review documents this as a known deferred gap. Score E2E-3 normally; just do not interpret a passing score as validating a path that exists in production today.
+- **E2E-4 (religious framing):** Does the Arabic response acknowledge the religious expression (`ربي يصبرني`) naturally, or does it translate generically without register matching?
+
+### If Task 5 fails but Task 4 passed
+
+GPT-4o's therapeutic phrasing (complex embedded clauses, hedged multi-part questions) is translating poorly even though isolated warm English translated well. Apply Contingency 1 (GPT-4o as translator) from Task 4. If Contingency 1 resolves both Task 4 and Task 5: update `TRANSLATOR_MODEL` default in `config.py`.
 
 ---
 
@@ -486,7 +673,11 @@ If only 1–2 outputs fail on **Naturalness**: acceptable for POC. Document as a
 - ✅ English translation functions unchanged: Task 2 Step 3, tests in Task 1
 - ✅ Resilience behaviours preserved: fallback tests in Task 1
 - ✅ Regression: Task 3 Step 2+3
-- ✅ Validation protocol: Task 4
+- ✅ Isolated translation validation with length check: Task 4
+- ✅ GPT-4o contingency documented before Experiment 4.1 escalation: Task 4 "If validation fails"
+- ✅ End-to-end pipeline validation (GPT-4o response + translation): Task 5
+- ✅ Arabizi register-shift check: Task 5 E2E-3
+- ✅ Socratic question structure preservation check: Task 5 E2E-2
 - ✅ Gender limitation documented: Task 4 known limitation section
 
 **Placeholder scan:** None found.
