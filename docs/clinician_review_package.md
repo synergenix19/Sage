@@ -610,6 +610,223 @@ Each note was drafted by the Sage team with reference to Gulf cultural context, 
 
 ---
 
+---
+
+# SECTION C — Experiment 4.4: LLM Response Quality Scoring
+
+## What is this?
+
+Experiment 4.4 is Sage's therapeutic response quality evaluation. It runs the LLM through 20 skill scenarios (59 turns total) and captures the raw response at each turn alongside the step instruction that guided it. All entries currently have null rubric scores — **your scoring is required to determine whether Sage meets the clinical quality KPI before deployment.**
+
+**KPI gate:** Mean score ≥ 4.0 / 5.0 across all rubric fields, across all entries. This is a hard deployment gate.
+
+**File:** `docs/experiment_4_4_quality_log_2026-05-28.json`
+
+## How to score
+
+Open the JSON file. Each entry has a `rubric` object with five fields, all currently `null`. For each turn, fill in a score from 1–5 for each field:
+
+| Field | What to assess |
+|---|---|
+| `tone_appropriate` | Is the emotional register right for this therapeutic moment? (1 = cold/wrong register; 5 = exactly right) |
+| `matches_instruction` | Does the response follow the `step_instruction` directive for this step? (1 = ignores it; 5 = follows it precisely) |
+| `validation_genuine` | Does the validation feel authentic, or scripted and hollow? (1 = hollow/dismissive; 5 = genuinely warm) |
+| `socratic_quality` | If an open question is asked, does it genuinely invite reflection? (1 = closed/leading; 5 = genuinely open) |
+| `overall` | Holistic quality: would a clinician use this response with a real client? (1 = no; 5 = yes, without modification) |
+
+Add any notes in the `reviewer_notes` field.
+
+## Important: harness artifacts
+
+This log was generated with a synthetic harness, not live user turns. From Turn 2 onwards, the harness sends a fixed follow-up message ("I feel like I am making some progress with this exercise today") rather than a real user response. If a response references "the exercise" or "progress" in a way that seems slightly disconnected from context, this is a harness artifact — the model is filling a gap that real production turns would supply. **Score based on whether the response is clinically appropriate for the step instruction, not whether it matches context the harness omitted.**
+
+Scenarios S08–S13 and S19–S20 test specific step-policy rules (resistance, disengagement, etc.). The state signals were set programmatically to trigger each rule. Evaluate the response against the step instruction for that turn.
+
+---
+
+**SECTION C CONFIRMATION**
+
+- [ ] **SCORING COMPLETE** — I have filled in rubric scores for all 59 turns and noted any concerns
+- [ ] **KPI PASS** — Mean ≥ 4.0/5.0 (confirm after calculating)
+- [ ] **KPI FAIL** — Mean < 4.0/5.0 — flag for remediation before deployment
+
+**Reviewer name/initials:** _______________  
+**Date of review:** _______________  
+**Notes (overall observations, outlier turns, deployment concerns):**  
+&nbsp;  
+&nbsp;  
+&nbsp;
+
+---
+
+# SECTION D — Experiment 4.6: Blended Intent Evaluation
+
+## What is this?
+
+Experiment 4.6 evaluates whether Sage can handle messages where the user has two simultaneous intents — for example, continuing a CBT exercise while also asking a factual question. The experiment runs 20 scenarios and captures the single-turn LLM response for each. All entries currently have `successfully_blended: null` — **your scoring determines whether the blended intent KPI is met.**
+
+**KPI gate:** ≥ 16 / 20 scenarios scored `successfully_blended: true` (80%). This is a deployment gate.
+
+**File:** `docs/experiment_4_6_blended_evaluation_log_2026-05-28.json`
+
+## How to score
+
+Open the JSON file. For each entry, set `successfully_blended` to `true` or `false` using the following criterion:
+
+> Set **true** if: (1) the primary intent is handled correctly (e.g. skill step delivered, empathy shown, information provided as appropriate), AND (2) the secondary intent is visibly acknowledged or addressed in the response. Set **false** if the response ignores the secondary intent entirely, or handles the primary intent incorrectly.
+
+Add any concerns in `reviewer_notes`.
+
+## Notes
+
+**B16, B17 (crisis), B19, B20 (gate):** These four scenarios do not call the LLM — they use hardcoded responses. They are included for completeness but count as `false` for KPI purposes and do not require substantive review. The 80% KPI is calculated across all 20 scenarios.
+
+**Knowledge passages (B01–B07, B10–B13, B18):** These 13 scenarios use single-passage knowledge stubs for the evaluation run. The stubs are clinically referenced (CBT, DBT, MBCT, MI, Behavioral Activation, etc. — see `harness_notes` in the file for citations). They are sufficient to assess whether evidence is woven into the response. They are not a measure of production RAG retrieval quality — that is evaluated separately in Experiment 4.5.
+
+---
+
+**SECTION D CONFIRMATION**
+
+- [ ] **SCORING COMPLETE** — I have scored all 20 scenarios
+- [ ] **KPI PASS** — ≥ 16/20 `successfully_blended: true`
+- [ ] **KPI FAIL** — < 16/20 — flag for remediation before deployment
+
+**Reviewer name/initials:** _______________  
+**Date of review:** _______________  
+**Notes:**  
+&nbsp;  
+&nbsp;  
+&nbsp;
+
+---
+
+# SECTION E — Knowledge Corpus: Crisis Articles
+
+## What is this?
+
+Sage's knowledge base contains four crisis-related articles that can surface when a user asks about mental health crises, self-harm, or how to support someone in distress. All four are tagged `requires_clinical_review: True` in the corpus. **These must be reviewed before any demo or user-facing deployment.**
+
+**Hard gate:** Article `crisis-004` (self-harm) is a hard deployment gate — it must be explicitly approved before it can surface in production responses.
+
+---
+
+## E-01 — crisis-001: "What to do in a mental health crisis"
+
+**Source:** World Health Organization Mental Health Action Plan (2013)  
+**When it surfaces:** User query about what to do during a mental health crisis  
+
+**Content summary:** General guidance on recognising a mental health crisis, staying with the person, not leaving them alone, maintaining calm, listening without judging, removing means of self-harm if safe, and UAE emergency contacts (920003, 800-7342).
+
+**Clinical questions:**
+1. Is the guidance consistent with UAE-specific clinical standards, not just WHO international guidance?
+2. Is the instruction to "remove access to any means of self-harm if it is safe to do so" appropriately framed — could this prompt a non-professional to take an action that creates additional risk?
+3. Are the UAE emergency numbers (920003, 800-7342) current and correct?
+
+---
+
+**REVIEWER DECISION — E-01**
+
+- [ ] **APPROVE** — Content is clinically appropriate for Gulf users  
+- [ ] **REVISE** — See my notes below  
+- [ ] **BLOCK** — Do not surface this article until concerns are addressed
+
+**Reviewer name/initials:** _______________  
+**Notes:**  
+&nbsp;  
+&nbsp;  
+&nbsp;
+
+---
+
+## E-02 — crisis-002: "UAE mental health crisis resources"
+
+**Source:** UAE Ministry of Health and Prevention (2022)  
+**When it surfaces:** User query about UAE crisis resources or where to get help  
+
+**Content summary:** Lists UAE crisis lines: National Crisis and Emergency Line (920003, 24/7, Arabic and English); SEHA (800-7342); Dubai Health Authority / Rashid Hospital; 999 for immediate danger. Encourages help-seeking before emergency level.
+
+**Clinical questions:**
+1. Are all listed numbers and services current?
+2. Is the framing appropriate for users who may be in crisis when they read this — does it strike the right balance between urgency and accessibility?
+3. Is there any resource missing that is particularly relevant to the Sage user population (e.g. youth-specific lines, expat-focused services)?
+
+---
+
+**REVIEWER DECISION — E-02**
+
+- [ ] **APPROVE** — Content is clinically appropriate for Gulf users  
+- [ ] **REVISE** — See my notes below  
+- [ ] **BLOCK** — Do not surface this article until concerns are addressed
+
+**Reviewer name/initials:** _______________  
+**Notes:**  
+&nbsp;  
+&nbsp;  
+&nbsp;
+
+---
+
+## E-03 — crisis-003: "Supporting someone in crisis"
+
+**Source:** Mind UK (2023)  
+**When it surfaces:** User query about how to help a friend or family member in crisis (third-party concern)  
+
+**Content summary:** Guidance for a third party: how to start the conversation, listening without fixing, reflecting back, not promising confidentiality, staying in contact after the crisis, and the importance of the supporter's own wellbeing.
+
+**Clinical questions:**
+1. The source is Mind UK — is the guidance culturally appropriate for Gulf users, or does it assume a Western individualistic context that may not translate?
+2. The guidance notes "do not promise confidentiality" — in a Gulf family honour context, is this the right instruction? Could it deter help-seeking if users worry about who will be told?
+3. Is the advice to "let silences exist without rushing to fill them" appropriate for Gulf communication norms?
+
+---
+
+**REVIEWER DECISION — E-03**
+
+- [ ] **APPROVE** — Content is clinically appropriate for Gulf users  
+- [ ] **REVISE** — See my notes below  
+- [ ] **BLOCK** — Do not surface this article until concerns are addressed
+
+**Reviewer name/initials:** _______________  
+**Notes:**  
+&nbsp;  
+&nbsp;  
+&nbsp;
+
+---
+
+## E-04 — crisis-004: "Self-harm: understanding and getting help" ⚠️ HARD GATE
+
+**Source:** British Journal of Psychiatry / Hawton et al. (2012)  
+**When it surfaces:** User query about self-harm, understanding self-harm, or helping someone who self-harms  
+
+**Content summary:** Explains self-harm as a coping mechanism for overwhelming emotions (not the same as a wish to die, though they can co-occur); reasons people self-harm (release, control, expressing inexpressible pain, feeling something when numb); reframes "attention-seeking" framing; signposts to healthcare professionals; notes recovery is possible.
+
+**This article is a hard deployment gate. It must not surface in production until explicitly approved.**
+
+**Clinical questions:**
+1. Is the framing of self-harm as a "coping mechanism" the right clinical stance for a Gulf audience, or does it risk normalising the behaviour in a cultural context where it carries significant religious and social weight?
+2. The article explicitly states self-harm "is not attention-seeking, a phrase that dismisses a genuine cry for help even when it is accurate." Is this framing appropriate for a general audience, or does it require clinical context to interpret safely?
+3. The source is a UK epidemiology study. Is the content appropriately adapted from a research context to a help-seeking article that may be read by someone currently self-harming?
+4. Is there any content that should be added — for example, explicitly Islamic framing around the body as amanah (a trust), or UAE-specific treatment pathways?
+
+---
+
+**REVIEWER DECISION — E-04** ⚠️
+
+- [ ] **APPROVE** — Content is clinically appropriate for Gulf users; hard gate cleared  
+- [ ] **REVISE** — Provide revised text below; hard gate not cleared until revised version approved  
+- [ ] **BLOCK** — Do not surface this article; remove from knowledge base pending major revision
+
+**Reviewer name/initials:** _______________  
+**Revised content (if applicable):**  
+&nbsp;  
+&nbsp;  
+&nbsp;  
+&nbsp;  
+&nbsp;
+
+---
+
 ## Return Instructions
 
 When you have completed your review:
@@ -618,6 +835,6 @@ When you have completed your review:
 2. For any REVISE decisions, please write the revised guidance text in the space provided. We will implement exactly what you write — we will not paraphrase.
 3. Return the completed document to the Sage technical team at: synergenix.global@gmail.com
 
-**If any item raises a concern that is not captured by the APPROVE / REJECT / REVISE options above, please add a note and flag it for a call.** The review decisions in Section A have direct patient safety implications, and we would rather pause deployment than proceed with uncertainty.
+**If any item raises a concern that is not captured by the APPROVE / REJECT / REVISE options above, please add a note and flag it for a call.** The review decisions in Sections A and E have direct patient safety implications, and we would rather pause deployment than proceed with uncertainty.
 
 Thank you for your time on this review.
