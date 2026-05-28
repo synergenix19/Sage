@@ -185,7 +185,7 @@ ALL_SCENARIOS: list[dict] = [
         "emotional_intensity": 3,
         "engagement": 8,
         "description": "Factual primary + emotional context",
-        "knowledge_expected": False,
+        "knowledge_expected": True,
     },
     {
         "id": "B13",
@@ -198,7 +198,7 @@ ALL_SCENARIOS: list[dict] = [
         "emotional_intensity": 3,
         "engagement": 7,
         "description": "Info primary + casual affect",
-        "knowledge_expected": False,
+        "knowledge_expected": True,
     },
     # ── B14-B15: skill_continuation + exit_skill (primary wins) ──
     {

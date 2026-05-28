@@ -1,6 +1,6 @@
 {
   "experiment": "4.6",
-  "generated_at": "2026-05-28T11:49:56.750989",
+  "generated_at": "2026-05-28T12:00:54.131068",
   "scenario_count": 20,
   "kpi_target": ">=80% successfully_blended (>=16/20 scenarios)",
   "reviewer_instructions": {
@@ -17,7 +17,7 @@
       "message": "I've been doing the thought record — also, is CBT evidence-based?",
       "expected_route": "skill_executor",
       "knowledge_expected": true,
-      "llm_response": "It's great that you're working on the thought record. I don't have specific information on whether CBT is evidence-based, but it is widely used and supported by many mental health professionals. How has the thought record been going for you?",
+      "llm_response": "It seems like you've been putting effort into the thought record. That's great to hear. To answer your question, Cognitive Behavioral Therapy (CBT) is indeed evidence-based. It's been well-researched and shown to be effective for conditions like depression and anxiety. How has the thought record been working for you so far?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -29,7 +29,7 @@
       "message": "I did my activity scheduling today — what exactly is behavioral activation?",
       "expected_route": "skill_executor",
       "knowledge_expected": true,
-      "llm_response": "I don't have specific information on behavioral activation, but I can share that it's generally about engaging in activities to improve your mood and energy. It makes sense that you're curious about the details AND that you've already started with activity scheduling. Both your interest and your action are valuable. How did the scheduling go for you today?",
+      "llm_response": "Behavioral Activation is an evidence-based treatment for depression that focuses on increasing engagement with activities that bring about positive reinforcement. It makes sense that you're feeling curious about it while you're working on activity scheduling. Both exploring the concept and taking action with your schedule are important steps. How did scheduling go for you today?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -41,7 +41,7 @@
       "message": "I rated my readiness a 6 — how does motivational interviewing work exactly?",
       "expected_route": "skill_executor",
       "knowledge_expected": true,
-      "llm_response": "I don't have specific information on motivational interviewing right now. But it's great that you're exploring your readiness. It makes sense to feel curious about this method, and it's okay to want more clarity. Both are important in your journey. Is there more about your readiness that you'd like to discuss?",
+      "llm_response": "Motivational Interviewing is a collaborative and goal-oriented way of communicating. It's designed to help strengthen your motivation for change. It makes sense that you're curious about how it works and also ready to explore your own readiness. Both your interest and your readiness are important. What specific part of your change process are you focusing on right now?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -53,7 +53,7 @@
       "message": "I practiced the assertive script — is this type of communication therapy proven to work?",
       "expected_route": "skill_executor",
       "knowledge_expected": true,
-      "llm_response": "I don't have specific information on the proven effectiveness of assertive communication therapy. It's great that you're practicing the assertive script. It makes sense to be curious about its effectiveness, and it's also important to note that practicing new skills can be a valuable step in itself. Both your practice and curiosity are valid. How did it feel to use the script?",
+      "llm_response": "It's great that you practiced the assertive script. Assertive communication training has been shown to be effective in improving relationships, reducing anxiety, and boosting self-confidence. It makes sense to feel curious about how well it works and also proud of your effort in practicing it. Both feelings are valid. How did it feel using the script?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -65,7 +65,7 @@
       "message": "I keep blaming myself for everything — also, is CBT something that could help?",
       "expected_route": "skill_select",
       "knowledge_expected": true,
-      "llm_response": "Blaming yourself for everything can be tough to manage. It makes sense that you feel this way and that you're also looking for ways to help yourself. Both are important. I don't have specific information on how CBT might help with self-blame, but it's often used to address negative thinking patterns. What's been the hardest part of dealing with self-blame lately?",
+      "llm_response": "It's understandable to feel like you're blaming yourself a lot, and it's natural to want to find ways to change that. Both feelings are real and valid. CBT, or Cognitive Behavioral Therapy, is designed to help with negative thinking patterns like self-blame. It might be worth exploring. What's been most challenging about this self-blame for you?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -77,7 +77,7 @@
       "message": "I've been having panic attacks every morning — what kind of therapy is recommended for anxiety?",
       "expected_route": "skill_select",
       "knowledge_expected": true,
-      "llm_response": "I'm sorry to hear about the panic attacks. That sounds really tough to deal with every morning. I don't have specific information on therapy recommendations for anxiety and panic attacks, but it makes sense that you're feeling overwhelmed by this AND that you're looking for ways to manage it. Both are real and valid. What's been the hardest part for you?",
+      "llm_response": "It sounds really overwhelming to be starting your day with panic attacks. It makes sense to feel that way, and it's also important to know that help is available. Cognitive Behavioral Therapy, including exposure therapy, is often recommended for anxiety and panic disorders. It has a strong track record in helping people manage these feelings. How are you holding up with these mornings?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -89,7 +89,7 @@
       "message": "I've felt flat and joyless for weeks — is there evidence that exercises like this actually help depression?",
       "expected_route": "skill_select",
       "knowledge_expected": true,
-      "llm_response": "I don't have specific information on the evidence for exercises helping depression, but I know that it's common for people to feel both hesitant and hopeful about trying new things when they're feeling down. Both feelings are valid. What's been the hardest part of feeling this way for you?",
+      "llm_response": "Feeling flat and joyless can be really hard, and it makes sense to want to know if what you're trying will actually help. There is strong evidence that exercise can reduce depressive symptoms, with effects comparable to medication. Both your feelings and your hope for improvement are real and valid. What's been the hardest part of this for you lately?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -101,7 +101,7 @@
       "message": "I've been really struggling with intrusive thoughts lately — anyway, how are you doing?",
       "expected_route": "skill_select",
       "knowledge_expected": false,
-      "llm_response": "It sounds like those intrusive thoughts have been difficult to handle. It's understandable to feel overwhelmed by them and still be curious about how others are doing. Both feelings are real. What's been the hardest part of dealing with those thoughts?",
+      "llm_response": "Intrusive thoughts can be tough to deal with, and it's normal to feel overwhelmed by them. At the same time, it's clear you care about connecting with others, which is a great strength. Both your struggle and your openness are real and valid. What do you think would help you feel a bit more at ease with these thoughts?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -113,7 +113,7 @@
       "message": "Everything feels overwhelming and I can't seem to cope — oh, it's been a long week.",
       "expected_route": "skill_select",
       "knowledge_expected": false,
-      "llm_response": "It sounds like things have been really tough for you this week. It's understandable to feel overwhelmed when so much is happening. It's okay to feel this way and still be looking for a way to manage it. What's been the hardest part for you?",
+      "llm_response": "It sounds like things have been really tough, and you're feeling overwhelmed. It's okay to feel that way after a long week. It's also true that you want to find ways to cope with everything going on. Both feelings are real and valid. Can you tell me more about what's been the hardest part of all this?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -125,7 +125,7 @@
       "message": "Hey, I'm having a decent day! By the way, what is CBT?",
       "expected_route": "freeflow",
       "knowledge_expected": true,
-      "llm_response": "I'm glad to hear you're having a decent day! I don't have specific information on CBT, but I can tell you it's a common therapy approach that focuses on changing unhelpful thinking and behavior patterns. It makes sense that you're curious about it and that you're having a pretty good day. Both are important.",
+      "llm_response": "I'm glad to hear you're having a decent day! Cognitive Behavioral Therapy, or CBT, is a type of therapy that helps you understand how your thoughts, feelings, and behaviors are connected. It’s structured and often time-limited. If you’re curious about it or thinking of exploring it, both your interest and your current good mood are valid and can coexist.",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -137,7 +137,7 @@
       "message": "I'm feeling pretty good today — quick question, does therapy actually work for most people?",
       "expected_route": "freeflow",
       "knowledge_expected": true,
-      "llm_response": "I'm glad you're having a good day. About your question, I don't have specific information at hand on how therapy works for most people. However, many people do find it helpful. It's perfectly okay to feel curious about this while also feeling good today. Both feelings are valid.",
+      "llm_response": "It's great that you're feeling pretty good today. Therapy, including approaches like CBT, does work for most people dealing with common mental health conditions like depression and anxiety. Both your curiosity about therapy and your good mood today are important.",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -148,8 +148,8 @@
       "secondary_intent": "general_chat",
       "message": "I've been curious — what is DBT and how does it differ from CBT? I'm feeling okay today.",
       "expected_route": "skill_select",
-      "knowledge_expected": false,
-      "llm_response": "I don't have specific information on DBT and how it differs from CBT. Both are types of therapy, but they have different approaches and techniques. It's great that you're feeling okay today, and it's also natural to be curious about these topics. Both feelings are valid.",
+      "knowledge_expected": true,
+      "llm_response": "DBT, or Dialectical Behavior Therapy, was developed by Marsha Linehan. It focuses on dialectical thinking and radical acceptance, along with skills training in areas like mindfulness, distress tolerance, emotion regulation, and interpersonal effectiveness. This emphasis on skills training and acceptance is a key difference from CBT, which primarily focuses on changing negative thought patterns and behaviors. It's great you're feeling okay today, and it's also wonderful to explore different therapies. Both your curiosity and your well-being are important.",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -160,8 +160,8 @@
       "secondary_intent": "general_chat",
       "message": "What does mindfulness-based therapy involve? Not looking for a skill today, just curious.",
       "expected_route": "skill_select",
-      "knowledge_expected": false,
-      "llm_response": "I don't have specific information on mindfulness-based therapy right now. It's understandable to be curious about how different therapies work, and it's also okay to not want to dive deep into practicing a skill today. Both are valid. If you'd like, I can help with another question or topic.",
+      "knowledge_expected": true,
+      "llm_response": "Mindfulness-Based Cognitive Therapy (MBCT) involves combining mindfulness practices with elements of Cognitive Behavioral Therapy (CBT). It's particularly effective for preventing relapse in recurrent depression. It makes sense to be curious about how therapies work and also not feel ready to try a new skill today. Both are valid.",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -173,7 +173,7 @@
       "message": "I'm still going with the thought record I think... actually maybe I want to stop?",
       "expected_route": "skill_executor",
       "knowledge_expected": false,
-      "llm_response": "It makes sense that you're feeling unsure about continuing with the thought record. It's okay to question things and to want to pause or change course. Both feelings are valid. What's making you consider stopping?",
+      "llm_response": "It makes sense that you're feeling uncertain about continuing with the thought record and that you're considering stopping. Both thoughts are valid. What's been making you think about stopping it?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -185,7 +185,7 @@
       "message": "I completed the activity schedule... part of me wonders if I should just stop here.",
       "expected_route": "skill_executor",
       "knowledge_expected": false,
-      "llm_response": "You've completed the activity schedule, which is an achievement in itself, and it's natural to feel uncertain about whether to continue. It's okay to feel accomplished and to question what's next. Both are real and valid feelings. What do you think would be most helpful to focus on now?",
+      "llm_response": "It makes sense that you're feeling uncertain about whether to continue with the activity schedule. It's normal to have doubts, especially when you've completed a task. You might feel a sense of accomplishment, and also some hesitation about what's next. Both feelings are valid. What's been on your mind about stopping here?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
@@ -221,7 +221,7 @@
       "message": "I think I want to stop the thought record for now — but what does research say about CBT success rates?",
       "expected_route": "skill_executor",
       "knowledge_expected": true,
-      "llm_response": "It makes sense that you might want to pause the thought record for now, and it's also natural to be curious about how well CBT works. I don't have specific success rates for CBT, but it's widely used and many people find it helpful. What are you thinking about doing next?",
+      "llm_response": "Taking a break from the thought record is okay, and it's great that you're curious about the research on CBT. Studies show that CBT has response rates of 50–60% for depression and 60–80% for anxiety disorders. This makes it one of the most supported psychological treatments. Both your need for a pause and your interest in understanding CBT are valid. What's on your mind right now?",
       "successfully_blended": null,
       "reviewer_notes": null
     },
