@@ -278,7 +278,15 @@ async def _main(
             "For freeflow/skill_select routes, freeflow_respond_node is called directly with "
             "the scenario's intent fields pre-set (skill_select routing is bypassed). "
             "Crisis (B16, B17) and gate (B19, B20) routes do not call freeflow_respond — "
-            "those entries are placeholders and count as successfully_blended=false for KPI purposes."
+            "those entries are placeholders and count as successfully_blended=false for KPI purposes. "
+            "KNOWLEDGE RETRIEVAL SCOPE: 13 scenarios with info_request intent (B01-B07, B10-B13, B18) "
+            "use single-passage stubs rather than Node 6's ranked multi-passage BGE-M3 retrieval. "
+            "The stub passages are clinically referenced and sufficient to validate that L4 knowledge "
+            "injection reaches the Prompt Composer and the LLM weaves evidence into the response. "
+            "The Experiment 4.6 KPI (>=80% successfully blended) is valid for measuring intent "
+            "blending. RAG retrieval quality — passage ranking, abstain threshold calibration, "
+            "multi-passage selection — must be evaluated exclusively against Experiment 4.5 results. "
+            "Do not draw conclusions about production RAG accuracy from this log."
         ),
         "entries": entries,
     }
