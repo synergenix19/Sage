@@ -284,9 +284,9 @@ async def test_turn_count_incremented():
 
 
 @pytest.mark.asyncio
-async def test_output_gate_audit_includes_knowledge_fields(capsys):
+async def test_output_gate_audit_includes_knowledge_fields(caplog):
     """Audit log must include knowledge_source and passage count when retrieval fired."""
-    import json as _json
+    import logging
     from sage_poc.nodes.output_gate import output_gate_node
     from sage_poc.config import AUDIT_LOG_ENABLED
 
@@ -302,13 +302,13 @@ async def test_output_gate_audit_includes_knowledge_fields(capsys):
         knowledge_abstain=False,
     )
 
-    with patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()):
-        await output_gate_node(state)
+    with caplog.at_level(logging.INFO, logger="sage_poc.nodes.output_gate"):
+        with patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()):
+            await output_gate_node(state)
 
-    captured = capsys.readouterr()
-    assert "knowledge_source" in captured.out, "Audit log must include knowledge_source"
-    assert "node_6" in captured.out, "Audit log must include the knowledge source value"
-    assert "cbt-001-en" in captured.out, "Audit log must include passage source_id"
+    assert "knowledge_source" in caplog.text, "Audit log must include knowledge_source"
+    assert "node_6" in caplog.text, "Audit log must include the knowledge source value"
+    assert "cbt-001-en" in caplog.text, "Audit log must include passage source_id"
 
 
 # ---------------------------------------------------------------------------

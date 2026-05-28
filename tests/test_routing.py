@@ -5,7 +5,7 @@ and _route_after_skill_select without invoking the full graph. They are fast,
 deterministic, and serve as the canonical documentation of routing logic.
 """
 import pytest
-from sage_poc.graph import _route_after_safety, _route_after_intent, _route_after_skill_select
+from sage_poc.graph import _route_after_safety, _route_after_intent, _route_after_skill_select, _route_after_skill_executor
 
 
 def make_full_state(**overrides) -> dict:
@@ -181,3 +181,33 @@ def test_non_info_request_no_skill_routes_to_freeflow():
         active_skill_id=None,
     )
     assert _route_after_skill_select(state) == "freeflow"
+
+
+# --- _route_after_skill_executor ---
+
+def test_route_after_skill_executor_re_escalation_routes_to_crisis():
+    """skill_executor detects re-escalation (s7_result=NEW_CRISIS) → crisis_response."""
+    state = make_full_state(re_escalation_within_monitoring=True)
+    assert _route_after_skill_executor(state) == "crisis"
+
+
+def test_route_after_skill_executor_no_re_escalation_routes_to_freeflow():
+    """Normal skill execution (no re-escalation) → freeflow_respond."""
+    state = make_full_state(re_escalation_within_monitoring=False)
+    assert _route_after_skill_executor(state) == "freeflow"
+
+
+def test_route_after_skill_executor_none_routes_to_freeflow():
+    """re_escalation_within_monitoring=None (initial state) → freeflow_respond."""
+    state = make_full_state(re_escalation_within_monitoring=None)
+    assert _route_after_skill_executor(state) == "freeflow"
+
+
+def test_route_after_skill_executor_monitoring_no_reescalation_routes_to_freeflow():
+    """Monitoring session with STILL_DISTRESSED (S7 not NEW_CRISIS) → freeflow."""
+    state = make_full_state(
+        crisis_state="monitoring",
+        s7_result="STILL_DISTRESSED",
+        re_escalation_within_monitoring=False,
+    )
+    assert _route_after_skill_executor(state) == "freeflow"

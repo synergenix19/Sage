@@ -1,4 +1,7 @@
+from functools import lru_cache
+
 from langchain_openai import ChatOpenAI
+
 from sage_poc.config import (
     OPENROUTER_API_KEY,
     OPENROUTER_BASE_URL,
@@ -11,93 +14,57 @@ from sage_poc.config import (
 
 _HEADERS = {"HTTP-Referer": "https://sage.ai", "X-Title": "SageAI POC"}
 
-_classifier: ChatOpenAI | None = None
-_responder: ChatOpenAI | None = None
-_translator: ChatOpenAI | None = None
-_fallback_responder: ChatOpenAI | None = None
-_fallback_classifier: ChatOpenAI | None = None
+_LLM_CONFIGS: dict[str, tuple[str, float, int]] = {
+    "classifier":          (CLASSIFIER_MODEL,          0,   512),
+    "responder":           (RESPONDER_MODEL,            0.7, 1024),
+    "translator":          (TRANSLATOR_MODEL,           0,   1024),
+    "fallback_responder":  (FALLBACK_RESPONDER_MODEL,   0.7, 1024),
+    "fallback_classifier": (FALLBACK_CLASSIFIER_MODEL,  0,   512),
+}
+
+
+@lru_cache(maxsize=None)
+def _make_llm(model: str, temperature: float, max_tokens: int) -> ChatOpenAI:
+    return ChatOpenAI(
+        model=model,
+        openai_api_key=OPENROUTER_API_KEY,
+        openai_api_base=OPENROUTER_BASE_URL,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        default_headers=_HEADERS,
+    )
 
 
 def get_classifier() -> ChatOpenAI:
     """Fast, low-temperature model for intent classification and safety routing."""
-    global _classifier
-    if _classifier is None:
-        _classifier = ChatOpenAI(
-            model=CLASSIFIER_MODEL,
-            openai_api_key=OPENROUTER_API_KEY,
-            openai_api_base=OPENROUTER_BASE_URL,
-            temperature=0,
-            max_tokens=512,
-            default_headers=_HEADERS,
-        )
-    return _classifier
+    model, temp, max_tokens = _LLM_CONFIGS["classifier"]
+    return _make_llm(model, temp, max_tokens)
 
 
 def get_responder() -> ChatOpenAI:
     """Higher-quality model for therapeutic response generation."""
-    global _responder
-    if _responder is None:
-        _responder = ChatOpenAI(
-            model=RESPONDER_MODEL,
-            openai_api_key=OPENROUTER_API_KEY,
-            openai_api_base=OPENROUTER_BASE_URL,
-            temperature=0.7,
-            max_tokens=1024,
-            default_headers=_HEADERS,
-        )
-    return _responder
+    model, temp, max_tokens = _LLM_CONFIGS["responder"]
+    return _make_llm(model, temp, max_tokens)
 
 
 def get_translator() -> ChatOpenAI:
     """Fast model for Arabic ↔ English translation."""
-    global _translator
-    if _translator is None:
-        _translator = ChatOpenAI(
-            model=TRANSLATOR_MODEL,
-            openai_api_key=OPENROUTER_API_KEY,
-            openai_api_base=OPENROUTER_BASE_URL,
-            temperature=0,
-            max_tokens=1024,
-            default_headers=_HEADERS,
-        )
-    return _translator
+    model, temp, max_tokens = _LLM_CONFIGS["translator"]
+    return _make_llm(model, temp, max_tokens)
 
 
 def get_fallback_responder() -> ChatOpenAI:
     """Fallback model for response generation when primary is unavailable."""
-    global _fallback_responder
-    if _fallback_responder is None:
-        _fallback_responder = ChatOpenAI(
-            model=FALLBACK_RESPONDER_MODEL,
-            openai_api_key=OPENROUTER_API_KEY,
-            openai_api_base=OPENROUTER_BASE_URL,
-            temperature=0.7,
-            max_tokens=1024,
-            default_headers=_HEADERS,
-        )
-    return _fallback_responder
+    model, temp, max_tokens = _LLM_CONFIGS["fallback_responder"]
+    return _make_llm(model, temp, max_tokens)
 
 
 def get_fallback_classifier() -> ChatOpenAI:
     """Fallback model for intent classification when primary is unavailable."""
-    global _fallback_classifier
-    if _fallback_classifier is None:
-        _fallback_classifier = ChatOpenAI(
-            model=FALLBACK_CLASSIFIER_MODEL,
-            openai_api_key=OPENROUTER_API_KEY,
-            openai_api_base=OPENROUTER_BASE_URL,
-            temperature=0,
-            max_tokens=512,
-            default_headers=_HEADERS,
-        )
-    return _fallback_classifier
+    model, temp, max_tokens = _LLM_CONFIGS["fallback_classifier"]
+    return _make_llm(model, temp, max_tokens)
 
 
 def reset_singletons() -> None:
     """Reset all cached LLM instances. Call in test teardown to prevent mock leakage."""
-    global _classifier, _responder, _translator, _fallback_responder, _fallback_classifier
-    _classifier = None
-    _responder = None
-    _translator = None
-    _fallback_responder = None
-    _fallback_classifier = None
+    _make_llm.cache_clear()

@@ -251,7 +251,7 @@ async def test_third_party_crisis_is_safe_does_not_block_session():
     state = _state("my friend told me she wants to die")
     with (
         patch("sage_poc.nodes.safety_check.detect_language", return_value="en"),
-        patch("sage_poc.nodes.safety_check.translate_to_english", return_value="my friend told me she wants to die"),
+        patch("sage_poc.nodes.safety_check.async_translate_to_english", return_value="my friend told me she wants to die"),
     ):
         result = await safety_check_node(state)
     assert result["is_safe"] is True, "Third-party report must not block the session"
@@ -264,7 +264,7 @@ async def test_third_party_overrides_direct_crisis_flag():
     state = _state("my friend wants to kill herself")
     with (
         patch("sage_poc.nodes.safety_check.detect_language", return_value="en"),
-        patch("sage_poc.nodes.safety_check.translate_to_english", return_value="my friend wants to kill herself"),
+        patch("sage_poc.nodes.safety_check.async_translate_to_english", return_value="my friend wants to kill herself"),
     ):
         result = await safety_check_node(state)
     assert result["is_safe"] is True

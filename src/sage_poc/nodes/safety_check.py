@@ -25,7 +25,7 @@ import re
 import asyncio
 import logging
 from sage_poc.state import SageState
-from sage_poc.language import detect_language, translate_to_english, async_translate_to_english
+from sage_poc.language import detect_language, async_translate_to_english
 from sage_poc.rules import engine as rules_engine
 from sage_poc.nodes.post_crisis_classifier import evaluate_s7
 from sage_poc.safety.s3_semantic import check_s3, S3_THRESHOLD

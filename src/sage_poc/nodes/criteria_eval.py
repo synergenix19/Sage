@@ -22,9 +22,13 @@ _PROMPT_PATH = (
 async def _call_llm(prompt: str) -> str:
     """Call the classifier LLM and return the raw text response."""
     from sage_poc.llm import get_classifier
+    from sage_poc.resilience import resilient_invoke
     llm = get_classifier()
-    response = await llm.ainvoke([{"role": "user", "content": prompt}])
-    return response.content.strip().lower()
+    return await resilient_invoke(
+        llm,
+        [{"role": "user", "content": prompt}],
+        node="criteria_eval",
+    )
 
 
 async def evaluate_completion_criteria(message_en: str, criterion: str) -> bool:

@@ -442,7 +442,7 @@ async def test_async_translate_to_arabic_success():
 @pytest.mark.asyncio
 async def test_async_translate_to_arabic_timeout_returns_original():
     from sage_poc.language import async_translate_to_arabic
-    with patch("sage_poc.language.asyncio.wait_for", side_effect=asyncio.TimeoutError):
+    with patch("sage_poc.resilience.resilient_invoke", new=AsyncMock(return_value=None)):
         result = await async_translate_to_arabic("Hello")
     assert result == "Hello"
 
@@ -450,7 +450,7 @@ async def test_async_translate_to_arabic_timeout_returns_original():
 @pytest.mark.asyncio
 async def test_async_translate_to_english_timeout_returns_original():
     from sage_poc.language import async_translate_to_english
-    with patch("sage_poc.language.asyncio.wait_for", side_effect=asyncio.TimeoutError):
+    with patch("sage_poc.resilience.resilient_invoke", new=AsyncMock(return_value=None)):
         result = await async_translate_to_english("مرحباً")
     assert result == "مرحباً"
 

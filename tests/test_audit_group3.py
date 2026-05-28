@@ -179,7 +179,7 @@ class TestA4ThirdPartyCrisis:
         state = _safety_state(raw)
         with (
             patch("sage_poc.nodes.safety_check.detect_language", return_value="en"),
-            patch("sage_poc.nodes.safety_check.translate_to_english", return_value=raw),
+            patch("sage_poc.nodes.safety_check.async_translate_to_english", return_value=raw),
         ):
             return await safety_check_node(state)
 

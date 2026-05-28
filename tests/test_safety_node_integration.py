@@ -99,7 +99,7 @@ class TestPassiveSiNodeLevel:
         # Arabic rules fire on text_ar independently; translation is mocked for the English path.
         state = make_state(raw_message="ما عندي سبب اعيش")
         with patch(
-            "sage_poc.nodes.safety_check.translate_to_english",
+            "sage_poc.nodes.safety_check.async_translate_to_english",
             return_value="I have no reason to live",
         ):
             result = await safety_check_node(state)
@@ -162,7 +162,7 @@ class TestFalsePositivesNodeLevel:
         # "اموت من الضحك" = "dying of laughter" — FPE-AR-001 must suppress.
         state = make_state(raw_message="اموت من الضحك")
         with patch(
-            "sage_poc.nodes.safety_check.translate_to_english",
+            "sage_poc.nodes.safety_check.async_translate_to_english",
             return_value="dying of laughter",
         ):
             result = await safety_check_node(state)
@@ -193,7 +193,7 @@ class TestKhaleejiDialectNodeLevel:
         # "يلا نروح البحر الحين" = "let's go to the beach now" — unambiguously safe.
         state = make_state(raw_message="يلا نروح البحر الحين")
         with patch(
-            "sage_poc.nodes.safety_check.translate_to_english",
+            "sage_poc.nodes.safety_check.async_translate_to_english",
             return_value="let's go to the beach",
         ):
             result = await safety_check_node(state)
@@ -208,7 +208,7 @@ class TestKhaleejiDialectNodeLevel:
         # "انا تعبت من كل شي" = "I'm exhausted from everything" — SK-AR-003 pattern.
         state = make_state(raw_message="انا تعبت من كل شي")
         with patch(
-            "sage_poc.nodes.safety_check.translate_to_english",
+            "sage_poc.nodes.safety_check.async_translate_to_english",
             return_value="I am exhausted from everything",
         ):
             result = await safety_check_node(state)
@@ -221,7 +221,7 @@ class TestKhaleejiDialectNodeLevel:
         # "ما عاد في قلبي حياة" = "no life left in my heart" — SK-AR-003 pattern.
         state = make_state(raw_message="ما عاد في قلبي حياة")
         with patch(
-            "sage_poc.nodes.safety_check.translate_to_english",
+            "sage_poc.nodes.safety_check.async_translate_to_english",
             return_value="there is no life left in my heart",
         ):
             result = await safety_check_node(state)
@@ -240,7 +240,7 @@ class TestCodeSwitchingNodeLevel:
         # and sets code_switching=True (both scripts present).
         state = make_state(raw_message="I am feeling أريد الموت today")
         with patch(
-            "sage_poc.nodes.safety_check.translate_to_english",
+            "sage_poc.nodes.safety_check.async_translate_to_english",
             return_value="I want to die",
         ):
             result = await safety_check_node(state)
@@ -271,7 +271,7 @@ class TestCodeSwitchingNodeLevel:
         # "بس" = "but" in Gulf Arabic. Message is benign; we only test the flag.
         state = make_state(raw_message="ana okay بس a bit tired")
         with patch(
-            "sage_poc.nodes.safety_check.translate_to_english",
+            "sage_poc.nodes.safety_check.async_translate_to_english",
             return_value="I'm okay but a bit tired",
         ):
             result = await safety_check_node(state)

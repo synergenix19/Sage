@@ -156,9 +156,10 @@ async def output_gate_node(state: SageState) -> dict:
         _original_response_hash: str | None = None
         _original_response_text: str | None = None
         for rule in cultural_violations.fired:
-            print(
-                f"\n[CULTURAL OUTPUT VIOLATION] {rule.rule_id} v{rule.version}: "
-                f"{rule.action.get('message', rule.action.get('type', ''))}"
+            _log.warning(
+                "[output_gate] cultural violation %s v%s: %s",
+                rule.rule_id, rule.version,
+                rule.action.get('message', rule.action.get('type', '')),
             )
             if rule.action.get("type") == "substitute" and _identity_sub_rule_id is None:
                 _original_response_text = response_en
@@ -193,7 +194,7 @@ async def output_gate_node(state: SageState) -> dict:
 
     violations = _FORMAT_VIOLATIONS.findall(response_en)
     if violations:
-        print(f"\n[FORMAT VIOLATION] Disallowed formatting detected: {violations}")
+        _log.warning("[output_gate] format violations: %s", violations)
 
     if lang == "ar":
         final_response = await async_translate_to_arabic(response_en)
@@ -232,13 +233,13 @@ async def output_gate_node(state: SageState) -> dict:
                 if _identity_sub_rule_id else None
             ),
         }
-        print(f"\n[AUDIT] {json.dumps(audit, indent=2)}")
+        _log.info("[output_gate] AUDIT %s", json.dumps(audit))
 
         if state.get("clinical_flags"):
-            print(f"\n[CLINICAL FLAGS] {', '.join(state['clinical_flags'])}")
+            _log.info("[output_gate] clinical flags: %s", ', '.join(state['clinical_flags']))
         if state.get("escalation_triggered"):
             esc = state["escalation_triggered"]
-            print(f"\n[ESCALATION {esc['level']}] {esc['reason']}")
+            _log.warning("[output_gate] escalation L%s: %s", esc['level'], esc['reason'])
 
     new_history = state.get("conversation_history", []) + [
         {"role": "user", "content": state["message_en"]},
@@ -279,7 +280,11 @@ async def output_gate_node(state: SageState) -> dict:
             if not t.cancelled() and t.exception() else None
         )
 
-    asyncio.create_task(write_session_audit({**state, "path": path, "gate_path": gate_path or "standard"}))
+    _audit_task = asyncio.create_task(write_session_audit({**state, "path": path, "gate_path": gate_path or "standard"}))
+    _audit_task.add_done_callback(
+        lambda t: _log.warning("[output_gate] session audit error: %s", t.exception())
+        if not t.cancelled() and t.exception() else None
+    )
 
     return {
         "response": final_response,

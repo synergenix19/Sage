@@ -118,9 +118,13 @@ async def _score_resistance_via_rules_service(
             .replace("{recent_context}", recent_context or "")
         )
         from sage_poc.llm import get_classifier
+        from sage_poc.resilience import resilient_invoke
         llm = get_classifier()
-        response = await llm.ainvoke([{"role": "user", "content": prompt}])
-        raw = response.content.strip()
+        raw = await resilient_invoke(
+            llm,
+            [{"role": "user", "content": prompt}],
+            node="skill_executor",
+        )
         match = re.search(r'\b(10|[1-9])\b', raw)
         if match:
             score = int(match.group(1))
@@ -354,22 +358,28 @@ async def skill_executor_node(state: SageState) -> dict:
     # we are on a continuation turn — skip-once rules may be bypassed so completion can advance.
     prev_step_id: str | None = state.get("prev_step_id")
 
+    _base_policy_kwargs = {
+        "skill":                skill,
+        "current_step_id":      step_id,
+        "emotional_intensity":  state["emotional_intensity"],
+        "engagement":           state["engagement"],
+        "message_en":           state["message_en"],
+        "resistance_history":   resistance_history,
+        "re_escalation_detected": re_escalation_detected,
+        "engagement_trajectory": engagement_trajectory,
+        "prior_exposure":       prior_exposure,
+        "prev_step_id":         prev_step_id,
+    }
+
+    def _clean_policy_result(r: dict) -> dict:
+        r.pop("_det_rule_fired", None)
+        r.pop("_criteria_blocked", None)
+        return r
+
     # Phase 1: deterministic rules only (resistance_score=None → resistance rules skipped).
     # Returns a result dict. If a deterministic rule fires, its action will be present.
     # We detect "Phase 1 fired a rule" by checking the private sentinel key.
-    p1_result = evaluate_step_policy(
-        skill=skill,
-        current_step_id=step_id,
-        emotional_intensity=state["emotional_intensity"],
-        engagement=state["engagement"],
-        message_en=state["message_en"],
-        resistance_history=resistance_history,
-        resistance_score=None,
-        re_escalation_detected=re_escalation_detected,
-        engagement_trajectory=engagement_trajectory,
-        prior_exposure=prior_exposure,
-        prev_step_id=prev_step_id,
-    )
+    p1_result = evaluate_step_policy(**_base_policy_kwargs, resistance_score=None)
 
     # Phase 2: resistance scoring — only if the skill references 'resistance' rules AND
     # Phase 1 did not fire a deterministic rule. Phase 1 exclusively evaluates non-resistance
@@ -393,42 +403,18 @@ async def skill_executor_node(state: SageState) -> dict:
                 state["message_en"], step_obj.completion_criteria
             )
             if llm_criteria_met:
-                result = evaluate_step_policy(
-                    skill=skill,
-                    current_step_id=step_id,
-                    emotional_intensity=state["emotional_intensity"],
-                    engagement=state["engagement"],
-                    message_en=state["message_en"],
-                    resistance_history=resistance_history,
-                    resistance_score=None,
-                    re_escalation_detected=re_escalation_detected,
-                    engagement_trajectory=engagement_trajectory,
-                    prior_exposure=prior_exposure,
-                    criteria_met=True,
-                    prev_step_id=prev_step_id,
-                )
-                result.pop("_det_rule_fired", None)
-                result.pop("_criteria_blocked", None)
+                result = _clean_policy_result(evaluate_step_policy(
+                    **_base_policy_kwargs, resistance_score=None, criteria_met=True,
+                ))
 
     if needs_resistance and not p1_det_fired:
         new_resistance_score = await _score_resistance_via_rules_service(state["message_en"])
         if new_resistance_score is not None:
-            result = evaluate_step_policy(
-                skill=skill,
-                current_step_id=step_id,
-                emotional_intensity=state["emotional_intensity"],
-                engagement=state["engagement"],
-                message_en=state["message_en"],
-                resistance_history=resistance_history,
+            result = _clean_policy_result(evaluate_step_policy(
+                **_base_policy_kwargs,
                 resistance_score=new_resistance_score,
-                re_escalation_detected=re_escalation_detected,
-                engagement_trajectory=engagement_trajectory,
-                prior_exposure=prior_exposure,
                 criteria_met=llm_criteria_met,
-                prev_step_id=prev_step_id,
-            )
-            result.pop("_det_rule_fired", None)
-            result.pop("_criteria_blocked", None)
+            ))
 
     if new_resistance_score is not None:
         resistance_history = (resistance_history + [new_resistance_score])[-3:]
@@ -448,5 +434,8 @@ async def skill_executor_node(state: SageState) -> dict:
         "resistance_score":    new_resistance_score,
         "resistance_history":  resistance_history,
         "path": state["path"] + ["skill_executor"],
+        # CSM-2: explicit per-turn write so stale checkpoint value from prior
+        # crisis_response does not persist into the routing decision.
+        "re_escalation_within_monitoring": re_escalation_detected,
         **crisis_state_update,
     }

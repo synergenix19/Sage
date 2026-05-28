@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from datetime import datetime, timezone
 
 from langgraph.graph import StateGraph, END
@@ -15,6 +16,9 @@ from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
 from sage_poc.nodes.output_gate import output_gate_node
 from sage_poc.config import AUDIT_LOG_ENABLED
 from sage_poc.audit import write_session_audit
+
+_log = logging.getLogger(__name__)
+
 
 async def _crisis_response_node(state: SageState) -> dict:
     from sage_poc.rules import engine as rules_engine
@@ -61,7 +65,7 @@ async def _crisis_response_node(state: SageState) -> dict:
             "crisis_content_rule": crisis_result.fired[0].rule_id if crisis_result.fired else "fallback",
             "re_escalation_within_monitoring": is_reescalation,
         }
-        print(f"\n[AUDIT:CRISIS] {json.dumps(audit, indent=2)}")
+        _log.info("[graph] AUDIT:CRISIS %s", json.dumps(audit))
 
     history = state.get("conversation_history", []) + [
         {"role": "user", "content": state.get("message_en", state.get("raw_message", ""))},
@@ -133,6 +137,12 @@ def _route_after_skill_select(state: SageState) -> str:
     return "freeflow"
 
 
+def _route_after_skill_executor(state: SageState) -> str:
+    if state.get("re_escalation_within_monitoring"):
+        return "crisis"
+    return "freeflow"
+
+
 def build_graph(checkpointer=None) -> CompiledStateGraph:
     graph = StateGraph(SageState)
 
@@ -171,7 +181,10 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     })
     graph.add_edge("knowledge_retrieve", "freeflow_respond")
 
-    graph.add_edge("skill_executor", "freeflow_respond")
+    graph.add_conditional_edges("skill_executor", _route_after_skill_executor, {
+        "crisis": "crisis_response",
+        "freeflow": "freeflow_respond",
+    })
     graph.add_edge("freeflow_respond", "output_gate")
     graph.add_edge("output_gate", END)
 

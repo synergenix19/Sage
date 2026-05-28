@@ -89,6 +89,7 @@ async def write_session_audit(state: SageState) -> None:
         "model_version":          state.get("model_version"),
         "latency_ms":             state.get("latency_ms"),
         "user_id":                state.get("user_id") or None,
+        "re_escalation_within_monitoring": state.get("re_escalation_within_monitoring"),
     }
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:

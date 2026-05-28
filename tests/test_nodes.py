@@ -1299,8 +1299,9 @@ async def test_output_gate_suppresses_audit_when_disabled(capsys):
 
 
 @pytest.mark.asyncio
-async def test_output_gate_shows_audit_when_enabled(capsys):
-    """Audit JSON must appear in stdout when AUDIT_LOG_ENABLED is true."""
+async def test_output_gate_shows_audit_when_enabled(caplog):
+    """Audit JSON must appear in logs when AUDIT_LOG_ENABLED is true."""
+    import logging
     import sage_poc.nodes.output_gate as og_module
     original = og_module.AUDIT_LOG_ENABLED
     og_module.AUDIT_LOG_ENABLED = True
@@ -1310,9 +1311,9 @@ async def test_output_gate_shows_audit_when_enabled(capsys):
             response_en="That sounds really hard.",
             path=["safety_check", "intent_route", "freeflow_respond"],
         )
-        await output_gate_node(state)
-        captured = capsys.readouterr()
-        assert "[AUDIT]" in captured.out
+        with caplog.at_level(logging.INFO, logger="sage_poc.nodes.output_gate"):
+            await output_gate_node(state)
+        assert "[output_gate] AUDIT" in caplog.text
     finally:
         og_module.AUDIT_LOG_ENABLED = original
 

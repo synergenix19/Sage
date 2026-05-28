@@ -24,6 +24,30 @@
     "version": 1
   },
   {
+    "node": "translate_to_arabic",
+    "language": "ar",
+    "response": "",
+    "version": 1
+  },
+  {
+    "node": "translate_to_arabic",
+    "language": "en",
+    "response": "",
+    "version": 1
+  },
+  {
+    "node": "translate_to_english",
+    "language": "en",
+    "response": "",
+    "version": 1
+  },
+  {
+    "node": "translate_to_english",
+    "language": "ar",
+    "response": "",
+    "version": 1
+  },
+  {
     "node": "default",
     "language": "en",
     "response": "I'm here with you. Please give me just a moment.",

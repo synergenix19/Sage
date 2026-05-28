@@ -8,7 +8,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import asyncpg
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from psycopg import AsyncConnection
@@ -24,6 +24,15 @@ from sage_poc.llm import get_classifier
 
 _log = logging.getLogger(__name__)
 CRISIS_SIGNAL = "[[CRISIS_DETECTED]]"
+
+
+async def require_api_key(x_sage_api_key: str | None = Header(default=None)) -> None:
+    _expected_key = os.environ.get("SAGE_API_KEY", "")
+    if _expected_key and (
+        x_sage_api_key is None
+        or not hmac.compare_digest(x_sage_api_key, _expected_key)
+    ):
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
 _cors_origins_raw = os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
 _CORS_ORIGINS: list[str] = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
@@ -121,14 +130,8 @@ class NameSessionRequest(BaseModel):
 @app.post("/chat")
 async def chat(
     req: ChatRequest,
-    x_sage_api_key: str | None = Header(default=None),
+    _: None = Depends(require_api_key),
 ) -> StreamingResponse:
-    _expected_key = os.environ.get("SAGE_API_KEY", "")
-    if _expected_key and (
-        x_sage_api_key is None
-        or not hmac.compare_digest(x_sage_api_key, _expected_key)
-    ):
-        raise HTTPException(status_code=401, detail="Unauthorized")
     if not req.session_id or not req.session_id.strip():
         raise HTTPException(status_code=400, detail="session_id is required")
     if not req.messages or req.messages[-1].role != "user":
@@ -211,14 +214,8 @@ async def chat(
 @app.post("/extract-profile")
 async def extract_profile(
     req: ExtractProfileRequest,
-    x_sage_api_key: str | None = Header(default=None),
+    _: None = Depends(require_api_key),
 ):
-    _expected_key = os.environ.get("SAGE_API_KEY", "")
-    if _expected_key and (
-        x_sage_api_key is None
-        or not hmac.compare_digest(x_sage_api_key, _expected_key)
-    ):
-        raise HTTPException(status_code=401, detail="Unauthorized")
 
     if not app.state._db_pool:
         return {"status": "skipped", "detail": "no database"}
@@ -298,14 +295,8 @@ async def extract_profile(
 @app.post("/name-session")
 async def name_session(
     req: NameSessionRequest,
-    x_sage_api_key: str | None = Header(default=None),
+    _: None = Depends(require_api_key),
 ):
-    _expected_key = os.environ.get("SAGE_API_KEY", "")
-    if _expected_key and (
-        x_sage_api_key is None
-        or not hmac.compare_digest(x_sage_api_key, _expected_key)
-    ):
-        raise HTTPException(status_code=401, detail="Unauthorized")
 
     if not app.state._db_pool:
         return {"status": "skipped", "detail": "no database"}

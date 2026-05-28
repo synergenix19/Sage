@@ -1,4 +1,3 @@
-import asyncio
 import re
 
 from langdetect import detect_langs, LangDetectException
@@ -104,40 +103,38 @@ TRANSLATION_TIMEOUT_SECONDS: float = 30.0
 
 
 async def async_translate_to_arabic(text: str) -> str:
-    """Translate text to Arabic using ainvoke with timeout. Returns original on failure."""
-    try:
-        llm = get_translator()
-        response = await asyncio.wait_for(
-            llm.ainvoke([{
-                "role": "user",
-                "content": (
-                    "Translate the following text to Modern Standard Arabic. "
-                    "Return ONLY the Arabic translation, nothing else:\n\n"
-                    f"{text}"
-                ),
-            }]),
-            timeout=TRANSLATION_TIMEOUT_SECONDS,
-        )
-        return response.content.strip()
-    except Exception:
-        return text
+    """Translate text to Arabic using resilient_invoke. Returns original on failure."""
+    from sage_poc.resilience import resilient_invoke
+    result = await resilient_invoke(
+        get_translator(),
+        [{
+            "role": "user",
+            "content": (
+                "Translate the following text to Modern Standard Arabic. "
+                "Return ONLY the Arabic translation, nothing else:\n\n"
+                f"{text}"
+            ),
+        }],
+        node="translate_to_arabic",
+        language="ar",
+    )
+    return result or text
 
 
 async def async_translate_to_english(text: str) -> str:
-    """Translate text to English using ainvoke with timeout. Returns original on failure."""
-    try:
-        llm = get_translator()
-        response = await asyncio.wait_for(
-            llm.ainvoke([{
-                "role": "user",
-                "content": (
-                    "Translate the following text to English. "
-                    "Return ONLY the translation, nothing else:\n\n"
-                    f"{text}"
-                ),
-            }]),
-            timeout=TRANSLATION_TIMEOUT_SECONDS,
-        )
-        return response.content.strip()
-    except Exception:
-        return text
+    """Translate text to English using resilient_invoke. Returns original on failure."""
+    from sage_poc.resilience import resilient_invoke
+    result = await resilient_invoke(
+        get_translator(),
+        [{
+            "role": "user",
+            "content": (
+                "Translate the following text to English. "
+                "Return ONLY the translation, nothing else:\n\n"
+                f"{text}"
+            ),
+        }],
+        node="translate_to_english",
+        language="en",
+    )
+    return result or text

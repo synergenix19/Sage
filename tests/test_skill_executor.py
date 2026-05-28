@@ -723,3 +723,70 @@ class TestSkipOnceAdvancement:
 
         assert result["prev_step_id"] == "importance_ruler"
         assert result["active_step_id"] == "importance_ruler"  # stays on entry turn
+
+
+# ── CSM-2: re_escalation_within_monitoring flag in skill_executor return ──────
+
+class TestCSM2ReEscalationFlag:
+    """skill_executor_node must set re_escalation_within_monitoring in its return dict
+    so _route_after_skill_executor can gate the crisis path correctly.
+
+    In normal graph execution, s7_result="NEW_CRISIS" is caught at _route_after_safety
+    and never reaches skill_executor. These unit tests bypass routing to verify the
+    flag wiring in isolation — a secondary safety net for routing infrastructure.
+    """
+
+    async def test_no_s7_new_crisis_sets_re_escalation_false(self):
+        """s7_result=None → re_escalation_within_monitoring=False in return dict."""
+        state = {
+            "active_skill_id":         "mi_readiness_ruler",
+            "active_step_id":          "importance_ruler",
+            "message_en":              "I've been thinking about exercising more.",
+            "emotional_intensity":     4,
+            "engagement":              7,
+            "new_clinical_flags_turn": [],
+            "resistance_history":      [],
+            "engagement_trajectory":   [],
+            "s7_result":               None,
+            "therapeutic_profile":     None,
+            "path":                    [],
+            "crisis_state":            "monitoring",
+            "prev_step_id":            None,
+        }
+        with patch(
+            "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
+            new=AsyncMock(return_value=None),
+        ):
+            result = await skill_executor_node(state)
+        assert result.get("re_escalation_within_monitoring") is False, (
+            "s7_result=None must set re_escalation_within_monitoring=False — "
+            "resets checkpoint so stale True from prior crisis_response does not leak"
+        )
+
+    async def test_s7_new_crisis_sets_re_escalation_true(self):
+        """s7_result=NEW_CRISIS → re_escalation_within_monitoring=True in return dict.
+
+        In production this state is caught at _route_after_safety; this test verifies
+        the flag wiring in skill_executor for the routing infrastructure.
+        """
+        from sage_poc.skills.schema import load_skill
+        skill = load_skill("post_crisis_check_in")
+        state = _make_executor_state(
+            active_skill_id="post_crisis_check_in",
+            active_step_id=skill.steps[0].step_id,
+            s7_result="NEW_CRISIS",
+            crisis_state="monitoring",
+            emotional_intensity=4,
+            engagement=6,
+            new_clinical_flags_turn=[],
+            engagement_trajectory=[],
+            resistance_history=[],
+            therapeutic_profile=None,
+            prev_step_id=None,
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+            result = await skill_executor_node(state)
+        assert result.get("re_escalation_within_monitoring") is True, (
+            "s7_result=NEW_CRISIS must set re_escalation_within_monitoring=True "
+            "so _route_after_skill_executor routes to crisis_response"
+        )
