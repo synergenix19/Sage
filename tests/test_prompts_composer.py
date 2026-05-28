@@ -209,7 +209,7 @@ def test_cultural_overrides_load_failure_does_not_crash_composer():
 
 def test_cultural_overrides_budget_exceeded_does_not_append_layer_tag():
     # Build overrides that exceed 200 words
-    long_text = "This is a very long cultural override instruction. " * 30  # ~210 words
+    long_text = "This is a very long cultural override instruction. " * 70  # ~564 words
     skill = _make_skill_with_overrides(overrides={"long_override": long_text})
     state = _make_composer_state(active_skill_id="post_crisis_check_in")
     with (
