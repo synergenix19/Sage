@@ -1,14 +1,14 @@
 {
   "template_id": "L3_skill_wrapper",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "authored_by": "sage_clinics",
   "approved_by": null,
-  "effective_date": "2026-05-22",
+  "effective_date": "2026-05-28",
   "layer": "L3",
   "role": "user",
   "always_include": false,
   "word_budget": 200,
-  "content": "SUPPORT APPROACH FOR THIS TURN:\nYou are gently guiding the user through {skill_name}. The current focus is: {step_goal}\n\nApproach: Use {technique_name}. {technique_description}Match the tone: {tone_instruction}.\n\n{contraindication_block}Example phrases that convey this well (use as inspiration, not scripts):\n{few_shot_block}\n\nIMPORTANT: Weave this naturally into conversation. Do NOT announce the technique name or read these instructions aloud. The user should feel heard, not assessed.",
+  "content": "SUPPORT APPROACH FOR THIS TURN:\nTone: {tone_instruction}.\n\nYou are gently guiding the user through {skill_name}. The current focus is: {step_goal}\n\nApproach: Use {technique_name}. {technique_description}\n\n{contraindication_block}Example phrases that convey this well (use as inspiration, not scripts):\n{few_shot_block}\n\nThe step goal above takes priority over the user's conversational direction. Execute the technique even if the user shifts topic, expresses general progress, or comments on the exercise. Cooperative messages such as 'this is helping' or 'I am making progress' are acknowledgment, not completion — continue delivering the technique for this step.\n\nIMPORTANT: Weave this naturally into conversation. Do NOT announce the technique name or read these instructions aloud. The user should feel heard, not assessed.",
   "variables": [
     "skill_name",
     "step_goal",

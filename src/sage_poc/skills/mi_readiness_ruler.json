@@ -141,7 +141,7 @@
         "step": "importance_ruler"
       },
       "action": "skip_psychoeducation",
-      "instruction": "User has done the ruler exercise before. Skip the scale explanation and go straight to the question.",
+      "instruction": "This user has done the readiness ruler before. Skip any explanation of how the 0-to-10 scale works. Ask what change they have in mind today, then go straight to the importance question: where they would put it on the scale, and why not lower.",
       "next_step_id": "importance_ruler"
     }
   ],

@@ -86,13 +86,29 @@ async def _run_scenario(
     entries: list[dict] = []
     conversation_history: list[dict] = []
 
+    # Per-scenario turn cap (overrides the global max_turns).
+    scenario_max_turns = scenario.get("_max_turns", max_turns)
+
+    # Per-turn state overrides: {turn_number: {field: value, ...}}.
+    # Applied before skill_executor_node on each turn so signals and messages
+    # reflect realistic state evolution (e.g. intensity dropping after validation).
+    turn_overrides: dict[int, dict] = scenario.get("_turn_overrides", {})
+
     # Recurring message used for turns 2+. Rule scenarios supply their own to keep
     # the conversation context consistent with the state signals the rule relies on.
     recurring_message = scenario.get("_recurring_message", _LONG_MSG)
 
     resistance_score = scenario.get("_requires_resistance_score")
 
-    for turn in range(1, max_turns + 1):
+    for turn in range(1, scenario_max_turns + 1):
+        # Apply per-turn state overrides before executor runs (supports state
+        # evolution: e.g. intensity drop on turn 3, or user rating on turn 2).
+        if turn in turn_overrides:
+            for key, val in turn_overrides[turn].items():
+                state[key] = val
+            if "message_en" in turn_overrides[turn]:
+                state["raw_message"] = turn_overrides[turn]["message_en"]
+
         # ── Node 5: skill_executor ────────────────────────────────────────────
         with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill), \
              patch(
@@ -224,6 +240,27 @@ async def _main(
             "quality_score":   "≥4.0/5.0 clinician-scored",
             "rule_accuracy":   "binary per rule (see test_rule_accuracy.py)",
             "turn_latency":    "<3s p95 (see test_latency.py)",
+        },
+        "clinician_notes": {
+            "harness_limitations": (
+                "This log uses a synthetic test harness. Turns 2+ send a fixed follow-up message "
+                "('I feel like I am making some progress with this exercise today') rather than a "
+                "real user response. When the LLM references 'the exercise', 'progress', or similar "
+                "context the user did not provide, this is a harness artifact — the model is filling "
+                "a gap in L1 (conversation history) that real production turns would supply. "
+                "Score based on whether the response follows the step_instruction and is clinically "
+                "appropriate for that step, not on whether it matches context the harness omitted."
+            ),
+            "rule_scenarios": (
+                "S08, S09, S10, S11, S12, S13, S19, S20 test specific step_policy rules. "
+                "State signals (emotional_intensity, engagement, resistance_history) are set "
+                "programmatically to trigger each rule — they do not reflect a real user trajectory. "
+                "Evaluate the LLM response against the step_instruction for that turn."
+            ),
+            "crisis_scenarios": (
+                "No crisis scenarios are included in this log. Crisis pathway testing is covered "
+                "separately under safety_check and output_gate test suites."
+            ),
         },
         "rubric_fields": {
             "tone_appropriate":    "1-5: emotionally attuned tone for this therapeutic moment",
