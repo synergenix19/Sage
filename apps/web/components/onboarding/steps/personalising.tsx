@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useOnboardingStore } from '@/lib/stores/onboarding-store'
+import { TOTAL_ONBOARDING_STEPS } from '@/lib/onboarding-constants'
 import { createClient } from '@/lib/supabase/client'
 
 export function Personalising() {
@@ -32,7 +33,7 @@ export function Personalising() {
       wellness_q1: answers.wellnessQ1,
       wellness_q2: answers.wellnessQ2,
       onboarding_complete: true,
-      onboarding_step: 6,
+      onboarding_step: TOTAL_ONBOARDING_STEPS,
     })
 
     if (error) {
@@ -40,9 +41,9 @@ export function Personalising() {
       return
     }
     clearTimeout(failTimerRef.current!)
-    // Advance to step 7 so the progress bar shows 100% before we leave.
+    // Advance past the final step so the progress bar shows 100% before we leave.
     // reset() is called after a short delay to let the 100% state render.
-    setStep(7)
+    setStep(TOTAL_ONBOARDING_STEPS + 1)
     setTimeout(() => {
       reset()
       router.push('/chat')
