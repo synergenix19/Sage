@@ -15,6 +15,11 @@ export function buildCssVars(brand: TenantBrand): Record<string, string> {
     '--font-arabic':          `'${brand.fonts.arabic}', sans-serif`,
     '--focus-ring-color':     brand.colors.primary,
     '--focus-ring-offset':    '2px',
+    // Clinical surface defaults — dark theme for the live monitoring screen.
+    // Overridable per tenant; fallback values match slate-900/700/100.
+    '--color-clinical-surface': '#0f172a',
+    '--color-clinical-border':  '#334155',
+    '--color-clinical-text':    '#f1f5f9',
   }
 }
 
