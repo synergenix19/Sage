@@ -54,7 +54,9 @@ SCHEMA_CONFORMANCE: dict[str, dict] = {
         "injected_by": "compose_prompt (system role, SKILL-SPECIFIC CULTURAL CONTEXT block)",
         "note": (
             "All key-value pairs injected into the system prompt after global cultural rules, "
-            "within a 500-word budget. Active on every turn where active_skill_id is set."
+            "within a 200-word budget (clinician-signed). Active on every turn where "
+            "active_skill_id is set. The injected word count is passed to _compute_l1_budget "
+            "so L1 history is proactively sized — not reactively shrunk — when overrides are used."
         ),
     },
     "skill.escalation_matrix.L1": {

@@ -356,6 +356,9 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
         layers.append("cultural")
 
     # Skill-specific cultural overrides — more specific than global rules; injected after them.
+    # _override_words is captured here so _compute_l1_budget can proactively reduce L1 budget,
+    # eliminating the need for reactive overflow shrinking on normal skill turns.
+    _override_words = 0
     _active_for_overrides = state.get("active_skill_id")
     if _active_for_overrides:
         try:
@@ -366,6 +369,7 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
                 )
                 _override_block = f"SKILL-SPECIFIC CULTURAL CONTEXT:\n{_override_lines}"
                 if count_words(_override_block) <= _CULTURAL_OVERRIDE_BUDGET_WORDS:
+                    _override_words = count_words(_override_block)
                     system_parts.append(_override_block)
                     layers.append("cultural_skill_overrides")  # only when actually injected
                 else:
@@ -406,7 +410,7 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     user_parts: list[str] = []
 
     # L1: Conversation history
-    l1_budget = _compute_l1_budget(state)
+    l1_budget = _compute_l1_budget(state, override_words=_override_words)
     l1_block = _build_l1_history_block(
         state.get("conversation_history", []),
         word_budget=l1_budget,

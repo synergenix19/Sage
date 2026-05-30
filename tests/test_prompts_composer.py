@@ -864,3 +864,142 @@ def test_compute_l1_budget_freeflow_base_also_reduced():
     Note: freeflow turns have no active_skill_id so override_words will be 0 in practice.
     This tests the arithmetic in isolation."""
     assert _compute_l1_budget(_freeflow_state(), override_words=200) == 400
+
+
+# ---- override_words wired into _compute_l1_budget ----
+
+from sage_poc.prompts import composer as _composer_module
+from sage_poc.prompts.tokens import count_words
+
+
+def _skill_with_180w_overrides() -> Skill:
+    """Overrides totalling ~180w — within 200w cap, used in wiring tests 1 and 2."""
+    entry = (
+        "Follow Gulf cultural norms carefully in all responses for this skill. "
+        "Maintain face-saving framing and indirect expression patterns throughout."
+    )  # ~30w per entry
+    return _make_skill_with_overrides(overrides={
+        "entry_a": entry,
+        "entry_b": entry,
+        "entry_c": entry,
+        "entry_d": entry,
+        "entry_e": entry,
+    })
+
+
+def test_compose_prompt_passes_override_words_to_l1_budget():
+    """compose_prompt must pass the actual injected override word count to _compute_l1_budget."""
+    skill = _skill_with_180w_overrides()
+    state = _make_composer_state(
+        active_skill_id="post_crisis_check_in",
+        step_instruction="Check in with user",
+    )
+
+    with (
+        patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules_mock()),
+        patch("sage_poc.prompts.composer.load_skill", return_value=skill),
+        patch(
+            "sage_poc.prompts.composer._compute_l1_budget",
+            wraps=_composer_module._compute_l1_budget,
+        ) as mock_budget,
+    ):
+        compose_prompt(state)
+
+    mock_budget.assert_called_once()
+    _, kwargs = mock_budget.call_args
+    assert kwargs.get("override_words", 0) > 0, (
+        "_compute_l1_budget must receive override_words > 0 when overrides are injected; "
+        f"got kwargs: {kwargs}"
+    )
+
+
+def test_compose_prompt_passes_zero_override_words_when_no_active_skill():
+    """When no skill is active, override_words must be 0 (L1 budget not reduced)."""
+    state = _make_composer_state(active_skill_id=None)
+
+    with (
+        patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules_mock()),
+        patch(
+            "sage_poc.prompts.composer._compute_l1_budget",
+            wraps=_composer_module._compute_l1_budget,
+        ) as mock_budget,
+    ):
+        compose_prompt(state)
+
+    _, kwargs = mock_budget.call_args
+    assert kwargs.get("override_words", 0) == 0, (
+        "_compute_l1_budget must receive override_words=0 when no skill is active; "
+        f"got kwargs: {kwargs}"
+    )
+
+
+def test_compose_prompt_no_overflow_with_large_cultural_override():
+    """Behavioral regression guard: proactive L1 budget reduction must prevent the
+    overflow-shrink guard from firing when a cultural override block is injected.
+
+    Uses the same ~103w override block as the wiring tests (within the 200w cap, no
+    cap patch needed). Discriminates because actual system-sans-overrides is ~529w:
+
+      system_base(529) + overrides(103) + unfixed_L1(450) + other_user(82) ≈ 1164w > 1100
+        — overflow fires → test FAILS on unfixed code
+      system_base(529) + overrides(103) + fixed_L1(450-103=347) + other_user(82) ≈ 1061w ≤ 1100
+        — no overflow → test PASSES on fixed code
+
+    The confirmed overflow warning string (composer.py:529) is
+    "Token budget overflow: L1 history shrunk to %d turns"; substring
+    "Token budget overflow" is used below.
+    """
+    skill = _skill_with_180w_overrides()
+
+    # 12 turns at ~50w each = ~600w total; exceeds both unfixed (450w) and fixed
+    # (347w) L1 budgets so history is always budget-limited, not history-limited.
+    long_history = [
+        {
+            "role": "user" if i % 2 == 0 else "assistant",
+            "content": (
+                "I have been thinking carefully about this situation and I am not sure "
+                "what the right approach is given everything that has happened recently. "
+                "There are many factors to consider and I want to make the best decision "
+                "for myself and for the people around me in my life."
+            ),
+        }
+        for i in range(12)
+    ]
+
+    state = _make_composer_state(
+        active_skill_id="post_crisis_check_in",
+        step_instruction="Guide the user through the next step.",
+        conversation_history=long_history,
+    )
+
+    warning_calls: list[str] = []
+
+    def _spy(msg, *args, **kwargs):
+        warning_calls.append(msg % args if args else msg)
+
+    with (
+        patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules_mock()),
+        patch("sage_poc.prompts.composer.load_skill", return_value=skill),
+        patch("sage_poc.prompts.composer._log") as mock_log,
+    ):
+        mock_log.warning.side_effect = _spy
+        system_str, user_str, layers = compose_prompt(state)
+
+    # Overrides must have been injected (block is within 200w cap).
+    assert "cultural_skill_overrides" in layers, (
+        "Override block was not injected; check that _skill_with_180w_overrides() "
+        "returns a skill with cultural_overrides and that load_skill is patched."
+    )
+
+    # Overflow guard must not fire.
+    overflow_fired = any("Token budget overflow" in w for w in warning_calls)
+    assert not overflow_fired, (
+        "Overflow-shrink guard fired despite proactive budget accounting. "
+        f"Warning calls: {warning_calls}"
+    )
+
+    # Total must be within budget.
+    total = count_words(system_str) + count_words(user_str)
+    assert total <= 1100, (
+        f"Total prompt {total}w exceeds 1100w budget even with proactive L1 reduction."
+    )
