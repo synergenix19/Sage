@@ -36,5 +36,6 @@ jobs:
           # These values prevent import-time env checks from throwing.
           NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
           NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-ci
+          NEXT_PUBLIC_TENANT_ID: 5ad3c505-285c-4cf1-8089-846367bf5bba
           OPENROUTER_API_KEY: dummy-ci
           SAGE_API_URL: http://localhost:8000
