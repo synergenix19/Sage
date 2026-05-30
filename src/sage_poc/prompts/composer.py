@@ -91,6 +91,7 @@ _INTENSITY_GUIDANCE: dict[str, str] = {
 
 _L1_BASE_BUDGET = 450
 _L1_FLEX_BUDGET = 600
+_L1_MINIMUM_BUDGET = 150  # defensive floor — clinical minimum; unreachable after Task 0 cap reduction
 
 
 def _intensity_guidance(intensity: int) -> str:
@@ -101,24 +102,34 @@ def _intensity_guidance(intensity: int) -> str:
     return _INTENSITY_GUIDANCE["high"]
 
 
-def _compute_l1_budget(state: SageState) -> int:
+def _compute_l1_budget(state: SageState, override_words: int = 0) -> int:
     """Return the L1 word budget for this turn.
 
     On freeflow turns (no skill step, no knowledge lookup), L3 and L4 layers
     are absent. Their unused budget headroom is loaned to L1 so that rich
     multi-turn disclosures don't get truncated.
 
-    POC note: `primary_intent == "info_request"` is a conservative proxy for
-    "knowledge will be retrieved." In production, this should check whether
-    skill_select routed to knowledge_retrieve rather than relying on intent
-    classification alone. The proxy is safe (it keeps L1 at 450 when knowledge
-    might be present), but may under-flex on edge cases where info_request
-    intent is classified but no snippet is found.
+    override_words: actual word count of the skill cultural_overrides block
+        injected into the system prompt this turn. Subtracted from base so L1
+        is proactively sized rather than shrunk reactively by the overflow guard.
+        After Task 0 (cap=200w), max subtraction is 200, giving L1 ≥ 250w on
+        skill turns — _L1_MINIMUM_BUDGET (150) is unreachable in practice.
+
+    SPEC DIVERGENCE (§5.6.1): v7 §5.6.1 specifies ~300w for L1. The 450/600
+    values are a pre-existing architectural deviation pending review. Do not
+    adjust these constants here — raise via the §5.6.1 architectural review.
+
+    POC NOTE (§6.5.2): The info_request proxy misses tool-invoked knowledge.
+    knowledge_lookup (§6.5.2) can add ~300w of evidence on a turn classified
+    as emotional support — that turn is treated as freeflow (L1=600) with no
+    knowledge-budget deduction. This is a pre-existing gap; fixing it requires
+    routing information not yet available at budget calculation time.
     """
     has_skill = bool(state.get("step_instruction"))
     has_knowledge = state.get("primary_intent") == "info_request" or \
                     state.get("secondary_intent") == "info_request"
-    return _L1_BASE_BUDGET if (has_skill or has_knowledge) else _L1_FLEX_BUDGET
+    base = _L1_BASE_BUDGET if (has_skill or has_knowledge) else _L1_FLEX_BUDGET
+    return max(_L1_MINIMUM_BUDGET, base - override_words)
 
 
 def _build_l2_intent_block(

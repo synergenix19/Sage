@@ -817,3 +817,50 @@ def test_all_skills_cultural_overrides_within_cap():
         f"(fix the JSON files, not the constant):\n"
         + "\n".join(f"  {sid}: {wc}w" for sid, wc in over_budget)
     )
+
+
+# ---- _compute_l1_budget override_words tests ----
+
+from sage_poc.prompts.composer import _compute_l1_budget
+
+
+def _skill_state(**overrides):
+    """State with a skill step active (base L1 = 450)."""
+    return _make_composer_state(
+        step_instruction="Check how the user is feeling",
+        active_skill_id="post_crisis_check_in",
+        **overrides,
+    )
+
+
+def _freeflow_state(**overrides):
+    """State with no skill or knowledge (base L1 = 600)."""
+    return _make_composer_state(
+        step_instruction=None,
+        active_skill_id=None,
+        primary_intent="general_chat",
+        **overrides,
+    )
+
+
+def test_compute_l1_budget_unaffected_without_overrides():
+    """With no override words, budget is the normal base (450 for skill turn)."""
+    assert _compute_l1_budget(_skill_state(), override_words=0) == 450
+
+
+def test_compute_l1_budget_subtracts_override_words():
+    """200-word override on a skill turn: 450 - 200 = 250."""
+    assert _compute_l1_budget(_skill_state(), override_words=200) == 250
+
+
+def test_compute_l1_budget_floors_at_minimum():
+    """Hypothetical 445-word override: max(150, 450-445) = 150. Defensive only — unreachable
+    on current skills after Task 0 lowers cap to 200w."""
+    assert _compute_l1_budget(_skill_state(), override_words=445) == 150
+
+
+def test_compute_l1_budget_freeflow_base_also_reduced():
+    """Freeflow base is 600. 200-word override: 600 - 200 = 400.
+    Note: freeflow turns have no active_skill_id so override_words will be 0 in practice.
+    This tests the arithmetic in isolation."""
+    assert _compute_l1_budget(_freeflow_state(), override_words=200) == 400
