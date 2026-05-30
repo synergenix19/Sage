@@ -70,16 +70,15 @@ export async function middleware(request: NextRequest) {
     // Middleware is a redirect optimization layer, not the authoritative gate.
     // The (staff)/layout.tsx requireCapability() call is the real enforcement point.
     // See: CVE-2025-29927 — middleware can be bypassed via x-middleware-subrequest header.
+    //
+    // Redirect to /sign-in only when the user lacks staff:access entirely (no staff role).
+    // Do NOT redirect on surface-level mismatches (e.g. clinical_reviewer on /admin):
+    // those users ARE authenticated staff — the layout's requireCapability() fires next
+    // and returns notFound() → 404, which is the correct UX (not redirect-to-sign-in).
     if (pathname.startsWith('/admin') || pathname.startsWith('/live')) {
       if (!can(roles, 'staff:access')) {
         return NextResponse.redirect(new URL('/sign-in', request.url))
       }
-    }
-    if (pathname.startsWith('/live') && !can(roles, 'live:read')) {
-      return NextResponse.redirect(new URL('/sign-in', request.url))
-    }
-    if (pathname.startsWith('/admin') && !can(roles, 'admin:read')) {
-      return NextResponse.redirect(new URL('/sign-in', request.url))
     }
 
     // Onboarding gate — staff bypass is intentional (staff users don't need a member profile).
