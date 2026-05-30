@@ -22,6 +22,13 @@ create policy "service_role_only" on public.tenants
 create policy "tenants_authenticated_read" on public.tenants
   for select to authenticated using (true);
 
+-- Seed the Gitex POC tenant with a fixed UUID so NEXT_PUBLIC_TENANT_ID can be set
+-- before the migration runs and P1.3 three-way equality is deterministic.
+-- UUID must match: NEXT_PUBLIC_TENANT_ID env var AND 012_rbac_backfill.sql.
+insert into public.tenants (id, name)
+values ('5ad3c505-285c-4cf1-8089-846367bf5bba', 'SAGE POC')
+on conflict (id) do nothing;
+
 -- ─────────────────────────────────────────────
 -- 1. role_key enum
 --    Closed set — ALTER TYPE ... ADD VALUE requires a reviewed migration.
