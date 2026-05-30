@@ -37,6 +37,10 @@ markers = [
 ]
 pythonpath = ["src", "."]
 asyncio_mode = "auto"
+# Integration tests need Supabase and are excluded from the default run to avoid
+# transient DNS/network failures in long CI runs. Run explicitly with:
+#   uv run pytest tests/ -m integration
+addopts = "-m 'not integration'"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/sage_poc"]
