@@ -16,6 +16,12 @@ alter table public.tenants enable row level security;
 create policy "service_role_only" on public.tenants
   for all to service_role using (true) with check (true);
 
+-- Authenticated users may read tenant metadata (needed for tenant name display).
+-- The tenant UUID itself is injected via NEXT_PUBLIC_TENANT_ID env var for middleware;
+-- this policy allows UI components to resolve tenant display names.
+create policy "tenants_authenticated_read" on public.tenants
+  for select to authenticated using (true);
+
 -- ─────────────────────────────────────────────
 -- 1. role_key enum
 --    Closed set — ALTER TYPE ... ADD VALUE requires a reviewed migration.
@@ -34,7 +40,7 @@ create type public.role_key as enum (
 -- ─────────────────────────────────────────────
 -- 2. user_roles table
 -- ─────────────────────────────────────────────
-create table public.user_roles (
+create table if not exists public.user_roles (
   user_id    uuid        not null references public.user_profiles(id) on delete cascade,
   tenant_id  uuid        not null references public.tenants(id)       on delete cascade,
   role       public.role_key not null,
@@ -72,13 +78,26 @@ create policy "user_roles_service_write" on public.user_roles
 --    and the user_roles_self_read policy is bypassed, allowing cross-user role reads.
 --    If on PG 14, use the get_my_roles() function fallback below instead.
 -- ─────────────────────────────────────────────
+
+-- Guard: security_invoker = true on views requires PostgreSQL 15+.
+-- On PG 14, this option is rejected, leaving the migration in a partial state.
+-- On PG 15+, it enforces RLS on user_roles with the caller's identity,
+-- preventing cross-user role enumeration via the view.
+do $$
+begin
+  if current_setting('server_version_num')::int < 150000 then
+    raise exception 'Migration 011 requires PostgreSQL 15+ for security_invoker view support. Supabase new projects ship PG 15+. Check: SELECT version();';
+  end if;
+end;
+$$;
+
 create or replace view public.v_user_roles_for_tenant
   with (security_invoker = true)
 as
 select
   user_id,
   tenant_id,
-  array_agg(role order by role) as roles
+  coalesce(array_agg(role order by role), '{}') as roles
 from public.user_roles
 group by user_id, tenant_id;
 
@@ -91,7 +110,7 @@ language sql
 security invoker
 stable
 as $$
-  select array_agg(role order by role)
+  select coalesce(array_agg(role order by role), '{}')
   from public.user_roles
   where user_id = auth.uid() and tenant_id = p_tenant_id
 $$;
@@ -105,6 +124,7 @@ $$;
 create or replace function public.sync_is_admin()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   update public.user_profiles
@@ -114,7 +134,7 @@ begin
       and role <> 'member'
   )
   where id = coalesce(new.user_id, old.user_id);
-  return new;
+  return coalesce(new, old);
 end;
 $$;
 
