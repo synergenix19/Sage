@@ -1,6 +1,11 @@
 // SINGLE SOURCE OF TRUTH — imported by both middleware and application code.
 // No external imports. Pure const + function. Edge Runtime compatible.
 // Invariant: no other file may define or copy this map.
+//
+// ⚠️  COUPLING: supabase/migrations/013_rls_rbac_migration.sql contains a second
+// expression of the clinical-data access rule — a role IN (...) list that must match
+// every role holding flags:read or live:read here. If you add a role to either place,
+// update the other. Drift means RLS and the frontend make different access decisions.
 
 export const ROLE_KEYS = [
   'member',

@@ -58,8 +58,13 @@ export default async function globalSetup() {
   }
 
   // 2. Ensure user_profiles row exists (page.tsx reads name from here)
+  // is_admin: false — the E2E identity must not hold admin privileges.
+  // is_admin = true would grant read access to session_audit, clinician_review_queue,
+  // and message_feedback for ALL users via the is_admin-gated RLS policies in
+  // 003_complete_trace_fields.sql, 006_clinician_review_queue.sql, and 009_session_audit.sql.
+  // Admin-route access (STATE-1) is correctly gated by user_roles, not this field.
   await admin.from('user_profiles').upsert(
-    { id: userId, name: 'E2E Test', locale: 'en', onboarding_complete: true, is_admin: true },
+    { id: userId, name: 'E2E Test', locale: 'en', onboarding_complete: true, is_admin: false },
     { onConflict: 'id' }
   )
 
