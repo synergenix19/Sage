@@ -53,9 +53,9 @@ create table if not exists public.user_roles (
 -- ─────────────────────────────────────────────
 -- 3. Indexes
 -- ─────────────────────────────────────────────
-create index idx_user_roles_user_tenant on public.user_roles (user_id, tenant_id);
-create index idx_user_roles_granted_by  on public.user_roles (granted_by);
-create index idx_user_roles_tenant_role on public.user_roles (tenant_id, role);
+create index if not exists idx_user_roles_user_tenant on public.user_roles (user_id, tenant_id);
+create index if not exists idx_user_roles_granted_by  on public.user_roles (granted_by);
+create index if not exists idx_user_roles_tenant_role on public.user_roles (tenant_id, role);
 
 -- ─────────────────────────────────────────────
 -- 4. Row-level security
@@ -97,7 +97,7 @@ as
 select
   user_id,
   tenant_id,
-  coalesce(array_agg(role order by role), '{}') as roles
+  coalesce(array_agg(role order by role), ARRAY[]::public.role_key[]) as roles
 from public.user_roles
 group by user_id, tenant_id;
 
@@ -109,8 +109,9 @@ returns public.role_key[]
 language sql
 security invoker
 stable
+set search_path = public
 as $$
-  select coalesce(array_agg(role order by role), '{}')
+  select coalesce(array_agg(role order by role), ARRAY[]::public.role_key[])
   from public.user_roles
   where user_id = auth.uid() and tenant_id = p_tenant_id
 $$;
@@ -138,6 +139,7 @@ begin
 end;
 $$;
 
+drop trigger if exists trg_sync_is_admin on public.user_roles;
 create trigger trg_sync_is_admin
   after insert or delete on public.user_roles
   for each row execute function public.sync_is_admin();
