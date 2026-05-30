@@ -67,18 +67,33 @@ export async function middleware(request: NextRequest) {
 
     const roles = (roleData?.roles as RoleKey[]) ?? ['member']
 
-    // Middleware is a redirect optimization layer, not the authoritative gate.
-    // The (staff)/layout.tsx requireCapability() call is the real enforcement point.
-    // See: CVE-2025-29927 — middleware can be bypassed via x-middleware-subrequest header.
+    // Middleware enforces two distinct staff access layers before the request reaches RSC.
+    // This is defense-in-depth: middleware PLUS the layout's requireCapability() both gate access.
+    // See: CVE-2025-29927 — middleware can be bypassed via x-middleware-subrequest header
+    // (patched in Next.js 15.5.18 installed here, but the layout is the authoritative gate).
     //
-    // Redirect to /sign-in only when the user lacks staff:access entirely (no staff role).
-    // Do NOT redirect on surface-level mismatches (e.g. clinical_reviewer on /admin):
-    // those users ARE authenticated staff — the layout's requireCapability() fires next
-    // and returns notFound() → 404, which is the correct UX (not redirect-to-sign-in).
+    // Layer 1 — staff:access gate (redirects to /sign-in: user has no staff role at all)
     if (pathname.startsWith('/admin') || pathname.startsWith('/live')) {
       if (!can(roles, 'staff:access')) {
         return NextResponse.redirect(new URL('/sign-in', request.url))
       }
+    }
+    // Layer 2 — surface-specific gate (rewrite to /_not-found: authenticated staff on wrong surface)
+    // Redirecting to /sign-in here would be wrong — the user IS authenticated, just on the
+    // wrong surface. A 404 is the correct response (capability non-disclosure, per S-1).
+    // We use NextResponse.rewrite() to /_not-found so:
+    //   a) The URL stays at /live or /admin (no misleading redirect to /sign-in)
+    //   b) The response is issued by middleware before RSC streaming begins → HTTP 404
+    //   c) Layout never runs → no streaming-order status-code issue
+    if (pathname.startsWith('/live') && !can(roles, 'live:read')) {
+      const notFoundUrl = request.nextUrl.clone()
+      notFoundUrl.pathname = '/_not-found'
+      return NextResponse.rewrite(notFoundUrl, { status: 404 })
+    }
+    if (pathname.startsWith('/admin') && !can(roles, 'admin:read')) {
+      const notFoundUrl = request.nextUrl.clone()
+      notFoundUrl.pathname = '/_not-found'
+      return NextResponse.rewrite(notFoundUrl, { status: 404 })
     }
 
     // Onboarding gate — staff bypass is intentional (staff users don't need a member profile).
