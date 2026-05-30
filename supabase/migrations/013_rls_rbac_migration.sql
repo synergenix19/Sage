@@ -1,33 +1,43 @@
 -- 013_rls_rbac_migration.sql
--- Replace is_admin-gated RLS policies with user_roles-based RBAC policies.
+-- Replace is_admin-gated RLS policies with capability-based RBAC policies.
 -- Must run after 011_rbac_roles.sql (creates user_roles, v_user_roles_for_tenant).
 --
 -- Background: 003_complete_trace_fields.sql, 006_clinician_review_queue.sql, and
 -- 009_session_audit.sql defined admin-read policies that check user_profiles.is_admin.
--- That field was a bootstrap mechanism; 011_rbac_roles.sql introduced the canonical
--- user_roles table and flagged is_admin for removal post-Gitex.
---
--- The is_admin field must NOT be the access gate for clinical monitoring tables:
--- - Any direct upsert to user_profiles (e.g., an E2E seed) can set is_admin = true,
---   bypassing the sync_is_admin trigger and granting cross-user clinical data access.
--- - The sync_is_admin trigger only fires on INSERT/DELETE to user_roles, not on
---   user_profiles updates, creating a window where is_admin and user_roles diverge.
+-- The initial migration draft used `role <> 'member'` — too broad, grants operations_admin
+-- access to clinical monitoring tables. The persona split requires:
+--   - session_audit, clinician_review_queue: clinical roles only
+--     (clinical_reviewer, clinical_approver, super_admin)
+--   - message_feedback: clinical roles only (individual feedback is clinical data)
+-- operations_admin has admin:read + analytics:read — population aggregates, not
+-- individual clinical session data. The frontend routes ops away from /live; RLS
+-- enforces the same boundary at the data layer.
 --
 -- This migration:
---   1. Drops the three is_admin-gated policies.
---   2. Replaces them with role-based policies that check user_roles directly.
---      Roles that grant clinical read access: clinical_reviewer, clinical_approver,
---      clinician_author, operations_admin, super_admin (all non-member roles).
+--   1. Drops both the old is_admin-gated policies AND any partial 'staff_read' policies
+--      created during a failed earlier run.
+--   2. Replaces them with clinical-role-only policies.
 --   3. Does NOT drop the is_admin column or sync_is_admin trigger — those removals
 --      happen in 014_drop_is_admin.sql after all remaining is_admin references are
 --      confirmed dead in application code.
 
+-- Roles that may read clinical monitoring data:
+--   clinical_reviewer  — monitors live sessions (live:read, flags:read)
+--   clinical_approver  — reviews and countersigns flags (flags:read, review:action)
+--   super_admin        — break-glass wildcard
+-- Roles explicitly excluded from clinical table access:
+--   operations_admin   — population analytics only; must not see individual session data
+--   clinician_author   — drafts skills/KB; no access to patient session records
+--   dpo                — audit log + data requests; not individual session monitoring
+--   member             — end users
+
 -- ─────────────────────────────────────────────
--- 1. session_audit — replace is_admin read with role-based read
+-- 1. session_audit — clinical roles only
 -- ─────────────────────────────────────────────
 drop policy if exists "admin_read" on public.session_audit;
+drop policy if exists "staff_read" on public.session_audit;
 
-create policy "staff_read" on public.session_audit
+create policy "clinical_read" on public.session_audit
   for select
   using (
     exists (
@@ -37,16 +47,17 @@ create policy "staff_read" on public.session_audit
         and ur.tenant_id = (
           select id from public.tenants where name = 'SAGE POC' limit 1
         )
-        and ur.role <> 'member'
+        and ur.role in ('clinical_reviewer', 'clinical_approver', 'super_admin')
     )
   );
 
 -- ─────────────────────────────────────────────
--- 2. clinician_review_queue — replace is_admin read with role-based read
+-- 2. clinician_review_queue — clinical roles only
 -- ─────────────────────────────────────────────
 drop policy if exists "admin read review queue" on public.clinician_review_queue;
+drop policy if exists "staff_read_review_queue" on public.clinician_review_queue;
 
-create policy "staff_read_review_queue" on public.clinician_review_queue
+create policy "clinical_read_review_queue" on public.clinician_review_queue
   for select
   using (
     exists (
@@ -56,16 +67,20 @@ create policy "staff_read_review_queue" on public.clinician_review_queue
         and ur.tenant_id = (
           select id from public.tenants where name = 'SAGE POC' limit 1
         )
-        and ur.role <> 'member'
+        and ur.role in ('clinical_reviewer', 'clinical_approver', 'super_admin')
     )
   );
 
 -- ─────────────────────────────────────────────
--- 3. message_feedback — replace is_admin read with role-based read
+-- 3. message_feedback — clinical roles only
+--    Individual message feedback is clinical data (linked to user sessions).
+--    Population-level analytics (count/aggregates) can be derived server-side
+--    without granting operations_admin raw row access.
 -- ─────────────────────────────────────────────
 drop policy if exists "admin read feedback" on public.message_feedback;
+drop policy if exists "staff_read_feedback" on public.message_feedback;
 
-create policy "staff_read_feedback" on public.message_feedback
+create policy "clinical_read_feedback" on public.message_feedback
   for select
   using (
     exists (
@@ -75,19 +90,26 @@ create policy "staff_read_feedback" on public.message_feedback
         and ur.tenant_id = (
           select id from public.tenants where name = 'SAGE POC' limit 1
         )
-        and ur.role <> 'member'
+        and ur.role in ('clinical_reviewer', 'clinical_approver', 'super_admin')
     )
   );
 
 -- ─────────────────────────────────────────────
--- Verification query (run manually after applying):
--- Expected: no is_admin references in any policy definition on these three tables.
+-- Verification queries (run after applying):
 --
+-- 1. Confirm policy names — no is_admin references:
 --   SELECT tablename, policyname, qual
 --   FROM pg_policies
 --   WHERE tablename IN ('session_audit', 'clinician_review_queue', 'message_feedback')
 --   ORDER BY tablename, policyname;
 --
--- Also verify the E2E identity cannot read session_audit after the seed is fixed:
---   SELECT count(*) FROM session_audit;  -- run as sage-e2e@test.internal; must return 0
+-- 2. Confirm operations_admin gets zero rows (the persona split test):
+--   -- Run as e2e-ops@test.internal:
+--   SELECT count(*) FROM session_audit;          -- must return 0
+--   SELECT count(*) FROM clinician_review_queue; -- must return 0
+--   SELECT count(*) FROM message_feedback;       -- must return 0
+--
+-- 3. Confirm clinical_reviewer gets rows (read access preserved):
+--   -- Run as e2e-reviewer@test.internal:
+--   SELECT count(*) FROM session_audit;          -- > 0 if sessions exist
 -- ─────────────────────────────────────────────
