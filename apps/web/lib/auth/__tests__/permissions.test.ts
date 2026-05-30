@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { can } from '../permissions'
+import { can, ROLE_KEYS } from '../permissions'
 
 describe('can()', () => {
   it('grants capability when role holds it', () => {
@@ -43,5 +43,32 @@ describe('can()', () => {
   })
   it('empty capability string is denied for non-wildcard roles', () => {
     expect(can(['member'], '')).toBe(false)
+  })
+
+  // Separation-of-duties: author cannot approve, approver cannot draft
+  it('clinical_approver cannot draft CMS content', () => {
+    expect(can(['clinical_approver'], 'cms:draft')).toBe(false)
+  })
+
+  // DPO is audit-only — must not see clinical or ops surfaces
+  it('dpo cannot access live session data', () => {
+    expect(can(['dpo'], 'live:read')).toBe(false)
+  })
+  it('dpo cannot access admin analytics', () => {
+    expect(can(['dpo'], 'admin:read')).toBe(false)
+  })
+
+  // Union grant: two roles combined must not grant a capability neither holds
+  it('union of roles does not grant a capability neither role holds', () => {
+    // clinical_reviewer + operations_admin: neither holds cms:approve
+    expect(can(['clinical_reviewer', 'operations_admin'], 'cms:approve')).toBe(false)
+  })
+
+  // Wildcard integrity: only super_admin may hold '*' — catches accidental '*' in any other role
+  it('no role except super_admin holds the wildcard', () => {
+    for (const role of ROLE_KEYS) {
+      if (role === 'super_admin') continue
+      expect(can([role], 'totally:made-up-capability')).toBe(false)
+    }
   })
 })

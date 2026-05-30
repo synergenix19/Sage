@@ -7,7 +7,7 @@ const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID
 
 export async function getSessionRoles(): Promise<RoleKey[]> {
   if (!TENANT_ID) throw new Error('[auth] NEXT_PUBLIC_TENANT_ID is not set')
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/sign-in')
 
