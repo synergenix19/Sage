@@ -146,29 +146,41 @@ Action required before DPO sign-off:
 
 ## §5 Breach Assessment — DPO Action Required
 
-Under PDPL Art. 23–25 and the v7 compliance baseline (DESC/NCA controls), the DPO
-must assess whether this constitutes a notifiable personal data breach.
+**POC context (confirmed 2026-05-30):** This project is currently in Proof of Concept
+phase. No real clinical users have been onboarded; the data subjects who could have
+been affected are limited to internal test interactions during the POC window. PDPL
+Art. 23–25 notification obligations and the 72-hour PDPC clock apply to personal data
+breaches affecting real data subjects — the POC status materially affects the severity
+and notification threshold assessment.
 
-**The relevant question is not "could data be accessed" but "was it accessed."**
-The answer depends on the Supabase access log review in §3. The DPO should assess:
+**The DPO should nonetheless assess and close this finding before user onboarding,
+not after.** Once real users are onboarded, the scope of any future similar incident
+becomes incomparably larger.
+
+Under PDPL Art. 23–25 and the v7 compliance baseline (DESC/NCA controls), the DPO
+must assess whether this constitutes a notifiable personal data breach. The relevant
+question is not "could data be accessed" but "was it accessed."
 
 1. Was the `sage-e2e@test.internal` identity ever used to SELECT from `session_audit`,
    `clinician_review_queue`, or `message_feedback`? (Check Supabase API logs — see §3.)
+   Given POC status, the likely data subjects are developers and internal testers, not
+   vulnerable clinical users. The DPO should characterise the actual subject population.
 
-2. If yes: what is the scope (rows, user IDs, dates)? Does it meet the PDPL threshold
-   for notification to the PDPC within 72 hours?
+2. If yes: what is the scope (rows, user IDs, dates)? Assess against PDPL threshold
+   given POC data subject population.
 
 3. If no SELECT occurred: the finding is an unauthorized access *capability* that
    existed during the exposure window, now closed. Assess whether capability-only
-   findings require reporting under the applicable DESC/NCA control set.
+   findings in a POC context require reporting under the applicable DESC/NCA control set.
 
 4. Regardless of notification outcome: document this as a processing activity that
-   occurred without a DPIA entry and without DPO authorisation. Future E2E runs
-   against any production-adjacent environment require a documented legal basis and
-   DPO sign-off on the RLS posture.
+   occurred without a DPIA entry and without DPO authorisation. Establish the rule
+   that before real users are onboarded, the E2E identity must be isolated to a
+   non-production Supabase project and future test runs require documented legal basis
+   and DPO sign-off on the RLS posture.
 
-**This section must be completed and signed off by the DPO before any user-facing
-production deployment. The Gitex demo carve-out below does not substitute for this.**
+**This section must be completed and signed off by the DPO before any real-user
+onboarding. The Gitex demo carve-out below does not substitute for this.**
 
 ---
 

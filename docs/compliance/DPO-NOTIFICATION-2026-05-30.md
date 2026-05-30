@@ -49,9 +49,21 @@ ever exercised.
 
 ---
 
+## POC context
+
+**This project is in Proof of Concept phase as of 2026-05-30.** No real clinical users
+have been onboarded. The data subjects who could have been affected by this finding are
+limited to internal developers and testers who interacted during the POC window.
+
+This materially affects the breach assessment: PDPL notification obligations and the
+72-hour PDPC clock apply to breaches affecting real data subjects. The DPO should
+characterise the actual subject population and assess notification thresholds accordingly.
+This finding still requires DPO sign-off before any real-user onboarding — the value
+of closing it now is that it cannot become a live-user incident.
+
 ## What I need you to determine
 
-**The key question for PDPL Art. 23–25 and the 72-hour PDPC notification window:**
+**The key question for PDPL Art. 23–25:**
 
 Was the `sage-e2e@test.internal` identity ever used to SELECT from these three tables?
 
