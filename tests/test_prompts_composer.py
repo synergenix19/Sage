@@ -776,3 +776,44 @@ def test_l4_block_injects_abstain_instruction_when_no_passages():
     }
     _, user_str, layers = compose_prompt(state)
     assert "fabricate" in user_str.lower() or "do not invent" in user_str.lower() or "no evidence" in user_str.lower() or "no relevant" in user_str.lower()
+
+
+# ---- Task 0: cap reduction verification ----
+
+import json
+import os
+
+_SKILLS_DIR = os.path.join(
+    os.path.dirname(__file__), "..", "src", "sage_poc", "skills"
+)
+_CAP_WORDS = 200  # must match _CULTURAL_OVERRIDE_BUDGET_WORDS after Task 0
+
+
+def _block_words(overrides: dict) -> int:
+    from sage_poc.prompts.tokens import count_words
+    lines = "\n".join(f"- {v}" for v in overrides.values())
+    block = f"SKILL-SPECIFIC CULTURAL CONTEXT:\n{lines}"
+    return count_words(block)
+
+
+def test_all_skills_cultural_overrides_within_cap():
+    """Every skill's cultural_overrides must fit within _CULTURAL_OVERRIDE_BUDGET_WORDS.
+    Fails with the exact word count and file name for each violation — fix the JSON,
+    not the test.
+    """
+    over_budget = []
+    for fname in sorted(os.listdir(_SKILLS_DIR)):
+        if not fname.endswith(".json"):
+            continue
+        with open(os.path.join(_SKILLS_DIR, fname)) as f:
+            data = json.load(f)
+        overrides = data.get("cultural_overrides") or {}
+        if overrides:
+            wc = _block_words(overrides)
+            if wc > _CAP_WORDS:
+                over_budget.append((data["skill_id"], wc))
+    assert not over_budget, (
+        f"Skills exceed {_CAP_WORDS}-word override cap "
+        f"(fix the JSON files, not the constant):\n"
+        + "\n".join(f"  {sid}: {wc}w" for sid, wc in over_budget)
+    )

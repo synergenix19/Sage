@@ -293,7 +293,7 @@ def _build_l1_history_block(
 
 
 _CULTURAL_BUDGET_WORDS = 250
-_CULTURAL_OVERRIDE_BUDGET_WORDS = 500  # per-skill cultural override budget; covers all 20 v7 skills
+_CULTURAL_OVERRIDE_BUDGET_WORDS = 200  # clinician-signed cap; forces concise complete overrides
 _TOTAL_WORD_BUDGET = 1100
 
 
