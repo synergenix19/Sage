@@ -25,7 +25,9 @@ const PERMISSIONS: Record<RoleKey, readonly string[]> = {
 } as const
 
 export function can(roles: RoleKey[], capability: string): boolean {
-  return roles.some(
-    (r) => PERMISSIONS[r].includes('*') || PERMISSIONS[r].includes(capability)
-  )
+  return roles.some((r) => {
+    const perms = PERMISSIONS[r as RoleKey]
+    if (!perms) return false
+    return perms.includes('*') || perms.includes(capability)
+  })
 }

@@ -35,4 +35,13 @@ describe('can()', () => {
   it('clinician_author cannot approve', () => {
     expect(can(['clinician_author'], 'cms:approve')).toBe(false)
   })
+  it('unknown role string is denied and does not throw', () => {
+    expect(can(['unknown_role' as any], 'chat:use')).toBe(false)
+  })
+  it('super_admin with an unknown co-role still grants capabilities', () => {
+    expect(can(['super_admin', 'unknown_role' as any], 'any:thing')).toBe(true)
+  })
+  it('empty capability string is denied for non-wildcard roles', () => {
+    expect(can(['member'], '')).toBe(false)
+  })
 })
