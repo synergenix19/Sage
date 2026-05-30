@@ -144,6 +144,9 @@ def _route_after_skill_executor(state: SageState) -> str:
 
 
 def _route_after_output_gate(state: SageState) -> str:
+    # Cardinal Rule 4: crisis output is deterministic and never subject to stylistic retry.
+    if state.get("crisis_state") not in (None, "none"):
+        return END
     if state.get("banned_opener_correction") and state.get("banned_opener_retry_count", 0) <= 1:
         return "freeflow_respond"
     return END

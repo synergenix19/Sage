@@ -324,3 +324,61 @@ def test_g5_edge_cases_do_not_crash_and_do_not_match(edge_case, description):
     from sage_poc.nodes.output_gate import _BANNED_OPENER_RE
     result = _BANNED_OPENER_RE.match(edge_case.lstrip())
     assert result is None, f"Edge case '{description}' ({edge_case!r}) incorrectly matched"
+
+
+# ---- Audit write on early return -------------------------------------------
+
+@pytest.mark.asyncio
+async def test_audit_write_fires_on_early_return_with_retry_path():
+    """Audit write must fire before the early return, with output_gate_banned_opener_retry
+    in the path at write time. PDPL requires each output_gate pass to be traceable,
+    including retry intermediates — not just the final completed pass.
+    session_id must be non-None to trigger the write (matches existing pattern).
+    """
+    import asyncio
+    from sage_poc.nodes.output_gate import output_gate_node
+
+    state = _base_state(
+        response_en="It sounds like you're overwhelmed.",
+        banned_opener_retry_count=0,
+        session_id="test-session-audit-pdpl",
+    )
+
+    with patch("sage_poc.nodes.output_gate.rules_engine.evaluate", return_value=MagicMock(fired=[])):
+        with patch("sage_poc.nodes.output_gate.write_session_audit", AsyncMock()) as mock_audit:
+            result = await output_gate_node(state)
+            await asyncio.sleep(0)  # yield to event loop so create_task runs
+
+    # Early return must have fired
+    assert result.get("banned_opener_correction") is not None, "Early return must have triggered"
+
+    # Audit write must have been called exactly once on the early return path
+    mock_audit.assert_called_once()
+    audit_payload = mock_audit.call_args[0][0]
+    assert "output_gate_banned_opener_retry" in audit_payload["path"], (
+        "Audit write must include output_gate_banned_opener_retry in path at write time, "
+        "not deferred to the second output_gate pass"
+    )
+
+
+@pytest.mark.asyncio
+async def test_audit_write_not_called_on_early_return_when_no_session_id():
+    """Audit write is guarded by session_id — no write when session_id is None.
+    Consistent with write_identity_substitution_audit pattern.
+    """
+    import asyncio
+    from sage_poc.nodes.output_gate import output_gate_node
+
+    state = _base_state(
+        response_en="It sounds like you're overwhelmed.",
+        banned_opener_retry_count=0,
+        session_id=None,  # no session → no audit write
+    )
+
+    with patch("sage_poc.nodes.output_gate.rules_engine.evaluate", return_value=MagicMock(fired=[])):
+        with patch("sage_poc.nodes.output_gate.write_session_audit", AsyncMock()) as mock_audit:
+            result = await output_gate_node(state)
+            await asyncio.sleep(0)
+
+    assert result.get("banned_opener_correction") is not None, "Early return must have triggered"
+    mock_audit.assert_not_called()

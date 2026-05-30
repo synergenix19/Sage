@@ -219,10 +219,19 @@ async def output_gate_node(state: SageState) -> dict:
                     "[output_gate] banned opener detected (%r) — routing back to freeflow_respond for retry",
                     banned_match.group(0),
                 )
+                retry_path = path + ["output_gate_banned_opener_retry"]
+                if session_id:
+                    _retry_audit = asyncio.create_task(
+                        write_session_audit({**state, "path": retry_path, "gate_path": gate_path or "standard"})
+                    )
+                    _retry_audit.add_done_callback(
+                        lambda t: _log.warning("[output_gate] retry audit error: %s", t.exception())
+                        if not t.cancelled() and t.exception() else None
+                    )
                 return {
                     "banned_opener_retry_count": retry_count + 1,
                     "banned_opener_correction": _BANNED_OPENER_CORRECTION,
-                    "path": path + ["output_gate_banned_opener_retry"],
+                    "path": retry_path,
                     # Preserve expected state keys so downstream tests and LangGraph
                     # state merges don't encounter missing fields on this early exit.
                     "cultural_output_violations": cultural_output_violations,

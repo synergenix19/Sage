@@ -227,3 +227,29 @@ async def test_d5_summarization_not_called_on_early_return():
     )
     # Summarization must NOT have run
     mock_summarize.assert_not_called()
+
+
+# ---- D-6: crisis_state active — _route_after_output_gate returns END --------
+
+def test_d6_route_after_output_gate_skips_retry_when_crisis_state_active():
+    """D-6: _route_after_output_gate must return END when crisis_state is active,
+    even when banned_opener_correction is set and retry_count is within limit.
+
+    Cardinal Rule 4: crisis output is deterministic and never subject to a
+    stylistic retry. The guard must be structural — in the condition itself —
+    not an emergent property of the graph topology.
+    """
+    from sage_poc.graph import _route_after_output_gate
+    from langgraph.graph import END
+
+    state = _base_state(
+        response_en="It seems like things have become overwhelming. Please call 800-HOPE.",
+        crisis_state="active",
+        banned_opener_correction="Your previous response began with a banned opener.",
+        banned_opener_retry_count=0,
+    )
+
+    assert _route_after_output_gate(state) == END, (
+        "_route_after_output_gate must return END for crisis_state='active' — "
+        "crisis output is never subject to stylistic retry regardless of banned_opener_correction"
+    )
