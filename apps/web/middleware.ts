@@ -82,7 +82,10 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/sign-in', request.url))
     }
 
-    // Onboarding gate — staff bypass is intentional (staff users don't need a member profile)
+    // Onboarding gate — staff bypass is intentional (staff users don't need a member profile).
+    // Non-staff authenticated users on protected routes make two Supabase queries total:
+    // the role lookup above and this onboarding profile fetch. Acceptable pre-Gitex;
+    // cache resolved roles as a signed session claim post-Gitex to eliminate the second query.
     const isStaff = can(roles, 'staff:access')
     const isOnboardingStep = new RegExp(`^/step-[1-${TOTAL_ONBOARDING_STEPS}]$`).test(pathname)
 
