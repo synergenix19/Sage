@@ -143,9 +143,10 @@ async def test_c2_first_violation_then_clean_retry_routes_to_end():
 # ---- C-3: Both attempts violate → proceed with flag → END (no infinite loop)
 
 @pytest.mark.asyncio
-async def test_c3_both_attempts_violate_proceed_with_flag_no_loop():
-    """C-3: When both attempts produce banned openers, system proceeds and flags audit. No infinite loop."""
-    from sage_poc.nodes.output_gate import output_gate_node
+async def test_c3_both_attempts_violate_substitutes_fallback_no_loop():
+    """C-3: When both attempts produce banned openers, system substitutes the vetted fallback.
+    User receives _VETTED_FALLBACK_RESPONSE, not the banned opener. No infinite loop."""
+    from sage_poc.nodes.output_gate import output_gate_node, _VETTED_FALLBACK_RESPONSE
     from sage_poc.graph import _route_after_output_gate
 
     # Pass 1: banned opener → early return
@@ -170,8 +171,11 @@ async def test_c3_both_attempts_violate_proceed_with_flag_no_loop():
             with patch("sage_poc.nodes.output_gate.write_session_audit", AsyncMock()):
                 result2 = await output_gate_node(state2)
 
-    assert result2.get("response") is not None, "System must proceed on second violation, not block"
-    assert result2.get("banned_opener_violation") is True, "Second violation must be flagged in audit"
+    assert result2.get("response") == _VETTED_FALLBACK_RESPONSE, (
+        f"User must receive vetted fallback, not the banned opener. Got: {result2.get('response')!r}"
+    )
+    assert result2.get("banned_opener_fallback_used") is True
+    assert result2.get("banned_opener_violation") is False, "Violation was intercepted by fallback"
     assert result2.get("banned_opener_retry_count") == 0, "retry_count must reset for next turn"
     assert _route_after_output_gate(result2) == END, "Routing must return END — no further retry"
 

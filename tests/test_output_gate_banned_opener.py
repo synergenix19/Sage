@@ -127,11 +127,14 @@ async def test_output_gate_returns_correction_flag_on_first_violation():
 
 
 @pytest.mark.asyncio
-async def test_output_gate_proceeds_and_flags_audit_on_second_violation():
-    """On second violation (retry_count=1), output_gate must proceed (not return early)
-    and reset retry_count to 0 for next turn.
+async def test_output_gate_substitutes_fallback_on_second_violation():
+    """On second violation (retry_count=1), output_gate must substitute _VETTED_FALLBACK_RESPONSE
+    rather than passing the violating response to the user.
+
+    The user must receive the vetted fallback, not the banned opener.
+    banned_opener_fallback_used=True, banned_opener_violation=False (violation intercepted).
     """
-    from sage_poc.nodes.output_gate import output_gate_node
+    from sage_poc.nodes.output_gate import output_gate_node, _VETTED_FALLBACK_RESPONSE
 
     state = _base_state(
         response_en="That sounds really tough. I'm here for you.",
@@ -143,10 +146,17 @@ async def test_output_gate_proceeds_and_flags_audit_on_second_violation():
             with patch("sage_poc.nodes.output_gate.write_session_audit", AsyncMock()):
                 result = await output_gate_node(state)
 
-    assert result.get("response") is not None, "response must be set on second violation (proceed)"
-    assert result.get("banned_opener_retry_count") == 0, (
-        "retry_count must be reset to 0 after proceeding"
+    assert result.get("response") == _VETTED_FALLBACK_RESPONSE, (
+        f"User must receive the vetted fallback, not the banned opener. "
+        f"Got: {result.get('response')!r}"
     )
+    assert result.get("banned_opener_fallback_used") is True, (
+        "banned_opener_fallback_used must be True when fallback is substituted"
+    )
+    assert result.get("banned_opener_violation") is False, (
+        "banned_opener_violation must be False when fallback intercepted the violation"
+    )
+    assert result.get("banned_opener_retry_count") == 0, "retry_count must reset for next turn"
     assert result.get("banned_opener_correction") is None
 
 

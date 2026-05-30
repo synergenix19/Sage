@@ -124,4 +124,5 @@ def _build_state(req: _RequestLike) -> dict:
         "user_id":    req.user_id,
         "banned_opener_retry_count": 0,
         "banned_opener_correction": None,
+        "banned_opener_fallback_used": False,
     }

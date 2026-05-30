@@ -71,4 +71,5 @@ class SageState(TypedDict):
     original_response_text: Optional[str]          # full original response — written to restricted identity_substitution_audit table only
     banned_opener_retry_count: int
     banned_opener_correction: Optional[str]
-    banned_opener_violation: bool          # True if banned opener persisted after retry; flagged in audit
+    banned_opener_violation: bool          # True if banned opener persisted after retry AND passed through to user (no fallback)
+    banned_opener_fallback_used: bool      # True when _VETTED_FALLBACK_RESPONSE substituted after exhausted retry

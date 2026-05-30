@@ -184,17 +184,16 @@ async def test_audit_row_written_on_early_return_path(asgi_client, _intent_mock)
     reason="SUPABASE_URL required"
 )
 @pytest.mark.asyncio
-async def test_second_failure_proceeds_with_flag_not_empty(asgi_client, _intent_mock):
-    """C: When both attempts produce banned openers, the system must not crash or
-    return empty copy. The response proceeds with banned_opener_violation flagged.
+async def test_second_failure_substitutes_vetted_fallback(asgi_client, _intent_mock):
+    """C: When both attempts produce banned openers, the user must receive
+    _VETTED_FALLBACK_RESPONSE — not the banned opener and not empty copy.
 
-    This tests the second-failure → END branch that unit tests can't reach with
-    a live graph. The X-Sage-Node-Path must contain output_gate_banned_opener_retry
-    but NOT a second freeflow_respond→output_gate cycle.
-
-    Current behaviour: pass through with flag. No static fallback defined (deferred
-    content/clinician decision). This test documents and pins that behaviour.
+    Tests the second-failure → fallback-substitution → END branch end-to-end.
+    Verifies: (1) response body equals the vetted constant, (2) retry marker
+    in path, (3) max-1-retry enforced (freeflow_respond count <= 2),
+    (4) output_gate_fallback_substituted appears in path.
     """
+    from sage_poc.nodes.output_gate import _VETTED_FALLBACK_RESPONSE
     from tests.conftest import make_mock_llm
     # Both attempts return banned openers
     responder = make_mock_llm([_BANNED_FIRST, _BANNED_SECOND])
@@ -211,16 +210,67 @@ async def test_second_failure_proceeds_with_flag_not_empty(asgi_client, _intent_
         )
 
     assert resp.status_code == 200, "System must not crash on double banned-opener failure"
-    body = resp.text.strip()
-    assert body, "Response must not be empty even when retry exhausted"
+    body = " ".join(resp.text.strip().split())  # normalise streaming whitespace
+    assert body == _VETTED_FALLBACK_RESPONSE, (
+        f"User must receive the vetted fallback constant when retry is exhausted. "
+        f"Got: {body!r}"
+    )
 
     path = json.loads(resp.headers["x-sage-node-path"])
     assert "output_gate_banned_opener_retry" in path, "Retry marker must be in path"
+    assert "output_gate_fallback_substituted" in path, (
+        "Fallback substitution must appear in path so reviewers can distinguish "
+        "'fallback substituted' from 'violation passed through'"
+    )
 
-    # Verify there is no third freeflow pass (max-1 retry enforced)
     freeflow_count = path.count("freeflow_respond")
     assert freeflow_count <= 2, (
         f"Max-1 retry means at most 2 freeflow passes. Got {freeflow_count}: {path}"
+    )
+
+
+# ── Test C-audit: fallback substitution audit row ───────────────────────────
+
+@pytest.mark.skipif(
+    not _SUPABASE_URL or not _SUPABASE_SERVICE_KEY,
+    reason="SUPABASE_URL and SUPABASE_SERVICE_KEY required"
+)
+@pytest.mark.asyncio
+async def test_fallback_substitution_audit_row_written(asgi_client, _intent_mock):
+    """C-audit: When fallback is substituted, a Supabase audit row with
+    output_gate_fallback_substituted in node_path must be written.
+
+    Distinct from the early-return row (Test B). A reviewer reading the audit log
+    must be able to distinguish 'fallback substituted' from 'violation passed through.'
+    """
+    from tests.conftest import make_mock_llm
+    session_id = f"retry-test-C-audit-{int(time.time())}"
+    responder = make_mock_llm([_BANNED_FIRST, _BANNED_SECOND])
+
+    with patch("sage_poc.nodes.freeflow_respond.get_responder", return_value=responder), \
+         patch("sage_poc.nodes.freeflow_respond.get_fallback_responder", return_value=responder):
+
+        resp = await asgi_client.post(
+            "/chat",
+            json={
+                "messages": [{"role": "user", "content": _DOG_MESSAGE}],
+                "session_id": session_id,
+            },
+        )
+
+    assert resp.status_code == 200
+    await asyncio.sleep(1.5)
+
+    rows = await _fetch_audit_rows(session_id)
+    assert rows, f"Expected audit rows for session {session_id}"
+
+    fallback_rows = [
+        r for r in rows
+        if "output_gate_fallback_substituted" in (r.get("node_path") or [])
+    ]
+    assert fallback_rows, (
+        f"Expected at least one audit row with output_gate_fallback_substituted in node_path. "
+        f"Got rows: {[r.get('node_path') for r in rows]}"
     )
 
 

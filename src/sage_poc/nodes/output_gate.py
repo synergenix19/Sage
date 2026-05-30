@@ -53,6 +53,15 @@ _BANNED_OPENER_CORRECTION = (
     "reflective paraphrase. Name the specific thing the user said and ask one direct question."
 )
 
+# PLACEHOLDER — pending clinical review before Gitex.
+# Constraints: (1) must NOT begin with a banned or near-banned opener (regex or structural),
+# (2) Khaleeji wellness-companion register — warm, open-ended, never "I cannot respond to that",
+# (3) safe to emit on any turn including after heavy disclosure (not dismissive),
+# (4) must work in EN and AR turns (translation pipeline still runs on this string),
+# (5) treat as user-facing copy with measurable frequency, not a rare error message.
+# Review doc: docs/superpowers/reviews/FALLBACK_RESPONSE_REVIEW.md
+_VETTED_FALLBACK_RESPONSE = "I'm here with you. What would feel most helpful to share right now?"
+
 JAILBREAK_RESPONSE = (
     "I'm Sage, a wellness companion here to offer emotional support and evidence-based coping "
     "techniques. That's my role. What's been on your mind today?"
@@ -210,10 +219,32 @@ async def output_gate_node(state: SageState) -> dict:
         cultural_output_violations = []
 
     banned_opener_violation = False
+    banned_opener_fallback_used = False
+    # Substitute fallback on empty retry response — the second LLM call can return "" due to
+    # rate limiting, token-budget overflow, or other transient failures. Empty is not valid
+    # wellness-companion copy; treat it the same as an exhausted-retry banned opener.
+    _retry_count = state.get("banned_opener_retry_count", 0)
+    if (
+        not response_en
+        and _retry_count >= 1
+        and gate_path not in ("scope_refusal", "jailbreak")
+    ):
+        response_en = _VETTED_FALLBACK_RESPONSE
+        banned_opener_fallback_used = True
+        path = path + ["output_gate_fallback_substituted"]
+        _log.warning("[output_gate] empty response on retry — substituting vetted fallback")
+        if session_id:
+            _empty_audit = asyncio.create_task(
+                write_session_audit({**state, "path": path, "gate_path": gate_path or "standard"})
+            )
+            _empty_audit.add_done_callback(
+                lambda t: _log.warning("[output_gate] empty-retry audit error: %s", t.exception())
+                if not t.cancelled() and t.exception() else None
+            )
     if gate_path not in ("scope_refusal", "jailbreak") and response_en:
         banned_match = _BANNED_OPENER_RE.match(response_en.lstrip())
         if banned_match:
-            retry_count = state.get("banned_opener_retry_count", 0)
+            retry_count = _retry_count
             if retry_count < 1:
                 _log.warning(
                     "[output_gate] banned opener detected (%r) — routing back to freeflow_respond for retry",
@@ -241,10 +272,24 @@ async def output_gate_node(state: SageState) -> dict:
                     "banned_opener_violation": False,
                 }
             else:
-                banned_opener_violation = True
+                # Retry exhausted — substitute vetted fallback rather than passing the
+                # violating response to the user. Append marker to path so it surfaces in
+                # X-Sage-Node-Path and audit rows; reviewers can distinguish "fallback
+                # substituted" from "violation passed through."
+                response_en = _VETTED_FALLBACK_RESPONSE
+                banned_opener_fallback_used = True
+                path = path + ["output_gate_fallback_substituted"]
                 _log.warning(
-                    "[output_gate] banned opener persists after retry — proceeding with original, flagging audit"
+                    "[output_gate] banned opener persists after retry — substituting vetted fallback"
                 )
+                if session_id:
+                    _fallback_audit = asyncio.create_task(
+                        write_session_audit({**state, "path": path, "gate_path": gate_path or "standard"})
+                    )
+                    _fallback_audit.add_done_callback(
+                        lambda t: _log.warning("[output_gate] fallback audit error: %s", t.exception())
+                        if not t.cancelled() and t.exception() else None
+                    )
 
     violations = _FORMAT_VIOLATIONS.findall(response_en)
     if violations:
@@ -356,4 +401,5 @@ async def output_gate_node(state: SageState) -> dict:
         "banned_opener_retry_count": 0,
         "banned_opener_correction": None,
         "banned_opener_violation": banned_opener_violation,
+        "banned_opener_fallback_used": banned_opener_fallback_used,
     }

@@ -92,10 +92,15 @@ async def write_session_audit(state: SageState) -> None:
         "re_escalation_within_monitoring": state.get("re_escalation_within_monitoring"),
     }
     try:
+        # Use upsert (resolution=merge-duplicates) because the retry and fallback paths
+        # fire multiple writes for the same (session_id, turn_number). Each write carries
+        # a longer accumulated path; the last write wins, so the final row reflects the
+        # complete execution trace including retry and fallback markers.
+        upsert_headers = {**_HEADERS, "Prefer": "resolution=merge-duplicates"}
         async with httpx.AsyncClient(timeout=5.0) as client:
             r = await client.post(
                 f"{_URL}/rest/v1/session_audit",
-                headers=_HEADERS,
+                headers=upsert_headers,
                 json=row,
             )
             r.raise_for_status()
