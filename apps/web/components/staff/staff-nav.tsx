@@ -6,6 +6,8 @@ import { tenant } from '@cdai/tenant'
 import { useCan } from '@/lib/auth/use-can'
 import { signOutUser } from '@/lib/auth-actions'
 
+// NAV_ITEMS covers active Gitex routes only. Latent roles (clinician_author, dpo)
+// have staff:access but no matching item here; their surfaces ship in a later sprint.
 const NAV_ITEMS = [
   { href: '/live',  label: 'Live',  capability: 'live:read'  },
   { href: '/admin', label: 'Admin', capability: 'admin:read' },
@@ -18,6 +20,8 @@ export function StaffNav() {
 
   const visibleItems = NAV_ITEMS.filter((item) => userCan(item.capability))
 
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/')
+
   return (
     <header className="flex h-12 flex-shrink-0 items-center gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4">
       <span className="text-sm font-semibold text-[var(--color-text-primary)] me-2" aria-hidden="true">
@@ -29,11 +33,11 @@ export function StaffNav() {
           <Link
             key={item.href}
             href={item.href}
-            aria-current={pathname.startsWith(item.href) ? 'page' : undefined}
+            aria-current={isActive(item.href) ? 'page' : undefined}
             className={cn(
               'flex h-8 items-center rounded-lg px-3 text-sm font-medium transition-colors',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring-color)]',
-              pathname.startsWith(item.href)
+              isActive(item.href)
                 ? 'bg-[var(--color-primary)] text-white'
                 : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-tinted)]'
             )}
