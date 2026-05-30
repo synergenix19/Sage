@@ -21,6 +21,15 @@
 --      happen in 014_drop_is_admin.sql after all remaining is_admin references are
 --      confirmed dead in application code.
 
+-- ⚠️  COUPLING: The role list below ('clinical_reviewer', 'clinical_approver', 'super_admin')
+-- is a second expression of the clinical-data access rule. The first expression is the
+-- PERMISSIONS map in apps/web/lib/auth/edge-permissions.ts — roles with flags:read or
+-- live:read are the roles that legitimately need clinical session data.
+-- These two must stay in sync:
+--   - If a role gains flags:read or live:read in edge-permissions.ts, add it here.
+--   - If a role is added here, verify it holds flags:read or live:read in the map.
+-- Drift between them means RLS and the frontend make different access decisions.
+--
 -- Roles that may read clinical monitoring data:
 --   clinical_reviewer  — monitors live sessions (live:read, flags:read)
 --   clinical_approver  — reviews and countersigns flags (flags:read, review:action)
