@@ -1,7 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { cn } from '@cdai/ui'
-import { tenant } from '@cdai/tenant'
 
 const SECTIONS = [
   { id: 'clinical-safety',    label: 'Clinical Safety'    },
@@ -11,8 +10,8 @@ const SECTIONS = [
   { id: 'population',         label: 'Population'         },
 ]
 
-export function AdminSidebar() {
-  const [activeId, setActiveId] = useState<string>('overview')
+export function AdminSectionNav() {
+  const [activeId, setActiveId] = useState<string>('clinical-safety')
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -37,12 +36,6 @@ export function AdminSidebar() {
 
   return (
     <aside className="bg-[var(--color-surface)] border-e border-[var(--color-border)] w-60 flex-shrink-0 flex flex-col p-4 gap-1">
-      <div className="mb-4 ps-2">
-        <span className="text-sm font-semibold text-[var(--color-text-primary)]">
-          {tenant.copy.appName}
-        </span>
-        <p className="text-xs text-[var(--color-text-secondary)]">Admin</p>
-      </div>
       <nav className="flex flex-col gap-1">
         {SECTIONS.map(({ id, label }) => (
           <a
