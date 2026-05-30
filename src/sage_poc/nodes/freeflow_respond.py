@@ -163,10 +163,11 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
         knowledge_source_update = {"knowledge_source": "tool_lookup"}
 
     return {
-        "response_en":    response,
-        "prompt_layers":  prompt_layers,
-        "token_usage":    {},
-        "path":           (state.get("path") or []) + ["freeflow_respond"],
-        "stale_skill_id": None,   # consumed by re-entry prompt; clear so it doesn't re-fire
+        "response_en":              response,
+        "prompt_layers":            prompt_layers,
+        "token_usage":              {},
+        "path":                     (state.get("path") or []) + ["freeflow_respond"],
+        "stale_skill_id":           None,   # consumed by re-entry prompt; clear so it doesn't re-fire
+        "banned_opener_correction": None,
         **knowledge_source_update,
     }

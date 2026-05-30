@@ -86,7 +86,7 @@ def _build_l3_skill_block(
 _INTENSITY_GUIDANCE: dict[str, str] = {
     "low": "The user's distress is mild. A lighter touch is appropriate.",
     "mid": "The user is moderately engaged. Be present and attentive.",
-    "high": "The user is significantly distressed. Prioritise validation. Hold space before offering any guidance.",
+    "high": "The user is significantly distressed. Name the specific thing they said, directly. Ask one focused question about it. Do NOT paraphrase or reflect back what they said. Do NOT begin with 'It sounds like', 'That sounds', or any reflective opener. Do NOT offer guidance yet.",
 }
 
 _L1_BASE_BUDGET = 450
@@ -509,6 +509,11 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
 
     # User message always last
     user_parts.append(f"USER: {message_en}")
+
+    correction = state.get("banned_opener_correction")
+    if correction:
+        user_parts.append(f"[CORRECTION]: {correction}")
+        layers.append("banned_opener_correction")
 
     # ---- Token budget enforcement (overflow: shrink L1 first) --------------
     total_words = count_words(system_str) + count_words_in_parts(user_parts)

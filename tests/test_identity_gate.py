@@ -119,7 +119,7 @@ async def test_b2_variant_forms(response, label):
 @pytest.mark.parametrize("response,label", [
     ("I'm a wellness companion here to support you.", "wellness-companion"),
     ("Let's explore that together.", "explore-together"),
-    ("That sounds really difficult. Can you tell me more?", "empathy-probe"),
+    ("The weight of that is real. Can you tell me more?", "empathy-probe"),
     ("Many people find CBT helpful for managing anxious thoughts.", "cbt-education"),
     ("What's been going on for you lately?", "open-question"),
     ("I hear you. That sounds exhausting.", "validation"),

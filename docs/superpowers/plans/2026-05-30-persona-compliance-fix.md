@@ -490,7 +490,9 @@ _BANNED_OPENER_CORRECTION = (
 
 - [ ] **Step 2: Add gate block inside `output_gate_node`**
 
-Locate the `violations = _FORMAT_VIOLATIONS.findall(response_en)` section (currently around lines 195–202). Insert the gate block **before** the format violations check:
+Locate the `violations = _FORMAT_VIOLATIONS.findall(response_en)` section (currently around lines 195–202). Insert the gate block **before** the format violations check and **after** the cultural rules block (lines ~166–210).
+
+**Gate ordering (verified by post-implementation audit 2026-05-30):** The banned opener gate runs after cultural rules (identity substitution, CUO-ID-001), not before them. If a response both starts with a banned opener AND contains an identity claim, cultural rules substitute the entire response first. The substituted canned response ("I'm Sage, a wellness companion...") does not start with a banned opener, so the gate passes it cleanly. Identity-first ordering is the safer choice: the identity violation is corrected on the first pass rather than deferred to a retry. Both orderings converge to the correct outcome, but cultural-first eliminates the identity claim unconditionally.
 
 ```python
     # Banned opener gate — runs on response_en (English, before translation) for standard path only.

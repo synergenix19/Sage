@@ -143,6 +143,12 @@ def _route_after_skill_executor(state: SageState) -> str:
     return "freeflow"
 
 
+def _route_after_output_gate(state: SageState) -> str:
+    if state.get("banned_opener_correction") and state.get("banned_opener_retry_count", 0) <= 1:
+        return "freeflow_respond"
+    return END
+
+
 def build_graph(checkpointer=None) -> CompiledStateGraph:
     graph = StateGraph(SageState)
 
@@ -186,6 +192,9 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
         "freeflow": "freeflow_respond",
     })
     graph.add_edge("freeflow_respond", "output_gate")
-    graph.add_edge("output_gate", END)
+    graph.add_conditional_edges("output_gate", _route_after_output_gate, {
+        "freeflow_respond": "freeflow_respond",
+        END: END,
+    })
 
     return graph.compile(checkpointer=checkpointer)

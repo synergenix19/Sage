@@ -850,11 +850,11 @@ from sage_poc.nodes.output_gate import output_gate_node
 async def test_output_gate_english_passthrough():
     state = make_state(
         detected_language="en",
-        response_en="That sounds really difficult. What thought is coming up for you?",
+        response_en="Three weeks of that — what's shifted for you recently?",
         path=["safety_check", "intent_route", "skill_select", "skill_executor", "freeflow_respond"],
     )
     result = await output_gate_node(state)
-    assert result["response"] == "That sounds really difficult. What thought is coming up for you?"
+    assert result["response"] == "Three weeks of that — what's shifted for you recently?"
     assert "output_gate" in result["path"]
 
 @pytest.mark.asyncio
@@ -1288,7 +1288,7 @@ async def test_output_gate_suppresses_audit_when_disabled(capsys):
     try:
         state = make_state(
             detected_language="en",
-            response_en="That sounds really hard.",
+            response_en="Three years of that. What shifted for you recently?",
             path=["safety_check", "intent_route", "freeflow_respond"],
         )
         await output_gate_node(state)
@@ -1308,7 +1308,7 @@ async def test_output_gate_shows_audit_when_enabled(caplog):
     try:
         state = make_state(
             detected_language="en",
-            response_en="That sounds really hard.",
+            response_en="Three years of that. What shifted for you recently?",
             path=["safety_check", "intent_route", "freeflow_respond"],
         )
         with caplog.at_level(logging.INFO, logger="sage_poc.nodes.output_gate"):

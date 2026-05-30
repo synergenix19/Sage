@@ -36,6 +36,23 @@ _FORMAT_VIOLATIONS = re.compile(
     r"]"
 )
 
+_BANNED_OPENER_PATTERNS: list[str] = [
+    r"it sounds like\b",
+    r"that sounds (really |very |incredibly |quite )?(tough|hard|difficult|painful|overwhelming|exhausting|challenging|frustrating|lonely|scary|frightening)\b",
+    r"it seems like\b",
+    r"i can hear (that|how|the)\b",
+    r"i can see (that|how)\b",
+    r"it looks like\b",
+]
+_BANNED_OPENER_RE = re.compile(
+    r"(?i)^(" + "|".join(_BANNED_OPENER_PATTERNS) + r")"
+)
+_BANNED_OPENER_CORRECTION = (
+    "Your previous response began with a banned opener. "
+    "Respond again without beginning with 'It sounds like', 'That sounds', or any "
+    "reflective paraphrase. Name the specific thing the user said and ask one direct question."
+)
+
 JAILBREAK_RESPONSE = (
     "I'm Sage, a wellness companion here to offer emotional support and evidence-based coping "
     "techniques. That's my role. What's been on your mind today?"
@@ -192,6 +209,34 @@ async def output_gate_node(state: SageState) -> dict:
         _original_response_text = None
         cultural_output_violations = []
 
+    banned_opener_violation = False
+    if gate_path not in ("scope_refusal", "jailbreak") and response_en:
+        banned_match = _BANNED_OPENER_RE.match(response_en.lstrip())
+        if banned_match:
+            retry_count = state.get("banned_opener_retry_count", 0)
+            if retry_count < 1:
+                _log.warning(
+                    "[output_gate] banned opener detected (%r) — routing back to freeflow_respond for retry",
+                    banned_match.group(0),
+                )
+                return {
+                    "banned_opener_retry_count": retry_count + 1,
+                    "banned_opener_correction": _BANNED_OPENER_CORRECTION,
+                    "path": path + ["output_gate_banned_opener_retry"],
+                    # Preserve expected state keys so downstream tests and LangGraph
+                    # state merges don't encounter missing fields on this early exit.
+                    "cultural_output_violations": cultural_output_violations,
+                    "identity_substitution_rule_id": None,
+                    "original_response_hash": None,
+                    "original_response_text": None,
+                    "banned_opener_violation": False,
+                }
+            else:
+                banned_opener_violation = True
+                _log.warning(
+                    "[output_gate] banned opener persists after retry — proceeding with original, flagging audit"
+                )
+
     violations = _FORMAT_VIOLATIONS.findall(response_en)
     if violations:
         _log.warning("[output_gate] format violations: %s", violations)
@@ -232,6 +277,7 @@ async def output_gate_node(state: SageState) -> dict:
                 {"rule_id": _identity_sub_rule_id, "original_response_hash": _original_response_hash}
                 if _identity_sub_rule_id else None
             ),
+            "banned_opener_violation": banned_opener_violation,
         }
         _log.info("[output_gate] AUDIT %s", json.dumps(audit))
 
@@ -298,4 +344,7 @@ async def output_gate_node(state: SageState) -> dict:
         "original_response_hash": _original_response_hash,
         "original_response_text": _original_response_text,
         "last_turn_at": datetime.now(timezone.utc).isoformat(),
+        "banned_opener_retry_count": 0,
+        "banned_opener_correction": None,
+        "banned_opener_violation": banned_opener_violation,
     }

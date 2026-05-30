@@ -122,4 +122,6 @@ def _build_state(req: _RequestLike) -> dict:
         # Set from request — needed by tools and summary persistence
         "session_id": req.session_id,
         "user_id":    req.user_id,
+        "banned_opener_retry_count": 0,
+        "banned_opener_correction": None,
     }
