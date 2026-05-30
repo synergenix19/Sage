@@ -14,7 +14,7 @@ export function StaffShell({ roles, children }: Props) {
     <RolesProvider roles={roles}>
       <div className="flex h-dvh flex-col bg-[var(--color-surface)]">
         <StaffNav />
-        <main id="main-content" className="flex-1 overflow-y-auto">
+        <main id="main-content" className="flex-1 overflow-hidden">
           {children}
         </main>
       </div>

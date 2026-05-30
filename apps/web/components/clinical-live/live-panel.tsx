@@ -26,10 +26,7 @@ export function LivePanel() {
   const { rows, latestRow, activeSessionId, status } = useSessionAudit(lockedSessionId)
 
   return (
-    <div
-      className="flex flex-col overflow-hidden"
-      style={{ height: 'calc(100dvh - 3rem)' }}
-    >
+    <div className="flex h-full flex-col overflow-hidden">
       <h1 className="sr-only">SAGE Clinical Intelligence — Live Monitor</h1>
 
       {/* Header */}

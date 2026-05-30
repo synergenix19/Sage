@@ -11,7 +11,7 @@ const SECTIONS = [
 ]
 
 export function AdminSectionNav() {
-  const [activeId, setActiveId] = useState<string>('overview')
+  const [activeId, setActiveId] = useState<string>('clinical-safety')
 
   useEffect(() => {
     const observer = new IntersectionObserver(
