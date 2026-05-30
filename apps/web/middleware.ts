@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { TOTAL_ONBOARDING_STEPS } from '@/lib/onboarding-constants'
+import { can } from '@/lib/auth/edge-permissions'
+import type { RoleKey } from '@/lib/auth/edge-permissions'
 
 const AUTH_PATHS = ['/sign-in', '/sign-up', '/forgot-password', '/auth/callback', '/reset-password']
 
@@ -47,27 +49,54 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/chat', request.url))
   }
 
-  // Single profile fetch — used for both admin check and onboarding gate.
-  // Never make two round-trips to Supabase per middleware call.
   if (user && !AUTH_PATHS.some(p => pathname.startsWith(p)) && pathname !== '/') {
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('is_admin, onboarding_complete, onboarding_step')
-      .eq('id', user.id)
-      .single()
-
-    const isAdminRoute = pathname.startsWith('/admin') || pathname.startsWith('/live')
-    if (isAdminRoute && !profile?.is_admin) {
-      return new NextResponse(null, { status: 403 })
+    const tenantId = process.env.NEXT_PUBLIC_TENANT_ID
+    if (!tenantId) {
+      // Config error — redirect cleanly rather than 500 on every request.
+      // Fix: set NEXT_PUBLIC_TENANT_ID in all environments.
+      console.error('[middleware] NEXT_PUBLIC_TENANT_ID not set')
+      return NextResponse.redirect(new URL('/sign-in', request.url))
     }
 
-    // Character class [1-N] assumes single-digit step count — see comment in lib/onboarding-constants.ts
+    const { data: roleData } = await supabase
+      .from('v_user_roles_for_tenant')
+      .select('roles')
+      .eq('user_id', user.id)
+      .eq('tenant_id', tenantId)
+      .maybeSingle()
+
+    const roles = (roleData?.roles as RoleKey[]) ?? ['member']
+
+    // Middleware is a redirect optimization layer, not the authoritative gate.
+    // The (staff)/layout.tsx requireCapability() call is the real enforcement point.
+    // See: CVE-2025-29927 — middleware can be bypassed via x-middleware-subrequest header.
+    if (pathname.startsWith('/admin') || pathname.startsWith('/live')) {
+      if (!can(roles, 'staff:access')) {
+        return NextResponse.redirect(new URL('/sign-in', request.url))
+      }
+    }
+    if (pathname.startsWith('/live') && !can(roles, 'live:read')) {
+      return NextResponse.redirect(new URL('/sign-in', request.url))
+    }
+    if (pathname.startsWith('/admin') && !can(roles, 'admin:read')) {
+      return NextResponse.redirect(new URL('/sign-in', request.url))
+    }
+
+    // Onboarding gate — staff bypass is intentional (staff users don't need a member profile)
+    const isStaff = can(roles, 'staff:access')
     const isOnboardingStep = new RegExp(`^/step-[1-${TOTAL_ONBOARDING_STEPS}]$`).test(pathname)
-    const needsOnboarding = !profile || !profile.onboarding_complete
-    if (!pathname.startsWith('/admin') && !pathname.startsWith('/live') && !isOnboardingStep && needsOnboarding) {
-      const step = profile?.onboarding_step
-      const target = step && step > 0 ? `/step-${step}` : '/step-1'
-      return NextResponse.redirect(new URL(target, request.url))
+
+    if (!isStaff && !isOnboardingStep) {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('onboarding_complete, onboarding_step')
+        .eq('id', user.id)
+        .maybeSingle()
+      if (!profile || !profile.onboarding_complete) {
+        const step = profile?.onboarding_step
+        const target = step && step > 0 ? `/step-${step}` : '/step-1'
+        return NextResponse.redirect(new URL(target, request.url))
+      }
     }
   }
 
