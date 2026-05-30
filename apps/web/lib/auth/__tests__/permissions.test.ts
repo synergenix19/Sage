@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { can } from '../edge-permissions'
+import { can } from '../permissions'
 
 describe('can()', () => {
   it('grants capability when role holds it', () => {
