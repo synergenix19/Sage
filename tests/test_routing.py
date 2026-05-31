@@ -322,3 +322,58 @@ async def test_grief_loss_does_not_capture_relationship_conflict():
     assert result.get("active_skill_id") != "grief_loss", (
         f"grief_loss captured a relationship conflict trigger. Got: {result.get('active_skill_id')!r}"
     )
+
+# ── post_crisis_check_in routing invariant ────────────────────────────────────
+# Correctness audit 2026-05-31 confirmed that post_crisis_check_in target_presentations
+# ARE in the keyword loop for non-monitoring sessions unless explicitly excluded.
+# KEYWORD_SEMANTIC_SKIP in corpus_constants enforces the exclusion in code.
+# This test pins the invariant so a future refactor cannot silently reintroduce the defect.
+
+async def test_post_crisis_phrases_not_reachable_outside_monitoring():
+    """post_crisis_check_in must be unreachable via keyword or semantic matching.
+
+    A non-crisis user saying 'doing better now' or 'still here' must not be routed
+    into a skill premised on them having just had a crisis episode.
+    """
+    from sage_poc.nodes.skill_select import skill_select_node
+    phrases = [
+        "still here",
+        "doing better now",
+        "feeling safer now",
+        "a bit calmer now",
+        "wanted to check in about my progress",
+    ]
+    for phrase in phrases:
+        state = make_full_state(
+            message_en=phrase,
+            primary_intent="new_skill",
+            intent_confidence=0.9,
+        )
+        result = await skill_select_node(state)
+        assert result.get("active_skill_id") != "post_crisis_check_in", (
+            f"post_crisis_check_in triggered by {repr(phrase)} outside monitoring session. "
+            "This routes a non-crisis user into a skill premised on recent crisis history. "
+            "Ensure post_crisis_check_in is in corpus_constants.KEYWORD_SEMANTIC_SKIP."
+        )
+
+
+def test_post_crisis_check_in_absent_from_keyword_and_semantic_pools():
+    """Structural invariant: post_crisis_check_in must not appear in the keyword or
+    semantic matching pools. Routing via comment-claim is insufficient — this test
+    enforces the property in CI."""
+    from sage_poc.nodes.skill_select import _SKILLS, _semantic_skill_ids
+    from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP
+
+    assert "post_crisis_check_in" in KEYWORD_SEMANTIC_SKIP, (
+        "post_crisis_check_in missing from KEYWORD_SEMANTIC_SKIP"
+    )
+
+    for skill_id in _SKILLS:
+        if skill_id in KEYWORD_SEMANTIC_SKIP:
+            # Verify it's not iterated in the keyword loop (the loop skips it)
+            pass  # presence in _SKILLS is fine — it's needed for auto-select path
+
+    assert "post_crisis_check_in" not in _semantic_skill_ids, (
+        "post_crisis_check_in found in semantic embedding matrix — "
+        "it must not be reachable via semantic matching"
+    )

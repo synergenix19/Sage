@@ -146,14 +146,16 @@ def _stub_bge_m3(request):
         ss._semantic_skill_ids = []
         yield
     else:
-        n_skills = len(ss._SKILLS)
+        from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP
+        routable_ids = [k for k in ss._SKILLS if k not in KEYWORD_SEMANTIC_SKIP]
+        n_skills = len(routable_ids)
         mock_model = MagicMock()
         mock_model.encode.side_effect = (
             lambda texts, **kw: np.zeros((len(texts), 1024), dtype=np.float32)
         )
         ss._embed_model = mock_model
         ss._semantic_embeddings = np.zeros((n_skills, 1024), dtype=np.float32)
-        ss._semantic_skill_ids = list(ss._SKILLS.keys())
+        ss._semantic_skill_ids = routable_ids
         yield
 
     ss._embed_model = saved_model

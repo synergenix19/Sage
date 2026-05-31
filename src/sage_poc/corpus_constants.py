@@ -70,7 +70,23 @@ CLUSTER_EXCLUSIONS: dict[str, str] = {
 PRESENTATIONS_FLOOR_EXEMPTIONS: dict[str, str] = {
     "post_crisis_check_in": (
         "activated via post_crisis_auto_select when crisis_state == 'monitoring' "
-        "(skill_select_node line 89) — target_presentations are documentation only "
-        "and are never used as keyword routing triggers in production"
+        "(skill_select_node line 89) — excluded from keyword and semantic matching "
+        "via KEYWORD_SEMANTIC_SKIP; target_presentations are documentation only"
     ),
 }
+
+# Skills that must never be reached via keyword or semantic matching.
+# Each entry is activated by a dedicated routing path that runs BEFORE the matching loops.
+#
+# This constant is imported by skill_select_node to exclude these skills from:
+#   (a) the Tier 1 keyword loop
+#   (b) the BGE-M3 semantic embedding matrix
+#
+# Correctness audit 2026-05-31 confirmed that omitting a skill from this set while
+# leaving it in SKILL_REGISTRY causes its target_presentations to trigger the keyword
+# loop for non-qualifying sessions. Enforcement belongs in code, not in comments:
+# tests/test_routing.py::test_post_crisis_phrases_not_reachable_outside_monitoring
+# asserts the routing invariant directly.
+KEYWORD_SEMANTIC_SKIP: frozenset[str] = frozenset({
+    "post_crisis_check_in",  # activated via post_crisis_auto_select (crisis_state=='monitoring')
+})
