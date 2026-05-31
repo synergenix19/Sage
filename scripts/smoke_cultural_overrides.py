@@ -197,7 +197,99 @@ SCENARIOS: dict[str, list[tuple[str, str, str | None, str]]] = {
             "skill_continuation",
         ),
     ],
+    "assertive_communication_gender_probe": [
+        (
+            "PROBE-G1 — woman navigating relational cost differential",
+            "I want to say no to something my family expects of me but every time I do "
+            "I feel like I'm failing as a daughter and sister. It's not just speaking my "
+            "mind — there are real consequences if I get this wrong.",
+            "Help the user explore how to communicate a boundary that accounts for "
+            "the relational consequences she described.",
+            "skill_continuation",
+        ),
+        (
+            "PROBE-G2 — man: assertiveness as strength",
+            "I feel like I should be able to say what I think. I'm the head of my "
+            "household. Why is it so hard to speak directly to my father about this?",
+            "Connect assertiveness to self-mastery and wisdom, not confrontation.",
+            "skill_continuation",
+        ),
+    ],
+    "values_clarification_family_mediator_probe": [
+        (
+            "PROBE-V1 — values entirely defined by family obligations",
+            "I've never had the chance to think about what I want. My whole life has been "
+            "about what my family needs. When you ask me what my values are I don't know "
+            "where I end and they begin.",
+            "Help the user explore collective values as genuinely their own — "
+            "family as anchor, not obstacle.",
+            "skill_continuation",
+        ),
+        (
+            "PROBE-V2 — constrained action on identified values",
+            "I know what I care about but I can't act on it. My family wouldn't allow it. "
+            "My values feel useless.",
+            "Explore committed action within actual constraints without dismissing them "
+            "or routing to individual-autonomy framing.",
+            "skill_continuation",
+        ),
+    ],
+    "psychoed_depression_somatic_probe": [
+        (
+            "PROBE-D1 — pure somatic presentation",
+            "I am always tired. Everything aches. I drag myself through the day. "
+            "There is nothing physically wrong with me but I feel like I am disappearing.",
+            "Validate the somatic experience first. Do NOT use words like 'sadness', "
+            "'low mood', or 'depression' until the user introduces them.",
+            "skill_continuation",
+        ),
+        (
+            "PROBE-D2 — stigma without faith frame",
+            "I think I might be depressed but I feel embarrassed saying it. "
+            "It feels like weakness.",
+            "Normalise depression as a medical condition without the tawakkul frame "
+            "unless the user raises it.",
+            "skill_continuation",
+        ),
+    ],
 }
+
+# Maps probe scenario keys to the real skill_id for load_skill and injection checks.
+# Add an entry here whenever a new probe scenario key is added to SCENARIOS.
+SCENARIO_SKILL_MAP: dict[str, str] = {
+    "assertive_communication_gender_probe": "assertive_communication",
+    "values_clarification_family_mediator_probe": "values_clarification",
+    "psychoed_depression_somatic_probe": "psychoed_depression",
+}
+
+
+def assert_override_injected(result: dict) -> None:
+    """Hard assertion: skills with cultural_overrides must inject them into the prompt.
+
+    result["skill_id"] may be a probe scenario key, not a real skill id.
+    Resolve through SCENARIO_SKILL_MAP before calling load_skill.
+    """
+    scenario_key = result["skill_id"]
+    real_skill_id = SCENARIO_SKILL_MAP.get(scenario_key, scenario_key)
+
+    try:
+        skill = load_skill(real_skill_id)
+    except FileNotFoundError:
+        return  # probe key has no JSON — no injection check possible
+
+    if not skill.cultural_overrides:
+        return  # skill has no overrides; injection not expected
+
+    with_arm = result["arms"]["with_override"]
+    if not with_arm["override_injected"]:
+        raise AssertionError(
+            f"INJECTION FAILURE — {real_skill_id} (scenario: {scenario_key}): "
+            f"skill has cultural_overrides but 'cultural_skill_overrides' was NOT "
+            f"in composed layers.\n"
+            f"Layers present: {with_arm['layers']}\n"
+            f"Cultural guidance is being silently dropped from the prompt."
+        )
+
 
 # ---------------------------------------------------------------------------
 # State builder
@@ -273,8 +365,12 @@ def run_scenario(
     """Run one scenario through compose_prompt for both arms and return results."""
     state = _make_state(skill_id, user_message, step_instruction, primary_intent)
 
+    # Probe scenario keys map to a real skill_id for load_skill calls.
+    _real_sid = SCENARIO_SKILL_MAP.get(skill_id, skill_id)
+
     results: dict[str, Any] = {
         "skill_id": skill_id,
+        "resolved_skill_id": _real_sid,
         "label": label,
         "user_message": user_message,
         "arms": {},
@@ -283,7 +379,7 @@ def run_scenario(
     for arm_name, use_override in [("with_override", True), ("no_override", False)]:
         # Load the real skill from JSON (worktree files when use_override=True,
         # or strip cultural_overrides to simulate main-branch dropped behaviour).
-        real_skill = load_skill(skill_id)
+        real_skill = load_skill(_real_sid)
         if not use_override:
             # Simulate main-branch: override silently dropped (over 200w cap on master)
             real_skill = real_skill.model_copy(update={"cultural_overrides": None})
@@ -649,6 +745,7 @@ def main() -> None:
                 skill_id, label, user_message, step_instruction, primary_intent, args.call_llm
             )
             print_result(result, verbose_prompt=args.verbose_prompt)
+            assert_override_injected(result)
 
             if args.call_llm and not args.no_score:
                 # First LLM result: hard sanity gate before scoring or proceeding.
