@@ -1149,13 +1149,95 @@ During skill execution (only):
                →  step advance / hold / validate_only / check_in_micro / offer_switch
 ```
 
-## 19. Known Gaps and Pending Items
+## 19. Performance Baseline
+
+Measured 2026-05-31 against live server with DATABASE_URL (Supabase AP-SOUTH-1 checkpointer) and `SAGE_WARMUP_BGE=0`. 5 runs per scenario. Full report: `docs/superpowers/audits/2026-05-31-latency-benchmark.md`.
+
+**TTFB = total response time** (fake streaming delay removed 2026-05-28; the body flushes immediately after `graph.ainvoke()` completes).
+
+### 19.1 Measured Latency by Turn Type
+
+| Scenario | Mean | p95 | Min | Max | Notes |
+|---|---|---|---|---|---|
+| EN crisis | 1.42s | 1.45s | 1.40s | 1.45s | Fastest, most consistent — rules-based, no LLM response generation |
+| EN scope_refusal | 2.42s | 2.76s | 2.22s | 2.76s | 1 LLM call (intent_route only) |
+| EN post_crisis | 3.08s | 3.76s | 2.22s | 3.76s | S7 classifier + post_crisis skill |
+| EN low_confidence | 3.11s | 3.58s | 2.80s | 3.58s | |
+| EN new_skill | 3.56s | 4.79s | 2.99s | 4.79s | |
+| EN skill_continuation | 4.18s | 5.06s | 3.66s | 5.06s | |
+| EN general_chat | 4.80s | **10.96s** | 2.82s | 10.96s | Run 1 = BGE-M3 cold-start; warm p95 ~3.0s |
+| EN info_request | 5.15s | **10.05s** | 3.58s | 10.05s | One cold-start outlier; warm p95 ~4.4s |
+| AR crisis | 1.92s | 2.18s | 1.78s | 2.18s | +0.5s vs EN crisis (translate-in) |
+| AR general_chat | 4.49s | 4.66s | 4.37s | 4.66s | Very consistent; +1.6s over warm EN |
+| AR code-switching | 4.89s | 5.53s | 4.45s | 5.53s | |
+| AR new_skill | 6.07s | 6.81s | 5.39s | 6.81s | Slowest path; translate-in + translate-out |
+
+**v7 KPI (<3s p95 English):** Not met. Warm-state p95 for most EN paths is 3.5–5.1s. Crisis and scope_refusal meet the KPI. All other paths require Option B (real streaming) to reach it.
+
+**Arabic overhead over warm English:** +1.6s mean / +1.7s p95 on freeflow. Two extra gpt-4o-mini LLM calls (async_translate_to_english + async_translate_to_arabic).
+
+### 19.2 Latency Cost Model (per-node estimates)
+
+| Component | Every turn? | Estimated cost |
+|---|---|---|
+| S3 BGE-M3 semantic check (warm) | Yes | 200–400ms |
+| intent_route LLM (gpt-4o-mini) | Yes | 400–800ms |
+| freeflow_respond LLM (gpt-4o) | Non-crisis turns | 1,000–2,500ms |
+| LangGraph AsyncPostgresSaver (Supabase AP-SOUTH-1) | Yes (with DATABASE_URL) | 400–800ms |
+| async_translate_to_english (gpt-4o-mini) | Arabic input only | 600–1,000ms |
+| async_translate_to_arabic (gpt-4o-mini) | Arabic output only | 600–1,000ms |
+| BGE-M3 cold-start (first encode, SAGE_WARMUP_BGE=0) | Once per server restart | 7,000–10,000ms |
+| Session summary summarise_history (turn % 10) | Every 10th turn | 500–1,500ms |
+| LLM criteria eval (4 skills only) | Certain skill steps | 400ms |
+| LLM resistance scoring | Skill turns with resistance rules | 400ms |
+| Prior context pgvector retrieval | Each turn with user_id + DB | 100–300ms |
+| knowledge_retrieve pgvector (warm) | info_request turns | 100–200ms |
+
+---
+
+## 20. Known Gaps and Pending Items
+
+### 20.1 Safety and Clinical
 
 | ID | Gap | Status | Notes |
 |---|---|---|---|
-| S2 | MARBERT Arabic crisis classifier | Not implemented | Architecture comment in `safety_check.py`. S3 provides semantic coverage; S2 adds dialectal Arabic coverage. |
-| S3-AR | S3 on Arabic text | Not implemented | `check_s3` runs on `message_en` only. TODO comment in `safety_check.py` and `s3_semantic.py`. |
-| BGE-cold | BGE-M3 cold-start in slow tests | P2 | First slow test fails with `embedding_timeout` on 16GB M4. Fix: session-scoped pre-warm fixture in conftest.py. |
-| CUO-missing | Empty `cultural_overrides` in 4 skills | P2 | `box_breathing`, `mood_check_in`, `stop_technique`, `worry_time` have empty `cultural_overrides`. |
-| Streaming | `freeflow_respond` uses `ainvoke`, not `astream` | By design for POC | Deferred post-POC (Option B). p95 latency = 9.6s. |
+| S2 | MARBERT Arabic crisis classifier | Not implemented | Architecture comment in `safety_check.py`. S3 provides semantic coverage; S2 adds dialectal Arabic coverage without a translation round-trip. |
+| S3-AR | S3 on Arabic text | Not implemented | `check_s3` runs on `message_en` only; Arabic crisis phrases may score differently on original text. TODO comment in `safety_check.py` and `s3_semantic.py`. |
+| CLF-xsession | Clinical flag cross-session persistence | Infrastructure ready, disabled | `flag_lifecycle_config.json` has all 5 flag types = false. Enable by setting values to true per flag. |
 | FALLBACK | `_VETTED_FALLBACK_RESPONSE` pending clinical review | Placeholder | See `docs/superpowers/reviews/FALLBACK_RESPONSE_REVIEW.md`. |
+| Obs-inject | `observations` stored but not injected into prompt | Gap | `record_observation` tool writes to profile; `_build_cross_session_block` does not read it. Injection path not yet built. |
+| Dialect-QA | Khaleeji dialect quality not independently validated | Pre-prod gate | Demo readiness checklist requires Arabic-speaking colleague sign-off. Not yet done. |
+
+### 20.2 Performance
+
+| ID | Improvement | Tier | Expected impact |
+|---|---|---|---|
+| WARMUP | Enable `SAGE_WARMUP_BGE=1` in production `.env` | Immediate (env var only) | Eliminates 7–10s cold-start spike on first BGE-M3 call per server restart |
+| STREAM | Real token streaming — replace `graph.ainvoke()` with `graph.astream(stream_mode=["messages","values"])` | Sprint (2–4h) | Only path to <3s p95. TTFB drops to ~400ms (first intent_route token). Headers buffered until first `values` event. Requires server.py + frontend parser change. |
+| CKPT-REGION | Move LangGraph checkpointer from Supabase AP-SOUTH-1 to local / in-region Postgres | Infrastructure | Saves 400–800ms per turn (network round-trip to Singapore). Only `DATABASE_URL` changes; code unchanged. |
+| EMBED-CACHE | Cache BGE-M3 query embedding in state after S3; reuse in skill_select Tier 2 | Small code change | Eliminates duplicate BGE-M3 encode on semantic-match turns (~200–400ms). Both S3 and skill_select encode the same `message_en`. |
+| S3-PARALLEL | Run S1 rules-engine and S3 BGE-M3 concurrently in safety_check via `asyncio.gather` | Small code change | S1 is synchronous (~5ms); S3 is ~200–400ms. Currently sequential. Parallelising saves S1 execution time (small, but free). |
+| AR-TRANSLATE | Parallelize Arabic S1 rules-engine with input translation in safety_check | Medium code change | S1 can run on original Arabic text while translation proceeds. Saves ~600ms on Arabic turns. Requires splitting safety_check into two concurrent branches. |
+| BGE-COLD-TEST | Session-scoped BGE-M3 pre-warm fixture in conftest.py | Test infrastructure | First slow test fails with `embedding_timeout` on 16GB M4. One fixture addition. |
+
+### 20.3 Architecture — Falcon migration path
+
+The current POC uses OpenRouter (gpt-4o / gpt-4o-mini) for all LLM roles. The production target is self-hosted Falcon on UAE-sovereign infrastructure. Latency implications:
+
+| Role | Current (OpenRouter) | Falcon target | Expected gain |
+|---|---|---|---|
+| Intent classifier | gpt-4o-mini, 400–800ms API | Falcon-3B, 100–300ms GPU | −300–500ms per turn |
+| Responder | gpt-4o, 1,000–2,500ms API | Falcon-34B+LoRA, 500–1,500ms GPU | −500ms mean; lower tail variance |
+| Arabic translation | gpt-4o-mini, 600–1,000ms per call | MARBERT/AraBERT native (no separate call) | −1,200–2,000ms on Arabic turns |
+| P95 tail | High variance (OpenRouter load) | Low variance (dedicated GPU queue) | Eliminates OpenRouter congestion spikes |
+
+Falcon does **not** solve the streaming bottleneck. Even at 300ms inference, two sequential LLM calls = 600ms minimum, plus S3 and checkpoint. Streaming (STREAM above) is still required for sub-1s TTFB. The correct migration sequence is: **STREAM first → then Falcon**, not the reverse.
+
+A combined classify+respond single-call architecture becomes possible with self-hosted Falcon: a single model call that emits structured intent + response in one pass, eliminating one entire LLM round-trip (~400–800ms saving).
+
+### 20.4 Other pending items
+
+| ID | Gap | Status | Notes |
+|---|---|---|---|
+| CUO-missing | Empty `cultural_overrides` in 4 skills | P2 | `box_breathing`, `mood_check_in`, `stop_technique`, `worry_time` have empty `cultural_overrides`. |
+| BGE-revision | BGE-M3 model revision pinned | Maintenance | `_REVISION = "5617a9f6..."` in skill_select.py. Model promotion requires: update `_REVISION`, delete old cache, ANE compile, determinism check, recalibrate both thresholds. |
