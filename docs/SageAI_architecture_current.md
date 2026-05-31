@@ -183,7 +183,9 @@ Clinical flag categories detected by `clinical_flag_patterns.json`:
 
 Computed flag: `escalating_distress` — set when the last 3 turns of `distress_trajectory` are all ≥ 6, unless an active skill is running AND current engagement ≥ 5 (therapeutically expected high intensity during skill work does not trigger this flag).
 
-Cross-session persistence (from `flag_lifecycle_config.json`): `substance_use`, `trauma_indicator`, `eating_concern`, `medication_mention` persist across sessions. `domestic_situation` and `escalating_distress` do not.
+Within-session behaviour: once a flag is set, it does not clear for the rest of the session (`flag_immutable_within_session: true` in `flag_lifecycle_config.json`).
+
+Cross-session persistence: the infrastructure is built but currently **disabled** — all 5 flag types are set to `false` in `flag_lifecycle_config.json`. No clinical flags currently carry across sessions. Enabling requires flipping values in the config. See §9.4 for full detail.
 
 Which flags persist cross-session is controlled by `rules/data/flag_lifecycle_config.json` (`cross_session_persistence` dict).
 
@@ -442,46 +444,175 @@ All audit writes are fire-and-forget (`asyncio.create_task`) — they do not blo
 
 ## 9. Memory and Persistence
 
-### 9.1 LangGraph Checkpointing
+SageAI has two kinds of memory: **short-term** (within a session, carried turn-to-turn via LangGraph checkpointing) and **long-term** (across sessions, in two separate Postgres stores). The system is also deliberately selective about what it remembers and how it recalls it.
 
-`memory/checkpointer.py` — utility context manager.  
-In production: `server.py` bootstraps `AsyncPostgresSaver` (LangGraph's `langgraph.checkpoint.postgres.aio`) with a `psycopg AsyncConnectionPool`. Creates 4 LangGraph checkpoint tables via idempotent `setup()` call.
+---
 
-Session state is keyed by `thread_id = session_id`. `SageState` fields written to and loaded from the checkpoint between turns. Fields NOT set by `_build_state` (they come from checkpoint): `conversation_history`, `crisis_state`, `active_skill_id`, `active_step_id`, `clinical_flags`, `distress_trajectory`, `engagement_trajectory`, `conversation_summary`, `turn_count`, `therapeutic_profile`.
+### 9.1 Short-term Memory — LangGraph Checkpoint
 
-Fallback: when `DATABASE_URL` is unset, `build_graph(checkpointer=None)` is used. State does not persist between turns in this mode.
+`memory/checkpointer.py`, wired in `server.py` as `AsyncPostgresSaver` (LangGraph's `langgraph.checkpoint.postgres.aio`).
 
-### 9.2 Therapeutic Profiles
+**Mechanism:** Session state is keyed by `thread_id = session_id`. After every turn, LangGraph writes the full `SageState` to a Postgres checkpoint. On the next turn, it loads it back before the graph runs. `_build_state()` only sets per-turn input signals; everything else comes from the checkpoint.
 
-`memory/postgres_repository.PostgresMemoryRepository`.
+**What short-term memory holds:**
 
-- `get_therapeutic_profile(user_id)` — loaded at every turn start, injected into L5 via `state.therapeutic_profile`
-- `upsert_therapeutic_profile(user_id, profile, session_id)` — triggered by `POST /extract-profile` (called by Next.js after sessions)
-- Versioned snapshot written to `therapeutic_profile_history` on every update (PDPL audit trail)
+| Field | What it tracks |
+|---|---|
+| `conversation_history` | Full turn-by-turn dialogue (last 8 turns in prompt; older turns in summary block) |
+| `conversation_summary` | LLM-generated rolling summary — generated at every 10th turn, carries forward. 2–3 sentences: life situation, emotional themes, daily routines, commitments made |
+| `active_skill_id` / `active_step_id` | Which technique is in progress and which step is next |
+| `executed_step_id` / `prev_step_id` | Step executed this turn / prior turn (continuation detection) |
+| `crisis_state` | State machine position: "none" / "monitoring" / "resolved" |
+| `clinical_flags` | Accumulated clinical flags for this session. Immutable within session (`flag_immutable_within_session: true`) — once set, never cleared until session ends |
+| `distress_trajectory` | Rolling window of last 4 `emotional_intensity` scores |
+| `engagement_trajectory` | Rolling window of last 4 `engagement` scores |
+| `resistance_history` | Rolling 3-turn buffer of resistance scores |
+| `stale_skill_id` | Technique parked after a 4h+ session gap; triggers re-entry prompt on return |
+| `last_turn_at` | UTC ISO timestamp of last completed turn (used for gap detection) |
+| `turn_count` | Turn counter (triggers session summary at `% 10`) |
 
-Profile fields: `effective_techniques`, `ineffective_techniques`, `distortion_patterns`, `disclosed_concerns`, `communication_style`, `cultural_preferences`, `mood_trajectory`, `total_skills_completed`, `session_count`, `last_extraction_turn`, `observations`, `persisted_clinical_flags`.
+**Fallback:** When `DATABASE_URL` is unset, `build_graph(checkpointer=None)` runs the graph stateless — none of the above persists between requests. A startup warning is emitted.
 
-### 9.3 Session Summaries
-
-BGE-M3 embeddings of session summaries stored in Postgres (pgvector). Persisted by `output_gate` at every 10th turn. Retrieved by `freeflow_respond._get_prior_context()` as prior session context.
-
-`memory/embedding.py`: single 1024-dim L2-normalised BGE-M3 model, shared with `skill_select` and `safety/s3_semantic`. No second model load.
-
-### 9.4 Clinician Review Queue
-
-`memory/notification.PostgresNotifier`. Writes to `clinician_review_queue` table + fires `pg_notify('clinician_review', payload)`.
-
-Triggered from `output_gate` when `crisis_flags` or `clinical_flags` are non-empty. `source` field:
-- `"layer1_safety"` — deterministic rule match
-- `"llm_flag_for_review"` — LLM-perceived flag (tool path)
-
-`severity`: `"high"` for crisis flags, `"medium"` for clinical-only.
-
-### 9.5 Two Database Connections
-
-`server.py` maintains two separate pools:
+**Infrastructure:** `server.py` bootstraps two separate pools:
 - `saver_pool` (psycopg `AsyncConnectionPool`) — for `AsyncPostgresSaver` (LangGraph checkpointing)
-- `asyncpg_pool` (`asyncpg`) — for `PostgresMemoryRepository` (asyncpg-based operations)
+- `asyncpg_pool` (`asyncpg`) — for `PostgresMemoryRepository` (all other memory operations)
+
+---
+
+### 9.2 Long-term Memory — Therapeutic Profile
+
+Table: `public.user_therapeutic_profiles`. One row per user.
+
+**What it holds:**
+
+| Column | Type | Description |
+|---|---|---|
+| `effective_techniques` | text[] | Technique names the user said helped |
+| `ineffective_techniques` | text[] | Approaches the user resisted or said didn't work |
+| `distortion_patterns` | text[] | Cognitive distortion patterns observed |
+| `disclosed_concerns` | text[] | Life areas / concerns the user mentioned |
+| `communication_style` | text | One sentence on how this user communicates |
+| `cultural_preferences` | JSONB | `{religious_framing: bool, family_context: bool, gender_address: str\|null}` |
+| `mood_trajectory` | JSONB | `[{session: N, mood_score: N}]`, last 20 entries |
+| `total_skills_completed` | int | Cumulative count of skills fully completed |
+| `session_count` | int | Number of sessions extracted so far |
+| `last_extraction_turn` | int | Turn number of last extraction (prevents re-processing the same turns) |
+| `observations` | JSONB | Structured clinical observations (from `record_observation` LLM tool) |
+| `persisted_clinical_flags` | JSONB | Clinical flags eligible for cross-session persistence (see §9.4) |
+| `last_updated_at` | timestamp | Auto-set on every upsert |
+
+**How it's built — `POST /extract-profile`:**
+
+Called by Next.js after a session ends. Internally:
+1. Fetches the LangGraph checkpoint to get `conversation_history` and `turn_count`
+2. Guards: skips if fewer than 5 new turns since `last_extraction_turn`
+3. Passes the delta turns (since last extraction) to `profile_extractor.extract_session_profile()`
+4. `extract_session_profile` uses the classifier LLM with a structured extraction prompt: returns JSON with 8 fields (effective_techniques, ineffective_techniques, distortion_patterns, disclosed_concerns, communication_style, cultural_preferences, mood_score, skills_completed)
+5. Merges with existing profile: technique lists are set-union, mood_trajectory appends (capped at 20), session_count increments
+6. Writes via `upsert_therapeutic_profile(user_id, merged_profile, session_id)`
+
+**PDPL audit trail:** Every `upsert_therapeutic_profile` call first inserts a full JSONB snapshot into `public.therapeutic_profile_history` (tagged with `session_id` and `extraction_source='llm_extraction'`) before updating the main profile. This satisfies the PDPL right to trace how a profile changed.
+
+**How it's used at runtime:**
+- Loaded in `server.py` at the start of every `/chat` request: `state["therapeutic_profile"] = await repo.get_therapeutic_profile(req.user_id)`
+- Injected into the L5 prompt block: effective/ineffective techniques, distortion patterns, disclosed concerns, communication style, religious_framing preference, family_context preference, session count
+- Read by `safety_check_node` to seed `clinical_flags` from `profile.persisted_clinical_flags` at turn start
+
+---
+
+### 9.3 Long-term Memory — Session Summaries
+
+Table: `public.session_summaries`. One row per session (UNIQUE on `session_id`).
+
+**What it holds:**
+
+| Column | Type | Description |
+|---|---|---|
+| `session_id` | UUID | Unique per session |
+| `user_id` | UUID | Owner |
+| `summary_text` | text | 2–3 sentence LLM summary of the session |
+| `embedding` | vector(1024) | BGE-M3 embedding of summary_text, L2-normalised |
+| `safety_level` | text | "normal" / "clinical" / "crisis" |
+| `skills_used` | text[] | Skill IDs active during this session |
+| `mood_score` | float | End-of-session mood estimate (1–5) |
+| `created_at` | timestamp | |
+
+**How summaries are generated:**
+
+`prompts/summarizer.summarise_history()` using the classifier LLM. Prompt instructs extraction of: (1) key life situation described, (2) main emotional themes, (3) anything shared about daily life/routines, (4) commitments/next steps the assistant offered. Explicitly told: be factual, no advice, no identifying details (no names/phone numbers).
+
+Fires in `output_gate._persist_session_summary()` at every `turn_count % 10 == 0`. Written via DELETE + INSERT (UNIQUE constraint on `session_id` prevents duplicates; earlier writes for the same session are replaced).
+
+**How they're retrieved:**
+
+`check_user_history.retrieve_prior_context()` — called deterministically by `freeflow_respond` every turn when `user_id` is present. NOT an LLM-bound tool (architecture deviation from v7 §6.5.3; deterministic pre-retrieval avoids the risk of the LLM skipping the context in a clinical setting).
+
+Retrieval parameters:
+- Cosine similarity via pgvector (`1 - (embedding <=> query_embedding)`)
+- BGE-M3 embeds the current user message as the query
+- **Crisis summaries excluded** (`exclude_safety_levels=["crisis"]`): sessions that ended in crisis are never surfaced as casual recall
+- Similarity threshold: `0.4774` (calibrated 2026-05-24, gap=0.0331)
+- Top-k: 3 prior sessions
+- Max 800 characters returned
+- Each result prefixed: "In an earlier conversation, you mentioned..."
+
+---
+
+### 9.4 Clinical Flag Cross-Session Persistence — Infrastructure Ready, Currently Disabled
+
+**What the design intends:** Clinical flags like `substance_use` or `trauma_indicator` detected in one session should persist to the next so the system doesn't lose that clinical context. `domestic_situation` is intentionally excluded (it's a situational safety concern, not a longitudinal clinical signal that should colour future sessions without re-disclosure).
+
+**What the code actually does today:**
+
+`flag_lifecycle_config.json` is the switch:
+```json
+{
+  "cross_session_persistence": {
+    "substance_use": false,
+    "trauma_indicator": false,
+    "eating_concern": false,
+    "medication_mention": false,
+    "domestic_situation": false
+  },
+  "flag_immutable_within_session": true
+}
+```
+
+All 5 are set to `false`. `output_gate._write_persisted_clinical_flags()` filters to only flags where `_CROSS_SESSION_FLAGS.get(flag, False)` is True — which is currently nothing. Nothing is written to `persisted_clinical_flags`. Nothing carries across sessions.
+
+The infrastructure is complete: the column exists (`migration 001`), the read/write methods exist, `safety_check_node` seeds flags from the profile at turn start. Enabling cross-session persistence for any flag is a one-line config change per flag type.
+
+**What is active today:** `flag_immutable_within_session: true` — once a clinical flag fires within a session, it persists for the rest of that session. It just doesn't cross to the next one.
+
+---
+
+### 9.5 Clinician Review Queue
+
+`memory/notification.PostgresNotifier`. Table: `public.clinician_review_queue`.
+
+Triggered from `output_gate` when `crisis_flags` or `clinical_flags` are non-empty. Writes synchronously to DB via asyncpg pool, then fires `pg_notify('clinician_review', payload)` on the same connection for real-time delivery to listening clinician dashboards.
+
+| Field | Value |
+|---|---|
+| `source` | `"layer1_safety"` (deterministic rule) or `"llm_flag_for_review"` (LLM tool) |
+| `severity` | `"high"` (crisis_flags non-empty) or `"medium"` (clinical-only) |
+| `flags_timeline` | JSONB array — appended on every new flag event for this session (ON CONFLICT DO UPDATE); clinicians see how flags evolved across the session |
+
+The `flags_timeline` field (added `migration 002`) preserves the chronological record of all flags for a session, even if the main `reason`/`payload` fields are overwritten on conflict.
+
+---
+
+### 9.6 Database Tables Summary
+
+| Table | Store | Written by | Read by |
+|---|---|---|---|
+| LangGraph checkpoint (4 tables) | Postgres (psycopg pool) | LangGraph `AsyncPostgresSaver` | `AsyncPostgresSaver` |
+| `user_therapeutic_profiles` | Postgres (asyncpg pool) | `POST /extract-profile` | `server.py` at every `/chat` turn |
+| `therapeutic_profile_history` | Postgres (asyncpg pool) | `upsert_therapeutic_profile` | DPO / clinician audit only |
+| `session_summaries` | Postgres (asyncpg pool) | `output_gate` (every 10th turn) | `freeflow_respond` (prior context) |
+| `clinician_review_queue` | Postgres (asyncpg pool) | `output_gate` (flag detection) | Clinician dashboard (pg_notify) |
+| `session_audit` | Supabase REST (POC) | `output_gate` + `crisis_response` | Clinical audit, PDPL compliance |
+| `identity_substitution_audit` | Supabase REST (POC) | `output_gate` (CUO-ID-001 only) | DPO + clinician_admin (RLS restricted) |
 
 ---
 
