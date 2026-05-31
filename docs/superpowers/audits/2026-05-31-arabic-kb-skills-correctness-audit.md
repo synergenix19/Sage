@@ -24,7 +24,7 @@ Clinical gates: deferred by design (staging only, no user exposure).
 |---|-------|--------|--------|
 | 1 | Audit gate bites on broken skills | PASS | No action |
 | 2 | post_crisis_check_in keyword routing | DEFECT → FIXED | Fixed commit `386d2a8` |
-| 3 | Semantic paraphrase routing | Mechanism OK, coverage gaps | Documented below |
+| 3 | Semantic paraphrase routing | Mechanism OK, coverage gaps → FIXED | Fixed commit `6126fc1` |
 | 4 | Collision-fix decision | DEFECT → FIXED | Fixed commit `e71268a` |
 | 5 | xfail strict mode | FINDING → FIXED | Fixed commit `f44fbe1` |
 | 6 | Arabic RAG retrieval bidi integrity | PASS | No action |
@@ -126,7 +126,7 @@ Option 1 is the cleanest: since `post_crisis_check_in` is already handled before
 
 **Within-cluster behavior:** `cognitive_restructuring` paraphrase (assuming people think badly) → `cbt_thought_record` at 0.512. Both in `ruminative_anxiety` cluster. This is correct behavior — disambiguation is handled by Tier 1 keyword rules, not semantic scores.
 
-**Verdict: Semantic tier mechanism is reliable (no timeouts). Coverage gaps exist for grief_loss (2/3 probes) and interpersonal_effectiveness (2/2 probes). These are semantic_description authoring gaps, not routing architecture defects. Pre-production: strengthen grief_loss and interpersonal_effectiveness semantic_descriptions and re-run calibration to confirm gap ≥ 0.03 is maintained.**
+**Verdict: Semantic tier mechanism is reliable (no timeouts). Coverage gaps confirmed for grief_loss and interpersonal_effectiveness. Fixed by description strengthening (commit `6126fc1`): 29-probe gate, one description at a time, full re-run after each edit. Final result: grief_loss 10/10, interpersonal_effectiveness 10/10. Calibration gap ≥ 0.03 confirmed after edits (suggested threshold 0.4581, current 0.459 — negligible drift). Residual note: one financial MISS_LOW probe tops at grief_loss (0.427) instead of financial_anxiety (0.422) — both below threshold, no misrouting, but fragile; monitor if grief_loss description is edited again.**
 
 ---
 
@@ -247,9 +247,9 @@ grief-001-ar-004  bidi=True  'الحزن ما له موعد محدد ينتهي 
 | ~~Now~~ DONE | Check 2: KEYWORD_SEMANTIC_SKIP + CI tests | Fixed commit `386d2a8` |
 | ~~Now~~ DONE | Check 4: remove "losing it" from stop_technique | Fixed commit `e71268a` |
 | ~~Now~~ DONE | Check 5: xfail strict=False → strict=True | Fixed commit `f44fbe1` |
-| Before production | Strengthen grief_loss semantic_description (2/3 probes missed) | Open |
-| Before production | Strengthen interpersonal_effectiveness semantic_description (2/2 probes missed, tops at financial_anxiety) | Open |
-| Before production | Re-run calibration after semantic_description edits | Open |
+| ~~Before production~~ DONE | Strengthen grief_loss semantic_description (10/10 probe gate) | Fixed commit `6126fc1` |
+| ~~Before production~~ DONE | Strengthen interpersonal_effectiveness semantic_description (10/10 probe gate) | Fixed commit `6126fc1` |
+| ~~Before production~~ DONE | Re-run calibration after semantic_description edits | Gap ≥ 0.03 confirmed |
 | Before production | §6.3 clinician sign-off for all 4 skills | Open |
 | Before production | MARBERT recall check + behavioural probes for grief_loss, financial_anxiety | Open |
 | Traceability | Add inventory item numbers (SK-021 to SK-024) to Task 9 commit annotation | Optional |
