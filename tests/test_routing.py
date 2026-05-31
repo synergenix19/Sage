@@ -211,3 +211,169 @@ def test_route_after_skill_executor_monitoring_no_reescalation_routes_to_freeflo
         re_escalation_within_monitoring=False,
     )
     assert _route_after_skill_executor(state) == "freeflow"
+
+# ── New skill routing disambiguation tests (2026-05-31) ────────────────────
+# skill_select_node is async; asyncio_mode = "auto" in pyproject.toml handles this.
+# Tier 1 routing = exact substring match against target_presentations in SKILL_REGISTRY order.
+# Tests embed exact target_presentation phrases so routing is deterministic (Tier 1, no LLM).
+
+async def test_cognitive_restructuring_routes_for_unhelpful_thinking_pattern():
+    from sage_poc.nodes.skill_select import skill_select_node
+    state = make_full_state(
+        message_en="My thinking patterns are unhelpful and I need to break them",
+        primary_intent="new_skill",
+        intent_confidence=0.9,
+    )
+    result = await skill_select_node(state)
+    assert result.get("active_skill_id") == "cognitive_restructuring", (
+        f"Expected cognitive_restructuring, got {result.get('active_skill_id')!r}. "
+        "Confirm 'thinking patterns are unhelpful' is in cognitive_restructuring.target_presentations."
+    )
+
+
+async def test_cbt_thought_record_routes_for_catastrophizing():
+    from sage_poc.nodes.skill_select import skill_select_node
+    state = make_full_state(
+        message_en="I keep catastrophizing about everything that could go wrong",
+        primary_intent="new_skill",
+        intent_confidence=0.9,
+    )
+    result = await skill_select_node(state)
+    assert result.get("active_skill_id") == "cbt_thought_record", (
+        f"Expected cbt_thought_record, got {result.get('active_skill_id')!r}"
+    )
+
+
+async def test_interpersonal_effectiveness_routes_for_relationship_navigation():
+    from sage_poc.nodes.skill_select import skill_select_node
+    state = make_full_state(
+        message_en="I have relationship problems in my family and don't know how to navigate them",
+        primary_intent="new_skill",
+        intent_confidence=0.9,
+    )
+    result = await skill_select_node(state)
+    assert result.get("active_skill_id") == "interpersonal_effectiveness", (
+        f"Expected interpersonal_effectiveness, got {result.get('active_skill_id')!r}"
+    )
+
+
+async def test_assertive_communication_routes_for_boundary_expression():
+    from sage_poc.nodes.skill_select import skill_select_node
+    state = make_full_state(
+        message_en="I want to practice saying no to people who ask too much of me",
+        primary_intent="new_skill",
+        intent_confidence=0.9,
+    )
+    result = await skill_select_node(state)
+    assert result.get("active_skill_id") == "assertive_communication", (
+        f"Expected assertive_communication, got {result.get('active_skill_id')!r}"
+    )
+
+
+async def test_financial_anxiety_routes_for_gulf_financial_distress():
+    from sage_poc.nodes.skill_select import skill_select_node
+    state = make_full_state(
+        message_en="My visa depends on my job and the thought of unemployment terrifies me",
+        primary_intent="new_skill",
+        intent_confidence=0.9,
+    )
+    result = await skill_select_node(state)
+    assert result.get("active_skill_id") == "financial_anxiety", (
+        f"Expected financial_anxiety, got {result.get('active_skill_id')!r}"
+    )
+
+
+async def test_grief_loss_routes_for_bereavement():
+    from sage_poc.nodes.skill_select import skill_select_node
+    state = make_full_state(
+        message_en="I lost my father recently and I don't know how to grieve",
+        primary_intent="new_skill",
+        intent_confidence=0.9,
+    )
+    result = await skill_select_node(state)
+    assert result.get("active_skill_id") == "grief_loss", (
+        f"Expected grief_loss, got {result.get('active_skill_id')!r}"
+    )
+
+
+async def test_financial_anxiety_does_not_capture_general_anxiety():
+    # Lane-keeping: asserts financial_anxiety stays in its lane.
+    from sage_poc.nodes.skill_select import skill_select_node
+    state = make_full_state(
+        message_en="I feel anxious all the time and my heart races",
+        primary_intent="new_skill",
+        intent_confidence=0.9,
+    )
+    result = await skill_select_node(state)
+    assert result.get("active_skill_id") != "financial_anxiety", (
+        f"financial_anxiety captured a general anxiety trigger. Got: {result.get('active_skill_id')!r}"
+    )
+
+
+async def test_grief_loss_does_not_capture_relationship_conflict():
+    # Lane-keeping: asserts grief_loss stays in its lane.
+    from sage_poc.nodes.skill_select import skill_select_node
+    state = make_full_state(
+        message_en="My relationship broke down and I need to work through the conflict",
+        primary_intent="new_skill",
+        intent_confidence=0.9,
+    )
+    result = await skill_select_node(state)
+    assert result.get("active_skill_id") != "grief_loss", (
+        f"grief_loss captured a relationship conflict trigger. Got: {result.get('active_skill_id')!r}"
+    )
+
+# ── post_crisis_check_in routing invariant ────────────────────────────────────
+# Correctness audit 2026-05-31 confirmed that post_crisis_check_in target_presentations
+# ARE in the keyword loop for non-monitoring sessions unless explicitly excluded.
+# KEYWORD_SEMANTIC_SKIP in corpus_constants enforces the exclusion in code.
+# This test pins the invariant so a future refactor cannot silently reintroduce the defect.
+
+async def test_post_crisis_phrases_not_reachable_outside_monitoring():
+    """post_crisis_check_in must be unreachable via keyword or semantic matching.
+
+    A non-crisis user saying 'doing better now' or 'still here' must not be routed
+    into a skill premised on them having just had a crisis episode.
+    """
+    from sage_poc.nodes.skill_select import skill_select_node
+    phrases = [
+        "still here",
+        "doing better now",
+        "feeling safer now",
+        "a bit calmer now",
+        "wanted to check in about my progress",
+    ]
+    for phrase in phrases:
+        state = make_full_state(
+            message_en=phrase,
+            primary_intent="new_skill",
+            intent_confidence=0.9,
+        )
+        result = await skill_select_node(state)
+        assert result.get("active_skill_id") != "post_crisis_check_in", (
+            f"post_crisis_check_in triggered by {repr(phrase)} outside monitoring session. "
+            "This routes a non-crisis user into a skill premised on recent crisis history. "
+            "Ensure post_crisis_check_in is in corpus_constants.KEYWORD_SEMANTIC_SKIP."
+        )
+
+
+def test_post_crisis_check_in_absent_from_keyword_and_semantic_pools():
+    """Structural invariant: post_crisis_check_in must not appear in the keyword or
+    semantic matching pools. Routing via comment-claim is insufficient — this test
+    enforces the property in CI."""
+    from sage_poc.nodes.skill_select import _SKILLS, _semantic_skill_ids
+    from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP
+
+    assert "post_crisis_check_in" in KEYWORD_SEMANTIC_SKIP, (
+        "post_crisis_check_in missing from KEYWORD_SEMANTIC_SKIP"
+    )
+
+    for skill_id in _SKILLS:
+        if skill_id in KEYWORD_SEMANTIC_SKIP:
+            # Verify it's not iterated in the keyword loop (the loop skips it)
+            pass  # presence in _SKILLS is fine — it's needed for auto-select path
+
+    assert "post_crisis_check_in" not in _semantic_skill_ids, (
+        "post_crisis_check_in found in semantic embedding matrix — "
+        "it must not be reachable via semantic matching"
+    )

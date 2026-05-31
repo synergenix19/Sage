@@ -1,0 +1,157 @@
+{
+  "skill_id": "financial_anxiety",
+  "skill_name": "Financial Anxiety (Gulf Context)",
+  "skill_type": "structured",
+  "self_evolution": "manual_only",
+  "evidence_base": "Shapiro (2007) Financial Therapy; Gulf Labour Market Research; kafala and provider role literature",
+  "target_presentations": [
+    "kafala visa",
+    "my visa depends on my job",
+    "losing my job would mean losing my visa",
+    "I can't send money home",
+    "remittance pressure",
+    "provider role",
+    "I'm the provider",
+    "financial shame",
+    "debt in Gulf",
+    "can't afford to fail",
+    "my family depends on me financially",
+    "sending money home",
+    "financial stress",
+    "money anxiety",
+    "scared of losing my job",
+    "employment insecurity",
+    "I have to support my family back home",
+    "financial hardship",
+    "economic anxiety",
+    "can't make ends meet",
+    "الراتب مو كافي",
+    "خايف أخسر شغلتي",
+    "ما أقدر أبعت فلوس لأهلي",
+    "ضغط مالي",
+    "الكفيل",
+    "قلق مالي"
+  ],
+  "semantic_description": "Financial anxiety specific to Gulf and MENA contexts. Provider role identity and financial distress. Kafala system and visa-linked employment insecurity for migrant workers in UAE. Remittance pressure and cross-border financial responsibility for family abroad. The shame and social stigma of financial difficulty in Gulf Arab culture. Debt, borrowing, and social standing in Gulf contexts. The psychological impact of provider role failure on masculine identity. Distinguishing financial-specific distress from generalised anxiety disorder. Locus of control in externally constrained financial situations. Supporting someone in genuine financial hardship without minimising the structural reality of their constraint.",
+  "steps": [
+    {
+      "step_id": "normalize_and_validate",
+      "goal": "Validate that financial anxiety in the Gulf context is a response to real structural pressures, not a cognitive error or personal weakness. Normalize without minimizing the genuine difficulty.",
+      "technique": "Validation and normalization within structural context",
+      "technique_description": "Begin by fully validating the financial anxiety before any psychoeducation or skill-building. In Gulf contexts, financial stress often carries additional structural weight: visa-linked job insecurity, remittance obligations, provider role identity, and community-facing financial shame. These are real constraints, not distorted perceptions. Do NOT frame financial anxiety as irrational or as a thinking error to be corrected. Do NOT rush to problem-solving or skill-building. The first task is for the user to feel genuinely heard and to understand that their anxiety is a reasonable response to a real situation. Acknowledge the specific structural pressures they are carrying. Use language that reflects their context: kafala, visa, sending money home, being the provider. One question at a time.",
+      "tone": "warm, validating, grounded, free of judgment",
+      "contraindications": "Do NOT begin cognitive challenging of financial worries. Do NOT minimize the real constraints of the kafala system, visa dependency, or remittance pressure by framing them as thinking errors. Do NOT offer financial advice. Do NOT compare their situation favourably to others. Do NOT move to step two until genuine validation has been offered and the user feels heard.",
+      "completion_criteria": "The user has expressed feeling heard and validated. They have named the specific financial pressures they are carrying. A response like 'yes, that's exactly it, I can't afford to lose this job because then I lose my visa and I can't send money to my parents' indicates sufficient validation. Generic distress without any specifics requires one more gentle open question.",
+      "examples": [
+        "What you're describing sounds genuinely hard. The pressure of knowing that your job isn't just your income, it's your visa, your ability to stay, your ability to support your family, that is a lot of weight to carry. I want to make sure I understand the full picture. What is the main thing worrying you most right now?",
+        "Financial stress in the Gulf carries pressures that are different from what most mental health tools are built for. The kafala system, the cost of sending money home, the weight of being the one your family depends on — these aren't things you can just think your way out of. They're real. I want to hear more about what your situation actually looks like before we think about what might help.",
+        "Being the provider for your family is not just a financial role. For many people it is part of who they are, part of what makes them feel like themselves. When that feels threatened, the anxiety is not just about money. It is about something deeper. Does that feel true for your situation?",
+        "اللي تقوله يبدو ثقيل فعلاً. ضغط الشغل، والفيزا، وإرسال الفلوس لأهلك، هذا مو مجرد ضغط مالي عادي. هذا شي حقيقي ومرهق. أبي أفهم أكثر. وش الشي اللي يقلقك أكثر شي الحين؟",
+        "الضغط المالي في الخليج فيه أبعاد ما تحسبها أدوات كثيرة. الكفالة، وتحويل الفلوس، وكونك المسؤول عن عيلتك، هذي أشياء حقيقية مو مجرد أفكار. مو لازم نسوي أكثر من نفهم وضعك صح. وش وضعك الحين؟"
+      ]
+    },
+    {
+      "step_id": "psychoeducate_and_separate",
+      "goal": "Distinguish between the financial reality, which is real and may need practical action outside therapy, and the anxiety response, which can be worked with. Introduce the concept of locus of control in constrained situations.",
+      "technique": "Psychoeducation on financial anxiety and locus of control",
+      "technique_description": "After validation, gently introduce a distinction that is both honest and useful: the financial situation is real, and the anxiety response to it is also real, but they are not identical. The anxiety may be amplifying signals beyond what is useful, or it may be generalizing from one specific threat to a global sense of failure. This is not to say the anxiety is irrational; it is to say that working with the anxiety response can help even when the financial situation cannot be immediately changed. Introduce locus of control lightly: what aspects of the situation are within the user's influence, and what aspects are structurally determined? The kafala system, global economic conditions, and family needs abroad are largely outside the user's control. Their daily functioning, their relationships, and their wellbeing within those constraints are more within reach. Do not minimize the external constraints. Acknowledge them as real and unfair where appropriate.",
+      "tone": "honest, educational, warm, non-dismissive of structural reality",
+      "contraindications": "Do NOT frame the financial situation as entirely within the user's control. Do NOT suggest that positive thinking will resolve financial hardship. Do NOT offer financial planning or debt management advice. Do NOT suggest the anxiety is irrational. The goal is to separate the real situation from the amplified anxiety response without minimizing the real situation.",
+      "completion_criteria": "The user can articulate the difference between the financial reality and their anxiety response to it, at least tentatively. A response like 'I know that worrying constantly isn't going to fix the money problem, but I can't seem to stop' indicates sufficient engagement. They have also reflected on what aspects of their situation are within their influence, however small.",
+      "examples": [
+        "There are two things happening here that are related but not the same. There is the financial situation itself, which is real and which may need practical steps outside of this conversation. And there is the anxiety response, the constant worry, the difficulty sleeping, the sense of dread, which is what we can actually work with together. Does that distinction make sense?",
+        "When financial pressure is as real as yours is, the anxiety is not irrational. It makes complete sense. But anxiety has a way of spreading beyond the original threat. It can start to colour everything, even the things you do still have some control over. I wonder, when you think about your situation right now, what feels completely outside your hands, and what feels like it might still be partly in your reach?",
+        "The kafala system, the cost of living, what your family needs back home, those are not things you created or that you can change by thinking differently. But there are other things, how you manage the anxiety day to day, the conversations you have, what you do with the worry, those might be more in your hands than they feel right now.",
+        "فيه شيئين يصيران مع بعض: الوضع المالي الحقيقي، اللي ممكن يحتاج خطوات عملية خارج هالمحادثة، والقلق اللي تحس فيه، اللي هو اللي نقدر نشتغل عليه مع بعض. هل هذا الفرق واضح؟",
+        "لما الضغط المالي يكون حقيقي قد هذا، القلق ما هو خطأ. طبيعي. لكن القلق كثير منه يتوسع أكثر من الخطر الأصلي. لما تفكر في وضعك الحين، وش تحس إنه خارج يدك كليا؟ وش قد يكون فيك بعض التأثير عليه؟"
+      ]
+    },
+    {
+      "step_id": "coping_and_agency",
+      "goal": "Identify small areas of agency within a constrained situation. Connect the provider role to values (as an expression of love and care, not just financial obligation). Introduce practical stress management for financial anxiety.",
+      "technique": "Values reframing, micro-agency identification, and coping skills for financial stress",
+      "technique_description": "Help the user find meaning and small areas of agency within the constraints they face. The provider role, rather than being purely a source of pressure, can be understood as an expression of love and care for the people they are supporting. This reframe is not minimizing the burden; it is helping the user connect to the meaning behind it. Separately, help the user identify one or two small things within their influence: maintaining a routine, connecting with a trusted person, practising one stress management technique, identifying one manageable step in the financial situation even if small. Do not prescribe a specific stress management technique. Ask what has helped in the past, or offer a small menu of options. Do not suggest financial planning directly. If the user needs practical financial support, name this honestly and acknowledge that it may need resources outside of this conversation.",
+      "tone": "grounded, warm, hopeful without false reassurance, practical",
+      "contraindications": "Do NOT tell the user that reframing the provider role will solve the financial stress. Do NOT suggest that the anxiety is fully resolved by values reconnection. Do NOT offer unsolicited financial advice. Do NOT end the session without naming something the user can actually do, however small. The session should not end with the user feeling more hopeless than when they arrived.",
+      "completion_criteria": "The user has reflected on the provider role as connected to their values, and has named at least one small area of agency within their situation. They have identified at least one thing they can do this week, however small, that helps with the anxiety or connects them to what matters. 'I am going to call my mother this week just to talk, not to talk about money' is a valid response.",
+      "examples": [
+        "The fact that you are carrying this pressure, that you are worried about sending money home, that you feel the weight of being relied on, that is not just financial obligation. It is love. The worry comes from the care. Can you feel both of those at the same time — the burden of it, and the love underneath it?",
+        "Given everything we've talked about, what is one small thing within your reach this week? It doesn't have to fix anything. It just has to be something you can actually do.",
+        "When financial pressure has been like this before — and maybe it hasn't been — what helped you get through it? Not what fixed it, but what made it bearable?",
+        "الضغط اللي تحمله، قلقك على تحويل الفلوس، وإحساسك بالمسؤولية، هذا مو بس التزام مالي. هذا محبة. القلق يجي من الاهتمام. تقدر تحس بالثنين مع بعض؟ ثقل الموضوع، والمحبة اللي تحته؟",
+        "بناءً على كل اللي تكلمنا عنه، وش شي واحد بإمكانك هالأسبوع؟ ما لازم يحل المشكلة. بس شي تقدر تسويه فعلاً."
+      ]
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
+      "action": "validate_only",
+      "instruction": "The user is acutely distressed about their financial situation. Validate fully and do not proceed with psychoeducation or skill-building. Financial distress can reach crisis levels. Stay present and warm. Return to normal step next turn only if distress has reduced.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance. The structured approach may feel unhelpful when the financial situation feels urgent and structural. Offer to just talk, or acknowledge that what they may need most is practical support rather than psychological skill-building.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "check_in_micro",
+      "instruction": "The user seems disengaged. Gently check in: is this kind of conversation feeling useful right now, or does something else feel more important?",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit with warmth and without persuasion. Naming the weight of financial pressure and beginning to separate the situation from the anxiety response is already meaningful.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": {
+        "signal": "crisis_financial_hopelessness_detected",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "flag_for_review",
+      "instruction": "The user's financial distress may be reaching a level of hopelessness that requires clinical attention. Financial despair can be a significant suicide risk factor, especially in migrant contexts where job loss means deportation and family support loss. Add clinician_review flag and gently explore whether the user is safe.",
+      "next_step_id": "current"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit skill gracefully if user requests to stop. No persuasion.",
+    "L2": "Add clinician_review flag if financial distress appears to be reaching hopelessness, or if job loss or deportation risk is described alongside expressions of worthlessness or despair.",
+    "L3": "Exit immediately to crisis protocol if any crisis signal is detected. Financial despair is a recognised precipitant of acute crisis, particularly in migrant worker populations.",
+    "L4": "Trigger human handoff if 3 or more crises detected in the last 30 days, or if user explicitly requests a human clinician."
+  },
+  "cultural_overrides": {
+    "kafala_structural_reality": "The kafala system and visa-linked employment insecurity are real structural stressors for migrant workers in the UAE, not cognitive distortions to be challenged. Validate these as legitimate sources of anxiety before any psychological reframing. Never imply that the anxiety about kafala-linked job loss is irrational.",
+    "remittance_and_family_obligation": "Cross-border financial responsibility, sending money to family abroad, is a central feature of many migrant workers' lives in the Gulf. The pressure to remit is real and carries deep obligations of love and duty. Acknowledge the weight of this explicitly. Do not treat it as an optional source of stress.",
+    "provider_identity_and_shame": "In Gulf Arab culture, financial difficulty carries significant shame, particularly for men whose identity is tied to the provider role. Financial failure can feel like a failure of masculine identity and family honour. Validate this cultural reality before any reframing. Do not minimise the shame.",
+    "debt_and_community_standing": "Borrowing money and debt carry strong stigma in Gulf Arab and many South Asian communities represented in the UAE. A person in debt may be managing not only financial stress but also concealment from community members and fear of social judgment. This adds to the burden and must be acknowledged."
+  }
+}

@@ -8,7 +8,7 @@ def test_skill_ids_importable_and_complete():
     from sage_poc.skill_ids import SKILL_REGISTRY
 
     assert isinstance(SKILL_REGISTRY, list), "SKILL_REGISTRY must be a list"
-    assert len(SKILL_REGISTRY) == 20, f"Expected 20 skills, got {len(SKILL_REGISTRY)}"
+    assert len(SKILL_REGISTRY) == 24, f"Expected 24 skills, got {len(SKILL_REGISTRY)}"
 
     # Original 5 skills
     assert "cbt_thought_record" in SKILL_REGISTRY
@@ -25,6 +25,12 @@ def test_skill_ids_importable_and_complete():
     assert "assertive_communication" in SKILL_REGISTRY
     assert "self_compassion_break" in SKILL_REGISTRY
     assert "mindfulness_body_scan" in SKILL_REGISTRY
+
+    # Phase 2 sprint (2026-05-31): 4 new skills SK-021 to SK-024
+    assert "cognitive_restructuring" in SKILL_REGISTRY
+    assert "interpersonal_effectiveness" in SKILL_REGISTRY
+    assert "financial_anxiety" in SKILL_REGISTRY
+    assert "grief_loss" in SKILL_REGISTRY
 
     assert all(isinstance(sid, str) for sid in SKILL_REGISTRY), \
         "All SKILL_REGISTRY entries must be strings"

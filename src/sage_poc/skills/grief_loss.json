@@ -1,0 +1,179 @@
+{
+  "skill_id": "grief_loss",
+  "skill_name": "Grief and Loss Support",
+  "skill_type": "structured",
+  "self_evolution": "manual_only",
+  "evidence_base": "Worden (1991) Grief Counseling and Grief Therapy; Klass, Silverman & Nickman (1996) Continuing Bonds; Islamic grief framework (Al-Ghazali)",
+  "target_presentations": [
+    "grief",
+    "bereavement",
+    "lost someone",
+    "someone died",
+    "my father died",
+    "my mother died",
+    "death of a loved one",
+    "I lost my father",
+    "I lost my mother",
+    "can't stop grieving",
+    "mourning",
+    "I don't know how to grieve",
+    "grief and loss",
+    "coping with loss",
+    "loss of a parent",
+    "how to deal with grief",
+    "dealing with bereavement",
+    "I miss them so much",
+    "life after loss",
+    "they're gone",
+    "فقدت أبوي",
+    "فقدت أمي",
+    "ما عارف أتعامل مع الحزن",
+    "توفي قريبي",
+    "مبتدر العزاء",
+    "أتعب من الحزن",
+    "مفقود إنسان عزيز"
+  ],
+  "semantic_description": "Grief counseling and grief support protocol. Worden's four tasks of mourning: accepting the reality of the loss, working through the pain of grief, adjusting to the changed world, finding an enduring connection with the deceased. Bereavement support. Loss processing. Complicated grief and prolonged grief disorder. Islamic framework for grief: inna lillahi wa inna ilayhi rajiun as acceptance and return. Continuing bonds theory: maintaining an ongoing connection with the deceased. The tension between cultural stoicism and the need to grieve. Mourning period and community grief practices. Grief and loss of any kind: death, relationship ending, role loss, migration. Anticipatory grief. Validating grief without prescribing how to grieve. Disenfranchised grief: losses that society does not fully acknowledge. The physical manifestations of grief. Grief as love expressed as loss. Normal grief versus prolonged grief requiring clinical referral. Grief support through presence and witnessing rather than problem-solving.",
+  "steps": [
+    {
+      "step_id": "acknowledge_and_witness",
+      "goal": "Simply be present with the grief. Do not rush to comfort, explain, or problem-solve. Acknowledge the loss and bear witness to the person's pain without minimizing or rushing healing.",
+      "technique": "Presence, witnessing, and non-directive acknowledgement",
+      "technique_description": "The first task in grief support is not to reduce the grief but to be with it. Grief does not need to be fixed. It needs to be witnessed. Use language that acknowledges the loss plainly and without deflection. Do not offer reassurance that things will be okay, or remind the user that the deceased is in a better place, even with the best intentions. Do not move immediately to the Islamic framework or any cultural frame unless the user introduces it. Ask one simple question and sit with whatever comes. Silence, one-word answers, and fragmented speech are all valid grief responses. Do not fill silence with more questions. The goal is for the user to feel that they are not alone with this, not to move through a therapeutic process.",
+      "tone": "deeply present, quiet, unhurried, tender",
+      "contraindications": "Do NOT offer reassurance that diminishes the loss: 'they lived a long life', 'they are in a better place', 'time will heal this'. Do NOT rush to the Islamic frame unless the user introduces it. Do NOT ask several questions in a row. Do NOT move to step two until the user has had space to simply be heard. Do NOT attempt cognitive reframing of any kind in this step.",
+      "completion_criteria": "The user has expressed something of their grief and felt heard. This may be brief. 'Yes, I just miss him so much' is a sufficient expression. The goal is not completeness but presence. If the user is unable to speak about it at all, acknowledge that and stay with the difficulty without pushing.",
+      "examples": [
+        "I'm so sorry. You've lost someone who mattered deeply to you. I'm here. You don't have to explain anything or make sense of anything right now. Can you just tell me a little about them?",
+        "There are no right words for a loss like this. I won't try to find them. I just want you to know you don't have to go through this alone. What does it feel like right now, in this moment?",
+        "Grief is one of the heaviest things a person carries. I'm not going to rush you or try to make it smaller. Just tell me what it's like.",
+        "أنا آسف جداً على خسارتك. فقدت شخص كان يعني لك الكثير. أنا هنا. ما لازم تشرح أي شي أو تفهم أي شي الحين. تقدر تحكيلي شوي عنه؟",
+        "ما فيه كلمات كافية لخسارة من هذا النوع. مو راح أحاول أوجدها. بس أبيك تعرف إنك مو لحالك في هذا. وش تحس فيه الحين؟"
+      ]
+    },
+    {
+      "step_id": "explore_the_grief",
+      "goal": "Gently explore the person's experience of grief: what they miss, memories, how the world has changed, without directing or shaping their grief process.",
+      "technique": "Open grief exploration and memory work",
+      "technique_description": "Once the user has felt heard and some initial presence has been established, gently invite them to say more about their grief. This is not yet about healing or coping. It is about exploring: what they miss, what the loss has taken from them, memories that come to mind, and how their world has changed. Use open questions that invite rather than direct. Do not assume what the grief feels like or what the relationship was. People grieve many kinds of losses: death, divorce, migration, the loss of a relationship to estrangement, the loss of a role or identity. All are valid. In this step, ask about the relationship and the person or thing lost, not about coping strategies. Grief work begins with naming what was lost before it can begin the other tasks.",
+      "tone": "curious, gentle, patient, non-directive",
+      "contraindications": "Do NOT move to coping strategies or problem-solving. Do NOT introduce Worden's tasks explicitly. Do NOT suggest how the user should be feeling at this point in their grief. Do NOT compare this loss to others. Do NOT suggest that the grief is taking too long or that the user should be 'moving on'. Do NOT ask multiple questions at once.",
+      "completion_criteria": "The user has shared something about the loss: who or what they lost, what they miss, how it has affected their daily life, or a memory. The depth of sharing will vary. Even a brief description of who the person was is sufficient for this step. If the user is very reluctant to speak, it may be that they are not ready to explore and prefer to remain in the witnessing of step one.",
+      "examples": [
+        "Tell me about them. Who were they to you?",
+        "What do you miss most?",
+        "What has been the hardest part of these days since they died?",
+        "Grief changes the world around you, not just your feelings. Has anything surprised you about how different things feel?",
+        "حكيلي عنه. مين كان لك؟",
+        "وش أكثر شي تفتقده؟",
+        "وش أصعب شي في الأيام هذي من بعد ما راح؟",
+        "الحزن يغير العالم من حواليك، مو بس مشاعرك. فيه شي فاجأك في كيف الأشياء تغيرت؟"
+      ]
+    },
+    {
+      "step_id": "cultural_and_faith_frame",
+      "goal": "If appropriate and if the user introduces it, invite reflection on what their faith or cultural practices offer for grief. Offer this as a resource, not a prescription. Do not impose any faith frame.",
+      "technique": "Faith-informed grief support and cultural grief practices",
+      "technique_description": "For many users in Gulf contexts, faith and community are central sources of grief support. Inna lillahi wa inna ilayhi rajiun (to God we belong and to God we return) is a profound theological statement about grief that many Muslim users find deeply comforting. The mourning period (عزاء) and the communal practices of gathering, reciting Quran, and receiving condolences are often primary sources of support. If the user has introduced a religious or cultural frame, gently explore what their faith or community practices are offering them, and what gaps remain. If they have not introduced a religious frame, do not impose one. For some users, the cultural expectation to grieve stoically or briefly may itself be a source of isolation. Acknowledge this tension if it appears: the permission to grieve fully is itself sometimes a therapeutic gift.",
+      "tone": "respectful, gentle, non-prescriptive, culturally attuned",
+      "contraindications": "Do NOT introduce the Islamic grief framework unless the user has indicated a Muslim faith or cultural context. Do NOT suggest that faith should make grief easier or shorter. Do NOT minimize grief by invoking religious acceptance. Do NOT suggest that the mourning period means grief should end after a certain time. Do NOT assume that the user finds community grief practices comforting rather than obligatory or exhausting.",
+      "completion_criteria": "The user has reflected on what their faith or cultural practices are and are not offering them in grief, if they chose to engage with this frame. A response like 'the عزاء helped me feel less alone, but people keep telling me to be strong and I don't feel strong' is a rich and sufficient response. If the user declines this frame or it is not relevant, move to step four.",
+      "examples": [
+        "Many people find that their faith and their community are important sources of support when they grieve. I don't want to assume what that looks like for you. Has your faith or your community been part of how you've been carrying this?",
+        "Inna lillahi wa inna ilayhi rajiun is one of the most beautiful things in the Islamic tradition for grief. It acknowledges both the loss and the return. Does that phrase carry meaning for you, or does it feel like something people say without really sitting with it?",
+        "Sometimes community grief practices, the عزاء, the gatherings, the support, can be deeply comforting. And sometimes they can feel like something to perform rather than something that helps. How has it felt for you?",
+        "كثير ناس يجدون في دينهم وعيلتهم سند وهم يحزنون. ما أبي أفترض وش يعني لك هذا. هل دينك أو عيلتك كانوا جزء من كيف تحمل هذا؟",
+        "إنا لله وإنا إليه راجعون، من أجمل ما قالته التقاليد الإسلامية عن الحزن. تعترف بالخسارة وبالرجوع لله في نفس الوقت. هل هذي الكلمات تحمل معنى لك؟"
+      ]
+    },
+    {
+      "step_id": "continuing_bonds",
+      "goal": "Explore how the person can maintain a meaningful connection with who or what was lost, rather than the Western model of 'moving on' or 'letting go.' Help them find an enduring relationship with the loss.",
+      "technique": "Continuing bonds and meaning-making",
+      "technique_description": "Contemporary grief research has moved away from the stage model and toward a continuing bonds understanding: grief is not about severing the relationship with what was lost but about transforming it into an enduring connection. For Islamic and Gulf Arab users, this is deeply consonant: prayers for the deceased, giving charity in their name (sadaqa jariyah), reciting Quran, and maintaining the deceased's values in one's life are all forms of continuing bonds. Help the user explore how they want to carry the person they lost. What did this person mean to them? What part of them do they want to keep alive in how they live? This is not about rushing healing. It is about finding that the love and connection do not have to end with the death, only change form. Offer this gently, as an invitation, not a therapeutic task.",
+      "tone": "tender, spacious, hope-giving without false reassurance, meaning-oriented",
+      "contraindications": "Do NOT suggest that continuing bonds means the user cannot move forward or build a new life. Do NOT frame this as a coping technique or task to complete. Do NOT push the user to name a continuing bonds practice before they are ready. Do NOT use the phrase 'moving on', which implies leaving the person behind. Do NOT end the session with the user feeling that grief should be resolved within a certain timeframe.",
+      "completion_criteria": "The user has reflected on how they want to carry the person they lost, or what it might mean to maintain a connection. Even a tentative response like 'I think I want to try to live the way he would have wanted me to' is sufficient. If the user is not ready for this conversation, acknowledge that and close warmly.",
+      "examples": [
+        "Grief doesn't ask us to forget or to let go. It asks us to find a new way to carry the person we loved. What feels most important about carrying them with you?",
+        "In Islamic tradition, there are so many ways of maintaining the bond with someone who has passed, prayers, sadaqa jariyah, living by their values. Are any of those part of how you're thinking about this?",
+        "What do you think they would want for you, now that they're gone? Not what you owe them, but what they would genuinely hope for you?",
+        "Sometimes grief changes not by the love becoming smaller, but by finding how it lives in us differently. What do you want to keep of them in how you live your life?",
+        "الحزن ما يطلب منا ننسى أو نتخلى. يطلب منا نلاقي طريقة جديدة نحمل من أحببناه. وش أهم شي تبي تحمله معك منه؟",
+        "في التراث الإسلامي طرق كثيرة للحفاظ على الصلة بمن رحل، الدعاء، الصدقة الجارية، العيش على قيمه. هل في شي من هذا يلامسك؟",
+        "وش تتخيل إنه كان يتمنى لك، الحين بعد ما راح؟ مو اللي تدين به له، بل اللي كان يرجوه فعلاً لك؟"
+      ]
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
+      "action": "validate_only",
+      "instruction": "The user is acutely distressed in grief. Do not attempt to move through steps or introduce frameworks. Simply be present. Validate the grief fully. Stay warm and do not try to reduce the feeling. Return to normal step next turn only if distress has somewhat reduced, noting that high grief intensity is expected and appropriate.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "The user may not want a structured grief process. Some people need companionship in grief more than technique. Offer to simply stay present and listen, without any structured steps.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "check_in_micro",
+      "instruction": "The user seems disengaged. Gently check in whether they want to continue talking about this, or whether just knowing someone is here is enough right now.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit with warmth and without persuasion. Being heard in grief, even briefly, is not nothing. Acknowledge the loss and the courage it takes to speak about it.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": {
+        "signal": "prolonged_grief_indicators_detected",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "flag_for_review",
+      "instruction": "Indicators of prolonged grief disorder: grief that is severely impairing functioning, persistent inability to accept the loss, intense longing lasting well beyond cultural mourning norms, profound isolation. Add clinician_review flag. Validate the grief fully. Gently name that this level of grief may benefit from additional support from a clinician.",
+      "next_step_id": "current"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit skill gracefully if user requests to stop. No persuasion. Acknowledge the loss and the meaning of speaking about it.",
+    "L2": "Add clinician_review flag if grief appears to be reaching prolonged grief or complicated grief severity, severely impairing daily functioning or accompanied by persistent hopelessness, or if grief is connected to suicide risk.",
+    "L3": "Exit immediately to crisis protocol if any crisis signal is detected. Grief is a recognised precipitant of suicidal ideation and must be assessed carefully.",
+    "L4": "Trigger human handoff if 3 or more crises detected in the last 30 days, or if user explicitly requests a human clinician."
+  },
+  "cultural_overrides": {
+    "islamic_grief_framework": "For Muslim users, inna lillahi wa inna ilayhi rajiun is a profound grief resource, not a platitude. Offer it if the user brings a faith frame, not as imposition. Prayers for the deceased, sadaqa jariyah, and Quran recitation are legitimate continuing bonds. Do not use Islamic concepts to minimize grief or suggest faith shortens mourning.",
+    "mourning_period_community": "The عزاء provides structure and community support for grief. Acknowledge its value while recognizing some users find it exhausting, particularly when they must perform composure rather than genuinely grieve.",
+    "stoicism_vs_genuine_grief": "Gulf culture, especially for men, carries strong expectations to show strength and not break down publicly (القوي لا يبكي). This suppresses grief expression and leads to prolonged grief. Validate the genuine need to grieve. Give permission without requiring performance of strength.",
+    "gender_grief_expression": "Women's grief in Gulf contexts is often more communally supported through the عزاء and women-only spaces. Men's grief may be more isolated. Be attentive to male users who have had little space to grieve fully."
+  }
+}

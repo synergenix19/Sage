@@ -10,6 +10,7 @@ from sage_poc.state import SageState
 from sage_poc.skill_ids import SKILL_REGISTRY
 from sage_poc.skills.schema import load_skill
 from sage_poc.resilience import EMBEDDING_TIMEOUT_SECONDS
+from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,8 @@ def _ensure_semantic_ready() -> None:
                 model = SentenceTransformer("BAAI/bge-m3", revision=_REVISION)
         ids, texts = [], []
         for sid, skill in _SKILLS.items():
+            if sid in KEYWORD_SEMANTIC_SKIP:
+                continue
             if skill.semantic_description:
                 ids.append(sid)
                 texts.append(skill.semantic_description)
@@ -107,6 +110,8 @@ async def skill_select_node(state: SageState) -> dict:
 
     # Tier 1: Keyword matching — synchronous, deterministic, fast
     for skill_id, skill in _SKILLS.items():
+        if skill_id in KEYWORD_SEMANTIC_SKIP:
+            continue
         for keyword in skill.target_presentations:
             if keyword.lower() in message:
                 return {
