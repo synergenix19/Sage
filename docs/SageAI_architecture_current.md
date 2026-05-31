@@ -804,7 +804,142 @@ All three must be applied before Gitex demo.
 
 ---
 
-## 16. Known Gaps and Pending Items
+## 16. Signal System — How Sage Reads the Room and Adapts
+
+Three separate signals measure how the user is doing turn-by-turn. They are computed by different nodes, stored in state, and feed into multiple layers of the response. This section describes the full chain from measurement to effect.
+
+---
+
+### 16.1 The Three Signals
+
+#### Emotional Intensity (1–10)
+
+**Where measured:** `intent_route_node` (LLM classifier, every turn).
+- 1 = calm
+- 10 = extremely distressed
+
+**How tracked:** `safety_check_node` appends the prior turn's score to `distress_trajectory` (rolling 4-turn window). Intensity is one turn lagged in the trajectory because `safety_check` runs before `intent_route`.
+
+**Escalation trigger:** If the last 3 of 4 trajectory values are all ≥ 6, the `escalating_distress` clinical flag is set. Suppressed when a skill is active AND `engagement ≥ 5` (high intensity during active therapeutic work is clinically expected and should not trigger a distress alert).
+
+#### Engagement (1–10)
+
+**Where measured:** `intent_route_node` (LLM classifier, every turn, same call as intensity).
+- 1 = one-word or dismissive
+- 10 = elaborating, open, reflective
+
+**How tracked:** `safety_check_node` appends to `engagement_trajectory` (rolling 4-turn window).
+
+**Escalation trigger:** If the last 3 of 4 trajectory values are all ≤ 4, `engagement_declining` is True — this also sets the `escalating_distress` flag via the same path as high sustained intensity. Both sustained high distress and sustained low engagement produce the same flag name: they are treated as equivalent clinical signals.
+
+#### Resistance (1–10)
+
+**Where measured:** `skill_executor_node` only, when the active skill has resistance-based step_policy rules AND Phase 1 (deterministic rules) did not fire. Evaluated by the classifier LLM using a dedicated prompt.
+
+- 1 = full engagement, cooperative
+- 10 = complete refusal, active disengagement
+
+**Prompt instruction:** *"Consider: reluctance, deflection, topic-changing, one-word replies, expressions of futility, or explicit refusal. In a Gulf Arab context, indirect refusal (e.g., changing subject, short answers, invoking busyness) carries equal weight to direct refusal."*
+
+**How tracked:** `resistance_history` — rolling 3-turn buffer (capped at last 3 scores). This is the only signal that is NOT evaluated on every turn; it only runs when a skill is active and has resistance rules.
+
+---
+
+### 16.2 How the Signals Shape Responses
+
+#### Effect 1 — L2 Intent Framing: intensity → guidance tier
+
+`compose_prompt` computes `_intensity_guidance(intensity)` and injects it as `{intensity_guidance}` into L2 templates. Three tiers, with exact text:
+
+| Intensity | Tier label | Text injected |
+|---|---|---|
+| 1–3 | Low | "The user's distress is mild. A lighter touch is appropriate." |
+| 4–6 | Mid | "The user is moderately engaged. Be present and attentive." |
+| 7–10 | High | "The user is significantly distressed. Name the specific thing they said, directly. Ask one focused question about it. Do NOT paraphrase or reflect back what they said. Do NOT begin with 'It sounds like', 'That sounds', or any reflective opener. Do NOT offer guidance yet." |
+
+**Which L2 intents receive this guidance block** (the others only get the raw `{intensity}/10` number):
+
+| Intent | Gets guidance block? |
+|---|---|
+| `general_chat` | Yes |
+| `info_request` | Yes |
+| `new_skill` | Yes |
+| `skill_continuation` | Yes |
+| `crisis` | No — intensity shown as number only |
+| `exit_skill` | No |
+| `jailbreak` | No |
+| `scope_refusal` | No |
+| `low_confidence` | No |
+
+The high-intensity guidance (tier 7–10) explicitly bans "It sounds like", "That sounds", "It seems like", and any reflective paraphrase opener — the same phrases that `output_gate` catches mechanically via regex. The L2 instruction is the primary enforcement; the output_gate banned opener check is a safety net if the LLM ignores it.
+
+#### Effect 2 — L5 User Context: both intensity AND engagement shown as numbers
+
+L5_user_context template content (v2.0.0):
+```
+CONTEXT ABOUT THIS USER: {flags_summary} Current emotional state: intensity {intensity}/10, engagement {engagement}/10.{distress_note}{cross_session_profile}
+```
+
+The LLM sees both signals as explicit numbers in every turn where L5 fires (i.e. when clinical flags or therapeutic profile data are present). When `escalating_distress` is in `clinical_flags`, `{distress_note}` appends: *"Distress has been elevated for multiple turns."*
+
+#### Effect 3 — Step Policy: signals gate skill advancement
+
+`skill_executor` enforces these step_policy thresholds (every skill must define all of them per authoring conventions):
+
+| Signal | Condition | Action | Effect |
+|---|---|---|---|
+| `emotional_intensity` | > 7 | `validate_only` | No step advancement; LLM given a validating instruction for this turn only |
+| `engagement` | < 3 for 3 turns | `check_in_micro` | Micro check-in instruction injected; holds at current step |
+| `resistance` | > 6 for 3 turns | `offer_skill_switch_or_break` | Switch or break instruction; holds at current step |
+
+The `for_turns` temporal logic for engagement uses `engagement_trajectory` (the 4-turn lagged window). The for_turns logic for resistance uses `resistance_history` (the rolling 3-turn buffer). For all other signals (including `emotional_intensity`), `for_turns` is ignored — the threshold evaluates the current turn only.
+
+#### Effect 4 — L3 Skill Wrapper: step goal takes priority
+
+The L3 template (v1.2.0) includes this instruction to the LLM:
+
+> *"The step goal above takes priority over the user's conversational direction. Execute the technique even if the user shifts topic, expresses general progress, or comments on the exercise. Cooperative messages such as 'this is helping' or 'I am making progress' are acknowledgment, not completion — continue delivering the technique for this step."*
+
+This means engagement signals and user commentary do NOT cause premature step advancement at the LLM level — step advancement is controlled by the criteria evaluator in `skill_executor`, not by the LLM's reading of user cooperativeness.
+
+#### Effect 5 — Clinical Flag Elevation → L5 adaptation rules
+
+When `escalating_distress` is in `clinical_flags`, it is injected into L5 via `_FLAG_DESCRIPTIONS`:
+- *"This user's distress has been elevated across multiple turns."*
+
+This causes the Rules Service's prompt injection layer (`rules/data/prompt_injection/`) to fire a corresponding adaptation. The LLM sees a concrete statement about multi-turn pattern, not just a current-turn score.
+
+#### Effect 6 — Session Summary captures mood trajectory
+
+`summarise_history()` generates the session summary, and `output_gate._persist_session_summary()` stores it with `mood_score` (from the profile extractor's 1–5 scale). The mood trajectory in `user_therapeutic_profiles.mood_trajectory` is `[{session: N, mood_score: N}]` capped at 20 sessions — a longitudinal record of how the user's mood at session end has changed over time. Not currently injected into the prompt, but available for clinician review and future use.
+
+---
+
+### 16.3 Signal Interaction Summary
+
+```
+Every turn:
+  intent_route  →  emotional_intensity (1-10)
+                →  engagement (1-10)
+
+  safety_check  →  distress_trajectory  (4-turn window)
+                →  engagement_trajectory (4-turn window)
+                →  escalating_distress flag (if 3+ turns ≥6 OR 3+ turns ≤4)
+
+  compose_prompt →  intensity_guidance tier → L2 template
+                 →  intensity + engagement numbers → L5 template
+                 →  distress_note if escalating_distress set
+
+  output_gate   →  banned opener check (mechanically enforces high-intensity L2 guidance)
+
+During skill execution (only):
+  skill_executor →  resistance_score (1-10, LLM-evaluated, Gulf-aware)
+               →  resistance_history (3-turn rolling buffer)
+               →  step_policy evaluation: intensity>7, engagement<3 for 3t, resistance>6 for 3t
+               →  step advance / hold / validate_only / check_in_micro / offer_switch
+```
+
+## 17. Known Gaps and Pending Items
 
 | ID | Gap | Status | Notes |
 |---|---|---|---|
