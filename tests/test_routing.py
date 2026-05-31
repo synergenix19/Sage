@@ -211,3 +211,114 @@ def test_route_after_skill_executor_monitoring_no_reescalation_routes_to_freeflo
         re_escalation_within_monitoring=False,
     )
     assert _route_after_skill_executor(state) == "freeflow"
+
+# ── New skill routing disambiguation tests (2026-05-31) ────────────────────
+# skill_select_node is async; asyncio_mode = "auto" in pyproject.toml handles this.
+# Tier 1 routing = exact substring match against target_presentations in SKILL_REGISTRY order.
+# Tests embed exact target_presentation phrases so routing is deterministic (Tier 1, no LLM).
+
+async def test_cognitive_restructuring_routes_for_unhelpful_thinking_pattern():
+    from sage_poc.nodes.skill_select import skill_select_node
+    state = make_full_state(
+        message_en="My thinking patterns are unhelpful and I need to break them",
+        primary_intent="new_skill",
+        intent_confidence=0.9,
+    )
+    result = await skill_select_node(state)
+    assert result.get("active_skill_id") == "cognitive_restructuring", (
+        f"Expected cognitive_restructuring, got {result.get('active_skill_id')!r}. "
+        "Confirm 'thinking patterns are unhelpful' is in cognitive_restructuring.target_presentations."
+    )
+
+
+async def test_cbt_thought_record_routes_for_catastrophizing():
+    from sage_poc.nodes.skill_select import skill_select_node
+    state = make_full_state(
+        message_en="I keep catastrophizing about everything that could go wrong",
+        primary_intent="new_skill",
+        intent_confidence=0.9,
+    )
+    result = await skill_select_node(state)
+    assert result.get("active_skill_id") == "cbt_thought_record", (
+        f"Expected cbt_thought_record, got {result.get('active_skill_id')!r}"
+    )
+
+
+async def test_interpersonal_effectiveness_routes_for_relationship_navigation():
+    from sage_poc.nodes.skill_select import skill_select_node
+    state = make_full_state(
+        message_en="I have relationship problems in my family and don't know how to navigate them",
+        primary_intent="new_skill",
+        intent_confidence=0.9,
+    )
+    result = await skill_select_node(state)
+    assert result.get("active_skill_id") == "interpersonal_effectiveness", (
+        f"Expected interpersonal_effectiveness, got {result.get('active_skill_id')!r}"
+    )
+
+
+async def test_assertive_communication_routes_for_boundary_expression():
+    from sage_poc.nodes.skill_select import skill_select_node
+    state = make_full_state(
+        message_en="I want to practice saying no to people who ask too much of me",
+        primary_intent="new_skill",
+        intent_confidence=0.9,
+    )
+    result = await skill_select_node(state)
+    assert result.get("active_skill_id") == "assertive_communication", (
+        f"Expected assertive_communication, got {result.get('active_skill_id')!r}"
+    )
+
+
+async def test_financial_anxiety_routes_for_gulf_financial_distress():
+    from sage_poc.nodes.skill_select import skill_select_node
+    state = make_full_state(
+        message_en="My visa depends on my job and the thought of unemployment terrifies me",
+        primary_intent="new_skill",
+        intent_confidence=0.9,
+    )
+    result = await skill_select_node(state)
+    assert result.get("active_skill_id") == "financial_anxiety", (
+        f"Expected financial_anxiety, got {result.get('active_skill_id')!r}"
+    )
+
+
+async def test_grief_loss_routes_for_bereavement():
+    from sage_poc.nodes.skill_select import skill_select_node
+    state = make_full_state(
+        message_en="I lost my father recently and I don't know how to grieve",
+        primary_intent="new_skill",
+        intent_confidence=0.9,
+    )
+    result = await skill_select_node(state)
+    assert result.get("active_skill_id") == "grief_loss", (
+        f"Expected grief_loss, got {result.get('active_skill_id')!r}"
+    )
+
+
+async def test_financial_anxiety_does_not_capture_general_anxiety():
+    # Lane-keeping: asserts financial_anxiety stays in its lane.
+    from sage_poc.nodes.skill_select import skill_select_node
+    state = make_full_state(
+        message_en="I feel anxious all the time and my heart races",
+        primary_intent="new_skill",
+        intent_confidence=0.9,
+    )
+    result = await skill_select_node(state)
+    assert result.get("active_skill_id") != "financial_anxiety", (
+        f"financial_anxiety captured a general anxiety trigger. Got: {result.get('active_skill_id')!r}"
+    )
+
+
+async def test_grief_loss_does_not_capture_relationship_conflict():
+    # Lane-keeping: asserts grief_loss stays in its lane.
+    from sage_poc.nodes.skill_select import skill_select_node
+    state = make_full_state(
+        message_en="My relationship broke down and I need to work through the conflict",
+        primary_intent="new_skill",
+        intent_confidence=0.9,
+    )
+    result = await skill_select_node(state)
+    assert result.get("active_skill_id") != "grief_loss", (
+        f"grief_loss captured a relationship conflict trigger. Got: {result.get('active_skill_id')!r}"
+    )
