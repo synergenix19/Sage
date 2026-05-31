@@ -935,7 +935,7 @@ Evaluated in `compose_prompt` via `rules_engine.evaluate("cultural", ...)`. All 
 | Rule | Trigger | Priority | What it injects |
 |---|---|---|---|
 | CU-SH-001 — Shame/Honour | عيب/عار/فضيحة/dishonor/disgrace keywords | 1 | "In Gulf culture, shame is a social bond signal, not only personal failure. Help the user find a path that honours both their integrity and their relationships." |
-| CU-DM-001 — Dialect Mirroring | **Every Arabic turn** (language-only trigger, no keywords) | 2 | "Respond in Arabic. Use Gulf Arabic (Khaleeji) register: واید over كثير, زين over حسن, شلون over كيف حالك. Mirror Khaleeji markers if user used them; use warm conversational Arabic for MSA. Do NOT switch to English unless the user switches first." |
+| CU-DM-001 — Dialect Mirroring | **Every Arabic turn** (language-only trigger, no keywords) | 2 | "Respond in Arabic. Use Gulf Arabic (Khaleeji) register: وايد over كثير, زين over حسن, شلون over كيف حالك. Mirror Khaleeji markers if user used them; use warm conversational Arabic for MSA. Do NOT switch to English unless the user switches first." |
 | CU-CS-001 — Code-Switching | Both Arabic and Latin characters in same message | 3 | "Mirror their bilingual register: blend Arabic and English naturally. Do NOT force a single language. Do NOT comment on or correct their language choice." |
 | CU-RR-001 — Ramadan | Ramadan/fasting/إفطار/سحور/عيد keywords | 4 | "Fasting fatigue, sleep disruption, and irritability are expected cultural norms, not clinical symptoms. Do NOT pathologise. Acknowledge the spiritual significance." |
 | CU-CO-001 — Collectivist Framing | family/parents/duty/obligation/عائلة/واجب/شرف keywords | 5 | Collectivist framing that respects family investment and obligation without pathologising pressure |
