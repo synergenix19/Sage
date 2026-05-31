@@ -289,13 +289,28 @@ self_compassion_break    mindfulness_body_scan
 
 ### 5.2 Matching
 
-`nodes/skill_select.py`. Two-tier:
+`nodes/skill_select.py`. Two-tier — but three early-return paths run before either tier:
 
-**Tier 1 — Keyword:** Iterates `skill.target_presentations` in registry order. First match wins. Synchronous, deterministic. Returns `skill_match_method="keyword"`.
+**Early-return paths (skip all matching):**
+1. `primary_intent == "info_request"` → returns immediately with `active_skill_id=None`, routes to `knowledge_retrieve`
+2. `crisis_state == "monitoring"` → `post_crisis_check_in` auto-selected unconditionally, no keyword or semantic check
+3. Tier 1 match found → returns immediately, Tier 2 never runs
 
-**Tier 2 — Semantic (BGE-M3):** Cosine similarity of user message against all skills' `semantic_description` embeddings. Run in thread with 10s timeout (`EMBEDDING_TIMEOUT_SECONDS`). Threshold: `SEMANTIC_THRESHOLD = 0.459`. Returns `skill_match_method="semantic"` and `semantic_score`.
+**Tier 1 — Keyword matching:**
 
-Recalibrate after any `semantic_description` edit: `uv run python scripts/calibrate_threshold.py`.
+Iterates over all 20 skills in `SKILL_REGISTRY` order. For each skill, checks every entry in `target_presentations`. Match condition: `keyword.lower() in message_en.lower()` — case-insensitive substring. First keyword match across any skill wins and returns immediately. Registry order in `skill_ids.py` is therefore the priority order: skills listed earlier take precedence when multiple skills share overlapping keywords.
+
+A single keyword match activates the entire skill and starts from `skill.steps[0].step_id`. There is no partial or contextual keyword match — it is always substring presence.
+
+**Tier 2 — BGE-M3 semantic matching:**
+
+Only runs if Tier 1 found no match. Encodes `state["message_en"]` with BGE-M3 (in a thread, 10s timeout `EMBEDDING_TIMEOUT_SECONDS`). Computes cosine similarity against pre-computed embeddings of all skills' `semantic_description` fields. Returns the best-scoring skill if its score ≥ `SEMANTIC_THRESHOLD = 0.459`.
+
+The embeddings are built at startup (or first request if warmup disabled) from `skill.semantic_description` for all skills that have a non-empty description. `post_crisis_check_in` has an empty description and is never in the semantic pool.
+
+**Threshold calibration:** `uv run python scripts/calibrate_threshold.py`. Re-run after any `semantic_description` edit or skill addition. The threshold is the midpoint between the lowest cross-cluster hit score and the highest off-topic miss score. Gap as of 2026-05-27: 0.0533.
+
+**On timeout:** If BGE-M3 takes > 10s, returns `embedding_timeout=True` in state, falls back to no skill (freeflow). Does not crash.
 
 ### 5.3 Skill Schema
 
@@ -339,32 +354,157 @@ Recalibrate after any `semantic_description` edit: `uv run python scripts/calibr
 
 `skills/conformance.py`. Declares which fields are USED / PARTIAL / STORED_ONLY. Logged at startup. Accessible at `GET /health/schema-conformance`. Summary as of 2026-05-30: 7 USED, 1 PARTIAL, 6 STORED_ONLY, 14 total.
 
+### 5.5 End-to-End Skill Activation Flow
+
+This section traces exactly what happens from a user message to an LLM response within an active skill. Understanding this flow is essential because `skill_executor` and `freeflow_respond` divide the work in a way that is not obvious from looking at either node alone.
+
+**The key insight: `skill_executor` never calls the LLM. `freeflow_respond` always generates the response. `skill_executor` only determines which instruction goes into the prompt.**
+
+#### Turn 1 — Skill selection and first step
+
+```
+User: "I can't breathe, my heart is racing"
+
+safety_check   → is_safe=True, no crisis flags
+intent_route   → primary_intent="new_skill", emotional_intensity=7
+skill_select   → Tier 1: "heart racing" in box_breathing.target_presentations → MATCH
+                 returns: active_skill_id="box_breathing", active_step_id="step_1"
+skill_executor → reads active_skill_id="box_breathing", active_step_id="step_1"
+                 loads skill JSON, finds step "step_1"
+                 runs L1 escalation check → no match
+                 runs step_policy Phase 1 → intensity=7 > threshold? depends on skill config
+                 runs completion_criteria check → no prior response to evaluate (turn 1)
+                 returns: step_instruction="Guide user through box breathing...",
+                          executed_step_id="step_1",
+                          active_step_id="step_2"  ← next step for NEXT turn
+                          active_skill_id="box_breathing"
+freeflow_respond → compose_prompt sees step_instruction set and executed_step_id="step_1"
+                   builds L3 block from skill JSON step "step_1":
+                     goal, technique, tone, examples, contraindications
+                   LLM generates response using L3 instruction as guide
+output_gate    → cultural check, format check, translate if Arabic, audit
+```
+
+#### Turn 2 — Skill continuation
+
+On the next turn, `active_step_id="step_2"` is loaded from the LangGraph checkpoint (NOT from the client request). `_build_state()` does not set `active_skill_id` or `active_step_id` — they come from checkpoint.
+
+```
+User: "Okay, I'm inhaling slowly..."
+
+safety_check   → is_safe=True
+intent_route   → primary_intent="skill_continuation"
+              (NOT new_skill — the LLM sees the active skill in conversation history)
+              → routes directly to skill_executor (bypasses skill_select)
+skill_executor → reads active_skill_id="box_breathing", active_step_id="step_2"
+                 evaluates completion_criteria for step_1 on THIS user message
+                 (for _LLM_CRITERIA_SKILLS: LLM evaluator; for others: word-count)
+                 if criteria met → advances to step_2, sets active_step_id="step_3"
+                 if criteria not met → holds at step_2 (next_step_id="step_2")
+```
+
+#### Step state fields and their roles
+
+| Field | Set by | Persists in checkpoint | Meaning |
+|---|---|---|---|
+| `active_skill_id` | `skill_select` | Yes | Skill currently being executed; `None` when no skill active |
+| `active_step_id` | `skill_select` (first turn), `skill_executor` (subsequent) | Yes | Step to execute on the **next** turn |
+| `executed_step_id` | `skill_executor` | No (reset each turn) | Step that was executed **this** turn; used by `compose_prompt` to build L3 |
+| `step_instruction` | `skill_executor` | No (reset each turn) | The instruction text `compose_prompt` injects as L3 |
+| `prev_step_id` | `skill_executor` | Yes | Step executed on the **previous** turn; used for continuation detection in step_policy |
+| `rule_fired` | `skill_executor` | No (reset each turn) | True when a step_policy rule fired (not a normal advance); causes `compose_prompt` to use plain `step_instruction` instead of rebuilding from skill JSON |
+
+**Why `executed_step_id` and not `active_step_id` in L3:** After `skill_executor` runs, `active_step_id` has already been updated to the NEXT step. `compose_prompt` reads `executed_step_id` (the step just used) to rebuild the full L3 block with goal/technique/examples. Using `active_step_id` would show the LLM next turn's step — wrong.
+
+#### Skill completion
+
+When `evaluate_step_policy` returns `action="complete"` (last step + criteria met):
+- `skill_executor` sets `active_skill_id=None` in the return dict
+- This is written to the LangGraph checkpoint
+- Next turn: `_build_state()` does not set `active_skill_id`; checkpoint has `None`
+- `intent_route` sees no active skill; routes based on new user intent
+
+For `post_crisis_check_in` specifically: completion additionally sets `crisis_state="resolved"`.
+
+#### L1 exit (user requests to stop)
+
+If any phrase in `L1_EXIT_PHRASES` matches the message, `skill_executor` immediately returns with `active_skill_id=None` and `step_instruction="[L1] {escalation_matrix.L1 text}"`, bypassing all step_policy evaluation. The LLM sees the L1 exit instruction and produces a warm closing. No next step is set.
+
 ---
 
 ## 6. Knowledge Retrieval (Node: `knowledge_retrieve`)
 
 `nodes/knowledge_retrieve.py`. Fires when `primary_intent == "info_request"` and `active_skill_id is None`.
 
-**Two separate knowledge paths — don't confuse them:**
+### 6.1 Two Knowledge Retrieval Paths
 
-| Path | Trigger | Node | State fields set |
+**Don't confuse them — same underlying repository, different trigger points:**
+
+| Path | Trigger | Where | State fields set |
 |---|---|---|---|
-| Node path | `info_request` intent, no active skill → `skill_select` → `knowledge_retrieve` | `knowledge_retrieve` (graph node) | `knowledge_passages`, `knowledge_abstain`, `knowledge_source="node_6"` |
-| Tool path | LLM in `freeflow_respond` calls `knowledge_lookup` tool mid-response | Inside `freeflow_respond` (not a node transition) | Passages injected into L4 block inline; `knowledge_source` reflects the tool call |
+| **Node path** | `info_request` intent + no active skill → `skill_select` early-return → `knowledge_retrieve` node | Before LLM call | `knowledge_passages`, `knowledge_abstain=False`, `knowledge_source="node_6"` |
+| **Tool path** | LLM inside `freeflow_respond` calls `knowledge_lookup` tool mid-generation | Inside LLM tool loop | Passages returned to LLM as tool output; `knowledge_source="tool_lookup"` set after loop |
 
-Both use `PostgresKnowledgeRepository` and the same pgvector index. The difference is _when_ retrieval fires: the node path fires before any response generation (the passages are available to the LLM when it writes its response); the tool path fires when the LLM decides mid-response that it needs more information.
+Both paths use `PostgresKnowledgeRepository` and the same `knowledge_articles` pgvector table.
 
-Uses `PostgresKnowledgeRepository` (asyncpg pool). `retrieve(query, language="en", top_k=5)`. Returns `knowledge_passages` (list of `{text, source_id, citation, relevance_score}`) and `knowledge_abstain` flag.
+**Key difference:** The node path makes passages available to the LLM before it starts writing. The tool path lets the LLM retrieve mid-response when it decides it needs clinical backing — the LLM calls the tool, reads the JSON result, then continues generating. The tool path is triggered by LLM judgement ("the user asked a factual question I should support"); the node path is triggered by deterministic `info_request` routing.
 
-**Hybrid retrieval — Reciprocal Rank Fusion (RRF):**
-1. Vector search: BGE-M3 embedding of query, cosine distance (`<=>` operator, pgvector), top `top_k * 4` results
-2. Full-text search: PostgreSQL `ts_rank_cd(chunk_tsv, plainto_tsquery('english', query))`, top `top_k * 4` results
-3. RRF fusion: `score = 1/(k + vec_rank) + 1/(k + txt_rank)`, `k=60` (standard literature default)
-4. Final: top `top_k` (default: 5) by RRF score
+### 6.2 Hybrid Retrieval — Reciprocal Rank Fusion
 
-`KNOWLEDGE_ABSTAIN_THRESHOLD = 0.0` — passages with `rrf_score <= 0` are excluded; abstain when no passages remain. TODO (pre-production): BGE-reranker-v2-m3 reranking pass after RRF.
+`knowledge/postgres_repository.PostgresKnowledgeRepository.retrieve(query, language="en", top_k=5)`:
 
-**Corpus:** `data/knowledge_corpus/en/` contains 30 source article JSON files. Each article has `article_id, language, title, source_url, citation, content, is_crisis_content` fields. Chunks are created during ingestion (not stored in the source files). The Gitex sprint audit (2026-05-27) reported 137 chunks ingested into the `knowledge_articles` Postgres table.
+1. **Vector search:** BGE-M3 embeds the query, cosine distance via pgvector (`<=>` operator), top `top_k × 4` candidates
+2. **Full-text search:** `ts_rank_cd(chunk_tsv, plainto_tsquery('english', query))`, top `top_k × 4` candidates
+3. **RRF fusion:** `score = 1/(60 + vec_rank) + 1/(60 + txt_rank)` — k=60 is the standard literature default
+4. **Final selection:** top `top_k` (default 5) by RRF score; passages with `rrf_score <= KNOWLEDGE_ABSTAIN_THRESHOLD` (0.0) are excluded
+
+**`KNOWLEDGE_ABSTAIN_THRESHOLD = 0.0`** (POC setting): any match at all is returned; the abstain flag only fires when truly no rows match. This means the system may return marginally relevant passages. Pre-production: raise the threshold or add BGE-reranker-v2-m3 reranking pass (noted in a TODO comment in `postgres_repository.py`).
+
+**When abstain=True:** The L4 block injects: *"KNOWLEDGE: No relevant clinical evidence found for this query. Do not fabricate clinical facts. If asked, tell the user you do not have specific information on that topic and offer to help them find a professional resource."* This is a clinical safety feature — the LLM is explicitly instructed not to invent answers when the knowledge base has nothing.
+
+### 6.3 Corpus and Ingestion Pipeline
+
+**Corpus:** `data/knowledge_corpus/en/` — 30 source article JSON files (English only). 137 chunks ingested as of Gitex sprint 2026-05-27.
+
+**Article format** (7 required fields):
+```json
+{
+  "article_id":        "cbt-001",
+  "language":          "en",
+  "title":             "CBT Overview",
+  "source_url":        "https://...",
+  "citation":          "Beck (1979)",
+  "content":           "...",
+  "is_crisis_content": false
+}
+```
+
+**Ingestion script:** `scripts/ingest_knowledge.py --corpus-dir path/ --db-url postgresql://...`
+
+**Pipeline** (`knowledge/ingestion.py`):
+1. **Validate schema** — all 7 fields present, language is "en" or "ar"
+2. **Chunk** — sentence-boundary split at `~75 words per chunk` (100 tokens × 0.75 approximation). Crisis content (`is_crisis_content=true`) is never split — stored as a single chunk regardless of length.
+3. **Embed** — each chunk embedded with BGE-M3 via `memory/embedding.get_embedding(chunk)` at ingestion time
+4. **Upsert** — `INSERT INTO knowledge_articles ... ON CONFLICT (article_id) DO UPDATE` — re-running is safe; existing chunks are updated in-place
+5. **Bilingual pairing check** — warns if an `article_id` has only one language variant (en without ar, or ar without en). Does not abort.
+
+**`knowledge_articles` table columns:** `article_id`, `language`, `chunk_text`, `chunk_embedding` (vector 1024-dim), `is_crisis_content`, `source_title`, `source_url`, `citation_metadata` (JSONB), `chunk_tsv` (tsvector, for full-text search).
+
+**Chunk ID convention:** Multi-chunk articles: `{article_id}-{language}-{index:03d}` (e.g. `cbt-001-en-000`). Single-chunk articles: `{article_id}-{language}` (e.g. `crisis-004-en`).
+
+### 6.4 Arabic Knowledge Gap
+
+**The corpus is English-only.** All 30 articles are in `data/knowledge_corpus/en/`. There is no Arabic knowledge corpus. `retrieve()` is called with `language="en"` hardcoded in both `knowledge_retrieve_node` and the `knowledge_lookup` tool.
+
+Arabic users asking `info_request` questions retrieve from the English corpus (the English chunks) and receive a response that is then translated to Arabic by `output_gate`. The retrieved passages themselves are English — the translation pipeline turns the final response into Arabic but the knowledge source is English.
+
+**`knowledge/rewriter.py`** provides `normalize_arabic_query()` (alef variants أإآ → ا, ta marbuta ة → ه, tatweel removal) for Arabic full-text search query normalisation. It is implemented but **not yet wired into `retrieve()`** — `plainto_tsquery('english', query)` is used for all languages including Arabic. Pre-production: call `normalize_arabic_query()` on Arabic queries and use `plainto_tsquery('arabic', query)` with an Arabic `tsconfig`.
+
+### 6.5 Legacy Static Knowledge Dictionary
+
+`knowledge/static.py`. A hardcoded dictionary of 10 topic → answer pairs (anxiety, depression, CBT, DBT, mindfulness, burnout, trauma, self-care, stress, motivational interviewing). Uses exact phrase substring matching: `phrase in query.lower()`.
+
+**This is no longer the primary knowledge source.** The `knowledge_lookup` tool was upgraded from this static dict to `PostgresKnowledgeRepository` (hybrid BM25+vector). The static dict is kept in `knowledge/__init__.py` as a backward-compatible re-export in case any code path still imports `lookup_knowledge` directly. For all production knowledge retrieval, use `PostgresKnowledgeRepository`.
 
 After `knowledge_retrieve`, routing always goes to `freeflow_respond`, which uses the passages in the L4 knowledge block of the prompt.
 
