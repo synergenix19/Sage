@@ -19,4 +19,8 @@ SKILL_REGISTRY = [
     "assertive_communication",
     "self_compassion_break",
     "mindfulness_body_scan",
+    "cognitive_restructuring",
+    "interpersonal_effectiveness",
+    "financial_anxiety",
+    "grief_loss",
 ]

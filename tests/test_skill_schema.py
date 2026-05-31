@@ -180,3 +180,41 @@ def test_dbt_tipp_has_cultural_overrides():
 def test_dbt_tipp_in_skill_registry():
     from sage_poc.skill_ids import SKILL_REGISTRY
     assert "dbt_tipp" in SKILL_REGISTRY
+
+
+# ── Phase 2 sprint (2026-05-31): SK-021 to SK-024 ─────────────────────────────
+
+def test_cognitive_restructuring_loads():
+    s = load_skill("cognitive_restructuring")
+    assert s.skill_id == "cognitive_restructuring"
+    assert len(s.steps) >= 2
+    assert len(s.step_policy) >= 4
+    assert len(s.cultural_overrides) >= 3
+    assert len(s.target_presentations) >= 20
+
+
+def test_interpersonal_effectiveness_loads():
+    s = load_skill("interpersonal_effectiveness")
+    assert s.skill_id == "interpersonal_effectiveness"
+    assert len(s.steps) >= 2
+    assert len(s.step_policy) >= 4
+    assert len(s.cultural_overrides) >= 4
+    assert len(s.target_presentations) >= 20
+
+
+def test_financial_anxiety_loads():
+    s = load_skill("financial_anxiety")
+    assert s.skill_id == "financial_anxiety"
+    assert len(s.steps) >= 2
+    assert len(s.step_policy) >= 4
+    assert len(s.cultural_overrides) >= 4
+    assert len(s.target_presentations) >= 20
+
+
+def test_grief_loss_loads():
+    s = load_skill("grief_loss")
+    assert s.skill_id == "grief_loss"
+    assert len(s.steps) >= 2
+    assert len(s.step_policy) >= 4
+    assert len(s.cultural_overrides) >= 4
+    assert len(s.target_presentations) >= 20
