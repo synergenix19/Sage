@@ -1,7 +1,7 @@
 # SageAI Architecture — Current State
 
 **Document type:** Living codebase reference  
-**Last updated:** 2026-05-31  
+**Last updated:** 2026-05-31 (Phase 1: L2 unmatched-disclosure template; embedding field audit; open items GRIEF-SKILL, TIER2-DUALIDX, L2-AUTHORITY, EMOTIONS-FIELD added)  
 **Supersedes:** `SageAI_v7_FINAL_COMPLETE.docx` and `docs/v7.1-post-crisis-state-addendum.md` for all code-level claims  
 **Ground truth path:** `sage-poc/`
 
@@ -312,6 +312,10 @@ The embeddings are built at startup (or first request if warmup disabled) from `
 
 **On timeout:** If BGE-M3 takes > 10s, returns `embedding_timeout=True` in state, falls back to no skill (freeflow). Does not crash.
 
+**No-match fallback path:** When both tiers miss (neither keyword nor semantic match), `_route_after_skill_select` returns `"freeflow"` (not `"knowledge_retrieve"` — that is the `info_request` path). The freeflow response is generated with the `L2_new_skill_unmatched` template (see §7.1), which supplies structural constraints. Without a matched skill, L3 is entirely absent from the prompt.
+
+**Embedding field note (2026-05-31):** Tier 2 embeds `semantic_description` only — the technique-identity field. `target_presentations` (symptom/presentation language) is used exclusively in Tier 1 keyword matching. This is intentional: Tier 2 was calibrated for cross-cluster disambiguation between existing skills, not for catching novel symptom phrasings. A `new_skill` disclosure with no `target_presentations` keyword match AND no semantically adjacent skill will always fall through to the no-match path. The fix for a missing skill is authoring the skill with broad `target_presentations`, not extending Tier 2 (which is a standalone §4.3 evaluation — see §20.4).
+
 ### 5.3 Skill Schema
 
 `skills/schema.py`. Pydantic models: `Skill`, `SkillStep`, `StepPolicyRule`, `StepPolicyCondition`.
@@ -526,7 +530,7 @@ After `knowledge_retrieve`, routing always goes to `freeflow_respond`, which use
 
 **User role** (in order):
 - **L1** (`L1_history.json`): Last 8 turns (default; `tmpl.window_size or 8`), word-budget constrained (450w with active skill/knowledge, 600w freeflow; reduced by cultural_override word count)
-- **L2** (`L2_intents/`): Intent-specific framing — always included
+- **L2** (`L2_intents/`): Intent-specific framing — always included. Template is selected by `composer.py` based on `primary_intent`. One selector override exists: when `primary_intent == "new_skill"` AND `active_skill_id is None` (skill_select found no match), composer selects `L2_new_skill_unmatched` instead of `L2_new_skill`. This template carries structural constraints for the unmatched-disclosure path: name the specific disclosure, do not re-probe emotions already stated, offer presence over solutions. It prevents the generic freeflow anti-pattern ("how are you managing those feelings?") when emotional disclosures fall through skill matching. Template is `draft-pending-review` (Rule 1 + clinical); `approved_by: null`, `effective_date: pending`.
 - **L5** (`L5_user_context.json`): Clinical flags + cross-session therapeutic profile summary
 - Inline injections: `third_party_crisis` block, `post_crisis_context` block (includes `s7_result`), `stale_skill_context` block
 - **L3** (`L3_skill_wrapper.json`): Full templated skill step block when `executed_step_id` matches a step; falls back to plain `SKILL INSTRUCTION:` on escalation or rule override (layer tag: `"L3_skill_wrapper"` vs `"skill_instruction"` vs `"skill_instruction_override"`)
@@ -1381,3 +1385,7 @@ A combined classify+respond single-call architecture becomes possible with self-
 |---|---|---|---|
 | CUO-missing | Empty `cultural_overrides` in 4 skills | P2 | `box_breathing`, `mood_check_in`, `stop_technique`, `worry_time` have empty `cultural_overrides`. |
 | BGE-revision | BGE-M3 model revision pinned | Maintenance | `_REVISION = "5617a9f6..."` in skill_select.py. Model promotion requires: update `_REVISION`, delete old cache, ANE compile, determinism check, recalibrate both thresholds. |
+| GRIEF-SKILL | `grief_loss` skill absent from SKILL_REGISTRY | Blocked on inventory reconciliation | Grief disclosures route to `L2_new_skill_unmatched` freeflow path (Phase 1 fix, 2026-05-31). Full fix: author grief_loss through CMS draft→review→approve→publish workflow; `target_presentations` = loss/absence/missing-someone language; `semantic_description` technique-pure; `evidence_base` = Worden (2009) via `grief-001.json`. Blocked on confirming `grief_loss` item number in `SageAI_Skills_Knowledge_Base.docx` (Task 9, `2026-05-30-arabic-kb-skills-expansion.md`). |
+| TIER2-DUALIDX | Tier 2 semantic matching embeds `semantic_description` only | §4.3 evaluation required | `target_presentations` (symptom language) is Tier 1 only. Novel symptom phrasings not in any skill's `target_presentations` fall through both tiers. Proposed fix: dual-index (separate BGE-M3 embedding + threshold for `target_presentations`). Requires: novel-variant test set, calibrate_threshold.py extended for second index, Rule 1 approval. Do not concatenate fields — two semantic objectives require separate thresholds. |
+| L2-AUTHORITY | L2 templates delivered as user-role | Open architectural review | All L2 templates (including `L2_new_skill_unmatched`) are assembled into `user_parts` in `compose_prompt`. Control instructions in L2 share the injection surface with user turns, which weakens instruction authority relative to system-role placement. Not fixed in this template — changing one template unilaterally would create inconsistency worse than the systemic issue. Requires a review of L2's authority tier across all templates. |
+| EMOTIONS-FIELD | `emotions_disclosed` SageState field (Phase 2) | Blocked on §5 clinical decision | Phase 1 (2026-05-31) ships the structural constraint prose in `L2_new_skill_unmatched`. Phase 2 adds a session-scoped `list[str]` field written deterministically at Node 1 via Rules Service, read by the L2 binding to make the suppression concrete. Schema proposal at `docs/superpowers/proposals/2026-05-31-emotions-disclosed-schema.md`. Blocked on clinical decision: permanent within-thread suppression (persisted field) vs immediate-following-turn only (transient, no field). |
