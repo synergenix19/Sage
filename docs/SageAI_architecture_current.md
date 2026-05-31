@@ -1,7 +1,7 @@
 # SageAI Architecture — Current State
 
 **Document type:** Living codebase reference  
-**Last updated:** 2026-05-30  
+**Last updated:** 2026-05-31  
 **Supersedes:** `SageAI_v7_FINAL_COMPLETE.docx` and `docs/v7.1-post-crisis-state-addendum.md` for all code-level claims  
 **Ground truth path:** `sage-poc/`
 
@@ -129,9 +129,41 @@ output_gate
 
 ---
 
-## 3. Safety Layer
+## 3. Language Pipeline
 
-### 3.1 S1 — Rules-Engine Lexicon
+`language.py`. Fires in `safety_check_node` before any other processing.
+
+### 3.1 Language Detection
+
+Library: `langdetect`. Two overrides applied before the library result is trusted:
+
+1. **Arabic Unicode override:** If the raw message contains any character in the Arabic Unicode range `[؀-ۿ]`, the result is `"ar"` regardless of what `langdetect` returns. This correctly handles code-switched messages (mixed Arabic/Latin).
+
+2. **Latin false-positive collapse:** `langdetect` assigns unexpected codes (e.g. `"so"` for Somali, `"ha"` for Hausa) to short English phrases. Any result in a known Latin-script language set (50+ codes including `"so"`, `"ha"`, `"mg"`, `"st"`, `"ht"`) is collapsed to `"en"` when the text contains no non-ASCII characters.
+
+3. **Directional mark stripping:** Unicode bidirectional and directional formatting marks (`U+200E`, `U+200F`, `U+202A–202E`, `U+2066–2069`) are stripped before detection. These can corrupt `langdetect` on RTL text (P2-5 fix).
+
+**Code-switching detection** (separate from language detection): `safety_check_node` checks whether the raw message contains BOTH Arabic range characters AND Latin letters. If yes, `code_switching=True` is set in state. This triggers the `CU-CS-001` cultural rule in `compose_prompt`.
+
+**Fallback:** Any `LangDetectException` or empty/None input → `"en"`.
+
+### 3.2 Translation
+
+Both directions use `get_translator()` (gpt-4o-mini by default, overridable via `SAGE_TRANSLATOR_MODEL`).
+
+**Arabic → English (input translation):** Called in `safety_check_node` when `lang == "ar"`. Prompt: *"Translate the following text to English. Return ONLY the translation, nothing else."* The translated English is stored as `message_en` and used for all downstream processing (safety rules, intent routing, skill matching).
+
+**English → Arabic (output translation):** Called in `output_gate_node` when `detected_language == "ar"`. Prompt: *"You are translating warm, supportive messages from a wellness companion named Sage. Translate to informal Gulf Arabic (Khaleeji dialect). Preserve emotional warmth and conversational tone. Avoid formal or clinical Arabic. Return only the translation."*
+
+**Fallback:** If translation fails (LLM error, timeout), the original text is returned unchanged. The system never silences a response due to a translation failure.
+
+**Async variants:** `async_translate_to_english` and `async_translate_to_arabic` use `resilient_invoke` (timeout, retry, circuit breaker). The sync variants (`translate_to_english`, `translate_to_arabic`) use a direct `llm.invoke()` call and exist for the rare synchronous code paths.
+
+---
+
+## 4. Safety Layer
+
+### 4.1 S1 — Rules-Engine Lexicon
 
 `safety_check_node` calls `rules_engine.evaluate("safety", {text_en, text_ar, language})`. Rule categories under `rules/data/safety/`:
 
@@ -804,7 +836,177 @@ All three must be applied before Gitex demo.
 
 ---
 
-## 16. Signal System — How Sage Reads the Room and Adapts
+## 16. Rules Engine
+
+`rules/engine.py`. A stateless evaluator that never reads or writes `SageState`. Called from `safety_check_node`, `compose_prompt`, and `output_gate_node` with different categories and contexts.
+
+### 16.1 Five Rule Categories
+
+| Category | Called by | What it does |
+|---|---|---|
+| `safety` | `safety_check_node` | Detects crisis signals and clinical flags in user message |
+| `crisis_content` | `_crisis_response_node` | Selects the locale-appropriate crisis hotline response |
+| `cultural` | `compose_prompt` | Injects cultural adaptations into system prompt |
+| `prompt_injection` | `compose_prompt` | Injects clinical/situational adaptations into prompt |
+| `cultural_output` | `output_gate_node` | Post-generation check — validates response against cultural constraints |
+
+### 16.2 Safety Rule Evaluation
+
+Context: `{text_en, text_ar, language}`.
+
+- **OR-semantics for crisis flags:** every matching rule fires independently; `safety_check_node` collects all `crisis_flag` actions into `crisis_flags`.
+- **Accumulate for clinical flags:** `clinical_flag` actions accumulate into `clinical_flags`.
+- **Arabic patterns routed to normalized Arabic text:** rules with Arabic-script patterns or `language="ar"` are matched against `normalize_arabic(text_ar)` rather than `text_en`.
+- **Negation detection:** if a `negation_check` modifier is present on a rule, the engine checks the 6 tokens before the match start for negation words (don't, not, never, لا, ما, مو, etc.). A negation → match is discarded.
+- **Span-scoped suppression:** `false_positive_exclusions.json` rules set `type: "crisis_suppress"`. A suppression only cancels a crisis_flag rule if both spans overlap in the text. Missing span info on either side → suppression does NOT fire (conservative default — missing position data is not grounds for hiding a crisis signal).
+
+### 16.3 Crisis Content Evaluation
+
+Context: `{language, crisis_level}`. Locale-select strategy: builds `locale = f"{language}_uae"` and returns the first rule matching both locale and crisis_level. At most one rule fires.
+
+Four rules (two locales × two crisis levels):
+
+| Rule | Locale | Crisis level | First line |
+|---|---|---|---|
+| CC-EN-001 | en_uae | acute | "I'm really concerned about what you've shared. Please reach out for support now. In the UAE: MoHAP Counselling Line 800 46342 (free, 24/7), or emergency services: 999." |
+| CC-EN-002 | en_uae | extended | Resource list: MoHAP 800 46342, CDA 800 4888, Emergency 999, Al Amal Hospital |
+| CC-AR-001 | ar_uae | acute | Arabic equivalent of CC-EN-001 with same UAE numbers |
+| CC-AR-002 | ar_uae | extended | Arabic resource list |
+
+`_crisis_response_node` calls `rules_engine.evaluate("crisis_content", {"language": lang, "crisis_level": "acute"})`. If no rule fires, a hard-coded fallback response is used (graph.py lines 41-47).
+
+### 16.4 Cultural Rule Evaluation
+
+Context: `{text, text_ar, language, code_switch}`.
+
+Three trigger mechanisms:
+- **Empty `trigger_keywords`:** language-only trigger — fires on every message in the rule's target language without inspecting content (e.g. dialect mirroring fires on every Arabic turn).
+- **`trigger_type: "code_switch"`:** fires when `code_switch=True` in context.
+- **`trigger_type: "keyword_match"`:** Arabic-script keywords matched against `normalize_arabic(text_ar)`; Latin keywords matched against `normalize_text(message_en)`.
+
+All matching cultural rules accumulate in the result. Their actions are injected into the system prompt in priority order (ascending priority number = highest priority first) within the 250-word global cultural budget.
+
+### 16.5 Prompt Injection Rule Evaluation
+
+Context: `{text, text_ar, clinical_flags, primary_intent, secondary_intent, session_flags}`.
+
+Five trigger types:
+
+| Type | Fires when |
+|---|---|
+| `keyword_match` | English or Arabic keyword found in message |
+| `flag_present` | Named clinical flag is in `clinical_flags` |
+| `intent_match` | `trigger_value` matches `primary_intent` or `secondary_intent` |
+| `secondary_intent_present` | `secondary_intent` is not None |
+| `session_flag_present` | `trigger_value` is in `session_flags` (e.g. `crisis_occurred`) |
+
+All matching rules accumulate. Their content is injected into the user role under "SUPPORT ADAPTATIONS".
+
+### 16.6 Cultural Output Evaluation
+
+Context: `{response_text, message_en, clinical_flags}`.
+
+Two-phase per rule:
+1. **Condition check:** `always` / `keyword_in_message` / `flag_present`
+2. **Violation check:** `blocklist` (any pattern found in response) or `allowlist_required` (no pattern found in response)
+
+**Critical distinction: only one rule actually changes the response.**
+
+| Rule | Check type | Action type | Effect |
+|---|---|---|---|
+| CUO-ID-001 (wellness identity) | blocklist | `substitute` | **Response is replaced** with canonical wellness companion statement |
+| CUO-FA-001 (family framing) | blocklist | `audit_warn` | Violation logged only; response sent unchanged |
+| CUO-GC-001 (general cultural) | blocklist | `audit_warn` | Violation logged only; response sent unchanged |
+| CUO-SU-001 (substance language) | blocklist (flag_present condition) | `audit_warn` | Violation logged only; response sent unchanged |
+| CUO-IS-001 (religious mirroring) | allowlist_required | `audit_warn` | Violation logged only; response sent unchanged |
+
+CUO-IS-001 checks that when the user used Islamic vocabulary, the response also contains some Islamic vocabulary or patience/trust language — verifying that mirroring occurred, not preventing it.
+
+---
+
+## 17. Cultural Intelligence Layer
+
+The cultural intelligence layer is the system's capability to adapt to Gulf Arab cultural context. It operates across multiple points in the turn lifecycle through the rules engine and the language pipeline.
+
+### 17.1 Cultural Rules — System Prompt Injections
+
+Evaluated in `compose_prompt` via `rules_engine.evaluate("cultural", ...)`. All inject into the system role. Budget: 250 words total. Injections sorted by priority (lower number = higher priority).
+
+| Rule | Trigger | Priority | What it injects |
+|---|---|---|---|
+| CU-SH-001 — Shame/Honour | عيب/عار/فضيحة/dishonor/disgrace keywords | 1 | "In Gulf culture, shame is a social bond signal, not only personal failure. Help the user find a path that honours both their integrity and their relationships." |
+| CU-DM-001 — Dialect Mirroring | **Every Arabic turn** (language-only trigger, no keywords) | 2 | "Respond in Arabic. Use Gulf Arabic (Khaleeji) register: واید over كثير, زين over حسن, شلون over كيف حالك. Mirror Khaleeji markers if user used them; use warm conversational Arabic for MSA. Do NOT switch to English unless the user switches first." |
+| CU-CS-001 — Code-Switching | Both Arabic and Latin characters in same message | 3 | "Mirror their bilingual register: blend Arabic and English naturally. Do NOT force a single language. Do NOT comment on or correct their language choice." |
+| CU-RR-001 — Ramadan | Ramadan/fasting/إفطار/سحور/عيد keywords | 4 | "Fasting fatigue, sleep disruption, and irritability are expected cultural norms, not clinical symptoms. Do NOT pathologise. Acknowledge the spiritual significance." |
+| CU-CO-001 — Collectivist Framing | family/parents/duty/obligation/عائلة/واجب/شرف keywords | 5 | Collectivist framing that respects family investment and obligation without pathologising pressure |
+| CU-IS-001 — Islamic Vocabulary | allah/muslim/quran/inshallah/الله/الحمد لله/إن شاء الله keywords | 6 | Turn-specific Islamic framing; integrates Islamic expressions naturally when the user used them |
+| CU-RG-001 — Generic Religious | god/faith/prayer/church/bible/hindu/sikh/buddhist keywords | 6 | Affirms spiritual perspective without projecting a specific tradition; explicitly avoids imposing Islamic framing unless user referenced Islam |
+| CU-GB-001 — Grief/Bereavement | death/loss/passed away/funeral/إنا لله/توفي/الله يرحمه keywords | — | Islamic bereavement cultural lens; validates mourning as spiritual and communal process |
+
+**Note on CU-DM-001 (dialect mirroring):** This is the only cultural rule that fires on 100% of Arabic turns with no content trigger. It changed from keyword-triggered to language-triggered on 2026-05-22 because dialect mirroring must always be active for Arabic responses, not only when the user happens to use Khaleeji markers.
+
+### 17.2 Prompt Injection Rules — User Role Adaptations
+
+Evaluated in `compose_prompt` via `rules_engine.evaluate("prompt_injection", ...)`. All inject into the user role under "SUPPORT ADAPTATIONS". These adapt Sage's behaviour to the clinical or situational context detected this turn.
+
+**Clinical flag adaptations (PI-CF-001 through PI-CF-005):** Fire when the named flag is in `clinical_flags`. These persist for the rest of the session once the flag is set.
+
+| Rule | Trigger | Injection summary |
+|---|---|---|
+| PI-CF-001 | `substance_use` flag | Motivational interviewing — do NOT judge or suggest immediate cessation. Explore ambivalence. UAE legal context applies. |
+| PI-CF-002 | `trauma_indicator` flag | Trauma-sensitive language — do NOT push for details. Prioritise emotional safety and containment. |
+| PI-CF-003 | `eating_concern` flag | Body-neutral language — avoid all body or weight comments. |
+| PI-CF-004 | `medication_mention` flag | No medication advice — do NOT advise on dosage or changes. Encourage speaking with prescriber. |
+| PI-CF-005 | `domestic_situation` flag | Safety-first framing — do NOT advise leaving without safety planning (can increase risk in some situations). |
+
+**Situational / demographic rules:**
+
+| Rule | Trigger type | Trigger | Injection summary |
+|---|---|---|---|
+| PI-VI-001 — Venting | keyword_match | "just need to vent", "don't want advice", "just want someone to listen", "أبي أفضفض", "ما أبي نصايح" | "Hold space: reflect, validate. Do NOT offer techniques, advice, or solutions." |
+| PI-ID-001 — Identity Question | keyword_match | "what are you", "are you a therapist", "are you a coach", "أنت معالج", "enta therapist" | "You are Sage, a wellness companion. Not a therapist, not a counsellor, not a mental health coach." |
+| PI-AC-001 — Academic Pressure | keyword_match | exam/grade/study/family expectations education keywords | Collectivist Gulf framing for 18–25 UAE demographic; validates family investment without pathologising. |
+| PI-BW-001 — Burnout/Work | keyword_match | burnout/exhaustion/work stress keywords | UAE expat workforce context; validates occupational exhaustion without medicalising. |
+| PI-EI-001 — Expat Isolation | keyword_match | "missing home", "far from family", "loneliness", "feels foreign" | Expat isolation framing; validates collectivist longing as normal; contextualises without pathologising. |
+| PI-CD-001 — Cumulative Distress | flag_present: `escalating_distress` | — | "Acknowledge the ongoing difficulty. Explore what has been weighing on them. Gently assess whether further support would help." |
+| PI-PC-001 — Post-Crisis | session_flag_present: `crisis_occurred` | — | Gentle presence adaptation for turns following a crisis disclosure. |
+| PI-SI-001 — Secondary Intent | secondary_intent_present | — | DBT dialectical framing when any secondary intent is detected (blended turn). |
+| PI-TP-001 — Third Party | RETIRED | — | Replaced by direct third_party_crisis composer injection. Cannot fire. |
+
+**Two-layer identity defence:**
+- PI-ID-001 fires **before** generation, injecting "wellness companion" framing into the prompt so the LLM is correctly oriented before it writes.
+- CUO-ID-001 fires **after** generation, substituting the response if the LLM still self-identified as therapist/coach/counsellor despite the PI-ID-001 injection.
+
+### 17.3 L0 Persona — The Behavioural Foundation
+
+`prompts/templates/L0_persona.json` (v1.4.0). Injected into the system role on every single turn. This is the document that defines Sage's voice and the hard behavioural constraints the LLM must follow regardless of any other instruction.
+
+**Format constraints (enforced mechanically by output_gate for critical violations):**
+- Plain prose. Commas or short sentences instead of dashes. No emojis. No markdown (`**`, `*`, bullets).
+- Do not copy punctuation patterns from skill instructions.
+
+**Phrasing constraints:**
+- "Use plain, conversational language a supportive friend would use, not a therapy textbook."
+- "Avoid abstract metaphors for distress." (Wrong: "What's sitting heaviest?", Right: "What's been bothering you most?")
+
+**Banned reflective openers** (enforced mechanically by `output_gate._BANNED_OPENER_RE`):
+> "It sounds like…" / "That sounds…" / "It seems like…" / "I can hear that…" / "I can see that…" / "It looks like…"
+> *"If you are about to write 'It sounds like' or 'That sounds' or 'It seems like': stop. Rewrite it without the formula."*
+
+**Banned opener phrases** (6 exact phrases blocked by L0, enforced by output_gate):
+> "That's great to hear." / "That's really good to hear." / "That's wonderful to hear." / "That's good to hear." / "I'm really glad to hear that." / "That's so good to hear." / "It's good to hear." / "I'm glad to hear you're making progress."
+
+**Response length:** 2–4 sentences unless the user needs more.
+
+**Persona:** *"You are Sage, a warm Khaleeji wellness companion, not a therapist, counsellor, or mental health coach."*
+
+**What Sage is not:** Does not diagnose, prescribe, or replace professional mental health care. If in crisis: express care and provide emergency resources only.
+
+**Core instruction:** *"Be present before being helpful."* / *"Match the user's energy and register."*
+
+---
+
+## 18. Signal System — How Sage Reads the Room and Adapts
 
 Three separate signals measure how the user is doing turn-by-turn. They are computed by different nodes, stored in state, and feed into multiple layers of the response. This section describes the full chain from measurement to effect.
 
@@ -939,7 +1141,7 @@ During skill execution (only):
                →  step advance / hold / validate_only / check_in_micro / offer_switch
 ```
 
-## 17. Known Gaps and Pending Items
+## 19. Known Gaps and Pending Items
 
 | ID | Gap | Status | Notes |
 |---|---|---|---|
