@@ -1,0 +1,154 @@
+{
+  "skill_id": "cognitive_restructuring",
+  "skill_name": "Cognitive Restructuring",
+  "skill_type": "structured",
+  "self_evolution": "manual_only",
+  "evidence_base": "Beck (1979); Burns (1980) Feeling Good; Clark & Beck (2010); NICE CG91",
+  "target_presentations": [
+    "thinking patterns are unhelpful",
+    "my thinking keeps getting stuck",
+    "mind keeps going to dark places",
+    "keep thinking the worst will happen",
+    "I overthink everything",
+    "my thoughts don't feel like mine",
+    "patterns of thinking",
+    "I know it's irrational but",
+    "my brain goes to worst case",
+    "thought patterns",
+    "stuck thoughts",
+    "unhelpful thinking",
+    "I can't stop the thoughts",
+    "I keep jumping to conclusions",
+    "my mind spirals",
+    "I always expect the worst",
+    "thinking traps",
+    "أفكاري تتعبني",
+    "ما أقدر أوقف التفكير",
+    "أفكاري مو بأيدي",
+    "راسي يدور",
+    "أفكار سلبية",
+    "أفكاري مشغولة دايم",
+    "تفكيري مو زين"
+  ],
+  "semantic_description": "Cognitive restructuring protocol from cognitive behavioral therapy. Identifying and challenging unhelpful thinking patterns through Socratic questioning and guided discovery. Beck's cognitive model applied to automatic thoughts and thinking errors. Burns cognitive distortion identification: all-or-nothing thinking, magnification, mind-reading, fortune-telling, emotional reasoning, should statements, labeling. Thought challenging through evidence examination. Generating balanced alternative perspectives. Downward arrow technique: identifying the core belief beneath a surface thought. Thought monitoring and identification without the formal three-column record structure. Psychoeducation on the relationship between thoughts, feelings, and behavior. First-step cognitive work: recognizing that thoughts are mental events not facts. Cognitive reappraisal for everyday distress. Flexible thinking training. Identifying thinking traps and learning to step back from them. The cognitive behavioral model for beginners. Distinguishing a thought from a fact. Cognitive flexibility.",
+  "steps": [
+    {
+      "step_id": "name_the_pattern",
+      "goal": "Identify and name the unhelpful thinking pattern without challenging it yet. Help the user notice the pattern as a pattern, not as truth.",
+      "technique": "Thought monitoring and pattern identification",
+      "technique_description": "Help the user notice and name the thinking pattern they are caught in. This step is about awareness, not change. Use warm, curious questions to help the user surface the pattern. Introduce the concept of thinking traps gently and without jargon. The goal is to help the user take one step back from the thought and observe it rather than be inside it. Do not list cognitive distortion labels aloud. Use everyday language: 'it sounds like your mind is jumping to the worst case before it has all the information' rather than 'that is fortune-telling'. One question at a time. Wait for the user.",
+      "tone": "warm, curious, non-judgmental, gently observational",
+      "contraindications": "Do NOT challenge the thought at this step. Do NOT ask 'is that really true?' or use any question that implies the thought is wrong. The goal is only to help the user notice the pattern. Premature challenging before the pattern is named and recognized can break the working alliance. Do NOT use clinical labels for distortions without explanation. Do NOT move to step two until the user has named or described the pattern in some way.",
+      "completion_criteria": "The user has described or recognised a recurring or unhelpful thinking pattern in their own words. 'My mind always jumps to the worst' or 'I keep assuming everyone is judging me' are sufficient. A vague expression of distress without any reference to thinking requires one more Socratic question before proceeding.",
+      "examples": [
+        "When you notice yourself feeling this way, what kinds of thoughts tend to show up? What is the mind saying?",
+        "It sounds like your mind keeps going to a particular place with this. If you had to give that pattern a name, what would you call it?",
+        "I'm noticing something as you describe this — it sounds like your mind might be filling in some gaps with the worst possible version of events. Does that feel like it fits?",
+        "لما تحس بهذا الإحساس، وش يجي في بالك؟ وش تقول لنفسك؟",
+        "يبدو إن تفكيرك دايم يروح لنفس المكان. لو تسمي هذا النمط، وش تسميه؟"
+      ]
+    },
+    {
+      "step_id": "examine_the_thought",
+      "goal": "Examine the unhelpful thought with gentle Socratic questions. Look at the evidence for and against, invite a different perspective, and help the user loosen the thought's grip without dismissing it.",
+      "technique": "Socratic questioning and evidence examination",
+      "technique_description": "Guide the user to examine the thought by exploring evidence for and against it. Use questions rather than statements. The goal is collaborative exploration, not correction or persuasion. Useful Socratic questions include: What is the evidence for this thought? What is the evidence against it? If a close friend had this thought, what would I say to them? What would I think about this in a different mood or at a different time? Is there another explanation? The downward arrow can be used lightly here: 'and if that were true, what would that mean?' to find the core belief. Do not pressure for change. Hold the thought with curiosity, not urgency.",
+      "tone": "warm, collaborative, curious, unhurried",
+      "contraindications": "Do NOT tell the user their thought is wrong or irrational. Do NOT rush to the balanced thought. Do NOT use clinical labels without collaborative framing. Do NOT invalidate the experience behind the thought, the feeling is real even if the thought is not perfectly accurate. If the user is highly distressed, pause and validate before examining. A thought under acute distress cannot be examined productively.",
+      "completion_criteria": "The user has engaged with at least one question about the evidence for or against the thought, or has acknowledged that another perspective might exist. Full agreement with the alternative perspective is not required. 'I can see that, but it still feels true' is a valid and sufficient response to proceed from.",
+      "examples": [
+        "What evidence do you have that this thought is accurate? And what evidence might go against it?",
+        "If a good friend came to you with this exact same thought about themselves, what would you say to them?",
+        "Is there another way to look at this situation — even one you don't fully believe right now?",
+        "لو صديقك المقرب جاك بنفس الفكرة عن نفسه، وش كنت تقوله له؟",
+        "فيه دليل على صحة هالفكرة؟ وفيه شي يعاكسها؟ ما لازم تؤمن بالجواب، بس خلينا نشوف."
+      ]
+    },
+    {
+      "step_id": "flexible_perspective",
+      "goal": "Generate a more flexible, balanced perspective in the user's own words. The goal is not positivity but realism: a thought that acknowledges the original concern while making room for other possibilities.",
+      "technique": "Cognitive reappraisal and balanced perspective generation",
+      "technique_description": "Help the user construct a more realistic and flexible perspective in their own words. Supply the structure through questions, not the content. The balanced perspective is not the opposite of the original thought. It is a thought that holds both the concern and the possibility of other outcomes. 'Maybe things won't go perfectly, and I can still handle it' is better than 'everything will be fine.' Ask the user to generate the reframe, then help them refine it. The reframe must feel real to the user, not like a positive affirmation they do not believe. A tentative reframe they own is more valuable than a polished one they were given.",
+      "tone": "encouraging, collaborative, hopeful, honest",
+      "contraindications": "Do NOT supply the balanced thought for the user. Do NOT insist on positivity. Do NOT say 'the truth is' or 'the reality is', the balanced thought comes from the user, not the system. Do NOT pressure a reframe if the user is not ready. If they cannot generate a reframe, acknowledge the difficulty warmly and offer to revisit rather than forcing one. A session that ends at step two with genuine insight is a success.",
+      "completion_criteria": "The user has articulated a more flexible or balanced perspective in their own words. It does not need to be polished. It should acknowledge the original thought without being dominated by it. 'I know I'm not great at everything, but that doesn't mean I fail at everything' is sufficient. If the user cannot generate one, acknowledging that the thought may be only part of the picture is also a meaningful outcome.",
+      "examples": [
+        "Taking everything we've talked about into account, what would be a more balanced way of looking at this? Not more positive necessarily, just more complete?",
+        "If you had to tell yourself something more fair — something that takes the worry seriously but doesn't let it be the whole story — what would that sound like?",
+        "How does this new perspective, even if it's tentative, feel compared to the original thought?",
+        "بعد كل اللي تكلمنا عنه، وش تقدر تقول لنفسك اللي يكون أعدل شوي؟ مو لازم يكون إيجابي، بس أكثر اتزان.",
+        "لو حاولت تحكي لنفسك فكرة تعترف بالقلق بس ما تخليه يحكم على كل شي، وش كانت تكون؟"
+      ]
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
+      "action": "validate_only",
+      "instruction": "The user is highly distressed. Validate their emotion fully and do NOT attempt to examine or challenge any thought. Stay warm and present. Cognitive work requires a window of tolerance. Return to normal step next turn only if distress has reduced.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance to cognitive restructuring. Offer to pause and just talk, or explore whether a different approach might suit them better. Do not push the technique. Some people need validation and presence more than cognitive work at this point.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "check_in_micro",
+      "instruction": "The user seems disengaged. Gently check in: is this kind of thinking work feeling useful right now, or would something else be more helpful?",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit with warmth and without persuasion. Noticing a thinking pattern and stepping back from it even slightly is meaningful work.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": {
+        "signal": "trauma_disclosure_detected",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "flag_for_review",
+      "instruction": "User has disclosed a traumatic event. Do NOT challenge thoughts connected to trauma without clinical support. Validate, add clinician_review flag, and offer to simply talk rather than continue cognitive restructuring.",
+      "next_step_id": "current"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit skill gracefully if user requests to stop. No persuasion.",
+    "L2": "Add clinician_review flag if trauma disclosure or persistent hopelessness about thinking change is detected.",
+    "L3": "Exit immediately to crisis protocol if any crisis signal is detected. Cognitive restructuring is contraindicated during active crisis.",
+    "L4": "Trigger human handoff if 3 or more crises detected in the last 30 days, or if user explicitly requests a human clinician."
+  },
+  "cultural_overrides": {
+    "collective_thought_framing": "In Gulf Arab culture, unhelpful thoughts often concern family honour, collective obligation, and social standing rather than individual achievement. Do not frame cognitive restructuring as individual self-improvement. The pattern examination should acknowledge collective and relational dimensions. A thought like 'I am failing my family' may be partly realistic and partly distorted, hold both.",
+    "tawakkul_and_qadar": "When a user frames persistent negative thoughts against Islamic concepts of tawakkul (trust in God) or qadar (divine decree), do not use Western cognitive challenging language. Instead, gently explore whether the thought is consistent with trusting God, or whether it is excessive rumination that Islamic tradition itself discourages. Validate the faith frame. Never argue theology.",
+    "family_obligation_thoughts": "Thoughts centred on family responsibility (provider duty, filial obligation, marital role) may feel culturally obligatory rather than distorted. Do not automatically apply cognitive challenging to these. First explore whether the thought is realistic within the user's actual cultural context. Only introduce flexibility when the thought is causing disproportionate distress beyond what the situation warrants."
+  }
+}

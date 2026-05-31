@@ -1,0 +1,156 @@
+{
+  "skill_id": "interpersonal_effectiveness",
+  "skill_name": "Interpersonal Effectiveness (DBT)",
+  "skill_type": "structured",
+  "self_evolution": "manual_only",
+  "evidence_base": "Linehan (1993) Cognitive-Behavioral Treatment of Borderline Personality Disorder; Linehan (2015) DBT Skills Training Manual",
+  "target_presentations": [
+    "navigating relationships",
+    "relationship problems",
+    "relationship conflict",
+    "managing relationships",
+    "keeping relationships healthy",
+    "how to handle relationship",
+    "competing priorities in relationships",
+    "relationship dynamics",
+    "I don't know how to handle this relationship",
+    "DEAR MAN",
+    "DBT relationship skills",
+    "interpersonal effectiveness",
+    "I want the relationship but I also need something",
+    "keeping the peace while getting what I need",
+    "relationship balance",
+    "how to deal with conflict in relationships",
+    "I don't want to damage the relationship",
+    "conflict resolution",
+    "relationship repair",
+    "managing competing loyalties",
+    "علاقاتي مرهقة",
+    "ما أدري كيف أتعامل مع هالشخص",
+    "أبي أحافظ على العلاقة",
+    "تعب من الخلافات",
+    "كيف أوازن بين احتياجاتي والعلاقة"
+  ],
+  "semantic_description": "DBT interpersonal effectiveness skills module. DEAR MAN technique: Describe, Express, Assert, Reinforce, Mindful, Appear confident, Negotiate. GIVE skills: Gentle, Interested, Validate, Easy manner. FAST skills: Fair, Apologies, Stick to values, Truthful. Dialectical Behavior Therapy relationship skills. Navigating relationship dynamics and competing priorities in relationships. Balancing relationship goals, self-respect, and objectives. How to maintain healthy relationships while meeting personal needs. Managing conflict and disagreement in relationships. The skills of getting what you need while keeping the relationship. Interpersonal effectiveness module from DBT. Communicating in relationships with clarity and warmth. Navigating family relationships and obligations. Managing competing loyalties in close relationships. When to prioritize the relationship versus the objective. Validation and relationship repair skills.",
+  "steps": [
+    {
+      "step_id": "clarify_goal",
+      "goal": "Identify what the person most wants from the situation: achieving an objective (DEARMAN), preserving the relationship (GIVE), or maintaining self-respect (FAST). Help them name the primary priority without forcing a single answer.",
+      "technique": "Goal clarification and priority identification",
+      "technique_description": "Before introducing any technique, help the user understand what they most want from this particular relationship situation. Three legitimate priorities can exist: getting the outcome they need (objective effectiveness, DEARMAN), keeping the relationship intact and warm (relationship effectiveness, GIVE), or preserving their own sense of dignity and self-respect (self-respect effectiveness, FAST). In many situations these overlap. In some they pull in different directions. Use open questions to help the user name which feels most important right now. Do not suggest that one priority is more mature or valid than another. In Gulf relational contexts, relationship preservation and self-respect are often intertwined with family honour. Work within this frame. One question at a time.",
+      "tone": "warm, curious, non-directive, spacious",
+      "contraindications": "Do NOT push the user to choose only one priority. Do NOT frame relationship preservation as less important than getting what one wants. Do NOT assume the user wants to 'win' the conflict. Do NOT present the DBT acronyms as jargon at this stage. Introduce them only when walking through a specific approach. If the user is acutely distressed about the relationship, validate before clarifying goals.",
+      "completion_criteria": "The user has named or pointed toward what matters most: getting a specific outcome, keeping the relationship, or maintaining their own sense of self. A response like 'I don't care about winning this argument, I just don't want to lose the friendship' is sufficient. Vague general distress about a relationship without a sense of priority requires one more question.",
+      "examples": [
+        "When you think about this situation, what matters most to you right now? Is it getting a specific outcome — something you need from this person? Or is it more about keeping the relationship intact? Or is it about not betraying yourself — maintaining your own sense of dignity and what you stand for?",
+        "Sometimes in a relationship situation we want all three: we want what we need, we want to keep the relationship, and we want to feel okay about how we handled it. That's normal. But often one of those feels most urgent right now. Which one feels most important to you in this situation?",
+        "What would a good outcome look like here? Not perfect, but good enough.",
+        "لما تفكر في الموقف هذا، وش أهم شي تبيه؟ تحصل على شي معين؟ أو تحافظ على العلاقة؟ أو تحس إنك ما خذلت نفسك؟",
+        "بعض الأحيان الثلاثة تهمونا مع بعض: الهدف، والعلاقة، وكرامتنا. لكن لو لازم تختار واحد أهم من الباقين في هالموقف، وش يكون؟"
+      ]
+    },
+    {
+      "step_id": "choose_approach",
+      "goal": "Based on what the user identified as their primary goal, walk through the relevant DBT approach: DEARMAN for objectives, GIVE for relationship, FAST for self-respect. Apply it collaboratively to the real situation.",
+      "technique": "DEARMAN, GIVE, or FAST application",
+      "technique_description": "Introduce the relevant DBT framework based on the goal identified in step one. Walk through it step by step using the user's own situation. Do not present all three frameworks at once. DEARMAN (for objectives): Describe the situation factually, Express how you feel or what you need, Assert what you want clearly, Reinforce by naming what the person gets if they help, Mindful of the goal and not getting sidetracked, Appear confident even if you don't feel it, Negotiate and be willing to give to get. GIVE (for relationship): Gentle in approach, Interested in the other person's perspective, Validate their experience, Easy manner and tone. FAST (for self-respect): Fair to yourself and others, no Apologies for your existence or needs, Stick to your values, Truthful. In Gulf relational contexts, GIVE is often the most culturally consonant approach. Face-saving and indirect communication are forms of GIVE, not signs of weakness. Validate this explicitly. Walk through the chosen approach by asking the user to generate the content, not by supplying it.",
+      "tone": "collaborative, practical, structured, culturally flexible",
+      "contraindications": "Do NOT present all three frameworks simultaneously as a menu. Do NOT insist on Western directness if the user's cultural context calls for face-saving and indirect approaches. Do NOT skip the 'Reinforce' step in DEARMAN, it is often the most important and most overlooked. Do NOT allow FAST to become an excuse for aggression or rigidity. Self-respect means being fair to oneself, not punishing the other person. If the user reveals a situation that may involve coercive control, pause and assess safety before continuing with any of the frameworks.",
+      "completion_criteria": "The user has worked through the key elements of the chosen framework applied to their real situation, even approximately. They should be able to articulate, in some form, what they want to say and how they want to say it within the chosen approach. A rough version in their own words is better than a polished version they were given.",
+      "examples": [
+        "Since what matters most to you is getting a specific outcome, let's look at DEARMAN. It's a way to ask for what you need in a way that's clear, respectful, and hard to say no to. The first step is Describe: just the facts of the situation, no judgement, no blame. What is actually happening?",
+        "Given that keeping this relationship matters most to you, let's focus on GIVE. This is about how you show up in the conversation. Gentle, Interested in their perspective, Validating their experience, and Easy manner. These aren't weakness — in fact in Gulf culture you probably already know how to do this. When have you seen someone handle a difficult conversation in a way that kept the relationship intact? What did they do?",
+        "You said maintaining your sense of dignity matters most here. FAST is about that: being Fair to yourself, not apologizing for your needs, Sticking to your values, and being Truthful. What would being truthful with yourself look like in this situation, before you even think about what to say to the other person?",
+        "بما إن أهم شي لك هو تحقيق هدف معين، خلينا نستخدم الـ DEARMAN. أول خطوة هي تصف الموقف بثقل، بدون لوم ومجرد وقائع. وش اللي يصير بالظبط؟",
+        "بما إن المحافظة على العلاقة هي الأهم، خلينا نركز على الـ GIVE: ناعم في الأسلوب، مهتم برأي الثاني، تعترف بمشاعره، وأسلوبك مريح مو متوتر. وش تحس إن الأقرب لأسلوبك الطبيعي من هذي الأشياء؟"
+      ]
+    },
+    {
+      "step_id": "rehearsal_and_reflection",
+      "goal": "Practice the chosen approach through planning or role-play, then reflect on what felt useful and what felt difficult. Build confidence and identify what might get in the way.",
+      "technique": "Behavioural rehearsal and reflective consolidation",
+      "technique_description": "Help the user practice what they are going to do or say, using the framework they worked through in step two. This does not need to be a formal role-play. It can be: writing out what they would say, saying it aloud to the therapist, or walking through how the conversation might unfold and planning for likely responses. Anticipate the obstacles: what might the other person say or do? What might the user feel when they are in the moment? What might make them abandon the approach mid-conversation? Name these ahead of time so they feel less surprising. Validate that interpersonal effectiveness does not always feel natural, especially in high-stakes relationships. The first attempt may be imperfect. The goal is to build a workable approach, not a perfect script. Close with genuine encouragement grounded in what the user has identified and practised.",
+      "tone": "warm, grounded, encouraging, honest about difficulty",
+      "contraindications": "Do NOT promise that the approach will work or that the other person will respond well. Do NOT end the session without naming what might get in the way and normalising the likely discomfort. Do NOT insist on a polished script. In Gulf relational contexts, the approach may need to be indirect, gradual, or mediated through a third party. Validate this as relationship wisdom, not avoidance. If the user expresses genuine fear of consequences for expressing themselves, assess safety before continuing.",
+      "completion_criteria": "The user has rehearsed or planned a concrete approach in their own words, and has named at least one thing that might make it difficult and how they will handle it. A verbalized plan is sufficient. 'I am going to use GIVE when I talk to my father next week, and if he shuts me down, I will not push, I will just say I wanted to share how I felt' is a complete response.",
+      "examples": [
+        "Let's try it out. Say what you would actually say to this person, in your own words, the way you would actually speak to them. Don't aim for perfect. Aim for honest and in line with the approach we've been working through.",
+        "What do you think they'll say or do when you bring this up? Let's think through that together so it doesn't catch you off guard.",
+        "Here's something important to expect: even with a good approach, it may feel uncomfortable in the moment, especially if you're used to keeping the peace by staying silent. That discomfort isn't a sign the approach is wrong. What will you say to yourself to stay on track?",
+        "جرب تقول لي اللي ستقوله للشخص الثاني بكلامك أنت، بالطريقة اللي ستكلمه فيها فعلاً. مو لازم يكون مثالياً.",
+        "وش تتوقع يرد عليك؟ خلينا نفكر في ردوده المحتملة عشان ما تفاجئك، وتكون جاهزاً."
+      ]
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
+      "action": "validate_only",
+      "instruction": "The user is acutely distressed about the relationship. Do not continue interpersonal effectiveness training. Validate their experience fully and stay present. Relationship skills work requires enough psychological safety to think clearly. Return to normal step next turn only if distress has reduced.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance to the structured approach. Offer to pause and just talk about the relationship, or explore whether a different approach might suit them better right now.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "check_in_micro",
+      "instruction": "The user seems disengaged. Gently check in: is this kind of structured approach feeling useful right now, or would it be more helpful to just talk about the relationship?",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit with warmth and without persuasion. Even naming what you most want from a relationship and beginning to think about how to approach it is meaningful work.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": {
+        "signal": "coercive_relationship_indicators_detected",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "flag_safety_concern",
+      "instruction": "The user may be describing a controlling or unsafe relationship dynamic rather than a typical interpersonal difficulty. Do NOT continue interpersonal effectiveness training as designed. Validate first. Gently explore whether expressing needs in this relationship has led to harm. Add clinician_review flag. Offer to focus on safety rather than relationship navigation technique.",
+      "next_step_id": "current"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit skill gracefully if user requests to stop. No persuasion. Acknowledge that naming what matters in a relationship and beginning to think through an approach is already meaningful.",
+    "L2": "Add clinician_review flag if persistent fear of consequences for self-expression is described, or if indicators of coercive control or emotional abuse are present.",
+    "L3": "Exit immediately to crisis protocol if any crisis signal is detected during the session.",
+    "L4": "Trigger human handoff if 3 or more crises detected in the last 30 days, or if user explicitly requests a human clinician."
+  },
+  "cultural_overrides": {
+    "extended_family_dynamics": "Gulf Arab family systems include obligations to extended family, not just the nuclear unit. Interpersonal effectiveness in this context often means navigating hierarchical relationships with parents, in-laws, or elders where direct assertiveness would be culturally inappropriate. Validate the complexity. GIVE and FAST are often more culturally consonant than DEARMAN in these contexts. Committed action may be gradual, indirect, or mediated.",
+    "face_saving_as_skill": "Indirect communication and face-saving are not failures of assertiveness in Gulf culture. They are skilled relational moves that preserve relationships while still communicating meaning. Frame them within GIVE as culturally competent interpersonal effectiveness, not as avoidance or passivity.",
+    "wasta_and_mediation": "In Gulf contexts, wasta (using a trusted intermediary to navigate a conflict or request) is a legitimate and respected form of relationship repair. If the user mentions wanting a third party to help mediate, treat this as valid interpersonal strategy within GIVE, not as a workaround to avoid.",
+    "gender_role_pressures": "Interpersonal expectations differ significantly by gender in Gulf contexts. Men may face pressure around provision, protection, and decisiveness. Women may face pressure around deference, family harmony, and not appearing to challenge authority. Acknowledge these real pressures without reinforcing them. Explore what self-respect means within the user's actual context, not an idealized one."
+  }
+}
