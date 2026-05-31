@@ -9,7 +9,7 @@
 
 ## 1. Overview
 
-SageAI is a bilingual (Arabic/English) therapeutic wellness companion built on LangGraph. It routes each user turn through a deterministic 9-node graph, selecting from 20 structured therapeutic skills or falling back to evidence-informed freeflow conversation. Crisis detection, clinical flag tracking, and post-crisis state management run on every turn ahead of any response generation.
+SageAI is an English-first therapeutic wellness companion with Arabic delivery via translation. It handles both languages but is not natively bilingual — skill logic is authored in English; Arabic replies are produced by translating the English response via the output_gate pipeline. See §3 (Language Pipeline) for the full translation architecture. It routes each user turn through a deterministic 9-node graph, selecting from 20 structured therapeutic skills or falling back to evidence-informed freeflow conversation. Crisis detection, clinical flag tracking, and post-crisis state management run on every turn ahead of any response generation.
 
 ### 1.1 What changed from v7 FINAL / v7.1 addendum
 
@@ -910,15 +910,19 @@ Two-phase per rule:
 1. **Condition check:** `always` / `keyword_in_message` / `flag_present`
 2. **Violation check:** `blocklist` (any pattern found in response) or `allowlist_required` (no pattern found in response)
 
+**Cultural output screening does not run on every response.** Three paths skip it entirely: `scope_refusal` (uses a hardcoded response string, not passed through cultural check), `jailbreak` (same), and `crisis_response` (bypasses `output_gate` entirely — no cultural output check, no audit_warn, no substitute). Only the standard, skill, freeflow, and knowledge paths are screened.
+
 **Critical distinction: only one rule actually changes the response.**
 
 | Rule | Check type | Action type | Effect |
 |---|---|---|---|
 | CUO-ID-001 (wellness identity) | blocklist | `substitute` | **Response is replaced** with canonical wellness companion statement |
-| CUO-FA-001 (family framing) | blocklist | `audit_warn` | Violation logged only; response sent unchanged |
-| CUO-GC-001 (general cultural) | blocklist | `audit_warn` | Violation logged only; response sent unchanged |
-| CUO-SU-001 (substance language) | blocklist (flag_present condition) | `audit_warn` | Violation logged only; response sent unchanged |
-| CUO-IS-001 (religious mirroring) | allowlist_required | `audit_warn` | Violation logged only; response sent unchanged |
+| CUO-FA-001 (family framing) | blocklist | `audit_warn` | `_log.warning()` + `cultural_output_violations` in session audit. Response unchanged. |
+| CUO-GC-001 (general cultural) | blocklist | `audit_warn` | `_log.warning()` + `cultural_output_violations` in session audit. Response unchanged. |
+| CUO-SU-001 (substance language) | blocklist (flag_present condition) | `audit_warn` | `_log.warning()` + `cultural_output_violations` in session audit. Response unchanged. |
+| CUO-IS-001 (religious mirroring) | allowlist_required | `audit_warn` | `_log.warning()` + `cultural_output_violations` in session audit. Response unchanged. |
+
+**`audit_warn` violations do NOT reach the clinician review queue.** They are written to the server log and included in the `cultural_output_violations` field of the Supabase session_audit row. `PostgresNotifier.notify_review_required()` is not called. Clinicians see nothing in their dashboard about a cultural output violation — that queue is only triggered by `crisis_flags` and `clinical_flags`.
 
 CUO-IS-001 checks that when the user used Islamic vocabulary, the response also contains some Islamic vocabulary or patience/trust language — verifying that mirroring occurred, not preventing it.
 
@@ -944,6 +948,10 @@ Evaluated in `compose_prompt` via `rules_engine.evaluate("cultural", ...)`. All 
 | CU-GB-001 — Grief/Bereavement | death/loss/passed away/funeral/إنا لله/توفي/الله يرحمه keywords | — | Islamic bereavement cultural lens; validates mourning as spiritual and communal process |
 
 **Note on CU-DM-001 (dialect mirroring):** This is the only cultural rule that fires on 100% of Arabic turns with no content trigger. It changed from keyword-triggered to language-triggered on 2026-05-22 because dialect mirroring must always be active for Arabic responses, not only when the user happens to use Khaleeji markers.
+
+**Critical qualification — these are LLM instructions, not lexical enforcement.** All cultural rules inject guidance text into the prompt. The LLM is instructed to use وايد/زين/شلون and to mirror code-switching — but there is no output filter that verifies or forces this. Whether the LLM follows the guidance depends on model capability and the specific conversation context.
+
+**Khaleeji dialect quality is not independently validated.** The `test_dialect_mirroring_fires_on_any_arabic_message` test confirms the rule injection reaches the system prompt (i.e. "Arabic" or "LANGUAGE" appears in system_str). It does not evaluate whether the actual Arabic output reads as authentic Khaleeji Gulf dialect. The demo readiness checklist (2026-05-27) lists "run Arabic scenarios with an Arabic-speaking colleague and verify dialect is appropriate for Gulf audience" as a pre-demo to-do — this has not been signed off as completed.
 
 ### 17.2 Prompt Injection Rules — User Role Adaptations
 
