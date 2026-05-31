@@ -308,6 +308,25 @@ _CULTURAL_OVERRIDE_BUDGET_WORDS = 200  # clinician-signed cap; forces concise co
 _TOTAL_WORD_BUDGET = 1100
 
 
+def build_cultural_override_block(skill) -> str | None:
+    """Build the override block string exactly as compose_prompt injects it.
+
+    Returns the block string if the skill has cultural_overrides and the block
+    fits within _CULTURAL_OVERRIDE_BUDGET_WORDS; returns None otherwise.
+
+    Call this from the audit and CI tests instead of reconstructing the format
+    — any divergence between a hand-rolled reconstruction and this function is
+    the silent-drop bug wearing a test as a disguise.
+    """
+    if not skill.cultural_overrides:
+        return None
+    lines = "\n".join(f"- {v}" for v in skill.cultural_overrides.values())
+    block = f"SKILL-SPECIFIC CULTURAL CONTEXT:\n{lines}"
+    if count_words(block) <= _CULTURAL_OVERRIDE_BUDGET_WORDS:
+        return block
+    return None
+
+
 def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     """Return (system_str, user_str, prompt_layers) for role-separated LLM invocation.
 
@@ -363,20 +382,16 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     if _active_for_overrides:
         try:
             _override_skill = load_skill(_active_for_overrides)
-            if _override_skill.cultural_overrides:
-                _override_lines = "\n".join(
-                    f"- {v}" for v in _override_skill.cultural_overrides.values()
+            _override_block = build_cultural_override_block(_override_skill)
+            if _override_block is not None:
+                _override_words = count_words(_override_block)
+                system_parts.append(_override_block)
+                layers.append("cultural_skill_overrides")  # only when actually injected
+            elif _override_skill.cultural_overrides:
+                _log.warning(
+                    "cultural_overrides exceeds budget for %s", _active_for_overrides
                 )
-                _override_block = f"SKILL-SPECIFIC CULTURAL CONTEXT:\n{_override_lines}"
-                if count_words(_override_block) <= _CULTURAL_OVERRIDE_BUDGET_WORDS:
-                    _override_words = count_words(_override_block)
-                    system_parts.append(_override_block)
-                    layers.append("cultural_skill_overrides")  # only when actually injected
-                else:
-                    _log.warning(
-                        "cultural_overrides exceeds budget for %s", _active_for_overrides
-                    )
-                    # Block not injected; no layer tag — audit trail must reflect reality
+                # Block not injected; no layer tag — audit trail must reflect reality
         except Exception as exc:
             _log.warning("cultural_overrides load failed for %s: %s", _active_for_overrides, exc)
 
