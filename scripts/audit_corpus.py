@@ -19,6 +19,7 @@ from sage_poc.corpus_constants import (
     CRISIS_GATE,
     DEFERRED_AR,
     PLACEHOLDER_MARKERS,
+    PRESENTATIONS_FLOOR_EXEMPTIONS,
     REQUIRED_POLICY_SIGNALS,
 )
 from sage_poc.clinical_clusters import CLINICAL_CLUSTERS
@@ -142,11 +143,13 @@ def check_skills() -> None:
         if "crisis" not in skill.escalation_matrix.get("L3", "").lower():
             fail(f"{sid}: L3 does not mention crisis")
 
-        if len(skill.target_presentations) < 20:
+        if sid not in PRESENTATIONS_FLOOR_EXEMPTIONS and len(skill.target_presentations) < 20:
             fail(
                 f"{sid}: only {len(skill.target_presentations)} target_presentations "
                 f"(minimum 20)"
             )
+        elif sid in PRESENTATIONS_FLOOR_EXEMPTIONS:
+            ok(f"{sid}: presentations floor exempt — {PRESENTATIONS_FLOOR_EXEMPTIONS[sid][:70]}")
 
         if not skill.semantic_description.strip():
             fail(f"{sid}: semantic_description is empty")

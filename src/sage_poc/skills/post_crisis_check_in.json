@@ -12,19 +12,8 @@
     "wanted to check in",
     "still here",
     "doing better now",
-    "crisis has passed",
-    "no longer want to hurt myself",
-    "feeling more stable now",
-    "I'm okay now",
-    "things feel better now",
-    "reaching out after what we talked about",
-    "checking how you are after earlier",
-    "feeling calmer since we spoke",
-    "thoughts are quieter now",
-    "I made it through",
-    "أنا بخير الحين",
-    "أحس أحسن من قبل",
-    "الأمور أهدت الحين"
+    "أحس أحسن الحين",
+    "أبي أشوف كيف أنت بعد قبل شوي"
   ],
   "semantic_description": "Post-crisis safety monitoring protocol. ASIST post-intervention follow-up. Structured safety reassessment after acute suicidal ideation de-escalation: current safety status, whether intrusive thoughts have receded, access to support network. Crisis stabilization verification. Safety check-in after previously expressed passive or active suicidal ideation. Monitoring-phase transition assessment: post-acute stability, risk re-escalation detection, helpline resource provision. Follow-up after crisis intervention. Safety plan review.",
   "steps": [

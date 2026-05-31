@@ -55,3 +55,22 @@ CLUSTER_EXCLUSIONS: dict[str, str] = {
         "the calibration gap calculation"
     ),
 }
+
+# Skills exempt from the ≥20 target_presentations floor check.
+#
+# The floor exists to ensure enough keyword triggers for Tier 1 routing.
+# Skills that do NOT route via keyword matching (state-driven auto-select) have
+# no routing use for target_presentations — their list is documentation only.
+# Padding those lists to satisfy the floor creates spurious keyword routes that
+# activate the wrong skill for non-crisis users (skill_select_node line 108
+# iterates target_presentations for ALL skills when crisis_state != "monitoring").
+#
+# Add a skill here only when it is activated by a mechanism other than
+# keyword/semantic matching. Include the reason.
+PRESENTATIONS_FLOOR_EXEMPTIONS: dict[str, str] = {
+    "post_crisis_check_in": (
+        "activated via post_crisis_auto_select when crisis_state == 'monitoring' "
+        "(skill_select_node line 89) — target_presentations are documentation only "
+        "and are never used as keyword routing triggers in production"
+    ),
+}

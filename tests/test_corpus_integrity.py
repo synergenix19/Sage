@@ -18,6 +18,7 @@ from sage_poc.corpus_constants import (
     CRISIS_GATE,
     DEFERRED_AR,
     PLACEHOLDER_MARKERS,
+    PRESENTATIONS_FLOOR_EXEMPTIONS,
     REQUIRED_POLICY_SIGNALS,
 )
 from sage_poc.clinical_clusters import CLINICAL_CLUSTERS
@@ -147,9 +148,12 @@ def test_skill_structural_floors(sid):
     assert "crisis" in skill.escalation_matrix["L3"].lower(), (
         f"{sid}: L3 must mention crisis"
     )
-    assert len(skill.target_presentations) >= 20, (
-        f"{sid}: only {len(skill.target_presentations)} target_presentations (min 20)"
-    )
+    if sid not in PRESENTATIONS_FLOOR_EXEMPTIONS:
+        assert len(skill.target_presentations) >= 20, (
+            f"{sid}: only {len(skill.target_presentations)} target_presentations (min 20). "
+            f"If this skill uses state-driven routing (not keyword/semantic), add it to "
+            f"corpus_constants.PRESENTATIONS_FLOOR_EXEMPTIONS with a reason."
+        )
     assert skill.semantic_description.strip(), f"{sid}: semantic_description is empty"
 
     # v7 §9.1 MANDATORY fields
