@@ -436,7 +436,16 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
         layers.append("history")
 
     # L2: Intent framing (always included per v7 §5.6)
-    l2_block = _build_l2_intent_block(primary_intent, intensity, secondary_intent)
+    # When new_skill intent reaches freeflow with no matched skill, use the
+    # unmatched-disclosure template (structural constraints: name disclosed content,
+    # do not re-probe named emotions, offer space not solutions). Selector pending
+    # Rule 1 approval — template is draft-pending-review.
+    _l2_intent = (
+        "new_skill_unmatched"
+        if primary_intent == "new_skill" and not state.get("active_skill_id")
+        else primary_intent
+    )
+    l2_block = _build_l2_intent_block(_l2_intent, intensity, secondary_intent)
     user_parts.append(l2_block)
     layers.append("intent")
 

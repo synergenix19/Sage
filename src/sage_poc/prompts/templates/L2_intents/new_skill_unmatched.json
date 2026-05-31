@@ -1,0 +1,22 @@
+{
+  "template_id": "L2_new_skill_unmatched",
+  "version": "0.1.0-draft",
+  "status": "draft-pending-review",
+  "authored_by": "sage_clinics",
+  "approved_by": null,
+  "effective_date": "pending",
+  "layer": "L2",
+  "role": "user",
+  "always_include": true,
+  "word_budget": 50,
+  "content": "INTENT: No structured skill applies. Emotional intensity: {intensity}/10. {intensity_guidance} Name what the user has specifically disclosed. Do not re-probe feelings they have already named. Offer presence and space, not solutions or reframes.",
+  "variables": ["intensity", "intensity_guidance"],
+  "selector_key": "new_skill_unmatched",
+  "_selector_condition": "primary_intent == 'new_skill' AND active_skill_id is None",
+  "_selector_not_implemented": "composer.py selector change is pending Rule 1 approval — this template is inert under ID-based resolution (get_intent_template uses a closed intent set that excludes new_skill_unmatched). The draft markers below are the guard against cache-enumeration paths (glob loads all templates at startup; anything that enumerates the cache rather than resolving by ID would see this file).",
+  "_binding_pending": "emotions_disclosed — add '{emotions_disclosed}' binding in v0.2 once SageState schema approved; see docs/superpowers/proposals/2026-05-31-emotions-disclosed-schema.md",
+  "_review_required": [
+    "Rule 1 approval (control-layer change) — note: this template follows the standing L2 user-role convention ('role': 'user'). The L2 authority-tier question (Flag A: control instructions delivered as user-role share the injection surface with user turns) is an open architectural-review item that applies to all L2 templates including this one. Rule 1 approval of this template does not settle Flag A.",
+    "Clinical review (static prose constraints)"
+  ]
+}
