@@ -21,8 +21,22 @@ function loadEnv() {
 
 const TEST_EMAIL    = 'sage-e2e@test.internal'
 const TEST_PASSWORD = 'SageE2E-2026!'
+const STAFF_PASSWORD = 'SageStaff-2026!'
 const AUTH_STATE    = path.resolve(__dirname, '.auth-state.json')
 const SEED_FILE     = path.resolve(__dirname, '.seed-state.json')
+
+// Gitex POC tenant UUID (seeded by migration 011_rbac_roles.sql)
+const TENANT_ID = '5ad3c505-285c-4cf1-8089-846367bf5bba'
+
+// Staff persona fixtures required by middleware-boundary-proof.spec.ts and staff-persona-smoke.spec.ts.
+// These must pre-exist so signInAs() can authenticate them. The roles here match the
+// capability map in edge-permissions.ts — if that map changes, update roles here too.
+const STAFF_FIXTURES = [
+  { email: 'e2e-super-admin@test.internal', name: 'E2E Super Admin', role: 'super_admin'       as const },
+  { email: 'e2e-ops@test.internal',         name: 'E2E Ops',         role: 'operations_admin'  as const },
+  { email: 'e2e-reviewer@test.internal',    name: 'E2E Reviewer',    role: 'clinical_reviewer' as const },
+  { email: 'e2e-member@test.internal',      name: 'E2E Member',      role: null },
+] as const
 
 export default async function globalSetup() {
   loadEnv()
@@ -67,6 +81,40 @@ export default async function globalSetup() {
     { id: userId, name: 'E2E Test', locale: 'en', onboarding_complete: true, is_admin: false },
     { onConflict: 'id' }
   )
+
+  // Remove any user_roles rows for the base test user. The member role is the default
+  // when no row exists (see middleware.ts). An accidentally-assigned staff or admin role
+  // (e.g. from a prior sprint admin operation) would let the member test user pass
+  // staff:access gates, breaking STATE-1 and all other non-staff boundary tests.
+  await admin.from('user_roles').delete().eq('user_id', userId)
+
+  // 2b. Ensure staff persona fixtures exist for boundary-proof and persona-smoke tests.
+  // Each test signs in dynamically (no shared auth state file) — the users just need to exist.
+  for (const fixture of STAFF_FIXTURES) {
+    const existing = users.find((u) => u.email === fixture.email)
+    let fixtureId: string
+    if (existing) {
+      fixtureId = existing.id
+    } else {
+      const { data, error } = await admin.auth.admin.createUser({
+        email: fixture.email,
+        password: STAFF_PASSWORD,
+        email_confirm: true,
+      })
+      if (error) throw new Error(`Failed to create fixture ${fixture.email}: ${error.message}`)
+      fixtureId = data.user.id
+    }
+    await admin.from('user_profiles').upsert(
+      { id: fixtureId, name: fixture.name, locale: 'en', onboarding_complete: true, is_admin: false },
+      { onConflict: 'id' }
+    )
+    if (fixture.role) {
+      await admin.from('user_roles').upsert(
+        { user_id: fixtureId, tenant_id: TENANT_ID, role: fixture.role },
+        { onConflict: 'user_id,tenant_id,role' }
+      )
+    }
+  }
 
   // 3. Seed a "session A" with one message so test 3 can verify history.
   // Delete any stale E2E sessions from prior runs so the selector stays unique.

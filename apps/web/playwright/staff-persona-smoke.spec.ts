@@ -5,14 +5,14 @@
  * No shared storageState — each test authenticates independently so role isolation
  * is proven end-to-end, not assumed from a stored cookie.
  *
- * Seeded fixtures:
- *   sage-e2e@test.internal      → super_admin
- *   e2e-reviewer@test.internal  → clinical_reviewer
- *   e2e-ops@test.internal       → operations_admin
- *   sage-e2e-member@test.internal → member (no user_roles row → defaults to member)
+ * Seeded fixtures (all created by global-setup.ts):
+ *   e2e-super-admin@test.internal → super_admin
+ *   e2e-reviewer@test.internal    → clinical_reviewer
+ *   e2e-ops@test.internal         → operations_admin
+ *   e2e-member@test.internal      → member (no user_roles row → defaults to member)
  *
- * The member fixture is the default storageState user for other tests; here we
- * re-authenticate it in a clean context to verify the 404 behavior.
+ * sage-e2e@test.internal is the shared storageState member user; it must NOT hold
+ * a staff role (STATE-1 in sprint-a-security.spec.ts verifies this boundary).
  */
 
 import { test, expect, chromium } from '@playwright/test'
@@ -20,7 +20,7 @@ import { test, expect, chromium } from '@playwright/test'
 const BASE = 'http://localhost:3000'
 
 const FIXTURES = {
-  superAdmin:         { email: 'sage-e2e@test.internal',           password: 'SageE2E-2026!'    },
+  superAdmin:         { email: 'e2e-super-admin@test.internal',    password: 'SageStaff-2026!'  },
   clinicalReviewer:   { email: 'e2e-reviewer@test.internal',       password: 'SageStaff-2026!'  },
   operationsAdmin:    { email: 'e2e-ops@test.internal',            password: 'SageStaff-2026!'  },
   member:             { email: 'e2e-member@test.internal',         password: 'SageStaff-2026!'  },
