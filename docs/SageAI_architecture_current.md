@@ -501,21 +501,65 @@ Table: `public.user_therapeutic_profiles`. One row per user.
 | `persisted_clinical_flags` | JSONB | Clinical flags eligible for cross-session persistence (see §9.4) |
 | `last_updated_at` | timestamp | Auto-set on every upsert |
 
-**How it's built — `POST /extract-profile`:**
+**Two write paths — both write to the same profile row:**
+
+#### Write Path 1 — Post-session batch extraction (`POST /extract-profile`)
 
 Called by Next.js after a session ends. Internally:
 1. Fetches the LangGraph checkpoint to get `conversation_history` and `turn_count`
 2. Guards: skips if fewer than 5 new turns since `last_extraction_turn`
 3. Passes the delta turns (since last extraction) to `profile_extractor.extract_session_profile()`
-4. `extract_session_profile` uses the classifier LLM with a structured extraction prompt: returns JSON with 8 fields (effective_techniques, ineffective_techniques, distortion_patterns, disclosed_concerns, communication_style, cultural_preferences, mood_score, skills_completed)
-5. Merges with existing profile: technique lists are set-union, mood_trajectory appends (capped at 20), session_count increments
+4. Classifier LLM reads the conversation with this exact instruction: *"Extract only what was explicitly stated."* Returns JSON with these 8 keys:
+
+| Key | Type | What the LLM extracts |
+|---|---|---|
+| `effective_techniques` | list[str] | Technique names the user said helped |
+| `ineffective_techniques` | list[str] | Techniques the user resisted or said didn't work |
+| `distortion_patterns` | list[str] | Cognitive distortion patterns observed |
+| `disclosed_concerns` | list[str] | Life areas or concerns the user mentioned |
+| `communication_style` | str | One sentence on how this user communicates |
+| `cultural_preferences` | object | `{religious_framing: bool, family_context: bool, gender_address: str\|null}` |
+| `mood_score` | int (1–5) | End-of-session mood estimate (1=very low, 5=good) |
+| `skills_completed` | int | Count of skills fully completed in this excerpt |
+
+5. Merges with existing profile: technique lists are set-union, mood_trajectory appends (capped at 20), session_count increments, communication_style and cultural_preferences overwrite
 6. Writes via `upsert_therapeutic_profile(user_id, merged_profile, session_id)`
 
-**PDPL audit trail:** Every `upsert_therapeutic_profile` call first inserts a full JSONB snapshot into `public.therapeutic_profile_history` (tagged with `session_id` and `extraction_source='llm_extraction'`) before updating the main profile. This satisfies the PDPL right to trace how a profile changed.
+#### Write Path 2 — In-session real-time observations (`record_observation` tool)
+
+`nodes/tools/record_observation.py`. An LLM-callable tool available to `freeflow_respond` on every turn (when `user_id`, `session_id`, and DB pool are present). The LLM calls it the moment it notices something worth persisting — capturing events a post-session extractor would miss because they're momentary.
+
+The LLM provides:
+
+| Parameter | Values | Meaning |
+|---|---|---|
+| `observation` | str (1–2 sentences) | Factual description of what was observed |
+| `observation_type` | `insight` / `progress` / `agency` / `context_update` / `concern` | Category |
+| `confidence` | `high` / `medium` / `low` | How certain the LLM is |
+
+Observation types:
+- `insight` — user identified their own cognitive distortion without prompting
+- `progress` — a technique worked or mood shifted
+- `agency` — user set a goal or took initiative
+- `context_update` — a life circumstance changed
+- `concern` — something the LLM noticed that warrants attention
+
+Stored in `observations` (JSONB array, capped at last 50), with `recorded_at` UTC timestamp. Writes directly to the profile row via `upsert_therapeutic_profile` mid-session — the updated observations are immediately available on the next turn's profile load.
+
+**Low-confidence observations additionally trigger clinician review** (`confidence == "low"` → `notify_review_required` with `source="llm_flag_for_review"`).
+
+**PDPL audit trail:** Every `upsert_therapeutic_profile` call (both paths) first inserts a full JSONB snapshot into `public.therapeutic_profile_history` tagged with `session_id` and `extraction_source='llm_extraction'`. Every profile change is reversible and attributable.
+
+#### What is NOT currently injected into the prompt
+
+`_build_cross_session_block` (in `prompts/composer.py`) reads these fields from the profile:
+`effective_techniques`, `ineffective_techniques`, `distortion_patterns`, `disclosed_concerns`, `communication_style`, `cultural_preferences` (religious_framing, family_context).
+
+It does **not** read `observations`. Observations are stored in the DB and visible in the profile row, but the LLM does not see its own past observations in future sessions. This is a known gap — the injection path is not yet built.
 
 **How it's used at runtime:**
-- Loaded in `server.py` at the start of every `/chat` request: `state["therapeutic_profile"] = await repo.get_therapeutic_profile(req.user_id)`
-- Injected into the L5 prompt block: effective/ineffective techniques, distortion patterns, disclosed concerns, communication style, religious_framing preference, family_context preference, session count
+- Profile loaded fresh from DB in `server.py` at the start of every `/chat` request
+- Injected into the L5 prompt block via `_build_cross_session_block` and `_build_l5_user_context_block` — effective/ineffective techniques framed as "Techniques that have helped" / "Approaches to avoid", distortion patterns as "Common thought patterns", concerns as "Life areas shared", communication style, religious and family context preferences
 - Read by `safety_check_node` to seed `clinical_flags` from `profile.persisted_clinical_flags` at turn start
 
 ---
@@ -590,15 +634,22 @@ The infrastructure is complete: the column exists (`migration 001`), the read/wr
 
 `memory/notification.PostgresNotifier`. Table: `public.clinician_review_queue`.
 
-Triggered from `output_gate` when `crisis_flags` or `clinical_flags` are non-empty. Writes synchronously to DB via asyncpg pool, then fires `pg_notify('clinician_review', payload)` on the same connection for real-time delivery to listening clinician dashboards.
+Three distinct triggers write to this queue:
 
-| Field | Value |
-|---|---|
-| `source` | `"layer1_safety"` (deterministic rule) or `"llm_flag_for_review"` (LLM tool) |
-| `severity` | `"high"` (crisis_flags non-empty) or `"medium"` (clinical-only) |
-| `flags_timeline` | JSONB array — appended on every new flag event for this session (ON CONFLICT DO UPDATE); clinicians see how flags evolved across the session |
+**Trigger 1 — Deterministic rules (`output_gate`):** Fires when `crisis_flags` or `clinical_flags` are non-empty after a turn. Source: `"layer1_safety"`. Severity: `"high"` (crisis) or `"medium"` (clinical-only).
 
-The `flags_timeline` field (added `migration 002`) preserves the chronological record of all flags for a session, even if the main `reason`/`payload` fields are overwritten on conflict.
+**Trigger 2 — LLM tool (`flag_for_review`):** `nodes/tools/flag_for_review.py`. A tool available to `freeflow_respond` when the LLM perceives cumulative distress, implicit hopelessness, or ambiguous risk that Layer 1 didn't catch. Source: `"llm_flag_for_review"`. The LLM provides:
+
+| Parameter | Values | Meaning |
+|---|---|---|
+| `reason` | str | What the LLM noticed (e.g. "cumulative hopelessness over 3 turns") |
+| `severity` | `low` / `medium` / `high` | Urgency: low = daily batch, medium/high = within 4 hours |
+| `turn_context` | str (optional) | 1–2 sentence excerpt showing the pattern |
+| `evidence_turns` | list[int] (optional) | Turn numbers that support the concern |
+
+**Trigger 3 — Low-confidence observations (`record_observation` tool):** When `record_observation` is called with `confidence="low"`, it additionally fires `notify_review_required` alongside writing to the profile.
+
+All three writes go to the same `clinician_review_queue` table via `PostgresNotifier` (asyncpg pool) + `pg_notify('clinician_review', payload)`. ON CONFLICT on `session_id` appends to `flags_timeline` rather than overwriting — clinicians see how flags evolved across the session (added `migration 002`).
 
 ---
 
