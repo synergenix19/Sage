@@ -1,0 +1,30 @@
+{
+  "pulled_at": "2026-05-30T13:03:31.165Z",
+  "finding": "DPIA-FINDING-E2E-PROD-ACCESS 2026-05-30",
+  "project_url": "https://jrfrficjdwguqbvumdyo.supabase.co",
+  "e2e_email": "sage-e2e@test.internal",
+  "e2e_user_id": "706b613e-4012-4f13-a9fa-ab97f3f8a65b",
+  "user_created_at": "2026-05-21T21:26:26.986548Z",
+  "user_last_sign_in": "2026-05-30T11:24:41.343079Z",
+  "user_confirmed_at": "2026-05-21T21:26:27.011059Z",
+  "audit_entries": [],
+  "audit_entries_note": "auth.audit_log_entries is not queryable via the JS admin SDK. Pull manually from Supabase dashboard → Authentication → Users → select user → Activity, or from Supabase dashboard → Logs → Auth Logs, filtering by user_id = 706b613e-4012-4f13-a9fa-ab97f3f8a65b",
+  "sessions": [],
+  "sessions_note": "Session listing via admin SDK not available in this client version. Check Supabase dashboard → Authentication → Users → select user for active sessions.",
+  "manual_steps_required": [
+    {
+      "step": "API request logs",
+      "instruction": "Supabase dashboard → Logs → API Logs → filter by user_id = 706b613e-4012-4f13-a9fa-ab97f3f8a65b. Look for GET requests to /rest/v1/session_audit, /rest/v1/clinician_review_queue, /rest/v1/message_feedback AND any other API path. Export and attach to this file.",
+      "retention_warning": "Supabase API log retention: 1 day (Free), 7 days (Pro), up to 90 days (Enterprise). Pull now — this evidence is actively aging out."
+    },
+    {
+      "step": "Auth event logs",
+      "instruction": "Supabase dashboard → Logs → Auth Logs → filter by user_id = 706b613e-4012-4f13-a9fa-ab97f3f8a65b. Download all entries for the exposure window. These show when sessions were active."
+    },
+    {
+      "step": "Postgres query logs",
+      "instruction": "Supabase dashboard → Logs → Postgres Logs. Check if statement-level logging (log_statement = all or mod) was enabled on this project. If not enabled, document this gap explicitly in DPIA §5 — absence of query logs does not mean no queries occurred."
+    }
+  ],
+  "logging_completeness_note": "Absence of logged reads is only exculpatory if read-logging was enabled and complete for the entire exposure window. Document which logging controls were active in DPIA §5. \"No reads found\" with incomplete logging is not \"no reads occurred.\""
+}

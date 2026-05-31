@@ -10,8 +10,8 @@ function getSeedState(): { sessionAId: string } {
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 async function openHistoryPanel(page: import('@playwright/test').Page) {
-  await page.getByRole('button', { name: 'History' }).click()
-  // Panel opens; wait for "New conversation" button to be visible
+  // The sidebar shows the session list inline — no toggle needed.
+  // Wait for the "New conversation" button to confirm the sidebar has loaded.
   await expect(page.getByRole('button', { name: /new conversation/i })).toBeVisible()
 }
 
@@ -106,8 +106,8 @@ test.describe('New Chat session lifecycle', () => {
     await openHistoryPanel(page)
     await expect(page.getByRole('button', { name: /E2E Session A/i })).toBeVisible()
 
-    // Navigate back to session A
-    await page.getByRole('button', { name: /E2E Session A/i }).click()
+    // Navigate back to session A — sidebar renders sessions as <Link> (anchor) not button
+    await page.getByRole('link', { name: /E2E Session A/i }).click()
     await page.waitForURL(`**/chat?session=${sessionAId}`)
 
     // Original message is intact — no cross-session contamination

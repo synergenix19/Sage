@@ -5,6 +5,7 @@ import {
   fetchResponseQuality,
   fetchConversationIntelligence,
   fetchOverviewMetrics,
+  fetchAllAdminData,
   type AdminData,
 } from '../admin-queries'
 
@@ -86,5 +87,55 @@ describe('fetchResponseQuality', () => {
     expect(result.thumbsUp).toBe(0)
     expect(result.thumbsDown).toBe(0)
     expect(Array.isArray(result.gatePathDistribution)).toBe(true)
+  })
+})
+
+// Data-layer gate proof: fetchAllAdminData must never issue a clinical_flags query
+// when hasClinicalAccess = false (operations_admin). This is the acceptance criterion
+// for the admin crisis-banner boundary fix — the server must not touch clinical-flag
+// columns at all for ops, regardless of what the UI renders.
+describe('fetchAllAdminData — clinical-access gate', () => {
+  function makeTrackingClient(selectLog: string[]) {
+    function makeChain(table: string): any {
+      const resolved = Promise.resolve({ data: [], error: null })
+      const c: any = {
+        select: (cols: string) => { selectLog.push(`${table}:${cols}`); return c },
+        eq: () => c,
+        gte: () => c,
+        lte: () => c,
+        not: () => c,
+        in: () => c,
+        order: () => c,
+        limit: () => c,
+        single: () => Promise.resolve({ data: null, error: null }),
+        maybeSingle: () => Promise.resolve({ data: null, error: null }),
+        then: resolved.then.bind(resolved),
+        catch: resolved.catch.bind(resolved),
+        finally: resolved.finally.bind(resolved),
+      }
+      return c
+    }
+    return { from: (table: string) => makeChain(table) }
+  }
+
+  it('ops (hasClinicalAccess=false): no clinical_flags column is ever queried', async () => {
+    const log: string[] = []
+    await fetchAllAdminData(makeTrackingClient(log) as never, false)
+    const clinicalFlagCalls = log.filter(e => e.includes('clinical_flags'))
+    expect(clinicalFlagCalls).toHaveLength(0)
+  })
+
+  it('reviewer (hasClinicalAccess=true): clinical_flags is queried', async () => {
+    const log: string[] = []
+    await fetchAllAdminData(makeTrackingClient(log) as never, true)
+    const clinicalFlagCalls = log.filter(e => e.includes('clinical_flags'))
+    expect(clinicalFlagCalls.length).toBeGreaterThan(0)
+  })
+
+  it('ops result has clinicalSafety null; reviewer result has non-null', async () => {
+    const opsResult = await fetchAllAdminData(makeTrackingClient([]) as never, false)
+    const reviewerResult = await fetchAllAdminData(makeTrackingClient([]) as never, true)
+    expect(opsResult.clinicalSafety).toBeNull()
+    expect(reviewerResult.clinicalSafety).not.toBeNull()
   })
 })

@@ -105,12 +105,14 @@ test.describe('STATE-1 — Admin page requires authentication and admin role', (
     await ctx.close()
   })
 
-  // The E2E test user (sage-e2e@test.internal) is not an admin.
-  // The middleware returns 403 (not a redirect) for authenticated non-admins.
-  // The in-page redirect('/chat') is defense-in-depth for ISR bypass scenarios.
-  test('returns 403 for authenticated non-admin user', async ({ request }) => {
+  // The E2E test user (sage-e2e@test.internal) holds only 'member' role — no staff:access.
+  // Middleware Layer 1 fires and redirects to /sign-in (307). This changed from 403
+  // in commit 476d989 when the middleware was simplified to redirect non-staff cleanly
+  // rather than returning a status code directly (which leaked capability information).
+  test('returns 307 redirect to sign-in for authenticated non-staff user', async ({ request }) => {
     const res = await request.get('/admin', { maxRedirects: 0 })
-    expect(res.status()).toBe(403)
+    expect(res.status()).toBe(307)
+    expect(res.headers()['location']).toContain('/sign-in')
   })
 
   // /admin should always redirect, never serve cached HTML — test twice in quick succession
