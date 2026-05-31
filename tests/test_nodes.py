@@ -1968,7 +1968,7 @@ async def test_semantic_fallback_catches_spiralling():
         "target_presentations (Tier 1) or recalibrating the threshold. If this test unexpectedly "
         "passes, the calibration was improved — remove this xfail marker."
     ),
-    strict=False,
+    strict=True,
 )
 async def test_semantic_fallback_catches_exhausted_mind_racing():
     """Sleep-register message that keyword-misses; semantic fallback must catch → sleep_hygiene."""
