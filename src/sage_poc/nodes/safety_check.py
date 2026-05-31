@@ -166,6 +166,15 @@ async def safety_check_node(state: SageState) -> dict:
     if crisis_state == "monitoring":
         s7_result, s7_method = await evaluate_s7(message_en)
 
+    # Dedup crisis flags once, after all detection paths (S1 rules engine + S3 semantic) have
+    # contributed. S1 can fire the same flag_id on both the raw Khaleeji text and its
+    # English translation in the same evaluation pass, producing duplicates like
+    # ["si_explicit", "si_explicit", "s3_semantic"]. dict.fromkeys preserves insertion order
+    # (unlike set()) so the stored flag sequence is deterministic for the same input — a
+    # clinical audit-trail requirement. is_safe, the header, and the messages insert all read
+    # from this single deduped list.
+    new_crisis_flags = list(dict.fromkeys(new_crisis_flags))
+
     return {
         "detected_language": lang,
         "message_en": message_en,
