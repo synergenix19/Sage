@@ -42,7 +42,7 @@ export function AdminDashboard({ data, conformance }: Props) {
         <p className="text-xs text-[var(--color-text-secondary)]">Live data, last 7 days unless noted</p>
       </div>
 
-      {data.clinicalSafety.crisisThisWeek > 0 && (
+      {data.clinicalSafety !== null && data.clinicalSafety.crisisThisWeek > 0 && (
         <div className="rounded-2xl border border-[var(--color-crisis)] bg-[var(--color-crisis)]/10 px-5 py-4">
           <p className="text-sm font-semibold text-[var(--color-crisis)]">
             {data.clinicalSafety.crisisThisWeek} crisis event{data.clinicalSafety.crisisThisWeek !== 1 ? 's' : ''} this week
@@ -53,10 +53,12 @@ export function AdminDashboard({ data, conformance }: Props) {
         </div>
       )}
 
-      <section id="clinical-safety" className={sectionClass('clinical-safety')}>
-        <h2 className="mb-4 text-lg font-semibold text-[var(--color-text-primary)]">Clinical Safety</h2>
-        <ClinicalSafetyPanel data={data.clinicalSafety} />
-      </section>
+      {data.clinicalSafety !== null && (
+        <section id="clinical-safety" className={sectionClass('clinical-safety')}>
+          <h2 className="mb-4 text-lg font-semibold text-[var(--color-text-primary)]">Clinical Safety</h2>
+          <ClinicalSafetyPanel data={data.clinicalSafety} />
+        </section>
+      )}
 
       <section id="system-performance" className={sectionClass('system-performance')}>
         <h2 className="mb-4 text-lg font-semibold text-[var(--color-text-primary)]">System Performance</h2>

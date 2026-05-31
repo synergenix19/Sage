@@ -59,7 +59,7 @@ export interface ConversationIntelligenceData {
 export interface AdminData {
   overview: OverviewMetrics
   systemPerformance: SystemPerformanceData
-  clinicalSafety: ClinicalSafetyData
+  clinicalSafety: ClinicalSafetyData | null
   responseQuality: ResponseQualityData
   intelligence: ConversationIntelligenceData
 }
@@ -244,12 +244,15 @@ export async function fetchConversationIntelligence(admin: SupabaseClient): Prom
   return { semanticMatchRate, skillUsage, avgTokenUsageInput, avgTokenUsageOutput }
 }
 
-export async function fetchAllAdminData(admin: SupabaseClient): Promise<AdminData> {
+export async function fetchAllAdminData(
+  admin: SupabaseClient,
+  hasClinicalAccess: boolean
+): Promise<AdminData> {
   const [overview, systemPerformance, clinicalSafety, responseQuality, intelligence] =
     await Promise.all([
       fetchOverviewMetrics(admin),
       fetchSystemPerformance(admin),
-      fetchClinicalSafety(admin),
+      hasClinicalAccess ? fetchClinicalSafety(admin) : Promise.resolve(null),
       fetchResponseQuality(admin),
       fetchConversationIntelligence(admin),
     ])
