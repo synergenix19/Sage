@@ -27,28 +27,17 @@ Re-run whenever semantic_description paragraphs are edited.
 
 import json
 import pathlib
+import sys
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
+# Prepend src/ so sage_poc imports resolve without installing the package.
+sys.path.insert(0, str(pathlib.Path(__file__).parent.parent / "src"))
+
+from sage_poc.clinical_clusters import CLINICAL_CLUSTERS  # noqa: E402
+
 SKILLS_DIR = pathlib.Path("src/sage_poc/skills")
 MODEL_NAME = "BAAI/bge-m3"
-
-# Skills within a cluster are semantically adjacent by design.
-# Disambiguation between same-cluster skills is handled by keyword rules.
-CLINICAL_CLUSTERS = {
-    "somatic_distress": [
-        "grounding_5_4_3_2_1", "box_breathing", "dbt_tipp",
-        "progressive_muscle_relaxation", "mindfulness_body_scan",
-    ],
-    "sleep": ["sleep_hygiene"],
-    "ruminative_anxiety": ["worry_time", "cbt_thought_record"],
-    "mood_engagement": ["mood_check_in", "behavioral_activation"],
-    "readiness_change": ["mi_readiness_ruler", "stop_technique"],
-    "psychoeducation": ["psychoed_anxiety", "psychoed_depression", "psychoed_stress"],
-    "values_communication": ["values_clarification", "assertive_communication"],
-    "self_compassion": ["self_compassion_break"],
-    "visualization": ["safe_place_visualization"],
-}
 
 
 def cluster_of(skill_id):
