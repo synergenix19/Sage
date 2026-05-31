@@ -81,6 +81,8 @@ Then recalibrate the threshold:
 
 See `docs/semantic_skill_matching_audit_20260521.md` for the threshold calibration record.
 
+**Current threshold: `SEMANTIC_THRESHOLD = 0.459`** (calibrated 2026-05-27, gap=0.0533, cross-cluster). This value is set in `nodes/skill_select.py`.
+
 ---
 
 ## Arabic safety rules: use normalized Arabic in regex patterns
@@ -119,18 +121,22 @@ Every skill must have exactly 5 `step_policy` rules, covering:
 
 The `next_step_id` for `exit_warm_closing` rules must be `"exit"` (string), not `null`.
 
+**`for_turns` field:** Temporal rules (resistance, engagement) use `for_turns` to require a condition to hold across N consecutive turns. Use the canonical `for_turns` field name; the legacy alias `turns` is also accepted but deprecated. `for_turns` is supported for `resistance` (uses `resistance_history` rolling buffer) and `engagement` (uses `engagement_trajectory` 4-turn window). For all other signals, `for_turns` is ignored and the current value is checked.
+
 ---
 
 ## escalation_matrix: L1–L4 required
 
 All four escalation levels must be present:
 
-| Level | Trigger |
-|-------|---------|
-| L1 | User requests to stop |
-| L2 | Clinician review flag condition (skill-specific) |
-| L3 | Crisis signal detected |
-| L4 | Human handoff (3+ crises in 30 days, or explicit request) |
+| Level | Trigger | Used at runtime? |
+|-------|---------|-----------------|
+| L1 | User requests to stop | **Yes** — read as step instruction for exit routing |
+| L2 | Clinician review flag condition (skill-specific) | STORED_ONLY — validated, not read at runtime |
+| L3 | Crisis signal detected | STORED_ONLY — validated, not read at runtime |
+| L4 | Human handoff (3+ crises in 30 days, or explicit request) | STORED_ONLY — validated, not read at runtime |
+
+**Important:** Only L1 text is read at runtime. L2–L4 are stored in the DB, parsed and validated by the schema, but not evaluated by any runtime node in the current implementation. This is documented in `skills/conformance.py`. Do not write L2–L4 as if they will fire automatically — they are documentation of escalation intent, not operational rules.
 
 ---
 
@@ -139,3 +145,76 @@ All four escalation levels must be present:
 Every skill must include at least one Arabic (Khaleeji Gulf dialect) example in each step's `examples` array. Arabic examples should use the same colloquial register as the English examples, not clinical Arabic.
 
 **Canonical field name is `examples`.** The skill_executor reads `step.examples` (skill_executor.py:109). Do not use `few_shot_examples` as an alternative name. All skill files use `examples`.
+
+---
+
+## cultural_overrides: Gulf-context adaptation per skill
+
+`cultural_overrides` is a `dict` field on every skill. It is **injected at runtime** into the LLM system prompt as a "SKILL-SPECIFIC CULTURAL CONTEXT" block on every turn where that skill is active. This applies before the LLM generates a response.
+
+### What it is for
+
+Skill-level cultural context that is specific to this technique and cannot be expressed by the global cultural rules in `rules/data/cultural/`. Examples:
+
+- Whether a somatic technique is compatible with Islamic practice
+- How to frame the technique for users who are also observing prayer times
+- Gender-specific physical adjustments (or confirmation that none are needed)
+- Dialect or register notes specific to the skill's exercise language
+
+### Budget
+
+`cultural_overrides` content has a **200-word hard limit** (clinician-signed, enforced in `prompts/composer.py`). If the entire block exceeds 200 words, it is **skipped entirely** — not truncated. A startup warning is logged. Keep overrides concise; write one value per key, not paragraphs.
+
+### Required: populate for all new skills
+
+When adding a new skill, `cultural_overrides` must be populated with at least basic Gulf-context framing before the skill ships to a user-facing build. Empty `cultural_overrides` is a P2 gap (four current skills — `box_breathing`, `mood_check_in`, `stop_technique`, `worry_time` — still have partial or empty overrides; tracked as pre-prod work).
+
+### Example structure
+
+```json
+"cultural_overrides": {
+  "halal_framing": "Box breathing is a physiological technique with no spiritual or religious content. It can be offered without qualification to Muslim users.",
+  "prayer_compatibility": "If a user is preparing for salah or has just finished, the technique fits naturally: a brief, structured pause before or after prayer.",
+  "gender_neutral_delivery": "The technique requires no physical adjustments and is equally appropriate for men and women, including users wearing hijab or niqab."
+}
+```
+
+Keys are arbitrary but should be descriptive. The full dict is injected as-is into the prompt — key names are visible to the LLM.
+
+---
+
+## completion_criteria: what triggers step advancement
+
+`completion_criteria` is a string field on `SkillStep`. It describes the condition the user's response must meet for the step to be considered complete and for `skill_executor` to advance to the next step.
+
+**Two evaluation paths — which path runs depends on the skill:**
+
+| Path | Skills | How |
+|---|---|---|
+| Word-count heuristic | All skills except the 4 below | `len(message_en.split()) > 1` |
+| LLM evaluator (`criteria_eval.py`) | `post_crisis_check_in`, `cbt_thought_record`, `behavioral_activation`, `assertive_communication` | LLM reads the `completion_criteria` text and evaluates whether the user's message satisfies it |
+
+For the LLM path: the `completion_criteria` text is sent verbatim to the classifier LLM along with the user's message. Write it as a specific, testable criterion, not a vague instruction:
+
+```json
+// WRONG — too vague for LLM evaluation
+"completion_criteria": "User has engaged with the step"
+
+// RIGHT — specific and testable
+"completion_criteria": "User has identified at least one specific automatic thought they noticed during the exercise"
+```
+
+For skills that use the word-count heuristic, `completion_criteria` is stored and validated but not read at runtime. It should still be present as documentation of the therapeutic intent.
+
+---
+
+## Schema conformance reference
+
+`skills/conformance.py` is the authoritative record of which skill schema fields are used at runtime versus stored only. Review it before authoring a new field or relying on a field in a new node.
+
+Runtime summary (as of 2026-05-30):
+- **USED (7):** `step.goal`, `step.technique`, `step.technique_description`, `step.tone`, `step.examples`, `step.contraindications`, `skill.cultural_overrides`, `skill.escalation_matrix.L1`
+- **PARTIAL (1):** `step.completion_criteria` (LLM path for 4 skills only; word-count heuristic for all others)
+- **STORED_ONLY (6):** `skill.escalation_matrix.L2–L4`, `skill.evidence_base`, `skill.skill_type`, `skill.self_evolution`
+
+The conformance registry is logged at startup and served at `GET /health/schema-conformance`.

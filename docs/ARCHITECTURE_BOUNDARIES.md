@@ -1,71 +1,115 @@
 # Architecture Boundaries: POC vs. Production
 
-**Confirmed:** 2026-05-22  
+**Confirmed:** 2026-05-30 (re-verified against live codebase)
+**Supersedes:** Prior version confirmed 2026-05-22
 **Relevant spec sections:** v7 §5.2 (checkpointing), §6 (enriched state), §8 (audit trail)
 
 ---
 
-## Current POC Architecture
+## Current Architecture
 
-The LangGraph graph is **stateless with respect to sessions**. `server.py` receives `session_id` from the client but explicitly discards it before graph invocation:
+The LangGraph graph is **stateful when `DATABASE_URL` is set** and stateless otherwise. This is a significant change from the 2026-05-22 boundary snapshot, which recorded the graph as entirely stateless. The unified memory layer (implemented 2026-05-23) wired in LangGraph checkpointing, therapeutic profile storage, and session summary persistence.
+
+### What `_build_state()` does (and does not) do
+
+`server_helpers._build_state()` builds only the per-turn slice of `SageState` — signals that are reset each turn (raw message, path, flags, etc.). It explicitly does NOT set persistent fields. These come from the LangGraph checkpoint loaded automatically by the graph when `thread_id` is provided:
 
 ```python
-# session_id is received from the client but intentionally not stored in SageState —
-# the graph has no concept of sessions; persistence is the frontend's responsibility.
-session_id: str
+# Persistent fields intentionally absent from _build_state (they come from LangGraph checkpoint):
+# conversation_history, crisis_state, active_skill_id, active_step_id,
+# clinical_flags, distress_trajectory, engagement_trajectory,
+# conversation_summary, turn_count, therapeutic_profile.
 ```
 
-`_build_state()` rebuilds the full conversation history from `req.messages` on every invocation. Supabase is the sole persistence layer, written by the Next.js `/api/chat` route after each turn. There is no LangGraph checkpoint store.
+When `DATABASE_URL` is set: `build_graph(checkpointer=AsyncPostgresSaver(...))` — state persists between turns and across sessions.
 
-This is correct for the POC. It is not suitable for production.
+When `DATABASE_URL` is unset: `build_graph(checkpointer=None)` — graph is effectively stateless (no session continuity). A startup warning is emitted.
 
----
+### What the ChatRequest contains
 
-## Three Production Blockers
+```python
+class ChatRequest(BaseModel):
+    messages:   list[Message]
+    session_id: str
+    user_id:    str | None = None
+    # Ferry fields removed — all cross-turn state lives in the LangGraph checkpoint
+```
 
-### 1. Enriched state has no home
-
-The six §6 components (User Therapeutic Profile, Active Issues List, Clinical Flags, Engagement Scoring, Risk Trajectory, Cultural Context) are computed incrementally across turns. A stateless graph that rebuilds from raw messages each turn means either:
-
-- **(a)** Full recomputation of all state signals every turn: expensive and non-deterministic across LLM calls, or  
-- **(b)** Enriched state lives in Supabase alongside messages but outside the graph: creates split-brain between what the graph "knows" and what is persisted.
-
-**Production requirement:** LangGraph native checkpointing via Azure Cosmos DB (v7 §5.2), where `SageState` including all enriched state is persisted after each turn and loaded at the start of the next. "Session state survives days" is a hard requirement, not a nice-to-have.
-
-### 2. Client-side audit trail
-
-The output_gate (Node 8) audit payload `{path, skill, step, model_version, flags, latency}` is currently returned to Next.js and written to Supabase by the frontend route. For a clinical system, this is insufficient: audit writes must happen server-side within the graph invocation, to a store the frontend cannot read or modify. A frontend that can write its own audit records cannot produce tamper-evident logs.
-
-**Production requirement:** Node 8 writes audit records directly to a server-side store (Cosmos DB or equivalent) before the response leaves the graph. The frontend receives metadata headers for display purposes only, not as the source of record.
-
-### 3. History-as-payload breaks at scale
-
-Sending the full conversation on every request works at roughly 10 turns in English. At 30+ turns in Khaleeji Arabic (longer token sequences than English), this consumes context window budget that the 6-layer prompt composition (L1-L6) needs for its own operation.
-
-**Production requirement:** Windowed history -- last 5-8 turns verbatim, older turns summarised into a persistent summary block. This requires persistent state to track what has already been summarised, which loops back to blocker 1: the graph must hold state between turns.
+`_build_state()` takes only `req.messages[-1]` (the current user message). The conversation history injected into the prompt comes from the checkpoint, not from the full message list in the request body.
 
 ---
 
-## Cross-Session Contamination Risk
+## Revised Production Blocker Status
 
-This was identified during the Fix B investigation (2026-05-22). If stale messages from a prior session survive a soft navigation into a new session (the bug Fix B addresses), they are sent to the LangGraph backend under the new `session_id`. The Next.js route persists them to Supabase against the wrong session permanently.
+The three blockers documented in the 2026-05-22 version are now addressed.
 
-That corrupted Supabase record feeds forward into `check_user_history` (Tool 2), causing the LLM to reference therapeutically wrong context in future sessions. The contamination propagates forward across sessions.
+### Blocker 1: Enriched state has no home — RESOLVED
 
-Fix B (`key={activeSession.id}` on `ChatFadeIn` in `apps/web/app/(app)/chat/page.tsx`) prevents this by forcing a full React remount -- and therefore a full state reset -- whenever the active session ID changes. This is a clinical safety fix, not a UI polish fix.
+**2026-05-22 status:** "LangGraph native checkpointing via Azure Cosmos DB (v7 §5.2) … not implemented. Enriched state lives outside the graph."
+
+**Current status:** LangGraph `AsyncPostgresSaver` is live in `server.py`. `SageState` — including all enriched state signals (`clinical_flags`, `therapeutic_profile`, `crisis_state`, `distress_trajectory`, etc.) — is written to the Postgres checkpoint after every turn and loaded at the start of the next. Session state survives server restarts.
+
+Therapeutic profiles are additionally stored in `user_therapeutic_profiles` (separate from the LangGraph checkpoint tables) to support cross-session longitudinal tracking. Profile extraction runs via `POST /extract-profile` (called by Next.js after sessions).
+
+**Remaining POC note:** The production spec called for Azure Cosmos DB. The current implementation uses Postgres (`AsyncPostgresSaver`). Cosmos DB migration is not yet scheduled; Postgres is the production-viable path through Gitex.
+
+### Blocker 2: Client-side audit trail — RESOLVED
+
+**2026-05-22 status:** "The `output_gate_node` audit payload is currently returned to Next.js and written to Supabase by the frontend route. For a clinical system, this is insufficient."
+
+**Current status:** Audit writes are server-side, initiated inside graph execution as fire-and-forget `asyncio.create_task` calls:
+- `output_gate_node` fires `write_session_audit(...)` via `asyncio.create_task` on every turn.
+- `crisis_response` node fires `write_session_audit(...)` directly (output_gate is bypassed for crisis turns — the audit still fires).
+- Both `write_session_audit` and `write_identity_substitution_audit` write to **Supabase** via httpx REST API (`SUPABASE_URL` + `SUPABASE_SERVICE_KEY`). Supabase is the POC audit store — production will migrate to secure cloud infrastructure.
+- Clinician review queue entries are written by `memory/notification.PostgresNotifier` (asyncpg pool, `clinician_review_queue` table + `pg_notify`).
+
+The writes are non-blocking (the graph response returns to the caller before the audit network request completes). They are server-initiated, not client-written — that is the key distinction from v7. If `SUPABASE_URL` or `SUPABASE_SERVICE_KEY` are unset, audit writes silently no-op.
+
+The frontend no longer receives audit payloads for persistence. The `X-Sage-*` response headers carry display metadata only.
+
+### Blocker 3: History-as-payload breaks at scale — RESOLVED
+
+**2026-05-22 status:** "Sending the full conversation on every request works at roughly 10 turns in English. At 30+ turns in Khaleeji Arabic, this consumes context window budget that the 6-layer prompt composition needs."
+
+**Current status:** Conversation history does not come from the client request. It comes from the LangGraph checkpoint. `_build_state()` takes only the most recent user message from `req.messages`. The graph loads `conversation_history` from the checkpoint. `output_gate_node` appends the current turn to history and writes it back to state on every turn.
+
+Session summarisation at every 10th turn reduces history footprint for long sessions (summary replaces oldest turns in the L1 history block). Summary is also persisted via pgvector for prior-session context retrieval.
 
 ---
 
-## Migration Path
+## Migration Path — Current State
 
-When the POC transitions to the stateful production graph:
-
-| Layer | POC (current) | Production target |
+| Layer | POC / Current | Production target |
 |---|---|---|
-| Session state | Rebuilt from `req.messages` each turn | LangGraph checkpoint loaded at turn start |
-| Persistence store | Supabase (written by Next.js route) | Azure Cosmos DB (written by graph, v7 §5.2) |
-| Audit writes | Frontend route, after response | Node 8, server-side, before response exits graph |
-| Conversation history | Full payload per request | Windowed: last 5-8 turns + summary block |
-| Enriched state | Not implemented | Loaded from checkpoint, updated per turn |
+| Session state | LangGraph checkpoint in Postgres (`AsyncPostgresSaver`) | Same pattern; migrate to Azure Cosmos DB when available |
+| Persistence store | Postgres (asyncpg pool for memory, psycopg pool for checkpointer) | Azure Cosmos DB for checkpointing (not yet scheduled) |
+| Audit writes | Server-side in `output_gate` and `crisis_response`, before response exits graph | Same — already production-grade |
+| Conversation history | From LangGraph checkpoint (not client payload) | Same |
+| Enriched state | Loaded from checkpoint and therapeutic_profile at each turn start | Same |
+| Profile extraction | `POST /extract-profile` called externally (Next.js) after session | Consider moving to within-graph trigger at session boundary |
 
-The transition is already scoped in the v7 spec. The stateless pattern is fit for purpose while the POC validates routing architecture and skill execution before the Falcon self-hosting stack is ready (Experiment 4.1, Week 6-8).
+---
+
+## Remaining POC Limitations
+
+These are not production blockers but are known tradeoffs accepted for the Gitex POC:
+
+### S2 (MARBERT) not implemented
+
+The v7 spec defined a three-layer OR-fusion safety check: S1 (lexicon) + S2 (MARBERT binary classifier) + S3 (BGE-M3 semantic). S2 is not implemented. Current safety coverage is S1 + S3. The architecture comment in `safety_check.py` documents the intended path. This means dialectal Arabic expressions not in the S1 keyword list that also score below `S3_THRESHOLD` (0.8059) may be missed.
+
+### S3 English-only
+
+`check_s3` runs on `message_en` (translated to English if the user wrote in Arabic). S3 should also run on the original Arabic text for bilingual coverage. TODO comment is in `safety_check.py` and `s3_semantic.py`.
+
+### Inference latency
+
+`freeflow_respond` uses `ainvoke` (collect full response, then stream word-by-word). True streaming (`astream`) was deferred post-POC. Measured p95 = 9.6s. Acceptable for demo; production requires either streaming or sub-1s inference.
+
+### Profile extraction is external
+
+`POST /extract-profile` is called by Next.js after a session ends. This means profile extraction can fail silently if the client does not call the endpoint. A production design would trigger extraction at a well-defined graph boundary (e.g. `output_gate` at session end detection).
+
+### Cross-session contamination risk (historical note)
+
+The 2026-05-22 doc identified a risk of stale message carryover. The `key={activeSession.id}` fix on `ChatFadeIn` in the Next.js route (Fix B) prevents this. The LangGraph checkpointer keying on `session_id` as `thread_id` provides an additional server-side boundary. Consider this resolved at the current POC scope.
