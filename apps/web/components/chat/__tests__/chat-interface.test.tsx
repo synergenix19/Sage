@@ -177,13 +177,17 @@ describe('useStreamingChat — first-byte timeout', () => {
       vi.advanceTimersByTime(1_000)
     })
 
-    // Wait for loading to complete without triggering timeout.
+    // Drain all pending microtasks and timers so the stream completes.
     await act(async () => {
-      vi.advanceTimersByTime(100)
+      await vi.runAllTimersAsync()
     })
 
-    expect(result.current.error).toBeNull()
-    expect(result.current.isLoading).toBe(false)
+    // waitFor uses real-time polling; restore real timers first so it can settle.
+    vi.useRealTimers()
+    await waitFor(() => {
+      expect(result.current.error).toBeNull()
+      expect(result.current.isLoading).toBe(false)
+    })
   })
 })
 

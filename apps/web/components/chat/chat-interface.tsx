@@ -135,6 +135,12 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
         // must never be shown. v7 output_gate: un-gated partial content must not display.
         setMessages((curr) => curr.filter((m) => m.id !== assistantId))
       } finally {
+        // Always clear the first-byte timer — prevents it firing 25s after a
+        // pre-response network error and overwriting the real error message.
+        if (firstByteTimerRef.current !== null) {
+          clearTimeout(firstByteTimerRef.current)
+          firstByteTimerRef.current = null
+        }
         // Only reset loading/abort state if the timeout didn't already do so.
         if (!timedOutRef.current) {
           setIsLoading(false)
@@ -152,6 +158,12 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
    * stream() cancels the timer on first byte via firstByteTimerRef.
    */
   function registerFirstByteTimeout() {
+    // Abort any in-flight stream before registering a new timeout, so a second
+    // append() call does not produce two concurrent streams writing to state.
+    if (abortRef.current) {
+      abortRef.current.abort()
+      abortRef.current = null
+    }
     if (firstByteTimerRef.current !== null) clearTimeout(firstByteTimerRef.current)
     timedOutRef.current = false
     firstByteTimerRef.current = setTimeout(() => {
