@@ -35,15 +35,25 @@ interface Props {
 // `toUIMessageStreamResponse()`. To avoid changing the route contract or adding
 // a dep, we consume the raw text stream directly.
 // Exported for testability only — not part of the public component API.
+const FIRST_BYTE_TIMEOUT_MS = 25_000
 export function useStreamingChat(sessionId: string | undefined, userId: string | undefined, initialMessages: SdkMessage[] = []) {
   const [messages, setMessages]     = useState<SdkMessage[]>(initialMessages)
   const [isLoading, setIsLoading]   = useState(false)
   const [error, setError]           = useState<Error | null>(null)
   const [crisisState, setCrisisState] = useState<string | null>(null)
   const abortRef                    = useRef<AbortController | null>(null)
+  // Tracks whether the first-byte timeout fired. Used by stream() to distinguish
+  // a timeout-triggered AbortError from a user-navigation AbortError.
+  const timedOutRef                 = useRef(false)
+  // Stores the active first-byte timeout ID so stream() can clear it on first byte.
+  const firstByteTimerRef           = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const stream = useCallback(
     async (history: SdkMessage[]) => {
+      // If the first-byte timeout already fired (before stream() started via queueMicrotask),
+      // the timeout callback already set the error state — bail out immediately.
+      if (timedOutRef.current) return
+
       setError(null)
       setIsLoading(true)
 
@@ -78,10 +88,19 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
         let accumulated = ''
+        let firstByteReceived = false
         // eslint-disable-next-line no-constant-condition
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
+          if (!firstByteReceived) {
+            // Cancel the first-byte timeout — server is responsive.
+            firstByteReceived = true
+            if (firstByteTimerRef.current !== null) {
+              clearTimeout(firstByteTimerRef.current)
+              firstByteTimerRef.current = null
+            }
+          }
           accumulated += decoder.decode(value, { stream: true })
           const isCrisisMsg = accumulated.startsWith(CRISIS_SIGNAL)
           const displayContent = isCrisisMsg
@@ -108,18 +127,44 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
           }
         }
       } catch (err) {
+        // AbortError from user navigation (component unmount): discard silently.
+        // AbortError from first-byte timeout: already handled by the timeout callback.
         if ((err as Error).name === 'AbortError') return
         setError(err as Error)
         // Discard the assistant message entirely on any failure — partial content
         // must never be shown. v7 output_gate: un-gated partial content must not display.
         setMessages((curr) => curr.filter((m) => m.id !== assistantId))
       } finally {
-        setIsLoading(false)
-        abortRef.current = null
+        // Only reset loading/abort state if the timeout didn't already do so.
+        if (!timedOutRef.current) {
+          setIsLoading(false)
+          abortRef.current = null
+        }
       }
     },
     [sessionId, userId]
   )
+
+  /**
+   * Registers the 25-second first-byte timeout synchronously (before any await)
+   * so vi.advanceTimersByTime() in tests can fire it before stream()'s async body runs.
+   * The timeout callback sets error state directly, then aborts the in-flight request.
+   * stream() cancels the timer on first byte via firstByteTimerRef.
+   */
+  function registerFirstByteTimeout() {
+    if (firstByteTimerRef.current !== null) clearTimeout(firstByteTimerRef.current)
+    timedOutRef.current = false
+    firstByteTimerRef.current = setTimeout(() => {
+      timedOutRef.current = true
+      firstByteTimerRef.current = null
+      setError(new Error('Sage is taking too long to respond. Please try again.'))
+      // Remove any empty assistant placeholder left in the message list.
+      setMessages((curr) => curr.filter((m) => m.role !== 'assistant' || m.content !== ''))
+      setIsLoading(false)
+      abortRef.current?.abort()
+      abortRef.current = null
+    }, FIRST_BYTE_TIMEOUT_MS)
+  }
 
   const append = useCallback(
     (msg: { role: 'user'; content: string }) => {
@@ -128,13 +173,19 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
         role: msg.role,
         content: msg.content,
       }
+      // Set loading eagerly so callers see isLoading:true synchronously within act().
+      setIsLoading(true)
+      setError(null)
+      // Register the first-byte timeout synchronously before any async work,
+      // so vi.advanceTimersByTime() in tests can fire it even before stream() runs.
+      registerFirstByteTimeout()
       // Compute next history synchronously so we can stream from it.
       let nextHistory: SdkMessage[] = []
       setMessages((curr) => {
         nextHistory = [...curr, userMessage]
         return nextHistory
       })
-      // Defer to next tick so React flushes the optimistic user message first.
+      // Defer stream() to next tick so React flushes the optimistic user message first.
       queueMicrotask(() => void stream(nextHistory))
     },
     [stream]
@@ -151,11 +202,15 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
     if (lastUserIdx === -1) return
     const history = messages.slice(0, lastUserIdx + 1)
     setMessages(history)
+    registerFirstByteTimeout()
     void stream(history)
   }, [messages, stream])
 
   useEffect(() => {
-    return () => abortRef.current?.abort()
+    return () => {
+      abortRef.current?.abort()
+      if (firstByteTimerRef.current !== null) clearTimeout(firstByteTimerRef.current)
+    }
   }, [])
 
   return { messages, append, isLoading, error, reload, crisisState }

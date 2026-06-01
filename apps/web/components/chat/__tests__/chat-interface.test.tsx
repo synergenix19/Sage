@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { renderHook, act, waitFor, render, screen } from '@testing-library/react'
 import { useStreamingChat, ChatInterface } from '../chat-interface'
 
@@ -110,6 +110,80 @@ describe('useStreamingChat — mid-stream failure', () => {
     const userMessages = result.current.messages.filter((m) => m.role === 'user')
     expect(userMessages).toHaveLength(1)
     expect(userMessages[0].content).toBe('Hello there')
+  })
+})
+
+describe('useStreamingChat — first-byte timeout', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('sets error and clears placeholder when server sends no bytes within 25s', async () => {
+    // Minimal ReadableStream that never yields — simulates hung server.
+    const neverStream = new ReadableStream<Uint8Array>({ start() {} })
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      body: neverStream,
+      headers: new Headers(),
+    } as unknown as Response)
+
+    const { result } = renderHook(() =>
+      useStreamingChat('sess-timeout-1', 'user-1', [])
+    )
+
+    act(() => {
+      result.current.append({ role: 'user', content: 'hello' })
+    })
+
+    // Before timeout: still loading, empty placeholder present.
+    expect(result.current.isLoading).toBe(true)
+
+    // Advance past the 25s timeout.
+    await act(async () => {
+      vi.advanceTimersByTime(25_001)
+    })
+
+    expect(result.current.isLoading).toBe(false)
+    expect(result.current.error?.message).toMatch(/taking too long/i)
+    // Empty placeholder must be removed — not left in the message list.
+    expect(result.current.messages.every((m) => m.role !== 'assistant' || m.content !== '')).toBe(true)
+  })
+
+  it('does NOT trigger timeout when server responds before 25s', async () => {
+    const singleChunkStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('Hello there'))
+        controller.close()
+      },
+    })
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      body: singleChunkStream,
+      headers: new Headers(),
+    } as unknown as Response)
+
+    const { result } = renderHook(() =>
+      useStreamingChat('sess-timeout-2', 'user-1', [])
+    )
+
+    await act(async () => {
+      result.current.append({ role: 'user', content: 'hi' })
+      vi.advanceTimersByTime(1_000)
+    })
+
+    // Wait for loading to complete without triggering timeout.
+    await act(async () => {
+      vi.advanceTimersByTime(100)
+    })
+
+    expect(result.current.error).toBeNull()
+    expect(result.current.isLoading).toBe(false)
   })
 })
 
