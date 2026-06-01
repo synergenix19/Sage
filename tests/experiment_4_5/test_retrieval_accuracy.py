@@ -145,8 +145,8 @@ class TestKnowledgeRetrieveNode:
         assert result["path"] == prior_path + ["knowledge_retrieve"]
 
     @pytest.mark.asyncio
-    async def test_uses_message_en_as_query(self):
-        """Node 6 must pass message_en as the query, not raw_message."""
+    async def test_english_turn_uses_message_en_as_query(self):
+        """English turns: Node 6 passes message_en (translated text) as the query."""
         from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
 
         mock_repo = MagicMock()
@@ -155,24 +155,38 @@ class TestKnowledgeRetrieveNode:
         with patch("sage_poc.nodes.knowledge_retrieve.PostgresKnowledgeRepository", return_value=mock_repo):
             with patch("sage_poc.nodes.knowledge_retrieve._get_pool", return_value=MagicMock()):
                 await knowledge_retrieve_node(make_retrieve_state(
+                    detected_language="en",
+                    raw_message="what is CBT?",
+                    message_en="what is cognitive behavioral therapy",
+                ))
+
+        call_args = mock_repo.retrieve.call_args
+        actual_query = call_args.args[0] if call_args.args else call_args.kwargs.get("query")
+        assert actual_query == "what is cognitive behavioral therapy"
+
+    @pytest.mark.asyncio
+    async def test_arabic_turn_uses_raw_message_as_query(self):
+        """Arabic turns: Node 6 passes raw_message (original Arabic text) as the FTS query."""
+        from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
+
+        mock_repo = MagicMock()
+        mock_repo.retrieve = AsyncMock(return_value=make_result())
+
+        with patch("sage_poc.nodes.knowledge_retrieve.PostgresKnowledgeRepository", return_value=mock_repo):
+            with patch("sage_poc.nodes.knowledge_retrieve._get_pool", return_value=MagicMock()):
+                await knowledge_retrieve_node(make_retrieve_state(
+                    detected_language="ar",
                     raw_message="ما هو العلاج المعرفي السلوكي",
                     message_en="what is cognitive behavioral therapy",
                 ))
 
         call_args = mock_repo.retrieve.call_args
-        # First positional arg is the query
         actual_query = call_args.args[0] if call_args.args else call_args.kwargs.get("query")
-        assert actual_query == "what is cognitive behavioral therapy"
+        assert actual_query == "ما هو العلاج المعرفي السلوكي"
 
     @pytest.mark.asyncio
-    async def test_arabic_query_passes_language_en(self):
-        """Node 6 hardcodes language='en' regardless of detected_language.
-
-        Current behaviour (documented): knowledge_retrieve_node always calls
-        repo.retrieve(..., language='en'). Arabic messages are pre-translated to
-        English by the translation node before retrieval. This test documents and
-        asserts the current implementation contract.
-        """
+    async def test_arabic_turn_routes_to_ar_corpus(self):
+        """Arabic turns: Node 6 passes language='ar' so the AR chunk set is queried."""
         from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
 
         mock_repo = MagicMock()
@@ -182,7 +196,8 @@ class TestKnowledgeRetrieveNode:
             with patch("sage_poc.nodes.knowledge_retrieve._get_pool", return_value=MagicMock()):
                 await knowledge_retrieve_node(make_retrieve_state(
                     detected_language="ar",
-                    message_en="what is cognitive behavioral therapy",
+                    raw_message="ما هو القلق",
+                    message_en="what is anxiety",
                 ))
 
         mock_repo.retrieve.assert_called_once()
@@ -192,11 +207,10 @@ class TestKnowledgeRetrieveNode:
             if call_kwargs.kwargs
             else (call_kwargs.args[1] if len(call_kwargs.args) > 1 else None)
         )
-        assert actual_language == "en", (
-            "knowledge_retrieve_node must always call repo.retrieve(..., language='en'). "
-            f"Got: {actual_language!r}. "
-            "Arabic messages are pre-translated by the translation node before retrieval "
-            "and the corpus is indexed in English only."
+        assert actual_language == "ar", (
+            "Arabic turns must route to the AR corpus. "
+            f"Got language={actual_language!r}. "
+            "Node 6 reads detected_language from state (set by safety_check Node 1)."
         )
 
     @pytest.mark.asyncio
@@ -288,12 +302,12 @@ class TestKnowledgeLookupTool:
         assert "relevance_score" in passage
 
     @pytest.mark.asyncio
-    async def test_tool_hardcodes_language_en(self):
-        """knowledge_lookup always retrieves with language='en' (corpus is English-only).
+    async def test_tool_singleton_defaults_to_en(self):
+        """Module-level knowledge_lookup singleton defaults to language='en'.
 
-        Current behaviour (documented): the tool passes language='en' hardcoded.
-        If an Arabic user triggers a tool call, their message_en (English translation)
-        is the query, and the corpus language filter is always 'en'.
+        The singleton exists for backward compatibility with tests and import
+        sites that don't have access to detected_language at import time.
+        Production code (freeflow_respond) uses make_knowledge_lookup_tool(language=...).
         """
         from sage_poc.nodes.tools.knowledge_lookup import knowledge_lookup
 
@@ -310,10 +324,29 @@ class TestKnowledgeLookupTool:
             if call_kwargs.kwargs
             else (call_kwargs.args[1] if len(call_kwargs.args) > 1 else None)
         )
-        assert actual_language == "en", (
-            "knowledge_lookup tool must call repo.retrieve(..., language='en'). "
-            f"Got: {actual_language!r}. "
-            "This is current documented behaviour — the corpus is English-only."
+        assert actual_language == "en"
+
+    @pytest.mark.asyncio
+    async def test_factory_injects_language_ar(self):
+        """make_knowledge_lookup_tool('ar') passes language='ar' to repo.retrieve."""
+        from sage_poc.nodes.tools.knowledge_lookup import make_knowledge_lookup_tool
+
+        ar_tool = make_knowledge_lookup_tool("ar")
+        mock_repo = MagicMock()
+        mock_repo.retrieve = AsyncMock(return_value=KnowledgeResult(passages=[], abstain=True))
+
+        with patch("sage_poc.nodes.tools.knowledge_lookup.PostgresKnowledgeRepository", return_value=mock_repo):
+            with patch("sage_poc.nodes.tools.knowledge_lookup._get_pool", return_value=MagicMock()):
+                await ar_tool.ainvoke({"query": "ما هو القلق"})
+
+        call_kwargs = mock_repo.retrieve.call_args
+        actual_language = (
+            call_kwargs.kwargs.get("language")
+            if call_kwargs.kwargs
+            else (call_kwargs.args[1] if len(call_kwargs.args) > 1 else None)
+        )
+        assert actual_language == "ar", (
+            f"Factory with language='ar' must pass language='ar' to repo. Got: {actual_language!r}."
         )
 
     @pytest.mark.asyncio
