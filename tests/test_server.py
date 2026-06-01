@@ -423,3 +423,66 @@ def test_chat_request_has_no_ferry_fields(client):
     # Crisis keyword path — should still return 200 with crisis signal
     assert res.status_code == 200
     assert res.text.startswith("[[CRISIS_DETECTED]]")
+
+
+def test_chat_ainvoke_timeout_returns_server_error(monkeypatch):
+    """When ainvoke hangs past 20s, the endpoint must stream SERVER_ERROR."""
+    import asyncio
+    from server import app
+
+    class _HangingGraph:
+        checkpointer = None
+
+        async def ainvoke(self, state, config=None):
+            # Simulate a hang that outlasts the 20s timeout.
+            await asyncio.sleep(999)
+
+    # Speed up the timeout so the test doesn't actually wait 20s.
+    monkeypatch.setattr("server.AINVOKE_TIMEOUT_SECONDS", 0.05)
+
+    with TestClient(app) as client:
+        # Patch _graph after lifespan runs (lifespan overwrites app.state._graph).
+        monkeypatch.setattr(app.state, "_graph", _HangingGraph())
+        res = client.post(
+            "/chat",
+            json={
+                "messages": [{"role": "user", "content": "hello"}],
+                "session_id": "00000000-0000-0000-0000-000000000001",
+                "user_id": "u1",
+            },
+            headers={"X-Sage-Api-Key": ""},
+        )
+    assert res.status_code == 200
+    assert b"[[SERVER_ERROR]]" in res.content
+
+
+def test_chat_ainvoke_timeout_fires_within_window(monkeypatch):
+    """Elapsed time must be less than twice the configured timeout."""
+    import asyncio
+    import time
+    from server import app
+
+    class _HangingGraph:
+        checkpointer = None
+
+        async def ainvoke(self, state, config=None):
+            await asyncio.sleep(999)
+
+    monkeypatch.setattr("server.AINVOKE_TIMEOUT_SECONDS", 0.1)
+
+    start = time.monotonic()
+    with TestClient(app) as client:
+        # Patch _graph after lifespan runs (lifespan overwrites app.state._graph).
+        monkeypatch.setattr(app.state, "_graph", _HangingGraph())
+        client.post(
+            "/chat",
+            json={
+                "messages": [{"role": "user", "content": "hello"}],
+                "session_id": "00000000-0000-0000-0000-000000000002",
+                "user_id": "u1",
+            },
+            headers={"X-Sage-Api-Key": ""},
+        )
+    elapsed = time.monotonic() - start
+    # Should complete within 2x the 0.1s timeout, well under 1s.
+    assert elapsed < 1.0

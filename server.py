@@ -4,6 +4,7 @@ import json
 import logging
 import hmac
 import os
+import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -25,6 +26,7 @@ from sage_poc.skills.conformance import SCHEMA_CONFORMANCE, get_conformance_repo
 
 _log = logging.getLogger(__name__)
 CRISIS_SIGNAL = "[[CRISIS_DETECTED]]"
+AINVOKE_TIMEOUT_SECONDS: float = float(os.environ.get("AINVOKE_TIMEOUT_SECONDS", "18"))
 
 
 async def require_api_key(x_sage_api_key: str | None = Header(default=None)) -> None:
@@ -146,6 +148,7 @@ async def chat(
     if not req.messages or req.messages[-1].role != "user":
         raise HTTPException(status_code=400, detail="Last message must be from the user")
 
+    _request_start = time.monotonic()
     state = _build_state(req)
     graph = app.state._graph
 
@@ -171,10 +174,24 @@ async def chat(
         except Exception as exc:
             _log.warning("[sage/chat] therapeutic profile load failed: %s", exc)
     try:
-        result = await graph.ainvoke(
-            state,
-            config={"configurable": {"thread_id": req.session_id}},
+        result = await asyncio.wait_for(
+            graph.ainvoke(
+                state,
+                config={"configurable": {"thread_id": req.session_id}},
+            ),
+            timeout=AINVOKE_TIMEOUT_SECONDS,
         )
+    except asyncio.TimeoutError:
+        _log.error(
+            "[sage/graph] ainvoke timed out after %.1fs for session %s",
+            AINVOKE_TIMEOUT_SECONDS,
+            req.session_id,
+        )
+
+        async def _timeout_err() -> AsyncGenerator[bytes, None]:
+            yield b"[[SERVER_ERROR]]"
+
+        return StreamingResponse(_timeout_err(), media_type="text/plain; charset=utf-8")
     except Exception as exc:
         _log.error("[sage/graph] invoke failed: %s", exc)
 
