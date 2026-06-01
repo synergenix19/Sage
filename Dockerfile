@@ -26,4 +26,5 @@ COPY . .
 
 EXPOSE 8000
 ENV SAGE_WARMUP_BGE=1
-CMD ["uv", "run", "uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"]
+# Use Railway's $PORT if set, otherwise fall back to 8000 for local dev.
+CMD ["sh", "-c", "uv run uvicorn server:app --host 0.0.0.0 --port ${PORT:-8000}"]
