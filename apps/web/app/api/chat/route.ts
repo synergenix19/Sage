@@ -1,4 +1,5 @@
 // apps/web/app/api/chat/route.ts
+import { after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { CRISIS_SIGNAL, SERVER_ERROR_SIGNAL } from '@/lib/constants'
@@ -109,7 +110,11 @@ export async function POST(req: Request) {
 
   const [clientStream, persistStream] = sageRes.body.tee()
 
-  void (async () => {
+  // after() schedules work to run after the response is sent and keeps the
+  // Vercel function alive until the callback completes. Without it, void IIFE
+  // is fire-and-forget: the function freezes mid-TLS-handshake when Supabase
+  // insert tries to connect after the client stream ends (ECONNRESET).
+  after(async () => {
     try {
       const reader = persistStream.getReader()
       const decoder = new TextDecoder()
@@ -203,7 +208,7 @@ export async function POST(req: Request) {
     } catch (err) {
       console.error('[chat/persist] failed:', err)
     }
-  })()
+  })
 
   const SAGE_HEADERS_WHITELIST = [
     'x-sage-node-path',
