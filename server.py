@@ -148,7 +148,6 @@ async def chat(
     if not req.messages or req.messages[-1].role != "user":
         raise HTTPException(status_code=400, detail="Last message must be from the user")
 
-    _request_start = time.monotonic()
     state = _build_state(req)
     graph = app.state._graph
 
@@ -173,6 +172,7 @@ async def chat(
             state["therapeutic_profile"] = await repo.get_therapeutic_profile(req.user_id)
         except Exception as exc:
             _log.warning("[sage/chat] therapeutic profile load failed: %s", exc)
+    _request_start = time.monotonic()  # consumed by Tasks 3+4 (latency audit)
     try:
         result = await asyncio.wait_for(
             graph.ainvoke(
