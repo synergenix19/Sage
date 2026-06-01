@@ -43,12 +43,16 @@ def _ensure_s3_ready() -> bool:
     if _embedding_index is not None:
         return True
     try:
-        from sage_poc.memory.embedding import get_embedding  # noqa: PLC0415
+        import sage_poc.nodes.skill_select as _ss  # noqa: PLC0415
+        _ss._ensure_semantic_ready()  # ensure model is loaded
         texts = _load_phrase_texts()
-        vecs = [np.array(get_embedding(t), dtype=np.float32) for t in texts]
-        matrix = np.stack(vecs)  # (N, 1024)
-        norms = np.linalg.norm(matrix, axis=1, keepdims=True)
-        matrix = matrix / np.clip(norms, 1e-9, None)
+        # Batch-encode all phrases in one call — matches skill_select's encoding pattern.
+        # 48 sequential single-text calls took ~8-12s on Railway CPU (no ANE); one batched
+        # call takes ~3-5s. Combined with startup warmup this path only runs once at boot.
+        matrix = np.array(
+            _ss._embed_model.encode(texts, normalize_embeddings=True, batch_size=32),
+            dtype=np.float32,
+        )
         _phrase_texts = texts
         _embedding_index = matrix
         _log.info("[S3] Index built: %d phrases", len(texts))

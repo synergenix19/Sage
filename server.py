@@ -42,6 +42,11 @@ _CORS_ORIGINS: list[str] = [o.strip() for o in _cors_origins_raw.split(",") if o
 def _warmup_bge_m3() -> None:
     from sage_poc.nodes.skill_select import _ensure_semantic_ready
     _ensure_semantic_ready()
+    # Build S3 crisis phrase index at startup so it's ready before the first
+    # request. Without this, index build runs under the 5s per-request timeout
+    # on Railway CPU (no ANE), causing permanent S1-only degradation.
+    from sage_poc.safety.s3_semantic import _ensure_s3_ready
+    _ensure_s3_ready()
 
 
 @asynccontextmanager
