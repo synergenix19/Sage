@@ -34,10 +34,12 @@ async def knowledge_retrieve_node(state: SageState) -> dict:
             "path": path,
         }
 
-    query = state.get("message_en", "")
+    lang = state.get("detected_language", "en")
+    # Use original text for Arabic FTS matching; translated text for English.
+    query = state.get("raw_message", "") if lang == "ar" else state.get("message_en", "")
 
     repo = PostgresKnowledgeRepository(pool)
-    result = await repo.retrieve(query, language="en", top_k=5)
+    result = await repo.retrieve(query, language=lang, top_k=5)
 
     return {
         "knowledge_passages": [p.to_dict() for p in result.passages],

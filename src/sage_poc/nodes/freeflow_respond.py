@@ -115,8 +115,8 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
     llm_tools = []
     # knowledge_lookup is always available — no user identity required (v7 §6.5.2)
     try:
-        from sage_poc.nodes.tools.knowledge_lookup import knowledge_lookup  # noqa: PLC0415
-        llm_tools.append(knowledge_lookup)
+        from sage_poc.nodes.tools.knowledge_lookup import make_knowledge_lookup_tool  # noqa: PLC0415
+        llm_tools.append(make_knowledge_lookup_tool(language=state.get("detected_language", "en")))
     except ImportError:
         pass
     if user_id and session_id:

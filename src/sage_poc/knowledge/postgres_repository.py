@@ -35,7 +35,7 @@ text_ranked AS (
         citation_metadata,
         ROW_NUMBER() OVER (ORDER BY ts_rank_cd(chunk_tsv, query) DESC) AS txt_rank
     FROM public.knowledge_articles,
-         plainto_tsquery('english', $4) AS query
+         plainto_tsquery($7::regconfig, $4) AS query
     WHERE language = $2
       AND chunk_tsv @@ query
     ORDER BY ts_rank_cd(chunk_tsv, query) DESC
@@ -74,6 +74,8 @@ class PostgresKnowledgeRepository(KnowledgeRepository):
         language: str = "en",
         top_k: int = 5,
     ) -> KnowledgeResult:
+        # 'simple' tokenises on whitespace (language-agnostic); 'english' adds stemming+stopwords.
+        tsconfig = "simple" if language == "ar" else "english"
         try:
             embedding = _get_embedding(query)
             embedding_str = "[" + ",".join(str(v) for v in embedding) + "]"
@@ -86,6 +88,7 @@ class PostgresKnowledgeRepository(KnowledgeRepository):
                     query,           # $4 full-text query
                     _RRF_K,          # $5 RRF k constant
                     top_k,           # $6 final limit
+                    tsconfig,        # $7 FTS config ('simple' for ar, 'english' for en)
                 )
         except Exception as exc:
             _log.warning("[knowledge] retrieval failed: %s", exc)
@@ -107,5 +110,6 @@ class PostgresKnowledgeRepository(KnowledgeRepository):
                 relevance_score=round(float(row["rrf_score"]), 4),
             ))
 
+        # POC substitute: Postgres hybrid RRF stands in for v7-mandated Azure AI Search (BM25+vector) + BGE-reranker-v2-m3 (UAE North). Migrate pre-prod. See §20.1 CKPT-REGION.
         # TODO: add BGE-reranker-v2-m3 reranking pass here (pre-production, corpus > 100 articles)
         return KnowledgeResult(passages=passages, abstain=len(passages) == 0)
