@@ -1,5 +1,9 @@
 FROM python:3.12-slim
 
+# libpq5: runtime library required by psycopg3 (pure-Python implementation).
+# python:3.12-slim strips it; without it psycopg raises "libpq library not found".
+RUN apt-get update && apt-get install -y --no-install-recommends libpq5 && rm -rf /var/lib/apt/lists/*
+
 RUN pip install --no-cache-dir uv
 
 WORKDIR /app
