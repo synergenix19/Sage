@@ -473,7 +473,7 @@ Both paths use `PostgresKnowledgeRepository` and the same `knowledge_articles` p
 
 ### 6.3 Corpus and Ingestion Pipeline
 
-**Corpus:** `data/knowledge_corpus/en/` — 30 source article JSON files (English only). 137 chunks ingested as of Gitex sprint 2026-05-27.
+**Corpus:** `data/knowledge_corpus/en/` — 30 EN articles, 137 chunks. `data/knowledge_corpus/ar/` — 20 AR articles, 80 chunks (ingested 2026-06-01). Total: 50 articles, 217 chunks across both languages in `knowledge_articles`.
 
 **Article format** (7 required fields):
 ```json
@@ -1356,7 +1356,7 @@ Measured 2026-05-31 against live server with DATABASE_URL (Supabase AP-SOUTH-1 c
 | FALLBACK | `_VETTED_FALLBACK_RESPONSE` pending clinical review | Placeholder | See `docs/superpowers/reviews/FALLBACK_RESPONSE_REVIEW.md`. |
 | Obs-inject | `observations` stored but not injected into prompt | Gap | `record_observation` tool writes to profile; `_build_cross_session_block` does not read it. Injection path not yet built. |
 | Dialect-QA | Khaleeji dialect quality not independently validated | Pre-prod gate | Arabic-speaking Gulf-native colleague sign-off required before user exposure. |
-| AR-KB-INGEST | Arabic KB articles approved but not yet ingested | **Operational action required** | 20 AR articles in `data/knowledge_corpus/ar/` approved 2026-06-01. Must run `uv run python scripts/ingest_knowledge.py --corpus-dir data/knowledge_corpus/ar/ --db-url $DATABASE_URL` to load into `knowledge_articles` pgvector table. |
+| AR-KB-INGEST | Arabic KB articles ingested | **DONE 2026-06-01** | 20 articles → 80 chunks in `knowledge_articles` pgvector table. Total corpus: 137 EN chunks + 80 AR chunks = 217 chunks. All chunks have BGE-M3 embeddings. |
 | AR-KB-CRISIS | Arabic pairs for crisis articles | Clinical gate — not yet addressed | crisis-001/002/003/004 require dual-clinician sign-off before Arabic versions may be authored or ingested. Independent of 2026-06-01 general approval. |
 
 ### 20.2 Performance
