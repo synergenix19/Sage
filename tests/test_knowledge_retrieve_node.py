@@ -56,12 +56,12 @@ async def test_knowledge_retrieve_abstains_on_db_unavailable():
 
 
 @pytest.mark.asyncio
-async def test_knowledge_retrieve_uses_en_query_for_arabic():
-    """Arabic messages use message_en (pre-translated) and always retrieve with language='en'.
+async def test_knowledge_retrieve_routes_arabic_to_ar_corpus():
+    """Arabic turns route to the AR corpus (language='ar') using raw_message as query.
 
-    The translation node (Node 2) normalises all messages to English before retrieval.
-    knowledge_retrieve_node therefore always calls repo.retrieve(..., language='en')
-    regardless of detected_language, using the already-translated message_en value.
+    Post-091d103: knowledge_retrieve_node passes detected_language to repo.retrieve(),
+    so Arabic turns query the Arabic corpus directly. The query text is raw_message
+    (original Arabic text), not message_en (translated English).
     """
     from sage_poc.knowledge.models import KnowledgeResult
     from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
@@ -71,10 +71,15 @@ async def test_knowledge_retrieve_uses_en_query_for_arabic():
 
     with patch("sage_poc.nodes.knowledge_retrieve.PostgresKnowledgeRepository", return_value=mock_repo):
         with patch("sage_poc.nodes.knowledge_retrieve._get_pool", return_value=MagicMock()):
-            await knowledge_retrieve_node(_kr_state(detected_language="ar", message_en="what is CBT"))
+            await knowledge_retrieve_node(_kr_state(detected_language="ar", message_en="what is CBT?"))
 
     mock_repo.retrieve.assert_called_once()
     call_kwargs = mock_repo.retrieve.call_args
-    assert call_kwargs.kwargs.get("language") == "en" or (
-        len(call_kwargs.args) > 1 and call_kwargs.args[1] == "en"
-    ), f"Expected language='en', got: {call_kwargs}"
+    # language must be 'ar' — Arabic turns query the Arabic corpus
+    language_arg = call_kwargs.kwargs.get("language") or (
+        call_kwargs.args[1] if len(call_kwargs.args) > 1 else None
+    )
+    assert language_arg == "ar", f"Expected language='ar', got: {call_kwargs}"
+    # query must be raw_message, not message_en
+    query_arg = call_kwargs.args[0] if call_kwargs.args else call_kwargs.kwargs.get("query")
+    assert query_arg == "what is CBT?", f"Expected raw_message as query, got: {query_arg}"
