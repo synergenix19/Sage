@@ -13,11 +13,25 @@ Test module responsibilities:
 - test_session_audit_integration.py — full-turn audit row (ASGI + real Supabase)
 """
 import os
+import sys
 import numpy as np
 import pytest
 import httpx
 from unittest.mock import MagicMock, AsyncMock
 from sage_poc.llm import reset_singletons
+
+# Fail fast if running under the wrong interpreter.
+# asyncpg is installed in .venv only; if it's missing the suite silently ran
+# in a degraded environment where test_server.py produced collection ERRORs
+# instead of real results. This guard surfaces the misconfiguration immediately.
+try:
+    import asyncpg  # noqa: F401
+except ModuleNotFoundError:
+    pytest.exit(
+        f"asyncpg not found in {sys.executable}. "
+        "Run tests with the project venv: .venv/bin/python -m pytest",
+        returncode=4,
+    )
 
 
 # ---------------------------------------------------------------------------
