@@ -273,7 +273,7 @@ Also returns: `secondary_intent` (blended intent), `emotional_intensity` (1–10
 
 ### 5.1 Registry
 
-`skill_ids.py`. **20 skills as of 2026-05-27:**
+`skill_ids.py`. **24 skills as of 2026-06-01 (all production-approved):**
 
 ```
 cbt_thought_record       grounding_5_4_3_2_1      sleep_hygiene
@@ -282,10 +282,15 @@ behavioral_activation    worry_time                mi_readiness_ruler
 stop_technique           progressive_muscle_relaxation  safe_place_visualization
 dbt_tipp                 psychoed_anxiety          psychoed_depression
 psychoed_stress          values_clarification      assertive_communication
-self_compassion_break    mindfulness_body_scan
+self_compassion_break    mindfulness_body_scan     cognitive_restructuring
+interpersonal_effectiveness  financial_anxiety     grief_loss
 ```
 
+SK-001–SK-020 in production since v7 Gitex sprint (2026-05-27). SK-021–SK-024 (`cognitive_restructuring`, `interpersonal_effectiveness`, `financial_anxiety`, `grief_loss`) authored 2026-05-31, clinician-approved and promoted to production 2026-06-01.
+
 `post_crisis_check_in` is exclusively auto-selected via `post_crisis_auto_select`; it has empty `target_presentations` and empty `semantic_description`.
+
+Canonical inventory: `docs/SageAI_Skills_Knowledge_Base.md`. Proposed future skills (SK-025–SK-028): `emotion_regulation`, `thought_defusion`, `behavioural_experiment`, `problem_solving` — not yet authored.
 
 ### 5.2 Matching
 
@@ -1347,10 +1352,12 @@ Measured 2026-05-31 against live server with DATABASE_URL (Supabase AP-SOUTH-1 c
 |---|---|---|---|
 | S2 | MARBERT Arabic crisis classifier | Not implemented | Architecture comment in `safety_check.py`. S3 provides semantic coverage; S2 adds dialectal Arabic coverage without a translation round-trip. |
 | S3-AR | S3 on Arabic text | Not implemented | `check_s3` runs on `message_en` only; Arabic crisis phrases may score differently on original text. TODO comment in `safety_check.py` and `s3_semantic.py`. |
-| CLF-xsession | Clinical flag cross-session persistence | Infrastructure ready, disabled | `flag_lifecycle_config.json` has all 5 flag types = false. Enable by setting values to true per flag. |
+| CLF-xsession | Clinical flag cross-session persistence | Infrastructure ready, config decision pending | `flag_lifecycle_config.json` has all 5 flag types = false. Enable by setting values to true per flag once clinician decides which flags persist. |
 | FALLBACK | `_VETTED_FALLBACK_RESPONSE` pending clinical review | Placeholder | See `docs/superpowers/reviews/FALLBACK_RESPONSE_REVIEW.md`. |
 | Obs-inject | `observations` stored but not injected into prompt | Gap | `record_observation` tool writes to profile; `_build_cross_session_block` does not read it. Injection path not yet built. |
-| Dialect-QA | Khaleeji dialect quality not independently validated | Pre-prod gate | Demo readiness checklist requires Arabic-speaking colleague sign-off. Not yet done. |
+| Dialect-QA | Khaleeji dialect quality not independently validated | Pre-prod gate | Arabic-speaking Gulf-native colleague sign-off required before user exposure. |
+| AR-KB-INGEST | Arabic KB articles approved but not yet ingested | **Operational action required** | 20 AR articles in `data/knowledge_corpus/ar/` approved 2026-06-01. Must run `uv run python scripts/ingest_knowledge.py --corpus-dir data/knowledge_corpus/ar/ --db-url $DATABASE_URL` to load into `knowledge_articles` pgvector table. |
+| AR-KB-CRISIS | Arabic pairs for crisis articles | Clinical gate — not yet addressed | crisis-001/002/003/004 require dual-clinician sign-off before Arabic versions may be authored or ingested. Independent of 2026-06-01 general approval. |
 
 ### 20.2 Performance
 
@@ -1385,7 +1392,7 @@ A combined classify+respond single-call architecture becomes possible with self-
 |---|---|---|---|
 | CUO-missing | Empty `cultural_overrides` in 4 skills | P2 | `box_breathing`, `mood_check_in`, `stop_technique`, `worry_time` have empty `cultural_overrides`. |
 | BGE-revision | BGE-M3 model revision pinned | Maintenance | `_REVISION = "5617a9f6..."` in skill_select.py. Model promotion requires: update `_REVISION`, delete old cache, ANE compile, determinism check, recalibrate both thresholds. |
-| GRIEF-SKILL | `grief_loss` skill absent from SKILL_REGISTRY | Blocked on inventory reconciliation | Grief disclosures route to `L2_new_skill_unmatched` freeflow path (Phase 1 fix, 2026-05-31). Full fix: author grief_loss through CMS draft→review→approve→publish workflow; `target_presentations` = loss/absence/missing-someone language; `semantic_description` technique-pure; `evidence_base` = Worden (2009) via `grief-001.json`. Blocked on confirming `grief_loss` item number in `SageAI_Skills_Knowledge_Base.docx` (Task 9, `2026-05-30-arabic-kb-skills-expansion.md`). |
+| SK-025–028 | 4 proposed future skills not yet authored | Proposed — scoping required | `emotion_regulation`, `thought_defusion`, `behavioural_experiment`, `problem_solving`. Require clinical scoping session before authoring. See `docs/SageAI_Skills_Knowledge_Base.md`. |
 | TIER2-DUALIDX | Tier 2 semantic matching embeds `semantic_description` only | §4.3 evaluation required | `target_presentations` (symptom language) is Tier 1 only. Novel symptom phrasings not in any skill's `target_presentations` fall through both tiers. Proposed fix: dual-index (separate BGE-M3 embedding + threshold for `target_presentations`). Requires: novel-variant test set, calibrate_threshold.py extended for second index, Rule 1 approval. Do not concatenate fields — two semantic objectives require separate thresholds. |
 | L2-AUTHORITY | L2 templates delivered as user-role | Open architectural review | All L2 templates (including `L2_new_skill_unmatched`) are assembled into `user_parts` in `compose_prompt`. Control instructions in L2 share the injection surface with user turns, which weakens instruction authority relative to system-role placement. Not fixed in this template — changing one template unilaterally would create inconsistency worse than the systemic issue. Requires a review of L2's authority tier across all templates. |
 | EMOTIONS-FIELD | `emotions_disclosed` SageState field (Phase 2) | Blocked on §5 clinical decision | Phase 1 (2026-05-31) ships the structural constraint prose in `L2_new_skill_unmatched`. Phase 2 adds a session-scoped `list[str]` field written deterministically at Node 1 via Rules Service, read by the L2 binding to make the suppression concrete. Schema proposal at `docs/superpowers/proposals/2026-05-31-emotions-disclosed-schema.md`. Blocked on clinical decision: permanent within-thread suppression (persisted field) vs immediate-following-turn only (transient, no field). |
