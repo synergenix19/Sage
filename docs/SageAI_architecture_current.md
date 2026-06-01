@@ -501,13 +501,29 @@ Both paths use `PostgresKnowledgeRepository` and the same `knowledge_articles` p
 
 **Chunk ID convention:** Multi-chunk articles: `{article_id}-{language}-{index:03d}` (e.g. `cbt-001-en-000`). Single-chunk articles: `{article_id}-{language}` (e.g. `crisis-004-en`).
 
-### 6.4 Arabic Knowledge Gap
+### 6.4 Arabic Knowledge Retrieval — Current State and Named Decisions
 
-**The corpus is English-only.** All 30 articles are in `data/knowledge_corpus/en/`. There is no Arabic knowledge corpus. `retrieve()` is called with `language="en"` hardcoded in both `knowledge_retrieve_node` and the `knowledge_lookup` tool.
+**Corpus (post 091d103):** Bilingual. 30 EN articles (`data/knowledge_corpus/en/`) + 20 AR articles (`data/knowledge_corpus/ar/`). Arabic users now retrieve from the Arabic corpus directly.
 
-Arabic users asking `info_request` questions retrieve from the English corpus (the English chunks) and receive a response that is then translated to Arabic by `output_gate`. The retrieved passages themselves are English — the translation pipeline turns the final response into Arabic but the knowledge source is English.
+**Language routing (post 091d103):** `knowledge_retrieve_node` reads `detected_language` from state and passes it to `PostgresKnowledgeRepository.retrieve()`. The repository branches on language: FTS uses `plainto_tsquery('simple', query)` for Arabic (whitespace-only tokenisation, language-agnostic) and `plainto_tsquery('english', query)` for English (stemming + stopwords). The `knowledge_lookup` tool uses a language-injected factory (`make_knowledge_lookup_tool(language=detected_language)`) wired in `freeflow_respond.py`.
 
-**`knowledge/rewriter.py`** provides `normalize_arabic_query()` (alef variants أإآ → ا, ta marbuta ة → ه, tatweel removal) for Arabic full-text search query normalisation. It is implemented but **not yet wired into `retrieve()`** — `plainto_tsquery('english', query)` is used for all languages including Arabic. Pre-production: call `normalize_arabic_query()` on Arabic queries and use `plainto_tsquery('arabic', query)` with an Arabic `tsconfig`.
+**`knowledge/rewriter.py`** provides `normalize_arabic_query()` (alef variants أإآ → ا, ta marbuta ة → ه, tatweel removal). It is **dead code by design** — not imported by any production path.
+
+#### Named Decision: Arabic Orthographic Normalization — Deferred for POC
+
+*Decision date: 2026-06-01. Status: Accepted POC risk.*
+
+`normalize_arabic_query()` is deliberately not wired into either the ingest path (`ingestion.py`) or the query path (`postgres_repository.py`). The consequence: ~4–5% of Arabic word forms in the corpus use orthographic variants (e.g. ناسنإ stored vs ناسنا queried) that `plainto_tsquery('simple', ...)` does not normalise. Those forms silently degrade from hybrid (FTS+vector) to vector-only retrieval. BGE-M3 semantic embeddings handle the orthographic variation, so there is no silent failure — quality degrades, not correctness.
+
+**Why not wire query-only now:** Query-only normalization without ingest-side normalization shifts which forms break — it would regress currently-working exact matches (user types the hamza form, corpus stores the hamza form, normalization collapses to bare alef → miss). Symmetric normalization (both sides, atomic) is required for correctness. Running an atomic fix requires: (1) `chunk_tsv` regeneration for all AR rows inside the migration, (2) `normalize_arabic_query()` called on the query at `retrieve()` time, applied in one changeset.
+
+**Pre-production fix:** Wire `normalize_arabic_query()` symmetrically — call it during ingest (on `chunk_text` before `to_tsvector('simple', ...)`) and during retrieval (on the query before `plainto_tsquery('simple', ...)`), with `chunk_tsv` regenerated for all existing AR rows. Both changes in one migration. Never the query side without the corpus side.
+
+#### Named Decision: Arabizi (Latin-script Arabic) on Retrieval — Out of POC Scope
+
+*Decision date: 2026-06-01. Status: Out of scope, explicitly named.*
+
+Arabizi queries (e.g. "ana ta3ban" typed in Latin script) are not detected, transliterated, or routed to the Arabic corpus. If a user submits an Arabizi query, `safety_check` will classify `detected_language` as `"en"` (Latin characters), and the query will route to the English corpus. This is neither handled nor an error — it is an undiscovered hole converted to a named, scoped decision. Arabizi-on-retrieval requires a transliteration layer (CAMeL Tools or equivalent) upstream of language detection. Defer to post-POC.
 
 ### 6.5 Legacy Static Knowledge Dictionary
 
