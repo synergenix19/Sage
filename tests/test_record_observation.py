@@ -112,3 +112,103 @@ async def test_non_profile_modifying_high_confidence_skips_review():
     mock_notifier.notify_review_required.assert_not_awaited(), (
         "high-confidence insight observations must not trigger clinician review"
     )
+
+
+# ── R2-triggered path: full chain confirmation ──────────────────────────────
+#
+# The contamination path this gate exists to block:
+#   Phase 1 stay (criteria not met)
+#   → Phase 2 resistance fires (score > 6)
+#   → step_instruction = "offer skill switch or break"
+#   → freeflow LLM receives that instruction and calls record_observation
+#     with type="concern" describing the technique as ineffective
+#   → profile write happens — GATE must fire, not silent
+#
+# This test constructs that path end-to-end with the tool call the freeflow
+# LLM would produce when interpreting a resistance-triggered step_instruction.
+
+@pytest.mark.asyncio
+async def test_r2_triggered_concern_observation_gates_correctly():
+    """Simulates the freeflow record_observation call that follows an R2 fire.
+
+    When Phase 2 resistance fires on a stay turn, the step_instruction flowing
+    to freeflow says 'offer a break or skill switch.' The LLM may interpret this
+    as evidence the technique isn't working and call record_observation with
+    type='concern'. This test confirms:
+      (a) the write is not silently rejected (observation IS persisted)
+      (b) clinician review IS triggered — the gate fires on every concern write
+      (c) the audit log entry IS emitted
+    """
+    from sage_poc.nodes.tools.record_observation import make_record_tool
+    import logging
+
+    mock_repo = AsyncMock()
+    mock_repo.get_therapeutic_profile = AsyncMock(return_value={
+        "observations": [],
+        "ineffective_techniques": [],  # pre-existing profile shape
+    })
+    mock_repo.upsert_therapeutic_profile = AsyncMock()
+    mock_notifier = AsyncMock()
+
+    # The exact call the freeflow LLM would make when R2 fires for sleep_hygiene:
+    # "user seems unresponsive to current technique — possible resistance"
+    r2_triggered_observation = (
+        "User has not been engaging with sleep hygiene guidance across multiple turns "
+        "and may find the technique ineffective or unhelpful."
+    )
+
+    with patch("sage_poc.nodes.tools.record_observation._get_notifier", return_value=mock_notifier):
+        tool_fn = make_record_tool(
+            user_id="u-test-r2", pool=object(), repo_override=mock_repo, session_id="s-r2"
+        )
+        with patch("sage_poc.nodes.tools.record_observation._log") as mock_log:
+            result = await tool_fn.ainvoke({
+                "observation":      r2_triggered_observation,
+                "observation_type": "concern",
+                "confidence":       "medium",   # LLM would use medium — it's inferred, not explicit
+            })
+
+    # (a) Write was not silently rejected
+    assert result == "recorded", "concern observation must be persisted, not rejected"
+    mock_repo.upsert_therapeutic_profile.assert_awaited_once()
+
+    # (b) Gate fired — clinician review triggered
+    mock_notifier.notify_review_required.assert_awaited_once()
+    call_kwargs = mock_notifier.notify_review_required.call_args
+    reason = (call_kwargs.kwargs or call_kwargs[1]).get("reason", "")
+    assert "concern" in reason.lower(), (
+        "review reason must identify this as a concern observation"
+    )
+
+    # (c) Audit log entry was emitted (profile_write log line)
+    log_calls = [str(c) for c in mock_log.info.call_args_list]
+    assert any("profile_write" in c for c in log_calls), (
+        "profile_write audit log entry must be emitted on every profile write via record_observation"
+    )
+
+
+@pytest.mark.asyncio
+async def test_invalid_observation_type_rejected_before_profile_write():
+    """observation_type='ineffective_technique' must be rejected — it is not in
+    _VALID_OBSERVATION_TYPES and must never reach the profile write path.
+
+    This confirms the LLM cannot directly write to ineffective_techniques via this
+    tool, even under prompt injection or miscalibrated tool calls.
+    """
+    from sage_poc.nodes.tools.record_observation import make_record_tool
+
+    mock_repo = AsyncMock()
+    mock_repo.get_therapeutic_profile = AsyncMock(return_value=None)
+    mock_repo.upsert_therapeutic_profile = AsyncMock()
+
+    tool_fn = make_record_tool(user_id="u1", pool=object(), repo_override=mock_repo)
+    result = await tool_fn.ainvoke({
+        "observation":      "sleep_hygiene is not working for this user",
+        "observation_type": "ineffective_technique",
+        "confidence":       "high",
+    })
+
+    assert "invalid" in result.lower(), (
+        "invalid observation_type must be rejected before any profile write"
+    )
+    mock_repo.upsert_therapeutic_profile.assert_not_awaited()
