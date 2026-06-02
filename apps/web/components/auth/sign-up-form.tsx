@@ -19,18 +19,42 @@ export function SignUpForm() {
     resolver: zodResolver(schema),
   })
   const [serverError, setServerError] = useState<string | null>(null)
+  const [confirmationPending, setConfirmationPending] = useState(false)
+  const [pendingEmail, setPendingEmail] = useState('')
   const router = useRouter()
   const locale = useLocaleStore((s) => s.locale)
 
   async function onSubmit(data: Fields) {
     setServerError(null)
     const supabase = createClient()
-    const { error } = await supabase.auth.signUp({
+    const { data: authData, error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
     })
     if (error) { setServerError(error.message); return }
-    router.push('/onboarding/step-1')
+    // session is null when Supabase requires email confirmation before login.
+    // Show a confirmation-pending screen rather than redirecting to an inaccessible page.
+    if (!authData.session) {
+      setPendingEmail(data.email)
+      setConfirmationPending(true)
+      return
+    }
+    router.push('/step-1')
+  }
+
+  if (confirmationPending) {
+    return (
+      <div className="flex flex-col gap-4 text-center">
+        <p className="text-sm font-medium">
+          {locale === 'ar' ? 'تحقق من بريدك الإلكتروني' : 'Check your email'}
+        </p>
+        <p className="text-sm text-[var(--color-text-secondary)]">
+          {locale === 'ar'
+            ? `أرسلنا رابط التأكيد إلى ${pendingEmail}. بعد التأكيد يمكنك تسجيل الدخول.`
+            : `We sent a confirmation link to ${pendingEmail}. Once confirmed you can sign in.`}
+        </p>
+      </div>
+    )
   }
 
   return (
