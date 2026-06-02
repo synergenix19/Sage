@@ -6,7 +6,7 @@ import { TOTAL_ONBOARDING_STEPS } from '@/lib/onboarding-constants'
 import { createClient } from '@/lib/supabase/client'
 
 export function Personalising() {
-  const { reset, setStep } = useOnboardingStore()
+  const { setStep } = useOnboardingStore()
   const [failed, setFailed] = useState(false)
   const router = useRouter()
   const failTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -42,10 +42,11 @@ export function Personalising() {
     }
     clearTimeout(failTimerRef.current!)
     // Advance past the final step so the progress bar shows 100% before we leave.
-    // reset() is called after a short delay to let the 100% state render.
+    // reset() is NOT called here — doing so drops step to 1 while StepGuard is still
+    // mounted, causing a redirect to step-1 that races and wins over push('/chat').
+    // The app layout's OnboardingCleanup component resets the store after arrival.
     setStep(TOTAL_ONBOARDING_STEPS + 1)
     setTimeout(() => {
-      reset()
       router.push('/chat')
     }, 350)
   }
