@@ -790,3 +790,59 @@ class TestCSM2ReEscalationFlag:
             "s7_result=NEW_CRISIS must set re_escalation_within_monitoring=True "
             "so _route_after_skill_executor routes to crisis_response"
         )
+
+
+# ── Per-step resistance_history reset ────────────────────────────────────────
+
+class TestResistanceHistoryStepReset:
+    """resistance_history must be cleared when active_step_id changes.
+
+    Without this reset, a saturated [7,7,7] history from step N fires R2
+    immediately at step N+1 turn 1 (which is always a stay before criteria
+    are met). The reset closes the step-boundary re-arming path.
+    """
+
+    async def test_history_resets_on_step_change(self):
+        """When prev_step_id != active_step_id, resistance_history is reset to []."""
+        skill = _make_skill(with_resistance_rule=True, for_turns=3)
+        state = _make_executor_state(
+            resistance_history=[7, 7, 7],  # saturated from prior step
+            prev_step_id="step_0",         # previous step
+            active_step_id="step_1",       # new step — triggers reset
+            engagement_trajectory=[],
+            therapeutic_profile=None,
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill), \
+             patch(
+                 "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
+                 new=AsyncMock(return_value=3),  # low score this turn
+             ):
+            result = await skill_executor_node(state)
+
+        # With [7,7,7] preserved, for_turns=3 + score=3 would produce [7,7,3]
+        # which does NOT fire R2.  After reset, history starts fresh: [3].
+        # Either way R2 must not fire — the point is history started at [].
+        assert result["resistance_history"] == [3], (
+            "Step change must reset resistance_history before appending current score"
+        )
+
+    async def test_history_preserved_on_same_step(self):
+        """When prev_step_id == active_step_id, resistance_history is not reset."""
+        skill = _make_skill(with_resistance_rule=True)
+        state = _make_executor_state(
+            resistance_history=[5, 6],
+            prev_step_id="step_1",    # same step — continuation turn
+            active_step_id="step_1",
+            engagement_trajectory=[],
+            therapeutic_profile=None,
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill), \
+             patch(
+                 "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
+                 new=AsyncMock(return_value=4),
+             ):
+            result = await skill_executor_node(state)
+
+        assert result["resistance_history"] == [5, 6, 4], (
+            "Continuation turn must accumulate history, not reset it"
+        )

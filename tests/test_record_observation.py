@@ -59,3 +59,56 @@ async def test_low_confidence_observation_also_flags_for_review():
             "confidence": "low",
         })
     mock_notifier.notify_review_required.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_concern_observation_always_flags_for_review():
+    """concern type must trigger clinician review regardless of confidence level.
+
+    A discretionary LLM write of clinical consequence (a 'concern' about a user's
+    engagement with a technique) must not be silently persisted — it requires a
+    human review checkpoint independent of confidence.
+    """
+    from sage_poc.nodes.tools.record_observation import make_record_tool
+    mock_repo = AsyncMock()
+    mock_repo.get_therapeutic_profile = AsyncMock(return_value=None)
+    mock_repo.upsert_therapeutic_profile = AsyncMock()
+    mock_notifier = AsyncMock()
+
+    with patch("sage_poc.nodes.tools.record_observation._get_notifier", return_value=mock_notifier):
+        tool_fn = make_record_tool(user_id="u1", pool=object(), repo_override=mock_repo, session_id="s1")
+        await tool_fn.ainvoke({
+            "observation": "User seemed resistant to sleep hygiene technique",
+            "observation_type": "concern",
+            "confidence": "high",  # high confidence — would skip the low-confidence gate
+        })
+
+    mock_notifier.notify_review_required.assert_awaited_once(), (
+        "concern observations must always trigger review even at high confidence"
+    )
+
+
+@pytest.mark.asyncio
+async def test_non_profile_modifying_high_confidence_skips_review():
+    """insight/progress/agency at high confidence must NOT trigger review.
+
+    The review gate is for profile-modifying and low-confidence writes only.
+    Flagging routine positive observations defeats the purpose of the gate.
+    """
+    from sage_poc.nodes.tools.record_observation import make_record_tool
+    mock_repo = AsyncMock()
+    mock_repo.get_therapeutic_profile = AsyncMock(return_value=None)
+    mock_repo.upsert_therapeutic_profile = AsyncMock()
+    mock_notifier = AsyncMock()
+
+    with patch("sage_poc.nodes.tools.record_observation._get_notifier", return_value=mock_notifier):
+        tool_fn = make_record_tool(user_id="u1", pool=object(), repo_override=mock_repo, session_id="s1")
+        await tool_fn.ainvoke({
+            "observation": "User identified their own cognitive distortion unprompted",
+            "observation_type": "insight",
+            "confidence": "high",
+        })
+
+    mock_notifier.notify_review_required.assert_not_awaited(), (
+        "high-confidence insight observations must not trigger clinician review"
+    )

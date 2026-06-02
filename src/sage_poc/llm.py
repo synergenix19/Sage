@@ -10,6 +10,7 @@ from sage_poc.config import (
     TRANSLATOR_MODEL,
     FALLBACK_RESPONDER_MODEL,
     FALLBACK_CLASSIFIER_MODEL,
+    RESISTANCE_MODEL,
 )
 
 _HEADERS = {"HTTP-Referer": "https://sage.ai", "X-Title": "SageAI POC"}
@@ -20,6 +21,7 @@ _LLM_CONFIGS: dict[str, tuple[str, float, int]] = {
     "translator":          (TRANSLATOR_MODEL,           0,   1024),
     "fallback_responder":  (FALLBACK_RESPONDER_MODEL,   0.7, 1024),
     "fallback_classifier": (FALLBACK_CLASSIFIER_MODEL,  0,   512),
+    "resistance":          (RESISTANCE_MODEL,           0,   16),
 }
 
 
@@ -62,6 +64,17 @@ def get_fallback_responder() -> ChatOpenAI:
 def get_fallback_classifier() -> ChatOpenAI:
     """Fallback model for intent classification when primary is unavailable."""
     model, temp, max_tokens = _LLM_CONFIGS["fallback_classifier"]
+    return _make_llm(model, temp, max_tokens)
+
+
+def get_resistance_model() -> ChatOpenAI:
+    """Model for clinical resistance scoring.
+
+    Configure SAGE_RESISTANCE_MODEL to a local sovereign endpoint (Falcon-3B) before
+    production — resistance scores feed the therapeutic profile and step policy. Defaults
+    to SAGE_CLASSIFIER_MODEL as interim fallback.
+    """
+    model, temp, max_tokens = _LLM_CONFIGS["resistance"]
     return _make_llm(model, temp, max_tokens)
 
 

@@ -16,6 +16,11 @@ from langchain_core.tools import tool
 _log = logging.getLogger(__name__)
 
 _VALID_OBSERVATION_TYPES = {"insight", "progress", "agency", "context_update", "concern"}
+
+# Observation types that modify the cross-session therapeutic profile in ways that affect
+# future skill selection or prompt injection. Writes of these types always go to clinician
+# review regardless of confidence — they cannot be silently persisted by the LLM alone.
+_PROFILE_MODIFYING_TYPES = {"concern"}
 _VALID_CONFIDENCE = {"high", "medium", "low"}
 
 
@@ -87,17 +92,34 @@ def make_record_tool(
                 session_id=session_id,
             )
 
-            # Low-confidence observations go to clinician review (v7 §6.5.4)
-            if confidence == "low" and session_id:
+            # Audit entry on every profile write — this write has no session_audit row
+            # (it originates from freeflow tool use, not output_gate). Log structured
+            # data so operators can reconstruct what changed and when.
+            _log.info(
+                "[record_observation] profile_write user=%s session=%s type=%s confidence=%s observation=%.120s",
+                user_id, session_id, observation_type, confidence, observation,
+            )
+
+            # Clinician review gate:
+            # - Low-confidence observations: always reviewed (uncertain facts)
+            # - Profile-modifying types (concern): always reviewed regardless of confidence,
+            #   because these can influence future session framing and skill selection.
+            # A discretionary LLM tool call must not silently modify the therapeutic record
+            # without a human review checkpoint for writes of clinical consequence.
+            needs_review = (
+                confidence == "low"
+                or observation_type in _PROFILE_MODIFYING_TYPES
+            )
+            if needs_review and session_id:
                 notifier = _get_notifier(pool)
                 if notifier:
                     try:
                         await notifier.notify_review_required(
                             user_id=user_id,
                             session_id=session_id,
-                            reason=f"low-confidence observation: {observation[:100]}",
+                            reason=f"{observation_type} observation ({confidence} confidence): {observation[:100]}",
                             source="llm_flag_for_review",
-                            payload={"observation_type": observation_type},
+                            payload={"observation_type": observation_type, "confidence": confidence},
                         )
                     except Exception as exc:
                         _log.warning("[record_observation] notify failed: %s", exc)
