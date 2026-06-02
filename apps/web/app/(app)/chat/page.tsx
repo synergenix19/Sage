@@ -56,12 +56,16 @@ export default async function ChatPage({
     activeSession = newSession
   }
 
-  // Load messages for this session ordered chronologically
+  // Load messages for this session ordered chronologically.
+  // Secondary sort by turn_number (NULLS FIRST) breaks ties when user + AI
+  // rows share the same created_at from a batch insert — user rows have
+  // turn_number=NULL so they always sort before the AI row in the same turn.
   const { data: msgRows } = await supabase
     .from('messages')
     .select('id, role, content')
     .eq('session_id', activeSession.id)
     .order('created_at', { ascending: true })
+    .order('turn_number', { ascending: true, nullsFirst: true })
 
   const initialMessages: InitialMessage[] = (msgRows ?? []).map((row) => ({
     id: row.id as string,

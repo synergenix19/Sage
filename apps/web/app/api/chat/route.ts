@@ -145,12 +145,19 @@ export async function POST(req: Request) {
       // Service-role client bypasses RLS: the background persist block runs
       // outside the Next.js request context, so the user JWT is no longer
       // available for auth.uid(). Ownership was already validated above.
+      //
+      // Explicit timestamps ensure user row sorts before ai row when both are
+      // inserted in the same batch (PostgreSQL evaluates DEFAULT now() once per
+      // statement, giving both rows the same microsecond, making order undefined).
+      const batchNow = new Date()
+      const aiCreatedAt = new Date(batchNow.getTime() + 1)
       const { error: insertError } = await createAdminClient().from('messages').insert([
         {
           id:                              crypto.randomUUID(),
           session_id:                      sessionId,
           role:                            'user',
           content:                         lastMessage,
+          created_at:                      batchNow.toISOString(),
           intent_classification:           intentClassification,
           secondary_intent_classification: secondaryIntentClassification,
         },
@@ -158,6 +165,7 @@ export async function POST(req: Request) {
           id:                              aiMessageId,
           session_id:                      sessionId,
           role:                            isCrisis ? 'crisis' : 'ai',
+          created_at:                      aiCreatedAt.toISOString(),
           content,
           model:                           sageModel,
           latency_ms:                      latencyMs,
