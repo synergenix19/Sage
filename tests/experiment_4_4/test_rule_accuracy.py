@@ -141,7 +141,10 @@ class TestRule2ResistanceForTurns:
         )
 
     async def test_r2_fires_through_node_with_real_phase2(self):
-        """Full skill_executor_node path: Phase 2 LLM score of 8 fires R2 after history."""
+        """Full skill_executor_node path: Phase 2 LLM score of 8 fires R2 after history,
+        but the precedence resolver restores Phase 1 advancement because criteria are met.
+        Clinical rule: criteria-met advancement beats resistance holds.
+        """
         state = make_executor_state(
             skill_id="cbt_thought_record",
             step_id="identify_thought",
@@ -157,8 +160,41 @@ class TestRule2ResistanceForTurns:
             with patch("sage_poc.nodes.skill_executor.load_skill", return_value=load_skill("cbt_thought_record")):
                 result = await skill_executor_node(state)
         assert result["step_instruction"] is not None
+        # Phase 1 clears criteria (default message is 12 words, passes word-count).
+        # Precedence resolver discards Phase 2's R2 hold — step must advance, not offer break.
+        assert result["active_step_id"] == "explore_distortion", (
+            "Criteria-met advancement must beat resistance hold: step should advance to explore_distortion"
+        )
+        assert "offer" not in result["step_instruction"].lower() and "break" not in result["step_instruction"].lower(), (
+            "R2 offer instruction must not appear when Phase 1 cleared criteria"
+        )
+
+    async def test_r2_holds_when_criteria_not_met(self):
+        """R2 fires and holds the step when Phase 1 cannot clear criteria (single-word message)."""
+        state = make_executor_state(
+            skill_id="cbt_thought_record",
+            step_id="identify_thought",
+            message_en="no",  # 1 word — word-count fails; LLM will return False for cbt skill
+            resistance_history=[7, 8],
+            emotional_intensity=4,
+            engagement=6,
+        )
+        with patch(
+            "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
+            new=AsyncMock(return_value=8),
+        ):
+            with patch(
+                "sage_poc.nodes.skill_executor.evaluate_completion_criteria",
+                new=AsyncMock(return_value=False),
+            ):
+                from sage_poc.skills.schema import load_skill
+                with patch("sage_poc.nodes.skill_executor.load_skill", return_value=load_skill("cbt_thought_record")):
+                    result = await skill_executor_node(state)
+        assert result["active_step_id"] == "identify_thought", (
+            "R2 must hold the step when criteria are not met"
+        )
         assert "offer" in result["step_instruction"].lower() or "break" in result["step_instruction"].lower() or "switch" in result["step_instruction"].lower(), (
-            "R2 instruction must mention offering a break or switch"
+            "R2 instruction must mention offering a break or switch when criteria are not met"
         )
 
 

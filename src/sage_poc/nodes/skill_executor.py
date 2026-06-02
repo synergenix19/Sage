@@ -30,6 +30,12 @@ _RESISTANCE_PROMPT_PATH = (
 # action's instruction is a one-time modification, not an ongoing clinical hold.
 _SKIP_ONCE_ACTIONS: frozenset[str] = frozenset({"skip_psychoeducation"})
 
+# Phase 2 actions that are safety-critical and always take precedence over Phase 1
+# advancement.  Every other Phase 2 action is a non-safety hold (resistance/engagement
+# management) and cannot override a Phase 1 advance or complete — criteria-met
+# advancement beats resistance.  See precedence resolver in skill_executor_node.
+_SAFETY_HOLD_ACTIONS: frozenset[str] = frozenset({"validate_only"})
+
 # Skills where word-count heuristic is clinically insufficient — these require
 # LLM evaluation of completion_criteria after Phase 1 returns _criteria_blocked.
 _LLM_CRITERIA_SKILLS: frozenset[str] = frozenset({
@@ -37,6 +43,16 @@ _LLM_CRITERIA_SKILLS: frozenset[str] = frozenset({
     "cbt_thought_record",
     "behavioral_activation",
     "assertive_communication",
+    # Word-count heuristic cannot enforce qualitative bars in these skills:
+    # their completion criteria require named specifics, multi-condition AND logic,
+    # or explicitly reject vague agreement — all indetectable by token count alone.
+    "sleep_hygiene",
+    "values_clarification",
+    "worry_time",
+    "cognitive_restructuring",
+    "interpersonal_effectiveness",
+    "financial_anxiety",
+    "grief_loss",
 })
 
 # L1 escalation: user wants to stop the skill.
@@ -117,9 +133,9 @@ async def _score_resistance_via_rules_service(
             .replace("{message_en}", message_en)
             .replace("{recent_context}", recent_context or "")
         )
-        from sage_poc.llm import get_classifier
+        from sage_poc.llm import get_resistance_model
         from sage_poc.resilience import resilient_invoke
-        llm = get_classifier()
+        llm = get_resistance_model()
         raw = await resilient_invoke(
             llm,
             [{"role": "user", "content": prompt}],
@@ -358,6 +374,13 @@ async def skill_executor_node(state: SageState) -> dict:
     # we are on a continuation turn — skip-once rules may be bypassed so completion can advance.
     prev_step_id: str | None = state.get("prev_step_id")
 
+    # Per-step resistance_history reset: a saturated history from a prior step must not
+    # pre-arm R2 on the first turn of the next step (which is always a stay before criteria
+    # are met). Without this, [7,7,7] from step N fires R2 immediately at step N+1 turn 1.
+    if prev_step_id is not None and prev_step_id != step_id:
+        resistance_history = []
+        _log.debug("[skill_executor] resistance_history reset: step change %s → %s", prev_step_id, step_id)
+
     _base_policy_kwargs = {
         "skill":                skill,
         "current_step_id":      step_id,
@@ -380,6 +403,7 @@ async def skill_executor_node(state: SageState) -> dict:
     # Returns a result dict. If a deterministic rule fires, its action will be present.
     # We detect "Phase 1 fired a rule" by checking the private sentinel key.
     p1_result = evaluate_step_policy(**_base_policy_kwargs, resistance_score=None)
+    _p1_action = p1_result.get("action")
 
     # Phase 2: resistance scoring — only if the skill references 'resistance' rules AND
     # Phase 1 did not fire a deterministic rule. Phase 1 exclusively evaluates non-resistance
@@ -390,7 +414,7 @@ async def skill_executor_node(state: SageState) -> dict:
 
     result = p1_result
 
-    # LLM criteria evaluation — only for the 4 target skills, only when Phase 1
+    # LLM criteria evaluation — only for the 11 target skills, only when Phase 1
     # returned _criteria_blocked (word-count heuristic blocked advancement, no rule fired).
     p1_criteria_blocked = result.pop("_criteria_blocked", False)
     # Track whether the LLM confirmed criteria met, so resistance Phase 2 re-run can
@@ -406,18 +430,40 @@ async def skill_executor_node(state: SageState) -> dict:
                 result = _clean_policy_result(evaluate_step_policy(
                     **_base_policy_kwargs, resistance_score=None, criteria_met=True,
                 ))
+                _p1_action = result.get("action")  # update after LLM-confirmed advance
 
+    _p2_action: str | None = None
     if needs_resistance and not p1_det_fired:
         new_resistance_score = await _score_resistance_via_rules_service(state["message_en"])
         if new_resistance_score is not None:
-            result = _clean_policy_result(evaluate_step_policy(
+            p2_result = _clean_policy_result(evaluate_step_policy(
                 **_base_policy_kwargs,
                 resistance_score=new_resistance_score,
                 criteria_met=llm_criteria_met,
             ))
+            _p2_action = p2_result.get("action")
+            result = p2_result
 
     if new_resistance_score is not None:
         resistance_history = (resistance_history + [new_resistance_score])[-3:]
+
+    # Cross-phase precedence resolver.
+    # Clinical rule: criteria-met advancement beats resistance/engagement holds.
+    # A non-safety Phase 2 hold cannot override a Phase 1 advance or complete.
+    # Safety holds (validate_only) always win regardless.
+    # "Phase 2 wins by returning last" was the implicit bug; this is the explicit rule.
+    if (
+        _p2_action is not None                              # Phase 2 ran
+        and _p1_action in ("advance", "complete")           # Phase 1 cleared criteria
+        and _p2_action not in ("advance", "complete")       # Phase 2 is a hold
+        and _p2_action not in _SAFETY_HOLD_ACTIONS          # hold is not safety-critical
+    ):
+        result = p1_result
+        _log.info(
+            "[skill_executor] precedence: Phase 1 %s overrides Phase 2 %s "
+            "(criteria met; non-safety hold discarded) skill=%s step=%s",
+            _p1_action, _p2_action, skill_id, step_id,
+        )
 
     crisis_state_update: dict = {}
     if result.get("skill_complete") and skill_id == "post_crisis_check_in":
