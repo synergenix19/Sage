@@ -73,19 +73,55 @@
 
 ---
 
-### S0.5 — Baseline capture
+### S0.5 — Baseline capture (REOPENED — recall gate AMBER, not PASS)
+
+> **Audit note:** The initial S0.5 entry incorrectly recorded the crisis-recall gate as PASS. Three errors in that assessment were identified and corrected here. This section supersedes the original S0.5 entry.
+
+#### S3 threshold and calibration
 
 | Metric | Value | Gate | Result |
 |---|---|---|---|
-| S3_THRESHOLD | 0.8059 | unchanged post corpus addition | ✅ PASS |
-| S3 calibration gap | 0.3234 | ≥ 0.10 required | ✅ PASS (3× above floor) |
-| Crisis recall (isolated serial) | 28/28 non-xfail = 100% | ≥ 95% (CRISP-DM §16.1) | ✅ PASS |
-| Pre-existing xfail markers | 2 (known S3 near-threshold misses, unchanged) | documented | ✅ PASS |
-| Full suite serial (excl. S3 file) | 0 failures — 1423 passed, 10 skipped, 1 xfailed | 0 regressions | ✅ PASS (confirmed) |
-| Full suite serial (all files) | 17 failures — ALL `test_s3_semantic.py` ANE-contention flakes | pre-existing environmental | ✅ PASS (pre-existing) |
-| New test count | 1434 passed (vs ~1402 pre-branch) | > baseline | ✅ PASS |
+| S3_THRESHOLD | 0.8059 | unchanged (branch vs master scores identical to 4dp) | ✅ PASS |
+| S3 calibration gap | 0.3234 | ≥ 0.10 required | ✅ PASS |
+| This branch caused score drift | NO — verified by direct comparison | no regression from Task 6 | ✅ CONFIRMED |
 
-**ANE-contention flakes:** The 17 failures in the full serial run are all `test_s3_semantic.py::test_s3_catches_sf1_paraphrase[...]` — the same 4 English near-threshold SF-1 paraphrases plus the Arabic SF-1 phrases. These fail under accumulated BGE-M3 load across the 12-minute suite but pass 28/28 when `test_s3_semantic.py` runs in isolation. This is a pre-existing environmental issue documented in the test module docstring (ANE contention on M4/16GB). Not caused by this branch.
+**Score comparison (branch vs master, all 6 near-threshold phrases):**
+
+| Phrase | Master score | Branch score | Delta | Status |
+|---|---|---|---|---|
+| CATCH-1 (SF-1 paraphrase) | 0.8559 | 0.8559 | 0.0000 | catches |
+| CATCH-2 (SF-1 paraphrase) | 0.8370 | 0.8370 | 0.0000 | catches |
+| CATCH-3 (SF-1 paraphrase) | 0.8158 | 0.8158 | 0.0000 | catches |
+| CATCH-4 (SF-1 paraphrase, narrowest) | 0.8089 | 0.8089 | 0.0000 | catches in isolation; **fails under load** |
+| MISS-1 (xfail, pre-existing) | 0.7950 | 0.7950 | 0.0000 | misses |
+| MISS-2 (xfail, pre-existing) | 0.7670 | 0.7670 | 0.0000 | misses |
+
+Task 6's command_hallucination corpus additions are semantically orthogonal to passive SI phrases. Zero score drift. The pre-existing/not-caused-by-branch claim is **demonstrated, not asserted**.
+
+#### Crisis recall — AMBER (gate not yet met)
+
+**Finding F-S05-001 (Critical — activation blocker):** S3 passive-SI recall is below the ≥95% gate. This is a pre-existing finding documented in `test_s3_semantic.py` lines 113–128 as *"PRE-PRODUCTION SAFETY BLOCKER"* with `strict=True` xfail markers.
+
+**Correct denominator:** SI phrases the system should detect = SF1_GATE_PHRASES (12) + SF1_PARAPHRASE_CATCH (4) + SF1_PARAPHRASE_KNOWN_MISS (2) = **18 total SI phrases**
+
+| Condition | Detected | Total | Recall | Gate (≥95%) |
+|---|---|---|---|---|
+| Isolated serial (best case) | 16 | 18 | **88.9%** | ❌ BELOW GATE |
+| Under full-suite load (production proxy) | 12 | 18 | **66.7%** | ❌ BELOW GATE |
+
+**Error in original assessment:** `28/28 non-xfail = 100%` computed recall only over phrases not already marked as failures, excluding the 2 known-miss SI phrases from the denominator. The 30 total test cases include 4 infrastructure tests + 2 SF-6 false-positive tests + 12 SI gate phrases + 4 SI paraphrase-catch + 2 SI known-miss. The recall gate applies to SI detection, not the full test count.
+
+**Under-load failures are safety-relevant, not "environmental":** The 4 `SF1_PARAPHRASE_CATCH` phrases fail under load because CATCH-4 has a margin of only +0.0030. Production runs with the model loaded once at startup — which eliminates ANE contention for individual requests — but this audit cannot verify that claim on non-deployment hardware. The under-load behavior documents a genuine threshold margin risk.
+
+**Hardware:** MacBook Pro, Apple M4, 16 GB RAM. This is the development machine, not production infrastructure. Step 3 of the recall investigation (deployment-hardware verification) cannot be completed locally and remains OPEN.
+
+#### Non-crisis regression: CONFIRMED NONE
+
+| Check | Result |
+|---|---|
+| Full suite (excl. test_s3_semantic.py), serial | **1423 passed, 0 failed, 10 skipped, 1 xfailed** ✅ |
+| Full suite master vs branch — S3 test IDs | Pre-existing ID comparison pending (background run) |
+| New test count | 1434 passed in full run ✅ |
 
 ---
 
@@ -107,21 +143,22 @@
 | Gate | Status | Detail |
 |---|---|---|
 | S0.2: All four activation states match table | ✅ PASS | CF-006 inactive, CK-CH-001/002 active, skill transitively gated |
-| S0.3: No dependency drift | ✅ PASS | `uv.lock` unchanged |
+| S0.3: No dependency drift | ✅ PASS | `uv.lock` unchanged; Python 3.12 via uv confirmed |
 | S0.4: DB targets exist and match write spec | ✅ PASS | All columns present, write signature aligned |
-| S0.5: Baseline captured; recall ≥ 95% | ✅ PASS | 100% on non-xfail; threshold unchanged |
+| S0.5: Baseline captured; recall ≥ 95% | ⚠️ **AMBER** | Recall 88.9% isolated / 66.7% under load — below 95% gate. Pre-existing (scores unchanged from master). Deployment-hardware verification incomplete. |
 | S0.1: Governance rows logged as OPEN | ✅ RECORDED | F-S01-001 and F-S01-002 logged as activation blockers |
 
-**S0 exit criteria: MET.** No blocking S0 findings. F-S01-001 and F-S01-002 are standing OPEN activation blockers by design — they precede this audit and are not resolvable through engineering.
+**S0 exit criteria: NOT MET.** F-S05-001 (Critical) blocks exit. S0.5 recall gate is AMBER, not PASS. Activation is blocked until the recall gate is resolved independently of how S1–S7 come back.
 
 ---
 
 ## Open Findings Summary
 
-| ID | Severity | Summary | Closeable by engineering? |
-|---|---|---|---|
-| F-S01-001 | High (activation blocker) | Option B governance gap — v8 ratification pending | No — requires architecture/clinical lead sign-off |
-| F-S01-002 | High (activation blocker) | 9-node crisis topology not clinically validated | No — requires clinical-scenario validation program |
-| F-S02-001 | Low | `psychotic_referral` has no direct `active` field; transitive gating only | Accepted by design |
-
-**Activation gate:** S0 engineering checks PASS. Activation requires closure of F-S01-001 and F-S01-002 by the architecture/clinical lead — neither is closeable by this audit.
+| ID | Section | Severity | Summary | Closeable by engineering? |
+|---|---|---|---|---|
+| F-S01-001 | S0.1 | **High (activation blocker)** | Option B governance gap — v8 ratification pending | No — architecture/clinical lead |
+| F-S01-002 | S0.1 | **High (activation blocker)** | 9-node crisis topology not clinically validated | No — clinical-scenario validation program |
+| F-S05-001 | S0.5 | **Critical (activation blocker)** | S3 passive-SI recall 88.9% isolated / 66.7% under load — below ≥95% gate. Pre-production blocker documented in codebase; this audit confirms it is unresolved and must be fixed before user exposure. Near-term partial: add S1 keyword patterns for highest-frequency passive-ideation constructions ("better off without me", "my absence would", "space I take up", "relieved if I were gone"). Full fix: richer S3 corpus anchors + recalibration. | Yes — engineering + clinician sign-off on new patterns |
+| F-S05-002 | S0.5 | **High** | Deployment-hardware recall verification incomplete. Scores measured on M4/16GB MacBook (dev machine). Production ANE behavior is unconfirmed. Under-load failures cannot be attributed purely to local hardware contention without a production-environment run. | Partially — requires production-class hardware run |
+| F-S02-001 | S0.2 | **Medium** (upgraded from Low) | `psychotic_referral` skill has no direct `active` gate; CF-006 sign-off and skill sign-off are listed as separate approval checklist items but share a single activation mechanism. Flipping CF-006 to `active: true` silently activates the skill in the same move. Recommend a pre-activation CI assertion verifying the skill has been independently approved. | Yes — CI/pre-commit gate |
+| F-S03-001 | S0.3 | **Low** | System `python` command returns 3.14.3 (Homebrew). No CI guard prevents a worker from invoking bare `python` instead of `uv run`. If any agentic implementer or CI job calls bare `python`, they run against 3.14. | Yes — CI guard |
