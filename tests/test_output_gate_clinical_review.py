@@ -296,3 +296,47 @@ class TestLogClinicalReviewHelper:
         )
 
         mock_notify.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Task 7 — _crisis_response_node writes clinician_review_queue (output_gate bypass)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_crisis_response_node_writes_clinician_review_queue():
+    """_crisis_response_node must write clinician_review_queue; output_gate is bypassed."""
+    import asyncio
+    from unittest.mock import patch, AsyncMock, MagicMock
+    from sage_poc import graph as sage_graph
+
+    mock_pool = MagicMock()
+    mock_conn = AsyncMock()
+    mock_pool.acquire.return_value.__aenter__ = AsyncMock(return_value=mock_conn)
+    mock_pool.acquire.return_value.__aexit__ = AsyncMock(return_value=False)
+
+    state = {
+        "raw_message": "the voices told me to hurt someone",
+        "message_en": "the voices told me to hurt someone",
+        "detected_language": "en",
+        "crisis_flags": ["command_hallucination"],
+        "clinical_flags": [],
+        "crisis_state": "none",
+        "turn_count": 1,
+        "turn_number": 1,
+        "user_id": "test-user-uuid",
+        "session_id": "test-session-uuid",
+        "path": ["safety_check"],
+        "conversation_history": [],
+        "active_skill_id": None,
+        "therapeutic_profile": None,
+        "re_escalation_within_monitoring": False,
+    }
+
+    with patch.object(sage_graph, "_get_crisis_review_pool", return_value=mock_pool):
+        with patch.object(sage_graph, "write_session_audit", new_callable=AsyncMock):
+            with patch.object(sage_graph, "AUDIT_LOG_ENABLED", False):
+                await sage_graph._crisis_response_node(state)
+                await asyncio.sleep(0.05)
+
+    inserts = [c for c in mock_conn.execute.call_args_list if "clinician_review_queue" in str(c)]
+    assert len(inserts) >= 1, "Expected INSERT into clinician_review_queue from _crisis_response_node"
