@@ -97,6 +97,34 @@
         "type": "clinical_flag",
         "flag_id": "domestic_situation"
       }
+    },
+    {
+      "rule_id": "CF-006",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "approved_by": null,
+      "effective_date": "2026-06-03",
+      "active": false,
+      "description": "Psychotic symptom disclosure — auditory/visual hallucinations, paranoid ideation. INACTIVE pending clinician sign-off (schema change: 6th clinical flag). Known limitation: keyword-only detection; MARBERT/semantic tier deferred.",
+      "category": "safety",
+      "match_type": "keyword",
+      "patterns": [
+        "hearing voices",
+        "i hear voices",
+        "voices in my head",
+        "seeing things that aren't there",
+        "seeing things that are not there",
+        "seeing things no one else sees",
+        "people are watching me",
+        "someone is following me",
+        "أسمع أصوات",
+        "في أصوات تكلمني",
+        "أشوف أشياء ما أحد يشوفها",
+        "أحد يراقبني"
+      ],
+      "language": "any",
+      "modifiers": [],
+      "action": {"type": "clinical_flag", "flag_id": "psychotic_disclosure"}
     }
   ]
 }
