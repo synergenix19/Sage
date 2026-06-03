@@ -4,7 +4,8 @@
     "trauma_indicator": false,
     "eating_concern": false,
     "medication_mention": false,
-    "domestic_situation": false
+    "domestic_situation": false,
+    "psychotic_disclosure": false
   },
   "flag_immutable_within_session": true
 }
