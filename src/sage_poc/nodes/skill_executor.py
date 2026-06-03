@@ -469,6 +469,10 @@ async def skill_executor_node(state: SageState) -> dict:
     if result.get("skill_complete") and skill_id == "post_crisis_check_in":
         crisis_state_update = {"crisis_state": "resolved"}
 
+    psychotic_referral_update: dict = {}
+    if result.get("skill_complete") and skill_id == "psychotic_referral":
+        psychotic_referral_update = {"psychotic_referral_delivered": True}
+
     return {
         "step_instruction":    result["instruction"],
         "executed_step_id":    step_id,
@@ -484,4 +488,5 @@ async def skill_executor_node(state: SageState) -> dict:
         # crisis_response does not persist into the routing decision.
         "re_escalation_within_monitoring": re_escalation_detected,
         **crisis_state_update,
+        **psychotic_referral_update,
     }

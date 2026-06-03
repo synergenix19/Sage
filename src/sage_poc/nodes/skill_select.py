@@ -106,6 +106,24 @@ async def skill_select_node(state: SageState) -> dict:
         skill = _SKILLS[skill_id]
         return {**base, "active_step_id": skill.steps[0].step_id}
 
+    # Psychotic disclosure auto-select: fires when CF-006 flag is active AND referral not yet delivered.
+    # Post-crisis auto-select above takes precedence.
+    # delivered guard prevents re-selection loop (flag_immutable_within_session keeps the flag
+    # for the full session; without this guard, psychotic_referral would re-select every turn).
+    if (
+        "psychotic_disclosure" in (state.get("clinical_flags") or [])
+        and not state.get("psychotic_referral_delivered")
+    ):
+        skill_id = "psychotic_referral"
+        skill = _SKILLS[skill_id]
+        return {
+            "active_skill_id": skill_id,
+            "active_step_id": skill.steps[0].step_id,
+            "skill_match_method": "psychotic_disclosure_auto_select",
+            "semantic_score": None,
+            "path": state["path"] + ["skill_select"],
+        }
+
     message = state["message_en"].lower()
 
     # Tier 1: Keyword matching — synchronous, deterministic, fast
