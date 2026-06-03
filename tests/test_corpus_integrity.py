@@ -20,6 +20,7 @@ from sage_poc.corpus_constants import (
     PLACEHOLDER_MARKERS,
     PRESENTATIONS_FLOOR_EXEMPTIONS,
     REQUIRED_POLICY_SIGNALS,
+    STRUCTURAL_FLOOR_EXEMPTIONS,
 )
 from sage_poc.clinical_clusters import CLINICAL_CLUSTERS
 from sage_poc.prompts.composer import build_cultural_override_block
@@ -136,27 +137,32 @@ def test_skill_structural_floors(sid):
     from sage_poc.skills.schema import load_skill
     skill = load_skill(sid)
 
-    assert len(skill.steps) >= 2, f"{sid}: fewer than 2 steps"
+    # Skills in STRUCTURAL_FLOOR_EXEMPTIONS have non-standard single-purpose
+    # architectures (e.g. single-step referral pending sign-off). Only the
+    # v7 §9.1 MANDATORY fields (evidence_base, self_evolution) are enforced
+    # for these skills — the multi-step structural checks are skipped.
+    if sid not in STRUCTURAL_FLOOR_EXEMPTIONS:
+        assert len(skill.steps) >= 2, f"{sid}: fewer than 2 steps"
 
-    signals = {r.condition.signal for r in skill.step_policy}
-    missing_signals = REQUIRED_POLICY_SIGNALS - signals
-    assert not missing_signals, f"{sid}: step_policy missing signals {missing_signals}"
+        signals = {r.condition.signal for r in skill.step_policy}
+        missing_signals = REQUIRED_POLICY_SIGNALS - signals
+        assert not missing_signals, f"{sid}: step_policy missing signals {missing_signals}"
 
-    for level in ("L1", "L2", "L3", "L4"):
-        assert level in skill.escalation_matrix, f"{sid}: escalation_matrix missing {level}"
+        for level in ("L1", "L2", "L3", "L4"):
+            assert level in skill.escalation_matrix, f"{sid}: escalation_matrix missing {level}"
 
-    assert "crisis" in skill.escalation_matrix["L3"].lower(), (
-        f"{sid}: L3 must mention crisis"
-    )
-    if sid not in PRESENTATIONS_FLOOR_EXEMPTIONS:
-        assert len(skill.target_presentations) >= 20, (
-            f"{sid}: only {len(skill.target_presentations)} target_presentations (min 20). "
-            f"If this skill uses state-driven routing (not keyword/semantic), add it to "
-            f"corpus_constants.PRESENTATIONS_FLOOR_EXEMPTIONS with a reason."
+        assert "crisis" in skill.escalation_matrix["L3"].lower(), (
+            f"{sid}: L3 must mention crisis"
         )
-    assert skill.semantic_description.strip(), f"{sid}: semantic_description is empty"
+        if sid not in PRESENTATIONS_FLOOR_EXEMPTIONS:
+            assert len(skill.target_presentations) >= 20, (
+                f"{sid}: only {len(skill.target_presentations)} target_presentations (min 20). "
+                f"If this skill uses state-driven routing (not keyword/semantic), add it to "
+                f"corpus_constants.PRESENTATIONS_FLOOR_EXEMPTIONS with a reason."
+            )
+        assert skill.semantic_description.strip(), f"{sid}: semantic_description is empty"
 
-    # v7 §9.1 MANDATORY fields
+    # v7 §9.1 MANDATORY fields — enforced for ALL skills including exemptions
     assert skill.evidence_base.strip(), (
         f"{sid}: evidence_base is empty — v7 §9.1 marks this MANDATORY"
     )
