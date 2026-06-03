@@ -159,7 +159,7 @@
       "approved_by": null,
       "effective_date": "2026-06-03",
       "active": true,
-      "description": "Command hallucination — user asking whether to act on, or describing acting on, directive auditory hallucinations. Routes to crisis_response.",
+      "description": "Command hallucination — user asking whether to act on, or describing acting on, directive auditory hallucinations. Routes to crisis_response. Known gap: object-free constructions ('the voices told me to hurt' with no object) are not covered — adding bare prefixes risks false positives on words like 'hurtle'; MARBERT tier would handle these.",
       "category": "safety",
       "match_type": "keyword",
       "patterns": [

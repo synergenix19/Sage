@@ -150,3 +150,26 @@ def test_hurtle_does_not_trigger_command_hallucination():
     })
     crisis_flag_ids = [a["flag_id"] for a in result.actions if a.get("type") == "crisis_flag"]
     assert "command_hallucination" not in crisis_flag_ids
+
+
+def test_objectless_hurt_construction_is_known_gap():
+    """Known detection gap: 'the voices told me to hurt' without an object does not trigger.
+
+    Object-free constructions are excluded from CK-CH-001 to prevent false positives
+    on words like 'hurtle' (which starts with 'hurt'). The pattern requires explicit
+    objects (myself/someone/others). MARBERT/semantic tier would handle this better.
+    This test documents the gap — if it starts passing, verify the pattern change
+    didn't introduce the 'hurtle' false positive.
+    """
+    reload_all()
+    result = _eval_safety(get_rules("safety"), {
+        "text_en": "the voices told me to hurt",
+        "text_ar": "",
+        "language": "en",
+    })
+    crisis_flag_ids = [a["flag_id"] for a in result.actions if a.get("type") == "crisis_flag"]
+    # This is a KNOWN GAP — this phrase does not trigger. Do not "fix" this by
+    # adding the bare prefix without word-boundary awareness.
+    assert "command_hallucination" not in crisis_flag_ids, (
+        "object-free 'hurt' construction still does not trigger — gap documented"
+    )

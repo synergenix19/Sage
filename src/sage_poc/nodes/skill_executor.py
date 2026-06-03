@@ -469,6 +469,14 @@ async def skill_executor_node(state: SageState) -> dict:
     if result.get("skill_complete") and skill_id == "post_crisis_check_in":
         crisis_state_update = {"crisis_state": "resolved"}
 
+    # NOTE: psychotic_referral_delivered is set at skill_executor time (skill_complete),
+    # not after freeflow_respond delivers the response. If the LLM response fails on
+    # the referral turn (and resilience fallback also fails), the referral will not be
+    # re-delivered in future turns. This is an accepted tradeoff — clinician review
+    # queue entry (severity=medium) will still fire via output_gate, preserving the
+    # audit trail. If a no-silencing guarantee is required, this flag must be moved
+    # to a post-freeflow_respond hook, which the current graph architecture does not
+    # support without a new output_gate specialisation.
     psychotic_referral_update: dict = {}
     if result.get("skill_complete") and skill_id == "psychotic_referral":
         psychotic_referral_update = {"psychotic_referral_delivered": True}

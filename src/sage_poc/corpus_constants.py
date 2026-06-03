@@ -96,6 +96,10 @@ PRESENTATIONS_FLOOR_EXEMPTIONS: dict[str, str] = {
         "(skill_select_node line 89) — excluded from keyword and semantic matching "
         "via KEYWORD_SEMANTIC_SKIP; target_presentations are documentation only"
     ),
+    "psychotic_referral": (
+        "single-step referral activated via psychotic_disclosure clinical flag, "
+        "not keyword/semantic matching — target_presentations intentionally empty"
+    ),
 }
 
 # Skills that must never be reached via keyword or semantic matching.
