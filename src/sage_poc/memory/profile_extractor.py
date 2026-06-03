@@ -25,9 +25,28 @@ _EXTRACTION_SYSTEM = (
 )
 
 
+_CONTRAINDICATED_FOR_EFFECTIVE_TECHNIQUES: frozenset[str] = frozenset({
+    "psychotic_disclosure",
+})
+
+
+def apply_contraindications(profile: dict, clinical_flags: list[str]) -> dict:
+    """Clear effective_techniques when contraindicated clinical flags are present.
+
+    Prevents coping techniques used during a psychosis session from being stored
+    as effective and re-recommended in future sessions for the same presentation.
+    """
+    active_flags = set(clinical_flags or [])
+    disclosed = set(profile.get("disclosed_concerns") or [])
+    if _CONTRAINDICATED_FOR_EFFECTIVE_TECHNIQUES & (active_flags | disclosed):
+        return {**profile, "effective_techniques": []}
+    return profile
+
+
 async def extract_session_profile(
     history: list[dict],
     llm=None,
+    clinical_flags: list[str] | None = None,
 ) -> Optional[dict]:
     """Extract structured profile facts from a conversation excerpt.
     Returns dict on success, None on unparseable output.
@@ -45,7 +64,8 @@ async def extract_session_profile(
         raw = raw.strip()
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1].rsplit("```", 1)[0]
-        return json.loads(raw)
+        profile = json.loads(raw)
+        return apply_contraindications(profile, clinical_flags or [])
     except (json.JSONDecodeError, Exception) as exc:
         _log.warning("[profile_extractor] parse failed: %s", exc)
         return None
