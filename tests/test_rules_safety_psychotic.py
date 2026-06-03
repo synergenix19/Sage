@@ -7,6 +7,7 @@ the deployment flag. active=True is set explicitly in the test fixture.
 import pytest
 from sage_poc.rules.engine import _eval_safety
 from sage_poc.rules.schemas import SafetyRule
+from sage_poc.rules.loader import get_rules, reload_all
 
 
 def _make_cf006_rule(**overrides) -> SafetyRule:
@@ -110,3 +111,42 @@ def test_psychotic_disclosure_is_clinical_not_crisis():
     result = _eval_safety([_CF006], {"text_en": "I've been hearing voices", "text_ar": "", "language": "en"})
     crisis = [a for a in result.actions if a.get("type") == "crisis_flag"]
     assert len(crisis) == 0, "psychotic_disclosure is a clinical_flag, not a crisis_flag"
+
+
+# --- Command hallucination (S1 crisis_flag) ---
+
+def test_command_hallucination_fires_crisis_flag_via_s1():
+    """command_hallucination must fire as a named crisis_flag via the S1 rules engine."""
+    reload_all()
+    result = _eval_safety(get_rules("safety"), {
+        "text_en": "should i do what the voices are telling me",
+        "text_ar": "",
+        "language": "en",
+    })
+    crisis_flag_ids = [a["flag_id"] for a in result.actions if a.get("type") == "crisis_flag"]
+    assert "command_hallucination" in crisis_flag_ids, (
+        f"Expected command_hallucination crisis_flag, got: {crisis_flag_ids}"
+    )
+
+
+def test_voices_telling_to_hurt_fires_crisis_flag():
+    reload_all()
+    result = _eval_safety(get_rules("safety"), {
+        "text_en": "the voices are telling me to hurt someone",
+        "text_ar": "",
+        "language": "en",
+    })
+    crisis_flag_ids = [a["flag_id"] for a in result.actions if a.get("type") == "crisis_flag"]
+    assert "command_hallucination" in crisis_flag_ids
+
+
+def test_hurtle_does_not_trigger_command_hallucination():
+    """Prefix false positive guard: 'hurtle' starts with 'hurt' but must not fire."""
+    reload_all()
+    result = _eval_safety(get_rules("safety"), {
+        "text_en": "the voices told me to hurtle along the motorway",
+        "text_ar": "",
+        "language": "en",
+    })
+    crisis_flag_ids = [a["flag_id"] for a in result.actions if a.get("type") == "crisis_flag"]
+    assert "command_hallucination" not in crisis_flag_ids

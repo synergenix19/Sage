@@ -151,6 +151,51 @@
         "type": "third_party_crisis",
         "flag_id": "third_party_si"
       }
+    },
+    {
+      "rule_id": "CK-CH-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "approved_by": null,
+      "effective_date": "2026-06-03",
+      "active": true,
+      "description": "Command hallucination — user asking whether to act on, or describing acting on, directive auditory hallucinations. Routes to crisis_response.",
+      "category": "safety",
+      "match_type": "keyword",
+      "patterns": [
+        "should i do what the voices are telling me",
+        "the voices are telling me to",
+        "the voices told me to hurt myself",
+        "the voices told me to hurt someone",
+        "the voices told me to hurt others",
+        "the voices want me to hurt myself",
+        "the voices want me to hurt someone",
+        "the voices want me to hurt others",
+        "i have to follow what the voices say",
+        "i need to do what the voices say",
+        "do what the voices tell me"
+      ],
+      "language": "en",
+      "modifiers": [],
+      "action": {"type": "crisis_flag", "flag_id": "command_hallucination"}
+    },
+    {
+      "rule_id": "CK-CH-002",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "approved_by": null,
+      "effective_date": "2026-06-03",
+      "active": true,
+      "description": "Arabic command hallucination patterns.",
+      "category": "safety",
+      "match_type": "keyword",
+      "patterns": [
+        "الأصوات تأمرني بإيذاء",
+        "الأصوات تقول لي أذي"
+      ],
+      "language": "ar",
+      "modifiers": [],
+      "action": {"type": "crisis_flag", "flag_id": "command_hallucination"}
     }
   ]
 }
