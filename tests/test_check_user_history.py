@@ -33,7 +33,7 @@ async def test_retrieve_filters_low_similarity():
     mock_repo.search_session_summaries = AsyncMock(return_value=[{
         "summary_text": "Some text",
         "safety_level": "normal",
-        "similarity": 0.4,  # below 0.6 threshold
+        "similarity": 0.4,  # below _SIMILARITY_THRESHOLD
     }])
     with patch("sage_poc.nodes.tools.check_user_history.get_embedding_async", return_value=[0.1]*1024):
         result = await retrieve_prior_context(user_id="u1", query="q", repo=mock_repo)

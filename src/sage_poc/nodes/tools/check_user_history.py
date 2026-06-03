@@ -4,7 +4,7 @@ Architecture deviation from v7 §6.5.3: the spec defines check_user_history as a
 LLM-bound @tool that the LLM "can choose to call or not." This implementation
 pre-retrieves deterministically because in a clinical system, missing therapeutic
 context (the LLM skips the tool call) carries more risk than irrelevant injection.
-The 0.6 similarity threshold guards against irrelevant injection.
+The `_SIMILARITY_THRESHOLD` constant guards against irrelevant injection.
 
 NOT an LLM-bound tool. Called deterministically by freeflow_respond_node.
 The LLM never decides whether to retrieve — it always does when user_id is present.

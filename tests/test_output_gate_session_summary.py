@@ -294,3 +294,86 @@ class TestPersistSessionSummaryHelper:
         )
 
         mock_save.assert_not_called()
+
+    # -----------------------------------------------------------------------
+    # Decoupled flag-write behaviour — exercises the try/except added in Rec 3
+    # -----------------------------------------------------------------------
+
+    def test_flag_write_called_in_success_path(self):
+        """write_persisted_clinical_flags must be awaited after a successful summary write.
+
+        Both writes use the same mocked PostgresMemoryRepository instance because
+        _run_persist patches PostgresMemoryRepository to always return mock_repo.
+        """
+        mock_app, _, mock_repo, mock_save = self._make_mock_app_and_repo()
+        mock_write_flags = AsyncMock()
+        mock_repo.write_persisted_clinical_flags = mock_write_flags
+        mock_embedding = AsyncMock(return_value=[0.1])
+
+        self._run_persist(
+            mock_app=mock_app,
+            mock_repo=mock_repo,
+            mock_embedding=mock_embedding,
+            session_id="sess-5",
+            user_id="user-5",
+            summary_text="Some summary",
+            crisis_flags=[],
+            clinical_flags=["substance_use"],
+        )
+
+        mock_save.assert_called_once()
+        mock_write_flags.assert_awaited_once()
+
+    def test_flag_write_called_even_when_summary_save_raises(self):
+        """write_persisted_clinical_flags must still be awaited when save_session_summary raises.
+
+        The flag write is placed after (and outside) the try/except that guards
+        save_session_summary. A summary DB failure must not block flag persistence
+        since persisted_clinical_flags feeds safety_check at the next session start.
+        """
+        mock_app, _, mock_repo, mock_save = self._make_mock_app_and_repo()
+        mock_save.side_effect = Exception("simulated summary DB failure")
+        mock_write_flags = AsyncMock()
+        mock_repo.write_persisted_clinical_flags = mock_write_flags
+        mock_embedding = AsyncMock(return_value=[0.1])
+
+        # Must not raise — summary failure is swallowed by the outer try/except
+        self._run_persist(
+            mock_app=mock_app,
+            mock_repo=mock_repo,
+            mock_embedding=mock_embedding,
+            session_id="sess-6",
+            user_id="user-6",
+            summary_text="Some summary",
+            crisis_flags=[],
+            clinical_flags=["substance_use"],
+        )
+
+        mock_write_flags.assert_awaited_once()
+
+    def test_flag_write_exception_is_swallowed(self):
+        """An exception from write_persisted_clinical_flags must not propagate.
+
+        _persist_session_summary runs as an asyncio.create_task background task.
+        An unhandled exception there would be silently dropped by the event loop
+        rather than surfacing to the caller — a silent clinical data loss. The
+        explicit try/except added around the flag write ensures it is logged.
+        """
+        mock_app, _, mock_repo, mock_save = self._make_mock_app_and_repo()
+        mock_write_flags = AsyncMock(side_effect=Exception("flags DB failure"))
+        mock_repo.write_persisted_clinical_flags = mock_write_flags
+        mock_embedding = AsyncMock(return_value=[0.1])
+
+        # Must not raise — flag write failure must be caught and logged, not propagated
+        self._run_persist(
+            mock_app=mock_app,
+            mock_repo=mock_repo,
+            mock_embedding=mock_embedding,
+            session_id="sess-7",
+            user_id="user-7",
+            summary_text="Some summary",
+            crisis_flags=[],
+            clinical_flags=["substance_use"],
+        )
+
+        mock_save.assert_called_once()

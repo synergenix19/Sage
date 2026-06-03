@@ -155,7 +155,14 @@ async def _persist_session_summary(
         )
     except Exception:
         _log.warning("Failed to persist session summary for session %s", session_id)
-    await _write_persisted_clinical_flags(user_id, clinical_flags)
+    # Flag persistence is intentionally decoupled from session summary persistence.
+    # A summary write failure must not block flag persistence: persisted_clinical_flags
+    # feeds safety_check at the start of the next session (Cardinal Rule 4 path) and
+    # must be written regardless of whether the summary write succeeded.
+    try:
+        await _write_persisted_clinical_flags(user_id, clinical_flags)
+    except Exception as exc:
+        _log.warning("[output_gate] write_persisted_clinical_flags failed: %s", exc)
 
 
 async def output_gate_node(state: SageState) -> dict:
