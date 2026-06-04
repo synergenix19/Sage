@@ -161,8 +161,8 @@ S0.5 gate is AMBER, not PASS: S3 recall remains 88.9%; generalized passive-SI re
 
 **Note on fix ordering (updated 2026-06-04):**
 1. ~~F-S05-002~~: **CLOSED** — CPU-path is clean. Mac ANE contention is a dev caveat, not a production gap.
-2. ~~F-S05-003~~: **CLOSED** — `test_s3_recall_gate_denominator` implemented (commit 5e23e43). Denominator is now 18 (all SI phrases including xfail), floor asserted at 16. Gate clears when F-S05-001A is fixed and `_RECALL_FLOOR` is raised.
-3. **F-S05-001A (OPEN — sole remaining production blocker):** 2 hardware-independent misses (0.7950, 0.7670 on CPU). Fix path: clinician-authored S1 keyword patterns for the passive-SI constructions ("better off without me", "relieved if I were gone"), measured against a held-out passive-SI corpus built before the patterns are written. Clinician must confirm the phrases are worth catching deterministically and author the patterns — not reverse-engineered from failing test IDs. Alternatively: corpus enrichment + recalibration measured on both axes (recall AND SF-6 false positives). Keyword route is lower-risk for POC.
+2. ~~F-S05-003~~: **CLOSED** — `test_s3_recall_gate_denominator` implemented (commit 5e23e43). Denominator is now 18 (all SI phrases including xfail), floor asserted at 16. Gate clears when S3 corpus enrichment is complete and `_RECALL_FLOOR` is raised to 18.
+3. ~~F-S05-001A~~: **CLOSED 2026-06-04** — S1 deterministic backstop in place (SK-EN-002 v1.2.0). Both named MISS constructions now route to `crisis_response` via S1. 2 documented over-triggers pending clinical sign-off; `approved_by: null` in `passive_si_patterns.json`. See Open Findings Summary row for full closure detail.
 4. F-S05-001B: downgraded to Medium. +0.0030 margin for CATCH-4 does not fail on production CPU. Monitor on every recalibration cycle.
 5. Any S1 keyword patterns added: clinician-reviewed, held-out evaluation set built before patterns, two-axis measurement (passive-SI recall + SF-6 false-positive rate).
 
