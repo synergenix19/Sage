@@ -105,7 +105,8 @@
       "approved_by": null,
       "effective_date": "2026-06-03",
       "active": false,
-      "description": "Psychotic symptom disclosure — auditory/visual hallucinations, paranoid ideation. INACTIVE pending clinician sign-off (schema change: 6th clinical flag). Known limitation: keyword-only detection; MARBERT/semantic tier deferred.",
+      "description": "Psychotic symptom disclosure — auditory/visual hallucinations, paranoid ideation. INACTIVE pending clinician sign-off. To activate: (1) clinician reviews CF-006 patterns and sets approved_by, (2) set active=true, (3) run full safety test suite. Known limitation: keyword-only detection; MARBERT/semantic tier deferred.",
+      "activation_checklist": ["clinician_reviews_cf006_patterns", "approved_by_set", "active_set_true", "full_test_suite_passes"],
       "category": "safety",
       "match_type": "keyword",
       "patterns": [

@@ -609,6 +609,89 @@ async def test_post_crisis_check_in_llm_yes_advances_step():
 
 
 @pytest.mark.asyncio
+async def test_llm_criteria_advance_beats_phase2_resistance_hold():
+    """Regression: LLM-confirmed advance must beat a non-safety Phase 2 resistance hold.
+
+    Scenario: Phase 1 returns _criteria_blocked (heuristic blocks). LLM evaluator
+    confirms criteria_met=True, so Phase 1 re-runs and returns action='advance'.
+    Phase 2 resistance scoring subsequently fires a non-safety hold (action='stay').
+    The precedence resolver must restore the LLM-confirmed advance, not the original
+    criteria-blocked stay.
+
+    Bug: p1_result was never updated after the LLM-confirmed re-run, so the resolver
+    restored action='stay' instead of the confirmed action='advance'.
+    Fix: add 'p1_result = result' immediately after the LLM-confirmed re-run.
+    """
+    from sage_poc.nodes.skill_executor import skill_executor_node
+
+    state = {
+        "active_skill_id":   "post_crisis_check_in",
+        "active_step_id":    "acknowledge_and_check",
+        "message_en":        "ok",   # single word — heuristic blocks Phase 1
+        "emotional_intensity": 6,    # above advance threshold (<=4) — no Phase 1 rule fires
+        "engagement":          7,
+        "new_clinical_flags_turn": [],
+        "resistance_history":  [],
+        "engagement_trajectory": [],
+        "s7_result":           None,
+        "therapeutic_profile": {},
+        "path":                [],
+        "crisis_state":        "monitoring",
+    }
+
+    call_count = 0
+
+    def mock_evaluate_step_policy(**kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            # Phase 1 (no resistance, no criteria_met): heuristic blocks
+            return {
+                "action": "stay",
+                "_criteria_blocked": True,
+                "instruction": "mock instruction",
+                "next_step_id": "acknowledge_and_check",
+                "skill_complete": False,
+            }
+        elif call_count == 2:
+            # Phase 1 re-run after LLM confirms criteria_met=True
+            return {
+                "action": "advance",
+                "next_step_id": "bridge_or_close",
+                "instruction": "mock instruction",
+                "skill_complete": False,
+            }
+        else:
+            # Phase 2 (resistance scoring): non-safety hold
+            return {
+                "action": "stay",
+                "instruction": "mock instruction",
+                "next_step_id": "acknowledge_and_check",
+                "skill_complete": False,
+            }
+
+    with patch(
+        "sage_poc.nodes.skill_executor.evaluate_step_policy",
+        side_effect=mock_evaluate_step_policy,
+    ), patch(
+        "sage_poc.nodes.criteria_eval._call_llm",
+        new_callable=AsyncMock,
+        return_value="yes",          # LLM confirms criteria met
+    ), patch(
+        "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
+        new_callable=AsyncMock,
+        return_value=8,              # High resistance — Phase 2 fires
+    ):
+        result = await skill_executor_node(state)
+
+    assert result.get("active_step_id") == "bridge_or_close", (
+        "LLM-confirmed advance must beat Phase 2 non-safety hold.\n"
+        f"Got active_step_id={result.get('active_step_id')!r}.\n"
+        "Fix: add 'p1_result = result' after the LLM-confirmed re-run in skill_executor.py."
+    )
+
+
+@pytest.mark.asyncio
 async def test_non_target_skill_does_not_use_llm_evaluator():
     """box_breathing (not in the 4 target skills) must never call the LLM evaluator."""
     from sage_poc.nodes.skill_executor import skill_executor_node

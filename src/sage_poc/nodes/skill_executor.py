@@ -431,6 +431,7 @@ async def skill_executor_node(state: SageState) -> dict:
                     **_base_policy_kwargs, resistance_score=None, criteria_met=True,
                 ))
                 _p1_action = result.get("action")  # update after LLM-confirmed advance
+                p1_result = result  # keep p1_result in sync so precedence resolver restores correct action
 
     _p2_action: str | None = None
     if needs_resistance and not p1_det_fired:

@@ -6,6 +6,7 @@
       "version": "1.2.0",
       "authored_by": "sage_clinics",
       "approved_by": null,
+      "change_note": "v1.2.0: Plan spec added 8 patterns total: 'do better without me' (1) + 7 relieved-if/when variants = 8. Implementation also added 3 'relieved...dead' variants not in spec, making 11 new patterns and 10 relieved-family patterns total (7 plan-spec relieved + 3 extra dead). If the plan says 8 and this note says 7: both are correct for different scopes. 8 = full plan scope (do_better + relieved). 7 = relieved-family only (excludes do_better). No pattern was dropped. FP CONFIRMED 2026-06-04: 'relieved if i were dead' fires on 'dead serious' idiom (span match). RECALL GAP CONFIRMED: same pattern catches 'I would be relieved if I were dead' — no other active pattern covers this. CLINICAL DECISION PENDING for the 3 'dead' variants: Option A = remove them, accepts recall gap. Option B = keep them, accept 'dead serious' FP as documented over-trigger. See tests/test_rules_safety.py::test_sk_en_002_v1_2_0_fp_boundary_clinical_decision_pending (2 tests red) and test_sk_en_002_v1_2_0_recall_gap_if_dead_patterns_removed (2 tests green, showing current coverage).",
       "effective_date": "2026-06-04",
       "active": true,
       "description": "English passive SI and veiled ideation",

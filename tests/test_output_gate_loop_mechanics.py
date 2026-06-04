@@ -169,13 +169,17 @@ async def test_c3_both_attempts_violate_substitutes_fallback_no_loop():
     with patch("sage_poc.nodes.output_gate.rules_engine.evaluate", return_value=_no_violations()):
         with patch("sage_poc.nodes.output_gate.async_translate_to_arabic", AsyncMock(return_value="...")):
             with patch("sage_poc.nodes.output_gate.write_session_audit", AsyncMock()):
-                result2 = await output_gate_node(state2)
+                with patch("sage_poc.nodes.output_gate.write_session_audit_initial", AsyncMock()):
+                    result2 = await output_gate_node(state2)
 
     assert result2.get("response") == _VETTED_FALLBACK_RESPONSE, (
         f"User must receive vetted fallback, not the banned opener. Got: {result2.get('response')!r}"
     )
     assert result2.get("banned_opener_fallback_used") is True
-    assert result2.get("banned_opener_violation") is False, "Violation was intercepted by fallback"
+    assert result2.get("banned_opener_violation") is True, (
+        "banned_opener_violation must be True when fallback is substituted — "
+        "the violation occurred and must be recorded in the audit log"
+    )
     assert result2.get("banned_opener_retry_count") == 0, "retry_count must reset for next turn"
     assert _route_after_output_gate(result2) == END, "Routing must return END — no further retry"
 
