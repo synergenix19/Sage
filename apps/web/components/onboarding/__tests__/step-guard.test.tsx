@@ -8,10 +8,15 @@ vi.mock('next/navigation', () => ({
 }))
 
 const mockStep = vi.fn()
-vi.mock('@/lib/stores/onboarding-store', () => ({
-  useOnboardingStore: (selector: (s: { step: number }) => unknown) =>
-    selector({ step: mockStep() }),
-}))
+vi.mock('@/lib/stores/onboarding-store', () => {
+  const useOnboardingStore = (selector: (s: { step: number }) => unknown) =>
+    selector({ step: mockStep() })
+  useOnboardingStore.persist = {
+    hasHydrated: () => true,
+    onFinishHydration: () => () => {},
+  }
+  return { useOnboardingStore }
+})
 
 describe('StepGuard', () => {
   beforeEach(() => {
