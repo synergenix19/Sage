@@ -35,13 +35,15 @@ markers = [
     "slow: marks tests as slow (requires Ollama or real LLM)",
     "integration: marks tests requiring live external services (SUPABASE_URL, SUPABASE_SERVICE_KEY)",
     "clinical_decision_pending: marks tests that are intentionally failing pending a clinical governance decision — not broken builds",
+    "governance: marks governance assertions (approved_by burn-down) — intentionally red; run separately with make test-governance",
 ]
 pythonpath = ["src", "."]
 asyncio_mode = "auto"
-# Integration tests need Supabase and are excluded from the default run to avoid
-# transient DNS/network failures in long CI runs. Run explicitly with:
-#   uv run pytest tests/ -m integration
-addopts = "-m 'not integration and not clinical_decision_pending'"
+# Excluded from the default run — each has a dedicated Makefile target:
+#   integration:           make test-integration  (requires live Supabase)
+#   governance:            make test-governance   (expected red during sign-off burn-down)
+#   clinical_decision_pending: not a Makefile target — these tests await a clinical decision
+addopts = "-m 'not integration and not clinical_decision_pending and not governance'"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/sage_poc"]
