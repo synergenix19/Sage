@@ -64,11 +64,8 @@ async def write_identity_substitution_audit(
         logger.error("identity_substitution_audit write failed: %s", exc)
 
 
-async def write_session_audit(state: SageState) -> None:
-    if not _URL or not _KEY:
-        return
-
-    row = {
+def _build_session_audit_row(state: SageState) -> dict:
+    return {
         "session_id":             state.get("session_id", ""),
         "turn_number":            state.get("turn_number", 0),
         "node_path":              state.get("path") or [],
@@ -91,11 +88,18 @@ async def write_session_audit(state: SageState) -> None:
         "user_id":                state.get("user_id") or None,
         "re_escalation_within_monitoring": state.get("re_escalation_within_monitoring"),
     }
+
+
+async def write_session_audit(state: SageState) -> None:
+    """Write or update a session audit row (merge-duplicates — last write wins).
+
+    Use for the final state of a completed output_gate pass, where the complete
+    node_path (including all intermediate markers) should be the authoritative record.
+    """
+    if not _URL or not _KEY:
+        return
+    row = _build_session_audit_row(state)
     try:
-        # Use upsert (resolution=merge-duplicates) because the retry and fallback paths
-        # fire multiple writes for the same (session_id, turn_number). Each write carries
-        # a longer accumulated path; the last write wins, so the final row reflects the
-        # complete execution trace including retry and fallback markers.
         upsert_headers = {**_HEADERS, "Prefer": "resolution=merge-duplicates"}
         async with httpx.AsyncClient(timeout=5.0) as client:
             r = await client.post(
@@ -108,3 +112,29 @@ async def write_session_audit(state: SageState) -> None:
         logger.error("session_audit write failed: %s — body: %s", exc, exc.response.text)
     except Exception as exc:
         logger.error("session_audit write failed: %s", exc)
+
+
+async def write_session_audit_initial(state: SageState) -> None:
+    """Write a session audit row only if the row does not already exist (ignore-duplicates).
+
+    Use for intermediate writes (e.g. retry-detection early-return) so the final
+    write_session_audit call always wins the race regardless of asyncio scheduling order.
+    If the final write committed first, this call is silently dropped.
+    If this call commits first, write_session_audit will overwrite it with the complete path.
+    """
+    if not _URL or not _KEY:
+        return
+    row = _build_session_audit_row(state)
+    try:
+        ignore_headers = {**_HEADERS, "Prefer": "resolution=ignore-duplicates"}
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            r = await client.post(
+                f"{_URL}/rest/v1/session_audit",
+                headers=ignore_headers,
+                json=row,
+            )
+            r.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        logger.error("session_audit initial write failed: %s — body: %s", exc, exc.response.text)
+    except Exception as exc:
+        logger.error("session_audit initial write failed: %s", exc)

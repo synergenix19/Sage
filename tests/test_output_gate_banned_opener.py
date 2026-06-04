@@ -132,7 +132,8 @@ async def test_output_gate_substitutes_fallback_on_second_violation():
     rather than passing the violating response to the user.
 
     The user must receive the vetted fallback, not the banned opener.
-    banned_opener_fallback_used=True, banned_opener_violation=False (violation intercepted).
+    banned_opener_fallback_used=True, banned_opener_violation=True (violation occurred and was
+    intercepted by fallback substitution — audit must record it for clinical review).
     """
     from sage_poc.nodes.output_gate import output_gate_node, _VETTED_FALLBACK_RESPONSE
 
@@ -144,7 +145,8 @@ async def test_output_gate_substitutes_fallback_on_second_violation():
     with patch("sage_poc.nodes.output_gate.rules_engine.evaluate", return_value=MagicMock(fired=[])):
         with patch("sage_poc.nodes.output_gate.async_translate_to_arabic", AsyncMock(return_value="...")):
             with patch("sage_poc.nodes.output_gate.write_session_audit", AsyncMock()):
-                result = await output_gate_node(state)
+                with patch("sage_poc.nodes.output_gate.write_session_audit_initial", AsyncMock()):
+                    result = await output_gate_node(state)
 
     assert result.get("response") == _VETTED_FALLBACK_RESPONSE, (
         f"User must receive the vetted fallback, not the banned opener. "
@@ -153,8 +155,9 @@ async def test_output_gate_substitutes_fallback_on_second_violation():
     assert result.get("banned_opener_fallback_used") is True, (
         "banned_opener_fallback_used must be True when fallback is substituted"
     )
-    assert result.get("banned_opener_violation") is False, (
-        "banned_opener_violation must be False when fallback intercepted the violation"
+    assert result.get("banned_opener_violation") is True, (
+        "banned_opener_violation must be True when fallback is substituted — "
+        "the violation occurred and must be recorded in the audit log"
     )
     assert result.get("banned_opener_retry_count") == 0, "retry_count must reset for next turn"
     assert result.get("banned_opener_correction") is None
@@ -340,10 +343,13 @@ def test_g5_edge_cases_do_not_crash_and_do_not_match(edge_case, description):
 
 @pytest.mark.asyncio
 async def test_audit_write_fires_on_early_return_with_retry_path():
-    """Audit write must fire before the early return, with output_gate_banned_opener_retry
+    """Audit initial write must fire on early return, with output_gate_banned_opener_retry
     in the path at write time. PDPL requires each output_gate pass to be traceable,
     including retry intermediates — not just the final completed pass.
     session_id must be non-None to trigger the write (matches existing pattern).
+
+    The early-return path uses write_session_audit_initial (ignore-duplicates) so the
+    final write_session_audit (merge-duplicates) always wins the race.
     """
     import asyncio
     from sage_poc.nodes.output_gate import output_gate_node
@@ -355,16 +361,16 @@ async def test_audit_write_fires_on_early_return_with_retry_path():
     )
 
     with patch("sage_poc.nodes.output_gate.rules_engine.evaluate", return_value=MagicMock(fired=[])):
-        with patch("sage_poc.nodes.output_gate.write_session_audit", AsyncMock()) as mock_audit:
+        with patch("sage_poc.nodes.output_gate.write_session_audit_initial", AsyncMock()) as mock_audit_initial:
             result = await output_gate_node(state)
             await asyncio.sleep(0)  # yield to event loop so create_task runs
 
     # Early return must have fired
     assert result.get("banned_opener_correction") is not None, "Early return must have triggered"
 
-    # Audit write must have been called exactly once on the early return path
-    mock_audit.assert_called_once()
-    audit_payload = mock_audit.call_args[0][0]
+    # Audit initial write must have been called exactly once on the early return path
+    mock_audit_initial.assert_called_once()
+    audit_payload = mock_audit_initial.call_args[0][0]
     assert "output_gate_banned_opener_retry" in audit_payload["path"], (
         "Audit write must include output_gate_banned_opener_retry in path at write time, "
         "not deferred to the second output_gate pass"
@@ -373,7 +379,7 @@ async def test_audit_write_fires_on_early_return_with_retry_path():
 
 @pytest.mark.asyncio
 async def test_audit_write_not_called_on_early_return_when_no_session_id():
-    """Audit write is guarded by session_id — no write when session_id is None.
+    """Audit initial write is guarded by session_id — no write when session_id is None.
     Consistent with write_identity_substitution_audit pattern.
     """
     import asyncio
@@ -386,9 +392,40 @@ async def test_audit_write_not_called_on_early_return_when_no_session_id():
     )
 
     with patch("sage_poc.nodes.output_gate.rules_engine.evaluate", return_value=MagicMock(fired=[])):
-        with patch("sage_poc.nodes.output_gate.write_session_audit", AsyncMock()) as mock_audit:
+        with patch("sage_poc.nodes.output_gate.write_session_audit_initial", AsyncMock()) as mock_audit_initial:
             result = await output_gate_node(state)
             await asyncio.sleep(0)
 
     assert result.get("banned_opener_correction") is not None, "Early return must have triggered"
-    mock_audit.assert_not_called()
+    mock_audit_initial.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_banned_opener_violation_true_when_fallback_substituted():
+    """When fallback is substituted on retry-exhausted banned opener,
+    banned_opener_violation must be True in the returned state dict.
+
+    Bug: banned_opener_violation was initialised to False and never set to True,
+    so the audit log always recorded zero violations even when fallback fired.
+    """
+    from sage_poc.nodes.output_gate import output_gate_node, _VETTED_FALLBACK_RESPONSE
+
+    second_banned = "That sounds really difficult. Have you tried something different?"
+
+    state = _base_state(
+        response_en=second_banned,
+        banned_opener_retry_count=1,
+    )
+
+    with patch("sage_poc.nodes.output_gate.rules_engine.evaluate", return_value=MagicMock(fired=[])):
+        with patch("sage_poc.nodes.output_gate.async_translate_to_arabic", AsyncMock(return_value="...")):
+            with patch("sage_poc.nodes.output_gate.write_session_audit", AsyncMock()):
+                with patch("sage_poc.nodes.output_gate.write_session_audit_initial", AsyncMock()):
+                    result = await output_gate_node(state)
+
+    assert result["banned_opener_violation"] is True, (
+        "banned_opener_violation must be True when fallback is substituted. "
+        f"Got: {result['banned_opener_violation']}"
+    )
+    assert result["banned_opener_fallback_used"] is True
+    assert result["response"] == _VETTED_FALLBACK_RESPONSE
