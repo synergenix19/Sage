@@ -583,3 +583,54 @@ def test_arabic_metaphorical_language_no_crisis_flag(arabic_text, english_gloss)
     assert not crisis_actions, (
         f"FALSE POSITIVE (Arabic metaphor): {arabic_text!r} ({english_gloss})"
     )
+
+
+# ── F-S05-001A — held-out generalization corpus ───────────────────────────────
+#
+# Written BEFORE patterns are added (Task 2). Independence requirement:
+# no phrase contains any new SK-EN-002 pattern as a bare substring.
+# Mixed expected results: PASS = pattern naturally covers this variant;
+# FAIL = genuine generalization gap, documented as expected behaviour.
+#
+# Key patterns being evaluated:
+#   "do better without me"           (MISS-1 construction)
+#   "relieved if i were/was gone"    (MISS-2 construction)
+#
+# Updating the expected value for a phrase is allowed ONLY if the phrase
+# was reclassified after the pattern set changed — do not flip FAIL→PASS
+# to make the test green without changing the patterns.
+SF1_PASSIVE_MISS_HELD_OUT = {
+    # EXPECTED PASS — contain the new pattern as substring (near-variants, not the exact MISS strings)
+    "I keep thinking everyone around me would do better without me": True,
+    "Part of me knows they would all be relieved if I was gone": True,
+    # EXPECTED FAIL — same semantic category, no pattern substring (generalization gap)
+    "everyone's lives would be lighter if I just wasn't around": False,
+    "my family would feel such relief if I were gone from this world": False,
+    "I think they'd all manage so much better without me there": False,
+}
+
+
+def test_f_s05_001a_held_out_generalization_boundary():
+    """Documents the honest generalization boundary for SK-EN-002 (next version, see Task 2).
+
+    Expected-PASS phrases contain a new pattern substring — they validate coverage.
+    Expected-FAIL phrases share the semantic class but no pattern substring — they
+    document where the keywords stop. FAIL results are the honest information; do not
+    fix them by adjusting expected values or adding ad-hoc patterns.
+
+    This test is INTENTIONALLY RED before Task 2 is merged:
+    - Before Task 2: expected-PASS phrases return no-match → these assertions fail (expected and correct).
+    - After Task 2: all five phrases match their expected values → test goes green.
+    Run after Task 2 to confirm the boundary is exactly as documented.
+    """
+    for phrase, expected_catch in SF1_PASSIVE_MISS_HELD_OUT.items():
+        result = engine.evaluate("safety", {"text_en": phrase, "language": "en"})
+        crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+        caught = bool(crisis_actions)
+        assert caught == expected_catch, (
+            f"Held-out generalization mismatch for: {phrase!r}\n"
+            f"  Expected: {'CATCH' if expected_catch else 'MISS (documented gap)'}\n"
+            f"  Got:      {'CATCH' if caught else 'MISS'}\n"
+            f"  If expected MISS: do not adjust expected value — investigate the pattern instead.\n"
+            f"  If expected CATCH: the patterns may have regressed."
+        )
