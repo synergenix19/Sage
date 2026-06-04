@@ -6,7 +6,12 @@
   "evidence_base": "NICE Guidelines CG178 (Psychosis and Schizophrenia, 2014); WHO mhGAP Intervention Guide v2.0 (2016)",
   "target_presentations": [],
   "semantic_description": "",
-  "cultural_overrides": {},
+  "cultural_overrides": {
+    "stigma_language": "In Gulf Arab culture, psychotic experiences carry profound stigma often linked to family honour. Never use clinical terms (psychosis, schizophrenia, hallucinations, delusions) or terms associated with 'madness' (جنون). Frame as 'something important that needs specialist attention' not as an illness label.",
+    "jinn_and_evil_eye": "Some users or their families may interpret these experiences through a religious or supernatural lens (evil eye, jinn possession). Do not contradict or challenge this framing. Acknowledge respectfully and redirect to professional support: 'Whatever the source of this, a mental health specialist can help you understand and navigate it.'",
+    "family_involvement": "The user may be reluctant to seek help without family knowledge, or may fear family reaction. Do not push for independent action. Validate the complexity: 'This is something worth getting support for, in whatever way feels right for you and your family.' The referral line 800 46342 can advise on family involvement.",
+    "non_alarming_tone": "The referral must not communicate alarm, urgency, or severity in a way that increases distress or confirms the user's worst fears. Use calm, matter-of-fact language that normalises seeking specialist input without catastrophising."
+  },
   "steps": [
     {
       "step_id": "professional_referral",
@@ -28,6 +33,9 @@
   ],
   "step_policy": [],
   "escalation_matrix": {
-    "L1": "If the user indicates any risk to themselves or others, stop the referral and respond with the crisis line immediately: emergency services 999 or MoHAP Counselling Line 800 46342 (free, 24/7). Do not continue the referral step."
+    "L1": "If the user indicates any risk to themselves or others, stop the referral and respond with the crisis line immediately: emergency services 999 or MoHAP Counselling Line 800 46342 (free, 24/7). Do not continue the referral step.",
+    "L2": "If the user discloses command hallucinations (voices telling them to harm themselves or others), treat as active crisis: route to crisis_response. Flag for clinician review regardless of whether the user accepts the referral.",
+    "L3": "If the user becomes distressed, agitated, or frightened during the referral step, de-escalate using calm, brief, non-diagnostic language. Do not probe further. Provide 800 46342 and end the interaction warmly. Do not attempt to continue the referral.",
+    "L4": "If the user explicitly requests to speak to a human or expresses that they cannot wait, respond: 'Please call 800 46342 now. They are available 24 hours a day and can connect you to the right support immediately.' Do not substitute any other response."
   }
 }
