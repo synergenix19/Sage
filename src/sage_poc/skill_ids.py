@@ -23,4 +23,5 @@ SKILL_REGISTRY = [
     "interpersonal_effectiveness",
     "financial_anxiety",
     "grief_loss",
+    "psychotic_referral",
 ]

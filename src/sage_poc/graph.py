@@ -20,6 +20,15 @@ from sage_poc.audit import write_session_audit
 _log = logging.getLogger(__name__)
 
 
+def _get_crisis_review_pool():
+    """Lazy accessor for asyncpg pool in _crisis_response_node."""
+    try:
+        from server import app  # noqa: PLC0415
+        return getattr(app.state, "_db_pool", None)
+    except Exception:
+        return None
+
+
 async def _crisis_response_node(state: SageState) -> dict:
     from sage_poc.rules import engine as rules_engine
 
@@ -45,13 +54,41 @@ async def _crisis_response_node(state: SageState) -> dict:
 
     path = state["path"] + ["crisis_response"]
 
-    asyncio.create_task(write_session_audit({
+    _audit_task = asyncio.create_task(write_session_audit({
         **state,
         "path": path,
         "gate_path": "crisis",
         "crisis_state": "monitoring",
         "re_escalation_within_monitoring": is_reescalation,
     }))
+    _audit_task.add_done_callback(
+        lambda t: _log.warning("[crisis_response] session audit error: %s", t.exception())
+        if not t.cancelled() and t.exception() else None
+    )
+
+    async def _notify_crisis_review() -> None:
+        try:
+            from sage_poc.memory.notification import PostgresNotifier  # noqa: PLC0415
+            pool = _get_crisis_review_pool()
+            if not pool:
+                return
+            notifier = PostgresNotifier(pool)
+            await notifier.notify_review_required(
+                user_id=state.get("user_id") or "",
+                session_id=state.get("session_id") or "",
+                reason=f"crisis flags: {', '.join(state.get('crisis_flags', []))}",
+                source="layer1_safety",
+                payload={"flags": state.get("crisis_flags", []) + state.get("clinical_flags", [])},
+                severity="high",
+            )
+        except Exception as exc:
+            _log.warning("[crisis_response] clinician_review_queue write failed: %s", exc)
+
+    _notify_task = asyncio.create_task(_notify_crisis_review())
+    _notify_task.add_done_callback(
+        lambda t: _log.warning("[crisis_response] notify_crisis_review error: %s", t.exception())
+        if not t.cancelled() and t.exception() else None
+    )
 
     if AUDIT_LOG_ENABLED:
         audit = {

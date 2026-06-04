@@ -18,6 +18,7 @@ class SageState(TypedDict):
     third_party_crisis: bool    # user is concerned about someone else's safety, not their own
 
     crisis_state: str              # "none" | "active" | "monitoring" | "resolved"
+    psychotic_referral_delivered: Optional[bool]   # True after psychotic_referral completes; prevents re-selection loop within session
     s7_result: Optional[str]       # "RECOVERING" | "STILL_DISTRESSED" | "UNCLEAR" | "NEW_CRISIS"
     s7_method: Optional[str]       # "keyword" | "llm"
     re_escalation_within_monitoring: Optional[bool]  # True when crisis fires while crisis_state was already "monitoring"

@@ -54,6 +54,29 @@ CLUSTER_EXCLUSIONS: dict[str, str] = {
         "not via semantic matching — adding it to a cluster would mislead "
         "the calibration gap calculation"
     ),
+    "psychotic_referral": (
+        "single-step referral skill activated via psychotic_disclosure clinical flag, "
+        "not via keyword or semantic matching — cluster assignment would create spurious "
+        "routing paths"
+    ),
+}
+
+# Skills exempt from the structural floor checks in test_skill_structural_floors.
+#
+# These are non-standard single-purpose skills that do not follow the
+# multi-step structured-therapy template (≥2 steps, full step_policy,
+# complete escalation matrix, non-empty semantic_description).
+# They are activated by a dedicated routing path (not keyword/semantic) and
+# their clinical parameters are intentionally minimal pending full sign-off.
+#
+# Add a skill here only when it has a non-standard single-purpose architecture
+# that makes the structural floor checks inappropriate. Include the reason.
+STRUCTURAL_FLOOR_EXEMPTIONS: dict[str, str] = {
+    "psychotic_referral": (
+        "single-step clinical referral skill, inactive pending sign-off; "
+        "activated via psychotic_disclosure flag not by multi-step skill routing; "
+        "semantic_description and target_presentations intentionally empty"
+    ),
 }
 
 # Skills exempt from the ≥20 target_presentations floor check.
@@ -73,6 +96,10 @@ PRESENTATIONS_FLOOR_EXEMPTIONS: dict[str, str] = {
         "(skill_select_node line 89) — excluded from keyword and semantic matching "
         "via KEYWORD_SEMANTIC_SKIP; target_presentations are documentation only"
     ),
+    "psychotic_referral": (
+        "single-step referral activated via psychotic_disclosure clinical flag, "
+        "not keyword/semantic matching — target_presentations intentionally empty"
+    ),
 }
 
 # Skills that must never be reached via keyword or semantic matching.
@@ -89,4 +116,5 @@ PRESENTATIONS_FLOOR_EXEMPTIONS: dict[str, str] = {
 # asserts the routing invariant directly.
 KEYWORD_SEMANTIC_SKIP: frozenset[str] = frozenset({
     "post_crisis_check_in",  # activated via post_crisis_auto_select (crisis_state=='monitoring')
+    "psychotic_referral",    # activated via psychotic_disclosure clinical flag; not keyword/semantic routed
 })

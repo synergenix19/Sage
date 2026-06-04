@@ -46,3 +46,50 @@ def test_extraction_system_does_not_say_mental_health():
     assert "wellbeing" in _EXTRACTION_SYSTEM.lower(), (
         "_EXTRACTION_SYSTEM should reference 'wellbeing support conversation'"
     )
+
+
+def test_effective_techniques_cleared_for_psychotic_disclosure_clinical_flag():
+    from sage_poc.memory.profile_extractor import apply_contraindications
+    profile = {
+        "effective_techniques": ["breathing exercise", "box breathing"],
+        "ineffective_techniques": [],
+        "disclosed_concerns": ["stress"],
+        "distortion_patterns": [],
+        "communication_style": None,
+        "cultural_preferences": {},
+        "mood_trajectory": [],
+        "observations": [],
+    }
+    result = apply_contraindications(profile, clinical_flags=["psychotic_disclosure"])
+    assert result["effective_techniques"] == []
+
+
+def test_effective_techniques_cleared_for_psychotic_disclosure_in_concerns():
+    from sage_poc.memory.profile_extractor import apply_contraindications
+    profile = {
+        "effective_techniques": ["breathing exercise"],
+        "ineffective_techniques": [],
+        "disclosed_concerns": ["psychotic_disclosure"],
+        "distortion_patterns": [],
+        "communication_style": None,
+        "cultural_preferences": {},
+        "mood_trajectory": [],
+        "observations": [],
+    }
+    result = apply_contraindications(profile, clinical_flags=[])
+    assert result["effective_techniques"] == []
+
+
+def test_effective_techniques_preserved_without_contraindication():
+    from sage_poc.memory.profile_extractor import apply_contraindications
+    profile = {
+        "effective_techniques": ["box breathing"],
+        "ineffective_techniques": [],
+        "disclosed_concerns": ["stress"],
+        "distortion_patterns": [],
+        "communication_style": None,
+        "cultural_preferences": {},
+        "mood_trajectory": [],
+        "observations": [],
+    }
+    assert apply_contraindications(profile, clinical_flags=[])["effective_techniques"] == ["box breathing"]

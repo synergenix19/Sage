@@ -260,6 +260,7 @@ async def extract_profile(
 
     history = (checkpoint.get("channel_values") or {}).get("conversation_history", [])
     turn_count = (checkpoint.get("channel_values") or {}).get("turn_count", 0)
+    clinical_flags = (checkpoint.get("channel_values") or {}).get("clinical_flags", []) or []
 
     from sage_poc.memory.profile_extractor import extract_session_profile
     from sage_poc.memory.postgres_repository import PostgresMemoryRepository
@@ -276,7 +277,7 @@ async def extract_profile(
     if len(delta_history) < 4:
         return {"status": "skipped", "detail": "insufficient delta"}
 
-    profile = await extract_session_profile(delta_history)
+    profile = await extract_session_profile(delta_history, clinical_flags=clinical_flags)
     if not profile:
         return {"status": "error", "detail": "extraction failed"}
 

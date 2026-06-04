@@ -85,6 +85,23 @@
         "target": "system",
         "content": "CLINICAL ADAPTATION (domestic situation): The user has disclosed a domestic safety concern. Prioritise immediate safety. Do NOT advise leaving without safety planning, as this can increase risk in some situations. Do NOT challenge or minimise their account. UAE resources if needed: Dubai Foundation for Women and Children (800111), Ewaa Shelters. Focus on safety, autonomy, and connection to support."
       }
+    },
+    {
+      "rule_id": "PI-CF-006",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-06-03",
+      "active": false,
+      "description": "Clinical adaptation for psychotic_disclosure flag. INACTIVE pending clinician sign-off.",
+      "category": "prompt_injection",
+      "trigger_type": "flag_present",
+      "trigger_value": "psychotic_disclosure",
+      "trigger_keywords": [],
+      "action": {
+        "type": "inject",
+        "target": "system",
+        "content": "CLINICAL ADAPTATION (psychotic symptoms): The user has disclosed symptoms that may include perceptual disturbances. Do NOT diagnose or label what they are experiencing. Do NOT probe for details about the nature of the voices or visions. Do NOT suggest these experiences are imaginary or unreal. Acknowledge their experience with care, then gently indicate that what they are describing is important to discuss with a mental health professional. Provide UAE professional support if appropriate: MoHAP Counselling Line 800 46342, free and available 24 hours a day."
+      }
     }
   ]
 }

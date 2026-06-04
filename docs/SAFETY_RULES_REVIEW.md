@@ -660,6 +660,41 @@ _Should NOT trigger (≥1 example):_
 - [ ] **Approved with modifications:** _[specify]_
 - [ ] **Rejected:** _[reason]_
 
+### SK-EN-002 v1.2.0 — New patterns pending clinical sign-off
+
+**Status:** `approved_by: null` — DO NOT merge until clinical lead has reviewed and signed off.
+
+**Added 2026-06-04 (F-S05-001A fix):** 11 new keyword patterns added to the existing 76 patterns in SK-EN-002.
+
+#### MISS-1 construction: dispensability ideation
+
+| Pattern | Catches | Known FP risk |
+|---------|---------|---------------|
+| `"do better without me"` | "they'd do better without me in it" | "I need to do better without me getting in my own way" — OVER-TRIGGERS (si_passive fires). See documented over-trigger test. |
+
+#### MISS-2 construction: relief-at-absence ideation
+
+| Pattern | Catches |
+|---------|---------|
+| `"relieved if i were gone"` | "my loved ones would be relieved if I were gone" |
+| `"relieved if i was gone"` | past indicative variant |
+| `"relieved if i'm gone"` | present tense variant |
+| `"relieved if i died"` | explicit death reference |
+| `"relieved if i disappeared"` | disappearance variant — **OVER-TRIGGERS** on "she said she'd be relieved if I disappeared from her social media" (third-party subject). See documented over-trigger test. |
+| `"relieved if i was dead"` | past state variant |
+| `"relieved if i were dead"` | subjunctive state variant |
+| `"relieved when i'm gone"` | temporal future framing |
+| `"relieved when i die"` | temporal explicit |
+| `"relieved when i'm dead"` | temporal dead-state framing |
+
+#### Clinical decisions required
+
+- [ ] **Accept "do better without me" over-trigger:** The phrase "I need to do better without me getting in my own way" fires `si_passive`. In this mental health context, is routing this to crisis_response acceptable? If not, narrow the pattern (e.g., to "they do better without me"). _[Reviewer name, Date]_
+
+- [ ] **Accept "relieved if i disappeared" over-trigger:** The phrase "she said she'd be relieved if I disappeared from her social media" fires `si_passive` (third-party subject). Is this acceptable for POC? _[Reviewer name, Date]_
+
+- [ ] **Clinical lead sign-off on all 11 v1.2.0 patterns:** Patterns are medically appropriate passive-SI constructions and acceptable for routing to crisis_response. _[Reviewer name, Date]_
+
 ---
 
 ## SK-AR-002: Arabic passive SI and escape ideation (Gulf dialect, alef-normalized)

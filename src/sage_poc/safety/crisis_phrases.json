@@ -51,6 +51,12 @@
     {"text": "بس أتمنى أختفي من الكل وما يحد يبحث عني أو يفتقدني", "source": "SF-1", "flag": "si_passive", "language": "ar"},
     {"text": "أحياناً أتمنى لو إن الله ياخذني لأن ما اقدر أكمل بهالطريقة", "source": "SF-1", "flag": "si_passive", "language": "ar"},
     {"text": "I feel completely hopeless, like there is truly no way forward and nothing will ever improve", "source": "SF-1", "flag": "si_passive", "language": "en"},
-    {"text": "I've been isolating and withdrawing from everything because I genuinely believe I don't deserve to be part of people's lives", "source": "SF-1", "flag": "si_passive", "language": "en"}
+    {"text": "I've been isolating and withdrawing from everything because I genuinely believe I don't deserve to be part of people's lives", "source": "SF-1", "flag": "si_passive", "language": "en"},
+    {"text": "should i do what the voices are telling me", "source": "CH-EN-001", "flag": "command_hallucination", "language": "en"},
+    {"text": "the voices are telling me to hurt someone", "source": "CH-EN-001", "flag": "command_hallucination", "language": "en"},
+    {"text": "the voices want me to do something dangerous", "source": "CH-EN-001", "flag": "command_hallucination", "language": "en"},
+    {"text": "i have to follow what the voices say or something bad will happen", "source": "CH-EN-001", "flag": "command_hallucination", "language": "en"},
+    {"text": "الأصوات تأمرني بإيذاء شخص", "source": "CH-AR-001", "flag": "command_hallucination", "language": "ar"},
+    {"text": "الأصوات تقول لي أذي نفسي", "source": "CH-AR-001", "flag": "command_hallucination", "language": "ar"}
   ]
 }
