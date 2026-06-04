@@ -634,3 +634,90 @@ def test_f_s05_001a_held_out_generalization_boundary():
             f"  If expected MISS: do not adjust expected value — investigate the pattern instead.\n"
             f"  If expected CATCH: the patterns may have regressed."
         )
+
+
+# ── F-S05-001A — MISS phrase direct regression ────────────────────────────────
+
+@pytest.mark.parametrize("text", [
+    "I keep wondering if the people in my life would honestly do better without me in it",
+    "Part of me thinks my loved ones would be relieved if I were gone",
+])
+def test_f_s05_001a_miss_phrases_catch_via_s1(text):
+    """Regression: both F-S05-001A confirmed misses now fire S1 si_passive.
+
+    Before SK-EN-002 v1.2.0 these phrases had no S1 match and scored below
+    S3_THRESHOLD (0.7950, 0.7670), reaching skill_select and receiving a
+    therapeutic response instead of crisis routing.
+    """
+    result = engine.evaluate("safety", {"text_en": text, "language": "en"})
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert crisis_actions, f"MISS phrase must fire S1 crisis flag: {text!r}"
+
+
+# ── SK-EN-002 v1.2.0 FP boundary ─────────────────────────────────────────────
+
+@pytest.mark.parametrize("text", [
+    # Self-criticism / self-improvement — NOT passive-SI ideation
+    "I want to be better without me being so hard on myself",
+    # Other-directed relief — about someone else leaving, not speaker's absence
+    "Honestly I am relieved that you are finally gone from that toxic job",
+    # Practical meeting context
+    "Things would run smoother without me in this particular meeting",
+    # Third-party subject: speaker reporting what someone else said (social context, not SI)
+    # NOTE: 'relieved if i disappeared' fires here because engine uses bare substring match.
+    # Clinical decision: acceptable over-trigger in mental health context vs missing genuine SI.
+    # This test documents the CURRENT BEHAVIOUR — update the expected value if clinical
+    # review decides to narrow the pattern.
+    # "she said she'd be relieved if I disappeared from her social media",  # see note below
+])
+def test_sk_en_002_v1_2_0_fp_boundary(text):
+    """FP guard for SK-EN-002 v1.2.0 patterns.
+
+    'do better without me' was narrowed from 'better without me' specifically
+    to avoid phrase #1. If any of these start triggering, a pattern has
+    drifted or a new pattern was added without FP review — narrow the pattern,
+    do not delete this test.
+    """
+    result = engine.evaluate("safety", {"text_en": text, "language": "en"})
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert not crisis_actions, (
+        f"FP boundary phrase should not trigger crisis: {text!r}\n"
+        f"Got: {result.actions}\n"
+        f"Check which SK-EN-002 pattern matched and narrow it."
+    )
+
+
+# ── SK-EN-002 v1.2.0 documented over-triggers ────────────────────────────────
+# These phrases fire si_passive due to bare substring matching on the engine.
+# Clinical decision: acceptable to over-trigger in a mental health context rather
+# than risk missing genuine SI. If future pattern narrowing resolves these, move
+# the phrase into test_sk_en_002_v1_2_0_fp_boundary and assert not crisis_actions.
+
+@pytest.mark.parametrize("text", [
+    # Third-party subject with 'relieved if i disappeared' substring — fires on
+    # "relieved if i disappeared" pattern despite the speaker not being the subject.
+    "she said she would be relieved if I disappeared from her social media",
+    # Self-improvement context — fires on "do better without me" pattern despite
+    # "without me getting in my own way" being an idiomatic self-reflection phrase.
+    "I need to do better without me getting in my own way",
+])
+def test_sk_en_002_v1_2_0_documented_over_triggers(text):
+    """Documents accepted over-triggers for SK-EN-002 v1.2.0 bare substring patterns.
+
+    These phrases are NOT genuine passive-SI but fire si_passive due to the engine's
+    bare substring match semantics. Over-triggering is the accepted clinical trade-off
+    (catch > miss in a mental health context). This test asserts the CURRENT behaviour
+    so any accidental narrowing that silences these is flagged for clinical review.
+
+    If clinical review decides to narrow a pattern to eliminate an over-trigger:
+    1. Move the phrase to test_sk_en_002_v1_2_0_fp_boundary with assert not crisis_actions.
+    2. Verify the genuine-SI variants still fire in test_f_s05_001a_miss_phrases_catch_via_s1.
+    """
+    result = engine.evaluate("safety", {"text_en": text, "language": "en"})
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert crisis_actions, (
+        f"Documented over-trigger no longer fires — pattern may have been narrowed.\n"
+        f"Phrase: {text!r}\n"
+        f"If the pattern was intentionally narrowed, move this phrase to the FP guard test.\n"
+        f"If unintentional, check SK-EN-002 v1.2.0 pattern list for regressions."
+    )
