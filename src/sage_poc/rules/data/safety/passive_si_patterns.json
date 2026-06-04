@@ -6,7 +6,7 @@
       "version": "1.2.0",
       "authored_by": "sage_clinics",
       "approved_by": null,
-      "change_note": "v1.2.0: Added 10 relieved-family patterns (8 from plan spec + 3 extra 'dead' variants not in spec). FP CONFIRMED 2026-06-04: 'relieved if i were dead' fires on 'dead serious' idiom. RECALL GAP CONFIRMED: same pattern catches 'I would be relieved if I were dead' — no other active pattern covers this construction. CLINICAL DECISION PENDING: Option A = remove pattern, accepts recall gap on that phrase. Option B = accept FP as documented over-trigger. See tests/test_rules_safety.py::test_sk_en_002_v1_2_0_fp_boundary_clinical_decision_pending.",
+      "change_note": "v1.2.0: Added 10 relieved-family patterns (7 from plan spec + 3 extra 'dead' variants not in spec). FP CONFIRMED 2026-06-04: 'relieved if i were dead' fires on 'dead serious' idiom. RECALL GAP CONFIRMED: same pattern catches 'I would be relieved if I were dead' — no other active pattern covers this construction. CLINICAL DECISION PENDING: Option A = remove pattern, accepts recall gap on that phrase. Option B = accept FP as documented over-trigger. See tests/test_rules_safety.py::test_sk_en_002_v1_2_0_fp_boundary_clinical_decision_pending.",
       "effective_date": "2026-06-04",
       "active": true,
       "description": "English passive SI and veiled ideation",
