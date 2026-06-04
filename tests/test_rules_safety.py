@@ -618,10 +618,9 @@ def test_f_s05_001a_held_out_generalization_boundary():
     document where the keywords stop. FAIL results are the honest information; do not
     fix them by adjusting expected values or adding ad-hoc patterns.
 
-    This test is INTENTIONALLY RED before Task 2 is merged:
-    - Before Task 2: expected-PASS phrases return no-match → these assertions fail (expected and correct).
-    - After Task 2: all five phrases match their expected values → test goes green.
-    Run after Task 2 to confirm the boundary is exactly as documented.
+    Task 2 (SK-EN-002 v1.2.0) is in this branch. All five phrases should match their
+    expected values. If this test is red, patterns regressed or expected values were
+    changed without updating the patterns first.
     """
     for phrase, expected_catch in SF1_PASSIVE_MISS_HELD_OUT.items():
         result = engine.evaluate("safety", {"text_en": phrase, "language": "en"})
