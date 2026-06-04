@@ -710,8 +710,14 @@ def test_sk_en_002_v1_2_0_documented_over_triggers(text):
     so any accidental narrowing that silences these is flagged for clinical review.
 
     If clinical review decides to narrow a pattern to eliminate an over-trigger:
-    1. Move the phrase to test_sk_en_002_v1_2_0_fp_boundary with assert not crisis_actions.
-    2. Verify the genuine-SI variants still fire in test_f_s05_001a_miss_phrases_catch_via_s1.
+    1. Move the phrase here to test_sk_en_002_v1_2_0_fp_boundary (assert not crisis_actions).
+    2. Confirm the corresponding genuine-SI phrase still fires:
+       - 'relieved if i disappeared' over-trigger -> check phrase 2 in
+         test_f_s05_001a_miss_phrases_catch_via_s1 ('Part of me thinks my loved ones
+         would be relieved if I were gone') still fires.
+       - 'do better without me' over-trigger -> check phrase 1 in
+         test_f_s05_001a_miss_phrases_catch_via_s1 ('I keep wondering if the people
+         in my life would honestly do better without me in it') still fires.
     """
     result = engine.evaluate("safety", {"text_en": text, "language": "en"})
     crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
@@ -720,4 +726,15 @@ def test_sk_en_002_v1_2_0_documented_over_triggers(text):
         f"Phrase: {text!r}\n"
         f"If the pattern was intentionally narrowed, move this phrase to the FP guard test.\n"
         f"If unintentional, check SK-EN-002 v1.2.0 pattern list for regressions."
+    )
+    assert any(a.get("flag_id") == "si_passive" for a in crisis_actions), (
+        f"Expected si_passive flag from SK-EN-002 for over-trigger phrase: {text!r}\n"
+        f"Got actions: {result.actions}"
+    )
+    fired_rule_ids = [r.rule_id for r in result.fired]
+    assert "SK-EN-002" in fired_rule_ids, (
+        f"Expected SK-EN-002 to be the firing rule for: {text!r}\n"
+        f"Fired rules: {fired_rule_ids}\n"
+        f"If SK-EN-002 no longer fires this phrase, the pattern was narrowed — "
+        f"move the phrase to test_sk_en_002_v1_2_0_fp_boundary."
     )
