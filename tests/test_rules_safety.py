@@ -737,3 +737,73 @@ def test_sk_en_002_v1_2_0_documented_over_triggers(text):
         f"If SK-EN-002 no longer fires this phrase, the pattern was narrowed — "
         f"move the phrase to test_sk_en_002_v1_2_0_fp_boundary."
     )
+
+
+# ── SK-EN-002 v1.2.0 clinical_decision_pending: FP vs recall gap ──────────────
+
+
+@pytest.mark.clinical_decision_pending
+@pytest.mark.parametrize("text", [
+    # 'dead serious' idiom — "dead" means "very", not death.
+    # Fires on pattern 'relieved if i were dead' (SK-EN-002 v1.2.0, added beyond plan spec).
+    # CLINICAL DECISION REQUIRED: remove pattern (accepts recall gap on
+    # 'I would be relieved if I were dead') vs. keep pattern (accepts this FP).
+    # To resolve: choose Option A or B in the change_note of passive_si_patterns.json,
+    # then move this test accordingly and set approved_by on SK-EN-002.
+    "She would be relieved if I were dead serious about this",
+    "They would be relieved if I was dead serious for once",
+    # 'dead tired' variant — same 'relieved when i'm dead' pattern
+    "She will be relieved when I'm dead tired and stop talking",
+])
+def test_sk_en_002_v1_2_0_fp_boundary_clinical_decision_pending(text):
+    """FP boundary tests awaiting clinical decision.
+
+    INTENTIONALLY FAILING — marked clinical_decision_pending.
+    These three phrases are confirmed FPs on SK-EN-002 v1.2.0 undocumented patterns.
+
+    To clear:
+      Option A (remove 'relieved if i was/were dead' patterns): accepts recall gap.
+        'I would be relieved if I were dead' will be a MISS (verified — no other pattern catches it).
+        Update test_sk_en_002_v1_2_0_recall_gap_if_dead_patterns_removed accordingly.
+      Option B (accept FP as over-trigger): move these 3 phrases to
+        test_sk_en_002_v1_2_0_documented_over_triggers and assert they DO fire.
+    Do NOT change the assert to get green — document the clinical decision first.
+    """
+    result = engine.evaluate("safety", {"text_en": text, "language": "en"})
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert not crisis_actions, (
+        f"FP boundary phrase should not trigger crisis: {text!r}\n"
+        f"Got: {result.actions}\n"
+        "CLINICAL DECISION REQUIRED — see docstring for options."
+    )
+
+
+@pytest.mark.clinical_decision_pending
+@pytest.mark.parametrize("text", [
+    # These phrases are currently CAUGHT by SK-EN-002 v1.2.0 'relieved if i were/was dead'.
+    # IF those patterns are removed (Option A above), these become MISSes.
+    # Verified by direct engine.evaluate call 2026-06-04.
+    "I would be relieved if I were dead",
+    "I would be relieved if I was dead",
+])
+def test_sk_en_002_v1_2_0_recall_gap_if_dead_patterns_removed(text):
+    """Documents the recall gap if the 'relieved if i were/was dead' patterns are removed.
+
+    INTENTIONALLY FAILING — marked clinical_decision_pending.
+    These phrases are currently caught. If Option A (remove patterns) is chosen,
+    update the expected value to False and move out of clinical_decision_pending.
+    If Option B (keep patterns) is chosen, these remain passing and this test
+    confirms coverage — move out of clinical_decision_pending.
+
+    No other active pattern catches 'I would be relieved if I were dead'.
+    Verified 2026-06-04 by exhaustive substring check against all 68 SK-EN-002 patterns
+    minus the 3 'dead' variants.
+    """
+    result = engine.evaluate("safety", {"text_en": text, "language": "en"})
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    # These currently PASS (patterns exist). When Option A is chosen, remove this
+    # test or flip to assert not crisis_actions (documenting the accepted miss).
+    assert crisis_actions, (
+        f"Currently caught by 'relieved if i were/was dead' pattern. "
+        f"If this fails, the pattern was removed — update this test to document the accepted miss."
+    )
