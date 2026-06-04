@@ -429,3 +429,10 @@ async def test_banned_opener_violation_true_when_fallback_substituted():
     )
     assert result["banned_opener_fallback_used"] is True
     assert result["response"] == _VETTED_FALLBACK_RESPONSE
+    # The path marker is what write_session_audit uses to record the fallback event in Supabase.
+    # Assert CONTAINS, not commit order — the fix is the duplicate-resolution semantics, not timing.
+    assert "output_gate_fallback_substituted" in result.get("path", []), (
+        "output_gate_fallback_substituted must appear in path so the Supabase audit row "
+        "can be queried for fallback events. "
+        f"Got path: {result.get('path')}"
+    )
