@@ -81,7 +81,10 @@
         "relieved if i died",
         "relieved if i disappeared",
         "relieved when i'm gone",
-        "relieved when i die"
+        "relieved when i die",
+        "relieved if i was dead",
+        "relieved if i were dead",
+        "relieved when i'm dead"
       ],
       "language": "en",
       "modifiers": ["negation_check"],
@@ -91,6 +94,7 @@
       "rule_id": "SK-AR-002",
       "version": "1.0.0",
       "authored_by": "sage_clinics",
+      "approved_by": null,
       "effective_date": "2026-05-21",
       "active": true,
       "description": "Arabic passive SI and escape ideation (Gulf dialect, alef-normalized)",
