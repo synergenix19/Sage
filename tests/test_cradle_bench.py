@@ -49,8 +49,10 @@ binary classifier). Adding more EN keywords marginally improves recall at the
 cost of precision. Do not close this gap with keyword expansion.
 
 Arabic equivalent: no Arabic CRADLE set exists. The same indirect-method recall
-gap exists in Arabic (SK-AR-004 method rules are keyword-only) but is currently
-unmeasured. This is a measurement gap to name, not a code gap to fix at POC.
+gap exists in Arabic and is currently unmeasured. SK-AR-004 (SI method) and
+SK-AR-005 (third-party) were authored but reverted (commit c9f9526) pending
+clinical sign-off and an Arabic eval signal — they are NOT live. This is a
+measurement gap to name, not a code gap to fix at POC.
 
 PRECISION FP ANNOTATION — read before "fixing" any FP
 ------------------------------------------------------
