@@ -44,7 +44,8 @@ asyncio_mode = "auto"
 #   integration:           make test-integration  (requires live Supabase)
 #   governance:            make test-governance   (expected red during sign-off burn-down)
 #   clinical_decision_pending: not a Makefile target — these tests await a clinical decision
-addopts = "-m 'not integration and not clinical_decision_pending and not governance'"
+#   cradle:                pytest -m cradle       (requires eval.jsonl from scripts/fetch_cradle_bench.py)
+addopts = "-m 'not integration and not clinical_decision_pending and not governance and not cradle'"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/sage_poc"]

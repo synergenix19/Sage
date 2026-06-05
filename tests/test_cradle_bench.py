@@ -105,8 +105,22 @@ def test_loader_all_texts_nonempty():
     assert empty == [], f"Found {len(empty)} empty text examples"
 
 
-# ── Imports needed for node tests ─────────────────────────────────────────
-# (already added above)
+# ── Sentinel: explicit named skip when eval data absent ───────────────────
+
+def test_cradle_data_available():
+    """Skip with a clear message when eval.jsonl has not been downloaded.
+
+    Without this sentinel, the four parametrized node-level tests generate
+    zero test instances (empty argvalues list) and disappear silently from
+    the run. This test always shows up as a named skip so the operator knows
+    the harness needs data before it can validate the KPI.
+    """
+    if _DATA_MISSING:
+        pytest.skip(
+            "CRADLE Bench eval.jsonl not present. "
+            "Run scripts/fetch_cradle_bench.py after confirming the DUA. "
+            "Until then, the S1/S3 recall KPI is unvalidated by external data."
+        )
 
 
 # ── State factory ─────────────────────────────────────────────────────────

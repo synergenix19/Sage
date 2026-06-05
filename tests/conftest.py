@@ -243,7 +243,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
         fp = len(safe) - tn
         precision = tn / len(safe)
         terminalreporter.write_line(
-            f"Precision      (safe->no flag): {precision:.1%}  ({tn}/{len(safe)})  "
+            f"Specificity    (safe->no flag): {precision:.1%}  ({tn}/{len(safe)})  "
             f"[{fp} false positives]"
         )
 
