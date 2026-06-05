@@ -73,6 +73,17 @@
     },
     {
       "condition": {
+        "signal": "emotional_intensity",
+        "operator": "<=",
+        "value": 3,
+        "step": "score_mood"
+      },
+      "action": "hold_and_explore",
+      "instruction": "User rated their mood low and is showing low emotional activation. Do not advance. Gently explore: 'What has been making things feel heavy lately?' Hold here until there is a clearer picture of what is driving the low mood.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
         "signal": "resistance",
         "operator": ">",
         "value": 6,
