@@ -184,7 +184,7 @@ def _stub_bge_m3(request):
 _cradle_records: list[dict] = []
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def record_cradle_result():
     """Return the session-level CRADLE results list.
 
