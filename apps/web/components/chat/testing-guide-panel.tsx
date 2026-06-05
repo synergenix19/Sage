@@ -1,4 +1,5 @@
 'use client'
+import type { ReactNode } from 'react'
 import { ResponsivePanel } from '@cdai/ui'
 
 interface TestingGuidePanelProps {
@@ -67,7 +68,7 @@ export function TestingGuidePanel({ open, onClose }: TestingGuidePanelProps) {
   )
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
       <h3 className="mb-2 font-semibold text-[var(--color-text-primary)]">{title}</h3>
@@ -76,7 +77,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function Item({ children }: { children: React.ReactNode }) {
+function Item({ children }: { children: ReactNode }) {
   return (
     <li className="flex gap-2 text-[var(--color-text-secondary)]">
       <span className="mt-0.5 shrink-0 text-[var(--color-text-tertiary)]">•</span>
