@@ -19,23 +19,6 @@ import pytest
 from unittest.mock import patch
 
 
-# ── Fixtures ──────────────────────────────────────────────────────────────────
-
-@pytest.fixture(scope="session")
-async def s3_warmed():
-    """Pre-build the S3 phrase index via asyncio.to_thread before slow tests.
-
-    safety_check_node wraps check_s3 in asyncio.wait_for(..., timeout=5.0). Running
-    warmup through asyncio.to_thread (same async path as production) ensures the worker
-    thread that will run check_s3 has a warm model context. A sync fixture calling
-    _ensure_s3_ready() directly warms the main test thread but not the pool worker,
-    causing the timeout to fire even with a built index.
-    """
-    import asyncio
-    from sage_poc.safety.s3_semantic import _ensure_s3_ready
-    await asyncio.to_thread(_ensure_s3_ready)
-
-
 # ── Shared state factory ──────────────────────────────────────────────────────
 
 def _make_state(raw_message: str) -> dict:

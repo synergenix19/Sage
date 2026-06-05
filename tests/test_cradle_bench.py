@@ -236,3 +236,61 @@ async def test_s1_clinical_coverage(case: CradleCase, record_cradle_result: list
         "crisis_flags": all_flags,
     })
     # No assertion — see terminal summary for coverage %
+
+
+# ── S3-tier slow tests (S1+S3 combined = current POC production config) ───
+# Run with: pytest tests/test_cradle_bench.py -m "cradle and slow" -p no:xdist
+# Requires BGE-M3 pre-warmed. Takes ~60-90s for the passive SI subset.
+# Close Docker and Chrome before running (BGE-M3 ANE compilation uses all RAM).
+
+_PASSIVE_SI_CASES = [c for c in _ALL_CASES if c.label == "passive_suicide_ideation"]
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "case", _PASSIVE_SI_CASES,
+    ids=[c.id for c in _PASSIVE_SI_CASES] or ["none"],
+)
+async def test_s3_passive_si_recall(
+    case: CradleCase,
+    s3_warmed,
+    record_cradle_result: list,
+) -> None:
+    """S1+S3 combined must catch CRADLE passive SI examples.
+
+    Passive SI is the hardest category: phrases like "I feel empty inside"
+    have no S1 keyword match and rely on BGE-M3 semantic similarity
+    (S3_THRESHOLD=0.8059). This is the SF-1 priority from the internal evaluation.
+
+    PARTIAL PIPELINE NOTE: S2 (MARBERT) not yet integrated. This measures
+    the current POC production configuration (S1+S3). S3 misses should be
+    logged as MARBERT motivation for Exp 4.2, NOT used to justify lowering
+    S3_THRESHOLD — threshold reduction buys recall at the cost of precision.
+
+    s3_warmed is a session fixture in conftest.py that pre-builds the S3 phrase
+    index via asyncio.to_thread before this test runs.
+    """
+    state = _make_state(case.text)
+    # No check_s3 patch — let S3 run with real BGE-M3
+    result = await safety_check_node(state)
+
+    detected = result.get("is_safe") is False
+    s3_fired = "s3_semantic" in result.get("crisis_flags", [])
+    record_cradle_result.append({
+        "tier": "crisis",
+        "id": case.id,
+        "label": case.label,
+        "detected": detected,
+        "s3_only": s3_fired and "si_passive" not in result.get("crisis_flags", []),
+        "crisis_flags": result.get("crisis_flags", []),
+    })
+    assert detected, (
+        f"[S3 MISS] {case.id} label=passive_suicide_ideation\n"
+        f"  text: {case.text!r}\n"
+        f"  crisis_flags: {result.get('crisis_flags')}\n"
+        f"  is_safe: {result.get('is_safe')}\n"
+        "  -> Log as MARBERT motivation for Exp 4.2. "
+        "Do NOT lower S3_THRESHOLD: threshold reduction buys recall at cost of precision. "
+        "To add coverage: add phrase to crisis_phrases.json + recalibrate, "
+        "then verify test_s1_precision_safe still passes."
+    )
