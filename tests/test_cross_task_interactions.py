@@ -209,8 +209,12 @@ class TestC2ReEscalationAndS3Timeout:
     from the graph checkpoint — S3 cannot change that value).
     """
 
-    async def test_s3_timeout_logs_warning_not_silent(self):
-        """B-2 fix: S3 asyncio.TimeoutError must emit a WARNING log, not silently pass."""
+    async def test_s3_timeout_logs_not_silent(self):
+        """B-2 fix: S3 asyncio.TimeoutError must emit an ERROR log, not silently pass.
+
+        The log level is ERROR (not WARNING) so that log-based alerting fires when S3
+        is unavailable — S3 degradation to S1-only is a safety-relevant event.
+        """
         from sage_poc.nodes.safety_check import safety_check_node
         import logging
 
@@ -232,11 +236,10 @@ class TestC2ReEscalationAndS3Timeout:
              patch("sage_poc.nodes.safety_check._log") as mock_log:
             result = await safety_check_node(state)
 
-        mock_log.warning.assert_called_once()
-        warning_call = mock_log.warning.call_args[0][0]
-        assert "S3 timeout" in warning_call, (
-            "B-2 fix: S3 timeout must log 'S3 timeout' in the warning message"
-        )
+        mock_log.error.assert_called_once()
+        error_args = mock_log.error.call_args[0]
+        assert error_args, "S3 timeout must emit an error log with a message"
+        assert "S3" in error_args[0], "Error log must mention S3 so on-call knows which layer timed out"
 
     async def test_s3_timeout_does_not_crash_turn(self):
         """S3 timeout must not prevent safety_check_node from returning a valid result.

@@ -524,9 +524,11 @@ def test_compose_prompt_l3_wrapper_fires_for_normal_skill_step():
     assert "Goal:" not in user_str  # P1-4 fix: old form format gone
 
 
-def test_compose_prompt_escalation_uses_raw_step_instruction():
+def test_compose_prompt_l1_escalation_uses_raw_step_instruction():
+    # L1 exits the skill immediately: skill_executor sets active_skill_id=None.
+    # The plain [L1] instruction must reach the LLM without being rebuilt via _build_l3_skill_block.
     state = _make_state(
-        active_skill_id="cbt_thought_record",
+        active_skill_id=None,  # skill exited by L1
         executed_step_id="identify_thought",
         step_instruction="[L1] Exit skill gracefully if user requests to stop",
         escalation_triggered={"level": "L1", "reason": "stop", "action": "exit_skill"},
@@ -536,6 +538,27 @@ def test_compose_prompt_escalation_uses_raw_step_instruction():
     assert "skill_instruction" in layers
     assert "L3_skill_wrapper" not in layers
     assert "[L1]" in user_str
+
+
+def test_compose_prompt_l2_escalation_uses_language_aware_examples():
+    # L2 is advisory — skill continues, active_skill_id remains set.
+    # Arabic users must get language-aware example selection (_select_few_shot_examples),
+    # not the language-blind examples[:2] from skill_executor's step_instruction string.
+    state = _make_state(
+        detected_language="ar",
+        active_skill_id="cbt_thought_record",
+        executed_step_id="identify_thought",
+        step_instruction="Goal: identify_thought. Example approaches: EN example 1; EN example 2",
+        escalation_triggered={"level": "L2", "reason": "trauma_indicator", "action": None},
+        rule_fired=False,
+    )
+    with patch("sage_poc.prompts.composer.rules_engine.evaluate", side_effect=_no_rules()):
+        _, user_str, layers = compose_prompt(state)
+    # Must use the full L3 template (language-aware), not the raw step_instruction string
+    assert "L3_skill_wrapper" in layers
+    assert "skill_instruction" not in layers
+    # The raw English-only step_instruction must NOT appear verbatim
+    assert "EN example 1; EN example 2" not in user_str
 
 
 def test_compose_prompt_history_layer_present_when_history_exists():

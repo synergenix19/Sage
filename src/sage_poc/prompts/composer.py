@@ -506,12 +506,15 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
         user_parts.append(content)
 
     # L3: Skill context
+    # escalation_triggered is NOT handled as a special early-exit here.
+    # L1 escalation (active_skill_id=None) naturally falls to the else branch below.
+    # L2 escalation (active_skill_id still set) falls to the _build_l3_skill_block branch,
+    # which applies language-aware example selection via _select_few_shot_examples.
+    # The previous L2 early-exit caused Arabic users to receive examples[:2] (English-ordered)
+    # precisely on the high-stakes turns when register quality matters most.
     step_instruction = state.get("step_instruction")
     if step_instruction:
-        if state.get("escalation_triggered"):
-            user_parts.append(f"SKILL INSTRUCTION:\n{step_instruction}")
-            layers.append("skill_instruction")
-        elif state.get("rule_fired"):
+        if state.get("rule_fired"):
             # A step_policy rule overrode the default step instruction. Use it directly —
             # rebuilding L3 from the skill step would discard the clinical override.
             user_parts.append(f"SKILL INSTRUCTION:\n{step_instruction}")

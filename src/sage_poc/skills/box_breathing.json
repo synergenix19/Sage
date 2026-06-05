@@ -34,36 +34,20 @@
   "semantic_description": "Box breathing: four-count inhale, four-count hold, four-count exhale, four-count hold. Square breathing. Paced breathing exercise. Walk me through the four-count breathing cycle.",
   "steps": [
     {
-      "step_id": "inhale",
-      "goal": "Coach the user to inhale slowly for 4 counts",
-      "technique": "Paced breathing instruction, 4-count nasal inhale",
-      "technique_description": "Pace the diaphragmatic inhale over 4 counts to begin slowing the respiratory rate toward the therapeutic range and initiate the vagal tone shift.",
+      "step_id": "inhale_hold",
+      "goal": "Coach the user through the inhale and hold phases in a single uninterrupted sequence",
+      "technique": "Paced breathing instruction, 4-count nasal inhale followed immediately by 4-count breath retention",
+      "technique_description": "Deliver both phases in one message so the user can complete them without a chat interruption breaking the cycle. The inhale-to-hold transition is physiologically continuous — splitting it across turns destroys the timing and requires the user to re-inhale. Pace the diaphragmatic inhale over 4 counts to initiate vagal tone shift, then sustain with breath retention to deepen parasympathetic activation.",
       "tone": "calm, slow, gently directive, model the pace through language",
       "examples": [
-        "Let's start together. Breathe in slowly through your nose, and count with me: 1... 2... 3... 4. Take your time.",
-        "We're going to breathe together. In through your nose, nice and slow: one, two, three, four. No rush.",
-        "خلنا نبدأ سوا. شهيق من أنفك، ببطء: واحد... اثنين... ثلاثة... أربعة.",
-        "Ready when you are. Breathe in through your nose, slow and steady: 1... 2... 3... 4. Follow my pace.",
-        "Let's do this together, nice and slow. Inhale through your nose: one... two... three... four. You've got this."
+        "Let's start together. Breathe in slowly through your nose: 1... 2... 3... 4. Now hold gently, no strain: 1... 2... 3... 4. Let me know when you've done that.",
+        "We're going to breathe together. In through your nose, nice and slow: one, two, three, four. Then just pause and hold: one, two, three, four. No rush.",
+        "خلنا نبدأ سوا. شهيق من أنفك ببطء: واحد... اثنين... ثلاثة... أربعة. ثم وقف التنفس بهدوء: واحد... اثنين... ثلاثة... أربعة. أخبرني لما تخلص.",
+        "Ready when you are. Breathe in through your nose, slow and steady: 1... 2... 3... 4. Then hold softly: 1... 2... 3... 4. Take your time — let me know when you're done.",
+        "Let's do this together. Inhale through your nose: one... two... three... four. Now hold gently: one... two... three... four. You've got this — let me know when you're ready to continue."
       ],
-      "contraindications": "Do NOT instruct rapid breathing. Do NOT advance to hold if the user signals they are hyperventilating or cannot control their breath, return to slow, unguided breathing first.",
-      "completion_criteria": "User confirms they completed the inhale, or responds in a way that shows engagement with the counting."
-    },
-    {
-      "step_id": "hold_1",
-      "goal": "Guide the user to hold the breath for 4 counts, the parasympathetic activation phase",
-      "technique": "Breath retention, 4-count hold",
-      "technique_description": "Use the breath-retention phase to prolong pulmonary stretch and deepen vagal activation, producing the parasympathetic shift that reduces sympathetic arousal.",
-      "tone": "steady, present, reassuring",
-      "examples": [
-        "Good. Now hold, gently, no strain: 1... 2... 3... 4.",
-        "Now hold your breath softly. Not a tight hold, just pause: one, two, three, four.",
-        "ممتاز. الحين وقف التنفس بهدوء: واحد... اثنين... ثلاثة... أربعة.",
-        "Perfect. Just pause and hold: 1... 2... 3... 4. Easy and soft.",
-        "Good, now just hold gently, no force: one... two... three... four."
-      ],
-      "contraindications": "Do NOT instruct breath-holding for users who have flagged respiratory conditions, asthma, or who expressed they cannot hold their breath. Offer to skip the hold and go straight to exhale.",
-      "completion_criteria": "User indicates they held for the count, or continues the exercise."
+      "contraindications": "Do NOT instruct rapid breathing. Do NOT advance to exhale if the user signals they are hyperventilating, cannot control their breath, or has flagged respiratory conditions, asthma, or a heart condition. Offer to skip the hold and go straight to a slow natural exhale.",
+      "completion_criteria": "User confirms they completed both the inhale and the hold, or responds in a way that shows they did both without distress."
     },
     {
       "step_id": "exhale_hold",
@@ -134,11 +118,11 @@
         "signal": "clarity",
         "operator": ">=",
         "value": 8,
-        "step": "inhale"
+        "step": "inhale_hold"
       },
       "action": "skip",
       "instruction": "User already knows box breathing well and confirmed this. Skip the instructional framing and go straight to counting together.",
-      "next_step_id": "inhale"
+      "next_step_id": "inhale_hold"
     }
   ],
   "escalation_matrix": {

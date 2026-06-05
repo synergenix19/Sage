@@ -291,11 +291,11 @@ async def test_safety_check_node_flags_crisis_when_s3_fires():
     }
 
     with patch("sage_poc.nodes.safety_check.rules_engine.evaluate", return_value=mock_s1_result):
-        with patch("sage_poc.nodes.safety_check.check_s3", return_value=0.90):
+        with patch("sage_poc.nodes.safety_check.check_s3_bilingual", return_value=0.90):
             with patch("sage_poc.nodes.safety_check.S3_THRESHOLD", 0.82):
                 result = await safety_check_node(state)
 
-    assert result["is_safe"] is False
+    assert result["is_safe"] is False, "S3 score above threshold with no suppression must route to crisis"
     assert "s3_semantic" in result["crisis_flags"]
 
 
@@ -321,11 +321,11 @@ async def test_safety_check_node_suppresses_s3_when_fpe_fires():
     }
 
     with patch("sage_poc.nodes.safety_check.rules_engine.evaluate", return_value=mock_s1_result):
-        with patch("sage_poc.nodes.safety_check.check_s3", return_value=0.95):
+        with patch("sage_poc.nodes.safety_check.check_s3_bilingual", return_value=0.95):
             with patch("sage_poc.nodes.safety_check.S3_THRESHOLD", 0.82):
                 result = await safety_check_node(state)
 
-    assert result["is_safe"] is True
+    assert result["is_safe"] is True, "FPE crisis_suppress must prevent S3 from triggering crisis routing"
     assert "s3_semantic" not in result.get("crisis_flags", [])
 
 

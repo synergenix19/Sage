@@ -282,8 +282,13 @@ class TestCodeSwitchingNodeLevel:
 
 # ── B-2: S3 silent failure observability ─────────────────────────────────────
 
-async def test_s3_timeout_emits_warning(caplog):
-    """S3 TimeoutError must log a warning; S1 crisis detection still fires."""
+async def test_s3_timeout_emits_error_and_degrades_gracefully(caplog):
+    """S3 TimeoutError must log at ERROR level and not crash the turn.
+
+    The timeout path is intentionally ERROR (not WARNING) so log-based alerts
+    fire — S3 degradation silently to S1-only is a safety-relevant event.
+    S1 crisis detection must still run and return a valid result.
+    """
     state = make_state(
         raw_message="I want to end everything",
         message_en="I want to end everything",
@@ -293,13 +298,13 @@ async def test_s3_timeout_emits_warning(caplog):
         "sage_poc.nodes.safety_check.asyncio.wait_for",
         side_effect=asyncio.TimeoutError,
     ):
-        with caplog.at_level(logging.WARNING, logger="sage_poc.nodes.safety_check"):
+        with caplog.at_level(logging.ERROR, logger="sage_poc.nodes.safety_check"):
             result = await safety_check_node(state)
-    assert any("S3 timeout" in r.message for r in caplog.records), \
-        "Expected a warning mentioning 'S3 timeout'"
-    # S1 keyword should still catch "end everything" — is_safe may be False
-    # (outcome depends on S1 lexicon; just verify we didn't crash)
+    timeout_records = [r for r in caplog.records if r.levelno >= logging.ERROR and "S3" in r.message]
+    assert timeout_records, "S3 timeout must emit an ERROR-level log containing 'S3'"
+    # Critical routing check: node must return a valid result — no crash, no missing key
     assert "is_safe" in result
+    assert "crisis_flags" in result
 
 
 async def test_s3_exception_emits_warning(caplog):
