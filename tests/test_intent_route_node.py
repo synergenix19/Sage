@@ -184,11 +184,16 @@ async def test_skill_switch_request_writes_new_skill(self=None):
 
 
 @pytest.mark.asyncio
-async def test_skill_switch_continuation_mismatch_does_not_bypass_skill_select():
-    """If intent_route returns skill_continuation for a non-matching active skill,
-    the routing function routes to skill_executor (not skill_select), which is the
-    bypass failure mode. This test documents the expected behavior when the LLM
-    correctly returns new_skill, confirming the path reaches skill_select."""
+async def test_arabic_skill_switch_request_writes_new_skill():
+    """A mocked 'new_skill' response from an Arabic skill-switch scenario must produce
+    primary_intent='new_skill' in state.
+
+    This verifies the node correctly writes the LLM's Arabic-triggered classification.
+    Note: this does NOT verify the LLM actually classifies Arabic skill-switch requests
+    as new_skill — that requires the real LLM integration run (hard gate before Gitex).
+    The routing consequence (new_skill → skill_select → entry_screen) is tested in
+    test_routing.py against the _route_after_intent function directly.
+    """
     from sage_poc.nodes.intent_route import intent_route_node
 
     mock_response = (
@@ -204,8 +209,8 @@ async def test_skill_switch_continuation_mismatch_does_not_bypass_skill_select()
         result = await intent_route_node(state)
 
     assert result["primary_intent"] == "new_skill", (
-        "Arabic skill-switch request must produce new_skill. "
-        f"Got '{result['primary_intent']}'. This is the bypass failure mode if wrong."
+        "Arabic skill-switch request (mocked as new_skill) must produce new_skill in state. "
+        f"Got '{result['primary_intent']}'. If wrong, node plumbing is broken."
     )
 
 
