@@ -10,5 +10,6 @@ venv/
 .worktrees/
 supabase/.temp/
 
-# CRADLE Bench eval data — local only until redistribution rights confirmed
-tests/fixtures/cradle_bench/eval.jsonl
+# (CRADLE Bench eval.jsonl rule removed: no DUA, data publicly released per
+# paper conclusion — "All data, models, and code are released to support
+# future work in mental health AI." Source: arXiv 2510.23845 / emorynlp/CradleBench)
