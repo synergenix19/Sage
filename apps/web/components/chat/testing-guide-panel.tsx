@@ -38,7 +38,7 @@ export function TestingGuidePanel({ open, onClose }: TestingGuidePanelProps) {
           <Item>Is anything missing or unnecessary?</Item>
         </Section>
 
-        <Section title="2. Tone & Therapeutic Style">
+        <Section title="2. Tone &amp; Therapeutic Style">
           <Item>Does it feel empathetic, natural, and supportive?</Item>
           <Item>Does it validate emotions appropriately before moving into solutions?</Item>
           <Item>Does it avoid premature assumptions or &ldquo;diagnosing&rdquo;?</Item>
@@ -57,7 +57,7 @@ export function TestingGuidePanel({ open, onClose }: TestingGuidePanelProps) {
           <Item>Does it identify the key emotional themes?</Item>
         </Section>
 
-        <Section title="5. Context & Memory (Within Chat)">
+        <Section title="5. Context &amp; Memory (Within Chat)">
           <Item>Does it remember and use earlier details correctly?</Item>
           <Item>Does it avoid repeating questions or losing context?</Item>
           <Item>Does it build naturally on prior messages?</Item>

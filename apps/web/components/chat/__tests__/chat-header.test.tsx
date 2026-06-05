@@ -46,6 +46,11 @@ vi.mock('../settings-panel', () => ({
     open ? React.createElement('div', { 'data-testid': 'settings-panel' }) : null,
 }))
 
+vi.mock('../testing-guide-panel', () => ({
+  TestingGuidePanel: ({ open }: { open: boolean }) =>
+    open ? React.createElement('div', { 'data-testid': 'testing-guide-panel' }) : null,
+}))
+
 // --- Import after all mocks ---
 import { ChatHeader } from '../chat-header'
 
@@ -135,5 +140,20 @@ describe('ChatHeader — session title', () => {
     }
     render(<ChatHeader session={session} />)
     expect(screen.getByText('Anxiety about work')).toBeInTheDocument()
+  })
+})
+
+describe('ChatHeader — testing guide', () => {
+  it('renders the testing guide button with aria-label "Testing guide"', () => {
+    render(<ChatHeader session={null} />)
+    expect(screen.getByRole('button', { name: 'Testing guide' })).toBeInTheDocument()
+  })
+
+  it('opens TestingGuidePanel when testing guide button is clicked', async () => {
+    render(<ChatHeader session={null} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Testing guide' }))
+    await waitFor(() => {
+      expect(screen.getByTestId('testing-guide-panel')).toBeInTheDocument()
+    })
   })
 })

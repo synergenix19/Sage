@@ -5,6 +5,7 @@ import type { ChatSession } from '@cdai/types'
 import { tenant } from '@cdai/tenant'
 import { HistoryPanel } from './history-panel'
 import { SettingsPanel } from './settings-panel'
+// TODO: remove after clinical pilot
 import { TestingGuidePanel } from './testing-guide-panel'
 import { LanguageToggle } from '@/components/auth/language-toggle'
 import { useLocaleStore } from '@/lib/stores/locale-store'
