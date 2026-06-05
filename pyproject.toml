@@ -36,6 +36,7 @@ markers = [
     "integration: marks tests requiring live external services (SUPABASE_URL, SUPABASE_SERVICE_KEY)",
     "clinical_decision_pending: marks tests that are intentionally failing pending a clinical governance decision — not broken builds",
     "governance: marks governance assertions (approved_by burn-down) — intentionally red; run separately with make test-governance",
+    "cradle: marks CRADLE Bench external validation tests — requires eval.jsonl from scripts/fetch_cradle_bench.py",
 ]
 pythonpath = ["src", "."]
 asyncio_mode = "auto"
