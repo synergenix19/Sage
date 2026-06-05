@@ -14,6 +14,8 @@ from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP
 
 logger = logging.getLogger(__name__)
 
+_BGE_M3_REVISION = "5617a9f61b028005a4858fdac845db406aefb181"
+
 _SKILLS = {sid: load_skill(sid) for sid in SKILL_REGISTRY}
 
 # Calibrated 2026-05-27 post-audit-fix (v7 sprint + 13-item audit remediation).
@@ -41,15 +43,14 @@ def _ensure_semantic_ready() -> None:
         model = _embed_model  # reuse resident model if available (avoids ANE recompilation)
         if model is None:
             from sentence_transformers import SentenceTransformer
-            _REVISION = "5617a9f61b028005a4858fdac845db406aefb181"
             try:
                 model = SentenceTransformer(
                     "BAAI/bge-m3",
                     local_files_only=True,
-                    revision=_REVISION,
+                    revision=_BGE_M3_REVISION,
                 )
             except (OSError, EnvironmentError):
-                model = SentenceTransformer("BAAI/bge-m3", revision=_REVISION)
+                model = SentenceTransformer("BAAI/bge-m3", revision=_BGE_M3_REVISION)
         ids, texts = [], []
         for sid, skill in _SKILLS.items():
             if sid in KEYWORD_SEMANTIC_SKIP:

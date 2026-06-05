@@ -134,16 +134,16 @@ def _warm_bge_m3_once():
     import sage_poc.nodes.skill_select as ss
     if ss._embed_model is None:
         from sentence_transformers import SentenceTransformer
-        _REVISION = "5617a9f61b028005a4858fdac845db406aefb181"
+        from sage_poc.nodes.skill_select import _BGE_M3_REVISION
         try:
             model = SentenceTransformer(
                 "BAAI/bge-m3",
                 local_files_only=True,
-                revision=_REVISION,
+                revision=_BGE_M3_REVISION,
                 device="cpu",
             )
         except (OSError, EnvironmentError):
-            model = SentenceTransformer("BAAI/bge-m3", revision=_REVISION, device="cpu")
+            model = SentenceTransformer("BAAI/bge-m3", revision=_BGE_M3_REVISION, device="cpu")
         ss._embed_model = model
     ss._ensure_semantic_ready()
 
