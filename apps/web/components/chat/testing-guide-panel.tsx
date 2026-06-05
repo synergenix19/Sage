@@ -1,4 +1,5 @@
 'use client'
+import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { ResponsivePanel } from '@cdai/ui'
 
@@ -8,6 +9,15 @@ interface TestingGuidePanelProps {
 }
 
 export function TestingGuidePanel({ open, onClose }: TestingGuidePanelProps) {
+  useEffect(() => {
+    if (!open) return
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [open, onClose])
+
   return (
     <ResponsivePanel open={open} onClose={onClose} title="Clinical Testing Guide">
       <div className="space-y-5 text-sm text-[var(--color-text-primary)]">
