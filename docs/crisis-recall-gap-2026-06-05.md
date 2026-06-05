@@ -7,25 +7,59 @@
 
 ## Numbers
 
+### Aggregate
+
 | Layer | Recall | vs KPI |
 |---|---|---|
 | S1 only (keyword rules) | 37.1% (86/232) | -57.9pp below 95% gate |
 | S1 + S3 combined (production config) | 37.1% (86/232) | identical — S3 adds zero on this bench |
 | **KPI target** | **>=95%** | |
 
-### Breakdown by category
+### Self-harm (own KPI line — do not fold into aggregate)
+
+Self-harm has its own tracked KPI because its recall floor is structurally lower than SI and its miss count (75) dominates the aggregate gap. Folding it into "37.1% overall" obscures that fewer than 1 in 5 self-harm cases are caught.
+
+| Layer | Self-harm recall | vs KPI | Missed |
+|---|---|---|---|
+| S1 only | **18% (17/92)** | **FAIL** | 75 |
+| S1 + S3 combined | 18% (17/92) | FAIL | 75 — S3 adds zero |
+| **KPI target** | **>=50% (interim)** | | |
+
+Interim KPI of 50% is a pre-Gitex checkpoint, not clinical adequacy. Clinical adequacy requires ≥95% recall with an Arabic eval instrument. The 18% number must be visible to the clinical lead and DPO, separately from the SI categories.
+
+### Breakdown by SI category
 
 | Category | Recall | Missed |
 |---|---|---|
 | active_suicide_ideation | 52% (34/65) | 31 |
 | passive_suicide_ideation | 47% (35/75) | 40 |
-| **self_harm** | **18% (17/92)** | **75** |
 
-Self-harm is the dominant gap. 75 of 146 total misses. The system catches fewer than 1 in 5 self-harm crisis cases CRADLE presents.
+### Combined crisis specificity (safe cases)
+
+| Layer | Specificity | FPs / 186 safe |
+|---|---|---|
+| S1 only | 95.7% | 8 |
+| S1 + S3 at 0.8059 | 95.7% | 8 — S3 adds no new FPs at current threshold |
+
+## S3 threshold sweep — verdict: demote (2026-06-05)
+
+Sweep run 2026-06-05 (`scripts/s3_threshold_sweep.py`) across passive_SI CRADLE slice (75 cases) and safe set (186 cases). Results:
+
+| T | S3-only adds | Combined passive SI | New FPs | Decision |
+|---|---|---|---|---|
+| 0.65 | 10 | 45/75 (60.0%) | **14** | skip — FP cost unacceptable |
+| 0.70 | 3 | 38/75 (50.7%) | 2 | skip — worse than 1:1 tradeoff |
+| 0.75 | 0 | 35/75 (46.7%) | 0 | skip — no adds |
+| 0.80 | 0 | 35/75 (46.7%) | 0 | skip — no adds |
+| 0.8059 (deployed) | 0 | 35/75 (46.7%) | 0 | **zero recall contribution** |
+
+**Verdict: S3 is demoted.** At no tested threshold does it meet the criterion for a useful second tier (>5 S3-only adds at FP count ≤ baseline 8). The crisis phrase corpus is anchored to direct SI phrasing — it catches paraphrases of what S1 already catches, not the hopelessness/indirect-expression cluster that constitutes the 40 passive-SI misses. BGE-M3's embedding space cannot separate therapeutic acceptance language from suicidal acceptance language at any threshold viable for production.
+
+S3 status in all documentation: "OR-fusion tier present, adds 0 measured recall above S1 on CRADLE passive_SI slice (75 cases). No threshold (0.65–0.81) meets the recall/FP criterion. Paraphrase-matcher at current corpus. Full semantic coverage requires MARBERT (Exp 4.2)."
 
 ## Why S3 adds zero on this bench
 
-S3_THRESHOLD is calibrated to 0.8059 (scripts/calibrate_s3_threshold.py, 2026-06-03). CRADLE self-harm cases score in the 0.43-0.68 band — above the false-positive floor but uniformly below the threshold. S3 is correctly calibrated; the crisis phrase corpus is the gap.
+S3_THRESHOLD is calibrated to 0.8059 (scripts/calibrate_s3_threshold.py). CRADLE self-harm cases score in the 0.43-0.68 band and passive-SI misses score 0.62-0.72 — both uniformly below the threshold. Lowering to the 0.65-0.72 range gains 10 passive-SI catches at cost of 14 new FPs (see sweep table above). S3 is correctly calibrated; the corpus is the gap.
 
 ## S3 score distribution — all 75 self-harm misses (confirmed 2026-06-05)
 
