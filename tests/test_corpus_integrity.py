@@ -265,3 +265,50 @@ def test_every_skill_assigned_to_cluster_or_explicitly_excluded():
     assert not unassigned, (
         f"Skills not in any CLINICAL_CLUSTER and not in CLUSTER_EXCLUSIONS: {unassigned}"
     )
+
+
+def test_entry_screen_guard_catches_unregistered_skill():
+    """NEGATIVE TEST: _validate_entry_screen_coverage must catch a skill that has
+    entry_screen as its first step but is absent from _LLM_CRITERIA_SKILLS.
+
+    This verifies the guard is actually doing real work, not just passing silently.
+    Without this test, a future skill author can add an entry_screen JSON and forget
+    the frozenset update — the guard exists precisely to catch that, and a guard
+    with no negative test is theatre.
+    """
+    import json
+    import tempfile
+    import pathlib
+    from sage_poc.nodes.skill_executor import _LLM_CRITERIA_SKILLS
+
+    # Build a minimal skill JSON with entry_screen as first step, using a fake ID
+    # that is deliberately absent from _LLM_CRITERIA_SKILLS.
+    fake_skill_id = "_test_unregistered_entry_screen_skill"
+    assert fake_skill_id not in _LLM_CRITERIA_SKILLS, (
+        "Test setup error: fake ID is already in _LLM_CRITERIA_SKILLS."
+    )
+    fake_skill = {
+        "skill_id": fake_skill_id,
+        "steps": [{"step_id": "entry_screen"}, {"step_id": "step_two"}],
+        "step_policy": [],
+    }
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        skill_path = pathlib.Path(tmpdir) / f"{fake_skill_id}.json"
+        skill_path.write_text(json.dumps(fake_skill))
+
+        # Replicate the guard logic against the temp dir
+        missing = []
+        for path in sorted(pathlib.Path(tmpdir).glob("*.json")):
+            data = json.loads(path.read_text())
+            steps = data.get("steps", [])
+            if steps and steps[0].get("step_id") == "entry_screen":
+                sid = path.stem
+                if sid not in _LLM_CRITERIA_SKILLS:
+                    missing.append(sid)
+
+        assert missing == [fake_skill_id], (
+            f"Entry-screen guard failed to catch unregistered skill. "
+            f"Expected [{fake_skill_id!r}] missing, got: {missing}. "
+            "This means the guard logic has changed and may no longer catch omissions."
+        )

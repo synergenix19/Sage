@@ -695,3 +695,138 @@ class TestEntryScreenHeuristicBypass:
             "Skill must remain at entry_screen after LLM 'no'. "
             f"Got active_step_id={result['active_step_id']!r}"
         )
+
+
+# ── ACT entry-screen FP arm (must-advance) ───────────────────────────────────
+
+class TestACTEntryScreenFalsePositive:
+    """FP arm for the ACT entry screen: genuine acceptance language that is NOT SI
+    must advance to identify_the_struggle, not be held.
+
+    Over-holding is the SF-6 harm on this gate: a user seeking ACT help for
+    everyday psychological flexibility is blocked by the safety gate that exists
+    for a qualitatively different presentation. These tests set the expected
+    LLM 'yes' response and confirm the skill advances.
+
+    Arabic/Arabizi hold cases are included here because the LLM-based gate is
+    language-dependent and its Arabic screening is otherwise untested.
+
+    Note: these tests use mocked LLM returning 'yes'. The adversarial question
+    (does the LLM correctly distinguish genuine acceptance from SI acceptance
+    when given real Arabic/Arabizi inputs?) requires a real LLM integration run
+    — that is a hard gate item separate from these unit tests.
+    """
+
+    @pytest.mark.asyncio
+    async def test_genuine_acceptance_advance(self):
+        """User describing healthy therapeutic acceptance must advance to identify_the_struggle."""
+        from sage_poc.nodes.skill_executor import skill_executor_node
+
+        state = _base_state(
+            "act_psychological_flexibility",
+            "I've been trying to accept that I can't control everything and just focus on what matters to me",
+        )
+
+        with patch(
+            "sage_poc.nodes.criteria_eval._call_llm",
+            new_callable=AsyncMock,
+            return_value="yes",
+        ), patch(
+            "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            result = await skill_executor_node(state)
+
+        assert result["active_step_id"] == "identify_the_struggle", (
+            "ACT must advance for genuine therapeutic acceptance language. "
+            f"Got active_step_id={result['active_step_id']!r}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_multi_problem_presentation_advance(self):
+        """Multi-problem presentation with no SI language must advance to identify_the_struggle."""
+        from sage_poc.nodes.skill_executor import skill_executor_node
+
+        state = _base_state(
+            "act_psychological_flexibility",
+            "I have anxiety and depression and chronic pain and none of the techniques I've tried seem to work",
+        )
+
+        with patch(
+            "sage_poc.nodes.criteria_eval._call_llm",
+            new_callable=AsyncMock,
+            return_value="yes",
+        ), patch(
+            "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            result = await skill_executor_node(state)
+
+        assert result["active_step_id"] == "identify_the_struggle", (
+            "ACT must advance for multi-problem presentation with no SI. "
+            f"Got active_step_id={result['active_step_id']!r}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_arabic_passive_si_holds_at_entry_screen(self):
+        """Arabic passive-SI disclosure must hold ACT at entry_screen.
+
+        Tests the Arabic arm of the LLM-based gate, which is untested by the
+        English-only hold cases above. The LLM must correctly classify Arabic
+        passive-SI and return 'no' — simulated here with a mock.
+        """
+        from sage_poc.nodes.skill_executor import skill_executor_node
+
+        state = _base_state(
+            "act_psychological_flexibility",
+            "أتقبل الوضع بس ما أشوف فرق، حياتي ما تغيرت ولن تتغير",
+        )
+
+        with patch(
+            "sage_poc.nodes.criteria_eval._call_llm",
+            new_callable=AsyncMock,
+            return_value="no",
+        ), patch(
+            "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            result = await skill_executor_node(state)
+
+        assert result["active_step_id"] == "entry_screen", (
+            "ACT must hold at entry_screen for Arabic passive-SI disclosure. "
+            f"Got active_step_id={result['active_step_id']!r}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_arabizi_giving_up_holds_at_entry_screen(self):
+        """Arabizi giving-up orientation must hold ACT at entry_screen.
+
+        Arabizi (Arabic written in Latin script) is a documented presentation
+        mode in the Gulf user base. The LLM-based gate must handle it; S1/S3
+        regex/embedding tiers have limited Arabizi coverage.
+        """
+        from sage_poc.nodes.skill_executor import skill_executor_node
+
+        state = _base_state(
+            "act_psychological_flexibility",
+            "khayt el masheet, ma fy fayda, ana tabt mn el7ayah",
+        )
+
+        with patch(
+            "sage_poc.nodes.criteria_eval._call_llm",
+            new_callable=AsyncMock,
+            return_value="no",
+        ), patch(
+            "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            result = await skill_executor_node(state)
+
+        assert result["active_step_id"] == "entry_screen", (
+            "ACT must hold at entry_screen for Arabizi giving-up disclosure. "
+            f"Got active_step_id={result['active_step_id']!r}"
+        )
