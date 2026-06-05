@@ -253,6 +253,36 @@ def test_dead_step_policy_signal_count_is_pinned():
     )
 
 
+# ── Content correctness tests ─────────────────────────────────────────────
+
+def test_post_crisis_check_in_l1_includes_crisis_line():
+    import json, pathlib
+    skill = json.loads(
+        (pathlib.Path(__file__).parent.parent / "src/sage_poc/skills/post_crisis_check_in.json")
+        .read_text()
+    )
+    l1 = skill["escalation_matrix"]["L1"]
+    assert "800 46342" in l1, f"post_crisis_check_in L1 missing crisis line. Current: {l1!r}"
+    assert any(w in l1.lower() for w in ("door", "return", "come back", "whenever")), \
+        f"L1 must leave the door open explicitly. Current: {l1!r}"
+    assert "stop" in l1.lower() or "not" in l1.lower(), \
+        f"L1 must include anti-assumption guard. Current: {l1!r}"
+
+
+def test_no_authoring_notes_in_cultural_overrides():
+    import json, pathlib
+    FORBIDDEN = {"consult_before_examples", "review_required", "authoring_note", "todo"}
+    skills_dir = pathlib.Path(__file__).parent.parent / "src/sage_poc/skills"
+    violations = []
+    for path in sorted(skills_dir.glob("*.json")):
+        co = json.loads(path.read_text()).get("cultural_overrides", {})
+        if isinstance(co, dict):
+            bad = FORBIDDEN & set(co.keys())
+            if bad:
+                violations.append((path.stem, sorted(bad)))
+    assert not violations, f"Authoring keys in live LLM cultural_overrides: {violations}"
+
+
 # ── Cluster coverage ───────────────────────────────────────────────────────
 
 def test_every_skill_assigned_to_cluster_or_explicitly_excluded():

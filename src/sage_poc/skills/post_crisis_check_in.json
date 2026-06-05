@@ -130,7 +130,7 @@
     }
   ],
   "escalation_matrix": {
-    "L1": "Exit skill gracefully if user explicitly requests to stop",
+    "L1": "Exit the skill immediately and warmly when the user asks to stop. Do all three without exception: (1) mention the crisis support line before closing, for example: 'If things ever feel too heavy, you can call or WhatsApp 800 46342, it is free and available any time.' (2) Leave the door open explicitly, for example: 'You can come back whenever you are ready, I will be here.' (3) Do NOT assume they are better because they asked to stop. A stop request is not a signal of resolution.",
     "L2": "Add clinician_review flag if trauma or substance mention detected",
     "L3": "Exit immediately to crisis protocol if any new crisis signal",
     "L4": "Trigger human handoff if 3 or more crises detected in last 30 days"
