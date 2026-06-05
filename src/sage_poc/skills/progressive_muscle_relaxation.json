@@ -155,17 +155,6 @@
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit immediately with warmth. No persuasion. Acknowledge they tried and that is enough.",
       "next_step_id": "exit"
-    },
-    {
-      "condition": {
-        "signal": "pain_or_injury_mention",
-        "operator": "==",
-        "value": true,
-        "step": "ANY"
-      },
-      "action": "pause_and_modify",
-      "instruction": "User has mentioned pain or physical injury. Pause the current muscle group. Ask if they want to skip it or go very gentle. Do not instruct tensing near an injured area.",
-      "next_step_id": "current"
     }
   ],
   "escalation_matrix": {

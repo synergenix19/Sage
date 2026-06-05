@@ -131,17 +131,6 @@
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit with warmth and without persuasion. Even beginning to name what matters is meaningful work. Acknowledge any values they surfaced, however partial.",
       "next_step_id": "exit"
-    },
-    {
-      "condition": {
-        "signal": "family_values_conflict_detected",
-        "operator": "==",
-        "value": true,
-        "step": "ANY"
-      },
-      "action": "hold_and_validate",
-      "instruction": "The user is disclosing a value conflict with family. Do NOT push toward autonomous action immediately. Validate the pain of this conflict. In Gulf family contexts, value conflicts with family are complex and can carry real consequences. Hold this tension without resolving it, and gently explore whether there are any areas of alignment to start from before committed action is possible.",
-      "next_step_id": "current"
     }
   ],
   "escalation_matrix": {

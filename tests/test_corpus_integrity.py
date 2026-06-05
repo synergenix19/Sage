@@ -197,25 +197,7 @@ def test_skill_cultural_overrides_within_cap(sid):
 # UPGRADE PATH (post-Gitex): wire the signals or remove the rules from the skill JSONs,
 # then flip _validate_step_policy_signal_coverage in skill_executor.py to raise RuntimeError
 # instead of logging. When the count reaches 0, delete this test and the ERROR log.
-_KNOWN_DEAD_SIGNALS: frozenset[tuple[str, str]] = frozenset({
-    ("assertive_communication",    "coercive_relationship_indicators_detected"),
-    ("behavioral_activation",      "hopelessness"),
-    ("cbt_thought_record",         "trauma_disclosure_detected"),
-    ("cognitive_restructuring",    "trauma_disclosure_detected"),
-    ("dbt_tipp",                   "physical_contraindication_disclosed"),
-    ("grief_loss",                 "prolonged_grief_indicators_detected"),
-    ("grounding_5_4_3_2_1",        "sensory_limitation_disclosed"),
-    ("interpersonal_effectiveness","coercive_relationship_indicators_detected"),
-    ("mindfulness_body_scan",      "dissociation_or_dizziness_reported"),
-    ("progressive_muscle_relaxation", "pain_or_injury_mention"),
-    ("psychoed_anxiety",           "existing_anxiety_diagnosis_disclosed"),
-    ("psychoed_depression",        "active_suicidal_ideation_disclosed"),
-    ("psychoed_stress",            "burnout_exhaustion_with_functional_impairment"),
-    ("safe_place_visualization",   "dissociation_signal"),
-    ("self_compassion_break",      "self_kindness_rejection_detected"),
-    ("sleep_hygiene",              "medication_or_substance_mention"),
-    ("values_clarification",       "family_values_conflict_detected"),
-})
+_KNOWN_DEAD_SIGNALS: frozenset[tuple[str, str]] = frozenset()
 
 
 def test_dead_step_policy_signal_count_is_pinned():

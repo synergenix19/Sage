@@ -128,17 +128,6 @@
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit with warmth and without persuasion. Even naming what you most want from a relationship and beginning to think about how to approach it is meaningful work.",
       "next_step_id": "exit"
-    },
-    {
-      "condition": {
-        "signal": "coercive_relationship_indicators_detected",
-        "operator": "==",
-        "value": true,
-        "step": "ANY"
-      },
-      "action": "flag_safety_concern",
-      "instruction": "The user may be describing a controlling or unsafe relationship dynamic rather than a typical interpersonal difficulty. Do NOT continue interpersonal effectiveness training as designed. Validate first. Gently explore whether expressing needs in this relationship has led to harm. Add clinician_review flag. Offer to focus on safety rather than relationship navigation technique.",
-      "next_step_id": "current"
     }
   ],
   "escalation_matrix": {

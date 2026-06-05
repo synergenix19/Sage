@@ -127,17 +127,6 @@
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit with warmth and without persuasion. Noticing a thinking pattern and stepping back from it even slightly is meaningful work.",
       "next_step_id": "exit"
-    },
-    {
-      "condition": {
-        "signal": "trauma_disclosure_detected",
-        "operator": "==",
-        "value": true,
-        "step": "ANY"
-      },
-      "action": "flag_for_review",
-      "instruction": "User has disclosed a traumatic event. Do NOT challenge thoughts connected to trauma without clinical support. Validate, add clinician_review flag, and offer to simply talk rather than continue cognitive restructuring.",
-      "next_step_id": "current"
     }
   ],
   "escalation_matrix": {

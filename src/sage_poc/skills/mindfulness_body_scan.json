@@ -159,17 +159,6 @@
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit immediately with warmth. No persuasion. Acknowledge that they brought attention to their body, even briefly, and that this takes practice.",
       "next_step_id": "exit"
-    },
-    {
-      "condition": {
-        "signal": "dissociation_or_dizziness_reported",
-        "operator": "==",
-        "value": true,
-        "step": "ANY"
-      },
-      "action": "ground_and_pause",
-      "instruction": "Stop the body scan immediately. The scan has triggered a dissociative or destabilizing response. DO NOT continue. Orient the user to the room: eyes open, feet on the floor, name 5 things they can see. Use grounding technique, not continued body attention. Do NOT restart the scan in this session.",
-      "next_step_id": "exit"
     }
   ],
   "escalation_matrix": {

@@ -128,17 +128,6 @@
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit with warmth and without persuasion. Even pausing to notice what is present, without running from it, is meaningful work. Acknowledge whatever they engaged with in the session.",
       "next_step_id": "exit"
-    },
-    {
-      "condition": {
-        "signal": "self_kindness_rejection_detected",
-        "operator": "==",
-        "value": true,
-        "step": "self_kindness"
-      },
-      "action": "soften_and_hold",
-      "instruction": "Resistance to self-compassion is itself a sign of how much the inner critic has taken hold. Do NOT push the self-kindness step. Acknowledge that this feels difficult, that resistance itself is normal. Simply stay with the user in the discomfort. Return to common humanity: many people find self-compassion the hardest thing to offer themselves. There is no failure here.",
-      "next_step_id": "current"
     }
   ],
   "escalation_matrix": {

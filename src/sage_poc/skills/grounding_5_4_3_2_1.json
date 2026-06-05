@@ -176,17 +176,6 @@
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit gently. Grounding is always voluntary, and choosing to pause is okay.",
       "next_step_id": "exit"
-    },
-    {
-      "condition": {
-        "signal": "sensory_limitation_disclosed",
-        "operator": "==",
-        "value": true,
-        "step": "ANY"
-      },
-      "action": "adapt_exercise",
-      "instruction": "User has disclosed a sensory limitation such as visual impairment, being in a dark room, or having eyes closed. Adapt the current step to an available sense rather than skipping. For example, if sight is unavailable at see_5, redirect to touch and ask them to name five things they can physically feel.",
-      "next_step_id": "current"
     }
   ],
   "escalation_matrix": {

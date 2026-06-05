@@ -143,17 +143,6 @@
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit warmly. Invite them to return whenever they want to revisit sleep.",
       "next_step_id": "exit"
-    },
-    {
-      "condition": {
-        "signal": "medication_or_substance_mention",
-        "operator": "==",
-        "value": true,
-        "step": "ANY"
-      },
-      "action": "flag_for_review",
-      "instruction": "User has mentioned sleep medication or substance use in the context of sleep. Do not advise on medication. Add clinician_review flag and offer to talk about what is making sleep difficult without giving guidance on medication.",
-      "next_step_id": "current"
     }
   ],
   "escalation_matrix": {

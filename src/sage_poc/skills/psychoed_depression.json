@@ -149,17 +149,6 @@
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit with warmth and without persuasion. Even a partial conversation about depression can be valuable. Acknowledge the courage it takes to look at this.",
       "next_step_id": "exit"
-    },
-    {
-      "condition": {
-        "signal": "active_suicidal_ideation_disclosed",
-        "operator": "==",
-        "value": true,
-        "step": "ANY"
-      },
-      "action": "exit_to_crisis",
-      "instruction": "User has disclosed active suicidal ideation. Do NOT continue psychoeducation. Exit immediately to the crisis protocol. Validate that you hear them and that you want to make sure they are safe.",
-      "next_step_id": "crisis"
     }
   ],
   "escalation_matrix": {

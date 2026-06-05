@@ -138,17 +138,6 @@
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit immediately with warmth. Reorient gently to the present before closing. No persuasion.",
       "next_step_id": "exit"
-    },
-    {
-      "condition": {
-        "signal": "dissociation_signal",
-        "operator": "==",
-        "value": true,
-        "step": "ANY"
-      },
-      "action": "pause_and_ground",
-      "instruction": "User may be dissociating. Pause the imagery. Bring them back to the present with gentle grounding: name 3 things you can see right now. Do not continue the visualization until they are grounded.",
-      "next_step_id": "current"
     }
   ],
   "escalation_matrix": {

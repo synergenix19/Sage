@@ -151,17 +151,6 @@
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit with warmth and without persuasion. Being heard in grief, even briefly, is not nothing. Acknowledge the loss and the courage it takes to speak about it.",
       "next_step_id": "exit"
-    },
-    {
-      "condition": {
-        "signal": "prolonged_grief_indicators_detected",
-        "operator": "==",
-        "value": true,
-        "step": "ANY"
-      },
-      "action": "flag_for_review",
-      "instruction": "Indicators of prolonged grief disorder: grief that is severely impairing functioning, persistent inability to accept the loss, intense longing lasting well beyond cultural mourning norms, profound isolation. Add clinician_review flag. Validate the grief fully. Gently name that this level of grief may benefit from additional support from a clinician.",
-      "next_step_id": "current"
     }
   ],
   "escalation_matrix": {

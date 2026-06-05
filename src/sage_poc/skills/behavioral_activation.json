@@ -135,17 +135,6 @@
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit immediately with warmth. No persuasion. Acknowledge that even thinking about one small step is meaningful.",
       "next_step_id": "exit"
-    },
-    {
-      "condition": {
-        "signal": "hopelessness",
-        "operator": ">",
-        "value": 7,
-        "step": "identify_small_step"
-      },
-      "action": "validate_only",
-      "instruction": "User is expressing that nothing will help or that there is no point. Do not push toward activity identification. Validate the feeling, acknowledge it makes sense given how things have been, and only return to activity planning if the user re-engages. Flag session for clinician_review.",
-      "next_step_id": "current"
     }
   ],
   "escalation_matrix": {

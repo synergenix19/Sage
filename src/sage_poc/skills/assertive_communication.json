@@ -132,17 +132,6 @@
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit with warmth and without persuasion. Even recognizing the communication patterns and naming what you want to change is meaningful work. Acknowledge whatever progress they made in the session.",
       "next_step_id": "exit"
-    },
-    {
-      "condition": {
-        "signal": "coercive_relationship_indicators_detected",
-        "operator": "==",
-        "value": true,
-        "step": "ANY"
-      },
-      "action": "flag_safety_concern",
-      "instruction": "The user is not describing difficulty with assertiveness, they may be describing a controlling or unsafe relationship. Do NOT continue the assertiveness training protocol as designed. Validate first. Do not normalize the situation. Gently explore safety: is this a relationship where expressing needs has led to harm? Add clinician_review flag. Offer to focus on safety rather than communication technique.",
-      "next_step_id": "current"
     }
   ],
   "escalation_matrix": {

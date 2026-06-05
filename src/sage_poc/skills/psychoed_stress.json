@@ -145,17 +145,6 @@
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit with warmth and without persuasion. Even a partial conversation about stress can be valuable. Acknowledge the curiosity they brought.",
       "next_step_id": "exit"
-    },
-    {
-      "condition": {
-        "signal": "burnout_exhaustion_with_functional_impairment",
-        "operator": "==",
-        "value": true,
-        "step": "ANY"
-      },
-      "action": "flag_burnout_risk",
-      "instruction": "User is describing potential burnout, sustained exhaustion beyond normal stress response. Add clinician_review flag. Gently note that what they are describing may be beyond what self-help tools can address alone, and explore whether professional support might be helpful alongside any skill practice.",
-      "next_step_id": "current"
     }
   ],
   "escalation_matrix": {

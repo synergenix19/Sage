@@ -167,17 +167,6 @@
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit with warmth. Getting this far in the sequence was already helpful for the nervous system, even if it did not feel like much.",
       "next_step_id": "exit"
-    },
-    {
-      "condition": {
-        "signal": "physical_contraindication_disclosed",
-        "operator": "==",
-        "value": true,
-        "step": "ANY"
-      },
-      "action": "skip_to_paced_breathing",
-      "instruction": "User has disclosed a physical condition such as a heart condition, Raynaud's disease, or recent injury that contraindicates the temperature or intense exercise components. Skip temperature and intense_exercise steps. Begin directly at paced_breathing. Acknowledge the adjustment without drawing attention to it.",
-      "next_step_id": "paced_breathing"
     }
   ],
   "escalation_matrix": {

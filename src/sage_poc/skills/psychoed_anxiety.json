@@ -148,17 +148,6 @@
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit with warmth and without persuasion. Even a partial conversation about anxiety can be valuable. Acknowledge the curiosity they brought.",
       "next_step_id": "exit"
-    },
-    {
-      "condition": {
-        "signal": "existing_anxiety_diagnosis_disclosed",
-        "operator": "==",
-        "value": true,
-        "step": "ANY"
-      },
-      "action": "affirm_and_adapt",
-      "instruction": "User already has a diagnosis. Acknowledge their existing knowledge, do not re-teach what they know. Pivot to how the model applies to their specific experience. Ask what parts of the anxiety cycle feel most relevant or confusing for them personally. Treat them as someone with context, not a blank slate.",
-      "next_step_id": "current"
     }
   ],
   "escalation_matrix": {
