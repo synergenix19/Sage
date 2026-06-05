@@ -1,9 +1,18 @@
 import logging
 import os
+import re
 import httpx
 from sage_poc.state import SageState
 
 logger = logging.getLogger(__name__)
+
+# Synthetic user IDs: sequential ints zero-padded to UUID form (e.g. eval harnesses, CRADLE bench).
+# These are never present in auth.users, so audit writes legitimately fail the FK check.
+_SYNTHETIC_UID_RE = re.compile(r"^0{8}-0{4}-0{4}-0{4}-", re.IGNORECASE)
+
+
+def _is_synthetic_user_id(user_id: str | None) -> bool:
+    return bool(user_id and _SYNTHETIC_UID_RE.match(user_id))
 
 _URL = os.environ.get("SUPABASE_URL")
 _KEY = os.environ.get("SUPABASE_SERVICE_KEY")
@@ -90,6 +99,25 @@ def _build_session_audit_row(state: SageState) -> dict:
     }
 
 
+def _handle_audit_http_error(exc: httpx.HTTPStatusError, row: dict, label: str) -> None:
+    body = exc.response.text
+    # PostgreSQL FK violation (23503) on user_id — two cases:
+    if '"23503"' in body and "user_id" in body:
+        user_id = row.get("user_id")
+        if _is_synthetic_user_id(user_id):
+            # Known test/eval traffic — no real user, skip silently.
+            logger.debug("%s skipped: synthetic user_id %s", label, user_id)
+            return
+        # Real user whose audit record was dropped — this must be visible.
+        logger.critical(
+            "AUDIT FAILURE — %s dropped for real user %s "
+            "(session %s turn %s): FK violation. Body: %s",
+            label, user_id, row.get("session_id"), row.get("turn_number"), body,
+        )
+        return
+    logger.error("%s write failed: %s — body: %s", label, exc, body)
+
+
 async def write_session_audit(state: SageState) -> None:
     """Write or update a session audit row (merge-duplicates — last write wins).
 
@@ -109,7 +137,7 @@ async def write_session_audit(state: SageState) -> None:
             )
             r.raise_for_status()
     except httpx.HTTPStatusError as exc:
-        logger.error("session_audit write failed: %s — body: %s", exc, exc.response.text)
+        _handle_audit_http_error(exc, row, "session_audit")
     except Exception as exc:
         logger.error("session_audit write failed: %s", exc)
 
@@ -135,6 +163,6 @@ async def write_session_audit_initial(state: SageState) -> None:
             )
             r.raise_for_status()
     except httpx.HTTPStatusError as exc:
-        logger.error("session_audit initial write failed: %s — body: %s", exc, exc.response.text)
+        _handle_audit_http_error(exc, row, "session_audit_initial")
     except Exception as exc:
         logger.error("session_audit initial write failed: %s", exc)
