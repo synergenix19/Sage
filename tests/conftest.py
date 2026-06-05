@@ -161,17 +161,26 @@ def _stub_bge_m3(request):
 
     State is saved and restored around every test so tests cannot bleed into
     each other regardless of execution order.
+
+    Also saves and restores s3_semantic._embedding_index and _phrase_texts to
+    prevent index corruption: a non-slow test that accidentally calls unpatched
+    check_s3 would build a zero-vector index from the mock model. Without
+    save/restore, s3_warmed finds _embedding_index is not None and skips
+    rebuilding, leaving slow tests with a corrupted all-zero index.
     """
     import sage_poc.nodes.skill_select as ss
+    import sage_poc.safety.s3_semantic as s3
 
     saved_model = ss._embed_model
     saved_embeddings = ss._semantic_embeddings
     saved_ids = ss._semantic_skill_ids[:]
+    saved_s3_index = s3._embedding_index
+    saved_s3_phrases = list(s3._phrase_texts)
 
     if request.node.get_closest_marker("slow"):
         # Clear embeddings so _ensure_semantic_ready() re-indexes, but keep
         # _embed_model resident (pre-warmed by _warm_bge_m3_once) to avoid
-        # the cold-start ANE recompilation timeout.
+        # the cold-start model-load from disk (~5-8s on CPU) exceeding the timeout.
         ss._semantic_embeddings = None
         ss._semantic_skill_ids = []
         yield
@@ -191,6 +200,8 @@ def _stub_bge_m3(request):
     ss._embed_model = saved_model
     ss._semantic_embeddings = saved_embeddings
     ss._semantic_skill_ids = saved_ids
+    s3._embedding_index = saved_s3_index
+    s3._phrase_texts = saved_s3_phrases
 
 
 @pytest.fixture(scope="session")
