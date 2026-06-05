@@ -95,6 +95,21 @@ All 75 misses carry S3 semantic signal (minimum 0.427). None are pure lexicon ga
 
 How representative are CRADLE's self-harm phrasings of what real Khaleeji/Arabizi users actually type? The 18% recall is only as good as the bench's fidelity to real input distribution. This needs real-user input analysis before the number can be treated as a reliable production estimate.
 
+## Arabic crisis coverage — two distinct states (do not conflate)
+
+This section must be read as two separate rows in any governance table:
+
+| Item | State |
+|---|---|
+| Arabic crisis rules authored | SK-AR-004 (SI method), SK-AR-005 (third-party), SK-AR-006 (escape/non-return) drafted |
+| Arabic crisis coverage LIVE | **NONE beyond SK-AR-001/002/003** — SK-AR-004/005 reverted pending sign-off; SK-AR-006 active=false |
+
+"Drafted" must not read as "handled." Three rules in the pending queue is three Arabic crisis classes with zero live coverage at any tier (S1 has no rule, S3 is advisory at zero recall).
+
+The three rules are bundled into a single sign-off package: `docs/arabic-crisis-rules-signoff-package-2026-06-05.md`. One clinical action unblocks all three.
+
+**Gulf Arabic escape/non-return (SK-AR-006 class) specifically:** zero coverage at S1, S2 not built, S3 advisory. A user expressing "ودي امشي ولا ارجع" will not trigger any crisis response in the current system.
+
 ## PDPL / governance note
 
 A known sub-gate crisis recall number that is not written down is its own liability under PDPL. This document is the written record. It must be visible to the clinical lead and DPO, not living in a terminal session.
