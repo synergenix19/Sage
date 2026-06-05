@@ -55,5 +55,9 @@ CLINICAL_CLUSTERS: dict[str, list[str]] = {
     # distinct: PST is for real, actionable problems with options; worry_time contains
     # and sorts hypothetical/rumination-driven worry. Keyword tier handles disambiguation.
     "structured_problem_solving": ["problem_solving_therapy"],
+    # ACT is designed for multi-problem presentations and CBT-experienced users.
+    # Adjacent to ruminative_anxiety (thought work) and values_communication (values compass)
+    # but must remain distinct from both — see semantic_description calibration note in spec.
+    "psychological_flexibility": ["act_psychological_flexibility"],
     # post_crisis_check_in is excluded — see corpus_constants.CLUSTER_EXCLUSIONS.
 }

@@ -1,0 +1,241 @@
+{
+  "skill_id": "act_psychological_flexibility",
+  "skill_name": "ACT Psychological Flexibility",
+  "skill_type": "structured",
+  "evidence_base": "Hayes, Strosahl and Wilson (1999, 2012) Acceptance and Commitment Therapy; NICE NG193 Chronic Pain 2021; Ruiz (2010) ACT meta-analysis; Russ Harris (2009) The Happiness Trap; Twohig and Levin (2017) ACT as a treatment for anxiety disorders",
+  "self_evolution": "manual_only",
+  "target_presentations": [
+    "I have anxiety and depression",
+    "anxiety and depression",
+    "I have multiple problems",
+    "everything at once",
+    "I've been dealing with so many things",
+    "I have so many issues",
+    "it's not just one thing",
+    "everything feels wrong",
+    "so many things going on",
+    "anxiety depression and",
+    "depression and anxiety and",
+    "chronic pain and anxiety",
+    "pain and depression",
+    "pain affecting my mood",
+    "chronic pain affecting my mental health",
+    "living with chronic pain",
+    "pain that won't go away and it's affecting",
+    "I've done therapy before",
+    "I've tried CBT",
+    "I know the thoughts aren't rational but",
+    "thought records aren't helping",
+    "I've tried everything",
+    "nothing is working",
+    "I keep trying to fix how I feel",
+    "I know what I should think but I still feel it",
+    "I've been told to challenge my thoughts but",
+    "the techniques aren't working",
+    "therapy didn't help",
+    "I know it's irrational but I still feel it",
+    "I am a failure",
+    "I am broken",
+    "I am worthless",
+    "I am nothing",
+    "I will never be okay",
+    "I am damaged",
+    "I am a burden",
+    "I can't get out of my own head",
+    "stuck in my thoughts",
+    "my thoughts feel like facts",
+    "I can't stop believing",
+    "I need to accept this",
+    "how do I accept",
+    "I can't accept this",
+    "learn to live with this",
+    "make peace with",
+    "let go of this feeling",
+    "I want to accept but I can't",
+    "how do you just accept things",
+    "I don't know how to accept",
+    "help me with the what-if",
+    "learn to carry the uncertainty",
+    "help me with acceptance",
+    "carry it differently",
+    "I want to try that acceptance technique",
+    "let go of the what-if",
+    "try acceptance",
+    "try defusion",
+    "عندي قلق واكتئاب مرة وحدة",
+    "كل شي مرة وحدة",
+    "حياتي كلها مشاكل",
+    "جربت كل شي ما نفع",
+    "أعرف إن أفكاري غلط بس ما أقدر أوقفها",
+    "أنا فاشل",
+    "أنا مكسور",
+    "أنا ما أسوى شي",
+    "ما أقدر أقبل الوضع",
+    "كيف أتقبل هذا",
+    "أبي أتعلم أتقبل",
+    "ألم مزمن وقلق",
+    "الألم أثر على مزاجي",
+    "جربت العلاج بس ما ساعد"
+  ],
+  "semantic_description": "ACT Acceptance and Commitment Therapy psychological flexibility model. Cognitive defusion technique: observing thoughts as thoughts, not facts. Leaves on a stream defusion exercise. Unhooking from fused thoughts and self-narratives. Acceptance and willingness: making room for difficult feelings without struggling against them. Willingness as an alternative to experiential avoidance and control. ACT hexaflex: defusion, acceptance, values, committed action. Psychological flexibility training for multi-problem presentations. Changing relationship with thoughts rather than thought content. Hayes Strosahl Wilson 1999 2012. Russ Harris The Happiness Trap defusion. ACT for chronic pain NICE NG193. Values compass toward valued living despite distress.",
+  "steps": [
+    {
+      "step_id": "entry_screen",
+      "goal": "Screen for passive suicidal ideation, profound hopelessness, or acceptance framed as giving up before beginning ACT work. ACT defusion and acceptance exercises require the person to be a willing observer of their inner experience. A user who has given up on living, or who frames acceptance as no longer wanting things to continue, must not enter defusion and willingness work before clinical review.",
+      "technique": "Safety check before ACT entry",
+      "technique_description": "Ask one warm orienting question before any ACT content is delivered. Listen for: passive SI ('I have accepted nothing will change,' 'I've stopped caring what happens,' 'I just want some peace from all of this, permanently'), profound hopelessness as a settled state rather than a transient feeling, or any framing of acceptance as not wanting to go on. These are qualitatively different from the fusion and avoidance patterns ACT is designed for. If any are present, do not begin the skill. Validate the weight of what the person is carrying and, if clinically appropriate, bridge to post_crisis_check_in or escalation. If the user is distressed but has not disclosed the above, you may proceed into the skill after validating.",
+      "tone": "warm, gentle, unhurried",
+      "examples": [
+        "قبل ما نبدأ، كيف حالك الحين بالضبط؟",
+        "Before we start, how are you doing right now, in this moment?",
+        "شو اللي بيخليك تجي اليوم؟ خذ وقتك.",
+        "What's bringing you here today? Take your time.",
+        "أبي أفهم وين أنت الحين قبل ما نشتغل سوا."
+      ],
+      "contraindications": "Do NOT begin ACT if the user discloses profound hopelessness, passive SI, or acceptance framed as giving up ('I have accepted nothing will change', 'I've stopped caring what happens', 'I just want some peace from all of this, permanently'). Do NOT proceed if the user discloses a giving-up orientation even if not using explicit SI language. Do NOT rush this question; one warm orienting message is sufficient if the response is clean.",
+      "completion_criteria": "User has not disclosed passive suicidal ideation, profound hopelessness, an end-of-life or giving-up orientation, or acceptance framed as no longer wanting things to improve."
+    },
+    {
+      "step_id": "identify_the_struggle",
+      "goal": "Understand what the user has been fighting against and gently surface the cost of that struggle itself. Validate the exhaustion. Do not push toward a solution yet.",
+      "technique": "ACT creative hopelessness: surfacing the workability question",
+      "technique_description": "The opening move in ACT is not to fix anything but to understand what the person has already tried and whether it has been working. The question is not 'what is the problem?' but 'what have you been doing with this, and how has that been going?' This surfaces the struggle with the struggle, not just the original difficulty. The goal is not to make the user feel hopeless but to open space for a different approach. Key questions: What have you tried? Has it helped? What has it been like to keep trying? One question per turn. Do not rush to the defusion exercise. If the user presents with a single specific actionable practical problem rather than a pattern of difficulty, acknowledge this and offer Problem-Solving Therapy as the right approach: 'This sounds like a concrete problem with options to work through, there is a structured approach that works well for that, want to try it?'",
+      "tone": "warm, unhurried, genuinely curious, non-corrective",
+      "examples": [
+        "هل ساعد؟ مو إذا كان التعب يستاهل، بس: هل فعلاً أعطاك حياة أحسن؟",
+        "Has any of that been working? Not whether it felt good to try, but whether it has actually been giving you more of the life you want.",
+        "You mentioned [X]. How long have you been carrying this? And what have you tried to do with it so far?",
+        "When these feelings or thoughts show up, what do you usually do? Try to push them away, argue with them, distract yourself?",
+        "What has it been like to keep fighting this? Not the original difficulty, but the effort itself.",
+        "من متى وانت تحمل هذا الشي؟ وش جربت تسوي فيه؟",
+        "لما تجيك هالأفكار أو المشاعر، وش تحاول تسوي معها؟ تحاول تطردها، تجادلها، تشتت نفسك؟"
+      ],
+      "contraindications": "Do NOT offer a fix or solution at this step. Do NOT tell the user the struggle is the problem. The framing must be gentle curiosity, not gotcha. Do NOT proceed if the user presents with a single discrete practical problem, redirect to Problem-Solving Therapy instead. Do NOT use the phrase 'creative hopelessness' with the user.",
+      "completion_criteria": "User has reflected on what they have tried and how it has been working. A response that names the struggle and acknowledges it has been costly or exhausting meets the bar. A one-word response or pure deflection does not."
+    },
+    {
+      "step_id": "defusion",
+      "goal": "Introduce the observer stance: watching thoughts as thoughts rather than facts to be obeyed or argued with. Demonstrate the shift in relationship with a specific thought the user has mentioned.",
+      "technique": "ACT cognitive defusion: leaves on a stream, I notice I am having the thought that",
+      "technique_description": "Defusion is a change in relationship with a thought, not a change in the thought itself. The target shift is from 'I am a failure' (fused, the thought IS reality) to 'I notice I am having the thought that I am a failure' (defused, the thought is an event the person is observing). Use one of three defusion vehicles depending on the user's engagement style: (1) The language shift: take a thought the user mentioned and model the shift from fused to defused phrasing, then invite them to try it; (2) Leaves on a stream: invite the user to imagine sitting by a stream watching leaves float by, placing each thought on a leaf and watching it pass; (3) Naming the mind: 'Your mind is telling you X, there it goes again.' Do not use all three. Pick the one that matches the user's idiom. If the user becomes distressed or the thought is trauma-linked, exit to validate_only immediately. Defusion does not mean the thought is wrong or to be dismissed, it means the person does not have to be run by it.",
+      "tone": "curious, light, spacious, non-clinical",
+      "examples": [
+        "قلت 'أنا فاشل'. جرب لحظة تقول: 'أنا ألاحظ إن عقلي يقولي إني فاشل.' مو لتقول إن الفكرة غلط، بس تشوف الفرق. كيف تحس؟",
+        "You said 'I am a failure.' What if, just for a moment, you tried saying: 'I notice I am having the thought that I am a failure.' Not to dismiss it. Just to see it as something your mind is doing rather than a fact about you. What is that like?",
+        "Imagine you are sitting by a stream. Thoughts float by on leaves. You do not have to jump in to grab them or push them away. You just watch them pass. Put the thought you just mentioned on a leaf. What happens?",
+        "Your mind is very good at its job. It keeps presenting this thought as settled truth. That is what minds do. What if we just named that? 'There goes my mind again, telling me I will never be okay.' Does that feel any different from just believing it?",
+        "تخيل إنك جالس بجانب نهر. الأفكار تطفو على أوراق شجر. ما تحتاج تمسك فيها أو تطردها. بس تراقبها تمشي. حط الفكرة اللي ذكرتها على ورقة. وش يصير؟",
+        "عقلك شاطر في شغله. يقدم الفكرة هذي كحقيقة ثابتة. هذا طبيعي، هذا اللي يسويه العقل. لو قلنا بس: 'ها هو عقلي يقولي مرة ثانية...' كيف يختلف ذا عن تصديقها مباشرة؟"
+      ],
+      "contraindications": "Do NOT use defusion with a thought that is not distressing or not fused. Do NOT tell the user the thought is irrational or wrong. Defusion is not reframing. Do NOT continue if emotional_intensity > 7, validate first. Do NOT use all three defusion techniques in one turn. If the user says the technique feels dismissive of real pain, acknowledge that immediately: 'Defusion is not about saying the pain is not real. It is about not letting the thought run the whole show.' If the thought is trauma-linked and the user becomes distressed, exit defusion and validate.",
+      "completion_criteria": "User has tried the defusion language or the imagery at least once and reported something about the experience. Minimal acknowledgement ('I tried it') without any reflection does not meet the bar."
+    },
+    {
+      "step_id": "acceptance_and_willingness",
+      "goal": "Introduce willingness as an alternative to the control and avoidance struggle. Make room for the feeling without being ruled by it.",
+      "technique": "ACT acceptance and willingness: the struggle switch, carrying not curing",
+      "technique_description": "Acceptance in ACT is not resignation and not agreement. It is willingness to have the experience without turning it into a war. The key reframe: the goal is not to feel less anxious or less depressed but to do what matters while those feelings are present. Use the struggle switch metaphor if appropriate: imagine there is a dial that goes from 'struggling against' to 'allowing'. When the struggle switch is on, the feeling plus the fight takes everything. When it is off, the feeling is still there but the fight is gone. Invite the user to try on the question: 'What would you do differently today if this feeling were there but not in charge?' Do not push for acceptance of things that should not be accepted (abusive situations, practical problems with real solutions). Acceptance applies to internal experiences, not external circumstances. Gulf/Islamic framing: sabr is not passive endurance, it is the active choice to remain present to difficulty without being consumed by it. Tawakkul and acceptance are aligned, not contradictory.",
+      "tone": "grounded, honest, spacious, non-prescriptive",
+      "examples": [
+        "ما هو الهدف إنك ما تحس بالقلق، الهدف إنك تسوي اللي يهمك وإن كان القلق موجود. مو تنتظر يروح أولاً، تجيبه معك. وش تحس لو جربت كذا؟",
+        "What if the goal was not to feel less anxious, but to do what matters while the anxiety is there? Not wait for it to go away first, but bring it along.",
+        "There is a difference between a feeling running the show and a feeling being present. What would your day look like if the feeling was there but not in charge?",
+        "Acceptance here does not mean you think things are fine or that the pain is okay. It means you stop spending energy fighting the feeling itself, and use that energy for something else. What would that free up for you?",
+        "Think of carrying a heavy bag. You can spend all your energy arguing about whether you should have to carry it, or you can carry it and still walk toward where you want to go. What matters enough to walk toward, even with the bag?",
+        "الصبر في ديننا مو بس تحمل بصمت. هو إنك تبقى حاضر مع الصعوبة بدون ما تبتلعك. تبقى أنت. وش يعني ذا بالنسبة لك في وضعك الحالي؟",
+        "وش اللي راح يتحرر لك لو ما صرفت طاقتك تحارب الإحساس نفسه؟"
+      ],
+      "contraindications": "Do NOT push acceptance of external circumstances that warrant real-world action (abusive situations, practical solvable problems, valid grievances). Acceptance applies to internal experience, not external reality. Do NOT frame acceptance as 'just accept it and move on.' If the user hears acceptance as giving up, slow down and clarify: 'I am not saying the situation is okay. I am asking about the feeling inside the situation.' Do NOT use this step if the user is in acute crisis.",
+      "completion_criteria": "User has engaged with the reframe and reflected on what willingness might open up. Minimal 'okay' without any reflection does not meet the bar."
+    },
+    {
+      "step_id": "values_compass",
+      "goal": "Offer one brief values question to orient the user toward direction rather than symptom management. This is a compass bearing, not a full values exploration. If the user wants to go deeper, offer Values Clarification as a dedicated next session.",
+      "technique": "ACT values compass: what direction, despite everything",
+      "technique_description": "After defusion and acceptance work, the natural next question is: given everything you are carrying, what direction do you want to move in? Not where do you want to arrive, but what kind of person do you want to be showing up as, even while all this is happening? This is one question, not a full values inventory. Do not go into the Wilson and Murrell life-areas framework here, that belongs in Values Clarification. If the user responds with meaningful reflection, validate it and bridge toward a small committed action (one thing this week). If the user says 'I don't know' or needs to explore values more deeply, offer Values Clarification as the right next step: 'There is a more in-depth values exploration we could try in another session if you want to go deeper, it is worth it.' End the skill with a grounding acknowledgement of the work done.",
+      "tone": "warm, grounded, forward-pointing, unhurried",
+      "examples": [
+        "مع كل اللي تحمله، وش الاتجاه اللي تبي تمشي فيه؟ مو وين تبي توصل، بس كيف تبي تكون وانت في الطريق؟",
+        "Given everything you are carrying right now, what direction do you want to move in? Not where you want to end up, but what kind of showing-up matters to you?",
+        "If this feeling were going to be there for a while, and you stopped fighting it, what would you want to do with the time and energy that freed up?",
+        "What matters enough that you would move toward it even while carrying all of this?",
+        "If you want to go deeper into the values question, there is a more dedicated exercise we can do another time. But for now, even one direction you named is something to move toward.",
+        "لو هالإحساس راح يكون موجود فترة، وخليت الحرب ضده تروح، وش راح تسوي بالوقت والطاقة اللي تحررت؟",
+        "لو تبي تتعمق أكثر في موضوع القيم، عندنا تمرين مخصص لذا ممكن نجربه مرة ثانية. بس حتى الاتجاه الواحد اللي ذكرته الحين، هذا شي ممكن تتحرك نحوه."
+      ],
+      "contraindications": "Do NOT run a full values clarification exercise here. One question only. Do NOT push for a commitment if the user is still processing the acceptance and defusion work. If the user cannot name a direction, that is valid. Normalize: 'Sometimes the direction becomes clearer once the fighting quiets down a little.' Do NOT end abruptly. Close the skill with acknowledgement of the work done even if no direction was named.",
+      "completion_criteria": "User has reflected on the values question, even if the answer is 'I don't know yet.' A response that engages with the question, even tentatively, meets the bar."
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
+      "action": "validate_only",
+      "instruction": "User is acutely distressed. ACT work requires enough psychological safety to observe rather than react. Do not continue the skill steps. Stay present, validate fully, and only re-enter the skill if the user signals they are ready.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "step": "ANY",
+        "for_turns": 3
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance. ACT can feel abstract or dismissive of real pain if it does not land right. Offer to stop and just talk, or explore whether a different approach fits better right now. Do not push the ACT framework.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "step": "ANY",
+        "for_turns": 3
+      },
+      "action": "check_in_micro",
+      "instruction": "User has been disengaged. Gently check in: is this kind of approach feeling useful, or would something else be more helpful right now?",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit with warmth. Even beginning to notice the relationship between a person and their thoughts is meaningful work. No persuasion.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": {
+        "signal": "prior_exposure",
+        "operator": ">=",
+        "value": 2,
+        "step": "identify_the_struggle"
+      },
+      "action": "skip_psychoeducation",
+      "instruction": "User has used ACT Psychological Flexibility before. Skip the workability question framing. Acknowledge their familiarity and ask directly: what is showing up for them today that they want to work with?",
+      "next_step_id": "identify_the_struggle"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit skill gracefully if user requests to stop. No persuasion. Acknowledge that beginning to notice the struggle itself is already a shift.",
+    "L2": "Add clinician_review flag if the acceptance and willingness work reveals sustained, profound meaninglessness or despair about whether life holds anything worth living for. Temporary distress during defusion does not meet this bar. Sustained hopelessness that is qualitatively different from the presenting distress does.",
+    "L3": "Exit immediately to crisis protocol if any crisis signal is detected during the session.",
+    "L4": "Trigger human handoff if user explicitly requests a human clinician or shows 3 or more crises in the last 30 days."
+  },
+  "cultural_overrides": {
+    "sabr_and_acceptance": "Sabr in Islamic tradition is not passive endurance or giving up. It is actively remaining present to hardship without being defined by it, while continuing to act with integrity. Frame acceptance as a form of sabr: not agreeing that the situation is okay, but refusing to let the struggle with the feeling consume everything else.",
+    "waswas_and_defusion": "Intrusive thoughts in Islamic theology are understood as waswas, whispers from Shaytan that do not represent the person's true self or intentions. This is functionally equivalent to ACT defusion: the thought is not you, it is a passing event. This framing can make defusion feel familiar and consonant with faith rather than foreign or secular.",
+    "collective_values": "In the values compass step, collective values are legitimate directions. Being a good parent, contributing to the family, serving the community, living according to faith, these are valid and often deeply owned values in Gulf context. Do not push toward individual self-expression.",
+    "male_fusion": "Gulf male stoicism often produces fusion: 'strong men do not feel this' fuses the belief with identity. This is a direct defusion target: 'I notice I am having the thought that feeling this makes me weak.'"
+  }
+}

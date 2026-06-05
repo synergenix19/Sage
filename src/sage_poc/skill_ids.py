@@ -25,4 +25,5 @@ SKILL_REGISTRY = [
     "grief_loss",
     "psychotic_referral",
     "problem_solving_therapy",
+    "act_psychological_flexibility",
 ]

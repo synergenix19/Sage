@@ -65,12 +65,12 @@
     },
     {
       "step_id": "sort_and_act",
-      "goal": "Help the user sort their worries into actionable vs. hypothetical, and respond to each type",
+      "goal": "Help the user sort their worries into actionable vs. hypothetical. Once the worry is sorted, close with a clear direction: for actionable worries, bridge toward structured problem-solving by naming it explicitly and inviting the user to try it; for hypothetical what-if worries, bridge toward acceptance or defusion work by naming the approach and inviting the user to try it. The closing should feel like a natural handoff, not a prescription.",
       "technique": "Worry categorisation (Wells 1995), real problem vs. hypothetical or what-if",
       "tone": "curious, practical, structured but light",
       "examples": [
-        "During worry time, there's a useful question to ask each worry: 'Is this something I can actually do something about, or is this a what-if?' If you can act on it, make a small plan. If it's a what-if, practice letting it sit without answering it.",
-        "Some worries have a practical solution. Most what-if worries don't, and responding to them actually feeds the cycle. The skill is learning to notice when a worry is a what-if, and practice not engaging with it. What's one worry you've had recently that you could test this with?",
+        "وش نوع هالقلق؟ لو كان مشكلة حقيقية تقدر تسوي فيها شي، عندنا أسلوب منظم نشتغل فيه على المشكلة خطوة خطوة، قوللي 'أبي نحل هالمشكلة' ونبدأ سوا. لو كان ماذا لو وما في حل واضح، الأسلوب مختلف: نتعلم نحمل عدم اليقين بدل ما يسيطر علينا، قوللي 'ساعدني مع الماذا لو'.",
+        "Let's look at what kind of worry this is before we go further. If it is a real, practical problem, something you could take action on, there is a structured problem-solving approach that works well for exactly this: say 'help me problem solve this.' If it is a what-if thought without a real solution, the approach is different: learning to carry the uncertainty so it loses its grip, say 'help me with the what-if.'",
         "كل قلق نسأله: هل هذا شي أقدر أسوي فيه شي الحين؟ لو نعم، نحط خطة صغيرة. لو هو فكرة ماذا لو، نتعلم نتركها بدون إجابة. إيش قلق شايله هالفترة نجرب نصنفه؟",
         "Two buckets: things I can do something about, and things that are pure what-if. Actionable worries get a small plan. What-if worries get acknowledged and set aside. Want to try sorting one?",
         "في قلق معين شايله هالفترة؟ نشوف سوا: هل هو شي تقدر تسوي فيه شي؟ ولا هو مجرد ماذا لو؟"
@@ -147,6 +147,7 @@
   "cultural_overrides": {
     "tawakkul_framing": "For religious users, the idea of scheduling worry may initially feel like it conflicts with tawakkul, trust in Allah's plan and acceptance of His will. Clarify that worry time is not about dismissing God's will or treating anxiety as a problem to be solved by willpower alone. Frame it as using one's reason and self-discipline as God intended, taking practical action while trusting in the outcome. Scheduling worry is an act of responsible stewardship of the mind, not a rejection of reliance on Allah.",
     "arabic_example_language": "Worked examples should use natural colloquial Gulf Arabic phrasing, not Modern Standard Arabic. The concern list step should feel like everyday thinking, not a formal exercise. If the user is Arabic-dominant, prompt the concern list in Arabic and accept Arabic responses throughout the skill.",
-    "practical_identity_framing": "If religious framing feels forced or the user does not identify as religious, present worry time as a practical productivity technique: disciplined people do not let worry run in the background all day, they address it intentionally. This framing works well for high-achieving Gulf users who respond better to self-management language than to therapeutic language."
+    "practical_identity_framing": "If religious framing feels forced or the user does not identify as religious, present worry time as a practical productivity technique: disciplined people do not let worry run in the background all day, they address it intentionally. This framing works well for high-achieving Gulf users who respond better to self-management language than to therapeutic language.",
+    "bridge_framing": "Bridge handoff: name next skill. Actionable: problem-solving. What-if: ACT acceptance."
   }
 }

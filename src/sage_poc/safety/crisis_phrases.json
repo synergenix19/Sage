@@ -4,83 +4,501 @@
   "description": "Canonical crisis phrase corpus for S3 semantic detection. Covers explicit SI, passive SI, and SF-1 phrases that S1 lexicon misses. Embeddings computed at runtime do not store vectors here.",
   "threshold_note": "Threshold calibrated by scripts/calibrate_s3_threshold.py. Must satisfy: all SF-1 GATE phrases score >= threshold, all SF-6 FALSE_POSITIVE phrases score < threshold.",
   "phrases": [
-    {"text": "I want to kill myself", "source": "SK-EN-001", "flag": "si_explicit", "language": "en"},
-    {"text": "I want to end my life", "source": "SK-EN-001", "flag": "si_explicit", "language": "en"},
-    {"text": "I'm thinking about suicide", "source": "SK-EN-001", "flag": "si_explicit", "language": "en"},
-    {"text": "I don't want to be alive anymore", "source": "SK-EN-001", "flag": "si_explicit", "language": "en"},
-    {"text": "I'm thinking about ending it all and I've been planning how", "source": "SK-EN-001", "flag": "si_explicit", "language": "en"},
-    {"text": "I have thoughts of self-harm that I can't stop", "source": "SK-EN-001", "flag": "si_explicit", "language": "en"},
-    {"text": "I want to disappear from this world permanently", "source": "SK-EN-001", "flag": "si_explicit", "language": "en"},
-    {"text": "I've been thinking about ways to hurt myself seriously", "source": "SK-EN-001", "flag": "si_explicit", "language": "en"},
-    {"text": "There's no reason for me to keep living", "source": "SK-EN-002", "flag": "si_passive", "language": "en"},
-    {"text": "I feel like a burden and everyone would be better off without me", "source": "SK-EN-002", "flag": "si_passive", "language": "en"},
-    {"text": "I wish I could fall asleep and never wake up again", "source": "SK-EN-002", "flag": "si_passive", "language": "en"},
-    {"text": "There is no point in going on like this, nothing will ever change", "source": "SK-EN-002", "flag": "si_passive", "language": "en"},
-    {"text": "I've given up completely, I see no future for myself", "source": "SK-EN-002", "flag": "si_passive", "language": "en"},
-    {"text": "Nobody would notice or miss me if I was gone", "source": "SK-EN-002", "flag": "si_passive", "language": "en"},
-    {"text": "I just want it all to stop, I can't keep doing this", "source": "SK-EN-002", "flag": "si_passive", "language": "en"},
-    {"text": "Life is no longer worth living and I don't know what to do", "source": "SK-EN-002", "flag": "si_passive", "language": "en"},
-    {"text": "I have nothing to live for anymore, everything I cared about is gone", "source": "SK-EN-002", "flag": "si_passive", "language": "en"},
-    {"text": "I don't want to be here anymore, I'm done with everything", "source": "SK-EN-002", "flag": "si_passive", "language": "en"},
-    {"text": "I make everything worse for everyone around me and I always will", "source": "SK-EN-002", "flag": "si_passive", "language": "en"},
-    {"text": "I've stopped caring what happens to me, it doesn't matter anymore", "source": "SK-EN-002", "flag": "si_passive", "language": "en"},
-    {"text": "أريد أن أنهي حياتي", "source": "SK-AR-001", "flag": "si_explicit", "language": "ar"},
-    {"text": "أفكر في الانتحار بجدية", "source": "SK-AR-001", "flag": "si_explicit", "language": "ar"},
-    {"text": "أريد أن أموت وأرتاح من كل شي", "source": "SK-AR-001", "flag": "si_explicit", "language": "ar"},
-    {"text": "أريد إيذاء نفسي ولا أقدر أوقف هالأفكار", "source": "SK-AR-001", "flag": "si_explicit", "language": "ar"},
-    {"text": "ودي أنهي كل شي وما أكمل", "source": "SK-AR-001", "flag": "si_explicit", "language": "ar"},
-    {"text": "ياريت انام ولا اصحى", "source": "SK-AR-002", "flag": "si_passive", "language": "ar"},
-    {"text": "نفسي تعبت ما اقدر اكمل في هالحياة", "source": "SK-AR-002", "flag": "si_passive", "language": "ar"},
-    {"text": "ما عندي سبب اعيش، الحياة ما تسوى", "source": "SK-AR-002", "flag": "si_passive", "language": "ar"},
-    {"text": "انا عبء على الكل ومحد يحتاجني", "source": "SK-AR-002", "flag": "si_passive", "language": "ar"},
-    {"text": "ودي اختفي من الدنيا ولا يشوفني احد", "source": "SK-AR-002", "flag": "si_passive", "language": "ar"},
-    {"text": "روحي تعبت من كل شي وما في فايدة", "source": "SK-AR-002", "flag": "si_passive", "language": "ar"},
-    {"text": "قلبي ميت ما اقدر احس بشي، حياتي فارغة", "source": "SK-AR-003", "flag": "si_passive", "language": "ar"},
-    {"text": "انكسرت من الداخل وما اقدر اكمل", "source": "SK-AR-003", "flag": "si_passive", "language": "ar"},
-    {"text": "ما عاد في قلبي حياة، كل شي انتهى", "source": "SK-AR-003", "flag": "si_passive", "language": "ar"},
-    {"text": "ta3abt mn el7ayat wallah ma abga akamil", "source": "SK-AZ-001", "flag": "si_explicit", "language": "en"},
-    {"text": "mafi fayda mn el7ayah, bidi amoot", "source": "SK-AZ-002", "flag": "si_passive", "language": "en"},
-    {"text": "I've been thinking that things would honestly be simpler for the people I love if I just wasn't in the picture anymore", "source": "SF-1", "flag": "si_passive", "language": "en"},
-    {"text": "There's this quiet thought I keep coming back to that the space I take up could be better used by someone more deserving", "source": "SF-1", "flag": "si_passive", "language": "en"},
-    {"text": "I keep thinking that maybe things would be better if I just faded out and stopped mattering to anyone", "source": "SF-1", "flag": "si_passive", "language": "en"},
-    {"text": "There are moments when I wonder if my being here is doing more harm than good for the people who care about me", "source": "SF-1", "flag": "si_passive", "language": "en"},
-    {"text": "I've been having these thoughts about how maybe my absence would just make everything easier", "source": "SF-1", "flag": "si_passive", "language": "en"},
-    {"text": "Sometimes I picture what life would look like for everyone without me in it, and it doesn't seem worse", "source": "SF-1", "flag": "si_passive", "language": "en"},
-    {"text": "أحياناً أحس إن وجودي يعب على ناسي وإنهم ما يحتاجونني", "source": "SF-1", "flag": "si_passive", "language": "ar"},
-    {"text": "في أوقات أفكر إن مستقبل أهلي أفضل بدوني، أنا بس أعيق مسيرتهم", "source": "SF-1", "flag": "si_passive", "language": "ar"},
-    {"text": "بس أتمنى أختفي من الكل وما يحد يبحث عني أو يفتقدني", "source": "SF-1", "flag": "si_passive", "language": "ar"},
-    {"text": "أحياناً أتمنى لو إن الله ياخذني لأن ما اقدر أكمل بهالطريقة", "source": "SF-1", "flag": "si_passive", "language": "ar"},
-    {"text": "I feel completely hopeless, like there is truly no way forward and nothing will ever improve", "source": "SF-1", "flag": "si_passive", "language": "en"},
-    {"text": "I've been isolating and withdrawing from everything because I genuinely believe I don't deserve to be part of people's lives", "source": "SF-1", "flag": "si_passive", "language": "en"},
-    {"text": "should i do what the voices are telling me", "source": "CH-EN-001", "flag": "command_hallucination", "language": "en"},
-    {"text": "the voices are telling me to hurt someone", "source": "CH-EN-001", "flag": "command_hallucination", "language": "en"},
-    {"text": "the voices want me to do something dangerous", "source": "CH-EN-001", "flag": "command_hallucination", "language": "en"},
-    {"text": "i have to follow what the voices say or something bad will happen", "source": "CH-EN-001", "flag": "command_hallucination", "language": "en"},
-    {"text": "الأصوات تأمرني بإيذاء شخص", "source": "CH-AR-001", "flag": "command_hallucination", "language": "ar"},
-    {"text": "الأصوات تقول لي أذي نفسي", "source": "CH-AR-001", "flag": "command_hallucination", "language": "ar"},
-
-    {"text": "I need to put makeup over my arm before anyone sees", "source": "SH-EN-001", "flag": "sh_concealment", "language": "en"},
-    {"text": "I have to keep my sleeves down so nobody notices the marks", "source": "SH-EN-001", "flag": "sh_concealment", "language": "en"},
-    {"text": "how do I cover up the marks on my arm before the appointment", "source": "SH-EN-001", "flag": "sh_concealment", "language": "en"},
-
-    {"text": "I have the urge to sh and do not know how to stop", "source": "SH-EN-002", "flag": "sh_abbreviation", "language": "en"},
-    {"text": "I sh to cope with the anger and I hate that it works", "source": "SH-EN-002", "flag": "sh_abbreviation", "language": "en"},
-    {"text": "tw sh I relapsed again and I feel awful about it", "source": "SH-EN-002", "flag": "sh_abbreviation", "language": "en"},
-    {"text": "I get intrusive thoughts to sh whenever I am stressed", "source": "SH-EN-002", "flag": "sh_abbreviation", "language": "en"},
-
-    {"text": "I am trying to stay clean but the urges keep coming back", "source": "SH-EN-003", "flag": "sh_recovery", "clinical_review_required": true, "language": "en"},
-    {"text": "I just broke my streak and I feel like such a failure", "source": "SH-EN-003", "flag": "sh_recovery", "clinical_review_required": true, "language": "en"},
-    {"text": "I was thirty days clean and then I relapsed last night", "source": "SH-EN-003", "flag": "sh_recovery", "clinical_review_required": true, "language": "en"},
-    {"text": "I keep having urges to hurt myself even though I am trying to stop", "source": "SH-EN-003", "flag": "sh_recovery", "clinical_review_required": true, "language": "en"},
-
-    {"text": "I cannot get my cuts to stop bleeding and do not know what to do", "source": "SH-EN-004", "flag": "sh_wound", "language": "en"},
-    {"text": "I cannot get the wounds on my arm to heal properly", "source": "SH-EN-004", "flag": "sh_wound", "language": "en"},
-    {"text": "I cannot stop scratching at the scars on my arms", "source": "SH-EN-004", "flag": "sh_wound", "language": "en"},
-    {"text": "I keep reopening my cuts and they bleed through my clothes", "source": "SH-EN-004", "flag": "sh_wound", "language": "en"},
-
-    {"text": "I am panicking because someone noticed the marks on my arm today", "source": "SH-EN-005", "flag": "sh_disclosure", "language": "en"},
-    {"text": "I wanted to die when my sleeves rolled up and my friend saw the cuts", "source": "SH-EN-005", "flag": "sh_disclosure", "language": "en"},
-    {"text": "I am terrified someone is going to see my scars at the beach", "source": "SH-EN-005", "flag": "sh_disclosure", "language": "en"},
-    {"text": "I am dreading my doctor seeing my arms at the appointment", "source": "SH-EN-005", "flag": "sh_disclosure", "language": "en"}
+    {
+      "text": "I want to kill myself",
+      "source": "SK-EN-001",
+      "flag": "si_explicit",
+      "language": "en"
+    },
+    {
+      "text": "I want to end my life",
+      "source": "SK-EN-001",
+      "flag": "si_explicit",
+      "language": "en"
+    },
+    {
+      "text": "I'm thinking about suicide",
+      "source": "SK-EN-001",
+      "flag": "si_explicit",
+      "language": "en"
+    },
+    {
+      "text": "I don't want to be alive anymore",
+      "source": "SK-EN-001",
+      "flag": "si_explicit",
+      "language": "en"
+    },
+    {
+      "text": "I'm thinking about ending it all and I've been planning how",
+      "source": "SK-EN-001",
+      "flag": "si_explicit",
+      "language": "en"
+    },
+    {
+      "text": "I have thoughts of self-harm that I can't stop",
+      "source": "SK-EN-001",
+      "flag": "si_explicit",
+      "language": "en"
+    },
+    {
+      "text": "I want to disappear from this world permanently",
+      "source": "SK-EN-001",
+      "flag": "si_explicit",
+      "language": "en"
+    },
+    {
+      "text": "I've been thinking about ways to hurt myself seriously",
+      "source": "SK-EN-001",
+      "flag": "si_explicit",
+      "language": "en"
+    },
+    {
+      "text": "There's no reason for me to keep living",
+      "source": "SK-EN-002",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "I feel like a burden and everyone would be better off without me",
+      "source": "SK-EN-002",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "I wish I could fall asleep and never wake up again",
+      "source": "SK-EN-002",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "There is no point in going on like this, nothing will ever change",
+      "source": "SK-EN-002",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "I've given up completely, I see no future for myself",
+      "source": "SK-EN-002",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "Nobody would notice or miss me if I was gone",
+      "source": "SK-EN-002",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "I just want it all to stop, I can't keep doing this",
+      "source": "SK-EN-002",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "Life is no longer worth living and I don't know what to do",
+      "source": "SK-EN-002",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "I have nothing to live for anymore, everything I cared about is gone",
+      "source": "SK-EN-002",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "I don't want to be here anymore, I'm done with everything",
+      "source": "SK-EN-002",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "I make everything worse for everyone around me and I always will",
+      "source": "SK-EN-002",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "I've stopped caring what happens to me, it doesn't matter anymore",
+      "source": "SK-EN-002",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "أريد أن أنهي حياتي",
+      "source": "SK-AR-001",
+      "flag": "si_explicit",
+      "language": "ar"
+    },
+    {
+      "text": "أفكر في الانتحار بجدية",
+      "source": "SK-AR-001",
+      "flag": "si_explicit",
+      "language": "ar"
+    },
+    {
+      "text": "أريد أن أموت وأرتاح من كل شي",
+      "source": "SK-AR-001",
+      "flag": "si_explicit",
+      "language": "ar"
+    },
+    {
+      "text": "أريد إيذاء نفسي ولا أقدر أوقف هالأفكار",
+      "source": "SK-AR-001",
+      "flag": "si_explicit",
+      "language": "ar"
+    },
+    {
+      "text": "ودي أنهي كل شي وما أكمل",
+      "source": "SK-AR-001",
+      "flag": "si_explicit",
+      "language": "ar"
+    },
+    {
+      "text": "ياريت انام ولا اصحى",
+      "source": "SK-AR-002",
+      "flag": "si_passive",
+      "language": "ar"
+    },
+    {
+      "text": "نفسي تعبت ما اقدر اكمل في هالحياة",
+      "source": "SK-AR-002",
+      "flag": "si_passive",
+      "language": "ar"
+    },
+    {
+      "text": "ما عندي سبب اعيش، الحياة ما تسوى",
+      "source": "SK-AR-002",
+      "flag": "si_passive",
+      "language": "ar"
+    },
+    {
+      "text": "انا عبء على الكل ومحد يحتاجني",
+      "source": "SK-AR-002",
+      "flag": "si_passive",
+      "language": "ar"
+    },
+    {
+      "text": "ودي اختفي من الدنيا ولا يشوفني احد",
+      "source": "SK-AR-002",
+      "flag": "si_passive",
+      "language": "ar"
+    },
+    {
+      "text": "روحي تعبت من كل شي وما في فايدة",
+      "source": "SK-AR-002",
+      "flag": "si_passive",
+      "language": "ar"
+    },
+    {
+      "text": "قلبي ميت ما اقدر احس بشي، حياتي فارغة",
+      "source": "SK-AR-003",
+      "flag": "si_passive",
+      "language": "ar"
+    },
+    {
+      "text": "انكسرت من الداخل وما اقدر اكمل",
+      "source": "SK-AR-003",
+      "flag": "si_passive",
+      "language": "ar"
+    },
+    {
+      "text": "ما عاد في قلبي حياة، كل شي انتهى",
+      "source": "SK-AR-003",
+      "flag": "si_passive",
+      "language": "ar"
+    },
+    {
+      "text": "ta3abt mn el7ayat wallah ma abga akamil",
+      "source": "SK-AZ-001",
+      "flag": "si_explicit",
+      "language": "en"
+    },
+    {
+      "text": "mafi fayda mn el7ayah, bidi amoot",
+      "source": "SK-AZ-002",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "I've been thinking that things would honestly be simpler for the people I love if I just wasn't in the picture anymore",
+      "source": "SF-1",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "There's this quiet thought I keep coming back to that the space I take up could be better used by someone more deserving",
+      "source": "SF-1",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "I keep thinking that maybe things would be better if I just faded out and stopped mattering to anyone",
+      "source": "SF-1",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "There are moments when I wonder if my being here is doing more harm than good for the people who care about me",
+      "source": "SF-1",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "I've been having these thoughts about how maybe my absence would just make everything easier",
+      "source": "SF-1",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "Sometimes I picture what life would look like for everyone without me in it, and it doesn't seem worse",
+      "source": "SF-1",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "أحياناً أحس إن وجودي يعب على ناسي وإنهم ما يحتاجونني",
+      "source": "SF-1",
+      "flag": "si_passive",
+      "language": "ar"
+    },
+    {
+      "text": "في أوقات أفكر إن مستقبل أهلي أفضل بدوني، أنا بس أعيق مسيرتهم",
+      "source": "SF-1",
+      "flag": "si_passive",
+      "language": "ar"
+    },
+    {
+      "text": "بس أتمنى أختفي من الكل وما يحد يبحث عني أو يفتقدني",
+      "source": "SF-1",
+      "flag": "si_passive",
+      "language": "ar"
+    },
+    {
+      "text": "أحياناً أتمنى لو إن الله ياخذني لأن ما اقدر أكمل بهالطريقة",
+      "source": "SF-1",
+      "flag": "si_passive",
+      "language": "ar"
+    },
+    {
+      "text": "I feel completely hopeless, like there is truly no way forward and nothing will ever improve",
+      "source": "SF-1",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "I've been isolating and withdrawing from everything because I genuinely believe I don't deserve to be part of people's lives",
+      "source": "SF-1",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "should i do what the voices are telling me",
+      "source": "CH-EN-001",
+      "flag": "command_hallucination",
+      "language": "en"
+    },
+    {
+      "text": "the voices are telling me to hurt someone",
+      "source": "CH-EN-001",
+      "flag": "command_hallucination",
+      "language": "en"
+    },
+    {
+      "text": "the voices want me to do something dangerous",
+      "source": "CH-EN-001",
+      "flag": "command_hallucination",
+      "language": "en"
+    },
+    {
+      "text": "i have to follow what the voices say or something bad will happen",
+      "source": "CH-EN-001",
+      "flag": "command_hallucination",
+      "language": "en"
+    },
+    {
+      "text": "الأصوات تأمرني بإيذاء شخص",
+      "source": "CH-AR-001",
+      "flag": "command_hallucination",
+      "language": "ar"
+    },
+    {
+      "text": "الأصوات تقول لي أذي نفسي",
+      "source": "CH-AR-001",
+      "flag": "command_hallucination",
+      "language": "ar"
+    },
+    {
+      "text": "I need to put makeup over my arm before anyone sees",
+      "source": "SH-EN-001",
+      "flag": "sh_concealment",
+      "language": "en"
+    },
+    {
+      "text": "I have to keep my sleeves down so nobody notices the marks",
+      "source": "SH-EN-001",
+      "flag": "sh_concealment",
+      "language": "en"
+    },
+    {
+      "text": "how do I cover up the marks on my arm before the appointment",
+      "source": "SH-EN-001",
+      "flag": "sh_concealment",
+      "language": "en"
+    },
+    {
+      "text": "I have the urge to sh and do not know how to stop",
+      "source": "SH-EN-002",
+      "flag": "sh_abbreviation",
+      "language": "en"
+    },
+    {
+      "text": "I sh to cope with the anger and I hate that it works",
+      "source": "SH-EN-002",
+      "flag": "sh_abbreviation",
+      "language": "en"
+    },
+    {
+      "text": "tw sh I relapsed again and I feel awful about it",
+      "source": "SH-EN-002",
+      "flag": "sh_abbreviation",
+      "language": "en"
+    },
+    {
+      "text": "I get intrusive thoughts to sh whenever I am stressed",
+      "source": "SH-EN-002",
+      "flag": "sh_abbreviation",
+      "language": "en"
+    },
+    {
+      "text": "I am trying to stay clean but the urges keep coming back",
+      "source": "SH-EN-003",
+      "flag": "sh_recovery",
+      "clinical_review_required": true,
+      "language": "en"
+    },
+    {
+      "text": "I just broke my streak and I feel like such a failure",
+      "source": "SH-EN-003",
+      "flag": "sh_recovery",
+      "clinical_review_required": true,
+      "language": "en"
+    },
+    {
+      "text": "I was thirty days clean and then I relapsed last night",
+      "source": "SH-EN-003",
+      "flag": "sh_recovery",
+      "clinical_review_required": true,
+      "language": "en"
+    },
+    {
+      "text": "I keep having urges to hurt myself even though I am trying to stop",
+      "source": "SH-EN-003",
+      "flag": "sh_recovery",
+      "clinical_review_required": true,
+      "language": "en"
+    },
+    {
+      "text": "I cannot get my cuts to stop bleeding and do not know what to do",
+      "source": "SH-EN-004",
+      "flag": "sh_wound",
+      "language": "en"
+    },
+    {
+      "text": "I cannot get the wounds on my arm to heal properly",
+      "source": "SH-EN-004",
+      "flag": "sh_wound",
+      "language": "en"
+    },
+    {
+      "text": "I cannot stop scratching at the scars on my arms",
+      "source": "SH-EN-004",
+      "flag": "sh_wound",
+      "language": "en"
+    },
+    {
+      "text": "I keep reopening my cuts and they bleed through my clothes",
+      "source": "SH-EN-004",
+      "flag": "sh_wound",
+      "language": "en"
+    },
+    {
+      "text": "I am panicking because someone noticed the marks on my arm today",
+      "source": "SH-EN-005",
+      "flag": "sh_disclosure",
+      "language": "en"
+    },
+    {
+      "text": "I wanted to die when my sleeves rolled up and my friend saw the cuts",
+      "source": "SH-EN-005",
+      "flag": "sh_disclosure",
+      "language": "en"
+    },
+    {
+      "text": "I am terrified someone is going to see my scars at the beach",
+      "source": "SH-EN-005",
+      "flag": "sh_disclosure",
+      "language": "en"
+    },
+    {
+      "text": "I am dreading my doctor seeing my arms at the appointment",
+      "source": "SH-EN-005",
+      "flag": "sh_disclosure",
+      "language": "en"
+    },
+    {
+      "text": "I have accepted that nothing is going to get better",
+      "source": "ACT-SP-001",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "I have stopped wanting things to improve, I just exist now",
+      "source": "ACT-SP-001",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "none of this makes any difference in the end",
+      "source": "ACT-SP-001",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "there is a quiet that comes with accepting nothing will change",
+      "source": "ACT-SP-001",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "I have made peace with the fact that my life is not going to get better",
+      "source": "ACT-SP-001",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "I keep making room for these feelings but I do not see why I should keep going",
+      "source": "ACT-SP-001",
+      "flag": "si_passive",
+      "language": "en"
+    },
+    {
+      "text": "أتقبل الوضع بس ما أشوف فرق، حياتي ما تغيرت ولن تتغير",
+      "source": "ACT-SP-001",
+      "flag": "si_passive",
+      "language": "ar"
+    },
+    {
+      "text": "خليت المشاعر تكون موجودة بس ما أدري ليش أكمل",
+      "source": "ACT-SP-001",
+      "flag": "si_passive",
+      "language": "ar"
+    },
+    {
+      "text": "تعبت من الوجود بهالطريقة وما في أمل يتغير شي",
+      "source": "ACT-SP-001",
+      "flag": "si_passive",
+      "language": "ar"
+    }
   ]
 }

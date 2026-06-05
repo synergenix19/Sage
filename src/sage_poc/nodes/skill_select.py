@@ -22,9 +22,10 @@ _SKILLS = {sid: load_skill(sid) for sid in SKILL_REGISTRY}
 # Architecture: gap test is cross-cluster only. Within-cluster somatic_distress overlap
 # is expected and handled by Tier 1 keyword rules. See calibrate_threshold.py.
 # Gap = 0.0533 (lowest cross-cluster hit=0.4856, highest off-topic miss=0.4323).
-# Threshold = midpoint = 0.459. Re-run scripts/calibrate_threshold.py after any
-# semantic_description or keyword edit.
-SEMANTIC_THRESHOLD: float = 0.459
+# Threshold = 0.4581 (recalibrated 2026-06-05 after adding act_psychological_flexibility).
+# Gap = 0.0394 (lowest hit 0.4856, highest off-topic miss 0.4463). Re-run
+# scripts/calibrate_threshold.py after any semantic_description or keyword edit.
+SEMANTIC_THRESHOLD: float = 0.4581
 
 _embed_model = None
 _semantic_skill_ids: list[str] = []

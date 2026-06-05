@@ -8,7 +8,7 @@ def test_skill_ids_importable_and_complete():
     from sage_poc.skill_ids import SKILL_REGISTRY
 
     assert isinstance(SKILL_REGISTRY, list), "SKILL_REGISTRY must be a list"
-    assert len(SKILL_REGISTRY) == 26, f"Expected 26 skills, got {len(SKILL_REGISTRY)}"
+    assert len(SKILL_REGISTRY) == 27, f"Expected 27 skills, got {len(SKILL_REGISTRY)}"
 
     # Original 5 skills
     assert "cbt_thought_record" in SKILL_REGISTRY

@@ -322,7 +322,7 @@ async def test_semantic_timeout_returns_none_when_no_keyword_match():
     from unittest.mock import patch
 
     # A factual question that matches no skill keyword
-    state = _ss_state(message_en="what is the difference between anxiety and depression")
+    state = _ss_state(message_en="what is the capital of France")
 
     with patch("sage_poc.nodes.skill_select.asyncio.wait_for", side_effect=asyncio.TimeoutError):
         result = await skill_select_node(state)

@@ -60,6 +60,8 @@ _LLM_CRITERIA_SKILLS: frozenset[str] = frozenset({
     "progressive_muscle_relaxation",
     "mindfulness_body_scan",
     "safe_place_visualization",
+    # ACT: passive-SI / giving-up-orientation gate (distinct from somatic safety above).
+    "act_psychological_flexibility",
 })
 
 # Load-time guard: every skill whose first step is "entry_screen" MUST be in
