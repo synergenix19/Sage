@@ -53,7 +53,103 @@ _LLM_CRITERIA_SKILLS: frozenset[str] = frozenset({
     "interpersonal_effectiveness",
     "financial_anxiety",
     "grief_loss",
+    # Entry-screen skills: LLM evaluation is the safety gate itself.
+    # Without these IDs the entry_screen completion_criteria degrades silently to
+    # word-count (>1 word passes anything). The load-time guard below enforces this.
+    "dbt_tipp",
+    "progressive_muscle_relaxation",
+    "mindfulness_body_scan",
+    "safe_place_visualization",
 })
+
+# Load-time guard: every skill whose first step is "entry_screen" MUST be in
+# _LLM_CRITERIA_SKILLS, or the entry screen completion_criteria silently degrades
+# to word-count (>1 word passes anything) — same failure mode as dead signals.
+def _validate_entry_screen_coverage() -> None:
+    skills_dir = Path(__file__).parent.parent / "skills"
+    missing: list[str] = []
+    for path in sorted(skills_dir.glob("*.json")):
+        try:
+            data = json.loads(path.read_text())
+        except Exception:
+            continue
+        steps = data.get("steps", [])
+        if steps and steps[0].get("step_id") == "entry_screen":
+            skill_id = path.stem
+            if skill_id not in _LLM_CRITERIA_SKILLS:
+                missing.append(skill_id)
+    if missing:
+        raise RuntimeError(
+            f"Entry-screen skills not in _LLM_CRITERIA_SKILLS — gate is silently inert: {missing}. "
+            "Add each skill ID to _LLM_CRITERIA_SKILLS in skill_executor.py."
+        )
+
+
+_validate_entry_screen_coverage()
+
+# Signals that evaluate_step_policy actually resolves. Any step_policy rule whose
+# condition.signal is NOT in this set will be silently skipped at runtime
+# (signals.get(unknown) → None → continue). This is the class of failure that produced
+# the 18 dead signals: spec present, runtime inert, no alarm.
+#
+# user_stop_request is intentionally absent: it's handled by check_escalation (L1) before
+# step_policy runs. A step_policy rule for it is architecturally dead — L1 fires first —
+# but the intent is honored. Do not add it here or the coverage guard will suppress the error.
+#
+# Upgrade path: once the pre-existing dead signals (physical_contraindication_disclosed,
+# pain_or_injury_mention, dissociation_or_dizziness_reported, dissociation_signal) are
+# removed from skill JSONs, flip _validate_step_policy_signal_coverage to raise RuntimeError
+# instead of logging at ERROR.
+_KNOWN_STEP_POLICY_SIGNALS: frozenset[str] = frozenset({
+    "emotional_intensity",
+    "engagement",
+    "re_escalation_detected",
+    "prior_exposure",
+    "resistance",
+    "user_stop_request",  # handled by L1 check_escalation — step_policy rule is dead but intent is honored
+})
+
+
+def _get_dead_step_policy_signals() -> list[tuple[str, str]]:
+    """Return (skill_id, signal_name) for every step_policy rule whose signal never resolves.
+
+    The test_dead_step_policy_signal_count_is_pinned test calls this to assert the count
+    stays at exactly 21. Any addition raises a red CI run rather than logging another
+    ERROR line into a wall of 21 that teams learn to ignore.
+    """
+    skills_dir = Path(__file__).parent.parent / "skills"
+    dead: list[tuple[str, str]] = []
+    for path in sorted(skills_dir.glob("*.json")):
+        try:
+            data = json.loads(path.read_text())
+        except Exception:
+            continue
+        for rule in data.get("step_policy", []):
+            signal = rule.get("condition", {}).get("signal", "")
+            if signal and signal not in _KNOWN_STEP_POLICY_SIGNALS:
+                dead.append((path.stem, signal))
+    return dead
+
+
+def _validate_step_policy_signal_coverage() -> None:
+    """Log ERROR for any step_policy rule whose signal can never resolve at runtime.
+
+    Does NOT raise — pre-existing dead signals (physical_contraindication_disclosed etc.)
+    would crash startup. This surfaces them visibly at every server start so they cannot
+    be ignored, without blocking the system. See upgrade path comment above.
+    """
+    dead = _get_dead_step_policy_signals()
+    if dead:
+        _log.error(
+            "[skill_executor] Step-policy rules reference signals that never resolve "
+            "at runtime — these rules are SILENTLY INERT: %s. "
+            "Wire the signal into evaluate_step_policy or remove the rule. "
+            "See _KNOWN_STEP_POLICY_SIGNALS for the upgrade path to RuntimeError.",
+            dead,
+        )
+
+
+_validate_step_policy_signal_coverage()
 
 # L1 escalation: user wants to stop the skill.
 # Bare single words ("stop", "quit", "leave") excluded: too many false positives in therapeutic
@@ -302,7 +398,15 @@ def evaluate_step_policy(
         f"Example approaches: {'; '.join(step.examples[:2])}"
     )
 
-    met = criteria_met if criteria_met is not None else _meets_completion_criteria(message_en)
+    # entry_screen steps must always route through LLM evaluation — the word-count
+    # heuristic passes any multi-word message including "I have a pacemaker", which is
+    # exactly the input the gate exists to catch. Forcing heuristic_met=False ensures
+    # _criteria_blocked is always set, so the caller always calls evaluate_completion_criteria.
+    if current_step_id == "entry_screen":
+        heuristic_met = False
+    else:
+        heuristic_met = _meets_completion_criteria(message_en)
+    met = criteria_met if criteria_met is not None else heuristic_met
     if not met:
         return {
             "action":            "stay",
@@ -424,7 +528,9 @@ async def skill_executor_node(state: SageState) -> dict:
         step_obj = next((s for s in skill.steps if s.step_id == step_id), None)
         if step_obj and step_obj.completion_criteria:
             llm_criteria_met = await evaluate_completion_criteria(
-                state["message_en"], step_obj.completion_criteria
+                state["message_en"],
+                step_obj.completion_criteria,
+                fail_closed=(step_id == "entry_screen"),
             )
             if llm_criteria_met:
                 result = _clean_policy_result(evaluate_step_policy(

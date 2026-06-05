@@ -1,10 +1,11 @@
 """LLM-based completion criteria evaluator for structured skills.
 
 Mirrors the resistance-scoring pattern in skill_executor.py:
-called by skill_executor_node for the 4 target skills only, after
+called by skill_executor_node for target skills only, after
 evaluate_step_policy() returns _criteria_blocked=True.
-Falls back to word-count heuristic on any failure so users are never
-permanently stalled by a failing LLM call.
+For ordinary steps: falls back to word-count heuristic on LLM failure.
+For entry_screen steps: fails closed (returns False, holds the skill) — "graceful
+degradation" is the wrong instinct on a safety gate; degrade to held, not advanced.
 """
 from __future__ import annotations
 import json
@@ -31,11 +32,18 @@ async def _call_llm(prompt: str) -> str:
     )
 
 
-async def evaluate_completion_criteria(message_en: str, criterion: str) -> bool:
+async def evaluate_completion_criteria(
+    message_en: str,
+    criterion: str,
+    fail_closed: bool = False,
+) -> bool:
     """Return True if the user's message satisfies the step completion criterion.
 
-    Uses the classifier LLM when criterion is non-empty. Falls back to
-    word-count heuristic (> 1 word) on LLM failure to avoid stalling users.
+    Uses the classifier LLM when criterion is non-empty.
+    On LLM failure: if fail_closed is True (entry_screen steps), returns False so the
+    skill holds rather than advancing — an LLM error must not open a safety gate. If
+    fail_closed is False, falls back to word-count heuristic to avoid stalling users on
+    non-critical steps.
     Always returns True for empty message_en (calling node skips this check).
     """
     if not message_en.strip():
@@ -53,6 +61,12 @@ async def evaluate_completion_criteria(message_en: str, criterion: str) -> bool:
         raw = await _call_llm(prompt)
         return raw.startswith("yes")
     except Exception as exc:
+        if fail_closed:
+            _log.error(
+                "[criteria_eval] LLM evaluation failed on entry_screen (%s); holding skill (fail-closed)",
+                exc,
+            )
+            return False
         _log.warning(
             "[criteria_eval] LLM evaluation failed (%s); falling back to word-count heuristic",
             exc,

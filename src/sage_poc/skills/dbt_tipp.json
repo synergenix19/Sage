@@ -48,6 +48,19 @@
   },
   "steps": [
     {
+      "step_id": "entry_screen",
+      "goal": "Brief opener before beginning TIPP. Understand if there is anything physical the user wants to mention before a technique that involves temperature, intense exercise, and paced breathing. If a physical contraindication is disclosed, redirect to an alternative. If nothing concerning is disclosed, advance to the temperature step.",
+      "technique": "Entry safety screen: physical readiness check before TIPP",
+      "technique_description": "One question, natural and brief. Do not list contraindications. If the user mentions anything relevant to heart conditions, pacemakers, arrhythmia, physical disability, injury, or disordered eating, that is sufficient to hold. TIPP involves cold water exposure (cold-water dive reflex triggers rapid bradycardia) and intense physical movement, which are contraindicated for cardiac conditions and physical limitations that prevent exercise. The bradycardia from cold-water immersion is dangerous with electrolyte disturbance, which is common in disordered eating. Redirect to box breathing or a non-physical grounding technique.",
+      "tone": "warm, matter-of-fact, brief",
+      "examples": [
+        "قبل ما نبدأ — في شي جسدي تبي تذكره؟ نشاط شديد أو تعرض للبرد جزء من التقنية.",
+        "Before we begin — anything physical worth mentioning? This technique involves cold water and some brief intense movement."
+      ],
+      "contraindications": "Do NOT proceed with TIPP if the user discloses a cardiac condition, pacemaker, arrhythmia, physical disability, injury, disordered eating, or any condition where cold exposure or intense exercise is contraindicated. Disordered eating is a contraindication for the cold-water component specifically: the dive reflex causes rapid bradycardia, which is dangerous when electrolytes are disturbed. Acknowledge the disclosure, thank them for mentioning it, and offer an alternative: box breathing is effective for acute distress and has no physical requirements. Say clearly that TIPP is not the right fit here and the alternative works just as well for the goal.",
+      "completion_criteria": "User has not disclosed cardiac conditions, pacemaker use, arrhythmia, physical disability affecting temperature tolerance, injury, disordered eating, or any condition contraindicated by brief intense physical exercise or cold water exposure. Safe to advance to the temperature step."
+    },
+    {
       "step_id": "temperature",
       "goal": "Use cold water to activate the mammalian dive reflex and rapidly lower physiological arousal",
       "technique": "Temperature: cold water application",

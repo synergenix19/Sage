@@ -37,6 +37,19 @@
   "semantic_description": "Safe place visualization: guided safe place imagery adapted from stabilization techniques. Shapiro-adapted safe place exercise: identify a real or imagined location, enrich with five-sense detail, create an anchor word to return to it. Sensory anchoring: describe the visualized scene by sight, sound, texture, temperature. Grounding visualization: build a mental location and anchor it with a word or phrase. Guided imagery for internal stabilization. Safe place imagery technique.",
   "steps": [
     {
+      "step_id": "entry_screen",
+      "goal": "Brief opener before beginning safe place visualization. Understand if the user has any difficulty imagining a safe place, or any dissociation risk that matters before a visualization technique. If a concern is disclosed, redirect or adapt. If nothing concerning is disclosed, advance to introduce_safe_place.",
+      "technique": "Entry safety screen: safe-place capacity and dissociation check",
+      "technique_description": "One brief question. Safe place visualization requires the ability to imagine a place that feels safe and calm, which users who cannot access this experience should not be directed into, as it can deepen distress rather than relieve it. Relevant disclosures: no place that feels safe, imagery is always threatening or disturbing, history of dissociation during visualization. Do not suggest what to disclose.",
+      "tone": "warm, curious, brief",
+      "examples": [
+        "قبل ما نبدأ — في شي تبي تذكره؟ هالتقنية تعتمد على تخيل مكان تحس فيه بالأمان.",
+        "Before we begin — anything worth mentioning? This technique works best if there is somewhere you can imagine that feels calm and safe."
+      ],
+      "contraindications": "Do NOT proceed if the user says they cannot imagine any safe place, that no place has ever felt safe, or that visualization consistently brings up threatening imagery. Acknowledge this directly and without judgment, as it is meaningful information about their experience. Offer body-based grounding (box breathing, 5-4-3-2-1) or just talking. Do NOT push them to find a safe place if none is accessible; that risks compounding the distress.",
+      "completion_criteria": "User has not disclosed an inability to imagine any safe place, a history of visualization triggering dissociation or threatening imagery, or active dissociation. The user's response indicates visualization work is accessible to them. Safe to advance to introduce_safe_place."
+    },
+    {
       "step_id": "introduce_safe_place",
       "goal": "Gently introduce the concept of a safe place and invite the user to identify a real or imagined location where they feel or have felt safe",
       "technique": "EMDR-adapted safe place introduction, grounding in choice and agency",

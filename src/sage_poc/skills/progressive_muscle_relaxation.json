@@ -40,6 +40,19 @@
   "semantic_description": "Progressive muscle relaxation: Jacobson tension-release method. Tense each muscle group for 5 counts, then release completely. Systematic muscle group cycle: jaw, neck, shoulders, arms, hands, chest, stomach, legs, feet. Squeeze and release sequence through all major muscle groups. PMR protocol: work through body regions in sequence, tensing then releasing. Bernstein and Borkovec PMR exercise. Muscle group progression from face to feet.",
   "steps": [
     {
+      "step_id": "entry_screen",
+      "goal": "Brief opener before beginning PMR. Understand if there is anything physical that matters before a technique involving sequential muscle tensing. If a pain or injury concern is disclosed, adapt or redirect. If nothing concerning is disclosed, advance to breathe_and_settle.",
+      "technique": "Entry safety screen: pain and injury check before PMR",
+      "technique_description": "One brief question. PMR involves intentional muscle tension throughout the body in sequence, which is contraindicated where tensing would cause pain or injury. Relevant disclosures: current injury, chronic pain flare, arthritis (especially hands, neck, jaw), deep vein conditions in the legs, recent surgery. If disclosed: redirect to a gentle, non-tensing version (progressive relaxation without tensing, awareness-only) or to box breathing or body scan instead.",
+      "tone": "warm, matter-of-fact, brief",
+      "examples": [
+        "قبل ما نبدأ — في ألم أو إصابة في جسمك الحين نحتاج نأخذها في الحسبان؟ التقنية فيها شد للعضلات.",
+        "Before we begin — any pain or injury I should know about? This technique involves tensing muscle groups throughout your body."
+      ],
+      "contraindications": "Do NOT instruct forceful tensing if the user discloses injury, significant chronic pain, arthritis, deep vein conditions, or recent surgery. Acknowledge the disclosure. Offer a modified approach: passive awareness of each body area without tensing (awareness-only PMR), or redirect to body scan or box breathing. If the pain is acute, offer supportive conversation before any technique.",
+      "completion_criteria": "User has not disclosed current injury, significant chronic pain, arthritis, deep vein conditions, or any condition where systematic muscle tensing would be harmful or painful. Safe to advance to breathe_and_settle."
+    },
+    {
       "step_id": "breathe_and_settle",
       "goal": "Help the user settle their breathing and become aware of where tension is held before starting muscle work",
       "technique": "Body scan awareness, preparatory breathing",

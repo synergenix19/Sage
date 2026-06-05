@@ -32,6 +32,19 @@
   "semantic_description": "Mindfulness body scan protocol. Progressive body awareness technique from MBSR Mindfulness-Based Stress Reduction. Kabat-Zinn body scan. Anchoring attention in physical sensation. Progressive attention sweep from feet to face. Somatic grounding through body awareness. Body scan meditation. MBCT body scan exercise. Body region by region attention practice. Bottom-up body awareness technique. Feet, legs, torso, shoulders, face, progressive sensation focus. Kinesthetic awareness training. Interoceptive awareness practice. Guided body scan. Sweeping body attention upward. Body region noticing. Physical sensation anchoring. Floor contact and weight awareness. Ong mindfulness-based insomnia protocol. Feeling weight. Feeling warmth. Feeling breath in the belly. Present moment somatic experience.",
   "steps": [
     {
+      "step_id": "entry_screen",
+      "goal": "Brief opener before beginning the body scan. Understand if the user has any history of dissociation or dizziness that is relevant before a prolonged body awareness technique. If a dissociation concern is disclosed, redirect to a grounding alternative. If nothing concerning is disclosed, advance to lower_body.",
+      "technique": "Entry safety screen: dissociation and body-awareness readiness check",
+      "technique_description": "One brief question. Body scan involves extended, detailed attention to bodily sensations, which can trigger dissociation or distress in users with a history of trauma, somatic dissociation, or dizziness. Relevant disclosures: current dissociation or derealization, history of body-awareness triggering dissociation, significant dizziness. Do not suggest what to disclose; invite the user to mention anything relevant. If disclosed: redirect to grounding (5-4-3-2-1 sensory grounding, box breathing) rather than body-focused techniques.",
+      "tone": "warm, gentle, brief",
+      "examples": [
+        "قبل ما نبدأ — في شي تبي تذكره؟ بعض الناس يحسون بدوخة أو أشياء ثانية مع تمارين الوعي الجسدي.",
+        "Before we begin — anything worth mentioning? Some people find extended body awareness techniques bring up dizziness or other sensations."
+      ],
+      "contraindications": "Do NOT proceed with body scan if the user discloses current dissociation, derealization, history of body-awareness triggering dissociation, or significant dizziness. Acknowledge the disclosure warmly. Offer grounding alternatives: 5-4-3-2-1 sensory grounding (external senses, not body-internal) or box breathing. Explain that body scan works better when there is a stable foundation, and the alternative gets to the same calming outcome.",
+      "completion_criteria": "User has not disclosed current dissociation, derealization, history of dissociation triggered by body awareness exercises, or significant dizziness. Safe to advance to the lower_body step."
+    },
+    {
       "step_id": "lower_body",
       "goal": "Direct attention to the feet and legs. Invite noticing without judgment, whatever is actually present: warmth, contact with the floor, weight, tingling, pressure. Do not instruct the user what they should feel; invite them to notice what is actually there.",
       "technique": "Anchored attention to lower body, non-directive sensation noticing",
