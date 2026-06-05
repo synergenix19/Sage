@@ -22,7 +22,6 @@
     "count my breaths",
     "breathing slowly",
     "breath control",
-    "4-7-8 breathing",
     "controlled breathing",
     "تنفس معي",
     "علمني أتنفس",
@@ -112,17 +111,6 @@
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit immediately with warmth. No persuasion. Acknowledge they tried and that is enough.",
       "next_step_id": "exit"
-    },
-    {
-      "condition": {
-        "signal": "clarity",
-        "operator": ">=",
-        "value": 8,
-        "step": "inhale_hold"
-      },
-      "action": "skip",
-      "instruction": "User already knows box breathing well and confirmed this. Skip the instructional framing and go straight to counting together.",
-      "next_step_id": "inhale_hold"
     }
   ],
   "escalation_matrix": {

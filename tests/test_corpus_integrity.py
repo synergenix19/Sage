@@ -200,7 +200,6 @@ def test_skill_cultural_overrides_within_cap(sid):
 _KNOWN_DEAD_SIGNALS: frozenset[tuple[str, str]] = frozenset({
     ("assertive_communication",    "coercive_relationship_indicators_detected"),
     ("behavioral_activation",      "hopelessness"),
-    ("box_breathing",              "clarity"),
     ("cbt_thought_record",         "trauma_disclosure_detected"),
     ("cognitive_restructuring",    "trauma_disclosure_detected"),
     ("dbt_tipp",                   "physical_contraindication_disclosed"),
@@ -267,6 +266,19 @@ def test_post_crisis_check_in_l1_includes_crisis_line():
         f"L1 must leave the door open explicitly. Current: {l1!r}"
     assert "stop" in l1.lower() or "not" in l1.lower(), \
         f"L1 must include anti-assumption guard. Current: {l1!r}"
+
+
+def test_box_breathing_no_dead_clarity_rule():
+    import json, pathlib
+    skill = json.loads(
+        (pathlib.Path(__file__).parent.parent / "src/sage_poc/skills/box_breathing.json")
+        .read_text()
+    )
+    signals = [r["condition"]["signal"] for r in skill.get("step_policy", [])]
+    assert "clarity" not in signals, "clarity is a dead signal in box_breathing step_policy"
+    tp = skill.get("target_presentations", [])
+    assert "4-7-8 breathing" not in tp, \
+        "4-7-8 breathing is the wrong technique (separate evidence base); remove from box_breathing"
 
 
 def test_no_authoring_notes_in_cultural_overrides():
