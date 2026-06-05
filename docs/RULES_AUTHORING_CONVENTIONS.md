@@ -178,6 +178,32 @@ Before adding any phrase to `crisis_phrases.json`:
 
 ---
 
+## Skill `completion_criteria` — affirmative-target framing required
+
+Every entry-screen `completion_criteria` field must contain an **affirmative-target statement**: an explicit declaration of what the target population looks like and that they should ADVANCE.
+
+A pure exclusion list ("hold if X, Y, Z") is insufficient. Without the affirmative statement, the LLM evaluator must infer what ADVANCE looks like from the absence of the hold conditions — and it will over-hold on target-population presentations that superficially resemble a hold condition.
+
+**Pattern:** Hold conditions + explicit "IS the target condition, ADVANCE" clause
+
+```json
+// WRONG — pure exclusion list
+"completion_criteria": "User has not disclosed cardiac conditions, pacemaker use, arrhythmia, or physical injury. Safe to advance."
+
+// RIGHT — exclusion list + affirmative-target clause
+"completion_criteria": "User has not disclosed cardiac conditions, pacemaker use, arrhythmia, or physical injury. Safe to advance. IMPORTANT: Anxiety and distress symptoms — racing heart from panic, rapid breathing, chest tightness from anxiety — are NOT cardiac conditions and should advance. TIPP is specifically designed for acute emotional distress including physical anxiety symptoms."
+```
+
+This class of authoring failure was confirmed as 4/4 false holds on production FP-arm testing (June 2026). The exact failure mode: TIPP entry screen held every panic patient because the criteria listed "cardiac conditions" as a hold but did not state that anxiety-induced tachycardia is not a cardiac condition. Same bug independently found in PMR (muscle tension from stress), body scan (emotional depletion), and safe place (visualization uncertainty).
+
+**The affirmative clause must name:**
+1. The symptom or presentation that looks like a hold condition but is actually the target
+2. An explicit instruction: "is NOT [contraindication name]" and "should ADVANCE"
+
+**Write the IMPORTANT clause before review, not after a failed gate.** Structural rule: any criterion that mentions a symptom class as a hold condition must explicitly confirm whether the same symptom arising from the target presentation also triggers that hold.
+
+---
+
 ## Authoring checklist
 
 Before committing any new or edited rule file:

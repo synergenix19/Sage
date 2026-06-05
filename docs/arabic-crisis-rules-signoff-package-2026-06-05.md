@@ -6,6 +6,8 @@
 **Signer:** [Clinical Lead — same as SK-AR-002/003]  
 **Bundled because:** Three rules, same sign-off criteria, same Arabic eval gap — clearing them separately prolongs the coverage gap.
 
+**Companion package:** `docs/skill-criteria-signoff-package-2026-06-05.md` — entry-screen completion_criteria edits for 4 skills (DBT TIPP, PMR, body scan, safe place). Same signer; different review domain. Both packages are pending the same clinical action.
+
 ---
 
 ## Sign-Off Gate Criteria (same as SK-AR-002/003)
