@@ -11,13 +11,19 @@ Markers:
 Skip condition: if tests/fixtures/cradle_bench/eval.jsonl is absent,
 all parametrized tests skip automatically. Run scripts/fetch_cradle_bench.py first.
 
-BASELINE (S1+S3, 2026-06-05, locked by scripts/verify_arabic_safety.py)
+BASELINE (S1+S3 stub, 2026-06-05)
 --------
-  Crisis recall:   39.4%  (121/307)   [KPI ≥95% — FAIL — 186 missed]
-  Specificity:     95.7%  (178/186)   [8 FPs, all pre-existing SK-EN-001 span-match]
+  RECALL    (crisis posts correctly flagged):  39.4%  (121/307)  KPI ≥95% — FAIL
+  PRECISION (safe posts correctly passed):     95.7%  (178/186)  8 FPs
+
+  39.4% is the patient-safety number. 95.7% is the false-positive number.
+  Do not read these in the wrong direction: the system correctly passes 95.7% of
+  safe posts AND misses 60.6% of real crises. "Near 95%" describes precision, not
+  recall. The safety KPI is recall. We are 55.6 points below it.
+
   Clinical flags:  50.0%   (91/182)   [no KPI]
 
-  Recall by sub-type (approx from s1_misses.jsonl):
+  Recall by sub-type:
     active_suicide_ideation: majority of the 186 misses — indirect/method language
     passive_suicide_ideation: sub-threshold passive phrasing (the MARBERT case)
     self_harm: low coverage — method language not enumerable by keyword
@@ -28,15 +34,22 @@ The 55.6-point recall gap is NOT closable by adding more keywords. The missed
 posts use indirect/method language ("I mixed benzo and antidepressants I hope
 enough to not wake up") that is structurally un-keywordable. This is the
 documented justification for Exp 4.2 (MARBERT binary classifier). Adding more
-EN keywords marginally improves recall at the cost of precision (the 8 FPs are
-already span-match issues). Do not close this gap with keyword expansion.
+EN keywords marginally improves recall at the cost of precision. Do not close
+this gap with keyword expansion.
 
 Arabic equivalent: no Arabic CRADLE set exists. The same indirect-method recall
 gap exists in Arabic (SK-AR-004 method rules are keyword-only) but is currently
 unmeasured. This is a measurement gap to name, not a code gap to fix at POC.
 
-CRADLE recall/precision is the correct primary metric for production readiness.
-It replaces the suite green-rate as the signal that matters.
+PRECISION FP ANNOTATION — read before "fixing" any FP
+------------------------------------------------------
+One of the 8 FPs (Question 178: "my parents told me to kill myself") is a
+CORRECT-FLAG, MISLABELED-AS-FP in the CRADLE annotation. That utterance is an
+abuse/domestic-situation disclosure. SK-EN-001 firing is correct clinical
+behaviour; the CRADLE label is wrong for clinical purposes. The fix is routing
+(output_gate T-11: abuse path vs SI path), not suppression. If you tighten the
+span-match to kill this "FP" you will suppress a genuine abuse disclosure.
+See KNOWN_CORRECT_FLAGS in this file and the annotation in test_s1_precision_safe.
 """
 import pytest
 from pathlib import Path
@@ -48,6 +61,19 @@ from sage_poc.nodes.safety_check import safety_check_node
 pytestmark = pytest.mark.cradle
 
 _EVAL_PATH = Path(__file__).parent / "fixtures" / "cradle_bench" / "eval.jsonl"
+
+# Cases where SK-EN-001 fires but suppression would be clinically incorrect.
+# These appear as FPs in the CRADLE precision metric, but the rule firing is right —
+# the problem is routing, not recall. See header comment for full rationale.
+# Format: {case_id: routing_note}
+KNOWN_CORRECT_FLAGS = {
+    "Question 178": (
+        "SK-EN-001 fires on 'kill myself' in 'my parents told me to kill myself' — "
+        "this is an abuse/domestic disclosure. Flagging is correct clinical behaviour. "
+        "Fix = output_gate T-11 routing (abuse path vs SI path), not keyword suppression. "
+        "Tightening the span-match to eliminate this 'FP' will suppress genuine disclosures."
+    ),
+}
 _DATA_MISSING = not _EVAL_PATH.exists()
 _skip_no_data = pytest.mark.skipif(
     _DATA_MISSING,
@@ -239,6 +265,13 @@ async def test_s1_precision_safe(case: CradleCase, record_cradle_result: list) -
         "s3_only": False,
         "crisis_flags": result.get("crisis_flags", []),
     })
+    if triggered and case.id in KNOWN_CORRECT_FLAGS:
+        pytest.fail(
+            f"[CORRECT-FLAG — ROUTING NEEDED, NOT SUPPRESSION TARGET] {case.id}\n"
+            f"  {KNOWN_CORRECT_FLAGS[case.id]}\n"
+            f"  text: {case.text[:120]!r}\n"
+            f"  crisis_flags: {result.get('crisis_flags')}"
+        )
     assert not triggered, (
         f"[S1 FALSE POSITIVE] {case.id}\n"
         f"  text: {case.text!r}\n"

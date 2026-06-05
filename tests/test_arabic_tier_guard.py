@@ -172,6 +172,45 @@ _ARABIC_THRESHOLD_CEILING = 0.85   # if threshold rises above this, Arabic margi
 _ARABIC_MARGIN_FLOOR = 0.05        # minimum acceptable margin when re-calibrated
 
 
+def test_sk_en_005_arabic_port_absent_gap_documented():
+    """Documents the Arabic/Arabizi passive-SI regex asymmetry.
+
+    English passive-SI detection has two tiers:
+      SK-EN-002 — keyword list (70 patterns)
+      SK-EN-005 — REGEX list (11 metaphorical escape / non-return patterns)
+                  e.g. "walk.*into.*desert.*not.*come.*back", "i want to vanish forever"
+
+    Arabic and Arabizi passive-SI detection has ONE tier:
+      SK-AR-002 — keyword list (17 patterns)
+      SK-AR-003 — keyword list (8 Gulf idiom patterns)
+      SK-AZ-002 — keyword list (9 Arabizi patterns)
+      (no regex tier for AR or AZ)
+
+    This is a real asymmetry: Arabic/Arabizi miss the metaphorical-escape class
+    that SK-EN-005 covers in English (e.g. "أريد أن أختفي وأذهب بعيد" — "I want
+    to disappear and go far away"). Closing this gap requires porting SK-EN-005's
+    11 English patterns to Arabic/Arabizi equivalents — deferred post-POC
+    (confirmed open: 2026-06-05).
+
+    This test is structural: it asserts no AR/AZ regex rule exists, so any
+    future port is visible in the diff and can't be silently reverted.
+    """
+    import json, pathlib
+    rules = []
+    for path in [
+        "src/sage_poc/rules/data/safety/passive_si_patterns.json",
+        "src/sage_poc/rules/data/safety/crisis_keywords.json",
+    ]:
+        rules.extend(json.loads(pathlib.Path(path).read_text())["rules"])
+
+    ar_az_regex = [r for r in rules if r.get("language") in ("ar", "az") and r.get("match_type") == "regex"]
+    assert ar_az_regex == [], (
+        "An AR/AZ regex rule now exists — SK-EN-005 Arabic port may have landed. "
+        "Remove this assertion and update the passive-SI coverage docs accordingly. "
+        f"New rules found: {[r['rule_id'] for r in ar_az_regex]}"
+    )
+
+
 def test_s3_threshold_within_arabic_safe_ceiling():
     """S3_THRESHOLD must stay below 0.85 to preserve Arabic corpus margin.
 
