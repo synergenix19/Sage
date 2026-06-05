@@ -22,7 +22,7 @@ _log = logging.getLogger(__name__)
 
 _PHRASES_PATH = pathlib.Path(__file__).parent / "crisis_phrases.json"
 
-# Calibrated 2026-06-03 via scripts/calibrate_s3_threshold.py (command_hallucination corpus added).
+# Calibrated 2026-06-05 via scripts/calibrate_s3_threshold.py (corpus expanded 54→73 phrases).
 # Gap = 0.3234 (unchanged). Re-run after editing crisis_phrases.json.
 # SF-6 "الله ياخذني من هالدنيا" scored 0.6087 (must be < threshold).
 # v7 target: <50ms total for Layer 1. S3 embedding adds ~200-500ms per turn.
@@ -97,4 +97,33 @@ def check_s3(text: str) -> float:
         return float(scores.max())
     except Exception as exc:
         _log.warning("[S3] Similarity check failed: %s", exc)
+        return 0.0
+
+
+def check_s3_bilingual(text_en: str, text_ar: str | None) -> float:
+    """Return max cosine similarity across all (query, phrase) pairs in one batched encode.
+
+    For Arabic messages: encodes [text_en, text_ar] in a single forward pass — one
+    BERT inference instead of two sequential calls, cutting the S3 budget roughly in half.
+    For English messages (text_ar=None): delegates to check_s3 (single-text path).
+    Never raises.
+    """
+    if text_ar is None or not text_ar.strip():
+        return check_s3(text_en)
+    if not text_en or not text_en.strip():
+        return check_s3(text_ar)
+    if not _ensure_s3_ready():
+        return 0.0
+    try:
+        import sage_poc.nodes.skill_select as _ss  # noqa: PLC0415
+        # Single batched forward pass: shape (2, 1024) — much cheaper than two encode() calls.
+        queries = np.array(
+            _ss._embed_model.encode([text_en, text_ar], normalize_embeddings=True),
+            dtype=np.float32,
+        )
+        # _embedding_index: (N_phrases, 1024); scores: (N_phrases, 2)
+        scores: np.ndarray = _embedding_index @ queries.T
+        return float(scores.max())
+    except Exception as exc:
+        _log.warning("[S3] Bilingual batch check failed: %s", exc)
         return 0.0

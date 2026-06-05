@@ -14,6 +14,17 @@ _HEADERS = {
     "Prefer": "return=minimal",
 }
 
+# Shared connection pool — eliminates the per-call TCP handshake that previously
+# opened 2 separate connections per audit write (auth pre-check + write POST).
+_audit_client: httpx.AsyncClient | None = None
+
+
+def _get_audit_client() -> httpx.AsyncClient:
+    global _audit_client
+    if _audit_client is None:
+        _audit_client = httpx.AsyncClient()
+    return _audit_client
+
 
 async def _user_exists_in_auth(user_id: str) -> bool:
     """Return True if user_id is present in auth.users.
@@ -22,12 +33,12 @@ async def _user_exists_in_auth(user_id: str) -> bool:
     attempted — if that write then fails, it surfaces as a CRITICAL log.
     """
     try:
-        async with httpx.AsyncClient(timeout=3.0) as client:
-            r = await client.get(
-                f"{_URL}/auth/v1/admin/users/{user_id}",
-                headers={"apikey": _KEY or "", "Authorization": f"Bearer {_KEY or ''}"},
-            )
-            return r.status_code == 200
+        r = await _get_audit_client().get(
+            f"{_URL}/auth/v1/admin/users/{user_id}",
+            headers={"apikey": _KEY or "", "Authorization": f"Bearer {_KEY or ''}"},
+            timeout=3.0,
+        )
+        return r.status_code == 200
     except Exception as exc:
         logger.warning(
             "audit pre-check could not verify user %s: %s — attempting write anyway",
@@ -70,13 +81,13 @@ async def write_identity_substitution_audit(
         "user_id":                user_id,
     }
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            r = await client.post(
-                f"{_URL}/rest/v1/identity_substitution_audit",
-                headers=_HEADERS,
-                json=row,
-            )
-            r.raise_for_status()
+        r = await _get_audit_client().post(
+            f"{_URL}/rest/v1/identity_substitution_audit",
+            headers=_HEADERS,
+            json=row,
+            timeout=5.0,
+        )
+        r.raise_for_status()
     except httpx.HTTPStatusError as exc:
         logger.error(
             "identity_substitution_audit write failed: %s — body: %s", exc, exc.response.text
@@ -124,13 +135,13 @@ async def _write_session_audit_row(row: dict, prefer: str, label: str) -> None:
         return
 
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            r = await client.post(
-                f"{_URL}/rest/v1/session_audit",
-                headers={**_HEADERS, "Prefer": prefer},
-                json=row,
-            )
-            r.raise_for_status()
+        r = await _get_audit_client().post(
+            f"{_URL}/rest/v1/session_audit",
+            headers={**_HEADERS, "Prefer": prefer},
+            json=row,
+            timeout=5.0,
+        )
+        r.raise_for_status()
     except httpx.HTTPStatusError as exc:
         # Pre-check passed but write failed — this must not be silent.
         logger.critical(

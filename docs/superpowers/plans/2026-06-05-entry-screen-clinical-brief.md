@@ -83,7 +83,7 @@ The entry screen is a brief, natural-language opener that:
 
 **This is an entry guard, not an any-turn guard.** This limitation is stated explicitly for clinical review. For the somatic four, the residual is smaller — physical conditions are usually disclosed up front. For ACT, the entry screen catches the state at skill start; if the user drifts into passive-SI phrasing mid-skill, the only backstop is S1/S3 (which misses acceptance-framed phrasings). The corpus expansion complement (§4) is required to reduce but not eliminate this residual.
 
-### 2.4 The governance question — LLM-mediated safety arrest
+### 2.4 The governance question — LLM-mediated safety arrest and mid-skill ACT residual
 
 **This is the decision the clinical lead must make explicitly.**
 
@@ -91,12 +91,28 @@ The entry screen's contraindication gate is LLM-evaluated. The LLM judges whethe
 
 The tradeoff is: no deterministic mechanism can catch generative acceptance-frame camouflage — corpus expansion chases a distribution the skill continuously generates. The intent screen is the practical primary fix, but it places a safety-critical arrest on an LLM judgment call.
 
-This must not ship as an engineering convenience that happens to carry clinical-safety load without explicit sign-off. The question is:
+This must not ship as an engineering convenience that happens to carry clinical-safety load without explicit sign-off.
+
+**First question — LLM-mediated arrest:**
 
 **Is an LLM-mediated safety arrest acceptable for these five skills, given that no deterministic alternative catches the risk they carry?**
 
-If yes: proceed with implementation as specified. Document the decision and the mechanism in the clinical record.
+If yes: proceed with implementation. Document the decision and the mechanism in the clinical record.
 If no: the skills are held until a deterministic gate is built (full R6 signal fix, out of Gitex scope).
+
+**Second question — the mid-skill ACT residual that survives this fix:**
+
+The entry screen catches the user who arrives at ACT with passive-SI phrasing or profound hopelessness. It does not catch the user who drifts into that state during acceptance work — because the camouflage is generated mid-skill, after the entry screen has already passed them through. Corpus expansion (§5) narrows this gap; it does not close it (§1.1 explains why no corpus addition can close a generative distribution).
+
+A user may enter ACT with no contraindication, pass the entry screen, advance through identify_the_struggle and defusion, and then — during acceptance_and_willingness — articulate passive SI in acceptance-framed language that S1 and S3 both miss. The session monitoring layer (distress trajectory, engagement trajectory) provides partial coverage. It is not designed for, and does not reliably catch, calm, engaged, passive-SI language.
+
+**The clinical lead is being asked to accept this as a documented residual that remains after the fix — not one the fix resolves.**
+
+**Is the documented mid-skill ACT residual acceptable** — a scenario where ACT holds a user in acceptance work while they articulate passive SI in language the current detection architecture misses — given the available mitigations (entry screen + corpus expansion + session monitoring + clinician review queue)?
+
+Or: does ACT acceptance work require an any-turn LLM intent check before this exposure can be accepted?
+
+If the answer is "no, an any-turn check is required": ACT is held beyond Gitex scope until that mechanism is designed and built. PST and the somatic four are unaffected by this answer — their residual risk after the entry screen is materially smaller (physical contraindications are usually disclosed up front, not generated mid-skill).
 
 ---
 
@@ -120,9 +136,11 @@ If no: the skills are held until a deterministic gate is built (full R6 signal f
 }
 ```
 
-### Required code change
+### Required code change — and why this line is the entire gate
 
 One change to `skill_executor.py` is required: add the five skill IDs to `_LLM_CRITERIA_SKILLS`. Without this, `completion_criteria` is evaluated by word-count heuristic (>1 word), which passes any user response regardless of content.
+
+**Failure mode if this edit is missed or a skill ID is typo'd:** The entry screen step still renders. The warm opener appears. The user answers. The skill advances. The gate is wide open. This failure is silent — surface behavior is intact, safety logic is inert. This is structurally identical to the 18 dead signals: the JSON rule fires, nothing happens.
 
 ```python
 _LLM_CRITERIA_SKILLS: frozenset[str] = frozenset({
@@ -136,7 +154,9 @@ _LLM_CRITERIA_SKILLS: frozenset[str] = frozenset({
 })
 ```
 
-This is the only code change. No executor logic changes, no signal dict changes, no graph changes.
+**Load-time guard (required before any of these five skills ship):** A skill registered with an `entry_screen` step but absent from `_LLM_CRITERIA_SKILLS` should fail at startup, not silently degrade to word-count. Add a validation check in `skill_executor.py` or the skill loader: assert every skill whose first step has `step_id == "entry_screen"` is present in `_LLM_CRITERIA_SKILLS`. A startup error is the correct failure mode for a misconfigured safety gate.
+
+This, the frozenset edit, and the load-time guard are the only code changes. No executor logic changes, no signal dict changes, no graph changes.
 
 ---
 
@@ -264,10 +284,20 @@ After expansion: run `scripts/calibrate_s3_threshold.py`. Verify gap >= 0.0059 o
 
 ## 6. Authoring checklist before implementation
 
-- [ ] Clinical lead has reviewed this document and explicitly signed off on LLM-mediated safety arrest for all five skills (see §3, governance question)
-- [ ] Clinical lead has reviewed the entry limitations (entry guard only, not mid-skill) and accepts the residual risk or specifies additional mitigations
-- [ ] Code change: add five skill IDs to `_LLM_CRITERIA_SKILLS` in `skill_executor.py`
+**Clinical sign-off (both questions must be answered):**
+- [ ] Clinical lead has explicitly answered question 1: LLM-mediated safety arrest is acceptable for these five skills
+- [ ] Clinical lead has explicitly answered question 2: the mid-skill ACT residual is acceptable at this level of mitigation, OR ACT requires an any-turn check and is held beyond this gate
+
+**Hard-gate tests (must exist and pass before any of the five skills ships):**
+- [ ] **HARD GATE — frozenset membership test:** unit test asserting all five skill IDs (`act_psychological_flexibility`, `dbt_tipp`, `progressive_muscle_relaxation`, `mindfulness_body_scan`, `safe_place_visualization`) are present in `_LLM_CRITERIA_SKILLS`; test must fail loud — not skip, not warn — if any ID is absent or typo'd
+- [ ] **HARD GATE — behavioral test per skill:** for each of the five entry screens, a test that feeds a clear contraindication disclosure and asserts the skill does not advance (completion_criteria returns hold, not pass); one test per skill; these tests must run in CI
+
+**Code changes:**
+- [ ] Load-time guard: skill loader asserts every skill whose `steps[0].step_id == "entry_screen"` is present in `_LLM_CRITERIA_SKILLS`; raises at startup if not
+- [ ] Frozenset edit: add five skill IDs to `_LLM_CRITERIA_SKILLS` in `skill_executor.py`
 - [ ] Add `entry_screen` as `steps[0]` in each of the five skill JSONs (before first technique step)
+
+**QA and calibration:**
 - [ ] Run `calibrate_threshold.py` after any semantic_description changes in the updated skills
 - [ ] Add corpus expansion phrasings to `crisis_phrases.json` and recalibrate S3 threshold
 - [ ] Manual QA: entry screen advances in one turn when no contraindication is disclosed

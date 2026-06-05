@@ -28,7 +28,7 @@ from sage_poc.state import SageState
 from sage_poc.language import detect_language, async_translate_to_english
 from sage_poc.rules import engine as rules_engine
 from sage_poc.nodes.post_crisis_classifier import evaluate_s7
-from sage_poc.safety.s3_semantic import check_s3, S3_THRESHOLD
+from sage_poc.safety.s3_semantic import check_s3, check_s3_bilingual, S3_THRESHOLD
 
 _log = logging.getLogger(__name__)
 
@@ -131,13 +131,10 @@ async def safety_check_node(state: SageState) -> dict:
     # not yet built) provides a semantic backstop — that backstop does not exist in POC.
     # Before pruning any AR/AZ keyword, run: uv run python scripts/verify_arabic_safety.py
     try:
+        # check_s3_bilingual batches text_en + text_ar in one forward pass — avoids
+        # two sequential encode() calls for Arabic (was the source of the latency regression).
         s3_score = await asyncio.wait_for(
-            asyncio.to_thread(
-                lambda: max(
-                    check_s3(message_en),
-                    check_s3(text_ar) if text_ar else 0.0,
-                )
-            ),
+            asyncio.to_thread(check_s3_bilingual, message_en, text_ar),
             timeout=5.0,
         )
         if s3_score >= S3_THRESHOLD:
@@ -147,8 +144,14 @@ async def safety_check_node(state: SageState) -> dict:
             if not s3_suppressed and "s3_semantic" not in new_crisis_flags:
                 new_crisis_flags.append("s3_semantic")
     except asyncio.TimeoutError:
-        _log.warning(
-            "[safety_check] S3 timeout after 5.0s; crisis detection degraded to S1 only"
+        # OPEN DECISION (clinical/product): is S1-only an acceptable crisis fallback?
+        # Current behaviour: proceed as if S3 returned 0.0 (S1 lexicon result stands).
+        # Alternative: fail conservative — surface crisis resources / escalate to human.
+        # Until that decision is made, log at ERROR so log-based alerts fire.
+        _log.error(
+            "[safety_check] S3_TIMEOUT session=%s; semantic crisis detection disabled for this turn; "
+            "S1-only (lexicon) result stands — verify BGE-M3 index is warmed",
+            None,  # session_id not yet in state at this node; surfaced in output_gate audit row
         )
     except Exception as exc:
         _log.warning(

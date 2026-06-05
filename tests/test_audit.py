@@ -60,7 +60,7 @@ async def test_write_posts_correct_row(monkeypatch):
     class MockClient:
         async def __aenter__(self): return self
         async def __aexit__(self, *a): pass
-        async def post(self, url, headers, json):
+        async def post(self, url, headers, json, **kwargs):
             posted_json.update(json)
             return MockResponse()
 
@@ -103,7 +103,7 @@ async def test_write_extracts_passage_ids(monkeypatch):
     class MockClient:
         async def __aenter__(self): return self
         async def __aexit__(self, *a): pass
-        async def post(self, url, headers, json):
+        async def post(self, url, headers, json, **kwargs):
             posted_json.update(json)
             return MockResponse()
 
@@ -189,12 +189,12 @@ async def test_write_skips_with_info_when_user_not_in_auth(monkeypatch, caplog):
     class MockClient:
         async def __aenter__(self): return self
         async def __aexit__(self, *a): pass
-        async def get(self, url, headers):
+        async def get(self, url, headers, **kwargs):
             # Simulate user not found in auth.users
             class R:
                 status_code = 404
             return R()
-        async def post(self, url, headers, json):
+        async def post(self, url, headers, json, **kwargs):
             post_calls.append(json)
             class R:
                 def raise_for_status(self): pass
@@ -226,12 +226,12 @@ async def test_write_proceeds_when_user_exists_in_auth(monkeypatch):
     class MockClient:
         async def __aenter__(self): return self
         async def __aexit__(self, *a): pass
-        async def get(self, url, headers):
+        async def get(self, url, headers, **kwargs):
             # Simulate user found in auth.users
             class R:
                 status_code = 200
             return R()
-        async def post(self, url, headers, json):
+        async def post(self, url, headers, json, **kwargs):
             post_calls.append(json)
             class R:
                 def raise_for_status(self): pass

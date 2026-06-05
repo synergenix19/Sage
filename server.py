@@ -28,6 +28,10 @@ _log = logging.getLogger(__name__)
 CRISIS_SIGNAL = "[[CRISIS_DETECTED]]"
 AINVOKE_TIMEOUT_SECONDS: float = float(os.environ.get("AINVOKE_TIMEOUT_SECONDS", "18"))
 
+# Gate: True once BGE-M3 warmup completes (or is intentionally skipped).
+# /health/ready and /chat both check this; Railway healthcheck holds LB traffic until ready.
+_bge_ready: bool = False
+
 
 async def require_api_key(x_sage_api_key: str | None = Header(default=None)) -> None:
     _expected_key = os.environ.get("SAGE_API_KEY", "")
@@ -36,6 +40,14 @@ async def require_api_key(x_sage_api_key: str | None = Header(default=None)) -> 
         or not hmac.compare_digest(x_sage_api_key, _expected_key)
     ):
         raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+async def require_ready() -> None:
+    if not _bge_ready:
+        raise HTTPException(
+            status_code=503,
+            detail="Service warming up — BGE-M3 index not ready",
+        )
 
 _cors_origins_raw = os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
 _CORS_ORIGINS: list[str] = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
@@ -53,14 +65,22 @@ def _warmup_bge_m3() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global _bge_ready
     if os.environ.get("SAGE_WARMUP_BGE", "1") != "0":
         try:
             await asyncio.to_thread(_warmup_bge_m3)
             _log.info("[sage/startup] BGE-M3 warmup complete")
+            _bge_ready = True
         except Exception as exc:
-            _log.warning("[sage/startup] BGE-M3 warmup failed: %s", exc)
+            # Warmup failed: keep process up but hold traffic at the LB via /health/ready.
+            # /chat returns 503 until warmup succeeds on a retry deploy or manual trigger.
+            # This is a hard signal — do not silently serve crisis traffic with a cold index.
+            _log.error(
+                "[sage/startup] BGE-M3 warmup failed — service is NOT ready: %s", exc
+            )
     else:
         _log.info("[sage/startup] BGE-M3 warmup skipped (SAGE_WARMUP_BGE=0)")
+        _bge_ready = True  # intentionally unwarmed; allow traffic
 
     for _field, _info in SCHEMA_CONFORMANCE.items():
         _log.info("[sage/startup] schema %-42s → %s", _field, _info["status"])
@@ -142,6 +162,7 @@ class NameSessionRequest(BaseModel):
 async def chat(
     req: ChatRequest,
     _: None = Depends(require_api_key),
+    _ready: None = Depends(require_ready),
 ) -> StreamingResponse:
     if not req.session_id or not req.session_id.strip():
         raise HTTPException(status_code=400, detail="session_id is required")
@@ -355,6 +376,19 @@ async def name_session(
         req.session_id,
     )
     return {"status": "ok", "name": name}
+
+
+@app.get("/health/ready")
+async def health_ready():
+    """Railway healthcheck target. Returns 503 until BGE-M3 warmup completes.
+    Configure in Railway: healthcheck path = /health/ready, timeout >= 120s.
+    """
+    if not _bge_ready:
+        raise HTTPException(
+            status_code=503,
+            detail="Service warming up — BGE-M3 index not ready",
+        )
+    return {"status": "ready"}
 
 
 @app.get("/health/schema-conformance")

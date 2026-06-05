@@ -254,7 +254,7 @@ class TestWriteSessionAuditKnowledgeFields:
             async def __aexit__(self, *a):
                 pass
 
-            async def post(self, url, headers, json):
+            async def post(self, url, headers, json, **kwargs):
                 posted_json.update(json)
                 return MockResponse()
 
@@ -294,7 +294,7 @@ class TestWriteSessionAuditKnowledgeFields:
             async def __aexit__(self, *a):
                 pass
 
-            async def post(self, url, headers, json):
+            async def post(self, url, headers, json, **kwargs):
                 posted_json.update(json)
                 return MockResponse()
 
