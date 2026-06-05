@@ -275,12 +275,31 @@ def _condition_met(
     return all(op_fn(v, cond.value) for v in prior + [signal_value])
 
 
+def _select_examples(examples: list[str], detected_language: str, n: int = 2) -> list[str]:
+    """Select n examples preferring detected_language, topping up from the rest if needed.
+
+    Uses matched-first then remainder, so a step with 1 Arabic + 4 English examples
+    returns [arabic, english1] for ar sessions instead of falling back to [english1, english2].
+    This avoids re-introducing EN->AR contamination on steps with only 1 Arabic example.
+    Uses id()-based remainder to survive duplicate example strings across languages.
+    """
+    def _is_arabic(text: str) -> bool:
+        return any(0x0600 <= ord(c) <= 0x06FF for c in text)
+
+    want_arabic = detected_language == "ar"
+    matched = [ex for ex in examples if _is_arabic(ex) == want_arabic]
+    matched_ids = set(id(e) for e in matched)
+    remainder = [ex for ex in examples if id(ex) not in matched_ids]
+    return (matched + remainder)[:n]
+
+
 def evaluate_step_policy(
     skill: Skill,
     current_step_id: str,
     emotional_intensity: int,
     engagement: int,
     message_en: str = "",
+    detected_language: str = "en",
     resistance_history: list[int] | None = None,
     resistance_score: int | None = None,
     re_escalation_detected: bool = False,
@@ -384,7 +403,7 @@ def evaluate_step_policy(
         f"Goal: {step.goal}. "
         f"Technique: {step.technique}. "
         f"Tone: {step.tone}. "
-        f"Example approaches: {'; '.join(step.examples[:2])}"
+        f"Example approaches: {'; '.join(_select_examples(step.examples, detected_language))}"
     )
 
     # entry_screen steps must always route through LLM evaluation — the word-count
@@ -480,6 +499,7 @@ async def skill_executor_node(state: SageState) -> dict:
         "emotional_intensity":  state["emotional_intensity"],
         "engagement":           state["engagement"],
         "message_en":           state["message_en"],
+        "detected_language":    state.get("detected_language") or "en",
         "resistance_history":   resistance_history,
         "re_escalation_detected": re_escalation_detected,
         "engagement_trajectory": engagement_trajectory,

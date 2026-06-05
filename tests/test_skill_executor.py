@@ -929,3 +929,74 @@ class TestResistanceHistoryStepReset:
         assert result["resistance_history"] == [5, 6, 4], (
             "Continuation turn must accumulate history, not reset it"
         )
+
+
+# ── Language-aware example selection (Task 10) ────────────────────────────────
+
+def _has_arabic(text: str) -> bool:
+    return any(0x0600 <= ord(c) <= 0x06FF for c in text)
+
+
+def test_english_session_receives_english_examples_only():
+    """English-session LLM context must not contain Arabic few-shot examples.
+
+    Language-blind examples[:2] caused EN->AR contamination when Arabic was at [0].
+    """
+    from sage_poc.skills.schema import load_skill
+
+    skill = load_skill("box_breathing")
+    step = next(s for s in skill.steps if s.step_id == "inhale_hold")
+
+    assert any(_has_arabic(ex) for ex in step.examples), "test precondition: need Arabic examples"
+    assert any(not _has_arabic(ex) for ex in step.examples), "test precondition: need English examples"
+
+    result = evaluate_step_policy(
+        skill=skill,
+        current_step_id="inhale_hold",
+        emotional_intensity=3,
+        engagement=5,
+        message_en="ok I did that",
+        detected_language="en",
+    )
+    instruction = result.get("instruction", "")
+    assert not _has_arabic(instruction), (
+        "English session instruction must not contain Arabic text. "
+        "Language-aware example selection is broken."
+    )
+
+
+def test_arabic_session_receives_arabic_examples():
+    from sage_poc.skills.schema import load_skill
+
+    skill = load_skill("box_breathing")
+    step = next(s for s in skill.steps if s.step_id == "inhale_hold")
+    assert any(_has_arabic(ex) for ex in step.examples), "test precondition: inhale_hold needs Arabic examples"
+
+    result = evaluate_step_policy(
+        skill=skill,
+        current_step_id="inhale_hold",
+        emotional_intensity=3,
+        engagement=5,
+        message_en="ok I did that",
+        detected_language="ar",
+    )
+    instruction = result.get("instruction", "")
+    assert _has_arabic(instruction), (
+        "Arabic session instruction must contain Arabic example text."
+    )
+
+
+def test_arabic_session_with_single_arabic_example_does_not_revert_to_all_english():
+    """Top-up must return [arabic, english1] not [english1, english2] for single-Arabic steps."""
+    from sage_poc.nodes.skill_executor import _select_examples
+
+    examples = [
+        "في وسعك تتنفس معي الحين",   # Arabic — only 1
+        "Let's breathe together now",
+        "OK let's try this together",
+        "Breathe in with me",
+    ]
+    selected = _select_examples(examples, detected_language="ar", n=2)
+    assert len(selected) == 2
+    assert _has_arabic(selected[0]), "First selected example must be Arabic for Arabic session"
+    assert not _has_arabic(selected[1]), "Top-up example should be English when only 1 Arabic exists"
