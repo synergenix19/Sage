@@ -71,13 +71,16 @@ def _eval_safety(rules: list[SafetyRule], context: dict) -> EvalResult:
       text_en (str)         — English text (raw message if English; translated if Arabic)
       text_ar (str | None)  — Original Arabic text (None if message was English)
       language (str)        — "en" | "ar"
+      text_raw (str | None) — Verbatim user message before any translation (used by lang="az" rules)
     """
     text_en = context.get("text_en", "")
     text_ar = context.get("text_ar") or ""
+    text_raw = context.get("text_raw") or ""
     language = context.get("language", "en")
 
     norm_en = normalize_text(text_en)
     norm_ar = normalize_arabic(text_ar) if text_ar else ""
+    norm_raw = normalize_text(text_raw) if text_raw else ""
 
     result = EvalResult()
 
@@ -88,11 +91,19 @@ def _eval_safety(rules: list[SafetyRule], context: dict) -> EvalResult:
         for pattern in rule.patterns:
             if matched:
                 break
-            # For "any" rules: route Arabic-script patterns to norm_ar, others to norm_en
-            is_arabic_pattern = lang == "ar" or (
-                lang == "any" and any('؀' <= ch <= 'ۿ' for ch in pattern)
-            )
-            text_to_check = norm_ar if is_arabic_pattern else norm_en
+            if lang == "az":
+                # Arabizi rules must always match against the raw untranslated input.
+                # When detect_language() misclassifies Arabizi as Arabic, message_en
+                # is the Arabic-script translation — matching against it silently drops
+                # all Arabizi crisis signals. Fallback to norm_en preserves backwards
+                # compatibility for direct engine callers that don't supply text_raw.
+                text_to_check = norm_raw if norm_raw else norm_en
+            else:
+                # For "any" rules: route Arabic-script patterns to norm_ar, others to norm_en
+                is_arabic_pattern = lang == "ar" or (
+                    lang == "any" and any('؀' <= ch <= 'ۿ' for ch in pattern)
+                )
+                text_to_check = norm_ar if is_arabic_pattern else norm_en
 
             if not text_to_check:
                 continue

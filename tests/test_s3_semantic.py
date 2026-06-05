@@ -439,3 +439,59 @@ def test_s3_recall_gate_denominator():
             f"Missed phrases: {misses}\n"
             f"Do not fix this by moving phrases to xfail or reducing _EXPECTED_SI_COUNT."
         )
+
+
+# ── Arabic S3 path: correctness + warm inference latency (2026-06-05) ────────
+#
+# These tests verify the check_s3(text_ar) path added when safety_check_node was
+# changed from single-path (EN only) to two-path: max(check_s3(EN), check_s3(AR)).
+# The SF1_GATE_PHRASES above include 4 Arabic entries and also cover check_s3(text_ar)
+# correctness; these tests add latency coverage and a second Arabic correctness anchor.
+
+
+@pytest.mark.slow
+def test_s3_arabic_corpus_phrase_scores_above_threshold():
+    """Arabic corpus entry must score >= S3_THRESHOLD when queried directly.
+
+    This verifies check_s3(text_ar) correctness without going through the node.
+    The phrase is verbatim from crisis_phrases.json so it must score ~1.0.
+    If this fails and SF1_GATE_PHRASES Arabic entries also fail, the BGE-M3 model
+    is not on CPU — check _warm_bge_m3_once device='cpu' in conftest.py.
+    """
+    from sage_poc.safety.s3_semantic import check_s3, S3_THRESHOLD
+
+    arabic_corpus_phrase = "أحياناً أحس إن وجودي يعب على ناسي وإنهم ما يحتاجونني"
+    score = check_s3(arabic_corpus_phrase)
+    assert score >= S3_THRESHOLD, (
+        f"Arabic S3 corpus phrase scored {score:.4f} < {S3_THRESHOLD}.\n"
+        f"Expected ~1.0 for verbatim corpus entry. Check: model on CPU, "
+        f"crisis_phrases.json contains this phrase, BGE-M3 revision unchanged."
+    )
+
+
+@pytest.mark.slow
+def test_s3_arabic_warm_inference_latency():
+    """Warm inference for an Arabic corpus phrase must complete within 2000ms.
+
+    Production target is ~200ms on Railway CPU. 2000ms is a generous CI budget.
+    This guards against silent latency regressions that would cause the 5s
+    asyncio.wait_for timeout to fire under production load.
+    """
+    import time
+    from sage_poc.safety.s3_semantic import check_s3, S3_THRESHOLD
+
+    arabic_corpus_phrase = "في أوقات أفكر إن مستقبل أهلي أفضل بدوني، أنا بس أعيق مسيرتهم"
+
+    check_s3(arabic_corpus_phrase)  # discard first call (any JIT overhead)
+
+    start = time.perf_counter()
+    score = check_s3(arabic_corpus_phrase)
+    elapsed_ms = (time.perf_counter() - start) * 1000
+
+    assert score >= S3_THRESHOLD, (
+        f"Arabic corpus phrase scored {score:.4f} < {S3_THRESHOLD} on warm model."
+    )
+    assert elapsed_ms < 2000, (
+        f"Warm Arabic S3 inference took {elapsed_ms:.0f}ms — §5.1 Layer-1 budget at risk.\n"
+        f"Production target is ~200ms. Check: unexpected index rebuild or model reload?"
+    )

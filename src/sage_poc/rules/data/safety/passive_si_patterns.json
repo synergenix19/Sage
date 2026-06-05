@@ -126,13 +126,13 @@
     },
     {
       "rule_id": "SK-AZ-002",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "category": "safety",
       "authored_by": "sage_clinics",
       "approved_by": null,
       "effective_date": "2026-05-21",
       "active": true,
-      "description": "Arabizi passive SI — Gulf Arabic transliterated despair and hopelessness expressions",
+      "description": "Arabizi passive SI — routes to text_raw so detect_language misclassification as Arabic does not silence this rule",
       "match_type": "keyword",
       "patterns": [
         "ma7ad y7tajni",
@@ -145,7 +145,7 @@
         "ma7ad ra7 yef2adni",
         "mafi fayda"
       ],
-      "language": "en",
+      "language": "az",
       "modifiers": ["negation_check"],
       "action": {
         "type": "crisis_flag",

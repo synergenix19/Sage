@@ -63,8 +63,14 @@ def _ensure_s3_ready() -> bool:
 
 
 def get_embedding(text: str) -> list[float]:
-    from sage_poc.memory.embedding import get_embedding as _get  # noqa: PLC0415
-    return _get(text)
+    # Use _embed_model directly to avoid triggering _ensure_semantic_ready(), which
+    # rebuilds the 20-skill embedding matrix (~5-8s on CPU). S3 only needs the model
+    # loaded (guaranteed by _ensure_s3_ready()) and the phrase index (built above).
+    import sage_poc.nodes.skill_select as _ss  # noqa: PLC0415
+    if _ss._embed_model is None:
+        _ss._ensure_semantic_ready()
+    result = _ss._embed_model.encode([text], normalize_embeddings=True)[0]
+    return result.tolist() if hasattr(result, "tolist") else list(result)
 
 
 def check_s3(text: str) -> float:

@@ -314,3 +314,95 @@ async def test_s3_exception_emits_warning(caplog):
     assert any("S3 check failed" in r.message for r in caplog.records), \
         "Expected a warning mentioning 'S3 check failed'"
     assert "is_safe" in result
+
+
+# ── Arabizi language-classification independence (SPOF regression) ────────────
+
+class TestArabiziLanguageClassificationIndependence:
+    """Regression guard: Arabizi crisis rules must fire even when detect_language
+    returns 'ar' — the SPOF that existed before lang='az' was introduced.
+
+    Before the fix, SK-AZ-001/002 were lang='en' and matched against message_en
+    (the translation). When 'abi amoot' is classified as Arabic, message_en is the
+    Arabic-script translation and the Arabizi patterns silently missed.
+
+    With lang='az', the rules engine receives text_raw and matches regardless of
+    how detect_language classified the input.
+    """
+
+    async def test_arabizi_explicit_si_fires_when_classified_as_arabic(self):
+        """SK-AZ-001 fires when detect_language('abi amoot') returns 'ar'.
+
+        Mocks detect_language to return 'ar' and translation to return Arabic script
+        to reproduce the exact pre-fix failure mode.
+        """
+        state = make_state(raw_message="abi amoot")
+        with patch(
+            "sage_poc.nodes.safety_check.detect_language",
+            return_value="ar",
+        ), patch(
+            "sage_poc.nodes.safety_check.async_translate_to_english",
+            return_value="أريد الموت",
+        ):
+            result = await safety_check_node(state)
+        assert result["is_safe"] is False, (
+            "Arabizi 'abi amoot' must trigger crisis even when classified as Arabic "
+            "(SK-AZ-001 SPOF regression guard)"
+        )
+        assert len(result["crisis_flags"]) > 0, (
+            "Expected at least one crisis flag for Arabizi 'abi amoot' misclassified as Arabic"
+        )
+
+    async def test_arabizi_passive_si_fires_when_classified_as_arabic(self):
+        """SK-AZ-002 fires when detect_language('hayati khalsa') returns 'ar'.
+
+        Gulf Arabizi passive-SI phrase — langdetect may return 'ar' for short phrases
+        containing Arabic loanwords. The fix ensures SK-AZ-002 still fires via text_raw.
+        """
+        state = make_state(raw_message="hayati khalsa")
+        with patch(
+            "sage_poc.nodes.safety_check.detect_language",
+            return_value="ar",
+        ), patch(
+            "sage_poc.nodes.safety_check.async_translate_to_english",
+            return_value="حياتي انتهت",
+        ):
+            result = await safety_check_node(state)
+        assert result["is_safe"] is False, (
+            "Arabizi 'hayati khalsa' must trigger crisis even when classified as Arabic "
+            "(SK-AZ-002 SPOF regression guard)"
+        )
+        assert len(result["crisis_flags"]) > 0, (
+            "Expected at least one crisis flag for Arabizi 'hayati khalsa' misclassified as Arabic"
+        )
+
+
+# ── Arabic S3 two-path verification (@slow, requires warm model) ─────────────
+
+@pytest.mark.slow
+async def test_s3_arabic_text_path_fires_crisis_at_node_level(s3_warmed):
+    """The check_s3(text_ar) path added 2026-06-05 fires crisis for a verbatim Arabic
+    corpus phrase when the English translation scores below threshold.
+
+    Mocks message_en to a neutral phrase so only the Arabic text path drives detection.
+    Confirms that safety_check_node calls check_s3(text_ar) and uses the result.
+    s3_warmed ensures the phrase index is pre-built — inference runs in ~50ms,
+    well within the 5s asyncio.wait_for timeout.
+    """
+    arabic_corpus_phrase = "أحياناً أحس إن وجودي يعب على ناسي وإنهم ما يحتاجونني"
+    state = make_state(raw_message=arabic_corpus_phrase)
+
+    with patch(
+        "sage_poc.nodes.safety_check.async_translate_to_english",
+        return_value="I feel okay today",
+    ):
+        result = await safety_check_node(state)
+
+    assert result["is_safe"] is False, (
+        "Arabic SF-1 corpus phrase must fire crisis via check_s3(text_ar). "
+        "If is_safe=True, the two-path S3 change (2026-06-05) is not taking effect."
+    )
+    assert "s3_semantic" in result["crisis_flags"], (
+        "check_s3(text_ar) path must produce s3_semantic flag for Arabic corpus phrase. "
+        "Regression guard for the 2026-06-05 two-path S3 change."
+    )

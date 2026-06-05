@@ -807,3 +807,176 @@ def test_sk_en_002_v1_2_0_recall_gap_if_dead_patterns_removed(text):
         f"Currently caught by 'relieved if i were/was dead' pattern. "
         f"If this fails, the pattern was removed — update this test to document the accepted miss."
     )
+
+
+# ── Arabizi lang=az SPOF regression guard (2026-06-05) ───────────────────────
+#
+# Root cause: SK-AZ-001 and SK-AZ-002 were lang="en" so they matched against
+# message_en (the translation). When detect_language("abi amoot") returns "ar",
+# message_en = Arabic-script translation. The Arabizi patterns never saw the
+# original text and silently dropped. The fix: lang="az" routes to text_raw
+# unconditionally, with fallback to norm_en for callers that don't supply text_raw.
+
+@pytest.mark.parametrize("arabizi_text", [
+    "abi amoot",
+    "wallah i want to die",
+    "khalas i give up",
+    "bidi amoot",
+    "ta3abt mn el7ayat",
+])
+def test_arabizi_explicit_si_fires_when_language_classified_as_arabic(arabizi_text):
+    """SK-AZ-001 must fire when language='ar' and text_raw contains Arabizi.
+
+    Regression guard: before lang='az', SK-AZ-001 matched against message_en
+    (the translation). When detect_language misclassifies Arabizi as Arabic,
+    message_en is Arabic script and the Arabizi patterns silently fail.
+    text_raw carries the original untranslated input; lang='az' routes to it.
+    """
+    result = engine.evaluate("safety", {
+        "text_en": "أريد الموت",  # Arabic-script translation — would not match Arabizi
+        "language": "ar",
+        "text_raw": arabizi_text,
+    })
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert crisis_actions, (
+        f"SK-AZ-001 SPOF regression: '{arabizi_text}' must fire via text_raw path "
+        f"when language='ar' (detect_language misclassification scenario)."
+    )
+
+
+@pytest.mark.parametrize("arabizi_text", [
+    "ma7ad y7tajni",
+    "hayati khalsa",
+    "mafi fayda",
+    "ta3abt mn nafsy",
+])
+def test_arabizi_passive_si_fires_when_language_classified_as_arabic(arabizi_text):
+    """SK-AZ-002 must fire when language='ar' and text_raw contains Arabizi.
+
+    Same SPOF scenario as SK-AZ-001: passive-SI Arabizi phrases are lost when
+    detect_language returns 'ar' and message_en is the Arabic-script translation.
+    """
+    result = engine.evaluate("safety", {
+        "text_en": "لا يهمني شيء",  # Arabic translation — would not match Arabizi
+        "language": "ar",
+        "text_raw": arabizi_text,
+    })
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert crisis_actions, (
+        f"SK-AZ-002 SPOF regression: '{arabizi_text}' must fire via text_raw path "
+        f"when language='ar'."
+    )
+
+
+# ── SK-AR-004 Arabic SI method ─────────────────────────────────────────────────
+
+@pytest.mark.parametrize("arabic_text", [
+    "كيف اخذ حبوب عشان اموت",
+    "كم حبة تقتلني",
+    "اقفز من الجسر",
+    "اشق معصمي",
+    "اشنق نفسي",
+    "طرق انهاء حياتي",
+])
+def test_arabic_si_method_triggers_si_method_flag(arabic_text):
+    """SK-AR-004 correctness: Arabic SI method phrases must produce si_method flag."""
+    result = engine.evaluate("safety", {
+        "text_en": "how do i hurt myself",
+        "text_ar": arabic_text,
+        "language": "ar",
+    })
+    flag_ids = [a["flag_id"] for a in result.actions if a.get("type") == "crisis_flag"]
+    assert "si_method" in flag_ids, (
+        f"SK-AR-004: expected si_method for Arabic SI method phrase: {arabic_text!r}"
+    )
+
+
+@pytest.mark.parametrize("arabic_text", [
+    "كيف تعطى حبوب الضغط",     # "how are blood pressure pills given" — medical, not SI
+    "كم حبة من فيتامين د",      # "how many vitamin D pills" — medical
+])
+def test_arabic_si_method_fp_guard_medical_questions(arabic_text):
+    """SK-AR-004 FP guard: general medical dosage questions must not fire si_method."""
+    result = engine.evaluate("safety", {
+        "text_en": "how many pills",
+        "text_ar": arabic_text,
+        "language": "ar",
+    })
+    flag_ids = [a["flag_id"] for a in result.actions if a.get("type") == "crisis_flag"]
+    assert "si_method" not in flag_ids, (
+        f"SK-AR-004 false positive: medical question '{arabic_text!r}' must not fire si_method"
+    )
+
+
+# ── SK-AZ-003 Arabizi SI method ────────────────────────────────────────────────
+
+@pytest.mark.parametrize("arabizi_text", [
+    "kam 7abba 3shan amoot",
+    "agfez mn aljsr",
+    "t5ana2 nafsi",
+    "6ari2a aqtel nafsi",
+])
+def test_arabizi_si_method_triggers_si_method_flag(arabizi_text):
+    """SK-AZ-003 correctness: Arabizi SI method phrases must produce si_method via text_raw."""
+    result = engine.evaluate("safety", {
+        "text_en": "how to hurt myself",
+        "language": "en",
+        "text_raw": arabizi_text,
+    })
+    flag_ids = [a["flag_id"] for a in result.actions if a.get("type") == "crisis_flag"]
+    assert "si_method" in flag_ids, (
+        f"SK-AZ-003: expected si_method for Arabizi SI method: {arabizi_text!r}"
+    )
+
+
+# ── SK-AR-005 Arabic third-party crisis (T-10 compliance) ──────────────────────
+
+@pytest.mark.parametrize("arabic_text", [
+    "صديقتي قالت تبغى تموت",
+    "اخوي يريد ان يموت",
+    "صديقي قال يبي ينهي حياته",
+    "اختي تتكلم عن الانتحار",
+])
+def test_arabic_third_party_crisis_fires_third_party_not_crisis_flag(arabic_text):
+    """SK-AR-005 T-10 compliance: Arabic third-party reports must fire third_party_crisis.
+
+    Node-level T-10 guarantee (is_safe=True for speaker): safety_check_node clears
+    crisis_flags when third_party_flags is non-empty, regardless of what the engine
+    fired. This test only verifies the engine rule fires the right action type.
+    Some phrases may also trigger explicit-SI rules (e.g. "اختي تتكلم عن الانتحار"
+    contains "انتحار" → SK-AR-001 also fires) — that is correct engine behavior.
+    The node-level override is tested in test_safety_node_integration.py.
+    """
+    result = engine.evaluate("safety", {
+        "text_en": "my friend wants to die",
+        "text_ar": arabic_text,
+        "language": "ar",
+    })
+    action_types = [a.get("type") for a in result.actions]
+    assert "third_party_crisis" in action_types, (
+        f"SK-AR-005: expected third_party_crisis for: {arabic_text!r}"
+    )
+
+
+# ── SK-AZ-004 Arabizi third-party crisis (T-10 compliance) ────────────────────
+
+@pytest.mark.parametrize("arabizi_text", [
+    "sa7abi gal yabi ymoot",
+    "sa7ebti tabgha tmoot",
+    "a5oi y7ki 3n alintikhar",
+])
+def test_arabizi_third_party_crisis_fires_third_party_not_crisis_flag(arabizi_text):
+    """SK-AZ-004 T-10 compliance: Arabizi third-party reports must fire third_party_crisis.
+
+    Matches via text_raw path (lang=az) so detect_language classification doesn't matter.
+    Node-level T-10 guarantee tested in test_safety_node_integration.py.
+    """
+    result = engine.evaluate("safety", {
+        "text_en": "my friend wants to die",
+        "language": "en",
+        "text_raw": arabizi_text,
+    })
+    action_types = [a.get("type") for a in result.actions]
+    assert "third_party_crisis" in action_types, (
+        f"SK-AZ-004: expected third_party_crisis for Arabizi: {arabizi_text!r}"
+    )

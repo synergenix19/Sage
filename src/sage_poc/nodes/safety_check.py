@@ -95,6 +95,7 @@ async def safety_check_node(state: SageState) -> dict:
         "text_en": message_en,
         "text_ar": text_ar,
         "language": lang,
+        "text_raw": raw,  # lang="az" rules always match against the original message
     })
 
     new_crisis_flags = [
@@ -112,13 +113,20 @@ async def safety_check_node(state: SageState) -> dict:
         new_crisis_flags = []
 
     # S3: semantic crisis detection — OR-fusion with S1
+    # Two-path: max(EN score, AR score) so Arabic crisis phrases in crisis_phrases.json
+    # are reachable without translation. BGE-M3 is multilingual; the Arabic corpus entries
+    # are only queryable via this second path when the raw text is Arabic.
     # Fail-open: exceptions and timeouts → score 0.0, no crash, S1 result stands.
     # v7 target: <50ms total for Layer 1. S3 embedding adds ~200-500ms per turn.
     # Acceptable for POC; production requires async pre-warm and potential GPU inference.
-    # TODO: Run S3 on both message_en and raw Arabic text for bilingual coverage. Currently EN-only.
     try:
         s3_score = await asyncio.wait_for(
-            asyncio.to_thread(check_s3, message_en),
+            asyncio.to_thread(
+                lambda: max(
+                    check_s3(message_en),
+                    check_s3(text_ar) if text_ar else 0.0,
+                )
+            ),
             timeout=5.0,
         )
         if s3_score >= S3_THRESHOLD:

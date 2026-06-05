@@ -146,6 +146,11 @@ def _warm_bge_m3_once():
             model = SentenceTransformer("BAAI/bge-m3", revision=_BGE_M3_REVISION, device="cpu")
         ss._embed_model = model
     ss._ensure_semantic_ready()
+    # Pre-build the S3 crisis phrase index. Without this, every slow test that does not
+    # request s3_warmed cold-builds the 60-phrase index (~3-5s) inside asyncio.wait_for's
+    # 5s budget. With the index pre-built here, check_s3 is warm-inference only (~50ms).
+    from sage_poc.safety.s3_semantic import _ensure_s3_ready as _build_s3_index
+    _build_s3_index()
 
 
 @pytest.fixture(autouse=True)
