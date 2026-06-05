@@ -125,17 +125,6 @@
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit immediately with warmth. No persuasion. Acknowledge that noticing worry patterns is itself a meaningful step.",
       "next_step_id": "exit"
-    },
-    {
-      "condition": {
-        "signal": "obsessive_theme_detected",
-        "operator": "==",
-        "value": true,
-        "step": "sort_and_act"
-      },
-      "action": "flag_for_review",
-      "instruction": "User's worry content shows repetitive, intrusive, or shame-laden themes that may indicate OCD rather than GAD. Do not continue with worry time categorisation. Validate the difficulty of the thoughts, do not reinforce avoidance or compulsive checking, and flag session for clinician_review. Offer to just talk rather than continue the technique.",
-      "next_step_id": "current"
     }
   ],
   "escalation_matrix": {

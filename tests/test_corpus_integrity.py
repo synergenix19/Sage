@@ -215,7 +215,6 @@ _KNOWN_DEAD_SIGNALS: frozenset[tuple[str, str]] = frozenset({
     ("self_compassion_break",      "self_kindness_rejection_detected"),
     ("sleep_hygiene",              "medication_or_substance_mention"),
     ("values_clarification",       "family_values_conflict_detected"),
-    ("worry_time",                 "obsessive_theme_detected"),
 })
 
 
