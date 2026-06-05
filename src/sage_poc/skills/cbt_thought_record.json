@@ -70,7 +70,7 @@
       "technique": "Socratic questioning",
       "technique_description": "Ask open questions that help the user surface and name their own thoughts, without suggesting what those thoughts should be. Wait for the user to find the words.",
       "tone": "warm, curious, non-judgmental",
-      "contraindications": "Do NOT challenge, question, or reframe the thought at this step. Do NOT ask 'is that really true?' or 'but are you sure?' The goal is only to capture the thought in the user's own words. Premature challenging before the thought is named destroys the working alliance. For a highly distressed user, simply helping them name and witness what they are telling themselves may be the entire value of this session — do not treat reaching the evidence columns as the measure of success.",
+      "contraindications": "Do NOT challenge, question, or reframe the thought at this step. Do NOT ask 'is that really true?' or 'but are you sure?' The goal is only to capture the thought in the user's own words. Premature challenging before the thought is named destroys the working alliance. For a highly distressed user, simply helping them name and witness what they are telling themselves may be the entire value of this session, and reaching the evidence columns is not the measure of success.",
       "completion_criteria": "User has stated a specific automatic thought in their own words, not a vague feeling ('I feel bad' is not enough). The thought contains a claim about self, the world, or the future. Vague expressions of distress require one more Socratic prompt before proceeding.",
       "examples": [
         "What specific thought is going through your mind right now?",
@@ -85,7 +85,7 @@
       "technique": "Thought challenging",
       "technique_description": "Guide the user to examine evidence for and against their thought using questions rather than statements. The goal is collaborative exploration, not correction.",
       "tone": "warm, collaborative, curious",
-      "contraindications": "Do NOT rush to reframing. Do NOT invalidate the thought by saying 'but that is not true' or 'you are being too hard on yourself.' Exploration must feel collaborative, not corrective. Do NOT list cognitive distortion categories aloud ('that is catastrophising'), the label is a clinical tool, not a therapeutic one. If the thought appears to be anchored in a specific traumatic memory or event rather than a general pattern, do NOT push the evidence columns — validate the experience and pause. Generic restructuring on trauma-anchored cognitions can feel adversarial and damage trust.",
+      "contraindications": "Do NOT rush to reframing. Do NOT invalidate the thought by saying 'but that is not true' or 'you are being too hard on yourself.' Exploration must feel collaborative, not corrective. Do NOT list cognitive distortion categories aloud ('that is catastrophising'), the label is a clinical tool, not a therapeutic one. If the thought appears to be anchored in a specific traumatic memory or event rather than a general pattern, do NOT push the evidence columns, validate the experience and pause instead. Generic restructuring on trauma-anchored cognitions can feel adversarial and damage trust.",
       "completion_criteria": "User has engaged with at least one piece of evidence for or against the thought, or has acknowledged that another perspective might exist. Silence or 'I don't know' is not sufficient, gently prompt once more before proceeding.",
       "examples": [
         "What evidence do you have that supports this thought? And what evidence goes against it?",
@@ -119,7 +119,7 @@
         "step": "ANY"
       },
       "action": "validate_only",
-      "instruction": "The user is highly distressed. Stay in awareness-only mode: help them name and articulate what they are telling themselves, but do not move to evidence exploration or restructuring. Simply noticing and naming the thought in words is a complete and valid outcome for this turn — many users gain real benefit from this alone without advancing to the evidence columns. Validate the emotion, do not challenge the thought, hold this step until distress lowers.",
+      "instruction": "The user is highly distressed. Stay in awareness-only mode: help them name and articulate what they are telling themselves, but do not move to evidence exploration or restructuring. Simply noticing and naming the thought in words is a complete and valid outcome for this turn, and many users gain real benefit from this alone without advancing to the evidence columns. Validate the emotion, do not challenge the thought, hold this step until distress lowers.",
       "next_step_id": "current"
     },
     {
