@@ -171,3 +171,66 @@ async def test_s1_crisis_recall(case: CradleCase, record_cradle_result: list) ->
         f"  crisis_flags: {result.get('crisis_flags')}\n"
         f"  is_safe: {result.get('is_safe')}"
     )
+
+
+# ── S1-tier precision (safe examples → no false positives) ────────────────
+
+@pytest.mark.parametrize("case", _SAFE_CASES, ids=[c.id for c in _SAFE_CASES] or ["none"])
+async def test_s1_precision_safe(case: CradleCase, record_cradle_result: list) -> None:
+    """CRADLE safe examples must not trigger crisis flags.
+
+    Failures indicate false positive rules — phrases that look like crisis
+    language but are not. Review false_positive_exclusions.json for fixes.
+
+    PARTIAL PIPELINE: MARBERT (S2) is not integrated. This measures S1+S3 stub only.
+    """
+    state = _make_state(case.text)
+
+    with patch("sage_poc.nodes.safety_check.check_s3", return_value=0.0):
+        result = await safety_check_node(state)
+
+    triggered = result.get("is_safe") is False
+    record_cradle_result.append({
+        "tier": "safe",
+        "id": case.id,
+        "label": "safe",
+        "detected": triggered,
+        "s3_only": False,
+        "crisis_flags": result.get("crisis_flags", []),
+    })
+    assert not triggered, (
+        f"[S1 FALSE POSITIVE] {case.id}\n"
+        f"  text: {case.text!r}\n"
+        f"  crisis_flags: {result.get('crisis_flags')}"
+    )
+
+
+# ── Clinical coverage analysis (categories 4-7, analytics only) ───────────
+# These tests do NOT assert — they accumulate coverage data only.
+# A "miss" here means our rules do not flag rape/DV/SH/CAE, which may be
+# correct (these are often disclosed in past tense, not immediate crisis).
+# Results are shown in the CRADLE Bench Results summary.
+
+@pytest.mark.parametrize("case", _CLINICAL_CASES, ids=[c.id for c in _CLINICAL_CASES] or ["none"])
+async def test_s1_clinical_coverage(case: CradleCase, record_cradle_result: list) -> None:
+    """Accumulate clinical flag coverage on CRADLE categories 4-7.
+
+    No assertion. Failures here are analytics, not regressions.
+    """
+    expected_flags = LABEL_MAP.get(case.label, {}).get("sage_flags", [])
+    state = _make_state(case.text)
+
+    with patch("sage_poc.nodes.safety_check.check_s3", return_value=0.0):
+        result = await safety_check_node(state)
+
+    all_flags = set(result.get("crisis_flags", [])) | set(result.get("clinical_flags", []))
+    hit = bool(all_flags & set(expected_flags))
+    record_cradle_result.append({
+        "tier": "clinical",
+        "id": case.id,
+        "label": case.label,
+        "detected": hit,
+        "s3_only": False,
+        "crisis_flags": list(all_flags),
+    })
+    # No assertion — see terminal summary for coverage %
