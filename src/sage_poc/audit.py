@@ -1,18 +1,9 @@
 import logging
 import os
-import re
 import httpx
 from sage_poc.state import SageState
 
 logger = logging.getLogger(__name__)
-
-# Synthetic user IDs: sequential ints zero-padded to UUID form (e.g. eval harnesses, CRADLE bench).
-# These are never present in auth.users, so audit writes legitimately fail the FK check.
-_SYNTHETIC_UID_RE = re.compile(r"^0{8}-0{4}-0{4}-0{4}-", re.IGNORECASE)
-
-
-def _is_synthetic_user_id(user_id: str | None) -> bool:
-    return bool(user_id and _SYNTHETIC_UID_RE.match(user_id))
 
 _URL = os.environ.get("SUPABASE_URL")
 _KEY = os.environ.get("SUPABASE_SERVICE_KEY")
@@ -22,6 +13,27 @@ _HEADERS = {
     "Content-Type": "application/json",
     "Prefer": "return=minimal",
 }
+
+
+async def _user_exists_in_auth(user_id: str) -> bool:
+    """Return True if user_id is present in auth.users.
+
+    Fails open (True) on any network or timeout error so the write is still
+    attempted — if that write then fails, it surfaces as a CRITICAL log.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            r = await client.get(
+                f"{_URL}/auth/v1/admin/users/{user_id}",
+                headers={"apikey": _KEY or "", "Authorization": f"Bearer {_KEY or ''}"},
+            )
+            return r.status_code == 200
+    except Exception as exc:
+        logger.warning(
+            "audit pre-check could not verify user %s: %s — attempting write anyway",
+            user_id, exc,
+        )
+        return True
 
 
 async def write_identity_substitution_audit(
@@ -99,23 +111,35 @@ def _build_session_audit_row(state: SageState) -> dict:
     }
 
 
-def _handle_audit_http_error(exc: httpx.HTTPStatusError, row: dict, label: str) -> None:
-    body = exc.response.text
-    # PostgreSQL FK violation (23503) on user_id — two cases:
-    if '"23503"' in body and "user_id" in body:
-        user_id = row.get("user_id")
-        if _is_synthetic_user_id(user_id):
-            # Known test/eval traffic — no real user, skip silently.
-            logger.debug("%s skipped: synthetic user_id %s", label, user_id)
-            return
-        # Real user whose audit record was dropped — this must be visible.
-        logger.critical(
-            "AUDIT FAILURE — %s dropped for real user %s "
-            "(session %s turn %s): FK violation. Body: %s",
-            label, user_id, row.get("session_id"), row.get("turn_number"), body,
+async def _write_session_audit_row(row: dict, prefer: str, label: str) -> None:
+    """Pre-check user existence, then write. Loud on any post-check failure."""
+    user_id = row.get("user_id")
+
+    if user_id and not await _user_exists_in_auth(user_id):
+        logger.info(
+            "%s skipped: user_id %s not found in auth.users "
+            "(session %s turn %s) — likely eval/test traffic",
+            label, user_id, row.get("session_id"), row.get("turn_number"),
         )
         return
-    logger.error("%s write failed: %s — body: %s", label, exc, body)
+
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            r = await client.post(
+                f"{_URL}/rest/v1/session_audit",
+                headers={**_HEADERS, "Prefer": prefer},
+                json=row,
+            )
+            r.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        # Pre-check passed but write failed — this must not be silent.
+        logger.critical(
+            "AUDIT FAILURE — %s dropped (session %s turn %s user %s): %s — body: %s",
+            label, row.get("session_id"), row.get("turn_number"), user_id,
+            exc, exc.response.text,
+        )
+    except Exception as exc:
+        logger.error("%s write failed: %s", label, exc)
 
 
 async def write_session_audit(state: SageState) -> None:
@@ -126,20 +150,11 @@ async def write_session_audit(state: SageState) -> None:
     """
     if not _URL or not _KEY:
         return
-    row = _build_session_audit_row(state)
-    try:
-        upsert_headers = {**_HEADERS, "Prefer": "resolution=merge-duplicates"}
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            r = await client.post(
-                f"{_URL}/rest/v1/session_audit",
-                headers=upsert_headers,
-                json=row,
-            )
-            r.raise_for_status()
-    except httpx.HTTPStatusError as exc:
-        _handle_audit_http_error(exc, row, "session_audit")
-    except Exception as exc:
-        logger.error("session_audit write failed: %s", exc)
+    await _write_session_audit_row(
+        _build_session_audit_row(state),
+        prefer="resolution=merge-duplicates",
+        label="session_audit",
+    )
 
 
 async def write_session_audit_initial(state: SageState) -> None:
@@ -152,17 +167,8 @@ async def write_session_audit_initial(state: SageState) -> None:
     """
     if not _URL or not _KEY:
         return
-    row = _build_session_audit_row(state)
-    try:
-        ignore_headers = {**_HEADERS, "Prefer": "resolution=ignore-duplicates"}
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            r = await client.post(
-                f"{_URL}/rest/v1/session_audit",
-                headers=ignore_headers,
-                json=row,
-            )
-            r.raise_for_status()
-    except httpx.HTTPStatusError as exc:
-        _handle_audit_http_error(exc, row, "session_audit_initial")
-    except Exception as exc:
-        logger.error("session_audit initial write failed: %s", exc)
+    await _write_session_audit_row(
+        _build_session_audit_row(state),
+        prefer="resolution=ignore-duplicates",
+        label="session_audit_initial",
+    )

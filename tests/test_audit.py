@@ -175,6 +175,77 @@ async def test_output_gate_schedules_audit_write(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_write_skips_with_info_when_user_not_in_auth(monkeypatch, caplog):
+    """user_id set but not in auth.users → INFO log, no POST to session_audit."""
+    monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "test-service-key")
+
+    import importlib
+    import sage_poc.audit as audit_mod
+    importlib.reload(audit_mod)
+
+    post_calls = []
+
+    class MockClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): pass
+        async def get(self, url, headers):
+            # Simulate user not found in auth.users
+            class R:
+                status_code = 404
+            return R()
+        async def post(self, url, headers, json):
+            post_calls.append(json)
+            class R:
+                def raise_for_status(self): pass
+            return R()
+
+    with patch("httpx.AsyncClient", return_value=MockClient()):
+        import logging
+        with caplog.at_level(logging.INFO, logger="sage_poc.audit"):
+            await audit_mod.write_session_audit(
+                make_audit_state(user_id="00000000-0000-0000-0000-001780638293")
+            )
+
+    assert post_calls == [], "must not write when user not in auth.users"
+    assert any("not found in auth.users" in r.message for r in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_write_proceeds_when_user_exists_in_auth(monkeypatch):
+    """user_id set and present in auth.users → POST to session_audit fires."""
+    monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "test-service-key")
+
+    import importlib
+    import sage_poc.audit as audit_mod
+    importlib.reload(audit_mod)
+
+    post_calls = []
+
+    class MockClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): pass
+        async def get(self, url, headers):
+            # Simulate user found in auth.users
+            class R:
+                status_code = 200
+            return R()
+        async def post(self, url, headers, json):
+            post_calls.append(json)
+            class R:
+                def raise_for_status(self): pass
+            return R()
+
+    real_uid = "a1b2c3d4-0000-0000-0000-000000000001"
+    with patch("httpx.AsyncClient", return_value=MockClient()):
+        await audit_mod.write_session_audit(make_audit_state(user_id=real_uid))
+
+    assert len(post_calls) == 1, "must write when user exists in auth.users"
+    assert post_calls[0]["user_id"] == real_uid
+
+
+@pytest.mark.asyncio
 async def test_crisis_response_schedules_audit_write(monkeypatch):
     """crisis_response must schedule a write_session_audit task on crisis paths."""
     monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
