@@ -52,6 +52,16 @@ except Exception:
     pass  # warmup failure is non-fatal; real calls will retry
 ```
 
+**Option A is implemented (2026-06-06).** The dummy call uses the same `_ASYNC_HTTP_CLIENT` as real requests — confirmed: all six LLM roles pass `http_async_client=_ASYNC_HTTP_CLIENT` to `ChatOpenAI`. `_bge_ready = True` is set only after the classifier call completes, so Railway's `/health/ready` probe returning 200 implies a warm connection, not just a started process.
+
+**Post-deploy verification required (three steps — not just a smoke test):**
+
+1. **Fresh-deploy warmth.** Deploy → watch `/health/ready` switch 503 → 200 → fire skill-entry request immediately. Capture latency. Expected: ~665ms (warm p50). If ~4600ms, the connection did not survive from warmup to first real traffic (different pool or ordering bug).
+
+2. **Idle-gap warmth.** After step 1, wait 5–8 minutes (under keepalive_expiry=300s), fire again. This is the Gitex condition — booth goes quiet, then someone walks up. Expected: still ~665ms. If 4.6s, Railway is reaping connections below 300s.
+
+3. **Railway cap check.** If step 2 shows cold-start after idle, Railway's connection reaping overrides keepalive_expiry regardless of the httpx setting. Fix: lower keepalive_expiry to match Railway's actual cap, or use Option B (no scale-to-zero).
+
 **Gitex-specific note:** A demo booth where a presenter starts the demo is the "first user" scenario. 4.7s on the opening skill-start of a demo is the highest-visibility instance of this latency. Option C is acceptable only if the presenter is briefed and the first demo turn is not a skill entry screen.
 
 ## Node 1 (S1 keyword / deterministic crisis path) independence

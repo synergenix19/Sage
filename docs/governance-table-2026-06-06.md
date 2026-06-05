@@ -126,7 +126,17 @@ Four skill criteria were rewritten to add affirmative-target carve-outs after ad
 
 **Option A implemented (2026-06-06):** `_warmup_task()` now makes a classifier call before setting `_bge_ready = True`. Uses the same shared `_ASYNC_HTTP_CLIENT` (300s keepalive_expiry) as real requests — a different client would warm a different pool and have no effect. Railway's readiness probe (`/health/ready`) returns 503 until `_bge_ready = True`, so LB traffic is held until both BGE-M3 AND the classifier connection are warm.
 
-**Post-deploy verification required:** The readiness gate holding until warmup completes can only be confirmed against a deployed Railway service — local startup proves the code exists, not that Railway's LB honors the 503 before switching traffic. Verify once on staging: deploy → watch Railway healthcheck status → confirm first user after /health/ready turns 200 sees ≤1s on skill-start.
+**Post-deploy verification required (three steps — all required):**
+
+1. **Fresh-deploy warmth.** Deploy to staging → watch Railway healthcheck switch 503 → 200 on `/health/ready` → immediately fire a skill-entry request and capture its latency. The proof is not "request returns 200" — it is "request latency matches warm p50 (~665ms), not cold (~4600ms)." If it returns 4.x seconds, the warmup ran but the connection did not survive to first real traffic (e.g. a different pool, or `_bge_ready` set before warmup completed), and the status code will not reveal this.
+
+2. **Idle-gap warmth.** After step 1 confirms warm, wait a realistic between-demo idle period (5–8 minutes — under 300s keepalive_expiry) and fire again. This is the actual Gitex condition: booth goes quiet, then someone walks up. Capture latency. Should still be ~665ms, not 4.6s.
+
+3. **Railway cap check.** Railway may enforce its own connection-reaping timeout shorter than 300s regardless of the httpx setting. If step 2 returns 4.x seconds after 5 minutes idle, Railway is capping connections below keepalive_expiry. In that case, re-evaluate: either reduce keepalive_expiry to match Railway's actual limit (no value in setting 300s if Railway reaps at 60s), or switch to Option B (no scale-to-zero) to eliminate idle gaps entirely.
+
+**Record observed latency here once verified:** `[staging first-call latency: ___ ms, idle-gap latency: ___ ms, idle duration: ___ s]`
+
+Until this row is filled, G-5 is unverified in the deployed environment.
 
 **keepalive_expiry=300 covers booth idle gaps:** httpx default (5s) would re-pay TCP/TLS after any quiet period between demos. 300s (5 minutes) covers typical between-demo gaps without holding idle connections indefinitely. The shared client is module-level — all 6 LLM roles share the same pool.
 
