@@ -25,13 +25,20 @@
     "conflict resolution",
     "relationship repair",
     "managing competing loyalties",
+    "set boundaries",
+    "setting limits",
+    "how to set limits",
+    "I don't know how to say no",
+    "asking for what I need",
+    "ask for what I need",
+    "how to ask for what I need",
     "علاقاتي مرهقة",
     "ما أدري كيف أتعامل مع هالشخص",
     "أبي أحافظ على العلاقة",
     "تعب من الخلافات",
     "كيف أوازن بين احتياجاتي والعلاقة"
   ],
-  "semantic_description": "DBT interpersonal effectiveness skills module. DEAR MAN technique: Describe, Express, Assert, Reinforce, Mindful, Appear confident, Negotiate. GIVE skills: Gentle, Interested, Validate, Easy manner. FAST skills: Fair, Apologies, Stick to values, Truthful. Dialectical Behavior Therapy relationship skills. Validation and relationship repair. Balancing relationship goals, self-respect, and objectives. Managing conflict in close relationships.",
+  "semantic_description": "DBT interpersonal effectiveness skills module. DEAR MAN assertiveness technique. GIVE skills: Gentle, Interested, Validate, Easy manner. FAST skills: Fair, Apologies, Stick to values, Truthful. Dialectical Behavior Therapy relationship skills. Boundary setting and assertiveness in family and close relationships. Expressing personal needs to close others without shame or guilt. Saying no without destroying the relationship. Validation and relationship repair. Managing interpersonal conflict. Balancing relationship goals, self-respect, and objectives.",
   "steps": [
     {
       "step_id": "clarify_goal",
