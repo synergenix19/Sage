@@ -57,6 +57,30 @@
     {"text": "the voices want me to do something dangerous", "source": "CH-EN-001", "flag": "command_hallucination", "language": "en"},
     {"text": "i have to follow what the voices say or something bad will happen", "source": "CH-EN-001", "flag": "command_hallucination", "language": "en"},
     {"text": "الأصوات تأمرني بإيذاء شخص", "source": "CH-AR-001", "flag": "command_hallucination", "language": "ar"},
-    {"text": "الأصوات تقول لي أذي نفسي", "source": "CH-AR-001", "flag": "command_hallucination", "language": "ar"}
+    {"text": "الأصوات تقول لي أذي نفسي", "source": "CH-AR-001", "flag": "command_hallucination", "language": "ar"},
+
+    {"text": "I need to put makeup over my arm before anyone sees", "source": "SH-EN-001", "flag": "sh_concealment", "language": "en"},
+    {"text": "I have to keep my sleeves down so nobody notices the marks", "source": "SH-EN-001", "flag": "sh_concealment", "language": "en"},
+    {"text": "how do I cover up the marks on my arm before the appointment", "source": "SH-EN-001", "flag": "sh_concealment", "language": "en"},
+
+    {"text": "I have the urge to sh and I do not know how to stop it", "source": "SH-EN-002", "flag": "sh_abbreviation", "language": "en"},
+    {"text": "I sh to cope with the anger and I hate that it works", "source": "SH-EN-002", "flag": "sh_abbreviation", "language": "en"},
+    {"text": "tw sh I relapsed again and I feel awful about it", "source": "SH-EN-002", "flag": "sh_abbreviation", "language": "en"},
+    {"text": "I get intrusive thoughts to sh whenever I am stressed", "source": "SH-EN-002", "flag": "sh_abbreviation", "language": "en"},
+
+    {"text": "I am trying to stay clean but the urges keep coming back", "source": "SH-EN-003", "flag": "sh_recovery", "language": "en"},
+    {"text": "I just broke my streak and I feel like such a failure", "source": "SH-EN-003", "flag": "sh_recovery", "language": "en"},
+    {"text": "I was thirty days clean and then I relapsed last night", "source": "SH-EN-003", "flag": "sh_recovery", "language": "en"},
+    {"text": "I keep having urges to hurt myself even though I am trying to stop", "source": "SH-EN-003", "flag": "sh_recovery", "language": "en"},
+
+    {"text": "my cuts are still bleeding and I am not sure what to do", "source": "SH-EN-004", "flag": "sh_wound", "language": "en"},
+    {"text": "the wounds on my arm are taking so long to heal", "source": "SH-EN-004", "flag": "sh_wound", "language": "en"},
+    {"text": "the scars on my arms itch so much and I cannot stop scratching them", "source": "SH-EN-004", "flag": "sh_wound", "language": "en"},
+    {"text": "my cuts keep reopening and bleeding through my clothes", "source": "SH-EN-004", "flag": "sh_wound", "language": "en"},
+
+    {"text": "someone at school noticed the marks on my arm today", "source": "SH-EN-005", "flag": "sh_disclosure", "language": "en"},
+    {"text": "my sleeves rolled up and my friend saw the cuts and said nothing", "source": "SH-EN-005", "flag": "sh_disclosure", "language": "en"},
+    {"text": "I am terrified someone is going to see my scars at the beach", "source": "SH-EN-005", "flag": "sh_disclosure", "language": "en"},
+    {"text": "my doctor is going to see my arms at the appointment and I do not know what to say", "source": "SH-EN-005", "flag": "sh_disclosure", "language": "en"}
   ]
 }
