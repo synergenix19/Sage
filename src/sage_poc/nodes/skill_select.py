@@ -126,14 +126,20 @@ async def skill_select_node(state: SageState) -> dict:
             "path": state["path"] + ["skill_select"],
         }
 
-    message = state["message_en"].lower()
+    message_en = state["message_en"].lower()
+    raw_message = (state.get("raw_message") or "").lower()
+    detected_language = state.get("detected_language") or "en"
 
-    # Tier 1: Keyword matching — synchronous, deterministic, fast
+    # Tier 1: Keyword matching — synchronous, deterministic, fast.
+    # For Arabic sessions, also match against raw_message: Arabic-script keywords
+    # cannot match a translated English string.
+    # Stopgap: proper fix is language-tagged rules in Rules Service (backlog R1).
     for skill_id, skill in _SKILLS.items():
         if skill_id in KEYWORD_SEMANTIC_SKIP:
             continue
         for keyword in skill.target_presentations:
-            if keyword.lower() in message:
+            kw_lower = keyword.lower()
+            if kw_lower in message_en or (detected_language == "ar" and kw_lower in raw_message):
                 return {
                     "active_skill_id": skill_id,
                     "active_step_id": skill.steps[0].step_id,

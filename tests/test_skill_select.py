@@ -329,3 +329,37 @@ async def test_semantic_timeout_returns_none_when_no_keyword_match():
 
     assert result["active_skill_id"] is None
     assert result.get("semantic_score") is None
+
+
+@pytest.mark.asyncio
+async def test_arabic_keyword_routes_via_tier1():
+    """Arabic-script keyword in target_presentations must match raw_message for Arabic sessions."""
+    state = _ss_state(
+        raw_message="تنفس معي",
+        message_en="breathe with me",
+        detected_language="ar",
+        primary_intent="new_skill",
+    )
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] == "box_breathing", (
+        f"Expected box_breathing, got {result['active_skill_id']!r}. "
+        "Arabic-script keyword تنفس معي must match via raw_message pass."
+    )
+    assert result["skill_match_method"] == "keyword"
+
+
+@pytest.mark.asyncio
+async def test_arabic_keyword_fires_when_translation_is_ambiguous():
+    """When Arabic message_en translation is ambiguous, raw_message keyword pass must fire."""
+    state = _ss_state(
+        raw_message="أبي تمرين تنفس",
+        message_en="I want some exercise",  # ambiguous — would miss keyword
+        detected_language="ar",
+        primary_intent="new_skill",
+    )
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] == "box_breathing", (
+        f"Expected box_breathing, got {result['active_skill_id']!r}. "
+        "Arabic keyword أبي تمرين تنفس must match via raw_message pass."
+    )
+    assert result["skill_match_method"] == "keyword"
