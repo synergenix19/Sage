@@ -156,11 +156,12 @@ def test_dbt_tipp_loads_and_validates():
     skill = load_skill("dbt_tipp")
     assert skill.skill_id == "dbt_tipp"
     assert skill.skill_type == "structured"
-    assert len(skill.steps) == 4
-    assert skill.steps[0].step_id == "temperature"
-    assert skill.steps[1].step_id == "intense_exercise"
-    assert skill.steps[2].step_id == "paced_breathing"
-    assert skill.steps[3].step_id == "check_in"
+    assert len(skill.steps) == 5  # entry_screen prepended as steps[0]
+    assert skill.steps[0].step_id == "entry_screen"
+    assert skill.steps[1].step_id == "temperature"
+    assert skill.steps[2].step_id == "intense_exercise"
+    assert skill.steps[3].step_id == "paced_breathing"
+    assert skill.steps[4].step_id == "check_in"
 
 def test_dbt_tipp_all_steps_fully_populated():
     from sage_poc.skills.schema import load_skill

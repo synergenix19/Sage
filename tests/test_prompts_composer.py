@@ -544,6 +544,10 @@ def test_compose_prompt_l2_escalation_uses_language_aware_examples():
     # L2 is advisory — skill continues, active_skill_id remains set.
     # Arabic users must get language-aware example selection (_select_few_shot_examples),
     # not the language-blind examples[:2] from skill_executor's step_instruction string.
+    #
+    # executed_step_id is unconditionally set on every skill_executor_node return (line 582:
+    # "executed_step_id = step_id"), so the elif active_skill_id and executed_step_id branch
+    # is always reached on an L2 advisory turn — production state matches this fixture.
     state = _make_state(
         detected_language="ar",
         active_skill_id="cbt_thought_record",
@@ -559,6 +563,10 @@ def test_compose_prompt_l2_escalation_uses_language_aware_examples():
     assert "skill_instruction" not in layers
     # The raw English-only step_instruction must NOT appear verbatim
     assert "EN example 1; EN example 2" not in user_str
+    # Positive: the Arabic example for identify_thought must actually appear in the prompt.
+    # _select_few_shot_examples returns [arabic[0], non_arabic[0]] for language="ar".
+    # cbt_thought_record identify_thought Arabic example: 'وين بالظبط الصوت اللي في بالك الحين؟'
+    assert "وين بالظبط" in user_str
 
 
 def test_compose_prompt_history_layer_present_when_history_exists():

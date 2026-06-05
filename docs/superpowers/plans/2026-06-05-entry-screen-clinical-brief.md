@@ -87,18 +87,18 @@ The entry screen is a brief, natural-language opener that:
 
 **This is the decision the clinical lead must make explicitly.**
 
-The entry screen's contraindication gate is LLM-evaluated. The LLM judges whether the user's message discloses a condition that warrants holding the skill. This is softer than a deterministic keyword guard.
+The entry screen's contraindication gate is LLM-evaluated. The LLM judges whether the user's message discloses a condition that warrants holding the skill.
 
-The tradeoff is: no deterministic mechanism can catch generative acceptance-frame camouflage — corpus expansion chases a distribution the skill continuously generates. The intent screen is the practical primary fix, but it places a safety-critical arrest on an LLM judgment call.
+The relevant framing is not "LLM gate as a compromise against a deterministic gold standard." There is no deterministic gold standard for this class of risk. Crisis detection is irreducibly uncertain: S1 (keyword lexicon) misses any phrasing outside its enumerated set; S3 (BGE-M3 semantic similarity at threshold 0.8059) misses the acceptance-framed register that ACT's therapeutic move generates; MARBERT (dialectal Arabic classifier) is not yet implemented. The design choice is layering two complementary imperfect detectors — S1+S3 for explicit crisis language, LLM judgment for nuanced disclosure at skill entry — because no single detector covers the full risk surface. A deterministic keyword guard for acceptance-framed passive SI does not exist and cannot be built without redefining the threshold so broadly that it fires on all legitimate acceptance language.
 
 This must not ship as an engineering convenience that happens to carry clinical-safety load without explicit sign-off.
 
 **First question — LLM-mediated arrest:**
 
-**Is an LLM-mediated safety arrest acceptable for these five skills, given that no deterministic alternative catches the risk they carry?**
+**Is an LLM-mediated safety arrest acceptable for these five skills, given that crisis detection is irreducibly uncertain and no single detector covers the full risk surface?**
 
-If yes: proceed with implementation. Document the decision and the mechanism in the clinical record.
-If no: the skills are held until a deterministic gate is built (full R6 signal fix, out of Gitex scope).
+If yes: proceed with implementation. Document the decision and the layered detection architecture in the clinical record.
+If no: the skills are held until a more robust global detection layer is built (any-turn LLM intent classifier — out of Gitex scope).
 
 **Second question — the mid-skill ACT residual that survives this fix:**
 
@@ -136,11 +136,15 @@ If the answer is "no, an any-turn check is required": ACT is held beyond Gitex s
 }
 ```
 
-### Required code change — and why this line is the entire gate
+### Required code changes — the gate is a three-part mechanism
 
-One change to `skill_executor.py` is required: add the five skill IDs to `_LLM_CRITERIA_SKILLS`. Without this, `completion_criteria` is evaluated by word-count heuristic (>1 word), which passes any user response regardless of content.
+The original brief said "one code change." That was wrong; there are three. Understanding all three is necessary because each layer can fail independently, and the clinical lead is signing off on a mechanism, not a single setting.
 
-**Failure mode if this edit is missed or a skill ID is typo'd:** The entry screen step still renders. The warm opener appears. The user answers. The skill advances. The gate is wide open. This failure is silent — surface behavior is intact, safety logic is inert. This is structurally identical to the 18 dead signals: the JSON rule fires, nothing happens.
+**Part A — frozenset membership (`_LLM_CRITERIA_SKILLS` in `skill_executor.py`)**
+
+Add the five skill IDs to `_LLM_CRITERIA_SKILLS`. Without this, `completion_criteria` is evaluated by word-count heuristic (>1 word), which passes any user response regardless of content.
+
+**Failure mode if this edit is missed or a skill ID is typo'd:** The entry screen renders, the opener appears, the user answers, the skill advances. Silent. Structurally identical to the 18 dead signals.
 
 ```python
 _LLM_CRITERIA_SKILLS: frozenset[str] = frozenset({
@@ -154,9 +158,21 @@ _LLM_CRITERIA_SKILLS: frozenset[str] = frozenset({
 })
 ```
 
-**Load-time guard (required before any of these five skills ship):** A skill registered with an `entry_screen` step but absent from `_LLM_CRITERIA_SKILLS` should fail at startup, not silently degrade to word-count. Add a validation check in `skill_executor.py` or the skill loader: assert every skill whose first step has `step_id == "entry_screen"` is present in `_LLM_CRITERIA_SKILLS`. A startup error is the correct failure mode for a misconfigured safety gate.
+**Part B — load-time coverage guard (`_validate_entry_screen_coverage` in `skill_executor.py`)**
 
-This, the frozenset edit, and the load-time guard are the only code changes. No executor logic changes, no signal dict changes, no graph changes.
+At module load time, assert every skill whose `steps[0].step_id == "entry_screen"` is present in `_LLM_CRITERIA_SKILLS`. Raises `RuntimeError` at startup if not. Enforces Part A at the code level: a misconfigured frozenset is a startup failure, not a silent production degradation.
+
+**Part C — entry-screen heuristic bypass + fail-closed error handling**
+
+This is the part the original brief missed, and it is the most clinically critical.
+
+The word-count heuristic (`len(words) > 1`) passes any multi-word response — including "I have a pacemaker" (4 words). Parts A and B are both meaningless unless Part C forces `_criteria_blocked = True` for `entry_screen` steps regardless of word count, routing every entry-screen response through LLM evaluation. This is a one-line change in `evaluate_step_policy`: `heuristic_met = False` when `current_step_id == "entry_screen"`.
+
+Without Part C: "I have a pacemaker" → heuristic True → advance. Parts A and B pass. Gate is wide open. No alarm.
+
+**Fail-closed on LLM error (sub-part of Part C):** If the LLM evaluation times out or errors, the fallback must return `False` (hold the skill), not fall back to the word-count heuristic. Falling back to heuristic reintroduces the inert gate: contraindication disclosure arrives, LLM errors, heuristic returns True, TIPP advances to temperature. "Graceful degradation" is the wrong instinct on a safety gate. Degrade to held, not advanced. Implemented via `fail_closed=True` passed to `evaluate_completion_criteria` when `step_id == "entry_screen"`.
+
+No executor logic changes, no graph changes beyond these three.
 
 ---
 
@@ -191,14 +207,14 @@ This, the frozenset edit, and the load-time guard are the only code changes. No 
   "step_id": "entry_screen",
   "goal": "Brief opener before beginning TIPP. Understand if there is anything physical the user wants to mention before a technique that involves temperature, intense exercise, and paced breathing. If a physical contraindication is disclosed, redirect to an alternative. If nothing concerning is disclosed, advance to the temperature step.",
   "technique": "Entry safety screen: physical readiness check before TIPP",
-  "technique_description": "One question, natural and brief. Do not list contraindications. If the user mentions anything relevant to heart conditions, pacemakers, arrhythmia, physical disability, or injury, that is sufficient to hold. TIPP involves cold water and intense physical movement — these are contraindicated for cardiac conditions and physical limitations that prevent exercise. Redirect to box breathing or a non-physical grounding technique.",
+  "technique_description": "One question, natural and brief. Do not list contraindications. If the user mentions anything relevant to heart conditions, pacemakers, arrhythmia, physical disability, injury, or disordered eating, that is sufficient to hold. TIPP involves cold water exposure (cold-water dive reflex triggers rapid bradycardia) and intense physical movement — these are contraindicated for cardiac conditions and physical limitations that prevent exercise. The bradycardia from cold-water immersion is dangerous with electrolyte disturbance, which is common in disordered eating. Redirect to box breathing or a non-physical grounding technique.",
   "tone": "warm, matter-of-fact, brief",
   "examples": [
     "قبل ما نبدأ — في شي جسدي تبي تذكره؟ نشاط شديد أو تعرض للبرد جزء من التقنية.",
     "Before we begin — anything physical worth mentioning? This technique involves cold water and some brief intense movement."
   ],
-  "contraindications": "Do NOT proceed with TIPP if the user discloses a cardiac condition, pacemaker, arrhythmia, physical disability, injury, or any condition where cold exposure or intense exercise is contraindicated. Acknowledge the disclosure, thank them for mentioning it, and offer an alternative: box breathing is effective for acute distress and has no physical requirements. Say clearly that TIPP is not the right fit here and the alternative works just as well for the goal.",
-  "completion_criteria": "User has not disclosed cardiac conditions, pacemaker use, arrhythmia, physical disability affecting temperature tolerance, injury, or any condition contraindicated by brief intense physical exercise or cold water exposure. Safe to advance to the temperature step."
+  "contraindications": "Do NOT proceed with TIPP if the user discloses a cardiac condition, pacemaker, arrhythmia, physical disability, injury, disordered eating, or any condition where cold exposure or intense exercise is contraindicated. Disordered eating is a contraindication for the cold-water component specifically: the dive reflex causes rapid bradycardia, which is dangerous when electrolytes are disturbed. Acknowledge the disclosure, thank them for mentioning it, and offer an alternative: box breathing is effective for acute distress and has no physical requirements. Say clearly that TIPP is not the right fit here and the alternative works just as well for the goal.",
+  "completion_criteria": "User has not disclosed cardiac conditions, pacemaker use, arrhythmia, physical disability affecting temperature tolerance, injury, disordered eating, or any condition contraindicated by brief intense physical exercise or cold water exposure. Safe to advance to the temperature step."
 }
 ```
 
@@ -292,10 +308,18 @@ After expansion: run `scripts/calibrate_s3_threshold.py`. Verify gap >= 0.0059 o
 - [ ] **HARD GATE — frozenset membership test:** unit test asserting all five skill IDs (`act_psychological_flexibility`, `dbt_tipp`, `progressive_muscle_relaxation`, `mindfulness_body_scan`, `safe_place_visualization`) are present in `_LLM_CRITERIA_SKILLS`; test must fail loud — not skip, not warn — if any ID is absent or typo'd
 - [ ] **HARD GATE — behavioral test per skill:** for each of the five entry screens, a test that feeds a clear contraindication disclosure and asserts the skill does not advance (completion_criteria returns hold, not pass); one test per skill; these tests must run in CI
 
-**Code changes:**
-- [ ] Load-time guard: skill loader asserts every skill whose `steps[0].step_id == "entry_screen"` is present in `_LLM_CRITERIA_SKILLS`; raises at startup if not
-- [ ] Frozenset edit: add five skill IDs to `_LLM_CRITERIA_SKILLS` in `skill_executor.py`
-- [ ] Add `entry_screen` as `steps[0]` in each of the five skill JSONs (before first technique step)
+**Code changes (all three required — see §3 for why each is necessary):**
+- [x] Part A — Frozenset edit: four somatic skill IDs added to `_LLM_CRITERIA_SKILLS` in `skill_executor.py` (ACT to be added after clinical sign-off on Q2)
+- [x] Part B — Load-time guard: `_validate_entry_screen_coverage()` in `skill_executor.py`; raises `RuntimeError` at startup if any entry_screen skill is absent from frozenset
+- [x] Part C — Heuristic bypass: `evaluate_step_policy` forces `heuristic_met = False` for `entry_screen` steps; routes all responses through LLM evaluation regardless of word count
+- [x] Part C (fail-closed) — `evaluate_completion_criteria` accepts `fail_closed=True`; LLM error on entry_screen returns False (hold), not heuristic fallback
+- [x] Add `entry_screen` as `steps[0]` in each of the four somatic skill JSONs
+
+**Integration run — HARD GATE before clinical sign-off:**
+- [ ] **HARD GATE — oblique-disclosure integration run:** Run `scripts/entry_screen_integration_run.py` with real LLM. This script feeds each of the four somatic entry screens with oblique contraindication phrasings (see adversarial characterization comments in `tests/test_entry_screen_behavioral.py`) and records whether the LLM holds or advances. The hit rate on oblique disclosure is the actual safety property for these skills. A gate whose effectiveness on indirect language is unmeasured cannot be presented to the clinical lead for sign-off. This run must be executed and its output must be in front of the clinical lead as part of the sign-off package — it is not a nice-to-have.
+
+**Pool behavior under load — CHARACTERIZE before Gitex:**
+- [ ] **Pool characterization:** Part C (fail-closed) made LLM availability load-bearing on the clinical path. An LLM-unavailable state now holds TIPP/PMR/body-scan/safe-place rather than advancing them via heuristic. This is safe. But the Supabase session-mode pool cap (15 connections) that surfaces as `EMAXCONNSESSION` in concurrent test runs is now the mechanism by which entry-screen skills refuse to start under demo load — correctly (fail-closed) but visibly. Characterize pool exhaustion behavior under concurrent load before Gitex demo. This is not a test flake; it is a load characteristic that is now load-bearing on the clinical path.
 
 **QA and calibration:**
 - [ ] Run `calibrate_threshold.py` after any semantic_description changes in the updated skills
@@ -303,4 +327,4 @@ After expansion: run `scripts/calibrate_s3_threshold.py`. Verify gap >= 0.0059 o
 - [ ] Manual QA: entry screen advances in one turn when no contraindication is disclosed
 - [ ] Manual QA: entry screen holds and redirects correctly when a contraindication is disclosed
 - [ ] Manual QA (ACT): entry screen holds on passive-SI and hopelessness disclosure at skill start
-- [ ] Run full test suite: expect >= 718 passing
+- [ ] Run full test suite: expect >= 1697 passing

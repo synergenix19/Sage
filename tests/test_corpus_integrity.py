@@ -186,6 +186,75 @@ def test_skill_cultural_overrides_within_cap(sid):
 
 # ── Cluster coverage ───────────────────────────────────────────────────────
 
+# ── Dead step-policy signal count (pinned at 21) ──────────────────────────────
+#
+# These 21 rules reference signals that never resolve at runtime — they are SILENTLY INERT.
+# The count is pinned so any addition causes a red CI run instead of logging into a wall
+# of existing ERRORs that teams learn to scroll past (the exact failure mode that produced
+# all the original dead signals). The list is hard-coded here so the failure message names
+# the new offender explicitly.
+#
+# UPGRADE PATH (post-Gitex): wire the signals or remove the rules from the skill JSONs,
+# then flip _validate_step_policy_signal_coverage in skill_executor.py to raise RuntimeError
+# instead of logging. When the count reaches 0, delete this test and the ERROR log.
+_KNOWN_DEAD_SIGNALS: frozenset[tuple[str, str]] = frozenset({
+    ("assertive_communication",    "coercive_relationship_indicators_detected"),
+    ("behavioral_activation",      "hopelessness"),
+    ("box_breathing",              "clarity"),
+    ("cbt_thought_record",         "trauma_disclosure_detected"),
+    ("cognitive_restructuring",    "trauma_disclosure_detected"),
+    ("dbt_tipp",                   "physical_contraindication_disclosed"),
+    ("financial_anxiety",          "crisis_financial_hopelessness_detected"),
+    ("grief_loss",                 "prolonged_grief_indicators_detected"),
+    ("grounding_5_4_3_2_1",        "sensory_limitation_disclosed"),
+    ("interpersonal_effectiveness","coercive_relationship_indicators_detected"),
+    ("mindfulness_body_scan",      "dissociation_or_dizziness_reported"),
+    ("mood_check_in",              "mood_score"),
+    ("progressive_muscle_relaxation", "pain_or_injury_mention"),
+    ("psychoed_anxiety",           "existing_anxiety_diagnosis_disclosed"),
+    ("psychoed_depression",        "active_suicidal_ideation_disclosed"),
+    ("psychoed_stress",            "burnout_exhaustion_with_functional_impairment"),
+    ("safe_place_visualization",   "dissociation_signal"),
+    ("self_compassion_break",      "self_kindness_rejection_detected"),
+    ("sleep_hygiene",              "medication_or_substance_mention"),
+    ("values_clarification",       "family_values_conflict_detected"),
+    ("worry_time",                 "obsessive_theme_detected"),
+})
+
+
+def test_dead_step_policy_signal_count_is_pinned():
+    """Ensure no new step_policy rules reference unresolvable signals.
+
+    The count is pinned at 21 (the documented pre-Gitex dead-signal set). Any addition
+    is a red CI run. Any removal is also caught — it means a signal was wired up or a
+    rule removed, and _KNOWN_DEAD_SIGNALS should be updated to reflect the progress.
+
+    A new dead signal means: you added a step_policy rule whose condition.signal is not
+    in _KNOWN_STEP_POLICY_SIGNALS in skill_executor.py. That rule is silently inert from
+    day one — it will never fire. Either wire the signal into evaluate_step_policy or
+    remove the rule.
+    """
+    from sage_poc.nodes.skill_executor import _get_dead_step_policy_signals
+
+    found = set(_get_dead_step_policy_signals())
+    added   = found - _KNOWN_DEAD_SIGNALS
+    removed = _KNOWN_DEAD_SIGNALS - found
+
+    assert not added, (
+        f"NEW dead step-policy signal(s) added — these rules are silently inert from day one: {sorted(added)}. "
+        "Wire the signal into evaluate_step_policy or remove the rule. "
+        "Do not add _KNOWN_DEAD_SIGNALS entries without a corresponding cleanup commitment."
+    )
+    assert not removed, (
+        f"Dead step-policy signal(s) removed — update _KNOWN_DEAD_SIGNALS in test_corpus_integrity.py "
+        f"to reflect the cleanup: {sorted(removed)}. "
+        "When the set reaches zero, delete this test and flip _validate_step_policy_signal_coverage "
+        "to raise RuntimeError."
+    )
+
+
+# ── Cluster coverage ───────────────────────────────────────────────────────
+
 def test_every_skill_assigned_to_cluster_or_explicitly_excluded():
     from sage_poc.skill_ids import SKILL_REGISTRY
     clustered = {sid for skills in CLINICAL_CLUSTERS.values() for sid in skills}
