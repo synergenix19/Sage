@@ -83,6 +83,56 @@ def test_check_s3_scores_orthogonal_vector_near_zero():
     assert score == pytest.approx(0.0, abs=1e-5)
 
 
+def test_check_s3_cosine_arithmetic_is_deterministic():
+    """Cosine scoring arithmetic must return identical values across repeated calls.
+
+    Mocks the index and embedding so no model loads. This is a unit test for the
+    arithmetic, not a guard against ANE/MPS model variance — see
+    test_check_s3_live_model_scores_are_deterministic for the real-model guard.
+    """
+    from sage_poc.safety.s3_semantic import check_s3
+
+    index_vec = np.array([[0.6, 0.8] + [0.0] * 1022], dtype=np.float32)
+    query_vec = np.array([0.6, 0.8] + [0.0] * 1022, dtype=np.float32)
+
+    with patch("sage_poc.safety.s3_semantic._embedding_index", index_vec):
+        with patch("sage_poc.safety.s3_semantic.get_embedding", return_value=query_vec.tolist()):
+            scores = [check_s3("I want to end it all") for _ in range(5)]
+
+    assert all(s == scores[0] for s in scores), (
+        f"Cosine arithmetic non-deterministic across 5 calls: {scores}"
+    )
+
+
+@pytest.mark.slow
+def test_check_s3_live_model_scores_are_deterministic():
+    """RC-1 regression guard: BGE-M3 on CPU must produce bitwise-identical scores
+    across N repeated calls for the same input.
+
+    Uses a verbatim SF-1 corpus entry (scores ~1.0) so any floating-point variance
+    from ANE/MPS contention is immediately visible as a value != scores[0].
+
+    Passes iff the model is on CPU — which _warm_bge_m3_once enforces by loading
+    with device="cpu". If device="cpu" is removed from that fixture and this suite
+    runs under -n auto, ANE/MPS contention will cause this test to fail.
+    This is intentional: the failure is the signal.
+    """
+    from sage_poc.safety.s3_semantic import check_s3
+
+    # Verbatim corpus entry — scores 1.0 because it IS in the index.
+    # Any ANE/MPS variance would produce 0.999...X != 1.0 on subsequent calls.
+    corpus_phrase = (
+        "I've been thinking that things would honestly be simpler for the people "
+        "I love if I just wasn't in the picture anymore"
+    )
+    scores = [check_s3(corpus_phrase) for _ in range(3)]
+    assert all(s == scores[0] for s in scores), (
+        f"BGE-M3 produced different scores across 3 identical calls: {scores}\n"
+        f"This indicates the model is NOT on CPU — ANE/MPS contention is in effect.\n"
+        f"Check _warm_bge_m3_once in conftest.py: device='cpu' must be set."
+    )
+
+
 # ---- SF-1 gate tests (real model, @pytest.mark.slow) --------------------------------
 
 # Full English SF-1 corpus (all 8 phrases from crisis_phrases.json source="SF-1", language="en").
