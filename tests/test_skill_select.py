@@ -363,3 +363,48 @@ async def test_arabic_keyword_fires_when_translation_is_ambiguous():
         "Arabic keyword أبي تمرين تنفس must match via raw_message pass."
     )
     assert result["skill_match_method"] == "keyword"
+
+
+@pytest.mark.asyncio
+async def test_arabic_raw_message_only_path():
+    """When message_en has NO keyword match, Arabic keyword in raw_message must fire for ar sessions.
+
+    This is the definitive test for the raw_message branch: the English translation
+    is semantically neutral so the only way box_breathing is reached is via raw_message.
+    """
+    state = _ss_state(
+        raw_message="تنفس معي",
+        message_en="okay let's go",  # no box_breathing keyword, low semantic signal
+        detected_language="ar",
+        primary_intent="new_skill",
+    )
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] == "box_breathing", (
+        f"Expected box_breathing via raw_message, got {result['active_skill_id']!r}. "
+        "When message_en has no keyword, raw_message Arabic keyword must be the match source."
+    )
+    assert result["skill_match_method"] == "keyword"
+
+
+@pytest.mark.asyncio
+async def test_english_session_ignores_arabic_raw_message():
+    """An English session must NOT match via Arabic raw_message keywords.
+
+    detected_language='en' must gate the raw_message branch completely.
+    If box_breathing appears in the result for an en session with only an Arabic
+    raw_message keyword match, the branch guard is broken.
+    """
+    state = _ss_state(
+        raw_message="تنفس معي",           # Arabic box_breathing keyword
+        message_en="okay let's go",       # no keyword match, no semantic signal
+        detected_language="en",
+        primary_intent="new_skill",
+    )
+    result = await skill_select_node(state)
+    # Either no skill selected, OR if box_breathing matched semantically, it MUST NOT
+    # have matched via keyword (which would mean Arabic raw_message leaked into en routing).
+    if result.get("active_skill_id") == "box_breathing":
+        assert result.get("skill_match_method") != "keyword", (
+            "box_breathing matched as 'keyword' for an English session with only "
+            "an Arabic raw_message keyword. The detected_language=='ar' guard is broken."
+        )
