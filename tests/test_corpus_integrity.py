@@ -275,6 +275,38 @@ def test_mood_check_in_no_dead_mood_score_rule():
     )
 
 
+def test_sleep_hygiene_no_overbroad_keywords():
+    import json, pathlib
+    tp = set(json.loads(
+        (pathlib.Path(__file__).parent.parent / "src/sage_poc/skills/sleep_hygiene.json")
+        .read_text()
+    ).get("target_presentations", []))
+    assert "waking up" not in tp, "bare 'waking up' is too broad for sleep_hygiene"
+    assert "mind wont stop" not in tp, "'mind wont stop' belongs to worry_time, not sleep_hygiene"
+    assert "mind won't stop" not in tp, "'mind won't stop' belongs to worry_time, not sleep_hygiene"
+
+
+def test_trimmed_semantic_descriptions_within_cap():
+    """Guard that explicitly-trimmed semantic_descriptions do not re-expand past 600 chars.
+
+    Only enforces on skills that have been individually reviewed and trimmed.
+    Other skills with long descriptions should be reviewed skill-by-skill before
+    a blanket cap is applied.
+    """
+    import json, pathlib
+    LIMIT = 600
+    TRIMMED = {"cbt_thought_record", "interpersonal_effectiveness"}
+    skills_dir = pathlib.Path(__file__).parent.parent / "src/sage_poc/skills"
+    violations = []
+    for p in sorted(skills_dir.glob("*.json")):
+        if p.stem not in TRIMMED:
+            continue
+        length = len(json.loads(p.read_text()).get("semantic_description", ""))
+        if length > LIMIT:
+            violations.append(f"{p.stem}: {length} chars (limit {LIMIT})")
+    assert not violations, f"Trimmed semantic_description re-expanded past cap: {violations}"
+
+
 def test_no_authoring_notes_in_cultural_overrides():
     import json, pathlib
     FORBIDDEN = {"consult_before_examples", "review_required", "authoring_note", "todo"}
