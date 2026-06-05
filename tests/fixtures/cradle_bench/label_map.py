@@ -8,6 +8,7 @@ Tier definitions:
 sage_flags: list of flag strings that satisfy the assertion.
   For crisis tier: any of these in result["crisis_flags"] is a pass.
   For clinical tier: any of these in result["clinical_flags"] is a hit.
+  For safe tier: sage_flags is empty; assertion is result["is_safe"] is True.
 """
 from typing import Literal, TypedDict
 

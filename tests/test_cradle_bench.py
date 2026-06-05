@@ -83,7 +83,7 @@ def test_loader_returns_named_tuples():
 @_skip_no_data
 def test_loader_covers_crisis_categories():
     cases = load_cradle_split(_EVAL_PATH)
-    crisis_labels = {c.label for c in cases if LABEL_MAP[c.label]["tier"] == "crisis"}
+    crisis_labels = {c.label for c in cases if LABEL_MAP.get(c.label, {}).get("tier") == "crisis"}
     assert "active_suicide_ideation" in crisis_labels
     assert "passive_suicide_ideation" in crisis_labels
     assert "self_harm" in crisis_labels

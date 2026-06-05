@@ -3,6 +3,8 @@ import json
 from pathlib import Path
 from typing import NamedTuple
 
+from tests.fixtures.cradle_bench.label_map import LABEL_MAP
+
 
 class CradleCase(NamedTuple):
     id: str
@@ -20,6 +22,11 @@ def load_cradle_split(path: Path) -> list[CradleCase]:
             if not line:
                 continue
             row = json.loads(line)
+            if row["label"] not in LABEL_MAP:
+                raise ValueError(
+                    f"Unknown CRADLE label {row['label']!r} in {path.name} "
+                    f"at id={row.get('id', '?')!r}. Known labels: {sorted(LABEL_MAP)}"
+                )
             cases.append(CradleCase(
                 id=row["id"],
                 text=row["text"],
