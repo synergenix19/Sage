@@ -26,11 +26,20 @@ GATE_CATCH = [
 ]
 
 GATE_SUPPRESS = [
+    # Idiom / hyperbole FP guards (original set)
     "I'm dying of laughter, this video is the funniest thing I've ever seen",
     "الله ياخذني من هالدنيا من هالحر اليوم",
     "I'm going to kill it at this presentation today",
     "That movie absolutely destroyed me, I was crying and laughing the whole time",
     "يا الله خلصنا من هالاجتماع",
+    # Acceptance-framed therapeutic language — corpus authoring failure class (Jun 2026)
+    # These scored 0.92 and 0.84 against removed ACT-SP-001 corpus entries.
+    # Their presence here ensures any recalibration cannot set a threshold that would
+    # re-introduce this class of FP. See RULES_AUTHORING_CONVENTIONS.md §S3 corpus.
+    "there is a quiet that comes with accepting what I cannot change",
+    "I keep making room for these difficult feelings",
+    "I am learning to let go of what I cannot change",
+    "I have accepted that some things in life are beyond my control and that is okay",
 ]
 
 NEUTRAL_CHECK = [

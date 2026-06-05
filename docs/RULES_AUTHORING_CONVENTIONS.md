@@ -133,6 +133,51 @@ Write your pattern against this output, not against the original text.
 
 ---
 
+## S3 crisis phrase corpus authoring (`crisis_phrases.json`)
+
+The S3 tier (BGE-M3 semantic) uses `src/sage_poc/safety/crisis_phrases.json` as its embedding anchor set. Mis-authored phrases here create false positives that cannot be suppressed by threshold adjustment — they propagate silently to every user session.
+
+### Single-clause rule
+
+**Every phrase must be single-clause, and the SI signal must dominate the whole phrase.**
+
+Multi-clause phrases (two independent ideas joined by "but", "and", or temporal connectors) will cause false positives when the first clause matches therapeutic language and the SI signal is only in the second clause. BGE-M3 encodes the full phrase as a blend; acceptance-framed first clauses drag the embedding toward therapeutic acceptance space.
+
+Examples of failures this rule prevents:
+- `"I keep making room for these feelings but I do not see why I should keep going"` — the acceptance-framing in the first clause caused ACT defusion instructions to score 0.84 against the corpus. Removed Jun 2026.
+- `"there is a quiet that comes with accepting nothing will change"` — acceptance language in first clause caused serenity-prayer form to score 0.92. Removed Jun 2026.
+
+**The fix is NOT to delete the SI content.** Rewrite as a single clause centered on the SI signal:
+```
+# Wrong (multi-clause, acceptance + SI)
+"there is a quiet that comes with accepting nothing will change"
+
+# Right (single clause, SI signal dominates)
+"accepting nothing will change feels like a reason to stop trying"
+```
+
+### FP regression check
+
+After adding or editing any phrase in `crisis_phrases.json`, run `scripts/calibrate_s3_threshold.py` and verify:
+
+1. All `GATE_SUPPRESS` phrases still score below the threshold — these include acceptance-framed therapeutic phrases. If a new corpus phrase pulls any suppress phrase above threshold, the phrase or threshold is wrong.
+2. The gap (min_catch − max_suppress) remains ≥ 0.05. A narrower gap means the corpus is drifting toward therapeutic language space.
+
+The suppress set includes acceptance-framed phrases specifically to guard against this class of authoring failure. Do not remove them from `GATE_SUPPRESS`.
+
+### Authoring checklist for corpus entries
+
+Before adding any phrase to `crisis_phrases.json`:
+
+- [ ] Single clause (no "but", "and", or temporal connectors joining two ideas)
+- [ ] SI signal present in the whole phrase, not just the end
+- [ ] Not a paraphrase of an existing S1 keyword pattern (adds no new semantic territory)
+- [ ] Re-run `scripts/calibrate_s3_threshold.py` and confirm gap ≥ 0.05 and all GATE_SUPPRESS pass
+- [ ] Re-run `pytest -m "cradle and not slow"` — specificity ≥ 95% must be preserved
+- [ ] Clinical reviewer sign-off
+
+---
+
 ## Authoring checklist
 
 Before committing any new or edited rule file:
