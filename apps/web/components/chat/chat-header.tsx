@@ -5,12 +5,15 @@ import type { ChatSession } from '@cdai/types'
 import { tenant } from '@cdai/tenant'
 import { HistoryPanel } from './history-panel'
 import { SettingsPanel } from './settings-panel'
+import { TestingGuidePanel } from './testing-guide-panel'
 import { LanguageToggle } from '@/components/auth/language-toggle'
 import { useLocaleStore } from '@/lib/stores/locale-store'
 
 export function ChatHeader({ session }: { session: ChatSession | null }) {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // TODO: remove after clinical pilot period ends
+  const [guideOpen, setGuideOpen] = useState(false)
   const router = useRouter()
   const locale = useLocaleStore((s) => s.locale)
 
@@ -53,6 +56,15 @@ export function ChatHeader({ session }: { session: ChatSession | null }) {
           >
             🕐
           </button>
+          {/* TODO: remove after clinical pilot */}
+          <button
+            onClick={() => setGuideOpen(true)}
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-base font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-tinted)]"
+            aria-label="Testing guide"
+            title="Testing guide"
+          >
+            ?
+          </button>
           <LanguageToggle />
           <button
             onClick={() => setSettingsOpen(true)}
@@ -65,6 +77,8 @@ export function ChatHeader({ session }: { session: ChatSession | null }) {
       </header>
       <HistoryPanel open={historyOpen} onClose={() => setHistoryOpen(false)} />
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      {/* TODO: remove after clinical pilot */}
+      <TestingGuidePanel open={guideOpen} onClose={() => setGuideOpen(false)} />
     </>
   )
 }
