@@ -208,6 +208,36 @@
         "type": "crisis_flag",
         "flag_id": "si_passive"
       }
+    },
+    {
+      "rule_id": "SK-AR-006",
+      "version": "1.0.0",
+      "category": "safety",
+      "authored_by": "sage_clinics",
+      "approved_by": null,
+      "effective_date": "2026-06-05",
+      "active": false,
+      "description": "Arabic escape and non-return ideation — departure + no-return compositional pattern (Gulf and MSA). DRAFT: pending clinical sign-off before activation. Mirrors SK-EN-005.",
+      "match_type": "keyword",
+      "patterns": [
+        "ودي امشي ولا ارجع",
+        "ابي امشي ولا ارجع",
+        "ابغى امشي ولا ارجع",
+        "ودي اروح ولا ارجع",
+        "ابي اروح ولا ارجع",
+        "ابغى اروح ولا ارجع",
+        "امشي من الدنيا ولا ارجع",
+        "اروح ولا ارجع من الدنيا",
+        "ابي امشي في الصحراء ولا ارجع",
+        "راح ولا راجع للحياة",
+        "مو راجع للحياة هذي"
+      ],
+      "language": "ar",
+      "modifiers": [],
+      "action": {
+        "type": "crisis_flag",
+        "flag_id": "si_passive"
+      }
     }
   ]
 }
