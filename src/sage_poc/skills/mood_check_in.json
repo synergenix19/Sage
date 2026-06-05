@@ -11,15 +11,6 @@
     "how am i doing",
     "track my mood",
     "mood today",
-    "feeling low",
-    "feeling down",
-    "not feeling great",
-    "not doing well",
-    "having a bad day",
-    "bad day",
-    "rough day",
-    "rough week",
-    "struggling today",
     "just checking in",
     "how do you think i'm doing",
     "rate my mood",
@@ -111,17 +102,6 @@
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit immediately with warmth. No persuasion. Acknowledge that checking in takes courage and that is enough.",
       "next_step_id": "exit"
-    },
-    {
-      "condition": {
-        "signal": "mood_score",
-        "operator": "<=",
-        "value": 2,
-        "step": "score_mood"
-      },
-      "action": "flag_for_review",
-      "instruction": "User has rated mood at 1 or 2. Do not advance quickly to exploration. Hold the validation longer. Flag session for clinician_review if this is a second or third consecutive low rating.",
-      "next_step_id": "explore_mood"
     }
   ],
   "escalation_matrix": {
