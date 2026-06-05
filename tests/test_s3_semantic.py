@@ -88,7 +88,7 @@ def test_check_s3_cosine_arithmetic_is_deterministic():
 
     Mocks the index and embedding so no model loads. This is a unit test for the
     arithmetic, not a guard against ANE/MPS model variance — see
-    test_check_s3_live_model_scores_are_deterministic for the real-model guard.
+    test_s3_live_model_scores_are_deterministic for the real-model guard.
     """
     from sage_poc.safety.s3_semantic import check_s3
 
@@ -105,7 +105,7 @@ def test_check_s3_cosine_arithmetic_is_deterministic():
 
 
 @pytest.mark.slow
-def test_check_s3_live_model_scores_are_deterministic():
+def test_s3_live_model_scores_are_deterministic():
     """RC-1 regression guard: BGE-M3 on CPU must produce bitwise-identical scores
     across N repeated calls for the same input.
 
