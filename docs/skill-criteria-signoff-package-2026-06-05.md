@@ -105,7 +105,13 @@ Run: `.venv/bin/python -m pytest tests/test_entry_screen_integration.py -m slow 
 | Arm 3: FP arm — somatic target conditions | 4 (EN×2, AR×1, AZ×1) | 0/4 false holds | **0/4 ✅** |
 | Arm 4: FP arm — ACT + safe_place | 4 (EN×2, AR×2) | 0/4 false holds | **0/4 ✅** |
 
-Note: LLM-evaluated tests have known temperature stochasticity (~5% flake observed on Arabizi body scan under concurrent load). Results above are from isolated runs.
+**Arabizi stochasticity characterization (2026-06-06):**
+
+The Arabizi body scan case ("ana muta3ab w mtwatr bs jismani ma fe shay") produced one HOLD failure during a 18-test concurrent suite run (all 13 other LLM calls in flight simultaneously). This case was characterized in isolation: 20/20 ADVANCE (100%). The criterion text is not structurally ambiguous for this input — the failure was a concurrent-load artifact, not a margin issue.
+
+Characterization conclusion: **STABLE under isolation. Potential degradation under concurrent LLM load.** This is the relevant production property: at pool saturation (multiple simultaneous LLM calls), entry-screen evaluations on borderline Arabizi phrasings may flip. This interacts with fail-closed behavior — a saturated pool that produces a HOLD will not retry, so a transient stochastic HOLD becomes a real hold for that user. This is documented in the pool characterization task as the retry-under-load entry-screen interaction point.
+
+One observed flake is not a measured rate. If the production Arabizi user base is significant, characterize under realistic concurrent load (e.g., 5–10 parallel calls) before GA. The current number is: 0 holds / 20 isolated trials; 1 hold / 1 concurrent-suite trial — two data points, not a rate.
 
 ---
 

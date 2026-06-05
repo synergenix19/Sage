@@ -31,6 +31,16 @@ PRE-COMMITTED PASS BARS (must be met before this test file is run):
 
 Usage:
     .venv/bin/python -m pytest tests/test_entry_screen_integration.py -m slow -v
+
+Stochasticity note (2026-06-06):
+    The Arabizi body_scan FP case (test_az_general_stress_advances_body_scan) produced
+    one HOLD failure in an 18-test concurrent suite run. Characterized in isolation:
+    20/20 ADVANCE. Conclusion: criterion is STABLE; failure was a concurrent-load artifact.
+
+    Mechanism: when 13+ LLM calls run simultaneously, a borderline Arabizi phrasing can
+    flip under load. The fail-closed path does not retry, so a transient stochastic HOLD
+    becomes a real hold for that user. Characterize under realistic concurrent load before
+    GA if Arabizi coverage is a clinical target. See skill-criteria-signoff-package-2026-06-05.md.
 """
 from __future__ import annotations
 
