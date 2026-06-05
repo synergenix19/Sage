@@ -119,6 +119,17 @@ async def safety_check_node(state: SageState) -> dict:
     # Fail-open: exceptions and timeouts → score 0.0, no crash, S1 result stands.
     # v7 target: <50ms total for Layer 1. S3 embedding adds ~200-500ms per turn.
     # Acceptable for POC; production requires async pre-warm and potential GPU inference.
+    #
+    # STRUCTURAL SINGLE-TIER WARNING (2026-06-05, verified by scripts/verify_arabic_safety.py):
+    # For English, S1 + S3 provide genuine defence-in-depth. S3 catches novel passive-SI
+    # phrasing that S1 misses (see SF1_PARAPHRASE_CATCH in test_s3_semantic.py).
+    # For Arabic and Arabizi, S3 does NOT generalise at the current threshold:
+    #   - Arabic idioms (SK-AR-002/003) score 0.70–0.74 — below S3_THRESHOLD=0.8059
+    #   - Arabizi phrases (SK-AZ-001/002) score 0.39–0.81; only one phrase clears (+0.002)
+    # S1 keyword coverage is therefore LOAD-BEARING for Arabic and Arabizi.
+    # DO NOT prune Arabic/Arabizi keywords on the assumption that S3 or S2 (MARBERT,
+    # not yet built) provides a semantic backstop — that backstop does not exist in POC.
+    # Before pruning any AR/AZ keyword, run: uv run python scripts/verify_arabic_safety.py
     try:
         s3_score = await asyncio.wait_for(
             asyncio.to_thread(

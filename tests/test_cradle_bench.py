@@ -10,6 +10,33 @@ Markers:
 
 Skip condition: if tests/fixtures/cradle_bench/eval.jsonl is absent,
 all parametrized tests skip automatically. Run scripts/fetch_cradle_bench.py first.
+
+BASELINE (S1+S3, 2026-06-05, locked by scripts/verify_arabic_safety.py)
+--------
+  Crisis recall:   39.4%  (121/307)   [KPI ≥95% — FAIL — 186 missed]
+  Specificity:     95.7%  (178/186)   [8 FPs, all pre-existing SK-EN-001 span-match]
+  Clinical flags:  50.0%   (91/182)   [no KPI]
+
+  Recall by sub-type (approx from s1_misses.jsonl):
+    active_suicide_ideation: majority of the 186 misses — indirect/method language
+    passive_suicide_ideation: sub-threshold passive phrasing (the MARBERT case)
+    self_harm: low coverage — method language not enumerable by keyword
+
+INTERPRETATION
+--------------
+The 55.6-point recall gap is NOT closable by adding more keywords. The missed
+posts use indirect/method language ("I mixed benzo and antidepressants I hope
+enough to not wake up") that is structurally un-keywordable. This is the
+documented justification for Exp 4.2 (MARBERT binary classifier). Adding more
+EN keywords marginally improves recall at the cost of precision (the 8 FPs are
+already span-match issues). Do not close this gap with keyword expansion.
+
+Arabic equivalent: no Arabic CRADLE set exists. The same indirect-method recall
+gap exists in Arabic (SK-AR-004 method rules are keyword-only) but is currently
+unmeasured. This is a measurement gap to name, not a code gap to fix at POC.
+
+CRADLE recall/precision is the correct primary metric for production readiness.
+It replaces the suite green-rate as the signal that matters.
 """
 import pytest
 from pathlib import Path

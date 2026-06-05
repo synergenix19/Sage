@@ -215,12 +215,13 @@ def test_s3_catches_sf1_paraphrase(phrase):
 @pytest.mark.slow
 @pytest.mark.xfail(
     reason=(
-        "PRE-PRODUCTION SAFETY BLOCKER: S3 English generalization gap confirmed 2026-06-01. "
-        "These passive-SI paraphrases score 0.767-0.795 against 0.8059 threshold — S1 has no "
-        "keyword match, so they reach skill_select and get a therapeutic response instead of "
-        "crisis routing. Same class as Arabic recall gap; both block user-facing deployment. "
-        "Near-term partial: add S1 keyword patterns for highest-frequency passive-ideation "
-        "constructions. Full fix: richer crisis corpus anchors + recalibration."
+        "S3 sub-threshold; S1-covered; semantic enrichment candidate. "
+        "Both phrases score 0.767-0.795 against the 0.8059 threshold — S3 misses — but SK-EN-002 "
+        "keyword patterns ('do better without me', 'relieved if I were gone') catch them at the "
+        "node level, so end-to-end crisis routing is correct. This documents an S3 generalisation "
+        "gap, not a live patient-safety gap. Severity: LOW until these constructions appear in "
+        "crisis corpus without a matching S1 keyword. Fix path: enrich crisis_phrases.json with "
+        "diverse passive-ideation anchors and recalibrate; do not add these verbatim to the corpus."
     ),
     strict=True,
 )
