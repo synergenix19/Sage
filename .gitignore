@@ -13,3 +13,4 @@ apps/web/playwright/.seed-state.json
 apps/web/test-results/
 apps/web/playwright-report/
 supabase/.temp/
+.vercel
