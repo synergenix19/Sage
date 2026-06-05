@@ -11,16 +11,36 @@
       "category": "safety",
       "match_type": "keyword",
       "patterns": [
-        "kill myself", "want to die", "end my life", "suicide", "suicidal",
-        "hurt myself", "self-harm", "cut myself", "overdose",
-        "better off dead", "can't go on", "not worth living",
-        "want to disappear", "don't want to be here", "thinking of ending it",
-        "i'm a burden", "don't want to be alive", "end it all",
-        "no reason to live", "ending it", "ending my life"
+        "kill myself",
+        "want to die",
+        "end my life",
+        "suicide",
+        "suicidal",
+        "hurt myself",
+        "self-harm",
+        "cut myself",
+        "overdose",
+        "better off dead",
+        "can't go on",
+        "not worth living",
+        "want to disappear",
+        "don't want to be here",
+        "thinking of ending it",
+        "i'm a burden",
+        "don't want to be alive",
+        "end it all",
+        "no reason to live",
+        "ending it",
+        "ending my life"
       ],
       "language": "en",
-      "modifiers": ["negation_check"],
-      "action": {"type": "crisis_flag", "flag_id": "si_explicit"}
+      "modifiers": [
+        "negation_check"
+      ],
+      "action": {
+        "type": "crisis_flag",
+        "flag_id": "si_explicit"
+      }
     },
     {
       "rule_id": "SK-AZ-001",
@@ -47,8 +67,13 @@
         "ta3abt mn alhayat"
       ],
       "language": "az",
-      "modifiers": ["negation_check"],
-      "action": {"type": "crisis_flag", "flag_id": "si_explicit"}
+      "modifiers": [
+        "negation_check"
+      ],
+      "action": {
+        "type": "crisis_flag",
+        "flag_id": "si_explicit"
+      }
     },
     {
       "rule_id": "SK-AR-001",
@@ -88,7 +113,10 @@
       ],
       "language": "ar",
       "modifiers": [],
-      "action": {"type": "crisis_flag", "flag_id": "si_explicit"}
+      "action": {
+        "type": "crisis_flag",
+        "flag_id": "si_explicit"
+      }
     },
     {
       "rule_id": "SK-EN-003",
@@ -113,7 +141,9 @@
         "methods to die"
       ],
       "language": "en",
-      "modifiers": ["negation_check"],
+      "modifiers": [
+        "negation_check"
+      ],
       "action": {
         "type": "crisis_flag",
         "flag_id": "si_method"
@@ -153,108 +183,6 @@
       }
     },
     {
-      "rule_id": "SK-AR-004",
-      "version": "1.0.0",
-      "authored_by": "sage_clinics",
-      "approved_by": null,
-      "effective_date": "2026-06-05",
-      "active": true,
-      "description": "Arabic SI method references — planning beyond ideation (how to, how many, jump, cut). Mirrors SK-EN-003.",
-      "category": "safety",
-      "match_type": "keyword",
-      "patterns": [
-        "كيف اخذ حبوب عشان اموت",
-        "كم حبة تقتلني",
-        "اقفز من الجسر",
-        "اقفز من الطابق",
-        "اشق معصمي",
-        "اقطع معصمي",
-        "اشنق نفسي",
-        "طرق انهاء حياتي",
-        "كيف اوذي نفسي بشكل خطير",
-        "طريقة اقتل نفسي",
-        "اقتل نفسي بالحبوب",
-        "كم حبة كافية عشان اموت"
-      ],
-      "language": "ar",
-      "modifiers": ["negation_check"],
-      "action": {"type": "crisis_flag", "flag_id": "si_method"}
-    },
-    {
-      "rule_id": "SK-AZ-003",
-      "version": "1.0.0",
-      "authored_by": "sage_clinics",
-      "approved_by": null,
-      "effective_date": "2026-06-05",
-      "active": true,
-      "description": "Arabizi SI method references — matches against raw text via lang=az. Mirrors SK-EN-003 and SK-AR-004.",
-      "category": "safety",
-      "match_type": "keyword",
-      "patterns": [
-        "kam 7abba 3shan amoot",
-        "kam 7abba tgtel",
-        "agfez mn aljsr",
-        "agfez mn alfog",
-        "ag6a3 3dawayri",
-        "t5ana2 nafsi",
-        "a2zi nafsi bshakl 5ter",
-        "6ari2a aqtel nafsi"
-      ],
-      "language": "az",
-      "modifiers": ["negation_check"],
-      "action": {"type": "crisis_flag", "flag_id": "si_method"}
-    },
-    {
-      "rule_id": "SK-AR-005",
-      "version": "1.0.0",
-      "authored_by": "sage_clinics",
-      "approved_by": null,
-      "effective_date": "2026-06-05",
-      "active": true,
-      "description": "Arabic third-party crisis — user describing someone else in crisis. No negation_check; is_safe=True for speaker. Mirrors SK-EN-004.",
-      "category": "safety",
-      "match_type": "keyword",
-      "patterns": [
-        "صديقتي قالت تبغى تموت",
-        "صديقتي تبغى تنتحر",
-        "صديقي قال يبي ينهي حياته",
-        "صديقي يريد ان يموت",
-        "اخوي يريد ان يموت",
-        "اختي تريد ان تموت",
-        "واحد اعرفه يريد ينهي حياته",
-        "صديقتي قالت تريد تجرح نفسها",
-        "اخوي يتكلم عن الانتحار",
-        "اختي تتكلم عن الانتحار",
-        "رفيقتي ذكرت انها تريد الموت",
-        "صاحبي قال ما يبي يكمل"
-      ],
-      "language": "ar",
-      "modifiers": [],
-      "action": {"type": "third_party_crisis", "flag_id": "third_party_si"}
-    },
-    {
-      "rule_id": "SK-AZ-004",
-      "version": "1.0.0",
-      "authored_by": "sage_clinics",
-      "approved_by": null,
-      "effective_date": "2026-06-05",
-      "active": true,
-      "description": "Arabizi third-party crisis — user describing someone else in crisis. lang=az matches raw text regardless of language classification. Mirrors SK-EN-004 and SK-AR-005.",
-      "category": "safety",
-      "match_type": "keyword",
-      "patterns": [
-        "sa7abi gal yabi ymoot",
-        "sa7ebti tabgha tmoot",
-        "sa7ebti galat tabgha tmoot",
-        "a5oi y7ki 3n alintikhar",
-        "sa7bi yabi ynahi 7ayata",
-        "wa7da a3arfha tabgha tmoot"
-      ],
-      "language": "az",
-      "modifiers": [],
-      "action": {"type": "third_party_crisis", "flag_id": "third_party_si"}
-    },
-    {
       "rule_id": "CK-CH-001",
       "version": "1.0.0",
       "authored_by": "sage_clinics",
@@ -279,7 +207,10 @@
       ],
       "language": "en",
       "modifiers": [],
-      "action": {"type": "crisis_flag", "flag_id": "command_hallucination"}
+      "action": {
+        "type": "crisis_flag",
+        "flag_id": "command_hallucination"
+      }
     },
     {
       "rule_id": "CK-CH-002",
@@ -297,7 +228,10 @@
       ],
       "language": "ar",
       "modifiers": [],
-      "action": {"type": "crisis_flag", "flag_id": "command_hallucination"}
+      "action": {
+        "type": "crisis_flag",
+        "flag_id": "command_hallucination"
+      }
     }
   ]
 }
