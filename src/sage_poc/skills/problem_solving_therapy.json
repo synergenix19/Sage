@@ -1,0 +1,212 @@
+{
+  "skill_id": "problem_solving_therapy",
+  "skill_name": "Problem-Solving Therapy",
+  "skill_type": "structured",
+  "evidence_base": "D'Zurilla and Goldfried (1971); D'Zurilla and Nezu (2007) Problem-Solving Therapy: A Positive Approach to Clinical Intervention; Mynors-Wallis et al. (2000) RCT BMJ; NICE CG90 Depression; NICE CG113 GAD",
+  "self_evolution": "manual_only",
+  "target_presentations": [
+    "help me solve this",
+    "problem solving",
+    "structured approach",
+    "help me figure out what to do",
+    "don't know what to do",
+    "dont know what to do",
+    "what should I do about",
+    "I need to make a decision",
+    "help me decide",
+    "which option should I choose",
+    "I am stuck on a decision",
+    "cant decide",
+    "can't decide",
+    "stuck on a decision",
+    "need to figure this out",
+    "how do I deal with this situation",
+    "help me work through this",
+    "I have a real problem",
+    "this is a practical problem",
+    "I need a practical solution",
+    "I don't know how to handle this",
+    "I need to figure out my next steps",
+    "help me think through my options",
+    "I have options but don't know which",
+    "need help with a real situation",
+    "a decision I keep putting off",
+    "something I need to sort out",
+    "help me problem solve this",
+    "problem solve this",
+    "let me try problem solving",
+    "work through this systematically",
+    "structured approach to this problem",
+    "I want to try problem solving",
+    "let's problem solve",
+    "ما أدري وش أسوي",
+    "أبي أحل المشكلة هذي",
+    "عندي مشكلة حقيقية",
+    "ما أعرف وش أختار",
+    "محتاج أقرر",
+    "ما أعرف كيف أتعامل مع الموقف هذا",
+    "عندي خيارات بس ما أعرف",
+    "مو عارف كيف أحلها",
+    "أبي نشتغل على مشكلة حقيقية",
+    "حل هالمشكلة"
+  ],
+  "semantic_description": "Problem-Solving Therapy PST: D'Zurilla and Nezu five-step structured problem-solving protocol. Problem formulation and definition: narrowing a vague concern to a specific actionable statement. Divergent solution generation: brainstorming alternatives without evaluation. Decisional balance: pros and cons weighted against real-world feasibility. Solution selection and action planning: one option, specific implementation steps, first step commitment. Obstacle anticipation and contingency planning. D'Zurilla Goldfried 1971. Mynors-Wallis problem-solving therapy primary care protocol. Structured decision-making. Problem orientation. Real practical problem navigation.",
+  "steps": [
+    {
+      "step_id": "define_the_problem",
+      "goal": "Help the user narrow from a vague concern to one specific, concrete, actionable problem statement. The problem must be current, real, and have options. If it turns out to be a hypothetical what-if or an emotional state rather than a practical situation, this is the moment to redirect.",
+      "technique": "PST problem formulation: who, what, where, when",
+      "technique_description": "Use focused questions to move from vague to specific. The target is a problem statement that is small enough to work on, real enough to have concrete options, and current enough to act on this week. A good problem statement names the situation, the decision or action required, and any constraints. A bad problem statement is 'my life is hard' or 'I'm anxious all the time', those are states, not problems. One focused question per turn.",
+      "tone": "curious, practical, collaborative, non-judgmental",
+      "examples": [
+        "صفلي الموضوع: وش بالضبط اللي محتاج تقرر فيه أو تسويه؟ مو كل الصورة، بس الشي الواحد اللي واقف فيه.",
+        "What is the specific thing you are stuck on? Not the whole picture, just the one part that most needs a decision or a next move.",
+        "Tell me about the situation. What is actually happening, and what decision or action do you need to take?",
+        "You mentioned [X]. Let's make it concrete. Is it a decision between options, a conversation you need to have, something you need to plan, or something else?",
+        "وش هو الموقف اللي عندك؟ وش المحتاج يصير أو تقرره؟"
+      ],
+      "contraindications": "Do NOT continue PST if the user's concern is a hypothetical what-if with no current real-world anchor (that is Worry Time territory). Do NOT continue if the 'problem' is actually an emotional state the user wants to feel differently about (that is ACT or CBT territory). Redirect gently: 'This sounds more like a feeling you are carrying rather than a situation with options, want to try a different approach?' Do NOT proceed if the problem involves active crisis or immediate safety risk, exit to crisis protocol.",
+      "completion_criteria": "User has named one specific, current, real problem. The statement is concrete enough to have options. Vague statements ('my life is hard', 'I feel stuck') do not meet the bar. Ask one more narrowing question if needed."
+    },
+    {
+      "step_id": "generate_solutions",
+      "goal": "Generate at least three possible options without evaluating them. Quantity over quality at this stage. The user does the generating; the therapist draws out options they may have dismissed too quickly.",
+      "technique": "PST divergent thinking: suspend evaluation during generation",
+      "technique_description": "The rule of this step is: no judging yet. Every option gets written down, including ones that seem impractical, risky, or uncomfortable. The purpose of deferring evaluation is that useful ideas are often hidden inside 'bad' ones. Include options the user has already dismissed. In Gulf context, include collective options: asking a family member, seeking advice from an elder or religious figure, using a trusted intermediary, formal or informal mediation. Do not suggest options the user has not mentioned themselves, but prompt them toward option types they may have overlooked. Prompt with: 'What else? What haven't you tried or considered yet?'",
+      "tone": "generative, encouraging, non-evaluative, warm",
+      "examples": [
+        "نحط كل الخيارات على الطاولة أولاً، حتى اللي تحس إنها ما راح تشتغل. وش الخيارات اللي عندك؟",
+        "What have you already thought of, even the options you dismissed? Let's include everything first.",
+        "Let's get all the options on the table first, even the ones that seem unlikely. What are the different ways you could handle this? Don't filter yet.",
+        "What would you do if there were no consequences? What would you do if you had more support? Sometimes those questions open up options that get filtered too quickly.",
+        "Is there someone whose advice would matter here? Or someone who could help you navigate this?",
+        "وش اللي جربته من قبل؟ وش اللي ما جربته بعد؟ حتى الخيارات الصعبة، نحطها."
+      ],
+      "contraindications": "Do NOT evaluate options during this step. If the user starts assessing 'but that won't work because...', acknowledge their point briefly and continue generating: 'Good point, we will get to that, but let's collect all options first.' Aim for at least three distinct options before advancing. If the user is stuck at two, prompt toward option types they may not have considered: seeking help from others, doing nothing (as a deliberate choice), smaller partial versions of an option.",
+      "completion_criteria": "User has named at least three distinct options. They do not need to be evaluated or ranked yet."
+    },
+    {
+      "step_id": "evaluate_and_choose",
+      "goal": "Walk through the options with honest pros and cons weighted against the user's real-life constraints. Choose one option to try.",
+      "technique": "PST decisional balance: feasibility-weighted evaluation",
+      "technique_description": "For each option, ask: what are the likely outcomes? What would it cost? Is it actually feasible given the user's real constraints? Gulf-context feasibility includes: kafala and visa constraints (which limit options for migrant workers), family obligation and face-saving considerations, gender role constraints, financial limits, access to support. These are not distortions, they are real. Do not push the user toward the 'best' option in the abstract. The best option is the one the user can actually do. Help them notice which option has the best balance of likely outcome and real feasibility. When a decision is made, validate it without excessive positivity.",
+      "tone": "practical, honest, non-directive, grounded",
+      "examples": [
+        "نمشي على كل خيار: لو جربته، وش تتوقع يصير؟ وش راح يكلفك؟",
+        "Which of these feels most doable in your actual life right now, not the ideal version of your life, your actual situation?",
+        "Let's go through these one by one. For each one, what do you think would actually happen if you tried it? And what would it cost you?",
+        "Sometimes the best option is not the one with the best outcome in theory, it is the one you can actually do. Which one can you actually do?",
+        "If all of these feel impossible, let's look at what is making them feel that way. Sometimes the barrier is practical, sometimes it is something else.",
+        "من بين هالخيارات، وش الخيار اللي تقدر تسويه فعلاً في وضعك الحالي؟ مو في الوضع المثالي، في وضعك كما هو."
+      ],
+      "contraindications": "Do NOT choose the option for the user. If the user asks 'what do you think I should do?', acknowledge the question and redirect: 'You know your situation better than I do, what does your gut say?' If all options feel impossible, validate the structural constraints before re-generating. Do NOT dismiss constraints as irrational. A kafala constraint, a family obligation, or a financial limit that rules out an option is real information, not distorted thinking.",
+      "completion_criteria": "User has chosen one option to try. The choice is theirs. Vague agreement ('I'll figure it out') does not meet the bar. A real completion names which option."
+    },
+    {
+      "step_id": "make_a_plan",
+      "goal": "Translate the chosen option into a specific, concrete action plan with a first step the user can take this week.",
+      "technique": "PST action planning: when, where, who, what",
+      "technique_description": "Break the chosen option into concrete steps. For each step: what exactly will the user do, when will they do it, where, and with whom if relevant. The first step must be specific enough to be done or not done. 'I will try to be more assertive' is not a plan. 'I will call my manager on Wednesday at 9am and ask for a meeting' is a plan. Keep the horizon short: what can happen this week? For multi-step plans, focus on just the first step now.",
+      "tone": "concrete, collaborative, forward-moving, encouraging",
+      "examples": [
+        "زين. وش هي الخطوة الأولى بالضبط؟ مو الخطة كلها، بس أول خطوة.",
+        "When exactly will you do this? Not 'soon' or 'this week' but a specific day and time.",
+        "Good. Now let's make it concrete. What is the very first step? Not the whole plan, just the first move.",
+        "Is there anything you need to have or do before that first step is possible?",
+        "What does success look like for this first step? How will you know you did it?",
+        "متى بالضبط راح تسويها؟ مو 'قريباً'، يوم وتوقيت محدد."
+      ],
+      "contraindications": "Do NOT generate a ten-step plan. One first step is enough. Do NOT push for a timeline the user has not offered. If they say 'I don't know when', ask: 'What would have to be true for you to be able to take that first step?' Do NOT skip asking for a specific time, 'I'll do it this week' is not enough.",
+      "completion_criteria": "User has named a first step that is concrete enough to be done or not done, and has given a timeframe (specific day or occasion, not just 'soon')."
+    },
+    {
+      "step_id": "review_commitment",
+      "goal": "Anticipate what could get in the way and build a simple contingency so the plan survives contact with reality.",
+      "technique": "PST obstacle anticipation and contingency planning",
+      "technique_description": "Ask the user to name one thing that could get in the way of the first step. Then ask: if that happens, what would you do? This is not pessimism, it is preparation. Research on implementation intentions shows that naming the obstacle and the contingency significantly increases follow-through. Keep it simple: one obstacle, one response. Close the skill by acknowledging the work done and offering the option to check back in.",
+      "tone": "practical, warm, grounding, forward-looking",
+      "examples": [
+        "شي واحد: وش ممكن يوقف الخطوة الأولى هذي؟",
+        "One last thing: what could get in the way of that first step? Just one thing.",
+        "If [obstacle the user named] happens, what is your backup? Even a small adjustment.",
+        "You have done real work here. You have a problem, a plan, and a first step. That is more than most people have. How do you feel about it?",
+        "Whenever you are ready to review how it went, I am here. You can come back and we can look at what happened and what to try next.",
+        "ولو صار ذاك الشي، وش راح تسوي؟ حتى لو تعديل بسيط.",
+        "سويت شغل حقيقي هنا. عندك مشكلة محددة، وخيار، وخطوة أولى. كيف تحس الحين؟"
+      ],
+      "contraindications": "Do NOT name the obstacle for the user. Do NOT generate a long contingency plan. One obstacle, one response. Do NOT end with false positivity. If the user is still uncertain or anxious about the plan, acknowledge that uncertainty is normal and the first step will give them more information.",
+      "completion_criteria": "User has named at least one potential obstacle and has identified a contingency response, even a minimal one."
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
+      "action": "validate_only",
+      "instruction": "User is acutely distressed. Do not continue problem-solving steps. Validate the emotional weight first. Problem-solving requires enough cognitive bandwidth to think through options. Stay present, reflect back what you heard, and only re-offer the technique if the user signals they are ready.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "step": "ANY",
+        "for_turns": 3
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance to the structured approach. Some people find PST too analytical when they are in emotional pain. Offer to stop and just talk, or explore whether a different approach would suit them better right now. Do not repeat the technique framing.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "step": "ANY",
+        "for_turns": 3
+      },
+      "action": "check_in_micro",
+      "instruction": "User has been disengaged for three turns. Gently check in: is working through a structured plan feeling useful right now, or would they prefer something else?",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit with warmth. Even getting a problem to a clear statement is meaningful progress. No persuasion.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": {
+        "signal": "prior_exposure",
+        "operator": ">=",
+        "value": 2,
+        "step": "define_the_problem"
+      },
+      "action": "skip_psychoeducation",
+      "instruction": "User has used PST before. Skip any introductory framing about how the approach works. Ask directly: what is the problem you want to work on today?",
+      "next_step_id": "define_the_problem"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit skill gracefully if user requests to stop. No persuasion. Acknowledge that naming the problem clearly is itself a useful step.",
+    "L2": "Add clinician_review flag if the problem involves indicators of coercive control or interpersonal safety risk, or if the problem is substance use or eating-related.",
+    "L3": "Exit immediately to crisis protocol if any crisis signal is detected during the session.",
+    "L4": "Trigger human handoff if user explicitly requests a human clinician or shows 3 or more crises in the last 30 days."
+  },
+  "cultural_overrides": {
+    "collective_options": "Gulf problem-solving is often relational and collective. When generating solutions, explicitly include: asking a family member or elder, seeking a religious figure's counsel, using a trusted intermediary, family mediation. These are not avoidance, they are culturally valid problem-solving strategies. Wasta and informal networks are legitimate options in Gulf context.",
+    "face_saving": "A solution that preserves face is a valid solution, not avoidance. Do not frame face-saving choices as less healthy. In Gulf culture, the indirect approach that maintains relationships and dignity is often the wiser practical choice.",
+    "structural_constraints": "Kafala and visa constraints, family financial obligations, gender role constraints, and employer power dynamics are real feasibility factors. Do not treat them as distortions to challenge. Work within the user's actual situation.",
+    "decision_framing": "Avoid the word 'brainstorming' directly as it may feel foreign. Use: 'let's think of all possible options', 'what are your choices here', 'what could you try'."
+  }
+}

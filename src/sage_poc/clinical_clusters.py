@@ -51,5 +51,9 @@ CLINICAL_CLUSTERS: dict[str, list[str]] = {
     "financial_stress": ["financial_anxiety"],
     # Cluster name intentionally differs from skill_id to avoid confusion.
     "grief_and_loss": ["grief_loss"],
+    # PST is semantically adjacent to worry_time (both involve practical problems) but
+    # distinct: PST is for real, actionable problems with options; worry_time contains
+    # and sorts hypothetical/rumination-driven worry. Keyword tier handles disambiguation.
+    "structured_problem_solving": ["problem_solving_therapy"],
     # post_crisis_check_in is excluded — see corpus_constants.CLUSTER_EXCLUSIONS.
 }
