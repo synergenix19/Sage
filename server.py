@@ -71,17 +71,47 @@ async def _warmup_task() -> None:
     Railway's healthcheck then polls a real HTTP response instead of getting
     connection-refused for the full 5-minute window (which caused staging failures
     on lower-CPU Railway instances where warmup takes > 5 minutes).
+
+    This task also warms the OpenRouter TCP connection (classifier pool) before
+    setting _bge_ready = True. Without this, the first real user call pays 4.7s
+    of TCP/TLS cold-start regardless of model load time — the httpx pool has no
+    established connection until the first actual request.
+
+    The classifier warmup MUST complete before _bge_ready is set — this is what
+    makes the Railway readiness probe (/health/ready) actually gate on a warm
+    connection, not just a started process. If this call is moved after _bge_ready
+    or into a separate fire-and-forget task, the readiness guarantee is broken.
     """
     global _bge_ready
     try:
         await asyncio.to_thread(_warmup_bge_m3)
         _log.info("[sage/startup] BGE-M3 warmup complete")
-        _bge_ready = True
     except Exception as exc:
         # Keep _bge_ready = False; /health/ready stays 503; /chat stays gated.
         _log.error(
             "[sage/startup] BGE-M3 warmup failed — service is NOT ready: %s", exc
         )
+        return
+
+    # Warm the OpenRouter classifier TCP connection so the first real user does not
+    # pay cold-start latency. Uses the same _ASYNC_HTTP_CLIENT pool that handles all
+    # real LLM calls — a throwaway client here would warm a different pool and have
+    # no effect on production latency.
+    try:
+        from sage_poc.llm import get_classifier
+        from sage_poc.resilience import resilient_invoke
+        await resilient_invoke(
+            get_classifier(),
+            [{"role": "user", "content": "ping"}],
+            node="warmup",
+        )
+        _log.info("[sage/startup] classifier connection warmed")
+    except Exception as exc:
+        # Non-fatal: real calls will establish their own connection.
+        # Log as WARNING — a cold first user call is a latency degradation, not a crash.
+        _log.warning("[sage/startup] classifier warmup failed: %s; first user may see cold-start latency", exc)
+
+    _bge_ready = True
 
 
 @asynccontextmanager

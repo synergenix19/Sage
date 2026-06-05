@@ -58,18 +58,30 @@ This table states the safety posture plainly. Green test results are recorded wh
 
 ## IV. Arabic Crisis Coverage
 
-Two rows. Do not conflate.
+Three rows. Do not conflate live exposure, authored-but-inactive rules, and the pending fix.
 
-| Item | State |
-|---|---|
-| Arabic crisis rules LIVE | **SK-AR-001/002/003 only** — 3 rules covering SI explicit, passive, and generic harm phrasing |
-| Arabic crisis rules authored, pending sign-off | SK-AR-004 (SI method), SK-AR-005 (third-party), SK-AR-006 (escape/non-return) — authored but not live |
-| Gulf escape/non-return Arabic coverage | **NONE at any tier** — SK-AR-006 active=false; S3 inert at Gulf Arabic cosine range |
-| Arabic crisis recall measured | **NO** — CRADLE is English-only; Arabic recall is unknown |
+### Live exposure (what a real user can hit today)
 
-**A user expressing "ودي امشي ولا ارجع" will not trigger any crisis response in the current system.**
+| Crisis class | S1 live | S3 | Coverage |
+|---|---|---|---|
+| Arabic SI explicit phrasing | SK-AR-001/002/003 | Advisory (0 recall) | Partial — 3 rules, unmeasured recall |
+| Arabic SI method references | **NONE** (SK-AR-004 reverted) | Advisory (0 recall) | **ZERO** |
+| Arabic third-party crisis | **NONE** (SK-AR-005 reverted) | Advisory (0 recall) | **ZERO** |
+| Gulf escape/non-return | **NONE** (SK-AR-006 inactive) | Advisory (0 recall) | **ZERO** |
 
-**Clinical sign-off required (bundled package):** `docs/arabic-crisis-rules-signoff-package-2026-06-05.md` — one clinical action activates SK-AR-004/005/006.
+**A user expressing "ودي امشي ولا ارجع" will not trigger any crisis response in the current system.** This is a live exposure, not a pending item. The gap exists right now, for Arabic-speaking users, in the population most likely to use this idiom.
+
+Arabic crisis recall is unmeasured — CRADLE is English-only. The three live rules (SK-AR-001/002/003) have no validated recall figure.
+
+### Queued remediation (what can close the gap)
+
+| Rule | What it covers | Status |
+|---|---|---|
+| SK-AR-004 | Arabic SI method references | Authored, reverted — awaiting clinical sign-off |
+| SK-AR-005 | Arabic third-party crisis | Authored, reverted — awaiting clinical sign-off |
+| SK-AR-006 | Gulf escape/non-return ideation | Authored (active=false) — awaiting clinical sign-off |
+
+**Clinical sign-off required (bundled package):** `docs/arabic-crisis-rules-signoff-package-2026-06-05.md` — one clinical action activates all three. Bundling was done for speed; the risk is that three distinct Arabic crisis classes clear on a single review gesture rather than individual clinical scrutiny of each pattern set. The sign-off package asks explicit questions per rule to prevent rubber-stamping.
 
 ---
 
@@ -90,6 +102,8 @@ Four skill criteria were rewritten to add affirmative-target carve-outs after ad
 
 **Net pending clinical actions: 1 person, 2 packages, 7 items.** Clearing this unblocks 3 Arabic crisis classes + 4 skill safety boundaries.
 
+**Individual judgment required, not a batch approval:** Seven safety-relevant items clearing on a single signer's single review is efficient but carries a scrutiny risk. Each item requires individual clinical judgment — the Arabic rules need pattern-by-pattern review (is "ودي امشي في الصحراء ولا ارجع" unambiguous in the UAE pilot population?), and each criteria rewrite has its own clinical question (does "racing heart from panic is NOT a cardiac condition" adequately preserve the cardiac edge case?). The sign-off package asks these questions explicitly; the signer should answer each one, not tick a single box. The record should show that individual scrutiny was asked for and provided.
+
 ---
 
 ## VI. Pool Characterization — Gitex Conditions
@@ -107,15 +121,14 @@ Four skill criteria were rewritten to add affirmative-target carve-outs after ad
 
 | Item | Measured | KPI | Decision |
 |---|---|---|---|
-| First classifier call after startup/idle (TCP cold-start) | **4678ms** | > 3s KPI | **PENDING** |
+| First classifier call after startup/idle (TCP cold-start) | **4678ms** | > 3s KPI | **IMPLEMENTED — verify post-deploy** |
 | Subsequent calls (warm) | 665ms p50 / 800ms p95 | Within KPI | PASS |
 
-**Decision required before Gitex demo:**
-- Option A (recommended): add dummy classifier warmup call to `_warmup_task()` after `_bge_ready = True` — first real user always sees warm latency
-- Option B: configure Railway service as always-on (no scale-to-zero)
-- Option C: accept and document — brief the demo presenter that the first skill-start may take 4–5s
+**Option A implemented (2026-06-06):** `_warmup_task()` now makes a classifier call before setting `_bge_ready = True`. Uses the same shared `_ASYNC_HTTP_CLIENT` (300s keepalive_expiry) as real requests — a different client would warm a different pool and have no effect. Railway's readiness probe (`/health/ready`) returns 503 until `_bge_ready = True`, so LB traffic is held until both BGE-M3 AND the classifier connection are warm.
 
-Option C is only acceptable if the demo is not opened with a skill entry screen. Gitex demo opener will likely be a skill, so Option A or B must be chosen.
+**Post-deploy verification required:** The readiness gate holding until warmup completes can only be confirmed against a deployed Railway service — local startup proves the code exists, not that Railway's LB honors the 503 before switching traffic. Verify once on staging: deploy → watch Railway healthcheck status → confirm first user after /health/ready turns 200 sees ≤1s on skill-start.
+
+**keepalive_expiry=300 covers booth idle gaps:** httpx default (5s) would re-pay TCP/TLS after any quiet period between demos. 300s (5 minutes) covers typical between-demo gaps without holding idle connections indefinitely. The shared client is module-level — all 6 LLM roles share the same pool.
 
 ---
 
@@ -129,7 +142,7 @@ Items that must be resolved before the demo. Not a GA checklist — the POC is d
 | G-2 | Browser QA — full golden path on mobile + desktop | QA | Open |
 | G-3 | CORS env var (`CORS_ALLOWED_ORIGINS`) set to demo frontend URL | DevOps | Open |
 | G-4 | DB migration 013 run on production Supabase before demo | Engineering | Open (E2E DPIA fix) |
-| G-5 | **Cold-start latency** — choose Option A/B/C (see §VI) | Engineering | Decision pending |
+| G-5 | **Cold-start latency** — Option A implemented; verify post-deploy on staging (see §VI) | Engineering | Implemented — verify |
 | G-6 | Clinical sign-off — Arabic rules + skill criteria (2 packages, 1 signer) | Clinical Lead | Pending |
 
 **G-6 is not a Gitex blocker** if the clinical lead explicitly accepts the known limitations in writing. It IS a blocker for any clinical adequacy claim.

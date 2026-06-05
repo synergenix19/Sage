@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+import httpx
 from langchain_openai import ChatOpenAI
 
 from sage_poc.config import (
@@ -14,6 +15,20 @@ from sage_poc.config import (
 )
 
 _HEADERS = {"HTTP-Referer": "https://sage.ai", "X-Title": "SageAI POC"}
+
+# Shared async HTTP client for all LLM calls.
+# keepalive_expiry=300 keeps the TCP connection to OpenRouter alive for 5 minutes
+# of inactivity. The httpx default (5s) causes cold-start latency (4.7s TCP/TLS
+# re-establishment) after any idle gap — including gaps between demo sessions at
+# a Gitex booth. 300s covers typical between-demo idle periods.
+# All ChatOpenAI instances share this client so the warmup call in server.py
+# _warmup_task() warms the same pool that handles real user requests.
+_ASYNC_HTTP_CLIENT = httpx.AsyncClient(
+    limits=httpx.Limits(
+        max_keepalive_connections=5,
+        keepalive_expiry=300,
+    ),
+)
 
 _LLM_CONFIGS: dict[str, tuple[str, float, int]] = {
     "classifier":          (CLASSIFIER_MODEL,          0,   512),
@@ -34,6 +49,7 @@ def _make_llm(model: str, temperature: float, max_tokens: int) -> ChatOpenAI:
         temperature=temperature,
         max_tokens=max_tokens,
         default_headers=_HEADERS,
+        http_async_client=_ASYNC_HTTP_CLIENT,
     )
 
 
