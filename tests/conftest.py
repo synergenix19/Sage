@@ -160,9 +160,9 @@ def _stub_bge_m3(request):
     Non-slow tests: zero-vector stub so cosine similarity is always 0.0 (below
     threshold) — semantic tier never fires, no model loads, saves ~2.3 GB RAM.
 
-    @pytest.mark.slow tests: preserve the session-warmed model; clear only the
-    embeddings matrix so _ensure_semantic_ready() re-indexes against the live
-    model without triggering a cold-start reload from disk.
+    @pytest.mark.slow tests: preserve the session-warmed model and pre-built
+    index from _warm_bge_m3_once. Each test encodes only its own query phrase
+    (~2.25s first JIT, 0.07s thereafter) — not the full 23-skill batch (~10s).
 
     State is saved and restored around every test so tests cannot bleed into
     each other regardless of execution order.
@@ -183,11 +183,13 @@ def _stub_bge_m3(request):
     saved_s3_phrases = list(s3._phrase_texts)
 
     if request.node.get_closest_marker("slow"):
-        # Clear embeddings so _ensure_semantic_ready() re-indexes, but keep
-        # _embed_model resident (pre-warmed by _warm_bge_m3_once) to avoid
-        # the cold-start model-load from disk (~5-8s on CPU) exceeding the timeout.
-        ss._semantic_embeddings = None
-        ss._semantic_skill_ids = []
+        # Preserve the pre-built session index from _warm_bge_m3_once.
+        # Clearing _semantic_embeddings forces _ensure_semantic_ready() to re-encode
+        # all 23 skill descriptions inside the 10s asyncio.to_thread timeout.
+        # On CPU (device="cpu" fix, 2026-06-05) this batch encode takes ~10s —
+        # right at the boundary — causing intermittent embedding_timeout failures.
+        # Each test only needs to encode its own query phrase (~2.25s first JIT
+        # compilation, 0.07s thereafter), well within the 10s window.
         yield
     else:
         from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP
