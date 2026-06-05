@@ -203,12 +203,10 @@ _KNOWN_DEAD_SIGNALS: frozenset[tuple[str, str]] = frozenset({
     ("cbt_thought_record",         "trauma_disclosure_detected"),
     ("cognitive_restructuring",    "trauma_disclosure_detected"),
     ("dbt_tipp",                   "physical_contraindication_disclosed"),
-    ("financial_anxiety",          "crisis_financial_hopelessness_detected"),
     ("grief_loss",                 "prolonged_grief_indicators_detected"),
     ("grounding_5_4_3_2_1",        "sensory_limitation_disclosed"),
     ("interpersonal_effectiveness","coercive_relationship_indicators_detected"),
     ("mindfulness_body_scan",      "dissociation_or_dizziness_reported"),
-    ("mood_check_in",              "mood_score"),
     ("progressive_muscle_relaxation", "pain_or_injury_mention"),
     ("psychoed_anxiety",           "existing_anxiety_diagnosis_disclosed"),
     ("psychoed_depression",        "active_suicidal_ideation_disclosed"),
@@ -279,6 +277,48 @@ def test_box_breathing_no_dead_clarity_rule():
     tp = skill.get("target_presentations", [])
     assert "4-7-8 breathing" not in tp, \
         "4-7-8 breathing is the wrong technique (separate evidence base); remove from box_breathing"
+
+
+def test_financial_anxiety_no_crisis_detection_in_step_policy():
+    import json, pathlib
+    skill = json.loads(
+        (pathlib.Path(__file__).parent.parent / "src/sage_poc/skills/financial_anxiety.json")
+        .read_text()
+    )
+    CRISIS_SIGNALS = {"crisis_financial_hopelessness_detected", "crisis_detected", "si_detected"}
+    violations = [
+        rule["condition"]["signal"]
+        for rule in skill.get("step_policy", [])
+        if rule.get("condition", {}).get("signal") in CRISIS_SIGNALS
+    ]
+    assert not violations, f"financial_anxiety step_policy has crisis signals {violations} — belongs in Node 1."
+
+
+def test_mood_check_in_no_overbroad_keywords():
+    import json, pathlib
+    skill = json.loads(
+        (pathlib.Path(__file__).parent.parent / "src/sage_poc/skills/mood_check_in.json")
+        .read_text()
+    )
+    OVERBROAD = {
+        "feeling low", "feeling down", "not feeling great", "not doing well",
+        "having a bad day", "bad day", "rough day", "rough week", "struggling today",
+    }
+    found = OVERBROAD & set(skill.get("target_presentations", []))
+    assert not found, f"mood_check_in has overbroad keywords forcing 1-10 rating protocol: {found}"
+
+
+def test_mood_check_in_no_dead_mood_score_rule():
+    import json, pathlib
+    skill = json.loads(
+        (pathlib.Path(__file__).parent.parent / "src/sage_poc/skills/mood_check_in.json")
+        .read_text()
+    )
+    signals = [r["condition"]["signal"] for r in skill.get("step_policy", [])]
+    assert "mood_score" not in signals, (
+        "mood_score is a dead signal (never resolved at runtime). Rule must be deleted. "
+        "Add an emotional_intensity <= 3 replacement in Task 5b after clinical confirmation."
+    )
 
 
 def test_no_authoring_notes_in_cultural_overrides():

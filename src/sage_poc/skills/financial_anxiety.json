@@ -129,17 +129,6 @@
       "action": "exit_warm_closing",
       "instruction": "User wants to stop. Exit with warmth and without persuasion. Naming the weight of financial pressure and beginning to separate the situation from the anxiety response is already meaningful.",
       "next_step_id": "exit"
-    },
-    {
-      "condition": {
-        "signal": "crisis_financial_hopelessness_detected",
-        "operator": "==",
-        "value": true,
-        "step": "ANY"
-      },
-      "action": "flag_for_review",
-      "instruction": "The user's financial distress may be reaching a level of hopelessness that requires clinical attention. Financial despair can be a significant suicide risk factor, especially in migrant contexts where job loss means deportation and family support loss. Add clinician_review flag and gently explore whether the user is safe.",
-      "next_step_id": "current"
     }
   ],
   "escalation_matrix": {
