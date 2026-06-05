@@ -121,15 +121,31 @@ def _reset_llm_singletons():
 
 @pytest.fixture(autouse=True, scope="session")
 def _warm_bge_m3_once():
-    """Pre-warm the shared BGE-M3 model exactly once per session.
+    """Pre-warm the shared BGE-M3 model exactly once per session using device="cpu".
 
-    BGE-M3 first load on 16GB M4 triggers ANE recompilation and takes >10s,
-    exceeding the asyncio.wait_for timeout in skill_select_node. Loading here
-    keeps the model resident for all subsequent @pytest.mark.slow tests.
+    Forcing CPU matches the production target (Azure UAE North, Linux x86, no MPS/ANE)
+    and eliminates ANE/MPS score variance under parallel xdist execution. Without this,
+    near-threshold SF-1 paraphrase phrases (margin 0.003-0.050) score below S3_THRESHOLD
+    under ANE contention, producing false test failures.
+
+    BGE-M3 first load on 16GB M4 with device="cpu" still takes ~5-8s from cache
+    (no ANE recompilation). Subsequent tests reuse the resident model.
     """
     import sage_poc.nodes.skill_select as ss
     if ss._embed_model is None:
-        ss._ensure_semantic_ready()
+        from sentence_transformers import SentenceTransformer
+        _REVISION = "5617a9f61b028005a4858fdac845db406aefb181"
+        try:
+            model = SentenceTransformer(
+                "BAAI/bge-m3",
+                local_files_only=True,
+                revision=_REVISION,
+                device="cpu",
+            )
+        except (OSError, EnvironmentError):
+            model = SentenceTransformer("BAAI/bge-m3", revision=_REVISION, device="cpu")
+        ss._embed_model = model
+    ss._ensure_semantic_ready()
 
 
 @pytest.fixture(autouse=True)
