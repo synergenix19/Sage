@@ -14,6 +14,7 @@ import json
 import csv
 import io
 import sys
+from collections import Counter
 from pathlib import Path
 import requests
 
@@ -121,12 +122,26 @@ def download_and_normalise(url: str) -> list[dict]:
     if text_stripped.startswith("[") or text_stripped.startswith('{"data'):
         rows = _parse_json(text)
     elif text_stripped.startswith("{"):
-        rows = _parse_jsonl(text)
+        # Try JSONL first (each line is a JSON object); fall back to JSON object
+        try:
+            rows = _parse_jsonl(text)
+        except json.JSONDecodeError:
+            try:
+                rows = _parse_json(text)
+            except (json.JSONDecodeError, AttributeError):
+                print("ERROR: Could not parse response as JSONL, JSON array, or JSON object.")
+                print(f"First 200 chars: {text[:200]!r}")
+                sys.exit(1)
     else:
         try:
             rows = _parse_csv(text)
         except Exception:
-            rows = _parse_jsonl(text)
+            try:
+                rows = _parse_jsonl(text)
+            except json.JSONDecodeError:
+                print("ERROR: Could not parse response as CSV or JSONL.")
+                print(f"First 200 chars: {text[:200]!r}")
+                sys.exit(1)
 
     normalised = []
     for idx, row in enumerate(rows):
@@ -159,7 +174,6 @@ def main() -> None:
         for row in eval_rows:
             fh.write(json.dumps(row, ensure_ascii=False) + "\n")
 
-    from collections import Counter
     counts = Counter(r["label"] for r in eval_rows)
     print(f"\nWrote {len(eval_rows)} examples to {OUT_PATH}")
     print("Label distribution:")
