@@ -22,7 +22,7 @@ _log = logging.getLogger(__name__)
 
 _PHRASES_PATH = pathlib.Path(__file__).parent / "crisis_phrases.json"
 
-# Calibrated 2026-06-03 via scripts/calibrate_s3_threshold.py (command_hallucination corpus added).
+# Calibrated 2026-06-05 via scripts/calibrate_s3_threshold.py (corpus expanded 54→73 phrases).
 # Gap = 0.3234 (unchanged). Re-run after editing crisis_phrases.json.
 # SF-6 "الله ياخذني من هالدنيا" scored 0.6087 (must be < threshold).
 # v7 target: <50ms total for Layer 1. S3 embedding adds ~200-500ms per turn.
