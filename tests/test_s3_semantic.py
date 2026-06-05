@@ -3,26 +3,17 @@
 Unit tests mock get_embedding to avoid loading BGE-M3 in CI.
 Integration/gate tests (marked @pytest.mark.slow) run the real model.
 
-KNOWN BEHAVIOUR — SF-1 gate tests under Mac parallel load (ANE contention):
-The @pytest.mark.slow SF-1 parametrized tests are sensitive to ANE/MPS contention
-when pytest runs many embedding-loading tests in parallel on M4 Mac (16 GB RAM).
-Under parallel load, BGE-M3 may score near-threshold SF-1 phrases slightly below
-S3_THRESHOLD, producing false failures. These are Mac dev-hardware artifacts and
-do NOT reflect the production recall.
+SCORE DETERMINISM (fixed 2026-06-05):
+Session warmup in conftest.py loads BGE-M3 with device="cpu", matching
+the production target (Azure UAE North, Linux x86, no MPS/ANE).
+This eliminated the ANE/MPS score variance that caused near-threshold
+SF-1 paraphrase phrases (margin 0.003-0.050) to fail intermittently
+under parallel xdist execution (F-S05-002 root cause, confirmed CPU run).
 
-CPU-forced verification (2026-06-04, F-S05-002):
-All 16 non-xfail SI phrases were tested with SentenceTransformer forced to device="cpu",
-matching the Railway production runtime (python:3.12-slim, Linux, no MPS/ANE). Result:
-16/16 PASS at scores identical to those recorded on the branch. Under-load failures
-confirmed as Mac M4 ANE/MPS contention only — not reproducible on the CPU production path.
-
-Dev caveat — if tests fail under parallel load on Mac:
-Run S3 tests isolated and serial: pytest tests/test_s3_semantic.py -p no:xdist --tb=short
-OR force CPU via the verification script: uv run python /tmp/test_s3_cpu_force.py
-(See docs/SageAI_Psychotic_Layer_Findings_Register.md F-S05-002 for full evidence.)
+Slow tests are safe to run with -n auto after this fix.
 
 RECALL GATE STATE (2026-06-04):
-Production recall (CPU path): 16/18 = 88.9%. Below the ≥95% user-deployment gate.
+Production recall (CPU path): 16/18 = 88.9%. Below the >=95% user-deployment gate.
 2 confirmed hardware-independent misses (F-S05-001A). See test_s3_recall_gate_denominator.
 """
 import pytest
