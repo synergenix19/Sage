@@ -307,6 +307,43 @@ def test_trimmed_semantic_descriptions_within_cap():
     assert not violations, f"Trimmed semantic_description re-expanded past cap: {violations}"
 
 
+def test_crisis_line_matches_config_canonical_source():
+    """Every phone number in skill JSON escalation_matrix and step contraindications
+    that looks like a UAE toll-free number (800 NNNNN) must equal config.CRISIS_LINE_UAE.
+
+    This is the consistency guard, not the correctness guard. Correctness requires
+    clinical lead sign-off on the number. This test ensures all JSON occurrences stay
+    in sync with the single authoritative source after that sign-off.
+    """
+    import re
+    import json
+    import pathlib
+    from sage_poc.config import CRISIS_LINE_UAE
+
+    UAE_TOLL_FREE = re.compile(r"800\s+\d{4,5}")
+    skills_dir = pathlib.Path(__file__).parent.parent / "src/sage_poc/skills"
+    violations = []
+
+    for path in sorted(skills_dir.glob("*.json")):
+        data = json.loads(path.read_text())
+        # Check escalation_matrix values
+        for level, text in data.get("escalation_matrix", {}).items():
+            for match in UAE_TOLL_FREE.findall(str(text)):
+                if match != CRISIS_LINE_UAE:
+                    violations.append(f"{path.stem} escalation_matrix.{level}: found {match!r}, expected {CRISIS_LINE_UAE!r}")
+        # Check step contraindications and completion_criteria
+        for step in data.get("steps", []):
+            for field in ("contraindications", "completion_criteria", "technique_description"):
+                for match in UAE_TOLL_FREE.findall(str(step.get(field, ""))):
+                    if match != CRISIS_LINE_UAE:
+                        violations.append(f"{path.stem} step.{step.get('step_id')}.{field}: found {match!r}, expected {CRISIS_LINE_UAE!r}")
+
+    assert not violations, (
+        f"Crisis line number diverges from config.CRISIS_LINE_UAE ({CRISIS_LINE_UAE!r}): {violations}. "
+        "Update config.py after clinical lead verification — the test enforces all JSON occurrences match."
+    )
+
+
 def test_no_authoring_notes_in_cultural_overrides():
     import json, pathlib
     FORBIDDEN = {"consult_before_examples", "review_required", "authoring_note", "todo"}

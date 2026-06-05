@@ -19,3 +19,8 @@ RESISTANCE_MODEL = os.getenv("SAGE_RESISTANCE_MODEL", CLASSIFIER_MODEL)
 # Default ON — crisis activations must leave an audit trail unless explicitly disabled.
 AUDIT_LOG_ENABLED = os.getenv("SAGE_AUDIT_LOG", "true").lower() == "true"
 
+# UAE crisis support line — MoHAP Mental Health Counselling Line (free, 24/7).
+# This is the single authoritative source. Update here after clinical lead verification;
+# the canonical-source test enforces all skill JSON occurrences match this value.
+CRISIS_LINE_UAE = "800 46342"
+
