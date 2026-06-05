@@ -63,21 +63,35 @@ def _warmup_bge_m3() -> None:
     _ensure_s3_ready()
 
 
+async def _warmup_task() -> None:
+    """Run BGE-M3 warmup in background so the HTTP server starts immediately.
+
+    Lifespan yielding before warmup completes means the port opens right away;
+    /health/ready returns 503 while this task runs and 200 once it sets _bge_ready.
+    Railway's healthcheck then polls a real HTTP response instead of getting
+    connection-refused for the full 5-minute window (which caused staging failures
+    on lower-CPU Railway instances where warmup takes > 5 minutes).
+    """
+    global _bge_ready
+    try:
+        await asyncio.to_thread(_warmup_bge_m3)
+        _log.info("[sage/startup] BGE-M3 warmup complete")
+        _bge_ready = True
+    except Exception as exc:
+        # Keep _bge_ready = False; /health/ready stays 503; /chat stays gated.
+        _log.error(
+            "[sage/startup] BGE-M3 warmup failed — service is NOT ready: %s", exc
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _bge_ready
     if os.environ.get("SAGE_WARMUP_BGE", "1") != "0":
-        try:
-            await asyncio.to_thread(_warmup_bge_m3)
-            _log.info("[sage/startup] BGE-M3 warmup complete")
-            _bge_ready = True
-        except Exception as exc:
-            # Warmup failed: keep process up but hold traffic at the LB via /health/ready.
-            # /chat returns 503 until warmup succeeds on a retry deploy or manual trigger.
-            # This is a hard signal — do not silently serve crisis traffic with a cold index.
-            _log.error(
-                "[sage/startup] BGE-M3 warmup failed — service is NOT ready: %s", exc
-            )
+        # Schedule warmup as a background task — server starts immediately.
+        # /health/ready returns 503 until the task finishes and sets _bge_ready = True.
+        asyncio.create_task(_warmup_task())
+        _log.info("[sage/startup] BGE-M3 warmup started in background")
     else:
         _log.info("[sage/startup] BGE-M3 warmup skipped (SAGE_WARMUP_BGE=0)")
         _bge_ready = True  # intentionally unwarmed; allow traffic
