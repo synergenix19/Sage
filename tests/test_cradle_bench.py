@@ -13,8 +13,10 @@ all parametrized tests skip automatically. Run scripts/fetch_cradle_bench.py fir
 """
 import pytest
 from pathlib import Path
+from unittest.mock import patch
 from tests.fixtures.cradle_bench.loader import load_cradle_split, CradleCase
 from tests.fixtures.cradle_bench.label_map import LABEL_MAP, CrisisTier, ClinicalTier
+from sage_poc.nodes.safety_check import safety_check_node
 
 pytestmark = pytest.mark.cradle
 
@@ -101,3 +103,71 @@ def test_loader_all_texts_nonempty():
     cases = load_cradle_split(_EVAL_PATH)
     empty = [c for c in cases if not c.text.strip()]
     assert empty == [], f"Found {len(empty)} empty text examples"
+
+
+# ── Imports needed for node tests ─────────────────────────────────────────
+# (already added above)
+
+
+# ── State factory ─────────────────────────────────────────────────────────
+
+def _make_state(text: str, language: str = "en") -> dict:
+    return {
+        "raw_message": text,
+        "detected_language": language,
+        "message_en": text if language == "en" else "",
+        "path": [],
+        "crisis_state": "none",
+        "distress_trajectory": [],
+        "engagement_trajectory": [],
+        "emotional_intensity": 5,
+        "engagement": 5,
+        "active_skill_id": None,
+        "clinical_flags": [],
+        "turn_number": 0,
+        "therapeutic_profile": None,
+        "s7_result": None,
+    }
+
+
+# ── Load cases once at module level ───────────────────────────────────────
+
+_ALL_CASES: list[CradleCase] = [] if _DATA_MISSING else load_cradle_split(_EVAL_PATH)
+
+_CRISIS_CASES = [c for c in _ALL_CASES if LABEL_MAP.get(c.label, {}).get("tier") == "crisis"]
+_SAFE_CASES   = [c for c in _ALL_CASES if c.label == "safe"]
+_CLINICAL_CASES = [c for c in _ALL_CASES if LABEL_MAP.get(c.label, {}).get("tier") == "clinical"]
+
+
+# ── S1-tier crisis recall ──────────────────────────────────────────────────
+
+@pytest.mark.parametrize("case", _CRISIS_CASES, ids=[c.id for c in _CRISIS_CASES] or ["none"])
+async def test_s1_crisis_recall(case: CradleCase, record_cradle_result: list) -> None:
+    """S1 (rules engine) must flag each CRADLE crisis example as unsafe.
+
+    S3 is patched to 0.0 so only the lexicon fires.
+    Failures indicate phrases the rules engine does not cover.
+    Review passive_si_patterns.json and crisis_keywords.json for gaps.
+
+    PARTIAL PIPELINE: MARBERT (S2) is not integrated. This measures S1 only.
+    """
+    state = _make_state(case.text)
+
+    with patch("sage_poc.nodes.safety_check.check_s3", return_value=0.0):
+        result = await safety_check_node(state)
+
+    detected = result.get("is_safe") is False
+    record_cradle_result.append({
+        "tier": "crisis",
+        "id": case.id,
+        "label": case.label,
+        "detected": detected,
+        "s3_only": False,
+        "crisis_flags": result.get("crisis_flags", []),
+    })
+    assert detected, (
+        f"[S1 MISS] {case.id} label={case.label!r}\n"
+        f"  text: {case.text!r}\n"
+        f"  crisis_flags: {result.get('crisis_flags')}\n"
+        f"  is_safe: {result.get('is_safe')}"
+    )
