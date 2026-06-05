@@ -13,6 +13,7 @@ export function StepGuard({ pageStep, children }: { pageStep: number; children: 
     // Zustand persist hydrates asynchronously; redirecting before hydration
     // always sees the default step (1) and loops the user back to step-1.
     if (useOnboardingStore.persist.hasHydrated()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHydrated(true)
     } else {
       return useOnboardingStore.persist.onFinishHydration(() => setHydrated(true))

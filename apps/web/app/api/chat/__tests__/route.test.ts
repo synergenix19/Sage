@@ -23,6 +23,14 @@ const {
   return { mockInsert, mockSelect, mockEq, mockSingle, mockUpdate, mockGetUser }
 })
 
+vi.mock('next/server', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('next/server')>()
+  return {
+    ...actual,
+    after: vi.fn((fn: () => Promise<void>) => { void Promise.resolve().then(fn) }),
+  }
+})
+
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn().mockResolvedValue({
     auth: { getUser: mockGetUser },
