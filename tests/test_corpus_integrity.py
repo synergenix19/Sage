@@ -186,48 +186,21 @@ def test_skill_cultural_overrides_within_cap(sid):
 
 # ── Cluster coverage ───────────────────────────────────────────────────────
 
-# ── Dead step-policy signal count (pinned at 21) ──────────────────────────────
-#
-# These 21 rules reference signals that never resolve at runtime — they are SILENTLY INERT.
-# The count is pinned so any addition causes a red CI run instead of logging into a wall
-# of existing ERRORs that teams learn to scroll past (the exact failure mode that produced
-# all the original dead signals). The list is hard-coded here so the failure message names
-# the new offender explicitly.
-#
-# UPGRADE PATH (post-Gitex): wire the signals or remove the rules from the skill JSONs,
-# then flip _validate_step_policy_signal_coverage in skill_executor.py to raise RuntimeError
-# instead of logging. When the count reaches 0, delete this test and the ERROR log.
-_KNOWN_DEAD_SIGNALS: frozenset[tuple[str, str]] = frozenset()
+# ── Dead step-policy signal guard (zero-tolerance) ────────────────────────────
 
+def test_no_dead_step_policy_signals():
+    """Any step_policy rule referencing a signal outside _KNOWN_STEP_POLICY_SIGNALS
+    is silently inert at runtime. This test enforces zero tolerance.
 
-def test_dead_step_policy_signal_count_is_pinned():
-    """Ensure no new step_policy rules reference unresolvable signals.
-
-    The count is pinned at 21 (the documented pre-Gitex dead-signal set). Any addition
-    is a red CI run. Any removal is also caught — it means a signal was wired up or a
-    rule removed, and _KNOWN_DEAD_SIGNALS should be updated to reflect the progress.
-
-    A new dead signal means: you added a step_policy rule whose condition.signal is not
-    in _KNOWN_STEP_POLICY_SIGNALS in skill_executor.py. That rule is silently inert from
-    day one — it will never fire. Either wire the signal into evaluate_step_policy or
-    remove the rule.
+    The runtime gate (_validate_step_policy_signal_coverage) raises RuntimeError at
+    startup for the same condition. This test provides the same guard at CI time so
+    the error is caught before the server ever starts.
     """
     from sage_poc.nodes.skill_executor import _get_dead_step_policy_signals
-
-    found = set(_get_dead_step_policy_signals())
-    added   = found - _KNOWN_DEAD_SIGNALS
-    removed = _KNOWN_DEAD_SIGNALS - found
-
-    assert not added, (
-        f"NEW dead step-policy signal(s) added — these rules are silently inert from day one: {sorted(added)}. "
-        "Wire the signal into evaluate_step_policy or remove the rule. "
-        "Do not add _KNOWN_DEAD_SIGNALS entries without a corresponding cleanup commitment."
-    )
-    assert not removed, (
-        f"Dead step-policy signal(s) removed — update _KNOWN_DEAD_SIGNALS in test_corpus_integrity.py "
-        f"to reflect the cleanup: {sorted(removed)}. "
-        "When the set reaches zero, delete this test and flip _validate_step_policy_signal_coverage "
-        "to raise RuntimeError."
+    dead = _get_dead_step_policy_signals()
+    assert not dead, (
+        f"step_policy rules reference signals that never resolve at runtime: {sorted(dead)}. "
+        "Wire the signal into evaluate_step_policy or remove the rule."
     )
 
 

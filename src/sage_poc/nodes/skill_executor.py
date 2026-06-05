@@ -97,18 +97,13 @@ _validate_entry_screen_coverage()
 # user_stop_request is intentionally absent: it's handled by check_escalation (L1) before
 # step_policy runs. A step_policy rule for it is architecturally dead — L1 fires first —
 # but the intent is honored. Do not add it here or the coverage guard will suppress the error.
-#
-# Upgrade path: once the pre-existing dead signals (physical_contraindication_disclosed,
-# pain_or_injury_mention, dissociation_or_dizziness_reported, dissociation_signal) are
-# removed from skill JSONs, flip _validate_step_policy_signal_coverage to raise RuntimeError
-# instead of logging at ERROR.
 _KNOWN_STEP_POLICY_SIGNALS: frozenset[str] = frozenset({
     "emotional_intensity",
     "engagement",
     "re_escalation_detected",
     "prior_exposure",
     "resistance",
-    "user_stop_request",  # handled by L1 check_escalation — step_policy rule is dead but intent is honored
+    "user_stop_request",
 })
 
 
@@ -134,20 +129,12 @@ def _get_dead_step_policy_signals() -> list[tuple[str, str]]:
 
 
 def _validate_step_policy_signal_coverage() -> None:
-    """Log ERROR for any step_policy rule whose signal can never resolve at runtime.
-
-    Does NOT raise — pre-existing dead signals (physical_contraindication_disclosed etc.)
-    would crash startup. This surfaces them visibly at every server start so they cannot
-    be ignored, without blocking the system. See upgrade path comment above.
-    """
     dead = _get_dead_step_policy_signals()
     if dead:
-        _log.error(
-            "[skill_executor] Step-policy rules reference signals that never resolve "
-            "at runtime — these rules are SILENTLY INERT: %s. "
-            "Wire the signal into evaluate_step_policy or remove the rule. "
-            "See _KNOWN_STEP_POLICY_SIGNALS for the upgrade path to RuntimeError.",
-            dead,
+        raise RuntimeError(
+            f"[skill_executor] Step-policy rules reference signals that never resolve "
+            f"at runtime: {dead}. "
+            "Wire the signal into evaluate_step_policy or remove the rule."
         )
 
 
