@@ -223,14 +223,16 @@ async def test_s1_clinical_coverage(case: CradleCase, record_cradle_result: list
     with patch("sage_poc.nodes.safety_check.check_s3", return_value=0.0):
         result = await safety_check_node(state)
 
-    all_flags = set(result.get("crisis_flags", [])) | set(result.get("clinical_flags", []))
-    hit = bool(all_flags & set(expected_flags))
+    all_flags = list(dict.fromkeys(
+        result.get("crisis_flags", []) + result.get("clinical_flags", [])
+    ))
+    hit = bool(set(all_flags) & set(expected_flags))
     record_cradle_result.append({
         "tier": "clinical",
         "id": case.id,
         "label": case.label,
         "detected": hit,
         "s3_only": False,
-        "crisis_flags": list(all_flags),
+        "crisis_flags": all_flags,
     })
     # No assertion — see terminal summary for coverage %
