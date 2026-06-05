@@ -73,10 +73,10 @@
     {"text": "I was thirty days clean and then I relapsed last night", "source": "SH-EN-003", "flag": "sh_recovery", "clinical_review_required": true, "language": "en"},
     {"text": "I keep having urges to hurt myself even though I am trying to stop", "source": "SH-EN-003", "flag": "sh_recovery", "clinical_review_required": true, "language": "en"},
 
-    {"text": "my cuts are still bleeding and I am not sure what to do", "source": "SH-EN-004", "flag": "sh_wound", "language": "en"},
+    {"text": "I cannot get my cuts to stop bleeding and do not know what to do", "source": "SH-EN-004", "flag": "sh_wound", "language": "en"},
     {"text": "I cannot get the wounds on my arm to heal properly", "source": "SH-EN-004", "flag": "sh_wound", "language": "en"},
     {"text": "I cannot stop scratching at the scars on my arms", "source": "SH-EN-004", "flag": "sh_wound", "language": "en"},
-    {"text": "my cuts keep reopening and bleeding through my clothes", "source": "SH-EN-004", "flag": "sh_wound", "language": "en"},
+    {"text": "I keep reopening my cuts and they bleed through my clothes", "source": "SH-EN-004", "flag": "sh_wound", "language": "en"},
 
     {"text": "I am panicking because someone noticed the marks on my arm today", "source": "SH-EN-005", "flag": "sh_disclosure", "language": "en"},
     {"text": "I wanted to die when my sleeves rolled up and my friend saw the cuts", "source": "SH-EN-005", "flag": "sh_disclosure", "language": "en"},
