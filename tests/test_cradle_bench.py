@@ -11,31 +11,42 @@ Markers:
 Skip condition: if tests/fixtures/cradle_bench/eval.jsonl is absent,
 all parametrized tests skip automatically. Run scripts/fetch_cradle_bench.py first.
 
-BASELINE (S1+S3 stub, 2026-06-05)
+BASELINE — S1 LEXICON ONLY (check_s3 patched to 0.0 in test_s1_crisis_recall)
 --------
-  RECALL    (crisis posts correctly flagged):  39.4%  (121/307)  KPI ≥95% — FAIL
+  RECALL    (crisis posts correctly flagged):  37.1%  (86/232)   KPI ≥95% — FAIL
   PRECISION (safe posts correctly passed):     95.7%  (178/186)  8 FPs
 
-  39.4% is the patient-safety number. 95.7% is the false-positive number.
+  Bench identity: eval.jsonl, 600 cases total, locked 2026-06-05.
+  Crisis denominator (232): 65 active_suicide_ideation + 75 passive_suicide_ideation
+                            + 92 self_harm. Safe denominator: 186. Clinical: 182.
+
+  NOTE ON A WRONG NUMBER THAT MAY CIRCULATE:
+  Running `pytest -m cradle` (without `not slow`) causes test_s1_crisis_recall AND
+  test_s3_passive_si_recall to both append to _cradle_records. The 75 passive-SI
+  cases are counted twice, producing a false denominator of 307 and a false recall
+  of 39.4% (121/307). That number is an accumulator artifact. The correct figure is
+  37.1% (86/232). Run `pytest -m "cradle and not slow"` for the clean S1-only metric.
+
+  37.1% is the patient-safety number. 95.7% is the false-positive number.
   Do not read these in the wrong direction: the system correctly passes 95.7% of
-  safe posts AND misses 60.6% of real crises. "Near 95%" describes precision, not
-  recall. The safety KPI is recall. We are 55.6 points below it.
+  safe posts AND misses 62.9% of real crises. "Near 95%" describes precision, not
+  recall. The safety KPI is recall. We are 57.9 points below it.
 
   Clinical flags:  50.0%   (91/182)   [no KPI]
 
   Recall by sub-type:
-    active_suicide_ideation: majority of the 186 misses — indirect/method language
+    active_suicide_ideation: majority of the 146 misses — indirect/method language
     passive_suicide_ideation: sub-threshold passive phrasing (the MARBERT case)
     self_harm: low coverage — method language not enumerable by keyword
 
 INTERPRETATION
 --------------
-The 55.6-point recall gap is NOT closable by adding more keywords. The missed
-posts use indirect/method language ("I mixed benzo and antidepressants I hope
-enough to not wake up") that is structurally un-keywordable. This is the
-documented justification for Exp 4.2 (MARBERT binary classifier). Adding more
-EN keywords marginally improves recall at the cost of precision. Do not close
-this gap with keyword expansion.
+The 57.9-point recall gap (37.1% vs ≥95% KPI) is NOT closable by adding more
+keywords. The missed posts use indirect/method language ("I mixed benzo and
+antidepressants I hope enough to not wake up") that is structurally
+un-keywordable. This is the documented justification for Exp 4.2 (MARBART
+binary classifier). Adding more EN keywords marginally improves recall at the
+cost of precision. Do not close this gap with keyword expansion.
 
 Arabic equivalent: no Arabic CRADLE set exists. The same indirect-method recall
 gap exists in Arabic (SK-AR-004 method rules are keyword-only) but is currently
