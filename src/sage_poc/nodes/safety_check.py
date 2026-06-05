@@ -1,25 +1,26 @@
-# ARCHITECTURE WARNING — SINGLE-LAYER SAFETY (2026-05-26)
+# ARCHITECTURE WARNING — SINGLE-LAYER SAFETY
 #
 # v7 spec §5.1 defines Layer 1 as OR-fusion: S1 (crisis lexicon) OR S2 (MARBERT
 # classifier) OR S3 (semantic crisis embeddings) OR S6 (clinical flag escalation).
 # Any layer catching a phrase is sufficient; the layers provide redundancy.
 #
-# CURRENT STATE: S1 (lexicon) + S3 (BGE-M3 semantic). S2 (MARBERT classifier) not implemented.
-# S3 was added in V7 Door 1.5 (2026-05-26). OR-fusion: either layer catching → crisis protocol.
-# Phrases not caught by S1 keywords AND scoring < S3_THRESHOLD (0.8059) will be missed.
+# CURRENT STATE: S1 (lexicon) + S3 (BGE-M3 semantic, advisory). S2 (MARBERT) not built.
 #
-# IMPLICATION: S3 extends coverage beyond enumerable keywords to semantic neighbours of
-# the 48-phrase crisis corpus. Short hopelessness phrases (e.g. "no future for me")
-# are covered by SK-EN-002 keyword expansion. Remaining gap: novel phrasing not
-# semantically close to the existing corpus — add to crisis_phrases.json and re-calibrate.
+# S3 STATUS (2026-06-05, scripts/s3_threshold_sweep.py, 75 CRADLE passive-SI cases):
+#   ADVISORY ONLY — adds ZERO measured recall above S1 at any threshold from 0.65 to 0.8059.
+#   At 0.8059 (deployed): 0 S3-only adds, 0 new FPs — a paraphrase-matcher for S1 at best.
+#   At 0.70: 3 adds, 2 new FPs — worse than 1:1 tradeoff, not a viable operating point.
+#   Missed passive-SI cluster sits at 0.62–0.72 cosine similarity, overlapping with
+#   therapeutic acceptance language — BGE-M3 cannot separate them without context.
+#   S3 remains on the crisis path and records s3_score in state for auditability.
+#   Do NOT cite s3_semantic in crisis_flags as evidence of semantic coverage — the coverage
+#   is not demonstrated by measurement. Genuine semantic coverage requires MARBERT (Exp 4.2).
 #
 # NEXT STEPS (priority order before feature expansion):
 #   S2: off-the-shelf MARBERT binary classifier (crisis/not-crisis) — no fine-tuning
 #       required for baseline coverage. Route Arabic text through MARBERT before
 #       lexicon to catch dialectal expressions outside the keyword vocabulary.
-#   S3: BGE-M3 semantic similarity against a crisis phrase embedding index.
-#       Infrastructure is now available (see sage_poc/memory/embedding.py).
-#   Reference: CRISP-DM plan, Experiment 4.2 (Week N).
+#   Reference: CRISP-DM plan, Experiment 4.2.
 
 import re
 import asyncio
@@ -120,9 +121,10 @@ async def safety_check_node(state: SageState) -> dict:
     # v7 target: <50ms total for Layer 1. S3 embedding adds ~200-500ms per turn.
     # Acceptable for POC; production requires async pre-warm and potential GPU inference.
     #
-    # STRUCTURAL SINGLE-TIER WARNING (2026-06-05, verified by scripts/verify_arabic_safety.py):
-    # For English, S1 + S3 provide genuine defence-in-depth. S3 catches novel passive-SI
-    # phrasing that S1 misses (see SF1_PARAPHRASE_CATCH in test_s3_semantic.py).
+    # STRUCTURAL SINGLE-TIER WARNING (2026-06-05): S3 is advisory at current threshold.
+    # CRADLE sweep (scripts/s3_threshold_sweep.py) confirmed S3 adds 0 recall above S1 at any
+    # threshold 0.65–0.8059 on 75 passive-SI cases. s3_score is returned in state and recorded
+    # in the session audit row for clinical review — not as evidence of coverage.
     # For Arabic and Arabizi, S3 does NOT generalise at the current threshold:
     #   - Arabic idioms (SK-AR-002/003) score 0.70–0.74 — below S3_THRESHOLD=0.8059
     #   - Arabizi phrases (SK-AZ-001/002) score 0.39–0.81; only one phrase clears (+0.002)
@@ -130,6 +132,7 @@ async def safety_check_node(state: SageState) -> dict:
     # DO NOT prune Arabic/Arabizi keywords on the assumption that S3 or S2 (MARBERT,
     # not yet built) provides a semantic backstop — that backstop does not exist in POC.
     # Before pruning any AR/AZ keyword, run: uv run python scripts/verify_arabic_safety.py
+    s3_score: float = 0.0  # initialized before try so it's always in scope for the return
     try:
         # check_s3_bilingual batches text_en + text_ar in one forward pass — avoids
         # two sequential encode() calls for Arabic (was the source of the latency regression).
@@ -142,6 +145,8 @@ async def safety_check_node(state: SageState) -> dict:
                 a.get("type") == "crisis_suppress" for a in safety_result.actions
             )
             if not s3_suppressed and "s3_semantic" not in new_crisis_flags:
+                # Advisory: CRADLE sweep shows S3 adds 0 recall at this threshold.
+                # Flag is recorded for audit trail visibility, not as a coverage claim.
                 new_crisis_flags.append("s3_semantic")
     except asyncio.TimeoutError:
         # OPEN DECISION (clinical/product): is S1-only an acceptable crisis fallback?
@@ -202,6 +207,7 @@ async def safety_check_node(state: SageState) -> dict:
         "message_en": message_en,
         "is_safe": len(new_crisis_flags) == 0,
         "crisis_flags": new_crisis_flags,
+        "s3_score": s3_score,  # advisory; recorded in audit for clinical reviewers
         "third_party_crisis": bool(third_party_flags),
         "new_clinical_flags_turn": new_clinical_flags,
         "clinical_flags": all_clinical,

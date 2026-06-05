@@ -13,6 +13,7 @@ class SageState(TypedDict):
 
     is_safe: bool
     crisis_flags: list[str]
+    s3_score: Optional[float]    # advisory BGE-M3 cosine similarity; 0 recall adds at 0.8059 per CRADLE sweep
     clinical_flags: list[str]   # substance_use, trauma_indicator, eating_concern, medication_mention
     new_clinical_flags_turn: list[str]  # flags detected THIS turn only; reset each turn in _build_state()
     third_party_crisis: bool    # user is concerned about someone else's safety, not their own

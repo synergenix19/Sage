@@ -417,3 +417,49 @@ def test_entry_screen_guard_catches_unregistered_skill():
             f"Expected [{fake_skill_id!r}] missing, got: {missing}. "
             "This means the guard logic has changed and may no longer catch omissions."
         )
+
+
+_CRISIS_PHRASES_PATH = ROOT / "src" / "sage_poc" / "safety" / "crisis_phrases.json"
+
+# Patterns that indicate a multi-clause phrase where SI signal may only be in the second
+# clause — the ACT-SP-001 FP failure class (documented in RULES_AUTHORING_CONVENTIONS.md).
+# See also: GATE_SUPPRESS in scripts/calibrate_s3_threshold.py.
+_MULTI_CLAUSE_PATTERNS = [
+    " but i ",          # acceptance frame + SI reversal: "I keep making room... but I don't see"
+    " but i don",       # "... but I don't / don't want to"
+    " but i can",       # "... but I can't / can no longer"
+    " however, i ",     # formal conjunction variant
+    ", and i don",      # "... , and I don't / didn't"
+]
+
+
+def test_crisis_phrases_are_single_clause():
+    """Corpus phrases must have SI signal dominating the whole phrase, not just the second clause.
+
+    Multi-clause phrases where the first clause uses acceptance or therapeutic framing
+    cause false positives: BGE-M3 encodes the full phrase as a blend and the acceptance-
+    framed opening pulls the embedding toward therapeutic language space.
+
+    Root cause documented: RULES_AUTHORING_CONVENTIONS.md §S3 crisis phrase corpus authoring.
+    The two phrases removed in commit a6c06b6 are the canonical examples of this failure.
+
+    If this test fails, the phrase is multi-clause and must be rewritten as a single clause
+    where the SI signal dominates the whole phrase (not just the end).
+    """
+    if not _CRISIS_PHRASES_PATH.exists():
+        pytest.skip("crisis_phrases.json not found")
+
+    data = json.loads(_CRISIS_PHRASES_PATH.read_text(encoding="utf-8"))
+    violations = []
+    for entry in data.get("phrases", []):
+        text = entry.get("text", "").lower()
+        for pattern in _MULTI_CLAUSE_PATTERNS:
+            if pattern in text:
+                violations.append(f"  [{entry.get('source', '?')}] {entry['text']!r}  (matched: {pattern!r})")
+                break  # one violation report per phrase is enough
+
+    assert not violations, (
+        f"crisis_phrases.json contains {len(violations)} multi-clause phrase(s) where SI signal "
+        f"may only be in the second clause — FP risk (see RULES_AUTHORING_CONVENTIONS.md §S3):\n"
+        + "\n".join(violations)
+    )

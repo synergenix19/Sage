@@ -112,6 +112,7 @@ def _build_session_audit_row(state: SageState) -> dict:
         "knowledge_abstain":      bool(state.get("knowledge_abstain", False)),
         "crisis_state":           state.get("crisis_state"),
         "crisis_flags":           state.get("crisis_flags") or [],
+        "s3_score":               state.get("s3_score"),  # advisory; see CRADLE sweep 2026-06-05
         "clinical_flags":         state.get("clinical_flags") or [],
         "engagement":             state.get("engagement"),
         "emotional_intensity":    state.get("emotional_intensity"),
