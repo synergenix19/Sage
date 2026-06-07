@@ -36,7 +36,14 @@
     "حاير",
     "حايرة",
     "أبي أوقف بس صعب",
-    "ما عندي قوة إرادة"
+    "ما عندي قوة إرادة",
+    "keep putting it off",
+    "keep avoiding it",
+    "i should make changes",
+    "thinking about changing",
+    "on a scale of 1 to 10",
+    "not sure if i am ready",
+    "not sure i am ready to"
   ],
   "semantic_description": "Motivational Interviewing readiness ruler: rating importance and confidence for behavior change on a 1-to-10 scale. Rollnick importance ruler, confidence ruler. MI ambivalence exploration: both wanting and not wanting change at the same time. Change talk elicitation, readiness assessment, decisional balance.",
   "steps": [
