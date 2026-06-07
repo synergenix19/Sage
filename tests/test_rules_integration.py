@@ -424,31 +424,44 @@ def test_ramadan_framing_absent_without_keyword():
 
 
 def test_dialect_mirroring_fires_on_khaleeji_wayed():
-    """CU-DM-001 must inject dialect instruction when Khaleeji وايد detected."""
+    """CU-DM-001 v1.2 must inject Khaleeji register calibration when وايد detected.
+    Also verifies L0 Arabic extension fires and MUST respond in Arabic is absent (v1.1 regression guard)."""
     state = _freeflow_state(
         raw_message="أنا وايد تعبان اليوم",
         message_en="I am very tired today",
         detected_language="ar",
     )
-    system_str, _, _ = compose_prompt(state)
-    assert "DIALECT" in system_str, (
-        "CU-DM-001 must inject DIALECT instruction for Khaleeji وايد"
+    system_str, _, layers = compose_prompt(state)
+    assert "KHALEEJI REGISTER" in system_str, (
+        "CU-DM-001 v1.2 must inject KHALEEJI REGISTER instruction for Khaleeji وايد"
+    )
+    assert "ARABIC SESSION" in system_str, (
+        "L0 Arabic extension must inject ARABIC SESSION generation contract"
+    )
+    assert "MUST respond in Arabic" not in system_str, (
+        "CU-DM-001 v1.1 regression: MUST respond in Arabic must not appear (breaks EN-first architecture)"
+    )
+    arabic_session_pos = system_str.find("ARABIC SESSION")
+    khaleeji_pos = system_str.find("KHALEEJI REGISTER")
+    assert arabic_session_pos < khaleeji_pos, (
+        "ARABIC SESSION (L0 extension) must precede KHALEEJI REGISTER (CU-DM-001)"
     )
 
 
 def test_dialect_mirroring_fires_on_shloun():
-    """CU-DM-001 must fire on other Khaleeji markers like شلون."""
+    """CU-DM-001 v1.2 must fire on other Khaleeji markers like شلون."""
     state = _freeflow_state(
         raw_message="شلون أتعامل مع هذا الموضوع؟",
         message_en="How do I deal with this topic?",
         detected_language="ar",
     )
     system_str, _, _ = compose_prompt(state)
-    assert "DIALECT" in system_str
+    assert "KHALEEJI REGISTER" in system_str
+    assert "MUST respond in Arabic" not in system_str
 
 
 def test_dialect_mirroring_fires_for_msa():
-    """CU-DM-001 must fire for formal MSA — the language baseline applies to ALL Arabic,
+    """CU-DM-001 v1.2 must fire for formal MSA — the language baseline applies to ALL Arabic,
     not just messages containing Khaleeji markers."""
     state = _freeflow_state(
         raw_message="أشعر بالقلق الشديد هذا اليوم",
@@ -456,10 +469,11 @@ def test_dialect_mirroring_fires_for_msa():
         detected_language="ar",
     )
     system_str, _, _ = compose_prompt(state)
-    assert "DIALECT" in system_str, (
-        "CU-DM-001 (dialect_mirroring) uses empty trigger_keywords as a language-only trigger "
+    assert "KHALEEJI REGISTER" in system_str, (
+        "CU-DM-001 v1.2 uses empty trigger_keywords as a language-only trigger "
         "and must fire for every Arabic message including formal MSA."
     )
+    assert "MUST respond in Arabic" not in system_str
 
 
 # ── Code-switching detection and CU-CS-001 ───────────────────────────────────

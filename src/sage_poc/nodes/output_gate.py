@@ -196,7 +196,7 @@ async def output_gate_node(state: SageState) -> dict:
             _arabic_chars / _total_chars, session_id, gate_path,
         )
 
-    if gate_path not in ("scope_refusal", "jailbreak") and not _response_en_is_arabic:
+    if gate_path not in ("scope_refusal", "jailbreak"):
         cultural_violations = rules_engine.evaluate("cultural_output", {
             "response_text": response_en,
             "message_en": state.get("message_en", ""),
