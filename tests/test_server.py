@@ -1,4 +1,5 @@
 import inspect
+import uuid
 import pytest
 from fastapi.testclient import TestClient
 from sage_poc.nodes.freeflow_respond import freeflow_respond_node
@@ -11,6 +12,12 @@ def client():
     from server import app
     with TestClient(app) as c:
         yield c
+
+
+@pytest.fixture
+def session_id():
+    """Unique LangGraph thread_id per test — prevents checkpoint bleed across module members."""
+    return f"test-{uuid.uuid4()}"
 
 
 def _patch_graph(monkeypatch, mock_ainvoke):
@@ -37,23 +44,23 @@ def test_chat_bad_request_last_message_not_user(client):
     assert res.status_code == 400
 
 
-def test_chat_crisis_message_has_signal(client):
+def test_chat_crisis_message_has_signal(client, session_id):
     # "end it all" is a CRISIS_KEYWORD — triggers keyword match, no LLM call.
     # _crisis_response_node returns a hardcoded string. Zero API calls.
     res = client.post("/chat", json={
         "messages": [{"role": "user", "content": "I want to end it all"}],
-        "session_id": "test-session",
+        "session_id": session_id,
     })
     assert res.status_code == 200
     assert res.text.startswith("[[CRISIS_DETECTED]]")
 
 
 @pytest.mark.slow
-def test_chat_returns_text_for_valid_message(client):
+def test_chat_returns_text_for_valid_message(client, session_id):
     import httpx
     res = client.post("/chat", json={
         "messages": [{"role": "user", "content": "I've been feeling really anxious lately."}],
-        "session_id": "test-session",
+        "session_id": session_id,
     })
     assert res.status_code == 200
     assert len(res.text.strip()) > 10
@@ -75,31 +82,31 @@ def test_chat_graph_error_returns_sentinel(monkeypatch, client):
     assert "[[SERVER_ERROR]]" in res.text
 
 
-def test_chat_response_headers_present(client):
+def test_chat_response_headers_present(client, session_id):
     # Crisis path: keyword match, no LLM call — fast test.
     res = client.post("/chat", json={
         "messages": [{"role": "user", "content": "I want to end it all"}],
-        "session_id": "test-session",
+        "session_id": session_id,
     })
     assert res.status_code == 200
     assert "x-sage-model" in res.headers
     assert "x-sage-node-path" in res.headers
 
 
-def test_chat_body_has_no_meta_sentinel(client):
+def test_chat_body_has_no_meta_sentinel(client, session_id):
     # Metadata must never appear in the body stream — only in headers.
     res = client.post("/chat", json={
         "messages": [{"role": "user", "content": "I want to end it all"}],
-        "session_id": "test-session",
+        "session_id": session_id,
     })
     assert res.status_code == 200
     assert "[[META:" not in res.text
 
 
-def test_chat_node_path_header_is_valid_json_array(client):
+def test_chat_node_path_header_is_valid_json_array(client, session_id):
     res = client.post("/chat", json={
         "messages": [{"role": "user", "content": "I want to end it all"}],
-        "session_id": "test-session",
+        "session_id": session_id,
     })
     import json
     path = json.loads(res.headers["x-sage-node-path"])
@@ -116,12 +123,12 @@ def test_low_confidence_node_is_coroutine():
     assert inspect.iscoroutinefunction(low_confidence_respond_node)
 
 
-def test_chat_arabic_crisis_message_has_signal(client):
+def test_chat_arabic_crisis_message_has_signal(client, session_id):
     # Arabic crisis keyword "أريد الموت" (I want to die) — triggers keyword match,
     # no LLM call needed. Fast test.
     res = client.post("/chat", json={
         "messages": [{"role": "user", "content": "أريد الموت"}],
-        "session_id": "test-session",
+        "session_id": session_id,
     })
     assert res.status_code == 200
     assert res.text.startswith("[[CRISIS_DETECTED]]")
@@ -129,11 +136,11 @@ def test_chat_arabic_crisis_message_has_signal(client):
     assert "[[SERVER_ERROR]]" not in res.text
 
 
-def test_all_audit_headers_present(client):
+def test_all_audit_headers_present(client, session_id):
     """All 8 metadata headers must be present on every response, including crisis paths."""
     res = client.post("/chat", json={
         "messages": [{"role": "user", "content": "I want to end it all"}],
-        "session_id": "test-session",
+        "session_id": session_id,
     })
     assert res.status_code == 200
     for header in [
@@ -144,23 +151,23 @@ def test_all_audit_headers_present(client):
         assert header in res.headers, f"Missing header: {header}"
 
 
-def test_crisis_path_crisis_flags_non_empty(client):
+def test_crisis_path_crisis_flags_non_empty(client, session_id):
     """Crisis keyword match → x-sage-crisis-flags is a non-empty JSON array."""
     import json as _json
     res = client.post("/chat", json={
         "messages": [{"role": "user", "content": "I want to end it all"}],
-        "session_id": "test-session",
+        "session_id": session_id,
     })
     flags = _json.loads(res.headers["x-sage-crisis-flags"])
     assert isinstance(flags, list)
     assert len(flags) > 0
 
 
-def test_crisis_path_gate_path_and_no_skill(client):
+def test_crisis_path_gate_path_and_no_skill(client, session_id):
     """Crisis responses: gate_path='crisis', skill_id and step_id empty."""
     res = client.post("/chat", json={
         "messages": [{"role": "user", "content": "I want to end it all"}],
-        "session_id": "test-session",
+        "session_id": session_id,
     })
     assert res.headers.get("x-sage-gate-path") == "crisis"
     assert res.headers.get("x-sage-skill-id") == ""
@@ -350,23 +357,23 @@ def test_chat_rejects_wrong_api_key(monkeypatch, client):
     assert res.status_code == 401
 
 
-def test_chat_accepts_correct_api_key(monkeypatch, client):
+def test_chat_accepts_correct_api_key(monkeypatch, client, session_id):
     monkeypatch.setenv("SAGE_API_KEY", "test-secret")
     res = client.post("/chat", json={
         "messages": [{"role": "user", "content": "I want to end it all"}],
-        "session_id": "test",
+        "session_id": session_id,
     }, headers={"X-Sage-Api-Key": "test-secret"})
     assert res.status_code == 200
 
 
-def test_chat_bypasses_key_check_when_sage_api_key_unset(monkeypatch, client):
+def test_chat_bypasses_key_check_when_sage_api_key_unset(monkeypatch, client, session_id):
     """No SAGE_API_KEY in env → check is disabled. Preserves backward compatibility
     for local dev where the key is not configured.
     """
     monkeypatch.delenv("SAGE_API_KEY", raising=False)
     res = client.post("/chat", json={
         "messages": [{"role": "user", "content": "I want to end it all"}],
-        "session_id": "test",
+        "session_id": session_id,
     })
     assert res.status_code == 200
 
@@ -406,7 +413,7 @@ def test_chat_passes_thread_id_as_config(monkeypatch, client):
     )
 
 
-def test_chat_request_has_no_ferry_fields(client):
+def test_chat_request_has_no_ferry_fields(client, session_id):
     """ChatRequest must NOT include ferry fields — they live in the checkpoint.
 
     Sending ferry fields in the JSON body must be accepted (Pydantic will
@@ -416,7 +423,7 @@ def test_chat_request_has_no_ferry_fields(client):
     # Send old-style request with ferry fields — must not 422
     res = client.post("/chat", json={
         "messages": [{"role": "user", "content": "I want to end it all"}],
-        "session_id": "test",
+        "session_id": session_id,
         "crisis_state": "monitoring",            # old ferry field — ignored
         "active_skill_id": "cbt_thought_record", # old ferry field — ignored
     })

@@ -3,7 +3,7 @@
 **Date:** 2026-06-07  
 **Discovered during:** BA/PD keyword routing fix (cab4725) test verification  
 **Severity:** CI signal reliability — not a user-facing bug  
-**Status:** OPEN — fix needed before CI gates are trusted for clinical routing changes
+**Status:** FIXED — per-test `session_id` fixture applied to all 12 real-graph call sites; causal proof and shuffle verification pending (see Verification section)
 
 ---
 
