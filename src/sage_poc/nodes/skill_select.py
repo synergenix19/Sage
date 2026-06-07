@@ -79,16 +79,20 @@ def _semantic_match_sync(message_en: str) -> tuple[str | None, float]:
 
 
 async def skill_select_node(state: SageState) -> dict:
-    # Info requests always go directly to knowledge_retrieve, even during crisis monitoring.
-    # A user in post-crisis check-in asking for a phone number or resource must be served.
+    # Info requests go directly to knowledge_retrieve. If a skill is currently active,
+    # don't clear active_skill_id — the executor exclusively owns that field's lifecycle.
+    # Preserving it lets _route_after_skill_select still reach knowledge_retrieve while
+    # keeping the skill alive for the turn that follows.
     if state.get("primary_intent") == "info_request":
-        return {
-            "active_skill_id": None,
-            "active_step_id": None,
+        result: dict = {
             "skill_match_method": None,
             "semantic_score": None,
             "path": state["path"] + ["skill_select"],
         }
+        if not state.get("active_skill_id"):
+            result["active_skill_id"] = None
+            result["active_step_id"] = None
+        return result
 
     # Post-crisis auto-select bypasses keyword and semantic matching
     if state.get("crisis_state") == "monitoring":

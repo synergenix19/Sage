@@ -147,7 +147,11 @@ class TestC1StalenessAndInfoRequest:
 
     async def test_info_request_guard_fires_before_monitoring_block(self):
         """skill_select_node with primary_intent='info_request' and crisis_state='monitoring'
-        must return without setting active_skill_id and must NOT include stale_skill_id."""
+        must preserve active_skill_id in the checkpoint and must NOT include stale_skill_id.
+
+        When a skill is active, skill_select omits active_skill_id from its return dict so
+        the checkpoint value is preserved — the skill resumes on the turn after the info lookup.
+        """
         from sage_poc.nodes.skill_select import skill_select_node
 
         # Simulate state after staleness cleared crisis_state to 'none',
@@ -162,11 +166,12 @@ class TestC1StalenessAndInfoRequest:
         )
         result = await skill_select_node(state)
 
-        assert result["active_skill_id"] is None, (
-            "info_request must clear active_skill_id (route to knowledge_retrieve)"
+        assert "active_skill_id" not in result, (
+            "info_request with active skill must NOT write active_skill_id — "
+            "omitting it preserves the checkpoint value so the skill resumes next turn"
         )
-        assert result["active_step_id"] is None, (
-            "info_request must clear active_step_id"
+        assert "active_step_id" not in result, (
+            "info_request with active skill must NOT write active_step_id"
         )
         assert result["skill_match_method"] is None, (
             "info_request guard must not attempt skill matching"

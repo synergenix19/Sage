@@ -165,14 +165,18 @@ def test_info_request_no_active_skill_routes_to_knowledge_retrieve():
     assert _route_after_skill_select(state) == "knowledge_retrieve"
 
 
-def test_info_request_with_active_skill_routes_to_skill_executor():
-    """Mid-protocol info question must go to executor, not knowledge_retrieve."""
+def test_info_request_with_active_skill_routes_to_knowledge_retrieve():
+    """Mid-protocol info question routes to knowledge_retrieve, not skill_executor.
+
+    active_skill_id is preserved in the checkpoint (skill_select does not clear it),
+    so the skill resumes on the next turn after the knowledge lookup.
+    """
     state = make_full_state(
         primary_intent="info_request",
         active_skill_id="cbt_thought_record",
         crisis_state="none",
     )
-    assert _route_after_skill_select(state) == "skill_executor"
+    assert _route_after_skill_select(state) == "knowledge_retrieve"
 
 
 def test_non_info_request_no_skill_routes_to_freeflow():

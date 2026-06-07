@@ -160,7 +160,14 @@ def _route_after_intent(state: SageState) -> str:
         return "low_confidence"
     if intent == "exit_skill":
         return "skill_executor" if state.get("active_skill_id") else "freeflow"
-    if intent in ("new_skill", "info_request"):
+    if intent == "new_skill":
+        # If a skill is already active, don't re-run selection — skill_select would
+        # either pick a different skill (hijack) or find no match and write
+        # active_skill_id=None, clearing the checkpoint for the next turn.
+        if state.get("active_skill_id"):
+            return "skill_executor"
+        return "skill_select"
+    if intent == "info_request":
         return "skill_select"
     if intent == "skill_continuation" and state.get("active_skill_id"):
         return "skill_executor"
@@ -168,10 +175,12 @@ def _route_after_intent(state: SageState) -> str:
 
 
 def _route_after_skill_select(state: SageState) -> str:
-    if state.get("active_skill_id"):
-        return "skill_executor"
+    # info_request routes to knowledge_retrieve regardless of active skill — the
+    # skill_select node preserves active_skill_id, so the skill survives this turn.
     if state.get("primary_intent") == "info_request":
         return "knowledge_retrieve"
+    if state.get("active_skill_id"):
+        return "skill_executor"
     return "freeflow"
 
 

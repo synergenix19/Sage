@@ -1086,14 +1086,13 @@ def test_mid_skill_continuation_routes_to_executor():
     )
 
 
-def test_mid_skill_new_skill_keyword_routes_to_skill_select():
-    """Documents current behavior: 'new_skill' intent mid-skill routes to skill_select.
+def test_mid_skill_new_skill_keyword_routes_to_skill_executor():
+    """Regression: 'new_skill' intent mid-skill must NOT re-run skill_select.
 
-    This means intent_route returning 'new_skill' while a skill is active will trigger
-    a skill switch. The LLM intent_route must correctly classify mid-skill messages
-    with off-topic keywords as 'skill_continuation', not 'new_skill', to prevent
-    unintended skill switches. This test documents the routing contract so that
-    intent_route prompt changes don't silently break it.
+    skill_select explicitly writes active_skill_id=None when it finds no new match,
+    which clears the checkpoint and breaks the next turn's skill_continuation routing.
+    When a skill is already active and the classifier emits 'new_skill' (a mis-class),
+    the graph must route to skill_executor to continue the active skill.
     """
     from sage_poc.graph import _route_after_intent
     state = make_e2e_state(
@@ -1104,10 +1103,69 @@ def test_mid_skill_new_skill_keyword_routes_to_skill_select():
         intent_confidence=0.75,
     )
     route = _route_after_intent(state)
+    assert route == "skill_executor", (
+        "With an active skill, 'new_skill' intent must route to skill_executor, not "
+        "skill_select. skill_select clears active_skill_id when it finds no new match, "
+        "breaking checkpoint state for subsequent turns."
+    )
+
+
+def test_mid_skill_info_request_routes_to_skill_select():
+    """Mid-skill info_request must still reach skill_select (and then knowledge_retrieve).
+
+    Unlike new_skill, info_request is not guarded — the user may ask a factual question
+    mid-skill and should get a RAG answer. skill_select preserves active_skill_id so
+    the skill continues on the turn after the knowledge lookup.
+    """
+    from sage_poc.graph import _route_after_intent
+    state = make_e2e_state(
+        "Is anxiety genetic?",
+        active_skill_id="cbt_thought_record",
+        active_step_id="explore_distortion",
+        primary_intent="info_request",
+        intent_confidence=0.80,
+    )
+    route = _route_after_intent(state)
     assert route == "skill_select", (
-        "When intent_route returns 'new_skill', routing goes to skill_select even if a "
-        "skill is active. Intent_route must return 'skill_continuation' to preserve the "
-        "active skill. This test documents that contract."
+        "Mid-skill info_request must route to skill_select (then knowledge_retrieve), "
+        "not directly to skill_executor."
+    )
+
+
+def test_skill_completion_clears_active_skill_allows_new_selection():
+    """After skill completion, active_skill_id=None allows new_skill to reach skill_select."""
+    from sage_poc.graph import _route_after_intent
+    state = make_e2e_state(
+        "I'd like to try something for anxiety",
+        active_skill_id=None,
+        primary_intent="new_skill",
+        intent_confidence=0.85,
+    )
+    route = _route_after_intent(state)
+    assert route == "skill_select", (
+        "With no active skill, new_skill intent must reach skill_select for selection."
+    )
+
+
+def test_exit_l1_clears_skill_then_new_skill_reaches_skill_select():
+    """After L1 exit (active_skill_id=None), new_skill intent must reach skill_select.
+
+    Validates the chain: L1 fires → executor writes active_skill_id=None →
+    next turn new_skill guard is falsy → skill_select runs for fresh selection.
+    (L1 clearing is verified separately by test_escalation_l1_exit_mid_skill.)
+    """
+    from sage_poc.graph import _route_after_intent
+    # Simulate the state after L1 exit cleared active_skill_id
+    state = make_e2e_state(
+        "I'd like to try something for my sleep",
+        active_skill_id=None,   # cleared by L1 exit in previous turn
+        primary_intent="new_skill",
+        intent_confidence=0.80,
+    )
+    route = _route_after_intent(state)
+    assert route == "skill_select", (
+        "After L1 exit clears active_skill_id, new_skill must reach skill_select "
+        "for fresh selection — the guard at line 163 must be falsy when no skill active."
     )
 
 

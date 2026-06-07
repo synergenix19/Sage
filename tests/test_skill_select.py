@@ -299,7 +299,11 @@ async def test_semantic_timeout_falls_back_to_keyword_match():
 
 @pytest.mark.asyncio
 async def test_info_request_bypasses_crisis_monitoring():
-    """info_request intent must route to knowledge_retrieve even when crisis_state=monitoring."""
+    """info_request intent routes to knowledge_retrieve even when crisis_state=monitoring.
+
+    When a skill is active, skill_select omits active_skill_id from its return dict so the
+    checkpoint preserves it — the skill resumes on the next turn after the knowledge lookup.
+    """
     state = _ss_state(
         message_en="what is the number for the crisis line",
         crisis_state="monitoring",
@@ -308,10 +312,11 @@ async def test_info_request_bypasses_crisis_monitoring():
         active_step_id="acknowledge_and_check",
     )
     result = await skill_select_node(state)
-    assert result["active_skill_id"] is None, (
-        "info_request during monitoring must clear active_skill_id so router goes to knowledge_retrieve"
+    assert "active_skill_id" not in result, (
+        "info_request with active skill must NOT write active_skill_id — "
+        "omitting it preserves the checkpoint value so the skill resumes next turn"
     )
-    assert result["active_step_id"] is None
+    assert "active_step_id" not in result
     assert result["skill_match_method"] is None
 
 
