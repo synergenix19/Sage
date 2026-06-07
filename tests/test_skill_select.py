@@ -413,3 +413,94 @@ async def test_english_session_ignores_arabic_raw_message():
             "box_breathing matched as 'keyword' for an English session with only "
             "an Arabic raw_message keyword. The detected_language=='ar' guard is broken."
         )
+
+
+# ---------------------------------------------------------------------------
+# dbt_tipp interim fix: simpler-technique-failure register
+#
+# SF-2 means intent_route can classify acute distress as 'general_chat',
+# bypassing skill_select entirely. These phrases use a "breathing has already
+# failed" frame that intent_route classifies as 'new_skill', reaching the
+# keyword tier. Confirms keyword tier routes them to dbt_tipp [12] without
+# being shadowed by grounding [1] or stop_technique [9].
+#
+# asyncio.wait_for patch forces semantic tier to TimeoutError so the test
+# proves routing is via keyword only. skill_match_method=="keyword" is the
+# primary assertion; the patch documents intent and guards against incidental
+# semantic routing masking a missing keyword.
+# ---------------------------------------------------------------------------
+
+_DBTIPP_EN_PHRASES = [
+    "breathing isn't working",
+    "breathing is not enough",
+    "too intense to breathe through",
+    "need something stronger than breathing",
+    "breathing won't help right now",
+    "need an intense physical reset",
+]
+
+_DBTIPP_AR_PHRASES = [
+    "التنفس ما يساعد",
+    "التنفس ما كافي",
+    "أحتاج شيء أقوى من التنفس",
+    "مشاعري أقوى من قدرتي",
+]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("phrase", _DBTIPP_EN_PHRASES)
+async def test_dbtipp_interim_en_phrase_routes_via_keyword(phrase):
+    """Each simpler-technique-failure phrase must route to dbt_tipp via keyword tier.
+
+    Negative assertion: if active_skill_id were grounding_5_4_3_2_1 or
+    stop_technique, the phrase is shadowed by a lower-index skill -- keyword
+    collision check has a false negative.
+    """
+    import asyncio
+    from unittest.mock import patch
+
+    state = _ss_state(message_en=phrase, primary_intent="new_skill")
+    with patch("sage_poc.nodes.skill_select.asyncio.wait_for", side_effect=asyncio.TimeoutError):
+        result = await skill_select_node(state)
+
+    assert result["active_skill_id"] == "dbt_tipp", (
+        f"Expected dbt_tipp, got {result['active_skill_id']!r} for phrase {phrase!r}. "
+        "Phrase missing from dbt_tipp target_presentations or shadowed by lower-index skill."
+    )
+    assert result["skill_match_method"] == "keyword", (
+        f"Expected keyword match, got {result['skill_match_method']!r}."
+    )
+    assert result["active_skill_id"] not in ("grounding_5_4_3_2_1", "stop_technique"), (
+        f"Phrase {phrase!r} routed to a shadowing skill instead of dbt_tipp."
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("phrase", _DBTIPP_AR_PHRASES)
+async def test_dbtipp_interim_ar_phrase_routes_via_keyword(phrase):
+    """Each Arabic simpler-technique-failure phrase must route to dbt_tipp via keyword tier.
+
+    Arabic keywords route via raw_message path (detected_language=='ar').
+    """
+    import asyncio
+    from unittest.mock import patch
+
+    state = _ss_state(
+        raw_message=phrase,
+        message_en=phrase,
+        detected_language="ar",
+        primary_intent="new_skill",
+    )
+    with patch("sage_poc.nodes.skill_select.asyncio.wait_for", side_effect=asyncio.TimeoutError):
+        result = await skill_select_node(state)
+
+    assert result["active_skill_id"] == "dbt_tipp", (
+        f"Expected dbt_tipp, got {result['active_skill_id']!r} for Arabic phrase {phrase!r}. "
+        "Phrase missing from dbt_tipp target_presentations or shadowed."
+    )
+    assert result["skill_match_method"] == "keyword", (
+        f"Expected keyword match, got {result['skill_match_method']!r}."
+    )
+    assert result["active_skill_id"] not in ("grounding_5_4_3_2_1", "stop_technique"), (
+        f"Arabic phrase {phrase!r} routed to a shadowing skill instead of dbt_tipp."
+    )
