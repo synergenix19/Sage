@@ -101,13 +101,13 @@
     },
     {
       "rule_id": "CF-006",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "authored_by": "sage_clinics",
-      "approved_by": null,
+      "approved_by": "clinical_lead",
+      "approved_date": "2026-06-07",
       "effective_date": "2026-06-03",
-      "active": false,
-      "description": "Psychotic symptom disclosure — auditory/visual hallucinations, paranoid ideation. INACTIVE pending clinician sign-off. To activate: (1) clinician reviews CF-006 patterns and sets approved_by, (2) set active=true, (3) run full safety test suite. Known limitation: keyword-only detection; MARBERT/semantic tier deferred.",
-      "activation_checklist": ["clinician_reviews_cf006_patterns", "approved_by_set", "active_set_true", "full_test_suite_passes"],
+      "active": true,
+      "description": "Psychotic symptom disclosure — auditory/visual hallucinations, paranoid ideation. Fires psychotic_disclosure clinical flag, which auto-selects psychotic_referral skill in skill_select. Known limitation: keyword-only detection; MARBERT/semantic tier deferred.",
       "category": "safety",
       "match_type": "keyword",
       "patterns": [
