@@ -3,11 +3,12 @@
   "rules": [
     {
       "rule_id": "CU-DM-001",
-      "version": "1.1.0",
+      "version": "1.2.0",
+      "last_updated": "2026-06-07",
       "authored_by": "sage_clinics",
       "effective_date": "2026-05-22",
       "active": true,
-      "description": "Inject Gulf Arabic dialect and language instruction for ALL Arabic-detected messages. Empty trigger_keywords = language-only trigger (fires whenever detected_language == language field). Previously keyword-triggered — changed because dialect mirroring must fire on every Arabic turn, not just turns that happen to contain Khaleeji markers.",
+      "description": "Khaleeji register calibration for Arabic sessions, fires after L0 establishes generation contract. Trimmed from v1.1: English-generation directive moved to L0 extension (composer.py) to avoid contradicting EN-first architecture.",
       "category": "cultural",
       "trigger_keywords": [],
       "language": "ar",
@@ -16,7 +17,7 @@
         "target": "system",
         "layer": "L5",
         "priority": 2,
-        "content": "LANGUAGE AND DIALECT: The user is writing in Arabic. You MUST respond in Arabic. This app is UAE-focused, so use Gulf Arabic (Khaleeji) register when natural: prefer 'وايد' over 'كثير', 'زين' over 'حسن', 'شلون' over 'كيف حالك'. If the user's message contains Khaleeji markers, mirror them. If the message is MSA, use warm conversational Arabic. Do NOT switch to English unless the user switches first."
+        "content": "KHALEEJI REGISTER: The user is writing in Gulf Arabic. Calibrate emotional warmth, phrasing rhythm, and vocabulary for natural Khaleeji translation. If the user uses markers (وايد, زين, شلونك), match their warmth level. Avoid clinical or formal MSA phrasing."
       }
     }
   ]
