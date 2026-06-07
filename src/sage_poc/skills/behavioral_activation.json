@@ -4,6 +4,8 @@
   "skill_type": "structured",
   "evidence_base": "Martell et al. (2001); Jacobson et al. (1996); NICE CG90, depression; Richards et al. (2016) low-intensity BA",
   "self_evolution": "manual_only",
+  "approved_by": "clinical_lead",
+  "approved_date": "2026-06-07",
   "target_presentations": [
     "no motivation",
     "lost motivation",
@@ -39,7 +41,19 @@
     "stopped doing the things i used to",
     "dont do anything anymore",
     "don't do anything anymore",
-    "ما أسوي شي"
+    "ما أسوي شي",
+    "lost interest in everything",
+    "lost interest in things i used to",
+    "lost interest in the things",
+    "lost all interest",
+    "no longer interested in anything",
+    "used to enjoy things but",
+    "used to love doing things but",
+    "used to love doing but",
+    "had hobbies but stopped",
+    "activities i used to enjoy",
+    "activities i used to love",
+    "used to love going out"
   ],
   "semantic_description": "Behavioral activation: graded activity scheduling protocol. Adapted from Martell et al. (2001) and Richards et al. (2016) low-intensity BA: identify one concrete task, assign a specific day and time, complete it, observe the result. Activity hierarchy: start with smallest achievable step and build up. Pleasurable activity planning: pick one activity, schedule it, report back. Activity monitoring log: track what is completed and when. One-task experiment per day. Schedule one achievable task this week. Behavioral engagement through structured task scheduling.",
   "steps": [
