@@ -7,11 +7,17 @@
 
 ---
 
-## Finding
+## Root Cause
 
-`tests/test_server.py` has a `scope="module"` `client` fixture that is contaminated by earlier test modules in the full suite run. The symptom: different tests within `test_server.py` fail non-deterministically depending on test execution order. The same test passes in isolation every time but fails in the full suite.
+`test_server.py` uses a `scope="module"` `client` fixture where all tests share `"session_id": "test-session"`. LangGraph's `AsyncPostgresSaver` persists checkpoint state keyed by `thread_id`. Earlier tests in the module send crisis and therapeutic messages to `"test-session"` (e.g., `"I want to end it all"`, `"أريد الموت"`); the polluted checkpoint bleeds into whichever test runs next. That test sees unexpected session state — a stale crisis flag, an active skill, an error condition — and fails. Because the contamination lands on different module members depending on the execution timing of the full suite, failures float non-deterministically across tests within the module.
 
-**Observed failure pattern across 4 full-suite runs (2026-06-07):**
+This is a shared-mutable-state-across-tests bug. The shared mutable state is the LangGraph checkpoint for `"test-session"` in the database, and the sharing point is the `scope="module"` fixture that reuses it across all tests in the module without teardown.
+
+---
+
+## Evidence
+
+**Observed failure pattern across 4 full-suite runs (2026-06-07, `--ignore=tests/test_skill_routing_ba_pd.py`):**
 
 | Run | Tree state | test_server.py failures |
 |---|---|---|
@@ -21,44 +27,77 @@
 | Post-change run 2 | cab4725 | `test_chat_returns_text_for_valid_message` |
 | Post-change run 3 | cab4725 | none |
 
-Each of these tests asserts `res.status_code == 200` plus basic response structure — server-health assertions, not routing content. A routing or keyword change cannot cause them to fail; the failure mechanism is the server returning 500 or an empty body due to contaminated app state.
+**All failing tests assert server-health, not routing content:**
 
-## Root Cause
+- `test_chat_returns_text_for_valid_message`: `assert res.status_code == 200`, `assert len(res.text.strip()) > 10`
+- `test_all_audit_headers_present`: `assert res.status_code == 200` + 8 specific headers present
 
-Two compounding issues:
+These assertions fail only when the server returns 500 or an empty body — contaminated session state symptoms. A routing or keyword change cannot produce these failures; any routing outcome returns 200 with a non-trivial body. The module is the unit of contamination; which member gets caught is order-dependent.
 
-**1. `scope="module"` client picks up dirty global state.** The `client` fixture in `test_server.py` creates a `TestClient(app)` once per module via lifespan. Some test module that runs before `test_server.py` (alphabetically: test_resilience.py, test_rules_integration.py, test_rules_safety.py) modifies module-level state on `sage_poc` components — likely the circuit breaker, app.state, or LangGraph's in-memory structures — that persists into `test_server.py`'s fixture initialization.
+**All affected tests pass in isolation every time.** Isolation removes the ordering dependency, confirming root cause is cross-test state, not each test's own logic.
 
-**2. Shared `"test-session"` session_id.** All tests in `test_server.py` use `"session_id": "test-session"`. LangGraph's AsyncPostgresSaver persists checkpoint state to the database. By the time `test_chat_returns_text_for_valid_message` runs, the checkpoint for `"test-session"` may carry state from earlier tests in the module (crisis flags, active skill, error state) that alters routing or triggers an error on the next request.
+---
 
 ## Why This Matters
 
-This is a Gitex-quality-of-signal issue. A test suite with non-deterministic order-dependent failures means:
+A suite with non-deterministic order-dependent failures is unreliable as a CI signal in both directions:
 
-- A real regression can be dismissed as "probably the flaky module"
-- A clean change can be blocked (as nearly happened here)
-- The 12 routing-gate tests just added in cab4725 are only trustworthy if the surrounding suite signal is reliable
+- A genuine regression can hide behind "probably the flaky module"
+- A clean change can be blocked by noise (as nearly happened with cab4725)
 
-## Affected Tests
+This directly undercuts the 12 routing gate tests and two invariant tests added in cab4725 — their value depends on a green run meaning something. **This is not test-hygiene polish; it is a pre-Gitex CI-trust requirement.** Rank it above cosmetic test work.
 
-`test_server.py` member tests that have been observed failing in full-suite ordering runs:
-- `test_chat_returns_text_for_valid_message` (2 of 3 post-change runs)
-- `test_all_audit_headers_present` (1 of 2 pre-change runs)
+---
 
-Note: `test_entry_screen_integration.py` has a separate `test_az_general_stress_advances_body_scan` ordering failure (also confirmed pre-existing, different mechanism — likely BGE-M3 model state from a preceding test module affecting semantic scoring).
+## Fix Options (Priority Order)
 
-## Fix
+**1. Per-test unique `session_id` — recommended (smallest change, directly targets root cause)**
 
-**Immediate (CI noise reduction):** Change `scope="module"` to `scope="function"` in the `client` fixture in `test_server.py`. This creates a fresh `TestClient(app)` per test, eliminating cross-test fixture contamination within the module.
+The state is keyed by `thread_id` in LangGraph. Giving each test a unique session_id means no test can inherit state from a sibling:
 
-**Session isolation:** Change all `"session_id": "test-session"` to per-test unique session IDs (e.g., `f"test-{uuid4()}"`) so LangGraph checkpoints don't accumulate across tests.
+```python
+import uuid
 
-**Prerequisite:** Identify which preceding test module(s) corrupt the shared state — add a targeted binary-search run (`pytest tests/test_resilience.py tests/test_server.py::test_chat_returns_text_for_valid_message -v`) to isolate the contaminator, then apply the fixture-scope fix.
+@pytest.fixture
+def session_id():
+    return f"test-{uuid.uuid4()}"
 
-## Classification Evidence
+def test_chat_returns_text_for_valid_message(client, session_id):
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "..."}],
+        "session_id": session_id,
+    })
+    ...
+```
 
-This was confirmed as pre-existing fixture contamination (not a regression from cab4725) by:
-1. `test_server.py` member test failing on the pre-change tree (`test_all_audit_headers_present`, pre-change run 2)
-2. The floating failure pattern across 4 runs — different members each time
-3. Assertion content: all failing tests assert server-health (`status_code == 200`, headers present, response non-empty) — assertions that routing or keyword changes cannot trigger
-4. All failing tests pass in isolation every time — isolation removes the ordering dependency, confirming the root cause is cross-test state, not the test's own logic
+**2. `scope="function"` client fixture**
+
+Creates a fresh `TestClient(app)` per test, reinitializing the lifespan and clearing all module-level state. More expensive (lifespan runs per test) but completely isolating — eliminates both the checkpoint-bleed and any other module-level state contamination:
+
+```python
+@pytest.fixture  # remove scope="module"
+def client():
+    from server import app
+    with TestClient(app) as c:
+        yield c
+```
+
+**3. Explicit checkpoint teardown**
+
+Delete the `"test-session"` checkpoint from the database after each test. Fragile: if a test fails before teardown, contamination persists. Use only as a last resort if the other options are infeasible.
+
+**Acceptance criterion:** Same failure set (zero non-skipped failures) across N ≥ 3 consecutive full-suite runs in the same order. Determinism is what's being restored.
+
+---
+
+## Scope Boundary
+
+**Do not absorb this finding:** During a contaminated run, a `[FALSE HOLD] body_scan held on general stress in Arabizi: 'ana muta3ab w mtwatr'` routing assertion was observed in `test_entry_screen_integration.py`. This is a routing-content assertion, not fixture-state bleed — `body_scan` being held on Arabizi general stress could be a genuine routing issue. It may itself be a victim of contamination, or it may be a real finding that only surfaced during a noisy run.
+
+Do not classify it as harness noise by association. Once the fixture is isolated and full-suite runs are deterministic, re-run and check whether this reproduces. If it does, it is a separate clinical-review routing item for the Arabic track and should be treated with the same care as any Arabic routing finding on this platform.
+
+---
+
+## Cross-Reference
+
+This is the first documented write-up of Python pytest ordering contamination in the `sage_poc` test suite. It is **not** the same class as the Playwright E2E suite failures documented in `project_playwright_suite_status.md` (that document covers Playwright frontend flakiness from `supabase.auth.signOut()` invalidating shared JWTs — a different harness, different mechanism, different fix).
