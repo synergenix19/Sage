@@ -116,6 +116,7 @@ def _build_state(req: _RequestLike) -> dict:
         "new_clinical_flags_turn": [],
         "rule_fired":              None,
         "resistance_score":        None,
+        "completed_skill_id":      None,
         "knowledge_source":        "",
         "knowledge_abstain":       False,
         "knowledge_passages":      [],

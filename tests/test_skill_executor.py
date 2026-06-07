@@ -986,6 +986,68 @@ def test_arabic_session_receives_arabic_examples():
     )
 
 
+# ── SF-5: completed_skill_id audit attribution ────────────────────────────────
+
+class TestSF5CompletedSkillIdAttribution:
+    """SF-5 fix: skill attribution must be preserved on the completion turn.
+
+    Two-part contract:
+      - Completion turn (skill_complete=True): completed_skill_id holds the skill ID
+        so audit.py, output_gate.py, and server.py can attribute the completion response.
+      - Non-completion turn (skill stays / mid-skill): completed_skill_id is None so
+        the executor does not incorrectly set it on non-completion turns.
+
+    The bleed case (freeflow turn N+1 after completion turn N) is protected by
+    _build_state() resetting completed_skill_id to None on every turn — tested in
+    test_server_build_state.py::test_SF5_completed_skill_id_resets_per_turn.
+    Together, these two tests prove the full lifecycle: set-only-on-complete,
+    reset-by-default-on-every-turn.
+    """
+
+    async def test_completion_turn_sets_completed_skill_id(self):
+        """Turn N (skill_complete=True): attribution fields are correct.
+
+        Single-step skill + 7-word message → heuristic passes → next_id=None →
+        skill_complete=True. active_skill_id must clear (control state); completed_skill_id
+        must hold the skill ID (audit attribution).
+        """
+        # Default 7-word message in _make_executor_state triggers heuristic completion.
+        state = _make_executor_state()
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=_make_skill()):
+            result = await skill_executor_node(state)
+
+        # skill_complete is internal to the executor and not emitted in the state dict.
+        # active_skill_id=None + completed_skill_id=skill_id together prove the completion
+        # path was taken (L1 exit would leave completed_skill_id=None).
+        assert result["active_skill_id"] is None, (
+            "active_skill_id must clear on completion — it is the routing control field"
+        )
+        assert result["completed_skill_id"] == "test_skill", (
+            "completed_skill_id must hold the skill ID on the completion turn for audit attribution"
+        )
+
+    async def test_non_completion_turn_does_not_set_completed_skill_id(self):
+        """Turn N (skill stays): completed_skill_id must be None.
+
+        1-word message → heuristic fails → skill stays. The executor must not set
+        completed_skill_id so it remains None (from _build_state() reset).
+        """
+        state = _make_executor_state(message_en="okay")
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=_make_skill()):
+            result = await skill_executor_node(state)
+
+        assert result.get("skill_complete") is not True, (
+            "1-word message must not trigger completion — test precondition"
+        )
+        assert result["active_skill_id"] == "test_skill", (
+            "active_skill_id must remain set on a non-completion turn"
+        )
+        assert result.get("completed_skill_id") is None, (
+            "completed_skill_id must be None on non-completion turns — "
+            "only the completion path may set it"
+        )
+
+
 def test_arabic_session_with_single_arabic_example_does_not_revert_to_all_english():
     """Top-up must return [arabic, english1] not [english1, english2] for single-Arabic steps."""
     from sage_poc.nodes.skill_executor import _select_examples

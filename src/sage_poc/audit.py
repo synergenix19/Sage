@@ -104,7 +104,7 @@ def _build_session_audit_row(state: SageState) -> dict:
         "primary_intent":         state.get("primary_intent"),
         "secondary_intent":       state.get("secondary_intent"),
         "intent_confidence":      state.get("intent_confidence"),
-        "active_skill_id":        state.get("active_skill_id") or None,
+        "active_skill_id":        state.get("active_skill_id") or state.get("completed_skill_id") or None,
         "active_step_id":         state.get("active_step_id") or None,
         "skill_match_method":     state.get("skill_match_method") or None,
         "knowledge_source":       state.get("knowledge_source") or None,

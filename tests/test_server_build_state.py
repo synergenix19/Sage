@@ -75,6 +75,31 @@ def test_T9_new_clinical_flags_turn_and_resistance_score_reset_each_turn():
     )
 
 
+def test_SF5_completed_skill_id_resets_per_turn():
+    """SF-5: completed_skill_id must be present in _build_state() output and reset to
+    None on every turn.
+
+    Bleed scenario: skill completes on turn N (executor sets completed_skill_id=skill_id),
+    turn N+1 is a freeflow turn that never enters the executor. Without this reset,
+    LangGraph's checkpoint preserves the turn-N value and the turn-N+1 audit row gets
+    stamped with a skill that was not active — a false attribution in the clinical trail.
+
+    This test verifies that _build_state()'s None is present as the ainvoke input for
+    every turn, which overrides the checkpoint value (overwrite reducer). The executor
+    can then set it only on the turns where skill_complete=True.
+    """
+    req = _Req([_Msg("user", "hello")])
+    state = _build_state(req)
+
+    assert "completed_skill_id" in state, (
+        "completed_skill_id must be in _build_state() output — "
+        "its absence means the checkpoint value is never cleared on freeflow turns"
+    )
+    assert state["completed_skill_id"] is None, (
+        "completed_skill_id must reset to None each turn via _build_state()"
+    )
+
+
 def test_M4_knowledge_fields_reset_each_turn():
     """M4 fix: knowledge_abstain, knowledge_passages, and knowledge_source must reset
     each turn so that an info_request turn's retrieval state does not bleed into the

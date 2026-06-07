@@ -305,7 +305,7 @@ async def chat(
         headers={
             "X-Sage-Node-Path":             json.dumps(path),
             "X-Sage-Model":                 RESPONDER_MODEL,
-            "X-Sage-Skill-Id":              result.get("active_skill_id") or "",
+            "X-Sage-Skill-Id":              result.get("active_skill_id") or result.get("completed_skill_id") or "",
             "X-Sage-Step-Id":               result.get("executed_step_id") or "",
             "X-Sage-Active-Step-Id":        result.get("active_step_id") or "",
             "X-Sage-Gate-Path":             result.get("gate_path") or "",

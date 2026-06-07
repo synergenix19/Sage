@@ -316,7 +316,7 @@ async def output_gate_node(state: SageState) -> dict:
             "gate_path": gate_path or "standard",
             "detected_language": lang,
             "primary_intent": state.get("primary_intent"),
-            "active_skill": state.get("active_skill_id"),
+            "active_skill": state.get("active_skill_id") or state.get("completed_skill_id"),
             "skill_match_method": state.get("skill_match_method"),
             "semantic_score": state.get("semantic_score"),
             "executed_step": state.get("executed_step_id"),
@@ -368,7 +368,11 @@ async def output_gate_node(state: SageState) -> dict:
                     session_id, user_id, new_summary,
                     state.get("crisis_flags", []),
                     state.get("clinical_flags", []),
-                    skills_used=[state["active_skill_id"]] if state.get("active_skill_id") else [],
+                    skills_used=(
+                        [state["active_skill_id"]] if state.get("active_skill_id")
+                        else [state["completed_skill_id"]] if state.get("completed_skill_id")
+                        else []
+                    ),
                     mood_score=float(state.get("emotional_intensity", 5)),
                 )
             )

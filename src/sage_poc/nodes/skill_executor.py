@@ -609,6 +609,7 @@ async def skill_executor_node(state: SageState) -> dict:
         "executed_step_id":    step_id,
         "active_step_id":      result["next_step_id"],
         "active_skill_id":     None if result.get("skill_complete") else skill_id,
+        "completed_skill_id":  skill_id if result.get("skill_complete") else None,
         "rule_fired":          result.get("action") not in ("advance", "complete", "stay", None),
         "prev_step_id":        step_id,   # persists via LangGraph checkpoint; absent from _build_state
         "escalation_triggered": l2,  # advisory stored for audit; None if no L2 this turn

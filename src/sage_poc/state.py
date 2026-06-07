@@ -35,6 +35,7 @@ class SageState(TypedDict):
     engagement: int            # 1–10
 
     active_skill_id: Optional[str]
+    completed_skill_id: Optional[str]  # set on skill_complete turn for audit attribution; reset to None each turn via _build_state
     active_step_id: Optional[str]      # step the NEXT turn will start from
     executed_step_id: Optional[str]    # step whose instruction was used THIS turn (for audit)
     step_instruction: Optional[str]
