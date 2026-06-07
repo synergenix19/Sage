@@ -136,12 +136,27 @@ async def lifespan(app: FastAPI):
         # setup() runs CREATE INDEX CONCURRENTLY which can't run inside a transaction, so we
         # bootstrap it via a single autocommit connection before handing off to the pool.
         db_url = os.environ["DATABASE_URL"]
+        # CHECKPOINT_DATABASE_URL lets the checkpointer use a separate connection string
+        # (typically PgBouncer transaction mode, port 6543) while the asyncpg pool for
+        # PostgresMemoryRepository stays on session mode. When unset, both share db_url.
+        checkpoint_url = os.environ.get("CHECKPOINT_DATABASE_URL", db_url)
         try:
+            # setup() runs CREATE INDEX CONCURRENTLY which requires a stable session-level
+            # connection and breaks through PgBouncer transaction pooling. Always connect
+            # via db_url (session mode) even when CHECKPOINT_DATABASE_URL is set.
             async with await AsyncConnection.connect(
                 db_url, autocommit=True, prepare_threshold=0, row_factory=dict_row
             ) as setup_conn:
                 await AsyncPostgresSaver(setup_conn).setup()
-            saver_pool = AsyncConnectionPool(conninfo=db_url, open=False)
+            # prepare_threshold=None: disables psycopg prepared-statement cache so the
+            # pool is safe under PgBouncer transaction mode (port 6543). Without this,
+            # psycopg caches a PREPARE on one backend and the next request may land on a
+            # different backend, raising "prepared statement does not exist".
+            saver_pool = AsyncConnectionPool(
+                conninfo=checkpoint_url,
+                open=False,
+                kwargs={"prepare_threshold": None},
+            )
             await saver_pool.open()
             asyncpg_pool = await asyncpg.create_pool(
                 db_url,
@@ -220,7 +235,10 @@ async def chat(
     # Runs before ainvoke so nodes see a clean active_skill_id and stale_skill_id is set.
     # Non-fatal — any failure leaves state unchanged (skill context persists as-is).
     try:
-        snap = await graph.checkpointer.aget({"configurable": {"thread_id": req.session_id}})
+        snap = await asyncio.wait_for(
+            graph.checkpointer.aget({"configurable": {"thread_id": req.session_id}}),
+            timeout=5.0,
+        )
         if snap:
             checkpoint_values = snap.get("channel_values") or {}
             overrides = _stale_skill_overrides(checkpoint_values)

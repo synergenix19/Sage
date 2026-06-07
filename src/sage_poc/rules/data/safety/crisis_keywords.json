@@ -232,6 +232,28 @@
         "type": "crisis_flag",
         "flag_id": "command_hallucination"
       }
+    },
+    {
+      "rule_id": "SK-EN-006",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "approved_by": null,
+      "effective_date": "2026-06-07",
+      "active": true,
+      "description": "Progressive and variant self-harm/self-injury forms missed by SK-EN-001 substring match. Intentionally carries NO negation_check: over-detection is the safe posture on the crisis path (false positives get resolved in crisis_response; false negatives can cost a life). Denial phrases ('I'm not hurting myself') will now flag — this is expected and acceptable. See: negation_check defect audit 2026-06-07.",
+      "category": "safety",
+      "match_type": "keyword",
+      "patterns": [
+        "hurting myself",
+        "harming myself",
+        "harm myself"
+      ],
+      "language": "en",
+      "modifiers": [],
+      "action": {
+        "type": "crisis_flag",
+        "flag_id": "si_explicit"
+      }
     }
   ]
 }

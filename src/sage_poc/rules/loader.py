@@ -80,6 +80,12 @@ def load_rules(category: str) -> list:
             if rule.active:
                 if isinstance(rule, SafetyRule) and rule.match_type == "regex":
                     _lint_arabic_regex_rule(rule)
+                if isinstance(rule, SafetyRule) and rule.approved_by is None:
+                    _log.warning(
+                        "[rules/loader] UNAPPROVED ACTIVE SAFETY RULE: %s "
+                        "(authored_by=%s) — clinical sign-off required before production",
+                        rule.rule_id, rule.authored_by,
+                    )
                 rules.append(rule)
     return rules
 
