@@ -234,17 +234,23 @@ async def chat(
     # Session-resume staleness: park skill context if the checkpoint is too old.
     # Runs before ainvoke so nodes see a clean active_skill_id and stale_skill_id is set.
     # Non-fatal — any failure leaves state unchanged (skill context persists as-is).
+    #
+    # No asyncio.wait_for wrapper here: cancelling the aget coroutine mid-flight
+    # causes psycopg's AsyncConnectionPool to discard rather than return the
+    # connection (PgBouncer transaction-mode leaves it in an unclean state), leaking
+    # one pool slot per turn under concurrent load and collapsing pool capacity.
+    # aget is a single SELECT; it blocks at most until a pool slot is free, then
+    # completes quickly and returns the connection cleanly.
     try:
-        snap = await asyncio.wait_for(
-            graph.checkpointer.aget({"configurable": {"thread_id": req.session_id}}),
-            timeout=5.0,
+        snap = await graph.checkpointer.aget(
+            {"configurable": {"thread_id": req.session_id}}
         )
         if snap:
             checkpoint_values = snap.get("channel_values") or {}
             overrides = _stale_skill_overrides(checkpoint_values)
             state.update(overrides)
     except Exception as exc:
-        _log.warning("[sage/chat] stale-skill check failed: %s", exc)
+        _log.warning("[sage/chat] stale-skill check failed: %s", exc, exc_info=True)
 
     # Load therapeutic profile for L5 injection — non-fatal if DB is unavailable
     state["therapeutic_profile"] = None
