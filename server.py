@@ -26,7 +26,7 @@ from sage_poc.skills.conformance import SCHEMA_CONFORMANCE, get_conformance_repo
 
 _log = logging.getLogger(__name__)
 CRISIS_SIGNAL = "[[CRISIS_DETECTED]]"
-AINVOKE_TIMEOUT_SECONDS: float = float(os.environ.get("AINVOKE_TIMEOUT_SECONDS", "18"))
+AINVOKE_TIMEOUT_SECONDS: float = float(os.environ.get("AINVOKE_TIMEOUT_SECONDS", "30"))
 
 # Gate: True once BGE-M3 warmup completes (or is intentionally skipped).
 # /health/ready and /chat both check this; Railway healthcheck holds LB traffic until ready.
