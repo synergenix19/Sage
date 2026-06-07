@@ -449,6 +449,13 @@ async def skill_executor_node(state: SageState) -> dict:
         new_clinical_flags_turn=state.get("new_clinical_flags_turn") or [],
     )
 
+    # exit_skill intent is a second source of truth for exit alongside L1_EXIT_PHRASES.
+    # OR them: the classifier catches "I think I'm done / let's move on" that the phrase
+    # list misses; without this, mismatches leave active_skill_id set and the next
+    # new_skill turn is trapped back in the executor by the line-163 guard.
+    if not l1 and state.get("primary_intent") == "exit_skill":
+        l1 = {"level": "L1", "reason": "intent_route:exit_skill", "action": "exit_skill"}
+
     # L2: advisory — log and continue; skill execution is NOT blocked.
     if l2:
         _log.info("[skill_executor] L2 advisory: %s", l2["reason"])
