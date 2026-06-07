@@ -37,6 +37,47 @@ def test_compose_prompt_returns_layers():
     assert all(isinstance(l, str) for l in layers)
 
 
+def test_exception_clause_present_in_user_prompt_for_floor_return():
+    """OPTION-A GUARD: when the user returns the conversational floor ('I don't know,
+    can you suggest?'), the exception clause from general_chat.json must appear in the
+    assembled user prompt that reaches the LLM.
+
+    Simulates the exact failure from 2026-06-07: Sage asked 'Is there a new activity
+    or place you might want to explore?' — user answered 'I don't know, can you suggest
+    something?' — Sage re-asked an exploratory question instead of suggesting.
+
+    The fix (general_chat.json v1.2.0) adds an exception clause. This test verifies
+    that clause survives the compose_prompt assembly and is visible to the LLM.
+
+    If this test fails: the exception clause was removed from general_chat.json or
+    the template is no longer loaded for general_chat intent turns. Either re-opens
+    the advice deflection bug.
+    """
+    floor_return_state = {
+        **_BASE_STATE,
+        "primary_intent": "general_chat",
+        "message_en": "I don't know, can you suggest something?",
+        "emotional_intensity": 5,
+        "engagement": 5,
+        "conversation_history": [
+            {"role": "user", "content": "I'm feeling lonely, nothing to do."},
+            {
+                "role": "assistant",
+                "content": "Is there a new activity or place you and your dog might want to explore together?",
+            },
+        ],
+    }
+    with patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules()):
+        _, user_str, layers = compose_prompt(floor_return_state)
+
+    assert "Exception" in user_str, (
+        "OPTION-A FAIL: exception clause not found in assembled user prompt. "
+        "The LLM will not know to provide concrete suggestions for a floor-return turn. "
+        "Check general_chat.json and confirm the exception clause is still present."
+    )
+    assert "intent" in layers, "L2 intent layer must be present on every turn"
+
+
 def test_compose_prompt_history_layer():
     state = {**_BASE_STATE, "conversation_history": [
         {"role": "user", "content": "hi"}, {"role": "assistant", "content": "hello"}

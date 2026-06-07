@@ -315,3 +315,50 @@ def test_intent_system_contains_safety_carveout_for_acceptance_framed_harm():
     assert "crisis" in INTENT_SYSTEM, (
         "INTENT_SYSTEM must mention crisis routing in the safety carve-out context."
     )
+
+
+# ── Option A: advice deflection fix (2026-06-07) ─────────────────────────────
+#
+# These tests guard the general_chat.json exception clause introduced in v1.2.0.
+# Intent routing is unchanged (no advice_request category yet — that is Option B).
+# The fix lives in the L2 template: the exception clause instructs the LLM to
+# provide concrete suggestions when the user returns the conversational floor.
+#
+# Test is placed here because intent_route is the upstream gate for general_chat.
+# The comment documents clearly: if this test fails after Option B activates,
+# it is because the routing changed, not because the template regressed.
+
+def test_general_chat_template_contains_exception_clause_for_floor_return():
+    """OPTION-A GUARD: general_chat L2 template must contain the floor-return exception.
+
+    When the user says 'I don't know, can you suggest something?', intent_route
+    currently routes to general_chat (no advice_request category in INTENT_SYSTEM).
+    The fix is in the template: the exception clause tells the LLM to answer its
+    own question with concrete suggestions rather than re-asking.
+
+    If this assertion fails: check general_chat.json — the exception clause
+    ('Exception: if the user says they do not know...') must be present. This is
+    the Option A fix; removing it re-opens the advice deflection bug.
+
+    If this assertion starts failing after Option B activates: the routing change
+    in INTENT_SYSTEM may have moved delegation traffic away from general_chat.
+    Verify advice_request.json contains the equivalent instruction before removing
+    this guard.
+    """
+    from sage_poc.prompts.composer import _build_l2_intent_block
+
+    block = _build_l2_intent_block("general_chat", intensity=5, secondary_intent=None)
+
+    assert "Exception" in block, (
+        "OPTION-A FAIL: general_chat L2 block missing the exception clause. "
+        "The LLM will not see the instruction to provide concrete suggestions "
+        "when the user returns the conversational floor. Check general_chat.json."
+    )
+    assert "do not know" in block.lower(), (
+        "OPTION-A FAIL: exception clause must address 'do not know' — the "
+        "dispreferred-response signal. Check general_chat.json exception wording."
+    )
+    assert "concrete" in block.lower(), (
+        "OPTION-A FAIL: exception clause must instruct 'concrete' suggestions — "
+        "not a restatement of the exploratory posture. Check general_chat.json."
+    )

@@ -1,0 +1,26 @@
+{
+  "template_id": "L2_advice_request",
+  "version": "0.1.0-draft",
+  "status": "draft-pending-review",
+  "authored_by": "sage_clinics",
+  "approved_by": null,
+  "effective_date": "pending",
+  "layer": "L2",
+  "role": "user",
+  "always_include": true,
+  "word_budget": 80,
+  "content": "INTENT: The user has explicitly asked Sage to lead. They are not presenting a new symptom — they are handing over the decision to Sage. Emotional intensity: {intensity}/10. {intensity_guidance} Provide concrete, warm, practical suggestions directly. Do not ask another exploratory question. If Sage asked a question in the prior turn and the user said they do not know, answer your own question with two or three specific ideas. Lead gently but clearly.",
+  "variables": ["intensity", "intensity_guidance"],
+  "intent": "advice_request",
+  "_selector_condition": "primary_intent == 'advice_request'",
+  "_review_required": [
+    "Rule 1 approval (new intent class — control-layer change in intent_route.py required)",
+    "Clinical review (therapeutic posture: direct recommendation vs. guided exploration)"
+  ],
+  "_option_b_routing_change": "intent_route.py INTENT_SYSTEM requires a new 'advice_request' rule: fires when user says they do not know AND asks Sage to suggest/recommend, or when user returns the floor after Sage asked an unanswerable question. Primary intent. Secondary can be emotional_support for blended turns (§6.4). Classification note: this is NOT new_skill (no symptom presented) and NOT general_chat (user has explicitly delegated). Examples: 'I don't know, can you suggest something?', 'just tell me what to do', 'you pick', 'any ideas?'",
+  "_option_b_test_coverage": [
+    "test_intent_route_node.py: explicit delegation phrases classify as advice_request, not general_chat",
+    "test_nodes.py: bare emotional words still classify as general_chat (guard must not regress)",
+    "test_freeflow_respond.py: advice_request intent produces concrete suggestions, no exploratory question"
+  ]
+}
