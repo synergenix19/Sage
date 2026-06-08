@@ -33,21 +33,13 @@ PRODUCTION KEYWORD COLLISIONS FIXED (2026-06-08, clinical approval received):
     first-person acute-flooding phrasing (grounding pos 7 < dbt_tipp pos 13). Removed.
 
 Baseline run 2026-06-08 (initial):    24 T1 + 49 T2-OK = 73 correct / 52 hard gaps
-After top-5 keyword expansion (batch 1): 44 T1 + 49 T2-OK = 93 correct / 32 hard gaps
+After batch-1 keyword expansion (BA/AC/VC/GL/ACT):  44 T1 + 49 T2-OK = 93 correct / 32 hard gaps
+After batch-2 keyword expansion (CBT/CR/TIPP/GRD/SCB): 60 T1 + 49 T2-OK = 109 correct / 16 hard gaps
+After gate-clearing fixes (STOP/PA/SPV):            63 T1 + 49 T2-OK = 112 correct / 13 hard gaps
 Re-run scripts/coverage_matrix.py after any target_presentations edit to track progress.
 
-Priority targets for Tier 1 keyword expansion (batch 2, from matrix):
-  cbt_thought_record      — 2 MISS + 2 T2-ERR: catastrophising/self-labelling phrases below
-                            threshold; "terrible at everything", "convinced I'll fail",
-                            "worst conclusion" bleed to cognitive_restructuring/mi_readiness_ruler.
-  cognitive_restructuring — 2 MISS + 1 T2-ERR: "deep-rooted belief", "story I've been telling
-                            myself", "assume the worst outcome" need Tier 1 keywords.
-  dbt_tipp                — 3 T2-ERR: "emotions at a ten", "need something physical/intense",
-                            "breathing not working" bleed to mood_check_in/mindfulness/box_breathing.
-  grounding_5_4_3_2_1     — 1 MISS + 2 T2-ERR: "frozen and disconnected", "unreal", "watching
-                            myself from a distance" need dissociation-specific Tier 1 keywords.
-  self_compassion_break   — 2 MISS + 1 T2-ERR: "beating myself up", "tearing myself apart",
-                            "inner critic" bleed to cbt_thought_record.
+Remaining 13 gaps (as of 2026-06-08): spread thin across 7 skills.
+No further expansion planned pre-Gitex. Routing layer pivoting to SF-1 (Node 1 safety_check).
 """
 from __future__ import annotations
 
