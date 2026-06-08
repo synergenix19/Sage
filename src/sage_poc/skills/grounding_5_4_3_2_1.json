@@ -22,8 +22,6 @@
     "hyperventilation",
     "feel like i'm losing it",
     "feel like im losing it",
-    "i can't calm down",
-    "i cant calm down",
     "nothing feels real",
     "heart is pounding",
     "i feel frozen",
@@ -65,7 +63,7 @@
       "technique": "Sensory grounding: sight",
       "technique_description": "Redirect attention from internal panic signals to external visual anchors by asking the user to name five specific objects they can see right now.",
       "tone": "calm, slow, gently directive",
-      "contraindications": "Do NOT ask 'what do you see?' if the user has disclosed being in a dark room, has their eyes closed, or has mentioned visual impairment. Adapt to an available sense, redirect to touch and name the step accordingly. Do NOT rush. Pace the question slowly; acute panic narrows attention and the user may need a moment.",
+      "contraindications": "Do NOT ask 'what do you see?' if the user has disclosed being in a dark room, has their eyes closed, or has mentioned visual impairment. Adapt to an available sense, redirect to touch and name the step accordingly. Do NOT rush. Pace the question slowly; acute panic narrows attention and the user may need a moment. Do NOT begin this technique if the user's message contained action-seeking language ('what can I do', 'how do I handle this', 'give me a strategy', 'I want to deal with this'). When action-seeking language is present, acknowledge the feeling and ask what kind of support they are looking for before proceeding.",
       "completion_criteria": "User has named at least 3 things they can see (or equivalent sensory items if adapted). Fewer than 3 with no further engagement warrants a gentle re-prompt before advancing.",
       "examples": [
         "Let's slow things down together. Can you look around and tell me five things you can see right now, anything at all?",
@@ -140,6 +138,18 @@
       },
       "action": "validate_only",
       "instruction": "The user is in acute distress. Do NOT advance the exercise. Slow down, validate, and stay present. Repeat the current step's prompt in simpler language next turn.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 8,
+        "for_turns": 1,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "The user has shown strong resistance to this practice in a single turn. Do not continue the current step. Acknowledge that this approach may not feel right right now, and ask what kind of support would feel more useful to them.",
       "next_step_id": "current"
     },
     {
