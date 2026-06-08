@@ -26,7 +26,10 @@
     "brutal to myself",
     "never kind to myself",
     "speak to myself",
-    "would never speak to a friend the way i speak to myself"
+    "would never speak to a friend the way i speak to myself",
+    "beating myself up",
+    "tearing myself apart",
+    "non-stop criticism"
   ],
   "semantic_description": "Self-compassion break protocol. Neff three-component self-compassion technique: mindfulness, common humanity, self-kindness. MSC mindful self-compassion pause. Compassion fatigue antidote. Self-kindness versus self-judgment. Common humanity versus isolation. Mindfulness versus over-identification. Neff and Germer mindful self-compassion program. The compassionate friend technique. Self-compassion pause. Treating yourself as you would treat a good friend. Inner critic and self-compassion. Soften, soothe, allow method. Self-compassion break walkthrough. The self-compassion mantra. Three-step compassion pause technique.",
   "steps": [
@@ -36,7 +39,7 @@
       "technique": "Mindful acknowledgment of present-moment pain",
       "technique_description": "Guide the user to simply notice what they are feeling right now, without pushing it away and without dramatizing it. The goal is to name the experience honestly, using language that acknowledges pain without deepening the spiral. Avoid clinical language. Keep it close to lived experience. Ask the user to place one hand on their chest if it feels comfortable, a small physical anchor for the present moment. The core teaching is: you do not have to fix this right now, you do not have to explain it, you do not have to justify it. You only have to notice it. Invite them to say something like, 'this is a moment of difficulty,' or 'something hard is happening right now.' These simple phrases do not dramatize and do not minimize. They just acknowledge. Do not rush. Allow a breath. Do not move on until the user has named something, even briefly.",
       "tone": "slow, gentle, grounded, unhurried",
-      "contraindications": "Do NOT push for precise emotional vocabulary. Do NOT interpret what they are feeling before they have named it. Do NOT minimize with reassurance ('it will be okay'). Do NOT catastrophize with the user. If the user is tearful or overwhelmed, simply stay present. Do NOT skip to the next step. Acknowledgment must come first.",
+      "contraindications": "Do NOT push for precise emotional vocabulary. Do NOT interpret what they are feeling before they have named it. Do NOT minimize with reassurance ('it will be okay'). Do NOT catastrophize with the user. If the user is tearful or overwhelmed, simply stay present. Do NOT skip to the next step. Acknowledgment must come first. Do NOT suggest the hand-on-chest gesture if the user's message contained action-seeking language ('what can I do', 'how do I handle this', 'give me a strategy', 'I want to deal with this'). When action-seeking language is present, acknowledge the feeling and ask what kind of support they are looking for before proceeding.",
       "completion_criteria": "The user has named or acknowledged their pain in some form, even in a single word or phrase. 'Hard', 'heavy', 'I don't know', 'a lot' are all acceptable. Any honest acknowledgment, however brief, is sufficient to proceed. Deflection ('I'm fine') requires one gentle prompt before moving on.",
       "examples": [
         "Before we do anything else, let us just pause for a moment. If it feels comfortable, you can place one hand on your chest, gently. Then just notice: what is happening inside right now? You do not need to fix it or explain it. Just notice it is there. What would you call what you are feeling?",
@@ -44,7 +47,8 @@
         "I want to try something with you, something that comes from a practice called mindful self-compassion. The first step is the simplest and often the hardest: just noticing. Not solving, not explaining, just honestly seeing what is here. What is here for you right now? What word or phrase comes closest?",
         "قبل ما نسوي أي شي، خلينا نوقف لحظة. لو ما فيه مانع، حط يدك على صدرك بهدوء. وبس لاحظ: وش اللي تحس فيه الحين؟ ما تحتاج تصلحه أو تفسره. بس شوف: وش موجود؟",
         "في بعض الأحيان، أول خطوة هي الأصعب: إننا نعترف بإن في شي صعب يصير، بدون ما نتجاهله أو نبالغ فيه. الحين، في هذي اللحظة، في شي ثقيل عليك. ممكن تسميه؟ ولو كلمة وحدة؟",
-        "ما نبي نهرب من اللي تحس فيه ولا نغرق فيه. بس نشوفه بوضوح. وش تقدر تقول الحين عن اللي تمر فيه؟"
+        "ما نبي نهرب من اللي تحس فيه ولا نغرق فيه. بس نشوفه بوضوح. وش تقدر تقول الحين عن اللي تمر فيه؟",
+        "Something hard is happening right now. You don't have to explain it or rush past it. What would you call what you're feeling, even just a word or two?"
       ]
     },
     {
@@ -92,6 +96,18 @@
       },
       "action": "validate_only",
       "instruction": "The user is acutely distressed. Do not proceed with self-compassion steps until the emotional intensity has lowered. Just be present. Stay warm and unhurried. Do not attempt the three-step protocol while the user is in acute distress. Return to the current step next turn only if distress has reduced.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 8,
+        "for_turns": 1,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "The user has shown strong resistance to this practice in a single turn. Do not continue the current step. Acknowledge that this approach may not feel right right now, and ask what kind of support would feel more useful to them.",
       "next_step_id": "current"
     },
     {

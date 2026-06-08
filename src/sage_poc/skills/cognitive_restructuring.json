@@ -28,7 +28,10 @@
     "راسي يدور",
     "أفكار سلبية",
     "أفكاري مشغولة دايم",
-    "تفكيري مو زين"
+    "تفكيري مو زين",
+    "deep-rooted belief",
+    "story i've been telling myself",
+    "assume the worst outcome"
   ],
   "semantic_description": "Cognitive restructuring protocol from cognitive behavioral therapy. Identifying and challenging unhelpful thinking patterns through Socratic questioning and guided discovery. Beck's cognitive model applied to automatic thoughts and thinking errors. Burns cognitive distortion identification: all-or-nothing thinking, magnification, mind-reading, fortune-telling, emotional reasoning, should statements, labeling. Thought challenging through evidence examination. Generating balanced alternative perspectives. Downward arrow technique: identifying the core belief beneath a surface thought. Thought monitoring and identification without the formal three-column record structure. Psychoeducation on the relationship between thoughts, feelings, and behavior. First-step cognitive work: recognizing that thoughts are mental events not facts. Cognitive reappraisal for everyday distress. Flexible thinking training. Identifying thinking traps and learning to step back from them. The cognitive behavioral model for beginners. Distinguishing a thought from a fact. Cognitive flexibility.",
   "steps": [
@@ -91,6 +94,18 @@
       },
       "action": "validate_only",
       "instruction": "The user is highly distressed. Validate their emotion fully and do NOT attempt to examine or challenge any thought. Stay warm and present. Cognitive work requires a window of tolerance. Return to normal step next turn only if distress has reduced.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 8,
+        "for_turns": 1,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "The user has shown strong resistance to this practice in a single turn. Do not continue the current step. Acknowledge that this approach may not feel right right now, and ask what kind of support would feel more useful to them.",
       "next_step_id": "current"
     },
     {

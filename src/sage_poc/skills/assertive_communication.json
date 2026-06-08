@@ -30,7 +30,22 @@
     "backing down",
     "always back down",
     "can't hold my ground",
-    "ما أقدر أدافع عن نفسي"
+    "throwing me under the bus",
+    "thrown under the bus",
+    "taking advantage of me",
+    "being blamed for someone else",
+    "protect myself at work",
+    "project myself",
+    "not get bullied",
+    "bullied at work",
+    "being bullied",
+    "defend myself",
+    "ما أقدر أدافع عن نفسي",
+    "said yes to something i didn't",
+    "threw me under the bus",
+    "confront my manager",
+    "i freeze when",
+    "take advantage of me"
   ],
   "semantic_description": "Assertiveness training protocol. DESC formula: Describe, Express, Specify, Consequence. Assertive communication technique. Passive versus assertive versus aggressive communication styles. Communication assertiveness training. Assertive self-expression. Setting limits. Saying no with clarity. The art of the assertive request. Interpersonal effectiveness skills. DESC communication formula application. Wolpe assertiveness training. Assertive boundary-setting protocol. Role-play rehearsal for assertive communication. Communication style identification and training. Expressing needs directly. The no-guilt assertive refusal technique. Smith assertive communication protocol.",
   "steps": [
@@ -96,6 +111,18 @@
       },
       "action": "validate_only",
       "instruction": "The user is acutely distressed. Do not continue assertiveness training. Validate their experience fully and stay present. Assertiveness work requires psychological safety. Return to normal step next turn only if distress has reduced.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 8,
+        "for_turns": 1,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "The user has shown strong resistance to this practice in a single turn. Do not continue the current step. Acknowledge that this approach may not feel right right now, and ask what kind of support would feel more useful to them.",
       "next_step_id": "current"
     },
     {

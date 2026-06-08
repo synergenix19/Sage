@@ -53,7 +53,11 @@
     "had hobbies but stopped",
     "activities i used to enjoy",
     "activities i used to love",
-    "used to love going out"
+    "used to love going out",
+    "things i used to enjoy",
+    "nothing feels worth doing",
+    "keep cancelling",
+    "given up on hobbies"
   ],
   "semantic_description": "Behavioral activation: graded activity scheduling protocol. Adapted from Martell et al. (2001) and Richards et al. (2016) low-intensity BA: identify one concrete task, assign a specific day and time, complete it, observe the result. Activity hierarchy: start with smallest achievable step and build up. Pleasurable activity planning: pick one activity, schedule it, report back. Activity monitoring log: track what is completed and when. One-task experiment per day. Schedule one achievable task this week. Behavioral engagement through structured task scheduling.",
   "steps": [
@@ -113,6 +117,18 @@
       },
       "action": "validate_only",
       "instruction": "User is in acute distress. Do not advance to activity planning. Stay with validation and let the user lead any movement forward.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 8,
+        "for_turns": 1,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "The user has shown strong resistance to this practice in a single turn. Do not continue the current step. Acknowledge that this approach may not feel right right now, and ask what kind of support would feel more useful to them.",
       "next_step_id": "current"
     },
     {

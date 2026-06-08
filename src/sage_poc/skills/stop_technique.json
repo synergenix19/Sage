@@ -16,14 +16,11 @@
     "going to say something i regret",
     "cant control my reaction",
     "getting overwhelmed",
-    "overwhelmed right now",
     "triggered",
-    "flooded",
     "need to pause",
     "need a moment",
     "just breathe",
     "losing control of my emotions",
-    "emotional flooding",
     "reactive",
     "about to blow up",
     "about to explode emotionally",
@@ -36,7 +33,8 @@
     "تعبت من ردود أفعالي",
     "أبي أوقف بس ما أقدر",
     "بقول شي بندم عليه",
-    "بسوي شي غلط"
+    "بسوي شي غلط",
+    "feel myself escalating"
   ],
   "semantic_description": "STOP technique: Stop, Take a breath, Observe, Proceed. Four-step pre-response interruption protocol. DBT-adapted micro-pause acronym: freeze, breathe once, observe the impulse, then choose the response. Behavioral interruption: insert a deliberate pause between trigger and reaction. STOP acronym applied before reactive behavior. Stimulus-response gap technique. Four-step pause before acting: stop, breath, observe, proceed.",
   "steps": [
@@ -80,6 +78,18 @@
       },
       "action": "validate_only",
       "instruction": "User is highly distressed. Slow down. Stay present. Gently re-invite the STOP breath without rushing.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 8,
+        "for_turns": 1,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "The user has shown strong resistance to this practice in a single turn. Do not continue the current step. Acknowledge that this approach may not feel right right now, and ask what kind of support would feel more useful to them.",
       "next_step_id": "current"
     },
     {

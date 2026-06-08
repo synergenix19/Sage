@@ -60,7 +60,11 @@
     "أخرب حالي",
     "دايم أنا السبب",
     "always ruin everything",
-    "nobody actually likes me"
+    "nobody actually likes me",
+    "terrible at everything",
+    "convinced it's true",
+    "worst conclusion",
+    "people are judging me"
   ],
   "semantic_description": "Cognitive behavioral therapy thought record. Three-column technique: identify automatic negative thoughts, examine evidence for and against, generate balanced alternative interpretation. Beck cognitive model. Cognitive distortions: catastrophizing, overgeneralization, personalization, all-or-nothing thinking, labeling, filtering. Socratic questioning, cognitive restructuring. Core beliefs: negative schema of defectiveness, inadequacy, or feeling inherently broken or fundamentally flawed. Belief one is broken in how they are built or constructed. Self-critical automatic thoughts.",
   "steps": [
@@ -120,6 +124,18 @@
       },
       "action": "validate_only",
       "instruction": "The user is highly distressed. Stay in awareness-only mode: help them name and articulate what they are telling themselves, but do not move to evidence exploration or restructuring. Simply noticing and naming the thought in words is a complete and valid outcome for this turn, and many users gain real benefit from this alone without advancing to the evidence columns. Validate the emotion, do not challenge the thought, hold this step until distress lowers.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 8,
+        "for_turns": 1,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "The user has shown strong resistance to this practice in a single turn. Do not continue the current step. Acknowledge that this approach may not feel right right now, and ask what kind of support would feel more useful to them.",
       "next_step_id": "current"
     },
     {
