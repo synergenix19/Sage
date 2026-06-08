@@ -11,7 +11,7 @@ from sage_poc.language import async_translate_to_arabic
 from sage_poc.config import AUDIT_LOG_ENABLED
 from sage_poc.rules import engine as rules_engine
 from sage_poc.prompts.summarizer import summarise_history
-from sage_poc.audit import write_session_audit, write_session_audit_initial, write_identity_substitution_audit
+from sage_poc.audit import write_session_audit, write_identity_substitution_audit
 
 _log = logging.getLogger(__name__)
 
@@ -275,14 +275,6 @@ async def output_gate_node(state: SageState) -> dict:
                     banned_match.group(0),
                 )
                 retry_path = path + ["output_gate_banned_opener_retry"]
-                if session_id:
-                    _retry_audit = asyncio.create_task(
-                        write_session_audit_initial({**state, "path": retry_path, "gate_path": gate_path or "standard"})
-                    )
-                    _retry_audit.add_done_callback(
-                        lambda t: _log.warning("[output_gate] retry audit error: %s", t.exception())
-                        if not t.cancelled() and t.exception() else None
-                    )
                 return {
                     "banned_opener_retry_count": retry_count + 1,
                     "banned_opener_correction": _BANNED_OPENER_CORRECTION,
