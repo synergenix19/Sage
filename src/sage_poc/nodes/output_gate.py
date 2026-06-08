@@ -47,6 +47,7 @@ _BANNED_OPENER_PATTERNS: list[str] = [
 _BANNED_OPENER_RE = re.compile(
     r"(?i)^(" + "|".join(_BANNED_OPENER_PATTERNS) + r")"
 )
+_HAS_ARABIC_RE = re.compile(r"[؀-ۿ]")
 _BANNED_OPENER_CORRECTION = (
     "Your previous response began with a banned opener. "
     "Respond again without beginning with 'It sounds like', 'That sounds', or any "
@@ -179,6 +180,22 @@ async def output_gate_node(state: SageState) -> dict:
     else:
         response_en = state["response_en"] or ""
 
+    _arabic_chars = len(_HAS_ARABIC_RE.findall(response_en))
+    _total_chars = len(response_en.strip())
+    _response_en_is_arabic = (
+        lang == "ar"
+        and gate_path not in ("scope_refusal", "jailbreak")
+        and _total_chars > 0
+        and (_arabic_chars / _total_chars) > 0.4
+    )
+    if _response_en_is_arabic:
+        _log.warning(
+            "[output_gate] response_en is predominantly Arabic "
+            "(ratio=%.2f, session=%s, gate=%s) -- "
+            "skipping EN validators and translation; audit for CU-DM-001 regression",
+            _arabic_chars / _total_chars, session_id, gate_path,
+        )
+
     if gate_path not in ("scope_refusal", "jailbreak"):
         cultural_violations = rules_engine.evaluate("cultural_output", {
             "response_text": response_en,
@@ -248,7 +265,7 @@ async def output_gate_node(state: SageState) -> dict:
                 lambda t: _log.warning("[output_gate] empty-retry audit error: %s", t.exception())
                 if not t.cancelled() and t.exception() else None
             )
-    if gate_path not in ("scope_refusal", "jailbreak") and response_en:
+    if gate_path not in ("scope_refusal", "jailbreak") and response_en and not _response_en_is_arabic:
         banned_match = _BANNED_OPENER_RE.match(response_en.lstrip())
         if banned_match:
             retry_count = _retry_count
@@ -303,7 +320,7 @@ async def output_gate_node(state: SageState) -> dict:
     if violations:
         _log.warning("[output_gate] format violations: %s", violations)
 
-    if lang == "ar":
+    if lang == "ar" and not _response_en_is_arabic:
         final_response = await async_translate_to_arabic(response_en)
     else:
         final_response = response_en

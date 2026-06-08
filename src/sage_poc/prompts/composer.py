@@ -348,6 +348,19 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     system_parts = [_build_l0_system_block()]
     layers.append("persona")
 
+    # L0 extension: Arabic session generation contract.
+    # Sole authoritative location for the EN-first directive. Fires before cultural
+    # rules so the LLM sees the translation architecture before register calibration.
+    # CU-DM-001 v1.2 must not restate this (register calibration only after this fix).
+    if language == "ar":
+        system_parts.append(
+            "ARABIC SESSION: This user writes in Arabic. Your response will be "
+            "translated to Khaleeji Arabic by the delivery layer. Generate in English "
+            "with warmth and conversational rhythm that translates naturally to Gulf "
+            "Arabic, not clinical or formal phrasing. Do not write in Arabic."
+        )
+        layers.append("arabic_register")
+
     # Cultural injections from Rules Service (unchanged from original)
     code_switch = state.get("code_switching", False)
     cultural_result = rules_engine.evaluate("cultural", {
