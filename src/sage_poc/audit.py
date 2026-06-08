@@ -168,19 +168,3 @@ async def write_session_audit(state: SageState) -> None:
         label="session_audit",
     )
 
-
-async def write_session_audit_initial(state: SageState) -> None:
-    """Write a session audit row only if the row does not already exist (ignore-duplicates).
-
-    Use for intermediate writes (e.g. retry-detection early-return) so the final
-    write_session_audit call always wins the race regardless of asyncio scheduling order.
-    If the final write committed first, this call is silently dropped.
-    If this call commits first, write_session_audit will overwrite it with the complete path.
-    """
-    if not _URL or not _KEY:
-        return
-    await _write_session_audit_row(
-        _build_session_audit_row(state),
-        prefer="resolution=ignore-duplicates",
-        label="session_audit_initial",
-    )
