@@ -34,7 +34,8 @@
     "أبي مكان هادي في بالي",
     "أحس بالخطر",
     "أبي أتخيل مكان آمن",
-    "الحاضر مرعب"
+    "الحاضر مرعب",
+    "mental escape"
   ],
   "semantic_description": "Safe place visualization: guided safe place imagery adapted from stabilization techniques. Shapiro-adapted safe place exercise: identify a real or imagined location, enrich with five-sense detail, create an anchor word to return to it. Sensory anchoring: describe the visualized scene by sight, sound, texture, temperature. Grounding visualization: build a mental location and anchor it with a word or phrase. Guided imagery for internal stabilization. Safe place imagery technique.",
   "steps": [
@@ -104,6 +105,18 @@
       },
       "action": "validate_only",
       "instruction": "User is in acute distress. Stay in the present, do not advance to imagery. Validate and ground before any visualization.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 8,
+        "for_turns": 1,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "The user has shown strong resistance to this practice in a single turn. Do not continue the current step. Acknowledge that this approach may not feel right right now, and ask what kind of support would feel more useful to them.",
       "next_step_id": "current"
     },
     {
