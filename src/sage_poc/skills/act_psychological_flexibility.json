@@ -14,6 +14,7 @@
     "it's not just one thing",
     "everything feels wrong",
     "so many things going on",
+    "so many things at once",
     "anxiety depression and",
     "depression and anxiety and",
     "chronic pain and anxiety",
@@ -75,7 +76,11 @@
     "أبي أتعلم أتقبل",
     "ألم مزمن وقلق",
     "الألم أثر على مزاجي",
-    "جربت العلاج بس ما ساعد"
+    "جربت العلاج بس ما ساعد",
+    "fighting against my own thoughts",
+    "anxiety keeps getting in the way",
+    "avoiding things i care about",
+    "world is slowly shrinking"
   ],
   "semantic_description": "ACT Acceptance and Commitment Therapy psychological flexibility model. Cognitive defusion technique: observing thoughts as thoughts, not facts. Leaves on a stream defusion exercise. Unhooking from fused thoughts and self-narratives. Acceptance and willingness: making room for difficult feelings without struggling against them. Willingness as an alternative to experiential avoidance and control. ACT hexaflex: defusion, acceptance, values, committed action. Psychological flexibility training for multi-problem presentations. Changing relationship with thoughts rather than thought content. Hayes Strosahl Wilson 1999 2012. Russ Harris The Happiness Trap defusion. ACT for chronic pain NICE NG193. Values compass toward valued living despite distress.",
   "steps": [
@@ -177,6 +182,18 @@
       },
       "action": "validate_only",
       "instruction": "User is acutely distressed. ACT work requires enough psychological safety to observe rather than react. Do not continue the skill steps. Stay present, validate fully, and only re-enter the skill if the user signals they are ready.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 8,
+        "for_turns": 1,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "The user has shown strong resistance to this practice in a single turn. Do not continue the current step. Acknowledge that this approach may not feel right right now, and ask what kind of support would feel more useful to them.",
       "next_step_id": "current"
     },
     {
