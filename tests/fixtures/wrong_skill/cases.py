@@ -25,34 +25,29 @@ KNOWN KEYWORD RISKS documented inline:
       keywords ("why do I panic"). Phrases for psychoed_anxiety avoid "panic" as a standalone
       word in favour of describing the mechanism question.
 
-REAL KEYWORD COLLISION DISCOVERED BY THIS SUITE (2026-06-08):
-    stop_technique contains "flooded" and "emotional flooding" — both are dbt_tipp clinical
-    terms that have no relevance to the STOP technique. stop_technique scans before dbt_tipp
-    in SKILL_REGISTRY (pos 10 vs pos 13), meaning any phrase containing "flooded" incorrectly
-    routes to stop_technique. This is a production routing bug; the correct fix is to remove
-    "flooded" and "emotional flooding" from stop_technique.target_presentations. Tracked
-    separately from this plan (requires clinical sign-off on keyword removal).
-    Phrases below avoid "flooded" until the bug is resolved.
+PRODUCTION KEYWORD COLLISIONS FIXED (2026-06-08, clinical approval received):
+    stop_technique had "flooded", "emotional flooding", "overwhelmed right now" — dbt_tipp
+    clinical terms that shadow dbt_tipp in Tier 1 (stop_technique pos 10 < dbt_tipp pos 13).
+    Removed from stop_technique in commits 7c77c49 and 25634a3.
+    grounding_5_4_3_2_1 had "i can't calm down" / "i cant calm down" — shadows dbt_tipp's
+    first-person acute-flooding phrasing (grounding pos 7 < dbt_tipp pos 13). Removed.
 
-Baseline run 2026-06-08: 24 T1 + 49 T2-OK = 73 correct / 26 T2-ERR + 26 MISS = 52 hard gaps.
+Baseline run 2026-06-08 (initial):    24 T1 + 49 T2-OK = 73 correct / 52 hard gaps
+After top-5 keyword expansion (batch 1): 44 T1 + 49 T2-OK = 93 correct / 32 hard gaps
 Re-run scripts/coverage_matrix.py after any target_presentations edit to track progress.
 
-Priority targets for Tier 1 keyword expansion (from matrix):
-  behavioral_activation   — 4 MISS: no semantic coverage at all; "stopped doing things I
-                            used to enjoy", "nothing feels worth doing", "cancelling plans" all
-                            score below threshold. Urgent — Tier 1 phrases needed.
-  assertive_communication — 3 MISS: DESC semantic description doesn't cover workplace
-                            confrontation phrasing ("freeze when confronting", "back down",
-                            "people take advantage of me").
-  values_clarification    — 2 T2-ERR + 3 MISS: semantic bleed to mi_readiness_ruler and
-                            cognitive_restructuring; "feel lost in life" and "don't know what I
-                            care about" need Tier 1 keywords.
-  grief_loss              — 3 MISS: "hollowed out", "keep expecting them to call",
-                            "what I never got to say" all below threshold.
-  act_psychological_flexibility — 4 T2-ERR: ACT semantic description bleeds to
-                            worry_time/cbt_thought_record/psychoed_anxiety (all describe
-                            anxiety-adjacent states). Tier 1 keywords for ACT-specific framing
-                            needed.
+Priority targets for Tier 1 keyword expansion (batch 2, from matrix):
+  cbt_thought_record      — 2 MISS + 2 T2-ERR: catastrophising/self-labelling phrases below
+                            threshold; "terrible at everything", "convinced I'll fail",
+                            "worst conclusion" bleed to cognitive_restructuring/mi_readiness_ruler.
+  cognitive_restructuring — 2 MISS + 1 T2-ERR: "deep-rooted belief", "story I've been telling
+                            myself", "assume the worst outcome" need Tier 1 keywords.
+  dbt_tipp                — 3 T2-ERR: "emotions at a ten", "need something physical/intense",
+                            "breathing not working" bleed to mood_check_in/mindfulness/box_breathing.
+  grounding_5_4_3_2_1     — 1 MISS + 2 T2-ERR: "frozen and disconnected", "unreal", "watching
+                            myself from a distance" need dissociation-specific Tier 1 keywords.
+  self_compassion_break   — 2 MISS + 1 T2-ERR: "beating myself up", "tearing myself apart",
+                            "inner critic" bleed to cbt_thought_record.
 """
 from __future__ import annotations
 
@@ -127,10 +122,11 @@ WRONG_SKILL_CASES: list[tuple[str, str]] = [
     # ── dbt_tipp ─────────────────────────────────────────────────────────────
     # Keywords: "overwhelmed", "can't calm down", "flooded", "unbearable feelings",
     # "I can't handle this", "I'm losing it", "need to calm down fast".
+    # "flooded" collision with stop_technique fixed 2026-06-08 (commit 7c77c49).
     ("dbt_tipp", "I'm completely overwhelmed and nothing is calming me down"),
     ("dbt_tipp", "My emotions are at a ten and normal things aren't working at all"),
     ("dbt_tipp", "I need something physical and intense to bring my body down right now"),
-    ("dbt_tipp", "I need to calm down fast and nothing is working, my feelings are unbearable"),  # avoids "flooded"/"overwhelmed right now"/"i can't calm down" — stop_technique/grounding collision bugs documented above
+    ("dbt_tipp", "I'm completely flooded and I need an emergency reset"),
     ("dbt_tipp", "Breathing and talking aren't working, I need something much stronger"),
 
     # ── financial_anxiety ────────────────────────────────────────────────────
