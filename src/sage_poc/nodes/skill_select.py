@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import threading
 
 import numpy as np
@@ -10,7 +11,7 @@ from sage_poc.state import SageState
 from sage_poc.skill_ids import SKILL_REGISTRY
 from sage_poc.skills.schema import load_skill
 from sage_poc.resilience import EMBEDDING_TIMEOUT_SECONDS
-from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP
+from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP, SEMANTIC_EXCLUSION_WORDS
 
 logger = logging.getLogger(__name__)
 
@@ -18,13 +19,21 @@ _BGE_M3_REVISION = "5617a9f61b028005a4858fdac845db406aefb181"
 
 _SKILLS = {sid: load_skill(sid) for sid in SKILL_REGISTRY}
 
+# Compiled word-boundary pattern for SEMANTIC_EXCLUSION_WORDS. Fires after Tier 1
+# keyword matching and before BGE-M3 Tier 2. See corpus_constants.py for rationale.
+_SEMANTIC_EXCLUSION_RE = re.compile(
+    r"\b(" + "|".join(re.escape(w) for w in sorted(SEMANTIC_EXCLUSION_WORDS, key=len, reverse=True)) + r")\b",
+    re.IGNORECASE,
+)
+
 # Calibrated 2026-05-27 post-audit-fix (v7 sprint + 13-item audit remediation).
 # Architecture: gap test is cross-cluster only. Within-cluster somatic_distress overlap
 # is expected and handled by Tier 1 keyword rules. See calibrate_threshold.py.
-# Gap = 0.0533 (lowest cross-cluster hit=0.4856, highest off-topic miss=0.4323).
-# Threshold = 0.4593 (recalibrated 2026-06-07 after BA/PD keyword re-bucketing).
-# Gap = 0.0526 (lowest hit 0.4856, highest off-topic miss 0.4330). Re-run
+# Gap = 0.0526 (lowest cross-cluster hit=0.4856, highest off-topic miss=0.4330). Re-run
 # scripts/calibrate_threshold.py after any semantic_description or keyword edit.
+# Recalibrated 2026-06-07 after BA/PD keyword re-bucketing: 0.4593.
+# Appetite-loss FP (2026-06-08) resolved by SEMANTIC_EXCLUSION_WORDS guard above,
+# not threshold movement. Do not raise threshold into the somatic noise band (0.46-0.47).
 SEMANTIC_THRESHOLD: float = 0.4593
 
 _embed_model = None
@@ -151,6 +160,20 @@ async def skill_select_node(state: SageState) -> dict:
                     "semantic_score": None,
                     "path": state["path"] + ["skill_select"],
                 }
+
+    # Pre-Tier-2 exclusion guard: words with no therapeutic skill match in this registry.
+    # Prevents BGE-M3 from routing somatic/physiological disclosures (appetite loss, food
+    # references) to semantically adjacent skills (box_breathing, grounding) via embedding
+    # proximity. Short-circuits to freeflow so the LLM can explore empathically.
+    # See corpus_constants.SEMANTIC_EXCLUSION_WORDS for the word list and rationale.
+    if _SEMANTIC_EXCLUSION_RE.search(message_en):
+        return {
+            "active_skill_id": None,
+            "active_step_id": None,
+            "skill_match_method": None,
+            "semantic_score": None,
+            "path": state["path"] + ["skill_select"],
+        }
 
     # Tier 2: Semantic fallback — CPU inference on a separate thread with timeout
     try:

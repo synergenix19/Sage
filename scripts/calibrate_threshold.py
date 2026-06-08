@@ -101,18 +101,40 @@ KNOWN_HITS = [
     ("I want to use mental imagery to create an inner sanctuary where I feel completely safe", "safe_place_visualization", True),
     ("I want to find a safe imaginary refuge to calm down when reality feels overwhelming", "safe_place_visualization", True),
 
+    # Mindfulness body scan and PMR: within somatic_distress cluster.
+    # Added 2026-06-08 as sentinel phrases — score 0.4702 and 0.4356 respectively.
+    # cross_cluster=False: disambiguation within somatic_distress is Tier 1 work.
+    # Purpose: early warning if threshold is ever raised into the 0.46-0.47 noise band.
+    # These are NOT used in the gap gate (they would compress the gap to ~0.003).
+    ("I feel completely numb and cut off from my physical self", "mindfulness_body_scan", False),
+    ("My shoulders are so tight they're practically touching my ears", "progressive_muscle_relaxation", False),
+
     # Psychoeducation anxiety (vs. somatic / CBT)
     ("I do not understand why my body reacts this way when I am nervous", "psychoed_anxiety", True),
     ("I get these waves of fear for no reason and I do not know what is happening to me", "psychoed_anxiety", True),
 ]
 
-# OFF-TOPIC misses: clearly outside mental health — intent_route classifies as
-# general_chat/info_request before skill_select is reached. Used for the gap gate.
+# OFF-TOPIC misses: phrases that must NOT trigger any skill. Used for the gap gate.
+#
+# Two sub-types:
+#   1. Clearly outside mental health — intent_route classifies as general_chat before
+#      skill_select is reached (weather, jokes, greetings).
+#   2. Somatic disclosures with no matching therapeutic technique (appetite loss,
+#      vague fatigue) — intent_route may classify as new_skill, so these phrases
+#      DO reach skill_select and must score below threshold. Observed production FP:
+#      "i think it's lack of eating, i don't eat much" → box_breathing 0.4665
+#      (threshold was 0.4593, margin +0.0072). BGE-M3 finds proximity between
+#      eating/breathing as co-occurring physiological processes. No skill in the
+#      registry addresses appetite loss — correct path is freeflow exploration.
 KNOWN_MISSES_OFF_TOPIC = [
     "what's the weather like today in Dubai",
     "tell me a joke",
     "thanks, that really helped",
     "hey, how are you",
+    # appetite-loss disclosure cluster (somatic, no therapeutic match)
+    "i think it's lack of eating, i don't eat much",
+    "I haven't been eating",
+    "I barely eat",
 ]
 
 # BORDERLINE misses: might weakly match semantically but are protected by intent_route

@@ -118,3 +118,34 @@ KEYWORD_SEMANTIC_SKIP: frozenset[str] = frozenset({
     "post_crisis_check_in",  # activated via post_crisis_auto_select (crisis_state=='monitoring')
     "psychotic_referral",    # activated via psychotic_disclosure clinical flag; not keyword/semantic routed
 })
+
+# Words that short-circuit to freeflow BEFORE the BGE-M3 semantic tier.
+#
+# v7 §4.3: semantic fallback is for "edge cases where no rule fires." It was never
+# designed to carry load in regions where somatic/physiological vocabulary clusters
+# within a 0.04-wide cosine band. The threshold is a blunt instrument and cannot
+# reliably distinguish across these boundaries.
+#
+# Correct fix pattern (v7 §4.3): promote matched phrases to Tier 1 keyword rules,
+# or exclude known no-match vocabulary here. This guard fires after Tier 1 keyword
+# matching (so a skill CAN still capture these terms via target_presentations) but
+# before Tier 2 semantic scoring.
+#
+# Exclusion rationale: no therapeutic skill in the current registry addresses these
+# topics. Appetite loss, food preoccupation, and related somatic disclosures should
+# reach freeflow for empathic exploration, not trigger a breathing or grounding skill
+# via embedding proximity. If a skill is added that addresses these topics, remove
+# the relevant term(s) from this set.
+#
+# Matching: whole-word regex (re.compile with \b boundaries). "eating" will NOT match
+# "repeating" or "creating". "eat" will NOT match "heat" or "repeat".
+#
+# Production FP root cause (2026-06-08): "i think it's lack of eating, i don't eat much"
+# scored 0.4665 against box_breathing (threshold 0.4593, margin +0.0072). BGE-M3
+# finds physiological proximity between eating and breathing.
+SEMANTIC_EXCLUSION_WORDS: frozenset[str] = frozenset({
+    "eat",
+    "eating",
+    "appetite",
+    "food",
+})

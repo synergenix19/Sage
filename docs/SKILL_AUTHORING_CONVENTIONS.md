@@ -81,7 +81,24 @@ Then recalibrate the threshold:
 
 See `docs/semantic_skill_matching_audit_20260521.md` for the threshold calibration record.
 
-**Current threshold: `SEMANTIC_THRESHOLD = 0.459`** (calibrated 2026-05-27, gap=0.0533, cross-cluster). This value is set in `nodes/skill_select.py`.
+**Current threshold: `SEMANTIC_THRESHOLD = 0.4593`** (calibrated 2026-06-07, gap=0.0526, cross-cluster). This value is set in `nodes/skill_select.py`.
+
+---
+
+## Somatic vocabulary FPs: use SEMANTIC_EXCLUSION_WORDS, not threshold
+
+The 0.46–0.47 cosine band is a documented no-go zone for the threshold. BGE-M3 clusters somatic and physiological vocabulary (eating, breathing, body sensations) in this range regardless of which skill description they are scored against. Raising the threshold into this band causes TP cascade — confirmed 2026-06-08 when a single FP fix (appetite-loss phrases scoring 0.4665 against box_breathing) caused the mindfulness and interpersonal_effectiveness TPs to break in sequence.
+
+**Playbook for somatic/physiological false positives:**
+
+1. Identify the vocabulary that is causing the false match (e.g. "eat", "eating", "appetite").
+2. Verify: no existing skill in the registry has a therapeutic technique for that vocabulary. If one does, the correct fix is Tier 1 keyword expansion on that skill, not exclusion.
+3. Add the offending words to `SEMANTIC_EXCLUSION_WORDS` in `src/sage_poc/corpus_constants.py`. Use single words — the guard uses word-boundary regex, so "eating" will not match "repeating" or "seating".
+4. Run `tests/test_skill_select.py` to confirm the affected phrases now return `active_skill_id = None`.
+5. Add the phrases as parametrized test cases in the appetite-loss guard block (`test_appetite_disclosure_does_not_trigger_skill`).
+6. Do **not** touch `SEMANTIC_THRESHOLD`.
+
+This is the v7 §4.3 contract: Tier 1 rules are fast, predictable, auditable. Semantic embedding is fallback only. Exclusion guards are Tier 1 rules.
 
 ---
 

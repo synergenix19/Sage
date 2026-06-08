@@ -475,6 +475,46 @@ async def test_dbtipp_interim_en_phrase_routes_via_keyword(phrase):
     )
 
 
+# ---------------------------------------------------------------------------
+# Appetite-loss disclosure cluster — semantic false-positive guard
+#
+# "i don't eat much" / "I haven't been eating" style phrases reached
+# skill_select as new_skill intent (appetite loss is a specific symptom) and
+# produced a box_breathing false-positive at score 0.4665 (threshold 0.4593,
+# margin +0.0072). Root cause: BGE-M3 proximity between eating/breathing as
+# co-occurring physiological processes. No therapeutic skill in the registry
+# addresses appetite loss — correct destination is freeflow exploration.
+#
+# Fix: raise SEMANTIC_THRESHOLD so this cluster scores below it.
+# These tests are the gate: they fail if the threshold regresses.
+# ---------------------------------------------------------------------------
+
+_APPETITE_DISCLOSURE_PHRASES = [
+    "i think it's lack of eating, i don't eat much",  # observed production FP
+    "I haven't been eating",
+    "I barely eat",
+]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("phrase", _APPETITE_DISCLOSURE_PHRASES)
+async def test_appetite_disclosure_does_not_trigger_skill(phrase):
+    """Appetite-loss disclosures must fall through to freeflow; no skill match expected.
+
+    Root cause: "i don't eat much" scored 0.4665 against box_breathing via BGE-M3
+    physiological proximity (eating/breathing). Fixed by SEMANTIC_EXCLUSION_WORDS
+    word-boundary guard in corpus_constants.py — fires before Tier 2 semantic scoring.
+    If this test fails, _SEMANTIC_EXCLUSION_RE in skill_select.py is not matching the
+    phrase — check that "eat", "eating", "appetite", or "food" is present as a whole word.
+    """
+    state = _ss_state(message_en=phrase, primary_intent="new_skill")
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] is None, (
+        f"Appetite-loss phrase {phrase!r} matched {result['active_skill_id']!r} "
+        f"(score={result.get('semantic_score')}) — SEMANTIC_EXCLUSION_WORDS guard missing or bypassed."
+    )
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("phrase", _DBTIPP_AR_PHRASES)
 async def test_dbtipp_interim_ar_phrase_routes_via_keyword(phrase):
