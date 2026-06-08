@@ -49,7 +49,7 @@
         "قبل ما نبدأ — في ألم أو إصابة في جسمك الحين نحتاج نأخذها في الحسبان؟ التقنية فيها شد للعضلات.",
         "Before we begin — any pain or injury I should know about? This technique involves tensing muscle groups throughout your body."
       ],
-      "contraindications": "Do NOT instruct forceful tensing if the user discloses injury, significant chronic pain, arthritis, deep vein conditions, or recent surgery. Acknowledge the disclosure. Offer a modified approach: passive awareness of each body area without tensing (awareness-only PMR), or redirect to body scan or box breathing. If the pain is acute, offer supportive conversation before any technique.",
+      "contraindications": "Do NOT instruct forceful tensing if the user discloses injury, significant chronic pain, arthritis, deep vein conditions, or recent surgery. Acknowledge the disclosure. Offer a modified approach: passive awareness of each body area without tensing (awareness-only PMR), or redirect to body scan or box breathing. If the pain is acute, offer supportive conversation before any technique. Do NOT begin this technique if the user's message contained action-seeking language ('what can I do', 'how do I handle this', 'give me a strategy', 'I want to deal with this'). When action-seeking language is present, acknowledge the feeling and ask what kind of support they are looking for before proceeding.",
       "completion_criteria": "User has not disclosed current injury, significant chronic pain, arthritis, deep vein conditions, or any condition where systematic muscle tensing would be harmful or painful. Safe to advance to breathe_and_settle. IMPORTANT: Muscle tension, tightness, or soreness from stress or anxiety is NOT a contraindication — it is the primary target condition for PMR. Only hold when tensing muscles risks physical harm (acute injury, recent surgery, joint disease, DVT), not when the user reports being tense or sore from stress."
     },
     {
@@ -119,6 +119,18 @@
       },
       "action": "validate_only",
       "instruction": "User is in acute distress. Do not advance to tensing. Stay with breathing, validate that you are with them, and do not push muscle work.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 8,
+        "for_turns": 1,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "The user has shown strong resistance to this practice in a single turn. Do not continue the current step. Acknowledge that this approach may not feel right right now, and ask what kind of support would feel more useful to them.",
       "next_step_id": "current"
     },
     {

@@ -109,19 +109,33 @@ All skills must include `"self_evolution": "manual_only"`. This signals to the s
 
 ---
 
-## step_policy: 5 required rules
+## step_policy: 5 standard rules + at least 1 skill-specific (minimum 6 rules)
 
-Every skill must have exactly 5 `step_policy` rules, covering:
+Every structured skill must have at minimum 6 `step_policy` rules: the 5 standard rules listed below, plus at least 1 skill-specific rule.
+
+**Standard rules (required, all 5 must be present in every structured skill):**
 
 1. `emotional_intensity > 7` → `validate_only` (acute distress gate)
-2. `resistance > 6, turns 3` → `offer_skill_switch_or_break` (sustained resistance)
-3. `engagement < 3, turns 3` → `check_in_micro` (low engagement)
-4. `user_stop_request == true` → `exit_warm_closing` (explicit stop)
-5. One skill-specific rule (prior exposure, dissociation, hopelessness, obsessive theme, etc.)
+2. `resistance > 8, for_turns: 1` → `offer_skill_switch_or_break` (acute single-turn resistance — fires before rule 3)
+3. `resistance > 6, for_turns: 3` → `offer_skill_switch_or_break` (sustained resistance over multiple turns)
+4. `engagement < 3, for_turns: 3` → `check_in_micro` (low engagement)
+5. `user_stop_request == true` → `exit_warm_closing` (explicit stop, no persuasion)
+
+**Evaluation order matters:** Rule 2 (acute, 1-turn) is evaluated before rule 3 (sustained, 3-turn). Rule 2 catches high-intensity single-turn rejection (e.g., a user who is angry and action-seeking, not suited to the current technique). Rule 3 catches the slower-build case where a user shows moderate resistance across multiple turns without a single spike. Both are needed — they address different clinical patterns.
+
+**Skill-specific rules (at least 1 required, requires clinical sign-off):**
+
+6+. Skill-specific transitions: prior exposure handling, contraindication detection (e.g., dissociation in body-awareness skills, obsessive theme in worry_time), step-specific branches, or clinical edge cases relevant to the technique. Common pattern: `prior_exposure == true` → offer choice to revisit or try a different approach. All skill-specific rules must be reviewed by a clinician before shipping.
+
+**Minimum rule count by skill type:**
+- Standard structured skill: 6 (5 standard + 1 skill-specific)
+- Skills with multiple clinical edge cases (e.g., `post_crisis_check_in`): may have more; no upper cap
 
 The `next_step_id` for `exit_warm_closing` rules must be `"exit"` (string), not `null`.
 
-**`for_turns` field:** Temporal rules (resistance, engagement) use `for_turns` to require a condition to hold across N consecutive turns. Use the canonical `for_turns` field name; the legacy alias `turns` is also accepted but deprecated. `for_turns` is supported for `resistance` (uses `resistance_history` rolling buffer) and `engagement` (uses `engagement_trajectory` 4-turn window). For all other signals, `for_turns` is ignored and the current value is checked.
+**`for_turns` field:** Use the canonical `for_turns` field name; the legacy alias `turns` is also accepted but deprecated. `for_turns` is supported for `resistance` (uses `resistance_history` rolling buffer) and `engagement` (uses `engagement_trajectory` 4-turn window). For all other signals, `for_turns` is ignored and the current value is checked.
+
+**Current compliance status (2026-06-08):** Most skills have 4 rules (missing rule 2 and skill-specific rule). The acute resistance rule (rule 2) is being added in the 2026-06-08 audit pass. Skill-specific rules are pending clinical review for 20 skills.
 
 ---
 
