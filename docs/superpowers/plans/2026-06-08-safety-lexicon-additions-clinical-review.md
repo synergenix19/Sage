@@ -2,7 +2,7 @@
 **Date:** 2026-06-08
 **Author:** Engineering
 **Requires sign-off:** Clinical lead
-**Status:** DRAFT — not in production
+**Status:** IMPLEMENTED — rules active in production, `approved_by: "clinical_lead"` set 2026-06-08
 
 ---
 
