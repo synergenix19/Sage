@@ -31,7 +31,11 @@
     "فقدت شخص عزيز علي",
     "الله يرحمه",
     "الله يرحمها",
-    "أتعب من الحزن"
+    "أتعب من الحزن",
+    "hollowed out",
+    "keep expecting them to",
+    "never got to say to them",
+    "eating me up"
   ],
   "semantic_description": "Grief counseling and grief support protocol. Worden's four tasks of mourning: accepting the reality of the loss, working through the pain of grief, adjusting to the changed world, finding an enduring connection with the deceased. Bereavement support. Loss processing. Complicated grief and prolonged grief disorder. Islamic framework for grief: inna lillahi wa inna ilayhi rajiun as acceptance and return. Continuing bonds theory: maintaining an ongoing connection with the deceased. The tension between cultural stoicism and the need to grieve. Mourning period and community grief practices. Grief and loss of any kind: death, relationship ending, role loss, migration. Anticipatory grief. Validating grief without prescribing how to grieve. Disenfranchised grief: losses that society does not fully acknowledge. The physical manifestations of grief. Grief as love expressed as loss. Normal grief versus prolonged grief requiring clinical referral. Grief support through presence and witnessing rather than problem-solving.",
   "steps": [
@@ -115,6 +119,18 @@
       },
       "action": "validate_only",
       "instruction": "The user is acutely distressed in grief. Do not attempt to move through steps or introduce frameworks. Simply be present. Validate the grief fully. Stay warm and do not try to reduce the feeling. Return to normal step next turn only if distress has somewhat reduced, noting that high grief intensity is expected and appropriate.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 8,
+        "for_turns": 1,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "The user has shown strong resistance to this practice in a single turn. Do not continue the current step. Acknowledge that this approach may not feel right right now, and ask what kind of support would feel more useful to them.",
       "next_step_id": "current"
     },
     {
