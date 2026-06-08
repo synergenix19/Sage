@@ -29,7 +29,12 @@
     "sense of purpose",
     "don't know what i want",
     "no sense of direction",
-    "what do i actually want"
+    "what do i actually want",
+    "lost in life",
+    "lost myself",
+    "what i actually care about",
+    "what actually matters to me",
+    "drifting without purpose"
   ],
   "semantic_description": "ACT values clarification protocol. Values identification and committed action technique from Acceptance and Commitment Therapy. Identify what matters most. Discover personal values. Values exploration. Values elicitation questioning. Personal values identification. Values-based committed action. Life direction and meaning. ACT values work. Wilson and Murrell values inventory approach. Character and identity values inquiry protocol. Core values identification method. Values clarification exercise. Committed action planning. Values versus rules. Values versus goals. Intrinsic motivation. Life areas values work: relationships, work, health, community, faith. Hayes Strosahl Wilson ACT framework. The Happiness Trap values identification. Psychological flexibility and values. Committed action toward a valued life. Defusion from unhelpful rules. Values as chosen life directions. Life domains values exploration. Russ Harris values exercise. Vital living. Life roles values inquiry: relationships, vocation, family, community. Values-based behavioral activation. Inner compass work. Meaning-making through values. ACT life values inventory.",
   "steps": [
@@ -95,6 +100,18 @@
       },
       "action": "validate_only",
       "instruction": "The user is acutely distressed. Do not continue values clarification work. Validate their experience fully and stay present. Values work requires psychological safety. Return to normal step next turn only if distress has reduced.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 8,
+        "for_turns": 1,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "The user has shown strong resistance to this practice in a single turn. Do not continue the current step. Acknowledge that this approach may not feel right right now, and ask what kind of support would feel more useful to them.",
       "next_step_id": "current"
     },
     {
