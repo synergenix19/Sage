@@ -34,8 +34,25 @@ REAL KEYWORD COLLISION DISCOVERED BY THIS SUITE (2026-06-08):
     separately from this plan (requires clinical sign-off on keyword removal).
     Phrases below avoid "flooded" until the bug is resolved.
 
-Baseline run 2026-06-08: TBD — run scripts/coverage_matrix.py after first install.
+Baseline run 2026-06-08: 24 T1 + 49 T2-OK = 73 correct / 26 T2-ERR + 26 MISS = 52 hard gaps.
 Re-run scripts/coverage_matrix.py after any target_presentations edit to track progress.
+
+Priority targets for Tier 1 keyword expansion (from matrix):
+  behavioral_activation   — 4 MISS: no semantic coverage at all; "stopped doing things I
+                            used to enjoy", "nothing feels worth doing", "cancelling plans" all
+                            score below threshold. Urgent — Tier 1 phrases needed.
+  assertive_communication — 3 MISS: DESC semantic description doesn't cover workplace
+                            confrontation phrasing ("freeze when confronting", "back down",
+                            "people take advantage of me").
+  values_clarification    — 2 T2-ERR + 3 MISS: semantic bleed to mi_readiness_ruler and
+                            cognitive_restructuring; "feel lost in life" and "don't know what I
+                            care about" need Tier 1 keywords.
+  grief_loss              — 3 MISS: "hollowed out", "keep expecting them to call",
+                            "what I never got to say" all below threshold.
+  act_psychological_flexibility — 4 T2-ERR: ACT semantic description bleeds to
+                            worry_time/cbt_thought_record/psychoed_anxiety (all describe
+                            anxiety-adjacent states). Tier 1 keywords for ACT-specific framing
+                            needed.
 """
 from __future__ import annotations
 
