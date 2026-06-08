@@ -254,6 +254,29 @@
         "type": "crisis_flag",
         "flag_id": "si_explicit"
       }
+    },
+    {
+      "rule_id": "SK-EN-007",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "approved_by": "clinical_lead",
+      "effective_date": "2026-06-08",
+      "active": true,
+      "description": "Minimization-disclosure bypass patterns — SI disclosure where negation_check on SK-EN-001 incorrectly suppresses the match. Covers two negation gap classes from clinical review 2026-06-08 (docs/superpowers/plans/2026-06-08-negation-specification-clinical-review.md). NC-01 class: user disclaims SI intent but discloses ongoing intrusive thoughts — 'I don't want to hurt myself, I just keep having these thoughts'. NC-02 class: user's self-instruction to suppress SI thought presupposes the thought is active — 'I keep telling myself not to think about ending it'. No negation_check: the negation is NOT a denial of SI but either an intent disclaimer (NC-01) or a self-instruction to suppress SI thought (NC-02). Regex rule — all patterns use re.search on lowercased text.",
+      "category": "safety",
+      "match_type": "regex",
+      "patterns": [
+        "don.t want to hurt myself.{1,80}(keep having these thoughts|the thoughts won.t stop|these thoughts won.t stop)",
+        "telling myself not to think about ending it",
+        "thoughts about ending it won.t stop",
+        "thoughts about ending it keep coming back"
+      ],
+      "language": "en",
+      "modifiers": [],
+      "action": {
+        "type": "crisis_flag",
+        "flag_id": "si_explicit"
+      }
     }
   ]
 }
