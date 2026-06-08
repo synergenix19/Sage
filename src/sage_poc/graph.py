@@ -68,6 +68,14 @@ async def _crisis_response_node(state: SageState) -> dict:
     )
 
     async def _notify_crisis_review() -> None:
+        user_id = state.get("user_id") or ""
+        session_id_val = state.get("session_id") or ""
+        if not user_id:
+            _log.warning(
+                "[crisis_response] skipping clinician_review_queue: no user_id in state "
+                "(session=%s) — manual follow-up required", session_id_val
+            )
+            return
         try:
             from sage_poc.memory.notification import PostgresNotifier  # noqa: PLC0415
             pool = _get_crisis_review_pool()
@@ -75,8 +83,8 @@ async def _crisis_response_node(state: SageState) -> dict:
                 return
             notifier = PostgresNotifier(pool)
             await notifier.notify_review_required(
-                user_id=state.get("user_id") or "",
-                session_id=state.get("session_id") or "",
+                user_id=user_id,
+                session_id=session_id_val,
                 reason=f"crisis flags: {', '.join(state.get('crisis_flags', []))}",
                 source="layer1_safety",
                 payload={"flags": state.get("crisis_flags", []) + state.get("clinical_flags", [])},
