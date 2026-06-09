@@ -87,21 +87,23 @@ def _ss_state(**overrides) -> dict:
 # ── Tier 1 mirror ─────────────────────────────────────────────────────────────
 
 def _tier1_match(phrase: str) -> str | None:
-    """Mirror production Tier 1 scan without async overhead.
+    """Mirror production Tier 1 best-match scan without async overhead.
 
-    Iterates SKILL_REGISTRY order, skips KEYWORD_SEMANTIC_SKIP, returns the first
-    skill whose keyword is a substring of phrase (case-insensitive). Logic is
-    identical to test_skill_routing_ba_pd._tier1_match — kept local to avoid
-    cross-test coupling.
+    Collects ALL keyword matches across all skills and returns the skill
+    whose matched keyword is longest (most specific). Mirrors the best-match
+    scoring change in skill_select_node (Task 2 / SF-1 fix).
     """
     phrase_lower = phrase.lower()
+    best: tuple[str, int] | None = None  # (skill_id, keyword_length)
     for sid in SKILL_REGISTRY:
         if sid not in _SKILLS or sid in KEYWORD_SEMANTIC_SKIP:
             continue
         for kw in _SKILLS[sid].target_presentations:
-            if kw.lower() in phrase_lower:
-                return sid
-    return None
+            kw_lower = kw.lower()
+            if kw_lower in phrase_lower:
+                if best is None or len(kw_lower) > best[1]:
+                    best = (sid, len(kw_lower))
+    return best[0] if best is not None else None
 
 
 # ── Tier 1 snapshot (fast, synchronous) ──────────────────────────────────────

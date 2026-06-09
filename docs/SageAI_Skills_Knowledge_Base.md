@@ -37,8 +37,8 @@
 | SK-006 | `mood_check_in` | Mood & Wellbeing Check-In | Monitoring / psychometric | PHQ-2 derivative; Kroenke & Spitzer (2002) | Sprint 2 | mood_engagement |
 | SK-007 | `behavioral_activation` | Behavioural Activation | BA for depression | Lewinsohn (1974); Martell et al. (2001) | Sprint 2 | mood_engagement |
 | SK-008 | `worry_time` | Worry Time | Cognitive worry containment | Borkovec et al. (1983) | Sprint 2 | ruminative_anxiety |
-| SK-009 | `mi_readiness_ruler` | MI Readiness Ruler | Motivational Interviewing | Miller & Rollnick (2012) | Sprint 2 | readiness_change |
-| SK-010 | `stop_technique` | STOP Mindfulness Technique | MBSR | Williams et al. (2007); Kabat-Zinn (1990) | Sprint 2 | readiness_change |
+| SK-009 | `mi_readiness_ruler` | MI Readiness Ruler | Motivational Interviewing | Miller & Rollnick (2012) | Sprint 2 | readiness_ambivalence |
+| SK-010 | `stop_technique` | STOP Mindfulness Technique | MBSR | Williams et al. (2007); Kabat-Zinn (1990) | Sprint 2 | impulse_pause |
 | SK-011 | `progressive_muscle_relaxation` | Progressive Muscle Relaxation | Somatic relaxation | Jacobson (1938); Bernstein & Borkovec (1973) | Sprint 3 | somatic_distress |
 | SK-012 | `safe_place_visualization` | Safe Place Visualisation | Imagery rescripting / stabilisation | Hackmann et al. (2011); EMDR precursor | Sprint 3 | visualization |
 | SK-013 | `dbt_tipp` | DBT TIPP Skills | Dialectical Behaviour Therapy | Linehan (1993); Linehan (2015) | Track 1 / Sprint 4 | somatic_distress |

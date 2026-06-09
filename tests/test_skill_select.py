@@ -615,6 +615,58 @@ def test_margin_guard_routes_to_reranker_on_close_scores(monkeypatch):
     assert result[0] == "worry_time"
 
 
+# ── SF-1 Best-Match Scoring Tests ─────────────────────────────────────────────
+# The catastrophizing case is the committed xfail below (TASK-3 gate).
+# These three are ungated: they must go green when Task 2 best-match lands,
+# without any clinical content from Tasks 3 or 5.
+
+def make_state(**kwargs) -> dict:
+    defaults = {
+        "raw_message": kwargs.get("message_en", ""),
+        "message_en": kwargs.get("message_en", ""),
+        "detected_language": "en",
+        "is_safe": True,
+        "crisis_flags": [],
+        "clinical_flags": [],
+        "crisis_state": "none",
+        "active_skill_id": None,
+        "active_step_id": None,
+        "primary_intent": "new_skill",
+        "intent_confidence": 1.0,
+        "path": [],
+        "therapeutic_profile": None,
+    }
+    return {**defaults, **kwargs}
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("phrase,expected_skill", [
+    # self_compassion_break must win over cbt_thought_record [0]:
+    # scb has "self-criticism" (14 chars); cbt has "self-blame" (10 chars).
+    # Under first-match: cbt_thought_record wins (position 0). Under best-match: scb wins.
+    ("I am lost in self-criticism and self-blame", "self_compassion_break"),
+    # PST must win over worry_time [7]:
+    # pst has "dont know what to do" (20 chars); wt has "cant stop worrying" (18 chars).
+    # Under first-match: worry_time wins (position 7). Under best-match: PST wins.
+    ("I cant stop worrying but I dont know what to do about this real situation", "problem_solving_therapy"),
+    # ACT must win over worry_time [7]:
+    # act has "avoiding things i care about" (28 chars); wt has "stuck in my head" (16 chars).
+    # Under first-match: worry_time wins (position 7). Under best-match: ACT wins.
+    ("I've been stuck in my head and avoiding things I care about", "act_psychological_flexibility"),
+])
+async def test_sf1_best_match_overrides_first_match(phrase: str, expected_skill: str):
+    """SF-1: best-match scoring must return the most-specific keyword match,
+    not the first registry-order match. Failure = first-match-wins is still active."""
+    state = make_state(message_en=phrase)
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] == expected_skill, (
+        f"SF-1 FAILURE: '{phrase[:60]}'\n"
+        f"  Expected: {expected_skill}\n"
+        f"  Got:      {result['active_skill_id']!r}  (method={result.get('skill_match_method')!r})\n"
+        f"  Dominant-shadower failure — first-match-wins still routing to lower-index skill."
+    )
+
+
 # ── Phase 2 governance holds — pre-committed before implementation starts ─────
 # These tests are xfail(strict=True): they must stay red until the corresponding
 # clinical sign-off lands. strict=True means an unexpected XPASS (someone adding

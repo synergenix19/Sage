@@ -167,23 +167,33 @@ async def skill_select_node(state: SageState) -> dict:
     raw_message = (state.get("raw_message") or "").lower()
     detected_language = state.get("detected_language") or "en"
 
-    # Tier 1: Keyword matching — synchronous, deterministic, fast.
-    # For Arabic sessions, also match against raw_message: Arabic-script keywords
-    # cannot match a translated English string.
-    # Stopgap: proper fix is language-tagged rules in Rules Service (backlog R1).
+    # Tier 1: Best-match keyword scoring — synchronous, deterministic, fast.
+    # Collects ALL matches across all skills; returns the skill whose matched keyword
+    # is longest (most specific). Fixes SF-1: eliminates registry-order-as-tiebreaker
+    # dominant-shadower failures where a short keyword in a low-index skill blocked a
+    # longer, more-specific keyword in a high-index skill from ever being reached.
+    # For Arabic sessions, also match against raw_message (Arabic-script keywords
+    # cannot match a translated English string). Backlog R1: language-tagged rules.
+    _best_kw: tuple[str, int] | None = None  # (skill_id, keyword_length)
     for skill_id, skill in _SKILLS.items():
         if skill_id in KEYWORD_SEMANTIC_SKIP:
             continue
         for keyword in skill.target_presentations:
             kw_lower = keyword.lower()
             if kw_lower in message_en or (detected_language == "ar" and kw_lower in raw_message):
-                return {
-                    "active_skill_id": skill_id,
-                    "active_step_id": skill.steps[0].step_id,
-                    "skill_match_method": "keyword",
-                    "semantic_score": None,
-                    "path": state["path"] + ["skill_select"],
-                }
+                if _best_kw is None or len(kw_lower) > _best_kw[1]:
+                    _best_kw = (skill_id, len(kw_lower))
+
+    if _best_kw is not None:
+        t1_skill_id = _best_kw[0]
+        t1_skill = _SKILLS[t1_skill_id]
+        return {
+            "active_skill_id": t1_skill_id,
+            "active_step_id": t1_skill.steps[0].step_id,
+            "skill_match_method": "keyword",
+            "semantic_score": None,
+            "path": state["path"] + ["skill_select"],
+        }
 
     # Pre-Tier-2 exclusion guard: words with no therapeutic skill match in this registry.
     # Prevents BGE-M3 from routing somatic/physiological disclosures (appetite loss, food
