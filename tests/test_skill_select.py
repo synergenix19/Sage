@@ -613,3 +613,141 @@ def test_margin_guard_routes_to_reranker_on_close_scores(monkeypatch):
     result = ss._semantic_match_sync("catastrophizing about something", "")
     assert len(calls) == 1, "rerank_candidates should have been called once for close scores"
     assert result[0] == "worry_time"
+
+
+# ── Phase 2 governance holds — pre-committed before implementation starts ─────
+# These tests are xfail(strict=True): they must stay red until the corresponding
+# clinical sign-off lands. strict=True means an unexpected XPASS (someone adding
+# the content without sign-off) is a CI failure, not a silent green.
+# DO NOT remove these markers or author the missing content without sign-off.
+
+
+import pytest as _pytest
+
+
+@_pytest.mark.slow
+@_pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "GOVERNANCE HOLD — blocked on clinical sign-off for Task 3 (TASK-3). "
+        "cognitive_restructuring gains the catastrophizing keyword only after Task 3 merges. "
+        "Remove this xfail marker when Task 3 sign-off is appended to the governance log "
+        "and the branch merges. strict=True: an XPASS means the keyword was added without "
+        "clinical review — treat as a CI failure."
+    ),
+)
+async def test_sf1_catastrophizing_routes_to_cognitive_restructuring_gated():
+    """Catastrophizing language must route to cognitive_restructuring, not worry_time [7].
+    Gated: depends on Task 3 removing catastrophizing from worry_time and adding it to
+    cognitive_restructuring. Will be xfail until Task 3 clinical sign-off."""
+    from sage_poc.nodes.skill_select import skill_select_node
+    state = {
+        "raw_message": "I know I am catastrophizing about this situation but I cannot stop the thought spiral",
+        "message_en": "I know I am catastrophizing about this situation but I cannot stop the thought spiral",
+        "detected_language": "en",
+        "is_safe": True,
+        "crisis_flags": [],
+        "clinical_flags": [],
+        "crisis_state": "none",
+        "active_skill_id": None,
+        "active_step_id": None,
+        "primary_intent": "new_skill",
+        "intent_confidence": 1.0,
+        "path": [],
+        "therapeutic_profile": None,
+    }
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] == "cognitive_restructuring"
+
+
+# Task 5 governance gate — applies to all three anchor probe tests below.
+_TASK5_GATE = _pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "GOVERNANCE HOLD — blocked on clinical sign-off for Task 5 (TASK-5). "
+        "grief_loss and interpersonal_effectiveness semantic_anchors added only after "
+        "Task 5 sign-off. Remove these markers when Task 5 merges. strict=True: an "
+        "XPASS means anchors were added without clinical review — treat as a CI failure."
+    ),
+)
+
+
+@_pytest.mark.slow
+@_TASK5_GATE
+async def test_grief_anchor_probe_empty_house_routes_to_grief():
+    """Multi-vector: 'empty house' grief probe must route to grief_loss, not interpersonal.
+    Gated: requires Task 5 semantic_anchors on grief_loss."""
+    from sage_poc.nodes.skill_select import skill_select_node
+    state = {
+        "raw_message": "The house feels completely empty without him and I do not know how to fill that space",
+        "message_en": "The house feels completely empty without him and I do not know how to fill that space",
+        "detected_language": "en",
+        "is_safe": True,
+        "crisis_flags": [],
+        "clinical_flags": [],
+        "crisis_state": "none",
+        "active_skill_id": None,
+        "active_step_id": None,
+        "primary_intent": "new_skill",
+        "intent_confidence": 1.0,
+        "path": [],
+        "therapeutic_profile": None,
+    }
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] == "grief_loss", (
+        f"Expected grief_loss, got {result['active_skill_id']} (score={result.get('semantic_score')})"
+    )
+
+
+@_pytest.mark.slow
+@_TASK5_GATE
+async def test_grief_anchor_probe_going_through_things_routes_to_grief():
+    """Multi-vector: 'going through her things' grief probe must route to grief_loss.
+    Gated: requires Task 5 semantic_anchors on grief_loss."""
+    from sage_poc.nodes.skill_select import skill_select_node
+    state = {
+        "raw_message": "I cannot bring myself to go through her things or change anything in her room",
+        "message_en": "I cannot bring myself to go through her things or change anything in her room",
+        "detected_language": "en",
+        "is_safe": True,
+        "crisis_flags": [],
+        "clinical_flags": [],
+        "crisis_state": "none",
+        "active_skill_id": None,
+        "active_step_id": None,
+        "primary_intent": "new_skill",
+        "intent_confidence": 1.0,
+        "path": [],
+        "therapeutic_profile": None,
+    }
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] == "grief_loss", (
+        f"Expected grief_loss, got {result['active_skill_id']} (score={result.get('semantic_score')})"
+    )
+
+
+@_pytest.mark.slow
+@_TASK5_GATE
+async def test_interpersonal_anchor_probe_father_conversation():
+    """Multi-vector: interpersonal probe must route to interpersonal_effectiveness.
+    Gated: requires Task 5 semantic_anchors on interpersonal_effectiveness."""
+    from sage_poc.nodes.skill_select import skill_select_node
+    state = {
+        "raw_message": "I need to have a serious conversation with my father but I am scared of how he will react",
+        "message_en": "I need to have a serious conversation with my father but I am scared of how he will react",
+        "detected_language": "en",
+        "is_safe": True,
+        "crisis_flags": [],
+        "clinical_flags": [],
+        "crisis_state": "none",
+        "active_skill_id": None,
+        "active_step_id": None,
+        "primary_intent": "new_skill",
+        "intent_confidence": 1.0,
+        "path": [],
+        "therapeutic_profile": None,
+    }
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] == "interpersonal_effectiveness", (
+        f"Expected interpersonal_effectiveness, got {result['active_skill_id']}"
+    )
