@@ -35,6 +35,7 @@ from sentence_transformers import SentenceTransformer
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent / "src"))
 
 from sage_poc.clinical_clusters import CLINICAL_CLUSTERS  # noqa: E402
+from sage_poc.nodes import skill_select as _ss  # noqa: E402
 
 SKILLS_DIR = pathlib.Path("src/sage_poc/skills")
 MODEL_NAME = "BAAI/bge-m3"
@@ -155,24 +156,16 @@ def main():
     print("(First run downloads ~1.1 GB — subsequent runs use cached model)\n")
     model = SentenceTransformer(MODEL_NAME)
 
-    # Load skill descriptions
-    skills = {}
-    for f in sorted(SKILLS_DIR.glob("*.json")):
-        data = json.loads(f.read_text())
-        sid = data.get("skill_id", f.stem)
-        desc = data.get("semantic_description", "")
-        if desc:
-            skills[sid] = desc
-        else:
-            print(f"WARNING: {f.name} has no semantic_description — run Task 2 first")
-
-    if not skills:
-        print("ERROR: No skills with semantic_description found.")
+    # Use production's _ensure_semantic_ready to build the anchor index.
+    # This ensures calibrate_threshold.py measures the same scoring as production:
+    # max-over-anchors (semantic_description + semantic_anchors items per skill).
+    _ss._embed_model = model  # use the model already loaded above
+    _ss._ensure_semantic_ready()
+    if _ss._anchor_embeddings is None:
+        print("ERROR: _ensure_semantic_ready() produced no embeddings.")
         return
-
-    skill_ids = list(skills.keys())
-    skill_texts = [skills[sid] for sid in skill_ids]
-    skill_embeddings = model.encode(skill_texts, normalize_embeddings=True)
+    skill_ids = _ss._anchor_skill_ids       # one entry per anchor (may repeat per skill)
+    skill_embeddings = _ss._anchor_embeddings  # shape (n_anchors, 1024)
 
     # ── WITHIN-CLUSTER HITS (informational) ──────────────────────────────────
     within_hits = [(msg, exp) for msg, exp, cross in KNOWN_HITS if not cross]
@@ -186,11 +179,14 @@ def main():
         for msg, expected in within_hits:
             msg_emb = model.encode([msg], normalize_embeddings=True)[0]
             sims = np.dot(skill_embeddings, msg_emb)
-            best_idx = int(np.argmax(sims))
-            best_skill = skill_ids[best_idx]
-            best_score = float(sims[best_idx])
-            exp_idx = skill_ids.index(expected) if expected in skill_ids else -1
-            exp_score = float(sims[exp_idx]) if exp_idx >= 0 else 0.0
+            per_skill: dict[str, float] = {}
+            for i, sid in enumerate(skill_ids):
+                score = float(sims[i])
+                if score > per_skill.get(sid, 0.0):
+                    per_skill[sid] = score
+            best_skill = max(per_skill, key=per_skill.get)
+            best_score = per_skill[best_skill]
+            exp_score = per_skill.get(expected, 0.0)
             match = "✅" if best_skill == expected else f"⚠️  matched {best_skill} instead"
             print(f"  {exp_score:.4f}  {match}")
             print(f"           \"{msg}\"")
@@ -207,11 +203,14 @@ def main():
     for msg, expected in cross_hits:
         msg_emb = model.encode([msg], normalize_embeddings=True)[0]
         sims = np.dot(skill_embeddings, msg_emb)
-        best_idx = int(np.argmax(sims))
-        best_skill = skill_ids[best_idx]
-        best_score = float(sims[best_idx])
-        exp_idx = skill_ids.index(expected) if expected in skill_ids else -1
-        exp_score = float(sims[exp_idx]) if exp_idx >= 0 else 0.0
+        per_skill: dict[str, float] = {}
+        for i, sid in enumerate(skill_ids):
+            score = float(sims[i])
+            if score > per_skill.get(sid, 0.0):
+                per_skill[sid] = score
+        best_skill = max(per_skill, key=per_skill.get)
+        best_score = per_skill[best_skill]
+        exp_score = per_skill.get(expected, 0.0)
         match = "✅" if best_skill == expected else f"⚠️  matched {best_skill} instead"
         print(f"  {exp_score:.4f}  {match}")
         print(f"           \"{msg}\"")
@@ -228,9 +227,13 @@ def main():
     for msg in KNOWN_MISSES_OFF_TOPIC:
         msg_emb = model.encode([msg], normalize_embeddings=True)[0]
         sims = np.dot(skill_embeddings, msg_emb)
-        best_idx = int(np.argmax(sims))
-        best_skill = skill_ids[best_idx]
-        best_score = float(sims[best_idx])
+        per_skill: dict[str, float] = {}
+        for i, sid in enumerate(skill_ids):
+            score = float(sims[i])
+            if score > per_skill.get(sid, 0.0):
+                per_skill[sid] = score
+        best_skill = max(per_skill, key=per_skill.get)
+        best_score = per_skill[best_skill]
         print(f"  {best_score:.4f}  → {best_skill}  \"{msg}\"")
         off_topic_scores.append(best_score)
 
@@ -244,9 +247,13 @@ def main():
     for msg in KNOWN_MISSES_BORDERLINE:
         msg_emb = model.encode([msg], normalize_embeddings=True)[0]
         sims = np.dot(skill_embeddings, msg_emb)
-        best_idx = int(np.argmax(sims))
-        best_skill = skill_ids[best_idx]
-        best_score = float(sims[best_idx])
+        per_skill: dict[str, float] = {}
+        for i, sid in enumerate(skill_ids):
+            score = float(sims[i])
+            if score > per_skill.get(sid, 0.0):
+                per_skill[sid] = score
+        best_skill = max(per_skill, key=per_skill.get)
+        best_score = per_skill[best_skill]
         print(f"  {best_score:.4f}  → {best_skill}  \"{msg}\"")
 
     # ── EXCLUSION-PROTECTED MISSES (informational) ───────────────────────────
@@ -260,9 +267,13 @@ def main():
     for msg in KNOWN_MISSES_EXCLUSION_PROTECTED:
         msg_emb = model.encode([msg], normalize_embeddings=True)[0]
         sims = np.dot(skill_embeddings, msg_emb)
-        best_idx = int(np.argmax(sims))
-        best_skill = skill_ids[best_idx]
-        best_score = float(sims[best_idx])
+        per_skill: dict[str, float] = {}
+        for i, sid in enumerate(skill_ids):
+            score = float(sims[i])
+            if score > per_skill.get(sid, 0.0):
+                per_skill[sid] = score
+        best_skill = max(per_skill, key=per_skill.get)
+        best_score = per_skill[best_skill]
         print(f"  {best_score:.4f}  → {best_skill}  \"{msg}\"")
 
     # ── GAP ANALYSIS ─────────────────────────────────────────────────────────
