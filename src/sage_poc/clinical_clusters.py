@@ -29,7 +29,14 @@ CLINICAL_CLUSTERS: dict[str, list[str]] = {
         "cognitive_restructuring",
     ],
     "mood_engagement": ["mood_check_in", "behavioral_activation"],
-    "readiness_change": ["mi_readiness_ruler", "stop_technique"],
+    # Deliberately split into single-skill clusters (conservative default).
+    # A shared cluster grants argmax routing-authority below SEMANTIC_THRESHOLD.
+    # MI and STOP occupy different vocabulary domains (ambivalence vs impulse control)
+    # and the pairing lacked clinical affirmation. Single-skill clusters disable
+    # argmax for these two skills and fall back to the absolute threshold.
+    # To re-pair: get explicit clinical rationale and restore the combined cluster.
+    "readiness_ambivalence": ["mi_readiness_ruler"],
+    "impulse_pause": ["stop_technique"],
     "psychoeducation": [
         "psychoed_anxiety",
         "psychoed_depression",
