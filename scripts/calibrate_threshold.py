@@ -115,23 +115,26 @@ KNOWN_HITS = [
 ]
 
 # OFF-TOPIC misses: phrases that must NOT trigger any skill. Used for the gap gate.
-#
-# Two sub-types:
-#   1. Clearly outside mental health — intent_route classifies as general_chat before
-#      skill_select is reached (weather, jokes, greetings).
-#   2. Somatic disclosures with no matching therapeutic technique (appetite loss,
-#      vague fatigue) — intent_route may classify as new_skill, so these phrases
-#      DO reach skill_select and must score below threshold. Observed production FP:
-#      "i think it's lack of eating, i don't eat much" → box_breathing 0.4665
-#      (threshold was 0.4593, margin +0.0072). BGE-M3 finds proximity between
-#      eating/breathing as co-occurring physiological processes. No skill in the
-#      registry addresses appetite loss — correct path is freeflow exploration.
+# Only phrases that ACTUALLY REACH the semantic tier belong here.
+# Phrases caught by SEMANTIC_EXCLUSION_RE (Tier 1.5) never reach BGE-M3 and must
+# NOT be included — they would artificially compress the gap.
 KNOWN_MISSES_OFF_TOPIC = [
     "what's the weather like today in Dubai",
     "tell me a joke",
     "thanks, that really helped",
     "hey, how are you",
-    # appetite-loss disclosure cluster (somatic, no therapeutic match)
+]
+
+# EXCLUSION-PROTECTED misses: phrases that reach skill_select but are caught by
+# SEMANTIC_EXCLUSION_RE before BGE-M3 fires. They score high against the semantic
+# index because BGE-M3 finds physiological proximity (eating/breathing), but they
+# NEVER reach the threshold gate in production. Shown informatively only — including
+# them in the gap gate artificially compresses the gap and produces a false failure.
+# Fix confirmed 2026-06-09: true architecture-aware gap = 0.0526 (not 0.019).
+# Observed production FP before exclusion guard was added:
+#   "i think it's lack of eating, i don't eat much" → box_breathing 0.4665
+#   Fixed by adding 'eat', 'eating', 'food', 'appetite' to SEMANTIC_EXCLUSION_WORDS.
+KNOWN_MISSES_EXCLUSION_PROTECTED = [
     "i think it's lack of eating, i don't eat much",
     "I haven't been eating",
     "I barely eat",
@@ -239,6 +242,22 @@ def main():
     print("  never reach the semantic tier in production. NOT used for gap gate.")
     print("=" * 72)
     for msg in KNOWN_MISSES_BORDERLINE:
+        msg_emb = model.encode([msg], normalize_embeddings=True)[0]
+        sims = np.dot(skill_embeddings, msg_emb)
+        best_idx = int(np.argmax(sims))
+        best_skill = skill_ids[best_idx]
+        best_score = float(sims[best_idx])
+        print(f"  {best_score:.4f}  → {best_skill}  \"{msg}\"")
+
+    # ── EXCLUSION-PROTECTED MISSES (informational) ───────────────────────────
+    print()
+    print("=" * 72)
+    print("EXCLUSION-PROTECTED MISSES — informational (caught by SEMANTIC_EXCLUSION_RE)")
+    print("  These phrases reach skill_select but are caught by the exclusion guard")
+    print("  before BGE-M3 fires. NOT used for gap gate — they never enter the")
+    print("  semantic tier in production.")
+    print("=" * 72)
+    for msg in KNOWN_MISSES_EXCLUSION_PROTECTED:
         msg_emb = model.encode([msg], normalize_embeddings=True)[0]
         sims = np.dot(skill_embeddings, msg_emb)
         best_idx = int(np.argmax(sims))
