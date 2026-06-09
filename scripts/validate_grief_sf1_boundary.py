@@ -49,22 +49,26 @@ def main():
     t0 = time.time()
     ss._ensure_semantic_ready()
     elapsed = time.time() - t0
-    print(f"BGE-M3 ready in {elapsed:.1f}s | {len(ss._semantic_skill_ids)} skills embedded\n")
+    unique_skills = len(set(ss._anchor_skill_ids))
+    print(f"BGE-M3 ready in {elapsed:.1f}s | {unique_skills} skills, {len(ss._anchor_skill_ids)} anchors embedded\n")
 
-    skill_ids = ss._semantic_skill_ids
-    embeddings = ss._semantic_embeddings  # shape (n_skills, dim)
-    grief_idx = skill_ids.index("grief_loss") if "grief_loss" in skill_ids else None
-
-    if grief_idx is None:
-        print("ERROR: grief_loss not found in semantic skill list")
+    if "grief_loss" not in set(ss._anchor_skill_ids):
+        print("ERROR: grief_loss not found in anchor skill list")
         return
 
     def score_all(msg: str) -> tuple[float, str, float]:
-        """Returns (grief_loss_score, top_skill, top_score)."""
+        """Returns (grief_loss_score, top_skill, top_score) using max-over-anchors."""
         emb = ss._embed_model.encode([msg], normalize_embeddings=True)[0]
-        scores = np.dot(embeddings, emb)
-        top_idx = int(np.argmax(scores))
-        return float(scores[grief_idx]), skill_ids[top_idx], float(scores[top_idx])
+        raw = np.dot(ss._anchor_embeddings, emb)
+        skill_scores = {}
+        for i, sid in enumerate(ss._anchor_skill_ids):
+            score = float(raw[i])
+            if score > skill_scores.get(sid, 0.0):
+                skill_scores[sid] = score
+        gl_score = skill_scores.get("grief_loss", 0.0)
+        top_sid = max(skill_scores, key=skill_scores.get)
+        top_score = skill_scores[top_sid]
+        return gl_score, top_sid, top_score
 
     # ── GRIEF PROBES ──────────────────────────────────────────────────────────
     print("=" * 80)

@@ -35,22 +35,23 @@ _SEMANTIC_EXCLUSION_RE = re.compile(
 # Appetite-loss FP (2026-06-08) resolved by SEMANTIC_EXCLUSION_WORDS guard above,
 # not threshold movement. Do not raise threshold into the somatic noise band (0.46-0.47).
 SEMANTIC_THRESHOLD: float = 0.4593
-_RERANK_MARGIN: float = 0.05   # invoke reranker when top-2 scores are within this margin
-_RERANK_TOP_K: int = 3         # max candidates passed to reranker
+_CLUSTER_ARGMAX_FLOOR: float = 0.42   # sub-threshold floor for within-cluster argmax
+_RERANK_MARGIN: float = 0.05          # invoke reranker when top-2 scores are within this margin
+_RERANK_TOP_K: int = 3                # max candidates passed to reranker
 
 _embed_model = None
-_semantic_skill_ids: list[str] = []
-_semantic_embeddings: np.ndarray | None = None
+_anchor_skill_ids: list[str] = []    # one entry per anchor (description or semantic_anchors item)
+_anchor_embeddings: np.ndarray | None = None  # shape (n_anchors, 1024)
 _init_lock = threading.Lock()
 
 
 def _ensure_semantic_ready() -> None:
-    """Load BGE-M3 and embed all skill descriptions. No-op when both model and embeddings are ready."""
-    global _embed_model, _semantic_skill_ids, _semantic_embeddings
-    if _embed_model is not None and _semantic_embeddings is not None:
+    """Load BGE-M3 and embed all skill descriptions + semantic_anchors. No-op when ready."""
+    global _embed_model, _anchor_skill_ids, _anchor_embeddings
+    if _embed_model is not None and _anchor_embeddings is not None:
         return
     with _init_lock:
-        if _embed_model is not None and _semantic_embeddings is not None:
+        if _embed_model is not None and _anchor_embeddings is not None:
             return
         model = _embed_model  # reuse resident model if available (avoids ANE recompilation)
         if model is None:
@@ -63,51 +64,81 @@ def _ensure_semantic_ready() -> None:
                 )
             except (OSError, EnvironmentError):
                 model = SentenceTransformer("BAAI/bge-m3", revision=_BGE_M3_REVISION)
-        ids, texts = [], []
+
+        pairs: list[tuple[str, str]] = []
         for sid, skill in _SKILLS.items():
             if sid in KEYWORD_SEMANTIC_SKIP:
                 continue
             if skill.semantic_description:
-                ids.append(sid)
-                texts.append(skill.semantic_description)
-        _semantic_skill_ids = ids
-        _semantic_embeddings = model.encode(texts, normalize_embeddings=True)
+                pairs.append((sid, skill.semantic_description))
+            for anchor in skill.semantic_anchors:
+                pairs.append((sid, anchor))
+
+        _anchor_skill_ids = [sid for sid, _ in pairs]
+        anchor_texts = [text for _, text in pairs]
+        _anchor_embeddings = model.encode(anchor_texts, normalize_embeddings=True)
         _embed_model = model  # assign last so the outer guard only passes after full init
+
+
+def _skill_cluster(skill_id: str) -> str | None:
+    from sage_poc.clinical_clusters import CLINICAL_CLUSTERS
+    for cluster, skills in CLINICAL_CLUSTERS.items():
+        if skill_id in skills:
+            return cluster
+    return None
 
 
 def _semantic_match_sync(
     message_en: str,
     profile_context: str = "",
 ) -> tuple[str | None, float]:
-    """Cosine similarity against all skill semantic_descriptions. Runs in thread.
+    """Max-over-anchors matching with cluster argmax, state-in-query, and rerank margin guard.
 
-    When multiple skills score above SEMANTIC_THRESHOLD and their top-2 scores
-    are within _RERANK_MARGIN, routes through rerank_candidates for disambiguation.
-    The current stub returns the top candidate unmodified; Falcon-3B plugs in later.
+    Each skill contributes one score: the max cosine similarity across its semantic_description
+    and all semantic_anchors entries. Cluster argmax: when top-2 share a cluster and the second
+    score exceeds _CLUSTER_ARGMAX_FLOOR, routes by argmax rather than absolute threshold
+    (useful for within-cluster disambiguation below SEMANTIC_THRESHOLD). For cross-cluster
+    decisions above threshold where top-2 are within _RERANK_MARGIN, routes to rerank_candidates.
     """
     _ensure_semantic_ready()
-    if _semantic_embeddings is None or not message_en.strip():
+    if _anchor_embeddings is None or not message_en.strip():
         return None, 0.0
-    msg_emb = _embed_model.encode([message_en], normalize_embeddings=True)[0]
-    scores = np.dot(_semantic_embeddings, msg_emb)
-    ranked = sorted(
-        zip(_semantic_skill_ids, (float(s) for s in scores)),
-        key=lambda x: x[1],
-        reverse=True,
-    )
 
+    query_text = f"{profile_context}\n{message_en}".strip() if profile_context else message_en
+    msg_emb = _embed_model.encode([query_text], normalize_embeddings=True)[0]
+    raw_scores = np.dot(_anchor_embeddings, msg_emb)
+
+    skill_scores: dict[str, float] = {}
+    for i, sid in enumerate(_anchor_skill_ids):
+        score = float(raw_scores[i])
+        if score > skill_scores.get(sid, 0.0):
+            skill_scores[sid] = score
+
+    if not skill_scores:
+        return None, 0.0
+
+    ranked = sorted(skill_scores.items(), key=lambda x: x[1], reverse=True)
+    best_sid, best_score = ranked[0]
+
+    # Within-cluster argmax: when top-2 share a clinical cluster and the second exceeds
+    # the soft floor, trust relative ordering rather than absolute threshold gating.
+    if len(ranked) >= 2:
+        second_sid, second_score = ranked[1]
+        if second_score >= _CLUSTER_ARGMAX_FLOOR:
+            best_cluster = _skill_cluster(best_sid)
+            if best_cluster is not None and best_cluster == _skill_cluster(second_sid):
+                return best_sid, best_score
+
+    # Absolute threshold gate — cross-cluster or single-cluster without argmax floor
     above = [(sid, score) for sid, score in ranked if score >= SEMANTIC_THRESHOLD]
-
     if len(above) == 1:
         return above[0]
-
     if len(above) >= 2:
         if above[0][1] - above[1][1] < _RERANK_MARGIN:
             from sage_poc.nodes.skill_rerank import rerank_candidates
             return rerank_candidates(message_en, above[:_RERANK_TOP_K])
         return above[0]
 
-    best_sid, best_score = ranked[0]
     return None, best_score
 
 
@@ -209,10 +240,14 @@ async def skill_select_node(state: SageState) -> dict:
             "path": state["path"] + ["skill_select"],
         }
 
-    # Tier 2: Semantic fallback — CPU inference on a separate thread with timeout
+    # Tier 2: Multi-vector semantic with optional profile context
+    profile = state.get("therapeutic_profile") or {}
+    profile_context = (
+        profile.get("summary", "") or "" if isinstance(profile, dict) else ""
+    )
     try:
         semantic_skill, score = await asyncio.wait_for(
-            asyncio.to_thread(_semantic_match_sync, state["message_en"]),
+            asyncio.to_thread(_semantic_match_sync, state["message_en"], profile_context),
             timeout=EMBEDDING_TIMEOUT_SECONDS,
         )
     except asyncio.TimeoutError:
