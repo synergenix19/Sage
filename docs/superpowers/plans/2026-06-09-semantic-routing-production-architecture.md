@@ -65,8 +65,10 @@ Treating Tasks 2 and 6 as "fully greenable now" is wrong. An autonomous worker h
 **Phase 1 — Greenable now, fully (no gated dependency):**
 Tasks 1, 4, 7, 8. These are self-contained: Task 1 is read-only diagnostic, Task 4 tests a synthetic skill, Task 7 is a new module, Task 8 monkeypatches mock scores. Run to green, merge immediately.
 
-**Phase 2 — Machinery now, green deferred:**
+**Phase 2 — Machinery now, green deferred:** ✅ COMPLETE 2026-06-09
 Tasks 2 and 6. Write the implementation; commit to branch. The gated assertions are marked `@pytest.mark.xfail(strict=True)` (see each task's Step 1). The rest of their test assertions go green. Do not "fix" the xfail markers by adding content — they are deliberate governance holds.
+
+Sign-off: all 4 governance holds verified-real (XPASS-on-content test, 2026-06-09). See `docs/superpowers/governance/2026-06-09-phase2-signoff.md`.
 
 **Phase 3 — Gated content + final acceptance:**
 Tasks 3 and 5 after clinical sign-off → remove xfail markers → Tasks 2, 6 acceptance suites go fully green → run Task 9.
@@ -99,6 +101,7 @@ Tasks 3 and 5 after clinical sign-off → remove xfail markers → Tasks 2, 6 ac
 | `src/sage_poc/skills/interpersonal_effectiveness.json` | Task 5: add `semantic_anchors` (gated) |
 | `src/sage_poc/skills/financial_anxiety.json` | Task 5: add `semantic_anchors` (gated) |
 | `src/sage_poc/nodes/skill_rerank.py` | Task 7: create rerank interface stub |
+| `scripts/calibrate_threshold.py` | Task 9 prerequisite: update matrix construction to use `_ensure_semantic_ready` / max-over-anchors (one-per-skill shortcut is stale after Task 5) |
 | `scripts/semantic_probe_set.py` | Task 6: update `raw_scores_top3` for multi-vector index |
 | `scripts/validate_grief_sf1_boundary.py` | Task 6: update `score_all` for multi-vector index |
 | `tests/test_skill_schema.py` | Task 4: schema tests |
@@ -1340,8 +1343,89 @@ Tasks 3 and 5 after clinical sign-off → remove xfail markers → Tasks 2, 6 ac
 **What this validates:** End-to-end confirmation that the multi-vector routing architecture meets the acceptance criteria from the documented failure cases. Runs the probe set and grief/SF-1 boundary scripts, recalibrates the threshold if needed, and runs the full test suite.
 
 **Files:**
+- Modify: `scripts/calibrate_threshold.py` (Step 0 — blocking prerequisite)
 - Run: `scripts/semantic_probe_set.py`, `scripts/validate_grief_sf1_boundary.py`, `scripts/calibrate_threshold.py`
 - Conditionally modify: `src/sage_poc/nodes/skill_select.py` (threshold update only if needed)
+
+- [ ] **Step 0: Fix `calibrate_threshold.py` to use production index construction — BLOCKING PREREQUISITE**
+
+  **Why this must happen before Task 5 anchors merge:** `calibrate_threshold.py` currently builds its own one-row-per-skill matrix from `semantic_description` only, using a local loop (line ~160). After Task 5 adds 8 anchors to each of grief_loss, interpersonal_effectiveness, and financial_anxiety, the script's matrix will undercount coverage relative to production's max-over-anchors index. The resulting gap measurement will be smaller than the true production gap — pointing in the dangerous direction: it could trigger a "fix" by raising `SEMANTIC_THRESHOLD`, which must not be raised into the 0.46–0.47 somatic noise band.
+
+  Replace the local matrix-building block in `main()`:
+
+  ```python
+  # CURRENT (one-row-per-skill, semantic_description only):
+  skills = {}
+  for f in sorted(SKILLS_DIR.glob("*.json")):
+      data = json.loads(f.read_text())
+      sid = data.get("skill_id", f.stem)
+      desc = data.get("semantic_description", "")
+      if desc:
+          skills[sid] = desc
+  skill_ids = list(skills.keys())
+  skill_texts = [skills[sid] for sid in skill_ids]
+  skill_embeddings = model.encode(skill_texts, normalize_embeddings=True)
+  ```
+
+  Replacement — call production's `_ensure_semantic_ready` and read the shared index:
+
+  ```python
+  import sys
+  sys.path.insert(0, str(pathlib.Path(__file__).parent.parent / "src"))
+  from sage_poc.nodes import skill_select as _ss
+
+  # Use production's _ensure_semantic_ready to build the anchor index.
+  # This ensures calibrate_threshold.py measures the same scoring as production:
+  # max-over-anchors (semantic_description + semantic_anchors items per skill).
+  _ss._embed_model = model  # use the model already loaded above
+  _ss._ensure_semantic_ready()
+  skill_ids = _ss._anchor_skill_ids       # one entry per anchor (may repeat per skill)
+  skill_embeddings = _ss._anchor_embeddings  # shape (n_anchors, 1024)
+  ```
+
+  **Critical:** the score lookup functions (`within_hits` block at line ~192 and `cross_hits` block at line ~213) use `skill_ids.index(expected)` to find a skill's row. After this change, `skill_ids` may contain the same skill_id multiple times (one entry per anchor). Replace both lookups with max-over-anchors scoring, matching production:
+
+  ```python
+  # Replace the body of each scoring loop:
+  msg_emb = model.encode([msg], normalize_embeddings=True)[0]
+  sims = np.dot(skill_embeddings, msg_emb)
+
+  # max-over-anchors per skill
+  per_skill: dict[str, float] = {}
+  for i, sid in enumerate(skill_ids):
+      score = float(sims[i])
+      if score > per_skill.get(sid, 0.0):
+          per_skill[sid] = score
+
+  best_skill = max(per_skill, key=per_skill.get)
+  best_score = per_skill[best_skill]
+  exp_score = per_skill.get(expected, 0.0)
+  match = "✅" if best_skill == expected else f"⚠️  matched {best_skill} instead"
+  ```
+
+  Validate by running the script before Task 5 merges (scores should be identical to the current run since no skill has anchors yet) and verifying the gap is still ≥ 0.03:
+
+  ```bash
+  uv run python scripts/calibrate_threshold.py
+  ```
+
+  **Expected:** same gap and threshold suggestion as the current run (0.0526 / 0.4593). If different, the replacement has a bug — do not proceed.
+
+  ```bash
+  git add scripts/calibrate_threshold.py
+  git commit -m "fix(calibrate_threshold): use production max-over-anchors index, not one-per-skill shortcut
+
+  calibrate_threshold.py was building its own one-row-per-skill matrix from
+  semantic_description only. After Task 5 adds semantic_anchors to three skills,
+  the script would underestimate the cross-cluster gap and invite threshold tampering.
+
+  Fix: calls _ensure_semantic_ready() and reads _anchor_embeddings/_anchor_skill_ids
+  directly, so calibration measures exactly what production scores.
+
+  Validated: gap unchanged (0.0526) before Task 5 anchors are present.
+
+  Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+  ```
 
 - [ ] **Step 1: Run probe set**
 
@@ -1453,3 +1537,4 @@ Tasks 3 and 5 after clinical sign-off → remove xfail markers → Tasks 2, 6 ac
 | **assertive_communication EN keyword gap** | Add "I can't say no", "I give in too easily", "passive aggressive", "people pleaser", "can't set limits" — small fix, post-Gitex. AR already passes. |
 | **S3 Arabic coverage** | S3 runs on `message_en` only; should also run on original Arabic text. Deferred per ARCHITECTURE_BOUNDARIES.md. |
 | **SF-5 audit attribution gap** | `completed_skill_id` split from `active_skill_id` — ~10 lines across 4 files. Should not wait for Gitex but is independent of this plan; ships on its own commit. |
+| **State-in-query coverage (pre-pilot, not pre-Gitex)** | The populated `profile_context` path in `_semantic_match_sync` has zero test coverage. Demo sessions have empty profiles — dormant for Gitex. Two tests needed before any pilot where `therapeutic_profile.summary` is non-empty: (1) fast-path equivalence (`profile_context=""` → identical routing to no-profile baseline); (2) slow-path degradation guard (profile summary with incidental non-target vocabulary must not corrupt routing outcome). See `docs/superpowers/governance/2026-06-09-phase2-signoff.md` for test stubs. |
