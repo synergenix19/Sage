@@ -94,7 +94,15 @@ MI and STOP fail this test. A message scoring 0.43 for both is not a close call 
 
 The existing clusters that passed audit (somatic_distress, ruminative_anxiety, values_communication) all group skills that genuinely compete for the same presentations. This principle gives the clinical team a reusable rule for the next clustering question (values_clarification vs. ACT, the psychoeducation trio) without relitigating each pair from scratch.
 
-**Action:** None. Conservative split is already live. Append this rationale to the governance record so the principle is documented, not just the outcome.
+**Formal conclusion and burden of proof:**
+
+The burden was on justifying the pairing, and the research doesn't carry it. Both the literature and the routing audit point the same way: vocabulary domains are distinct, clinical presentations are opposite. Absent evidence to the contrary, the split stands.
+
+**How to challenge this decision in future (empirical, not assumed):**
+
+If the clinical team has a specific reason to believe early-treatment Khaleeji users present ambivalence and impulse-urges in overlapping language, that is an empirical claim testable before any code change: pull cross-cluster semantic scores for real MI vs STOP probe pairs and check whether any phrasing actually scores both above the 0.42 argmax floor. If it does, there is evidence for the pairing; if it doesn't, there isn't. The routing audit already found the vocabulary domains distinct, so the prior is against it — but a data run would settle it definitively.
+
+**Action:** None. Conservative split is already live. This entry is confirmation and rationale, not a new decision.
 
 ---
 
