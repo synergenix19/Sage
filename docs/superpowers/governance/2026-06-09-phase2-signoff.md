@@ -106,6 +106,88 @@ If the clinical team has a specific reason to believe early-treatment Khaleeji u
 
 ---
 
+### Entry 5 — Task 9 Step 0 calibration baseline (2026-06-09)
+
+**Commit:** `cea72bf` (`fix(calibrate_threshold): use production max-over-anchors index, not one-per-skill shortcut`)
+
+**Why this is recorded:** This is the reference point for attributing every future gap change to anchor content, not to script mechanics. With `semantic_anchors: []` on all three skills (grief_loss, interpersonal_effectiveness, financial_anxiety), the fixed script produces one-row-per-skill scoring — identical to the old construction. The gap of 0.0526 and threshold of 0.4593 here are confirmed behavior-preserving against the pre-rewrite run. Once Task 5 anchors land, the first post-anchor calibration run should be diffed against this output: if grief's score does not rise, `_ensure_semantic_ready` is not rebuilding the index on re-import (the multi-vector path is not exercised until at least one skill has non-empty anchors).
+
+**What to watch post-Task-5:**
+- `grief_loss` score on its probe phrases should rise (9 rows instead of 1)
+- Gap must not collapse (more anchor rows = higher max-over-anchors scores for hit skills, not for off-topic misses)
+- Lowest cross-cluster hit: was `sleep_hygiene 0.4856` — this is the most exposed probe; watch it specifically
+
+**Full output (2026-06-09, anchors empty, post-rewrite):**
+
+```
+========================================================================
+WITHIN-CLUSTER HITS — somatic_distress cluster (informational)
+========================================================================
+  0.4922  ✅  "I am so dizzy I can barely stand and everything feels unstable"
+  0.5905  ✅  "I want to name five objects I can see around me, then four textures I can feel, to interrupt this"
+  0.5974  ✅  "I need to count what I can observe in my environment right now: five visible, four touchable, three audible"
+  0.5791  ✅  "I am in physiological crisis and need cold water or intense exercise to reset my nervous system"
+  0.5591  ✅  "my breathing is all wrong, it keeps speeding up and I cannot get it under control"
+  0.7363  ✅  "I want to systematically tense and release each muscle group to let go of body tension"
+  0.6903  ✅  "my whole body holds tension and I need a technique to release it muscle by muscle"
+  0.4702  ✅  "I feel completely numb and cut off from my physical self"
+  0.4281  ⚠️  matched box_breathing (0.4379)  "My shoulders are so tight they're practically touching my ears"
+             (expected progressive_muscle_relaxation; within-cluster, Tier 1 disambiguation)
+
+========================================================================
+CROSS-CLUSTER HITS — must score HIGH (used for gap gate)
+========================================================================
+  0.4856  ✅  "I am exhausted but my mind will not stop racing at bedtime"  [sleep_hygiene — LOWEST; watch post-Task-5]
+  0.6302  ✅  "I want to apply stimulus control principles to break the association between my bed and wakefulness"
+  0.5513  ✅  "I just want to take stock of where I am emotionally today"
+  0.5636  ✅  "I need to tune in to what my emotional state actually is right now"
+  0.5983  ✅  "scheduling small rewarding activities to break out of depression and inactivity"
+  0.5840  ✅  "I want to build an activity schedule to help pull me out of withdrawal and low mood"
+  0.5784  ✅  "I ruminate constantly, the same anxious thoughts cycling over and over"
+  0.5394  ✅  "I am caught in a loop of anxious thinking and cannot break the cycle"
+  0.5342  ✅  "part of me wants to change but another part of me is not sure I can or even want to"
+  0.4888  ✅  "I know what I should do but I do not know if I am ready to do it yet"
+  0.5486  ✅  "I react before I think and then I always regret it, I wish I could slow down first"
+  0.5913  ✅  "I acted impulsively again without thinking and I need to build a habit of pausing"
+  0.6022  ✅  "I want to use mental imagery to create an inner sanctuary where I feel completely safe"
+  0.5129  ✅  "I want to find a safe imaginary refuge to calm down when reality feels overwhelming"
+  0.5513  ✅  "I do not understand why my body reacts this way when I am nervous"
+  0.5326  ✅  "I get these waves of fear for no reason and I do not know what is happening to me"
+
+========================================================================
+OFF-TOPIC MISSES — must score LOW (used for gap gate)
+========================================================================
+  0.3892  → mood_check_in           "what's the weather like today in Dubai"
+  0.4264  → box_breathing           "tell me a joke"
+  0.4330  → interpersonal_effectiveness  "thanks, that really helped"  [HIGHEST off-topic miss]
+  0.4323  → mood_check_in           "hey, how are you"
+
+========================================================================
+BORDERLINE MISSES — informational (intent_route defence)
+========================================================================
+  0.4715  → mi_readiness_ruler      "I need to talk about something that happened at work"
+  0.4303  → grounding_5_4_3_2_1     "I'm completely overwhelmed"
+
+========================================================================
+EXCLUSION-PROTECTED MISSES — informational (SEMANTIC_EXCLUSION_RE)
+========================================================================
+  0.4665  → box_breathing           "i think it's lack of eating, i don't eat much"
+  0.4633  → box_breathing           "I haven't been eating"
+  0.4131  → box_breathing           "I barely eat"
+
+========================================================================
+GAP ANALYSIS
+========================================================================
+  Lowest cross-cluster hit:   0.4856  (sleep_hygiene)
+  Highest off-topic miss:     0.4330  (interpersonal_effectiveness / "thanks, that really helped")
+  Gap:                        0.0526
+  Pass criterion:             gap >= 0.03  PASS
+
+  Suggested SEMANTIC_THRESHOLD = 0.4593  (current value — no change)
+```
+
+---
+
 ## Task 3 + Task 5 clinical sign-off package
 
 The following are blocked on clinical sign-off. They must NOT merge until the sign-off record is appended here.
