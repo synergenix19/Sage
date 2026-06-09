@@ -35,6 +35,8 @@ _SEMANTIC_EXCLUSION_RE = re.compile(
 # Appetite-loss FP (2026-06-08) resolved by SEMANTIC_EXCLUSION_WORDS guard above,
 # not threshold movement. Do not raise threshold into the somatic noise band (0.46-0.47).
 SEMANTIC_THRESHOLD: float = 0.4593
+_RERANK_MARGIN: float = 0.05   # invoke reranker when top-2 scores are within this margin
+_RERANK_TOP_K: int = 3         # max candidates passed to reranker
 
 _embed_model = None
 _semantic_skill_ids: list[str] = []
@@ -73,17 +75,39 @@ def _ensure_semantic_ready() -> None:
         _embed_model = model  # assign last so the outer guard only passes after full init
 
 
-def _semantic_match_sync(message_en: str) -> tuple[str | None, float]:
-    """Cosine similarity against all skill semantic_descriptions. Runs in thread."""
+def _semantic_match_sync(
+    message_en: str,
+    profile_context: str = "",
+) -> tuple[str | None, float]:
+    """Cosine similarity against all skill semantic_descriptions. Runs in thread.
+
+    When multiple skills score above SEMANTIC_THRESHOLD and their top-2 scores
+    are within _RERANK_MARGIN, routes through rerank_candidates for disambiguation.
+    The current stub returns the top candidate unmodified; Falcon-3B plugs in later.
+    """
     _ensure_semantic_ready()
     if _semantic_embeddings is None or not message_en.strip():
         return None, 0.0
     msg_emb = _embed_model.encode([message_en], normalize_embeddings=True)[0]
     scores = np.dot(_semantic_embeddings, msg_emb)
-    best_idx = int(np.argmax(scores))
-    best_score = float(scores[best_idx])
-    if best_score >= SEMANTIC_THRESHOLD:
-        return _semantic_skill_ids[best_idx], best_score
+    ranked = sorted(
+        zip(_semantic_skill_ids, (float(s) for s in scores)),
+        key=lambda x: x[1],
+        reverse=True,
+    )
+
+    above = [(sid, score) for sid, score in ranked if score >= SEMANTIC_THRESHOLD]
+
+    if len(above) == 1:
+        return above[0]
+
+    if len(above) >= 2:
+        if above[0][1] - above[1][1] < _RERANK_MARGIN:
+            from sage_poc.nodes.skill_rerank import rerank_candidates
+            return rerank_candidates(message_en, above[:_RERANK_TOP_K])
+        return above[0]
+
+    best_sid, best_score = ranked[0]
     return None, best_score
 
 

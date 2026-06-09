@@ -573,3 +573,43 @@ def test_rerank_raises_on_empty_candidates():
     from sage_poc.nodes.skill_rerank import rerank_candidates
     with pytest.raises(ValueError, match="at least one candidate"):
         rerank_candidates("hello", [])
+
+
+# ── Task 8: Margin guard test ─────────────────────────────────────────────────
+
+def test_margin_guard_routes_to_reranker_on_close_scores(monkeypatch):
+    """When top-2 scores are within _RERANK_MARGIN, rerank_candidates must be called."""
+    from sage_poc.nodes import skill_select as ss
+    import sage_poc.nodes.skill_rerank as rerank_mod
+
+    calls = []
+    original = rerank_mod.rerank_candidates
+
+    def mock_rerank(msg, candidates):
+        calls.append((msg, candidates))
+        return original(msg, candidates)
+
+    monkeypatch.setattr(rerank_mod, "rerank_candidates", mock_rerank)
+
+    # Simulate: worry_time=0.500, cognitive_restructuring=0.498 (diff=0.002 < 0.05 margin)
+    def mock_match_sync(message_en, profile_context=""):
+        skill_scores = {
+            "worry_time": 0.500,
+            "cognitive_restructuring": 0.498,
+            "grief_loss": 0.420,
+        }
+        ranked = sorted(skill_scores.items(), key=lambda x: x[1], reverse=True)
+        best_sid, best_score = ranked[0]
+        above = [(sid, sc) for sid, sc in ranked if sc >= ss.SEMANTIC_THRESHOLD]
+        if len(above) >= 2:
+            if above[0][1] - above[1][1] < ss._RERANK_MARGIN:
+                from sage_poc.nodes.skill_rerank import rerank_candidates
+                return rerank_candidates(message_en, above[:ss._RERANK_TOP_K])
+        if above:
+            return above[0]
+        return None, best_score
+
+    monkeypatch.setattr(ss, "_semantic_match_sync", mock_match_sync)
+    result = ss._semantic_match_sync("catastrophizing about something", "")
+    assert len(calls) == 1, "rerank_candidates should have been called once for close scores"
+    assert result[0] == "worry_time"
