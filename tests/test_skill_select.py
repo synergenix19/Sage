@@ -544,3 +544,32 @@ async def test_dbtipp_interim_ar_phrase_routes_via_keyword(phrase):
     assert result["active_skill_id"] not in ("grounding_5_4_3_2_1", "stop_technique"), (
         f"Arabic phrase {phrase!r} routed to a shadowing skill instead of dbt_tipp."
     )
+
+
+# ── Task 7: Rerank interface tests ────────────────────────────────────────────
+
+def test_rerank_returns_best_candidate_from_stub():
+    from sage_poc.nodes.skill_rerank import rerank_candidates
+    candidates = [
+        ("grief_loss", 0.51),
+        ("interpersonal_effectiveness", 0.49),
+        ("behavioral_activation", 0.45),
+    ]
+    result_id, result_score = rerank_candidates("I lost someone", candidates)
+    assert result_id == "grief_loss"
+    assert abs(result_score - 0.51) < 1e-9
+
+
+def test_rerank_handles_single_candidate():
+    from sage_poc.nodes.skill_rerank import rerank_candidates
+    candidates = [("grief_loss", 0.48)]
+    result_id, result_score = rerank_candidates("I am grieving", candidates)
+    assert result_id == "grief_loss"
+    assert abs(result_score - 0.48) < 1e-9
+
+
+def test_rerank_raises_on_empty_candidates():
+    import pytest
+    from sage_poc.nodes.skill_rerank import rerank_candidates
+    with pytest.raises(ValueError, match="at least one candidate"):
+        rerank_candidates("hello", [])
