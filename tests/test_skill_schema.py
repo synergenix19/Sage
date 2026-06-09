@@ -219,3 +219,42 @@ def test_grief_loss_loads():
     assert len(s.step_policy) >= 4
     assert len(s.cultural_overrides) >= 4
     assert len(s.target_presentations) >= 20
+
+
+def test_skill_schema_accepts_semantic_anchors():
+    data = {
+        "skill_id": "test_skill",
+        "skill_name": "Test",
+        "skill_type": "structured",
+        "evidence_base": "test",
+        "target_presentations": ["test"],
+        "semantic_description": "test description",
+        "semantic_anchors": [
+            "I have been feeling really low lately",
+            "Everything feels hopeless",
+        ],
+        "steps": [],
+        "step_policy": [],
+        "escalation_matrix": {"L1": "exit", "L2": "flag", "L3": "crisis", "L4": "handoff"},
+    }
+    skill = Skill.model_validate(data)
+    assert skill.semantic_anchors == [
+        "I have been feeling really low lately",
+        "Everything feels hopeless",
+    ]
+
+
+def test_skill_schema_semantic_anchors_defaults_to_empty():
+    data = {
+        "skill_id": "test_skill",
+        "skill_name": "Test",
+        "skill_type": "structured",
+        "evidence_base": "test",
+        "target_presentations": ["test"],
+        "semantic_description": "test description",
+        "steps": [],
+        "step_policy": [],
+        "escalation_matrix": {"L1": "exit", "L2": "flag", "L3": "crisis", "L4": "handoff"},
+    }
+    skill = Skill.model_validate(data)
+    assert skill.semantic_anchors == []

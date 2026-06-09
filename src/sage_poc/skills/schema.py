@@ -52,6 +52,7 @@ class Skill(BaseModel):
     self_evolution: Literal["manual_only"] = "manual_only"
     target_presentations: list[str]
     semantic_description: str = ""   # rich description for embedding-based skill matching
+    semantic_anchors: list[str] = Field(default_factory=list)
     steps: list[SkillStep]
     step_policy: list[StepPolicyRule]
     escalation_matrix: dict[str, str]
