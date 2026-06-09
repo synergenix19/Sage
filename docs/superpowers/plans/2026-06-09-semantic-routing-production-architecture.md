@@ -71,7 +71,20 @@ Tasks 2 and 6. Write the implementation; commit to branch. The gated assertions 
 Sign-off: all 4 governance holds verified-real (XPASS-on-content test, 2026-06-09). See `docs/superpowers/governance/2026-06-09-phase2-signoff.md`.
 
 **Phase 3 — Gated content + final acceptance:**
-Tasks 3 and 5 after clinical sign-off → remove xfail markers → Tasks 2, 6 acceptance suites go fully green → run Task 9.
+
+Correct execution order — do not reorder:
+
+1. **Task 9 Step 0 first** — fix `calibrate_threshold.py` while anchors are still empty, validate gap is still 0.0526 / 0.4593, commit. This is the clean validation point: if the script rewrite is correct, scores are unchanged. If anchors go in first, you can no longer tell whether a gap change is real (anchors changed the distribution) or an artifact (script bug). Once this is committed, the ordering constraint is satisfied.
+
+2. **Merge Task 3 + Task 5** — keyword ownership move and 24 anchor sentences, with sign-off records appended to the governance log. MI+STOP cluster: the split (`readiness_ambivalence` / `impulse_pause`) is confirmed and documented in Entry 4 of the governance log — no code change needed. If the clinical reviewer instead affirms MI+STOP as a deliberate pair, revert to `readiness_change: [mi_readiness_ruler, stop_technique]` and document the rationale; that is a code change before proceeding. Confirm which answer came back before touching any content.
+
+3. **Watch the four xfail holds flip** — the catastrophizing hold (TASK-3) goes green when Task 3's keyword move lands; the three anchor probes (TASK-5) go green when Task 5's anchors land. Any hold that does not flip after its gating content merges is a real routing failure to investigate, not a missing-content problem. `xfail(strict=True)` will still be XFAIL if the route is wrong; XPASS is the success signal.
+
+4. **Remove the xfail markers explicitly** — once the holds legitimately flip to XPASS, the four `@pytest.mark.xfail(strict=True)` decorators must be removed. Do not leave them: `strict=True` turns the now-correctly-passing tests into CI failures. The marker removal is the authorized counterpart to the protection — the gate has done its job and is stood down, by hand, on the record. Make it a visible commit, not a parenthetical change bundled into something else.
+
+5. **Run the rest of Task 9** — probe set acceptance, grief/SF-1 boundary (blocking safety gate — see Step 2), recalibrate threshold, full suite, `test_full_routing`.
+
+See Task 9 for step details.
 
 ### Safe execution choice
 
@@ -1457,7 +1470,36 @@ Tasks 3 and 5 after clinical sign-off → remove xfail markers → Tasks 2, 6 ac
 
   Run calibrate_threshold.py and confirm both phrases score above `SEMANTIC_THRESHOLD` for their target skill and route to the correct skill. If either is below threshold, strengthen the relevant `semantic_description` — do not raise the threshold.
 
-- [ ] **Step 2: Run `validate_grief_sf1_boundary.py`**
+- [ ] **Step 1c: Remove xfail markers** — do this immediately after Task 3 and Task 5 content merges and the holds flip to XPASS
+
+  Open `tests/test_skill_select.py`. Remove the four `@pytest.mark.xfail(strict=True)` decorators:
+  - `test_sf1_catastrophizing_routes_to_cognitive_restructuring_gated` (TASK-3 hold)
+  - `test_grief_anchor_probe_empty_house_routes_to_grief` (TASK-5 hold)
+  - `test_grief_anchor_probe_going_through_things_routes_to_grief` (TASK-5 hold)
+  - `test_interpersonal_anchor_probe_father_conversation` (TASK-5 hold)
+
+  Also remove the `_TASK5_GATE` marker definition and its import alias. Confirm each test passes (not just stops failing) after removal.
+
+  ```bash
+  uv run pytest tests/test_skill_select.py -k "catastrophizing_gated or grief_anchor or interpersonal_anchor" -m slow -v -p no:xdist
+  ```
+
+  Expected: 4 PASSes. If any shows XFAIL after marker removal, the content didn't land correctly — investigate routing before proceeding to Step 2.
+
+  ```bash
+  git add tests/test_skill_select.py
+  git commit -m "test(skill_select): remove xfail governance holds — Tasks 3+5 content merged
+
+  All four governance gates have served their purpose:
+  - TASK-3 hold: catastrophizing keyword moved to cognitive_restructuring
+  - TASK-5 holds (3): grief_loss + interpersonal_effectiveness anchors populated
+
+  Clinical sign-off records in docs/superpowers/governance/2026-06-09-phase2-signoff.md.
+
+  Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+  ```
+
+- [ ] **Step 2: Run `validate_grief_sf1_boundary.py` — BLOCKING SAFETY GATE**
 
   ```bash
   uv run python scripts/validate_grief_sf1_boundary.py
@@ -1465,9 +1507,13 @@ Tasks 3 and 5 after clinical sign-off → remove xfail markers → Tasks 2, 6 ac
 
   **Acceptance criteria:**
   - Grief PASS count ≥ 8/10
-  - SF1 SUMMARY: all CLEAR (no grief anchor sits in the passive-ideation region)
+  - SF1 SUMMARY: **all CLEAR** (no grief anchor scores ≥ SEMANTIC_THRESHOLD on any passive-ideation phrase)
 
-  If any SF1 BLEED appears: remove the offending grief anchor from `grief_loss.json` `semantic_anchors`. A grief anchor that scores high on passive-SI probes is a safety risk — do not keep it.
+  **This check is a hard safety gate. Do not proceed past Step 2 if any SF1 BLEED appears.**
+
+  A grief anchor that crosses into the passive-SI scoring region is a clinical safety risk: a user expressing grief could route to the grief skill when crisis detection should fire instead. The anchor must be removed — it is not a threshold-tuning problem and not a tradeoff to accept for better grief coverage.
+
+  If any SF1 BLEED appears: identify the offending anchor by its score, remove it from `grief_loss.json` `semantic_anchors`, rerun. Do not proceed to Step 3 until SF1 SUMMARY is all CLEAR. Do not lower the threshold to paper over a bleed.
 
 - [ ] **Step 3: Recalibrate threshold**
 

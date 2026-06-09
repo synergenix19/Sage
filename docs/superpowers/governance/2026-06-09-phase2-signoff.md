@@ -67,6 +67,37 @@ The fix for `calibrate_threshold.py` is a Task 9 blocking prerequisite (see plan
 
 ---
 
+---
+
+### Entry 4 — MI+STOP cluster decision: split confirmed, rationale documented (2026-06-09)
+
+**Decision:** Keep `readiness_ambivalence: [mi_readiness_ruler]` and `impulse_pause: [stop_technique]` as single-skill clusters. The split already shipped in 895e365 is correct. No code change required.
+
+**Clinical rationale (confirmed by user 2026-06-09):**
+
+STOP (DBT distress-tolerance) and MI readiness ruler address opposite sides of the change process:
+
+- **STOP** is an emergency intervention for an *acute, high-arousal, present-tense urge* — Linehan's own framing is "creating a crucial gap between impulse and action when the urge to act is nearly irresistible." The user's state is hot, immediate, dysregulated.
+- **MI readiness ruler** targets *deliberative, future-oriented ambivalence* — the contemplation stage, low arousal. MI's stance is the inverse of urgency: the clinician resists their "righting reflex." The user's state is cold, reflective, ambivalent.
+
+They share a treatment-modality lineage (both touch mindfulness) and a vague "self-regulation" umbrella, but they address completely different clinical presentations at completely different points in the change cycle. User language is disjoint: "part of me wants to change and part doesn't" (MI) and "I'm about to do something I'll regret" (STOP) do not occupy the same semantic neighborhood.
+
+**Why this settles the clustering question:**
+
+The cluster is a *routing-authority grant*, not a label. `_CLUSTER_ARGMAX_FLOOR = 0.42` lets one skill in a cluster win *below* the 0.4593 threshold because it outranked its clustermate. This mechanism is only safe when the two skills genuinely compete for the same user utterances — i.e., a message scoring moderately for both is a real close call and relative ranking is trustworthy.
+
+MI and STOP fail this test. A message scoring 0.43 for both is not a close call between two good candidates — it is a low-confidence match to two clinically unrelated things. Pairing them would grant sub-threshold routing authority to a competition that should never happen, and when it did fire it would be a coin-toss between clinically opposite interventions.
+
+**Taxonomy principle for future clustering decisions:**
+
+> Clusters group skills by *shared clinical presentation* (the user's words and emotional state), not by shared modality, shared treatment lineage, or a vague categorical umbrella. The test: "do these two skills compete for the same user utterances?" If not, they don't belong in the same cluster regardless of what they share conceptually.
+
+The existing clusters that passed audit (somatic_distress, ruminative_anxiety, values_communication) all group skills that genuinely compete for the same presentations. This principle gives the clinical team a reusable rule for the next clustering question (values_clarification vs. ACT, the psychoeducation trio) without relitigating each pair from scratch.
+
+**Action:** None. Conservative split is already live. Append this rationale to the governance record so the principle is documented, not just the outcome.
+
+---
+
 ## Task 3 + Task 5 clinical sign-off package
 
 The following are blocked on clinical sign-off. They must NOT merge until the sign-off record is appended here.
