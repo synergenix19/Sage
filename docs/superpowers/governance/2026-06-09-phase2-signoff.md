@@ -365,17 +365,25 @@ Financial anxiety anchors must avoid dependency-catastrophe framing ("my family 
 | financial_anxiety | 8 | 0.5060 (kafala/remittance framing) | 0.6423 ("extra shifts, exhausted") | INFEASIBLE |
 | interpersonal_effectiveness | 8 | 0.5354 (difficult conversation) | 0.6782 ("asking costs the relationship") | INFEASIBLE |
 
-**Root cause (now confirmed as a general principle):** BGE-M3 places emotionally-loaded relational stakes language adjacent to passive-SI space. The three skills represent structurally different framings — grief/loss, financial-provider burden, interpersonal conflict — yet all bleed. This is not a phrasing problem; it is a concept-space property of the model. The common factor is emotional significance × impact on others or cost to self, which is the same semantic cluster as passive-SI ideation.
+**Root cause (clinically confirmed, not a measurement artifact):** BGE-M3 places these three skill domains adjacent to passive-SI space because they encode the proximal causal risk factors for passive suicidal ideation per the Interpersonal Theory of Suicide (IPTS; Joiner, 2005 — the dominant ideation-to-action model in suicidology):
+
+- **financial_anxiety** encodes **perceived burdensomeness** — the belief that one's existence costs more than it contributes to others. The canonical IPTS example is "my family would be better off if I were gone." Provider-role failure, family-dependency pressure, and financial-collapse framing activate this construct directly. Of the two IPTS proximal factors, perceived burdensomeness shows the most robust relationship with SI ideation across the systematic review evidence.
+- **interpersonal_effectiveness** encodes **thwarted belongingness** — the absence of reciprocal caring relationships, family conflict, social withdrawal, fear of damaging relational bonds. IPTS holds this as the second proximal SI risk factor.
+- **grief_loss** sits on both axes: bereavement is a thwarted-belonging event (loss of primary attachment) and prolonged grief frequently generates burdensomeness cognitions ("I am a burden on everyone who has to watch me grieve").
+
+BGE-M3 is not making an error. It reflects the actual clinical structure: these three skill domains are the semantic home of the constructs that drive passive ideation. The "bleed" is signal, not noise.
 
 **Architecture decision:** All three skills route via **Tier-1 keywords + freeflow + Node 1 safety detection first**. No semantic anchors at SEMANTIC_THRESHOLD = 0.4593. This is a deliberate, safety-grounded decision, not a capability shortfall.
 
 **Why this is the right architecture:**
 
-A grief, IE, or financial anchor that barely clears the gate (e.g., at 0.46) does not only route one phrase — it raises the grief/IE/financial region's ceiling in embedding space, pulling SI-adjacent language toward that skill and away from the crisis path. Coverage bought at that cost is negative value in a clinical-safety system. Tier-1 keywords provide deterministic routing when the user names the concept. Freeflow provides empathic response for presentations that do not match a keyword. Node 1 (safety_check) runs before any of this and is not affected by routing decisions. The conservative architecture is strictly safer than a marginal anchor.
+A grief, IE, or financial anchor that barely clears the gate (e.g., at 0.46) does not only route one phrase — it raises the grief/IE/financial region's ceiling in embedding space, pulling burdensomeness and belongingness language toward that skill and away from the crisis path. A user expressing perceived burdensomeness ("my family depends on me and I'm failing them") would be routed with high confidence to a financial-coping exercise instead of Node 1 crisis assessment. Given that burdensomeness language is a proximal SI risk marker per IPTS, confident semantic routing into that space is clinically contraindicated — not merely risky. This reframes the decision from "conservative fallback" to "the clinically correct architecture for this construct space." Tier-1 keywords provide deterministic routing when the user names the concept explicitly. Freeflow provides empathic response for presentations that do not match a keyword. Node 1 (safety_check) runs before any of this and is not affected by routing decisions.
 
 **Condition on "freeflow is safe":** Verified during this assessment — see safety_check gap finding below. Node 1 runs first architecturally, but has known English gaps on grief-colored SI language (veiled ideation class, "easier without me" variant, grief-prefix S3 dilution). These are pre-existing SF-1/negation gaps, documented independently. They must be addressed before pilot exposure, but are independent of the Task 5 anchor decision.
 
 **IE coverage note (verified before sign-off):** IE was the skill whose original failure was most about semantic reach, not keyword coverage. With no anchors, some IE presentations fall to freeflow: "caught between wife and family" (below threshold, no keyword match), "honest with mother without hurting her" (freeflow), and one phrase ("conversation I have been avoiding...terrified") misroutes to `psychoed_anxiety` via semantic bleed (pre-existing, not introduced by this branch). Presentations using named IE vocabulary ("relationship conflict", "set boundaries", "need to ask my", "conflict resolution") route correctly via Tier-1. The freeflow fallback is acceptable for the missed presentations — the LLM can recognize these situations empathically — but the coverage gap is real and should be tracked as a Tier-1 keyword expansion opportunity for IE specifically. This does not block the no-anchor decision; it is a known limitation that needs a follow-up keyword pass, not an anchor fix.
+
+**Epistemic caution on "infeasible":** Record this decision as "infeasible at acceptable safety margin with current tooling," not as "proven impossible." Clinically adjacent does not mean indistinguishable. A future capability — segment-level S3 scoring, an INQ-calibrated probe set that separates grief-without-burdensomeness from grief-with-burdensomeness, or a fine-tuned embedding model — could make narrow anchors achievable. The zero-anchor decision is correct now; a permanence claim would be over-stated.
 
 **Sign-off required:** The no-anchor architecture decision requires the same clinical authorization as adding anchors would. Template below.
 
@@ -391,20 +399,24 @@ Decision:
   Task 5 is closed without semantic anchors for any of the three skills.
 
   (a) grief_loss: routes via Tier-1 keywords + freeflow. No semantic_anchors.
-      Rationale: all candidate anchor formulations bleed into passive-SI space
-      above SEMANTIC_THRESHOLD (0.4593) and well above the 0.40 submission target.
-      Two confirmed proximity vectors: void/absence framing and repetitive-thought
-      construction. Freeflow with Node 1 safety running first is the correct path.
+      Rationale: grief_loss encodes both thwarted belongingness (loss of primary
+      attachment) and perceived burdensomeness (prolonged grief cognitions) — the
+      two proximal SI risk factors per IPTS. Candidate anchors bleed into passive-SI
+      space at 0.5060–0.6584 (well above the 0.40 submission target). Semantic
+      routing into this construct space is clinically contraindicated. Freeflow with
+      Node 1 first is the correct path.
 
   (b) financial_anxiety: routes via Tier-1 keywords + freeflow. No semantic_anchors.
-      Rationale: kafala/remittance/provider-burden language bleeds into passive-SI
-      space at 0.5060–0.6423. Provider-dependency framing and financial-collapse
-      language are semantically adjacent to SI in BGE-M3 concept space.
+      Rationale: financial_anxiety encodes perceived burdensomeness (provider-role
+      failure, family-dependency pressure) — the IPTS proximal factor with the most
+      robust empirical relationship to SI ideation. Candidate anchors bleed at
+      0.5060–0.6423. Routing burdensomeness language to a coping skill instead of
+      Node 1 is clinically contraindicated.
 
   (c) interpersonal_effectiveness: routes via Tier-1 keywords + freeflow. No semantic_anchors.
-      Rationale: relational-stakes language ("costs the relationship", "terrified of
-      damaging it") bleeds at 0.5354–0.6782. Emotionally-loaded interpersonal
-      cost-to-self language is adjacent to SI in BGE-M3 concept space.
+      Rationale: IE encodes thwarted belongingness (relational rupture, family
+      conflict, fear of damaging bonds) — the second IPTS proximal factor. Candidate
+      anchors bleed at 0.5354–0.6782. Same contraindication applies.
 
   All three skills have comprehensive Tier-1 keyword coverage for named presentations.
   Freeflow is the correct path for presentations that do not hit a keyword.
@@ -416,9 +428,17 @@ Notes / conditions:
 
 ---
 
-### Entry 9 — Safety_check gap: grief+SI crossover in English (2026-06-10)
+### Entry 9 — Safety_check gap: Node 1 blind to burdensomeness/belongingness phenotype (2026-06-10)
 
-**Finding:** Three classes of English grief-colored messages with SI undertones do not fire Node 1 (safety_check), confirmed with BGE-M3 S3 semantic detection active:
+**Structural framing:** These three gaps are not a coincidental trio of phrase misses. They represent a single structural blind spot: Node 1's S1 lexicon and S3 semantic embedding were built around explicit SI vocabulary (self-harm, death, "don't want to be here") and are systematically blind to the **perceived-burdensomeness and thwarted-belongingness phenotype** — the indirect register that the most validated proximal IPTS risk factors actually produce. Mapping to IPTS:
+
+- VG-01 ("wondering what the point is") → **hopelessness** (the third IPTS component; present across all domains)
+- VG-02 ("easier without me") → **perceived burdensomeness** (textbook IPTS item — "my death is worth more than my life to others")
+- VG-03 (grief-prefix S3 dilution) → **thwarted belongingness** + burdensomeness in combination
+
+The Node 1 fix scope is not "add these three phrases." It is: Node 1 must detect the perceived-burdensomeness and thwarted-belongingness registers. The validated operationalization is the **Interpersonal Needs Questionnaire (INQ)** — the same relationship this fix has to INQ that the VG-01/02 explicit-ideation fix has to C-SSRS. INQ items define the phrase space Node 1 is currently blind to and should be the authoring source for the SK-EN-002 burdensomeness/belongingness extension.
+
+**Finding:** Three gap classes confirmed with BGE-M3 S3 semantic detection active:
 
 | Gap class | Example | Result |
 |---|---|---|
@@ -433,7 +453,7 @@ Notes / conditions:
 
 **Classification:** Pre-existing SF-1 gap (veiled ideation and negation gap classes). Not created by the Task 5 no-anchor decision — these gaps exist independently. The no-anchor decision makes them more relevant, because grief presentations now route through freeflow, so grief-colored SI language is more likely to encounter this detection gap.
 
-**Severity:** Pre-pilot blocker (not pre-Gitex demo, since demo sessions do not expose grief+SI edge-cases at scale). Must reach clinical lead before any pilot where real users with grief histories are expected.
+**Severity (upgraded):** Pre-pilot blocker for any pilot, not only grief-history pilots. The burdensomeness phenotype appears across depression, financial despair, isolation, and chronic distress — not only grief. The research identifies perceived burdensomeness as the most robust IPTS predictor of SI ideation; Node 1 being blind to it is a structural gap on the highest-stakes path. This is not three isolated phrase gaps; it is a detection architecture finding.
 
 **Independent action required:** This is a safety_check finding, independent of Task 5. It should be logged against SK-EN-002 / SF-1 veiled ideation tracking and escalated to clinical lead alongside the negation gap (SK-EN-001) which is already in the governance queue.
 
