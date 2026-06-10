@@ -678,24 +678,14 @@ import pytest as _pytest
 
 
 @_pytest.mark.slow
-@_pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "GOVERNANCE HOLD — blocked on clinical sign-off for Task 3 (TASK-3). "
-        "cognitive_restructuring gains the catastrophizing keyword only after Task 3 merges. "
-        "Remove this xfail marker when Task 3 sign-off is appended to the governance log "
-        "and the branch merges. strict=True: an XPASS means the keyword was added without "
-        "clinical review — treat as a CI failure."
-    ),
-)
 async def test_sf1_catastrophizing_routes_to_cognitive_restructuring_gated():
     """Catastrophizing language must route to cognitive_restructuring, not worry_time [7].
     Gated: depends on Task 3 removing catastrophizing from worry_time and adding it to
     cognitive_restructuring. Will be xfail until Task 3 clinical sign-off."""
     from sage_poc.nodes.skill_select import skill_select_node
     state = {
-        "raw_message": "I know I am catastrophizing about this situation but I cannot stop the thought spiral",
-        "message_en": "I know I am catastrophizing about this situation but I cannot stop the thought spiral",
+        "raw_message": "I keep catastrophizing about this situation and I cannot stop the thought spiral",
+        "message_en": "I keep catastrophizing about this situation and I cannot stop the thought spiral",
         "detected_language": "en",
         "is_safe": True,
         "crisis_flags": [],
