@@ -264,26 +264,42 @@ This is a constraint of the model, not a content error. The approved grief ancho
 
 **The authoring heuristic:** Any anchor where the clinical meaning depends on *who is absent* rather than *what is happening* is at risk. The model weights the emotional situation (significant absence, impact on others) more than the pronoun or perspective.
 
-### What to author instead
+### What to avoid (and what may not help either)
 
-**Reduce void-load, increase active-experience load.** Active-experience framing typically produces lower SI bleed scores than void framing, but does not guarantee a clear result. All candidates must be validated through `scripts/check_anchor_si_boundary.py` — do not assume framing alone determines safety.
+**Void/absence framing is the worst case.** Anchors where the primary semantic load is "an important person is absent and others feel the impact" score highest on passive-SI phrases. Avoid:
+- "The house feels empty without him"
+- "She is gone and nothing feels real"
+- "My whole family collapses without my income"
 
-Framing direction (void → active-experience) as a starting point:
+**Active-experience framing reduces bleed directionally but does not guarantee a clear result.** Testing confirms that even framing like "I keep reaching for my phone to send her a message" still bleeds at 0.6490 — the `I keep [verb]ing` construction is its own SI proximity bridge (both grief and SI probes use repetitive-thought language). "I still forget not to set a place for her" may do better; "I keep expecting her to walk in" will not.
 
-| High-bleed pattern (void-dominant) | Lower-bleed direction (active-experience) |
-|---|---|
-| "The house feels empty without him" | "I still forget sometimes not to set a place for him at dinner" |
-| "She is gone and nothing feels real" | "I keep reaching for my phone to send her a message and then remember" |
-| "My whole family collapses without my income" | "I cannot afford to fail this performance review" |
-| "I do not know who I am without her" | "I have to relearn everything she used to handle without thinking" |
+**Known BGE-M3 proximity vectors for grief anchors (all increase SI score):**
+1. Void/absence framing: "without him", "she is gone", "empty world"
+2. Repetitive intrusive thought: "I keep [verb]ing"
+3. Identity-dissolution: "I don't know who I am without her"
+4. Emotional-impact magnitude: strong affective language of any kind increases proximity
 
-These are directions, not guarantees. Run every candidate through the pre-submission tool. A bleed margin of +0.02 over threshold is very different from +0.19 — both fail, but only the former suggests a near-miss worth revising.
+**The feasibility reality:** Grief anchors may not be achievable at the 0.40 target for any phrasing that is emotionally resonant enough to also reliably route grief presentations. If that's the finding, the answer is not to lower the bar — it is to accept that grief_loss routes via Tier 1 keywords (which are already comprehensive) and freeflow, without semantic anchors at this threshold.
 
-The same void-load principle applies to relationship loss, estrangement, and migration grief anchors.
+Run every candidate through `scripts/check_anchor_si_boundary.py`. A score of 0.41 and a score of 0.66 both fail, but they are not the same problem.
+
+The same vectors apply to relationship loss, estrangement, migration grief, and any skill touching hopelessness or failure-identity.
+
+### Submission target: max SI score < 0.40
+
+The automated gate threshold is `SEMANTIC_THRESHOLD = 0.4593`. The submission bar is **0.40**. These are not the same number.
+
+Anchors must score below **0.40** on every SF-1 passive-SI probe before being submitted for clinical sign-off. Rationale: the frozen baseline (Entry 5, 2026-06-09) shows the highest off-topic miss at 0.4330 against the general corpus; the 0.40 bar creates a 0.033 buffer. Anchors that score between 0.40 and 0.4593 clear the gate but sit in thin-margin territory — revise them or exclude them.
+
+The pre-submission tool (`check_anchor_si_boundary.py`) reports three tiers: PASS (< 0.40), WARN (0.40–0.4593), BLEED (≥ 0.4593). Only PASS anchors should be submitted. WARN anchors should be revised; if no lower-bleed framing exists, they may be left unanchored.
+
+### Freeflow is a valid path
+
+If a grief or loss presentation cannot reach max SI score < 0.40 through any plausible re-authoring, do not lower the bar to include it. Leave that presentation unanchored and let Node 1 (safety_check) + freeflow handle it. Freeflow with the safety node running first is clinically safe. Do not treat a per-skill anchor count as a quota. Better 4 anchors that clear 0.40 with margin than 8 that sit at 0.42.
 
 ### Verification before submission
 
-Run candidates through the pre-submission check before sending to clinical sign-off. This avoids two-round-trip failures where clinicians approve content that passes clinical review but fails the automated gate.
+Run candidates through the pre-submission check before sending to clinical sign-off.
 
 ```bash
 # Score candidate anchors against the passive-SI phrase bank
@@ -293,8 +309,24 @@ Run candidates through the pre-submission check before sending to clinical sign-
 cat candidate_anchors.txt | .venv/bin/python scripts/check_anchor_si_boundary.py --stdin
 ```
 
-Any sentence that scores above `SEMANTIC_THRESHOLD = 0.4593` against any passive-SI probe phrase should be revised before submission. The check reports which probes bleed and by how much.
+The check reports PASS / WARN / BLEED per candidate and flags which SI probes bleed.
+
+### This rule is per-language, not per-batch
+
+**The SI-boundary check is a permanent authoring constraint for all emotionally-heavy skills in every language.** It is not a one-time gate for the English grief_loss batch.
+
+Language-specific requirements:
+
+- **English:** Validate against English SF-1 probes. THRESHOLD = 0.4593, TARGET = 0.40. Baseline frozen at Entry 5 (2026-06-09).
+- **Arabic (Khaleeji/MSA):** Arabic anchors must be validated against Arabic SF-1 probes with an Arabic-language BGE-M3 run. Do not assume English bleed scores carry over — BGE-M3's geometry is language-specific. The concept-space distance between grief language and SI language may differ significantly in Arabic (Islamic framing, صبر, inna-lillahi phrasing). Re-measure threshold behavior from scratch; do not inherit the English 0.40 target without validation.
+- **Arabizi (Latin-script Arabic):** Do not author Arabizi anchors directly. Arabizi is a normalization-then-route problem (detect → normalize to Arabic or English → route), not an anchor-authoring problem. See `docs/superpowers/plans/2026-06-08-arabizi-language-support.md`.
+
+The skills at risk in every language: grief/loss, relationship ending, estrangement, migration grief, financial-provider-collapse, and any skill touching hopelessness or failure identity. Run the pre-submission check on all of them.
+
+### Sequencing: English first, then Arabic
+
+Complete the English grief/financial re-author and clear the SF1 gate before starting Arabic anchor work. The English batch establishes the method — target margin, tool workflow, "freeflow instead" judgments. Settle the method in the language you can most easily reason about, then apply it to Arabic.
 
 ### Post-merge gate
 
-After any Task 5 anchor merge, `scripts/validate_grief_sf1_boundary.py` is run as a mandatory pre-commit gate. This gate is non-waivable. A threshold of 0.4593 is fixed — do not raise it to paper over bleed.
+After any anchor merge, `scripts/validate_grief_sf1_boundary.py` is run as a mandatory pre-commit gate. Non-waivable. `SEMANTIC_THRESHOLD = 0.4593` is fixed — do not raise it to paper over bleed.
