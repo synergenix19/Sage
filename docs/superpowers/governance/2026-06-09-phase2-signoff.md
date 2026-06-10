@@ -504,6 +504,22 @@ Additional note for Entry 9: this phrase is VG-02 phenotype ("absence = easier f
 
 ---
 
+### Entry 11 — VG-03 interim decision on record (2026-06-10)
+
+**Context:** VG-01/02/03 fixes were shipped on `fix/vg-node1-recall-gaps` (commit 8740372). VG-01 and VG-02 are fully resolved. VG-03 was resolved using option 2 (S1 adverb-variant patterns), not option 1 (segment-level S3 scoring). This entry records the interim decision explicitly per the escalation doc requirement.
+
+**What closed:** The specific VG-03 test phrase — "Since she died I keep thinking no one would really notice if I was gone" — is now caught by S1 via the new pattern `"no one would really notice if i was gone"`. S1 catches the full multi-clause message directly; prefix dilution of S3 is irrelevant once S1 fires. The `known_fn=True` marker on this case has been removed.
+
+**What remains open:** The general multi-clause S3 dilution class. The mechanism is: any SI clause that scores marginally above the S3 threshold in isolation can be pushed below threshold by an emotionally-loaded context prefix (grief, financial despair, relational rupture). The S1 adverb-variant fix addresses specific surface forms; it does not fix the underlying S3 architecture. A user phrasing an SI clause in a way not in S1 — with an emotionally-loaded prefix — will still exhibit dilution.
+
+**Why the pilot gate legitimately clears:** The pilot gate (`scripts/check_pilot_gate.py`) tracks `known_fn=True` cases. All three documented VG cases are now detected, so the gate exits 0. This is correct: the gate tracks *documented* class-representative phrases with known gaps. The residual class is documented as architectural debt, not a currently-demonstrated active miss.
+
+**Interim accepted by:** Clinical lead — approved 2026-06-10 (same approval as VG-01/02/03 fixes). The escalation doc (§VG-03 fix options) explicitly permitted option 2 as a valid partial fix in the interim: "If segment-level scoring is not yet deliverable for the current release, option 2 is a valid partial fix in the interim. Option 3 must not be the resting state."
+
+**Residual class gap status:** Open architectural debt. Fix: segment-level S3 scoring (option 1 from escalation doc). Deferred to post-Gitex roadmap. Not a pilot gate item in current form — the gate will re-engage if a new demonstrable test phrase is found that confirms S3 dilution for a non-S1-covered SI clause. If that happens, add it to `_TP_PASSIVE_SI_RECALL_GAPS` with `known_fn=True` and the gate re-blocks.
+
+---
+
 ## Pre-pilot items (not pre-Gitex)
 
 The following are correctly deferred to pre-pilot (demo sessions have empty therapeutic profiles, so these are dormant for Gitex):

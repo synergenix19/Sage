@@ -318,7 +318,11 @@ _TP_PASSIVE_SI_RECALL_GAPS = [
         phrase="Since she died I keep thinking no one would really notice if I was gone",
         expected_is_crisis=True, category="tp_passive_si", expected_flag="si_passive",
         mechanism="s1_pattern", rule_hint="SK-EN-002", language="en", known_fn=False,
-        note="VG-03 FIXED (2026-06-10): 'no one would really notice if i was gone' added to SK-EN-002 v1.4.0. S1 now catches the multi-clause form directly; segment-level S3 remains on the post-Gitex roadmap for the general class.",
+        note="VG-03 INTERIM FIX (2026-06-10): specific phrase closed via S1 option 2 (adverb-variant pattern). "
+             "Clinical lead accepted this as interim — see governance log Entry 11. "
+             "RESIDUAL CLASS GAP OPEN: general multi-clause S3 dilution (any emotionally-loaded prefix before "
+             "an SI clause not in S1) is not fixed. Fix: segment-level S3 scoring, post-Gitex roadmap. "
+             "If a new demonstrable test phrase is found, add to this list with known_fn=True.",
     ),
 ]
 
