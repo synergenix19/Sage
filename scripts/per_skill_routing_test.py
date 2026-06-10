@@ -48,7 +48,7 @@ SAGE_API_KEY = os.environ.get(
     "8384792dfb576c5d7b975f40c4f21a8eb82fb024eb243570dc1cc9f7a871b328",
 )
 TIMEOUT    = 90.0
-CONCURRENCY = 4  # conservative — production is shared infra
+CONCURRENCY = 1  # Railway single-instance: concurrent LLM calls exceed 30s ainvoke timeout; run sequentially
 _RUN_ID    = str(int(time.time()))[-6:]
 
 # Psychoed cluster — any member is correct

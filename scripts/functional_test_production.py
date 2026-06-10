@@ -39,7 +39,7 @@ SAGE_API_KEY = os.environ.get(
 )
 HEADERS = {"X-Sage-Api-Key": SAGE_API_KEY, "Content-Type": "application/json"}
 TIMEOUT = 90.0
-CONCURRENCY = 4  # conservative — production is shared infra
+CONCURRENCY = 2  # Railway single-instance: >2 concurrent 15-30s LLM calls hit the 30s ainvoke timeout
 
 PASS_SYM = "PASS"
 FAIL_SYM = "FAIL"
