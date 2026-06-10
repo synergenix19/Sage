@@ -249,3 +249,52 @@ Runtime summary (as of 2026-05-30):
 - **STORED_ONLY (6):** `skill.escalation_matrix.L2–L4`, `skill.evidence_base`, `skill.skill_type`, `skill.self_evolution`
 
 The conformance registry is logged at startup and served at `GET /health/schema-conformance`.
+
+---
+
+## semantic_anchors: SI-boundary rule for emotionally-heavy skills
+
+`semantic_anchors` are scored by BGE-M3 at Tier 2. Before submitting anchors for any skill that touches grief, loss, relationship ending, estrangement, or financial catastrophe, run every candidate sentence through `scripts/check_anchor_si_boundary.py`. An anchor that fails the SI-boundary check will trigger an automated gate failure even if it is clinically accurate.
+
+### The void-framing rule
+
+**Anchors whose dominant semantic load is the void left behind will bleed into passive-SI space.** BGE-M3 cannot separate "an important person is absent and others feel the impact" from passive-SI self-absence language ("without me", "my absence would help", "my being here is doing harm") — both encode the same concept at the embedding level, regardless of whether the absent person is someone else or the user themselves.
+
+This is a constraint of the model, not a content error. The approved grief anchors from the 2026-06-10 Task 5 run were clinically accurate and still failed the gate. The fix is authoring discipline, not clinical rewriting.
+
+**The authoring heuristic:** Any anchor where the clinical meaning depends on *who is absent* rather than *what is happening* is at risk. The model weights the emotional situation (significant absence, impact on others) more than the pronoun or perspective.
+
+### What to author instead
+
+**Reduce void-load, increase active-experience load.** Active-experience framing typically produces lower SI bleed scores than void framing, but does not guarantee a clear result. All candidates must be validated through `scripts/check_anchor_si_boundary.py` — do not assume framing alone determines safety.
+
+Framing direction (void → active-experience) as a starting point:
+
+| High-bleed pattern (void-dominant) | Lower-bleed direction (active-experience) |
+|---|---|
+| "The house feels empty without him" | "I still forget sometimes not to set a place for him at dinner" |
+| "She is gone and nothing feels real" | "I keep reaching for my phone to send her a message and then remember" |
+| "My whole family collapses without my income" | "I cannot afford to fail this performance review" |
+| "I do not know who I am without her" | "I have to relearn everything she used to handle without thinking" |
+
+These are directions, not guarantees. Run every candidate through the pre-submission tool. A bleed margin of +0.02 over threshold is very different from +0.19 — both fail, but only the former suggests a near-miss worth revising.
+
+The same void-load principle applies to relationship loss, estrangement, and migration grief anchors.
+
+### Verification before submission
+
+Run candidates through the pre-submission check before sending to clinical sign-off. This avoids two-round-trip failures where clinicians approve content that passes clinical review but fails the automated gate.
+
+```bash
+# Score candidate anchors against the passive-SI phrase bank
+.venv/bin/python scripts/check_anchor_si_boundary.py "Your candidate sentence here"
+
+# Or batch: pipe sentences (one per line) from a file
+cat candidate_anchors.txt | .venv/bin/python scripts/check_anchor_si_boundary.py --stdin
+```
+
+Any sentence that scores above `SEMANTIC_THRESHOLD = 0.4593` against any passive-SI probe phrase should be revised before submission. The check reports which probes bleed and by how much.
+
+### Post-merge gate
+
+After any Task 5 anchor merge, `scripts/validate_grief_sf1_boundary.py` is run as a mandatory pre-commit gate. This gate is non-waivable. A threshold of 0.4593 is fixed — do not raise it to paper over bleed.

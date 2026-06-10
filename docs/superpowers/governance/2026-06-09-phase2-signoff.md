@@ -267,11 +267,13 @@ SF1 boundary:    FAIL  (0/12 phrases below threshold, min clearance -0.1994)
 
 Every grief anchor scored above `SEMANTIC_THRESHOLD = 0.4593` on all 12 passive-SI phrases. The per-anchor diagnostic confirmed this is not a few-bad-anchors problem — it is all 8.
 
-**Root cause — concept-space proximity in BGE-M3:**
+**Root cause — void-dominant framing in BGE-M3:**
 
-Grief anchors describe loss of others: "without him", "she is gone", "he has died". Passive-SI phrases describe imagined self-absence: "without me", "my absence would help", "my being here is doing harm". BGE-M3 finds these adjacent because both encode the concept of an emotionally significant person being absent and the impact on the people left behind. The perspective (grieving the loss of another vs. imagining one's own absence) does not separate them in the embedding space.
+The approved grief anchors carried a high void load: "the house feels completely empty without him", "she is gone", "I do not know who I am without her". Passive-SI phrases carry a parallel self-absence load: "without me", "my absence would help", "my being here is doing harm". BGE-M3 places these adjacent because both encode *the magnitude of an absence and its impact on those left behind* — the perspective flip (him/her gone vs. me gone) is too thin a signal to separate them.
 
-This was NOT detectable from clinical review: the anchors are clinically accurate for grief_loss, and the SI phrases are genuine passive-ideation language. The bleed exists at the embedding layer, not at the content layer. This is precisely why the automated check exists.
+The operative principle is narrower than "grief encodes absence": it is that **anchors whose dominant semantic load is the void left behind bleed into passive-SI space**. Anchors that encode the bereaved person's active experience and the relationship — reaching for the phone, finding old notes, cooking a dish — carry the same clinical concept without the void-dominant load and are unlikely to bleed. The fix is not "grief cannot reference absence" but "do not let absence be the primary semantic weight of the anchor."
+
+This was NOT detectable from clinical review: the anchors are clinically accurate, and the bleed is at the embedding layer, not the content layer. This is precisely why the automated check exists.
 
 **Also detected:** Financial_anxiety anchors scored 0.638–0.689 as top skill on 5 of 12 passive-SI phrases (higher than grief_loss on those phrases). Provider/remittance language ("if I lose my income my whole household collapses", "my family depends on me") is semantically adjacent to "my being here is doing harm to my family". The SF1 check does not gate financial_anxiety directly, but these scores are safety-relevant and must inform the re-authoring.
 
@@ -305,17 +307,20 @@ But removing these three leaves the other 5 anchors scoring 0.46–0.62 on SI ph
 
 **What re-authoring requires:**
 
-Grief anchors must avoid the "absent other / empty world" framing that creates proximity to passive-SI language. Framing that is likely safer:
-- Sensory/ritual grief: "Every time I cook his favourite dish I end up crying without knowing why" — action-based, no absence framing
-- Memory grief: "I keep finding little notes he wrote and I can't throw them away" — objects/memory, not void
-- Process grief: "I didn't cry at the funeral and now weeks later I keep breaking down unexpectedly"
-- Islamic ritual grief: "I read Al-Fatiha for her every prayer time but it doesn't make it feel real that she's gone"
+The goal is not to avoid all references to absence, death, or loss — those are clinically appropriate. The goal is to avoid anchors where the void is the **dominant semantic load**. Anchors that make the bereaved person's active experience the primary signal should pass the gate.
 
-Financial anxiety anchors must avoid "my family collapses without my income" framing — use financial stress framing instead of dependency-catastrophe framing.
+Grief anchor framing that is likely to pass:
+- Sensory/ritual: "Every time I cook his favourite dish I end up crying without knowing why" — action + sensory, void is secondary
+- Memory-object: "I keep finding little notes he wrote and I cannot bring myself to throw them away" — objects, memory, behaviour
+- Process/disenfranchised: "I didn't cry at the funeral and now weeks later I keep breaking down unexpectedly"
+- Islamic ritual: "I read Al-Fatiha for her every prayer time but it doesn't feel real that she is gone"
+- Relationship-identity: "I keep picking up my phone to send her a message and then remember" — action + habit, not void
 
-**Clinical team must be informed:** The approved anchors scored correctly for clinical accuracy. The failure is at the embedding layer. The clinical team needs to understand the concept-space constraint before re-authoring.
+Financial anxiety anchors must avoid dependency-catastrophe framing ("my family collapses without my income"). Kafala-constraint and remittance-arithmetic framing (active financial situation) should have lower SI bleed risk.
 
-**Task 5 status:** BLOCKED — re-author required. Target: absence/void framing → sensory/memory/process framing.
+**Clinical team must be informed:** The approved anchors scored correctly for clinical accuracy. The failure is at the embedding layer — a concept-space proximity the model cannot override at threshold 0.4593. The clinical team needs to understand the void-framing constraint before re-authoring, and must use `scripts/check_anchor_si_boundary.py` on all candidate sentences before the next submission.
+
+**Task 5 status:** BLOCKED — re-author required. New anchors go through pre-submission tool, then new clinical sign-off (Rohan Sarda's first sign-off does not transfer to the rewrite), then governance log append, then SF1 gate re-run.
 
 ---
 
