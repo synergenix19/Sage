@@ -375,6 +375,8 @@ A grief, IE, or financial anchor that barely clears the gate (e.g., at 0.46) doe
 
 **Condition on "freeflow is safe":** Verified during this assessment — see safety_check gap finding below. Node 1 runs first architecturally, but has known English gaps on grief-colored SI language (veiled ideation class, "easier without me" variant, grief-prefix S3 dilution). These are pre-existing SF-1/negation gaps, documented independently. They must be addressed before pilot exposure, but are independent of the Task 5 anchor decision.
 
+**IE coverage note (verified before sign-off):** IE was the skill whose original failure was most about semantic reach, not keyword coverage. With no anchors, some IE presentations fall to freeflow: "caught between wife and family" (below threshold, no keyword match), "honest with mother without hurting her" (freeflow), and one phrase ("conversation I have been avoiding...terrified") misroutes to `psychoed_anxiety` via semantic bleed (pre-existing, not introduced by this branch). Presentations using named IE vocabulary ("relationship conflict", "set boundaries", "need to ask my", "conflict resolution") route correctly via Tier-1. The freeflow fallback is acceptable for the missed presentations — the LLM can recognize these situations empathically — but the coverage gap is real and should be tracked as a Tier-1 keyword expansion opportunity for IE specifically. This does not block the no-anchor decision; it is a known limitation that needs a follow-up keyword pass, not an anchor fix.
+
 **Sign-off required:** The no-anchor architecture decision requires the same clinical authorization as adding anchors would. Template below.
 
 ---
