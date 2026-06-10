@@ -183,9 +183,7 @@ CASES: list[Case] = [
     # Known pre-existing routing failure — do not use "I always give everything in relationships..."
     Case("SKILL-IE-XFAIL",
          "I always give everything in relationships and I never get what I need back",
-         "routing", expected_skill="interpersonal_effectiveness",
-         xfail=True,
-         xfail_reason="Pre-existing: routes to None (IE oblique framing; post-Gitex fix)"),
+         "routing", expected_skill="interpersonal_effectiveness"),
     Case("SKILL-MI", "Part of me wants to get better and part of me doesn't see the point",
          "routing", expected_skill="mi_readiness_ruler"),
     Case("SKILL-MBODY", "I want to do a body scan to reconnect with what I'm feeling",
@@ -253,12 +251,18 @@ async def run_case(client: httpx.AsyncClient, case: Case, sem: asyncio.Semaphore
     t0 = time.monotonic()
     try:
         async with sem:
-            resp = await client.post(
+            # Use stream() so the full body is consumed before reading headers.
+            # StreamingResponse sends headers with the status line, but httpx's
+            # non-streaming post() can return empty custom headers under concurrent
+            # load when the body isn't fully read before the client is released.
+            async with client.stream(
+                "POST",
                 f"{API_URL}/chat",
                 headers=HEADERS,
                 json=payload,
                 timeout=TIMEOUT,
-            )
+            ) as resp:
+                raw_body = await resp.aread()
     except Exception as exc:
         return Result(case=case, status=FAIL_SYM, detail=f"HTTP error: {exc}", error=str(exc))
 
@@ -268,11 +272,11 @@ async def run_case(client: httpx.AsyncClient, case: Case, sem: asyncio.Semaphore
         return Result(
             case=case,
             status=FAIL_SYM,
-            detail=f"HTTP {resp.status_code}: {resp.text[:120]}",
+            detail=f"HTTP {resp.status_code}: {raw_body[:120].decode(errors='replace')}",
             elapsed_s=elapsed,
         )
 
-    body = resp.text
+    body = raw_body.decode(errors="replace")
     skill_id = resp.headers.get("x-sage-skill-id", "")
     node_path = json.loads(resp.headers.get("x-sage-node-path", "[]"))
     crisis_flags = json.loads(resp.headers.get("x-sage-crisis-flags", "[]"))
