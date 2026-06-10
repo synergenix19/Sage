@@ -250,16 +250,16 @@ class TestA5Threading:
         assert isinstance(_init_lock, type(threading.Lock()))
 
     def test_embed_model_assigned_last(self):
-        """_embed_model is assigned after _semantic_skill_ids and _semantic_embeddings."""
+        """_embed_model is assigned after _anchor_skill_ids and _anchor_embeddings."""
         import inspect
         from sage_poc.nodes import skill_select
         src = inspect.getsource(skill_select._ensure_semantic_ready)
         # The assignment _embed_model = model must come after the two array assignments
-        idx_skills = src.find("_semantic_skill_ids = ids")
-        idx_embeds = src.find("_semantic_embeddings = model.encode")
+        idx_skills = src.find("_anchor_skill_ids = [sid")
+        idx_embeds = src.find("_anchor_embeddings = model.encode")
         idx_model  = src.find("_embed_model = model")
-        assert idx_skills < idx_model, "_semantic_skill_ids must be assigned before _embed_model"
-        assert idx_embeds < idx_model, "_semantic_embeddings must be assigned before _embed_model"
+        assert idx_skills < idx_model, "_anchor_skill_ids must be assigned before _embed_model"
+        assert idx_embeds < idx_model, "_anchor_embeddings must be assigned before _embed_model"
 
     def test_sequential_calls_no_error(self):
         """Sequential calls to _ensure_semantic_ready do not crash."""
@@ -273,8 +273,8 @@ class TestA5Threading:
 
         # Reset module state for isolation
         original_model = sks._embed_model
-        original_ids   = sks._semantic_skill_ids
-        original_embs  = sks._semantic_embeddings
+        original_ids   = sks._anchor_skill_ids
+        original_embs  = sks._anchor_embeddings
 
         load_count = []
         original_ensure = sks._ensure_semantic_ready
@@ -291,20 +291,20 @@ class TestA5Threading:
 
         # After all threads complete, model must be loaded
         assert sks._embed_model is not None
-        assert sks._semantic_embeddings is not None
+        assert sks._anchor_embeddings is not None
 
         # Restore state (model stays loaded — that's correct behavior)
 
     def test_cold_start_returns_valid_embeddings(self):
-        """After _ensure_semantic_ready, embeddings are a non-empty numpy array."""
+        """After _ensure_semantic_ready, anchor embeddings are a non-empty numpy array."""
         import numpy as np
-        from sage_poc.nodes.skill_select import _ensure_semantic_ready, _semantic_embeddings, _semantic_skill_ids
+        from sage_poc.nodes.skill_select import _ensure_semantic_ready
         _ensure_semantic_ready()
         from sage_poc.nodes import skill_select as sks
-        assert sks._semantic_embeddings is not None
-        assert isinstance(sks._semantic_embeddings, np.ndarray)
-        assert sks._semantic_embeddings.shape[0] > 0
-        assert len(sks._semantic_skill_ids) == sks._semantic_embeddings.shape[0]
+        assert sks._anchor_embeddings is not None
+        assert isinstance(sks._anchor_embeddings, np.ndarray)
+        assert sks._anchor_embeddings.shape[0] > 0
+        assert len(sks._anchor_skill_ids) == sks._anchor_embeddings.shape[0]
 
 
 # ── B1: p95 formula edge cases ───────────────────────────────────────────────

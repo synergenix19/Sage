@@ -177,15 +177,15 @@ def _stub_bge_m3(request):
     import sage_poc.safety.s3_semantic as s3
 
     saved_model = ss._embed_model
-    saved_embeddings = ss._semantic_embeddings
-    saved_ids = ss._semantic_skill_ids[:]
+    saved_embeddings = ss._anchor_embeddings
+    saved_ids = ss._anchor_skill_ids[:]
     saved_s3_index = s3._embedding_index
     saved_s3_phrases = list(s3._phrase_texts)
 
     if request.node.get_closest_marker("slow"):
         # Preserve the pre-built session index from _warm_bge_m3_once.
-        # Clearing _semantic_embeddings forces _ensure_semantic_ready() to re-encode
-        # all 23 skill descriptions inside the 10s asyncio.to_thread timeout.
+        # Clearing _anchor_embeddings forces _ensure_semantic_ready() to re-encode
+        # all anchor texts inside the 10s asyncio.to_thread timeout.
         # On CPU (device="cpu" fix, 2026-06-05) this batch encode takes ~10s —
         # right at the boundary — causing intermittent embedding_timeout failures.
         # Each test only needs to encode its own query phrase (~2.25s first JIT
@@ -193,20 +193,28 @@ def _stub_bge_m3(request):
         yield
     else:
         from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP
-        routable_ids = [k for k in ss._SKILLS if k not in KEYWORD_SEMANTIC_SKIP]
-        n_skills = len(routable_ids)
+        # Mirror _ensure_semantic_ready: one entry per (skill, anchor) pair.
+        # Includes semantic_description + any semantic_anchors entries.
+        anchor_ids = []
+        for sid, skill in ss._SKILLS.items():
+            if sid in KEYWORD_SEMANTIC_SKIP:
+                continue
+            if skill.semantic_description:
+                anchor_ids.append(sid)
+            for _ in skill.semantic_anchors:
+                anchor_ids.append(sid)
         mock_model = MagicMock()
         mock_model.encode.side_effect = (
             lambda texts, **kw: np.zeros((len(texts), 1024), dtype=np.float32)
         )
         ss._embed_model = mock_model
-        ss._semantic_embeddings = np.zeros((n_skills, 1024), dtype=np.float32)
-        ss._semantic_skill_ids = routable_ids
+        ss._anchor_embeddings = np.zeros((len(anchor_ids), 1024), dtype=np.float32)
+        ss._anchor_skill_ids = anchor_ids
         yield
 
     ss._embed_model = saved_model
-    ss._semantic_embeddings = saved_embeddings
-    ss._semantic_skill_ids = saved_ids
+    ss._anchor_embeddings = saved_embeddings
+    ss._anchor_skill_ids = saved_ids
     s3._embedding_index = saved_s3_index
     s3._phrase_texts = saved_s3_phrases
 

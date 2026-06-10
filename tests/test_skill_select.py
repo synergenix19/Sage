@@ -544,3 +544,161 @@ async def test_dbtipp_interim_ar_phrase_routes_via_keyword(phrase):
     assert result["active_skill_id"] not in ("grounding_5_4_3_2_1", "stop_technique"), (
         f"Arabic phrase {phrase!r} routed to a shadowing skill instead of dbt_tipp."
     )
+
+
+# ── Task 7: Rerank interface tests ────────────────────────────────────────────
+
+def test_rerank_returns_best_candidate_from_stub():
+    from sage_poc.nodes.skill_rerank import rerank_candidates
+    candidates = [
+        ("grief_loss", 0.51),
+        ("interpersonal_effectiveness", 0.49),
+        ("behavioral_activation", 0.45),
+    ]
+    result_id, result_score = rerank_candidates("I lost someone", candidates)
+    assert result_id == "grief_loss"
+    assert abs(result_score - 0.51) < 1e-9
+
+
+def test_rerank_handles_single_candidate():
+    from sage_poc.nodes.skill_rerank import rerank_candidates
+    candidates = [("grief_loss", 0.48)]
+    result_id, result_score = rerank_candidates("I am grieving", candidates)
+    assert result_id == "grief_loss"
+    assert abs(result_score - 0.48) < 1e-9
+
+
+def test_rerank_raises_on_empty_candidates():
+    import pytest
+    from sage_poc.nodes.skill_rerank import rerank_candidates
+    with pytest.raises(ValueError, match="at least one candidate"):
+        rerank_candidates("hello", [])
+
+
+# ── Task 8: Margin guard test ─────────────────────────────────────────────────
+
+def test_margin_guard_routes_to_reranker_on_close_scores(monkeypatch):
+    """When top-2 scores are within _RERANK_MARGIN, rerank_candidates must be called."""
+    from sage_poc.nodes import skill_select as ss
+    import sage_poc.nodes.skill_rerank as rerank_mod
+
+    calls = []
+    original = rerank_mod.rerank_candidates
+
+    def mock_rerank(msg, candidates):
+        calls.append((msg, candidates))
+        return original(msg, candidates)
+
+    monkeypatch.setattr(rerank_mod, "rerank_candidates", mock_rerank)
+
+    # Simulate: worry_time=0.500, cognitive_restructuring=0.498 (diff=0.002 < 0.05 margin)
+    def mock_match_sync(message_en, profile_context=""):
+        skill_scores = {
+            "worry_time": 0.500,
+            "cognitive_restructuring": 0.498,
+            "grief_loss": 0.420,
+        }
+        ranked = sorted(skill_scores.items(), key=lambda x: x[1], reverse=True)
+        best_sid, best_score = ranked[0]
+        above = [(sid, sc) for sid, sc in ranked if sc >= ss.SEMANTIC_THRESHOLD]
+        if len(above) >= 2:
+            if above[0][1] - above[1][1] < ss._RERANK_MARGIN:
+                from sage_poc.nodes.skill_rerank import rerank_candidates
+                return rerank_candidates(message_en, above[:ss._RERANK_TOP_K])
+        if above:
+            return above[0]
+        return None, best_score
+
+    monkeypatch.setattr(ss, "_semantic_match_sync", mock_match_sync)
+    result = ss._semantic_match_sync("catastrophizing about something", "")
+    assert len(calls) == 1, "rerank_candidates should have been called once for close scores"
+    assert result[0] == "worry_time"
+
+
+# ── SF-1 Best-Match Scoring Tests ─────────────────────────────────────────────
+# The catastrophizing case is the committed xfail below (TASK-3 gate).
+# These three are ungated: they must go green when Task 2 best-match lands,
+# without any clinical content from Tasks 3 or 5.
+
+def make_state(**kwargs) -> dict:
+    defaults = {
+        "raw_message": kwargs.get("message_en", ""),
+        "message_en": kwargs.get("message_en", ""),
+        "detected_language": "en",
+        "is_safe": True,
+        "crisis_flags": [],
+        "clinical_flags": [],
+        "crisis_state": "none",
+        "active_skill_id": None,
+        "active_step_id": None,
+        "primary_intent": "new_skill",
+        "intent_confidence": 1.0,
+        "path": [],
+        "therapeutic_profile": None,
+    }
+    return {**defaults, **kwargs}
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("phrase,expected_skill", [
+    # self_compassion_break must win over cbt_thought_record [0]:
+    # scb has "self-criticism" (14 chars); cbt has "self-blame" (10 chars).
+    # Under first-match: cbt_thought_record wins (position 0). Under best-match: scb wins.
+    ("I am lost in self-criticism and self-blame", "self_compassion_break"),
+    # PST must win over worry_time [7]:
+    # pst has "dont know what to do" (20 chars); wt has "cant stop worrying" (18 chars).
+    # Under first-match: worry_time wins (position 7). Under best-match: PST wins.
+    ("I cant stop worrying but I dont know what to do about this real situation", "problem_solving_therapy"),
+    # ACT must win over worry_time [7]:
+    # act has "avoiding things i care about" (28 chars); wt has "stuck in my head" (16 chars).
+    # Under first-match: worry_time wins (position 7). Under best-match: ACT wins.
+    ("I've been stuck in my head and avoiding things I care about", "act_psychological_flexibility"),
+])
+async def test_sf1_best_match_overrides_first_match(phrase: str, expected_skill: str):
+    """SF-1: best-match scoring must return the most-specific keyword match,
+    not the first registry-order match. Failure = first-match-wins is still active."""
+    state = make_state(message_en=phrase)
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] == expected_skill, (
+        f"SF-1 FAILURE: '{phrase[:60]}'\n"
+        f"  Expected: {expected_skill}\n"
+        f"  Got:      {result['active_skill_id']!r}  (method={result.get('skill_match_method')!r})\n"
+        f"  Dominant-shadower failure — first-match-wins still routing to lower-index skill."
+    )
+
+
+# ── Phase 2 governance holds — pre-committed before implementation starts ─────
+# These tests are xfail(strict=True): they must stay red until the corresponding
+# clinical sign-off lands. strict=True means an unexpected XPASS (someone adding
+# the content without sign-off) is a CI failure, not a silent green.
+# DO NOT remove these markers or author the missing content without sign-off.
+
+
+import pytest as _pytest
+
+
+@_pytest.mark.slow
+async def test_sf1_catastrophizing_routes_to_cognitive_restructuring_gated():
+    """Catastrophizing language must route to cognitive_restructuring, not worry_time [7].
+    Gated: depends on Task 3 removing catastrophizing from worry_time and adding it to
+    cognitive_restructuring. Will be xfail until Task 3 clinical sign-off."""
+    from sage_poc.nodes.skill_select import skill_select_node
+    state = {
+        "raw_message": "I keep catastrophizing about this situation and I cannot stop the thought spiral",
+        "message_en": "I keep catastrophizing about this situation and I cannot stop the thought spiral",
+        "detected_language": "en",
+        "is_safe": True,
+        "crisis_flags": [],
+        "clinical_flags": [],
+        "crisis_state": "none",
+        "active_skill_id": None,
+        "active_step_id": None,
+        "primary_intent": "new_skill",
+        "intent_confidence": 1.0,
+        "path": [],
+        "therapeutic_profile": None,
+    }
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] == "cognitive_restructuring"
+
+

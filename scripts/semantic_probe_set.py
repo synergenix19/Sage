@@ -73,7 +73,8 @@ if __name__ == "__main__":
 
     t0 = time.time()
     ss._ensure_semantic_ready()
-    print(f"BGE-M3 ready in {time.time()-t0:.1f}s | {len(ss._semantic_skill_ids)} skills embedded\n")
+    unique_skills = len(set(ss._anchor_skill_ids))
+    print(f"BGE-M3 ready in {time.time()-t0:.1f}s | {unique_skills} skills, {len(ss._anchor_skill_ids)} anchors embedded\n")
 
     def no_keyword_match(msg):
         msg_l = msg.lower()
@@ -86,9 +87,13 @@ if __name__ == "__main__":
 
     def raw_scores_top3(msg):
         msg_emb = ss._embed_model.encode([msg], normalize_embeddings=True)[0]
-        scores_vec = np.dot(ss._semantic_embeddings, msg_emb)
-        idxs = np.argsort(scores_vec)[::-1][:3]
-        return [(ss._semantic_skill_ids[i], float(scores_vec[i])) for i in idxs]
+        raw = np.dot(ss._anchor_embeddings, msg_emb)
+        skill_scores = {}
+        for i, sid in enumerate(ss._anchor_skill_ids):
+            score = float(raw[i])
+            if score > skill_scores.get(sid, 0.0):
+                skill_scores[sid] = score
+        return sorted(skill_scores.items(), key=lambda x: x[1], reverse=True)[:3]
 
     skills_seen = set()
     current_group = None

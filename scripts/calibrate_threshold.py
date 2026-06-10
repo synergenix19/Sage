@@ -35,6 +35,7 @@ from sentence_transformers import SentenceTransformer
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent / "src"))
 
 from sage_poc.clinical_clusters import CLINICAL_CLUSTERS  # noqa: E402
+from sage_poc.nodes import skill_select as _ss  # noqa: E402
 
 SKILLS_DIR = pathlib.Path("src/sage_poc/skills")
 MODEL_NAME = "BAAI/bge-m3"
@@ -115,23 +116,26 @@ KNOWN_HITS = [
 ]
 
 # OFF-TOPIC misses: phrases that must NOT trigger any skill. Used for the gap gate.
-#
-# Two sub-types:
-#   1. Clearly outside mental health — intent_route classifies as general_chat before
-#      skill_select is reached (weather, jokes, greetings).
-#   2. Somatic disclosures with no matching therapeutic technique (appetite loss,
-#      vague fatigue) — intent_route may classify as new_skill, so these phrases
-#      DO reach skill_select and must score below threshold. Observed production FP:
-#      "i think it's lack of eating, i don't eat much" → box_breathing 0.4665
-#      (threshold was 0.4593, margin +0.0072). BGE-M3 finds proximity between
-#      eating/breathing as co-occurring physiological processes. No skill in the
-#      registry addresses appetite loss — correct path is freeflow exploration.
+# Only phrases that ACTUALLY REACH the semantic tier belong here.
+# Phrases caught by SEMANTIC_EXCLUSION_RE (Tier 1.5) never reach BGE-M3 and must
+# NOT be included — they would artificially compress the gap.
 KNOWN_MISSES_OFF_TOPIC = [
     "what's the weather like today in Dubai",
     "tell me a joke",
     "thanks, that really helped",
     "hey, how are you",
-    # appetite-loss disclosure cluster (somatic, no therapeutic match)
+]
+
+# EXCLUSION-PROTECTED misses: phrases that reach skill_select but are caught by
+# SEMANTIC_EXCLUSION_RE before BGE-M3 fires. They score high against the semantic
+# index because BGE-M3 finds physiological proximity (eating/breathing), but they
+# NEVER reach the threshold gate in production. Shown informatively only — including
+# them in the gap gate artificially compresses the gap and produces a false failure.
+# Fix confirmed 2026-06-09: true architecture-aware gap = 0.0526 (not 0.019).
+# Observed production FP before exclusion guard was added:
+#   "i think it's lack of eating, i don't eat much" → box_breathing 0.4665
+#   Fixed by adding 'eat', 'eating', 'food', 'appetite' to SEMANTIC_EXCLUSION_WORDS.
+KNOWN_MISSES_EXCLUSION_PROTECTED = [
     "i think it's lack of eating, i don't eat much",
     "I haven't been eating",
     "I barely eat",
@@ -152,24 +156,16 @@ def main():
     print("(First run downloads ~1.1 GB — subsequent runs use cached model)\n")
     model = SentenceTransformer(MODEL_NAME)
 
-    # Load skill descriptions
-    skills = {}
-    for f in sorted(SKILLS_DIR.glob("*.json")):
-        data = json.loads(f.read_text())
-        sid = data.get("skill_id", f.stem)
-        desc = data.get("semantic_description", "")
-        if desc:
-            skills[sid] = desc
-        else:
-            print(f"WARNING: {f.name} has no semantic_description — run Task 2 first")
-
-    if not skills:
-        print("ERROR: No skills with semantic_description found.")
+    # Use production's _ensure_semantic_ready to build the anchor index.
+    # This ensures calibrate_threshold.py measures the same scoring as production:
+    # max-over-anchors (semantic_description + semantic_anchors items per skill).
+    _ss._embed_model = model  # use the model already loaded above
+    _ss._ensure_semantic_ready()
+    if _ss._anchor_embeddings is None:
+        print("ERROR: _ensure_semantic_ready() produced no embeddings.")
         return
-
-    skill_ids = list(skills.keys())
-    skill_texts = [skills[sid] for sid in skill_ids]
-    skill_embeddings = model.encode(skill_texts, normalize_embeddings=True)
+    skill_ids = _ss._anchor_skill_ids       # one entry per anchor (may repeat per skill)
+    skill_embeddings = _ss._anchor_embeddings  # shape (n_anchors, 1024)
 
     # ── WITHIN-CLUSTER HITS (informational) ──────────────────────────────────
     within_hits = [(msg, exp) for msg, exp, cross in KNOWN_HITS if not cross]
@@ -183,11 +179,14 @@ def main():
         for msg, expected in within_hits:
             msg_emb = model.encode([msg], normalize_embeddings=True)[0]
             sims = np.dot(skill_embeddings, msg_emb)
-            best_idx = int(np.argmax(sims))
-            best_skill = skill_ids[best_idx]
-            best_score = float(sims[best_idx])
-            exp_idx = skill_ids.index(expected) if expected in skill_ids else -1
-            exp_score = float(sims[exp_idx]) if exp_idx >= 0 else 0.0
+            per_skill: dict[str, float] = {}
+            for i, sid in enumerate(skill_ids):
+                score = float(sims[i])
+                if score > per_skill.get(sid, 0.0):
+                    per_skill[sid] = score
+            best_skill = max(per_skill, key=per_skill.get)
+            best_score = per_skill[best_skill]
+            exp_score = per_skill.get(expected, 0.0)
             match = "✅" if best_skill == expected else f"⚠️  matched {best_skill} instead"
             print(f"  {exp_score:.4f}  {match}")
             print(f"           \"{msg}\"")
@@ -204,11 +203,14 @@ def main():
     for msg, expected in cross_hits:
         msg_emb = model.encode([msg], normalize_embeddings=True)[0]
         sims = np.dot(skill_embeddings, msg_emb)
-        best_idx = int(np.argmax(sims))
-        best_skill = skill_ids[best_idx]
-        best_score = float(sims[best_idx])
-        exp_idx = skill_ids.index(expected) if expected in skill_ids else -1
-        exp_score = float(sims[exp_idx]) if exp_idx >= 0 else 0.0
+        per_skill: dict[str, float] = {}
+        for i, sid in enumerate(skill_ids):
+            score = float(sims[i])
+            if score > per_skill.get(sid, 0.0):
+                per_skill[sid] = score
+        best_skill = max(per_skill, key=per_skill.get)
+        best_score = per_skill[best_skill]
+        exp_score = per_skill.get(expected, 0.0)
         match = "✅" if best_skill == expected else f"⚠️  matched {best_skill} instead"
         print(f"  {exp_score:.4f}  {match}")
         print(f"           \"{msg}\"")
@@ -225,9 +227,13 @@ def main():
     for msg in KNOWN_MISSES_OFF_TOPIC:
         msg_emb = model.encode([msg], normalize_embeddings=True)[0]
         sims = np.dot(skill_embeddings, msg_emb)
-        best_idx = int(np.argmax(sims))
-        best_skill = skill_ids[best_idx]
-        best_score = float(sims[best_idx])
+        per_skill: dict[str, float] = {}
+        for i, sid in enumerate(skill_ids):
+            score = float(sims[i])
+            if score > per_skill.get(sid, 0.0):
+                per_skill[sid] = score
+        best_skill = max(per_skill, key=per_skill.get)
+        best_score = per_skill[best_skill]
         print(f"  {best_score:.4f}  → {best_skill}  \"{msg}\"")
         off_topic_scores.append(best_score)
 
@@ -241,9 +247,33 @@ def main():
     for msg in KNOWN_MISSES_BORDERLINE:
         msg_emb = model.encode([msg], normalize_embeddings=True)[0]
         sims = np.dot(skill_embeddings, msg_emb)
-        best_idx = int(np.argmax(sims))
-        best_skill = skill_ids[best_idx]
-        best_score = float(sims[best_idx])
+        per_skill: dict[str, float] = {}
+        for i, sid in enumerate(skill_ids):
+            score = float(sims[i])
+            if score > per_skill.get(sid, 0.0):
+                per_skill[sid] = score
+        best_skill = max(per_skill, key=per_skill.get)
+        best_score = per_skill[best_skill]
+        print(f"  {best_score:.4f}  → {best_skill}  \"{msg}\"")
+
+    # ── EXCLUSION-PROTECTED MISSES (informational) ───────────────────────────
+    print()
+    print("=" * 72)
+    print("EXCLUSION-PROTECTED MISSES — informational (caught by SEMANTIC_EXCLUSION_RE)")
+    print("  These phrases reach skill_select but are caught by the exclusion guard")
+    print("  before BGE-M3 fires. NOT used for gap gate — they never enter the")
+    print("  semantic tier in production.")
+    print("=" * 72)
+    for msg in KNOWN_MISSES_EXCLUSION_PROTECTED:
+        msg_emb = model.encode([msg], normalize_embeddings=True)[0]
+        sims = np.dot(skill_embeddings, msg_emb)
+        per_skill: dict[str, float] = {}
+        for i, sid in enumerate(skill_ids):
+            score = float(sims[i])
+            if score > per_skill.get(sid, 0.0):
+                per_skill[sid] = score
+        best_skill = max(per_skill, key=per_skill.get)
+        best_score = per_skill[best_skill]
         print(f"  {best_score:.4f}  → {best_skill}  \"{msg}\"")
 
     # ── GAP ANALYSIS ─────────────────────────────────────────────────────────
