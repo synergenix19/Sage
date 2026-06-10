@@ -392,9 +392,9 @@ A grief, IE, or financial anchor that barely clears the gate (e.g., at 0.46) doe
 #### Task 5 — Sign-off template (NO-ANCHOR ARCHITECTURE DECISION)
 
 ```
-Reviewer:
-Date:
-Decision:
+Reviewer: Rohan Sarda
+Date: 2026-06-10
+Decision: Approved.
 
   Task 5 is closed without semantic anchors for any of the three skills.
 
@@ -423,7 +423,7 @@ Decision:
 
   The 3 TASK-5 xfail markers may be retired upon receipt of this sign-off.
 
-Notes / conditions:
+Notes / conditions: None.
 ```
 
 ---
