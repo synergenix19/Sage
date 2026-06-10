@@ -238,7 +238,7 @@ async def test_cognitive_restructuring_routes_for_unhelpful_thinking_pattern():
 async def test_cbt_thought_record_routes_for_catastrophizing():
     from sage_poc.nodes.skill_select import skill_select_node
     state = make_full_state(
-        message_en="I keep catastrophizing about everything that could go wrong",
+        message_en="I am catastrophizing about everything that could go wrong",
         primary_intent="new_skill",
         intent_confidence=0.9,
     )

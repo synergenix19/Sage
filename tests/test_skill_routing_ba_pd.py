@@ -61,6 +61,11 @@ _KNOWN_SUBSTRING_SHADOWS: frozenset[tuple[str, str, str, str]] = frozenset({
     ("تعبان",                       "mood_check_in",           "دايم تعبان وما في طاقة",                      "psychoed_stress"),
     ("how to say no",               "assertive_communication", "i don't know how to say no",                  "interpersonal_effectiveness"),
     ("i know it's irrational but",  "cognitive_restructuring", "i know it's irrational but i still feel it",  "act_psychological_flexibility"),
+    # Task 3 (2026-06-10): "i keep catastrophizing" and "always catastrophizing" are intentional
+    # longer keywords in cognitive_restructuring that shadow bare "catastrophizing" in
+    # cbt_thought_record. Clinically acceptable — both skills address cognitive distortions.
+    ("catastrophizing",             "cbt_thought_record",      "i keep catastrophizing",                      "cognitive_restructuring"),
+    ("catastrophizing",             "cbt_thought_record",      "always catastrophizing",                      "cognitive_restructuring"),
 })
 
 
