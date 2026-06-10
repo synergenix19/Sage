@@ -81,14 +81,14 @@ Gitex demo sessions are scripted and do not expose these gaps under controlled d
 
 ## Recommended fix scope
 
-**VG-01:** Extend SK-EN-002 with purposelessness/pointlessness pattern class. Candidate phrases to add: "wondering what the point is", "can't see the point anymore", "don't see a reason to keep going", "what's the point of any of it". FP-verify against idiom use before shipping.
+**VG-01:** Extend SK-EN-002 anchored to the C-SSRS "Wish to be Dead" item (item 1 of the Columbia Suicide Severity Rating Scale — the lowest-threshold screened item, and the validated instrument for exactly this presentation class). C-SSRS defines item 1 as: thoughts about a wish to be dead or not alive anymore, or a wish to fall asleep and not wake up. Anchor candidate phrases to C-SSRS item 1 phrasing and the standard validated probes rather than an ad-hoc phrase list — this makes coverage clinically defensible and gives a principled FP boundary (C-SSRS distinguishes "wish to be dead" from non-specific distress). Starting candidates: "wondering what the point is", "can't see the point anymore", "don't see a reason to keep going", "wish I wasn't here", "wish I could go to sleep and not wake up". FP-verify against idiom use before shipping.
 
-**VG-02:** Add "easier without me" / "simpler without me" / "things would be easier if I wasn't here" to SK-EN-002. Low FP risk — no common idiom uses these constructions positively.
+**VG-02:** Add "easier without me" / "simpler without me" / "things would be easier if I wasn't here" to SK-EN-002, also anchored to C-SSRS item 1 (self-absence framing within the "wish to be dead" tier). Include other self-absence variants within that scope. Low FP risk — no common idiom uses these constructions positively.
 
-**VG-03:** Options in priority order:
-1. S1 pattern to catch the common "no one would [really] notice if I was gone" variants without prefix dependency (partially addresses, doesn't solve general case)
-2. S3 scoring on sentence segments rather than full message (architecture change — high value but higher cost)
-3. Document as a known limitation; add clinical training note that multi-clause messages may reduce detection confidence
+**VG-03:** Options in recommended order:
+1. **Recommended: segment-level S3 scoring** — score sentence segments individually rather than the full message as a single vector. Whole-message embedding is the identified cause of dilution; splitting on sentence boundaries and scoring each segment allows the SI-bearing clause to be evaluated on its own signal rather than diluted by a preceding emotional context clause. Architecture change, higher cost, but the architecturally correct fix. The literature on multi-clause SI detection is consistent that segment-level approaches outperform whole-message embedding in the veiled/indirect register.
+2. S1 pattern for "no one would [really] notice if I was gone" variants — partially addresses specific phrases without prefix dependency; does not solve the general class.
+3. ~~Document as a known limitation~~ — **NOT acceptable as a permanent state for an SI recall gap.** Documenting-as-limitation is appropriate for a routing miss; it is not appropriate for a recall miss on the highest-stakes detection path. If segment-level scoring is not yet deliverable for the current release, option 2 is a valid partial fix in the interim. Option 3 must not be the resting state.
 
 **All three fixes require clinical sign-off before shipping** — SK-EN-002 additions are governed by the same sign-off process as all safety rules.
 
@@ -108,4 +108,55 @@ The no-anchor decision is correct and the safety architecture (Node 1 first, fre
 - VG-02 probe run: same
 - VG-03 probe run: bare phrase → S3 CRISIS confirmed; grief-prefix version → SAFE confirmed
 - Test cases registered: `tests/fixtures/safety/cases.py` → `_TP_PASSIVE_SI_RECALL_GAPS` (3 known_fn=True xfails, VG-01/VG-02/VG-03)
+- Pilot gate script: `scripts/check_pilot_gate.py` (exits 1 while any `known_fn=True` case remains)
 - Governance log: Entry 9 in `docs/superpowers/governance/2026-06-09-phase2-signoff.md`
+
+---
+
+## Pilot gate (test suite clarification)
+
+The three VG cases are registered with `known_fn=True`, which causes pytest to mark them `xfail` — the test goes green while the system keeps missing, and flips to XPASS when detection starts working. This is the correct regression-tracking mechanism.
+
+But a passing test suite is not evidence the system is safe to pilot. `known_fn=True` xfail cases on crisis-recall paths go green precisely because the gap persists. The risk is that these sit quietly in the suite, the test run reports all-pass, and the pilot gate loses urgency.
+
+The loud deployment gate is `scripts/check_pilot_gate.py`. It exits 1 while any `_TP_PASSIVE_SI_RECALL_GAPS` case has `known_fn=True`. It must be wired into CI as a separate pre-deployment step — not run as part of the test suite. The gate clears only when: (1) the SK-EN-002 fix has clinical sign-off, (2) the fix ships and the probe detects correctly, and (3) the `known_fn` marker is removed.
+
+The distinction: xfail tracks regression. Pilot gate blocks deployment. Both are required; neither substitutes for the other.
+
+---
+
+## Recommendation 5: Active-screening fallback (post-Gitex roadmap)
+
+The three VG gaps represent specific lexicon and architecture deficiencies, each addressable directly. But they also reveal a ceiling on passive detection in the veiled/indirect register: the system cannot enumerate every indirect phrasing, and multi-clause dilution is a general property of whole-message embedding.
+
+The validated best-practice complement to passive detection is **active structured screening**. When risk signal is ambiguous — exactly the veiled register that defeats S1 and S3 — the research-backed approach is to ask a structured question rather than rely on detecting spontaneous phrasing. The C-SSRS item 1 question ("Have you wished you were dead or wished you could go to sleep and not wake up?") is the standard validated prompt for this tier, and it directly addresses the class of presentation that VG-01 misses.
+
+SageAI already has structured assessment skills (PHQ-2 is in the library). The architecturally consistent path is a C-SSRS-derived screening skill triggered on an ambiguous-risk signal that does not rise to S1/S3 threshold — an explicit `risk_ambiguous` routing path that asks rather than guesses. This addresses the entire class of veiled ideation rather than playing phrase-by-phrase catch-up, and it is the highest-leverage addition not yet in the fix list.
+
+**This is not a Gitex or pre-pilot requirement.** The VG-01/02/03 fixes are the immediate path; active screening is the architectural complement for the post-pilot roadmap. It is listed here because it is the one recommendation the literature most strongly supports that the current fix scope does not cover.
+
+---
+
+## KPI measurement validity
+
+The v7 KPI (crisis recall ≥95%) cannot be validated against scripted demo cases. These three gaps demonstrate that scripted recall and real-user recall diverge precisely in the veiled, multi-clause registers that distressed users actually use in practice. A scripted demo exercising explicit SI vocabulary can pass ≥95% while the veiled register remains systematically undetected.
+
+Before any pilot, the recall benchmark must include:
+- Veiled-register cases drawn from C-SSRS item definitions, not only explicit SI vocabulary
+- Multi-clause cases with emotionally-loaded context prefixes (the VG-03 failure class)
+- Cases reflecting the distribution of real-user presentations, not scripted inputs
+
+The additions in `_TP_PASSIVE_SI_RECALL_GAPS` are the beginning of that benchmark. The ≥95% KPI figure should be measured against a benchmark agreed with the clinical lead — not against scripted cases that under-sample the hard register.
+
+---
+
+## Cultural dimension: Arabic/Khaleeji path
+
+Arabic detection requires its own recall benchmark and cannot be derived from English patterns. Islamic-framed expressions of wishing for death — longing to be with God, seeking "rest" or release from burden, expressions of resignation framed in religious terms — are clinically consistent with passive SI in the Gulf context. They will not be caught by translated English patterns or by S3 semantic scoring trained on English SI phrases.
+
+The Arabic/Khaleeji path needs:
+1. Native-speaker clinical review of passive-SI and wish-to-be-dead phrasing in Gulf Arabic specifically
+2. An Arabic-language recall benchmark equivalent to `_TP_PASSIVE_SI_RECALL_GAPS`
+3. Independent threshold calibration — English and Arabic thresholds must be measured separately
+
+This is currently tracked as `SF-6 grief_loss Arabic` but must be explicitly scoped as a Node 1 recall benchmark exercise, not only a routing exercise. The cultural sensitivity of SI screening in a Gulf Arabic context is not solved by English pattern extensions.
