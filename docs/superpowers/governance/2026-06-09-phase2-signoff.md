@@ -201,12 +201,19 @@ The following are blocked on clinical sign-off. They must NOT merge until the si
 2. **Add `catastrophizing` / `catastrophising` / `i keep catastrophizing` / `always catastrophizing` to `cognitive_restructuring.target_presentations`**
    - Conditional on decision 1 above
 
-Sign-off record (append here when received):
+Sign-off record:
 ```
 Task 3 — clinical sign-off
-Reviewer: [name]
-Date: [date]
-Decision: [approved/rejected, with rationale]
+Reviewer: Rohan Sarda
+Date: 2026-06-10
+Decision: Approved as-written.
+  (a) Remove "catastrophising", "catastrophizing", "cant stop thinking about it"
+      from worry_time.target_presentations.
+  (b) Add "catastrophizing", "catastrophising", "i keep catastrophizing",
+      "always catastrophizing" to cognitive_restructuring.target_presentations.
+  Rationale confirmed: catastrophizing as a named cognitive distortion is
+  cognitive_restructuring territory; worry_time's legitimate coverage of
+  rumination is preserved by remaining keywords.
 ```
 
 ### Task 5 — semantic_anchors (24 sentences across 3 skills)
@@ -224,13 +231,24 @@ The 24 anchor sentences are specified in the plan at Task 5 Steps 1–3. They ar
 
 The split is the conservative default (single-skill clusters disable argmax routing). If there is clinical rationale for keeping MI and STOP in a shared cluster (they share a "readiness / self-regulation" clinical region), the clinical lead can affirm the pairing and the clusters can be restored. Without explicit affirmation, the split stands.
 
-Sign-off record (append here when received):
+Sign-off record:
 ```
 Task 5 — clinical sign-off
-Reviewer: [name]
-Date: [date]
-Decision: [approved/rejected for each of the 3 skills' anchor sets]
-MI+STOP cluster: [affirm pairing / confirm split]
+Reviewer: Rohan Sarda
+Date: 2026-06-10
+Decision: All 24 anchor sentences approved as-written. No edits.
+  grief_loss (8 anchors): approved — bereavement language, loss of primary
+    attachment figure, Gulf family context, anticipatory grief.
+  interpersonal_effectiveness (8 anchors): approved — family conflict navigation,
+    father/in-law dynamics, sibling repair, boundary-setting.
+  financial_anxiety (8 anchors): approved — provider-role pressure, kafala
+    system constraint, remittance obligation, income-loss fear.
+MI+STOP cluster: Confirm split (readiness_ambivalence: [mi_readiness_ruler],
+  impulse_pause: [stop_technique]). Conservative default stands; no affirmation
+  of pairing provided.
+Note: SI-bleed check (Task 9 Step 2) is a post-merge automated gate and does
+  not substitute for this review. Clinical sign-off covers clinical accuracy
+  and cultural appropriateness; the embedding boundary check is separate.
 ```
 
 ---
