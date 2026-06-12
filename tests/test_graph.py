@@ -94,6 +94,20 @@ def test_english_skill_routing_e2e():
     result = asyncio.run(graph.ainvoke(make_e2e_state("I keep thinking everything is my fault, always", emotional_intensity=6)))
     assert result["is_safe"] is True
     assert "skill_select" in result["path"]
+    # R1: first turn yields a consent offer, not direct activation
+    assert result["active_skill_id"] is None
+    assert result["offered_skill_ids"][0] == "cbt_thought_record"
+    assert result["response"] is not None
+
+    # Accept turn: intent_route offer-classification is simulated via state
+    # (offer_response is a per-turn field); promotion happens in skill_select.
+    result = asyncio.run(graph.ainvoke(carry_state(
+        result,
+        "Yes, let's try that",
+        offered_skill_ids=result["offered_skill_ids"],
+        offer_response="accept",
+        offer_choice_skill_id="cbt_thought_record",
+    )))
     assert result["active_skill_id"] == "cbt_thought_record"
     assert result["executed_step_id"] == "identify_thought"
     # validate_only may hold at identify_thought (intensity > 7) or advance — both are correct
@@ -120,13 +134,24 @@ def test_cbt_full_3_step_progression_e2e():
     from sage_poc.graph import build_graph
     graph = build_graph()
 
-    # Turn 1: trigger the skill
+    # Turn 1: trigger the skill — R1: yields a consent offer
     result = asyncio.run(graph.ainvoke(make_e2e_state(
         "I keep thinking that everything is my fault, always, and I cannot escape it",
         emotional_intensity=6,
     )))
+    assert result["offered_skill_ids"][0] == "cbt_thought_record", \
+        "CBT-triggering message must offer the skill"
+
+    # Turn 2: accept the offer (offer_response simulated via state; per-turn field)
+    result = asyncio.run(graph.ainvoke(carry_state(
+        result,
+        "Yes, I would like to try that",
+        offered_skill_ids=result["offered_skill_ids"],
+        offer_response="accept",
+        offer_choice_skill_id="cbt_thought_record",
+    )))
     assert result["active_skill_id"] == "cbt_thought_record", \
-        "Skill must activate on CBT-triggering message"
+        "Skill must activate once the offer is accepted"
     assert result["executed_step_id"] == "identify_thought", \
         "First step is always identify_thought"
 
@@ -223,17 +248,29 @@ def test_session_full_lifecycle_e2e():
     assert r1["response"] is not None
     print(f"\n[LIFECYCLE] Turn 1 (greeting) path: {r1['path']}")
 
-    # Turn 2: Skill trigger — identify_thought always runs first
-    r2 = asyncio.run(graph.ainvoke(make_e2e_state(
+    # Turn 2: Skill trigger — R1: produces the consent offer
+    r2_offer = asyncio.run(graph.ainvoke(make_e2e_state(
         "I keep thinking that everything is my fault, always, and I cannot shake it",
         conversation_history=r1["conversation_history"],
         emotional_intensity=6, engagement=7,
+    )))
+    assert r2_offer["active_skill_id"] is None
+    assert r2_offer["offered_skill_ids"][0] == "cbt_thought_record"
+    print(f"[LIFECYCLE] Turn 2 (offer) offered: {r2_offer['offered_skill_ids']}")
+
+    # Turn 2b: accept — identify_thought always runs first after promotion
+    r2 = asyncio.run(graph.ainvoke(carry_state(
+        r2_offer,
+        "Yes, let's do that",
+        offered_skill_ids=r2_offer["offered_skill_ids"],
+        offer_response="accept",
+        offer_choice_skill_id="cbt_thought_record",
     )))
     assert r2["active_skill_id"] == "cbt_thought_record"
     assert r2["executed_step_id"] == "identify_thought"
     # validate_only may hold at identify_thought (intensity > 7) or advance — both correct
     assert r2["active_step_id"] in ("identify_thought", "explore_distortion")
-    print(f"[LIFECYCLE] Turn 2 (skill start) executed: {r2['executed_step_id']} → next: {r2['active_step_id']}")
+    print(f"[LIFECYCLE] Turn 2b (skill start) executed: {r2['executed_step_id']} → next: {r2['active_step_id']}")
 
     # Turns 3+: continue until skill completes.
     # validate_only may add extra turns when the user is highly distressed — clinically correct.

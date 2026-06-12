@@ -12,6 +12,7 @@ from sage_poc.skill_ids import SKILL_REGISTRY
 from sage_poc.skills.schema import load_skill
 from sage_poc.resilience import EMBEDDING_TIMEOUT_SECONDS
 from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP, SEMANTIC_EXCLUSION_WORDS
+from sage_poc.rules import engine as rules_engine
 
 logger = logging.getLogger(__name__)
 
@@ -88,10 +89,10 @@ def _skill_cluster(skill_id: str) -> str | None:
     return None
 
 
-def _semantic_match_sync(
+def _semantic_match_with_runner_up(
     message_en: str,
     profile_context: str = "",
-) -> tuple[str | None, float]:
+) -> tuple[str | None, float, tuple[str, float] | None]:
     """Max-over-anchors matching with cluster argmax, state-in-query, and rerank margin guard.
 
     Each skill contributes one score: the max cosine similarity across its semantic_description
@@ -99,10 +100,14 @@ def _semantic_match_sync(
     score exceeds _CLUSTER_ARGMAX_FLOOR, routes by argmax rather than absolute threshold
     (useful for within-cluster disambiguation below SEMANTIC_THRESHOLD). For cross-cluster
     decisions above threshold where top-2 are within _RERANK_MARGIN, routes to rerank_candidates.
+
+    Returns (best_skill_id, best_score, runner_up) where runner_up is the
+    highest-scoring OTHER skill at/above SEMANTIC_THRESHOLD as (skill_id, score),
+    or None. R1 uses the runner-up as the second offer candidate.
     """
     _ensure_semantic_ready()
     if _anchor_embeddings is None or not message_en.strip():
-        return None, 0.0
+        return None, 0.0, None
 
     query_text = f"{profile_context}\n{message_en}".strip() if profile_context else message_en
     msg_emb = _embed_model.encode([query_text], normalize_embeddings=True)[0]
@@ -115,10 +120,18 @@ def _semantic_match_sync(
             skill_scores[sid] = score
 
     if not skill_scores:
-        return None, 0.0
+        return None, 0.0, None
 
     ranked = sorted(skill_scores.items(), key=lambda x: x[1], reverse=True)
     best_sid, best_score = ranked[0]
+
+    def _runner_up(best: str | None) -> tuple[str, float] | None:
+        if best is None:
+            return None
+        for sid, sc in ranked:
+            if sid != best and sc >= SEMANTIC_THRESHOLD:
+                return (sid, sc)
+        return None
 
     # Within-cluster argmax: when top-2 share a clinical cluster and the second exceeds
     # the soft floor, trust relative ordering rather than absolute threshold gating.
@@ -127,19 +140,90 @@ def _semantic_match_sync(
         if second_score >= _CLUSTER_ARGMAX_FLOOR:
             best_cluster = _skill_cluster(best_sid)
             if best_cluster is not None and best_cluster == _skill_cluster(second_sid):
-                return best_sid, best_score
+                return best_sid, best_score, _runner_up(best_sid)
 
     # Absolute threshold gate — cross-cluster or single-cluster without argmax floor
     above = [(sid, score) for sid, score in ranked if score >= SEMANTIC_THRESHOLD]
     if len(above) == 1:
-        return above[0]
+        return above[0][0], above[0][1], _runner_up(above[0][0])
     if len(above) >= 2:
         if above[0][1] - above[1][1] < _RERANK_MARGIN:
             from sage_poc.nodes.skill_rerank import rerank_candidates
-            return rerank_candidates(message_en, above[:_RERANK_TOP_K])
-        return above[0]
+            best_sid_r, best_score_r = rerank_candidates(message_en, above[:_RERANK_TOP_K])
+            return best_sid_r, best_score_r, _runner_up(best_sid_r)
+        return above[0][0], above[0][1], _runner_up(above[0][0])
 
-    return None, best_score
+    return None, best_score, None
+
+
+def _semantic_match_sync(message_en: str, profile_context: str = "") -> tuple[str | None, float]:
+    """Back-compat 2-tuple wrapper around _semantic_match_with_runner_up."""
+    best, score, _ = _semantic_match_with_runner_up(message_en, profile_context)
+    return best, score
+
+
+_FALLBACK_OFFER_ACTION = {"type": "offer", "max_offered": 2, "declined_scope": "session"}
+
+
+def _resolve_entry(
+    state: SageState,
+    candidates: list[str],
+    method: str,
+    semantic_score: float | None,
+) -> dict:
+    """Ask the skill_matching rules how the primary candidate enters the
+    conversation, then build the node result. candidates are ranked, NOT yet
+    filtered by declined_skills: declined handling is the fired rule's decision
+    (the acute rule sets ignore_declined)."""
+    primary = candidates[0]
+    eval_result = rules_engine.evaluate("skill_matching", {
+        "matched_skill_id": primary,
+        "emotional_intensity": state.get("emotional_intensity", 5),
+    })
+    if eval_result.fired:
+        fired = eval_result.fired[0]
+        action, rule_id = fired.action, fired.rule_id
+    else:
+        # No rules loaded: consent is the fail-safe default, never silent entry.
+        action, rule_id = _FALLBACK_OFFER_ACTION, "fallback_offer"
+        logger.warning("[skill_select] no skill_matching rule fired; defaulting to offer")
+
+    declined = set(state.get("declined_skills") or [])
+    audit_markers = ["skill_select", f"skill_matching_rule:{rule_id}"]
+
+    if action["type"] == "enter_direct":
+        if action.get("ignore_declined") or primary not in declined:
+            skill = _SKILLS[primary]
+            return {
+                "active_skill_id": primary,
+                "active_step_id": skill.steps[0].step_id,
+                "skill_match_method": method,
+                "semantic_score": semantic_score,
+                "path": state["path"] + audit_markers,
+            }
+        # A clinician-authored enter_direct rule without ignore_declined matched a
+        # declined skill: consent fallback wins, and the audit trail must say so,
+        # the fired rule's action and the action taken differ on this turn.
+        audit_markers.append("enter_direct_declined_fallback")
+
+    offerable = [sid for sid in candidates if sid not in declined]
+    offerable = offerable[: int(action.get("max_offered", 2))]
+    if not offerable:
+        return {
+            "active_skill_id": None,
+            "active_step_id": None,
+            "skill_match_method": None,
+            "semantic_score": None,
+            "path": state["path"] + audit_markers + ["all_candidates_declined"],
+        }
+    return {
+        "active_skill_id": None,
+        "active_step_id": None,
+        "offered_skill_ids": offerable,
+        "skill_match_method": f"{method}_offer",
+        "semantic_score": semantic_score,
+        "path": state["path"] + audit_markers + ["skill_offer_made"],
+    }
 
 
 async def skill_select_node(state: SageState) -> dict:
@@ -194,37 +278,57 @@ async def skill_select_node(state: SageState) -> dict:
             "path": state["path"] + ["skill_select"],
         }
 
+    # R1: accepted offer promotion. Runs after all auto-select safety paths so
+    # post-crisis and psychotic referral always take precedence over a stale offer.
+    offered = state.get("offered_skill_ids") or []
+    if offered and state.get("offer_response") == "accept":
+        chosen = state.get("offer_choice_skill_id")
+        if chosen not in _SKILLS or chosen not in offered:
+            chosen = next((sid for sid in offered if sid in _SKILLS), None)
+        if chosen is not None:
+            skill = _SKILLS[chosen]
+            return {
+                "active_skill_id": chosen,
+                "active_step_id": skill.steps[0].step_id,
+                "offered_skill_ids": None,
+                "skill_match_method": "offer_accept",
+                "semantic_score": None,
+                "path": state["path"] + ["skill_select", "offer_promoted"],
+            }
+        # Stale checkpoint after a skill rename: no offered id resolves to a known
+        # skill. Clear the offer and fall through to normal matching.
+        logger.warning(
+            "[skill_select] accepted offer contains no known skill ids %s; "
+            "clearing offer and re-matching", offered,
+        )
+        state = {**state, "offered_skill_ids": None}
+
     message_en = state["message_en"].lower()
     raw_message = (state.get("raw_message") or "").lower()
     detected_language = state.get("detected_language") or "en"
 
     # Tier 1: Best-match keyword scoring — synchronous, deterministic, fast.
-    # Collects ALL matches across all skills; returns the skill whose matched keyword
-    # is longest (most specific). Fixes SF-1: eliminates registry-order-as-tiebreaker
-    # dominant-shadower failures where a short keyword in a low-index skill blocked a
-    # longer, more-specific keyword in a high-index skill from ever being reached.
+    # Collects ALL matches across all skills, ranked by longest matched keyword
+    # (most specific first). Keeps SF-1 semantics: eliminates registry-order-as-
+    # tiebreaker dominant-shadower failures where a short keyword in a low-index
+    # skill blocked a longer, more-specific keyword in a high-index skill from
+    # ever being reached (stable sort preserves registry order on ties).
     # For Arabic sessions, also match against raw_message (Arabic-script keywords
     # cannot match a translated English string). Backlog R1: language-tagged rules.
-    _best_kw: tuple[str, int] | None = None  # (skill_id, keyword_length)
+    kw_matches: dict[str, int] = {}   # skill_id -> longest matched keyword length
     for skill_id, skill in _SKILLS.items():
         if skill_id in KEYWORD_SEMANTIC_SKIP:
             continue
         for keyword in skill.target_presentations:
             kw_lower = keyword.lower()
             if kw_lower in message_en or (detected_language == "ar" and kw_lower in raw_message):
-                if _best_kw is None or len(kw_lower) > _best_kw[1]:
-                    _best_kw = (skill_id, len(kw_lower))
+                if len(kw_lower) > kw_matches.get(skill_id, 0):
+                    kw_matches[skill_id] = len(kw_lower)
 
-    if _best_kw is not None:
-        t1_skill_id = _best_kw[0]
-        t1_skill = _SKILLS[t1_skill_id]
-        return {
-            "active_skill_id": t1_skill_id,
-            "active_step_id": t1_skill.steps[0].step_id,
-            "skill_match_method": "keyword",
-            "semantic_score": None,
-            "path": state["path"] + ["skill_select"],
-        }
+    if kw_matches:
+        ranked_kw = sorted(kw_matches.items(), key=lambda x: x[1], reverse=True)
+        candidates = [sid for sid, _ in ranked_kw]
+        return _resolve_entry(state, candidates, method="keyword", semantic_score=None)
 
     # Pre-Tier-2 exclusion guard: words with no therapeutic skill match in this registry.
     # Prevents BGE-M3 from routing somatic/physiological disclosures (appetite loss, food
@@ -246,8 +350,8 @@ async def skill_select_node(state: SageState) -> dict:
         profile.get("summary", "") or "" if isinstance(profile, dict) else ""
     )
     try:
-        semantic_skill, score = await asyncio.wait_for(
-            asyncio.to_thread(_semantic_match_sync, state["message_en"], profile_context),
+        semantic_skill, score, runner_up = await asyncio.wait_for(
+            asyncio.to_thread(_semantic_match_with_runner_up, state["message_en"], profile_context),
             timeout=EMBEDDING_TIMEOUT_SECONDS,
         )
     except asyncio.TimeoutError:
@@ -266,14 +370,10 @@ async def skill_select_node(state: SageState) -> dict:
         }
 
     if semantic_skill is not None:
-        skill = _SKILLS[semantic_skill]
-        return {
-            "active_skill_id": semantic_skill,
-            "active_step_id": skill.steps[0].step_id,
-            "skill_match_method": "semantic",
-            "semantic_score": round(score, 4),
-            "path": state["path"] + ["skill_select"],
-        }
+        candidates = [semantic_skill]
+        if runner_up is not None and runner_up[0] != semantic_skill:
+            candidates.append(runner_up[0])
+        return _resolve_entry(state, candidates, method="semantic", semantic_score=round(score, 4))
 
     return {
         "active_skill_id": None,

@@ -231,8 +231,9 @@ async def test_selects_cbt_for_negative_thought():
         primary_intent="new_skill",
     )
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "cbt_thought_record"
-    assert result["active_step_id"] == "identify_thought"
+    # R1: keyword match yields a consent offer at default intensity, not activation.
+    assert result["active_skill_id"] is None
+    assert result["offered_skill_ids"][0] == "cbt_thought_record"
     assert "skill_select" in result["path"]
 
 @pytest.mark.asyncio
@@ -253,9 +254,8 @@ async def test_selects_cbt_for_my_fault_phrasing():
         primary_intent="new_skill",
     )
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "cbt_thought_record", \
-        "RT-4: 'my fault' phrasing must activate cbt_thought_record"
-    assert result["active_step_id"] == "identify_thought"
+    assert result["offered_skill_ids"][0] == "cbt_thought_record", \
+        "RT-4: 'my fault' phrasing must offer cbt_thought_record"
 
 
 @pytest.mark.asyncio
@@ -266,8 +266,8 @@ async def test_selects_cbt_for_blame_myself():
         primary_intent="new_skill",
     )
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "cbt_thought_record", \
-        "'blame myself' must activate cbt_thought_record"
+    assert result["offered_skill_ids"][0] == "cbt_thought_record", \
+        "'blame myself' must offer cbt_thought_record"
 
 
 @pytest.mark.asyncio
@@ -285,13 +285,13 @@ async def test_selects_cbt_for_rt4_keyword_additions(message, expected_skill):
     """
     state = make_state(message_en=message, primary_intent="new_skill")
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == expected_skill, (
-        f"RT-4 keyword miss: {message!r} must activate {expected_skill!r} "
-        f"but got {result['active_skill_id']!r} "
+    assert (result.get("offered_skill_ids") or [None])[0] == expected_skill, (
+        f"RT-4 keyword miss: {message!r} must offer {expected_skill!r} "
+        f"but got {result.get('offered_skill_ids')!r} "
         f"(method={result.get('skill_match_method')!r}). "
         "Add the confirmed keyword to cbt_thought_record.json target_presentations."
     )
-    assert result["skill_match_method"] == "keyword", (
+    assert result["skill_match_method"] == "keyword_offer", (
         f"Expected keyword tier, not semantic, for: {message!r}. "
         "A keyword should cover this — verify the keyword was added."
     )
@@ -336,14 +336,14 @@ async def test_semantic_fallback_catches_rt4_long_tail(message, expected_skill):
     """
     state = make_state(message_en=message, primary_intent="new_skill")
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == expected_skill, (
+    assert (result.get("offered_skill_ids") or [None])[0] == expected_skill, (
         f"Semantic fallback must catch long-tail RT-4 phrase: {message!r}. "
-        f"Got: {result['active_skill_id']!r} "
+        f"Got: {result.get('offered_skill_ids')!r} "
         f"(method={result.get('skill_match_method')!r}, "
         f"score={result.get('semantic_score')}). "
         f"If score is close to threshold, enrich cbt_thought_record semantic_description."
     )
-    assert result["skill_match_method"] in ("semantic", "keyword"), (
+    assert result["skill_match_method"] in ("semantic_offer", "keyword_offer"), (
         f"Expected semantic or keyword tier for: {message!r}. "
         "Got unexpected method — check skill_select_node routing."
     )
@@ -371,8 +371,8 @@ async def test_panicking_still_matches_grounding():
         primary_intent="new_skill",
     )
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "grounding_5_4_3_2_1", \
-        "Explicit panic phrasing must still activate grounding after description tightening"
+    assert (result.get("offered_skill_ids") or [None])[0] == "grounding_5_4_3_2_1", \
+        "Explicit panic phrasing must still offer grounding after description tightening"
 
 
 @pytest.mark.asyncio
@@ -431,10 +431,10 @@ async def test_overwhelmed_and_anxious_matches_dbt_tipp():
         primary_intent="new_skill",
     )
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "dbt_tipp", (
-        f"'overwhelmed' keyword must activate dbt_tipp; got: {result['active_skill_id']}"
+    assert result["offered_skill_ids"][0] == "dbt_tipp", (
+        f"'overwhelmed' keyword must offer dbt_tipp; got: {result.get('offered_skill_ids')}"
     )
-    assert result["skill_match_method"] == "keyword"
+    assert result["skill_match_method"] == "keyword_offer"
 
 @pytest.mark.asyncio
 async def test_insomnia_still_matches_sleep_hygiene():
@@ -444,8 +444,8 @@ async def test_insomnia_still_matches_sleep_hygiene():
         primary_intent="new_skill",
     )
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "sleep_hygiene", \
-        "Explicit insomnia phrasing must still activate sleep_hygiene after description tightening"
+    assert (result.get("offered_skill_ids") or [None])[0] == "sleep_hygiene", \
+        "Explicit insomnia phrasing must still offer sleep_hygiene after description tightening"
 
 
 from sage_poc.nodes.skill_executor import skill_executor_node, evaluate_step_policy
@@ -1562,9 +1562,8 @@ async def test_selects_grounding_for_panic_phrasing():
         primary_intent="new_skill",
     )
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "grounding_5_4_3_2_1", \
-        "Panic attack phrasing must activate grounding skill"
-    assert result["active_step_id"] == "see_5"
+    assert result["offered_skill_ids"][0] == "grounding_5_4_3_2_1", \
+        "Panic attack phrasing must offer grounding skill"
 
 
 @pytest.mark.asyncio
@@ -1579,7 +1578,7 @@ async def test_selects_grounding_for_overwhelmed_phrasing():
         primary_intent="new_skill",
     )
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "grounding_5_4_3_2_1"
+    assert result["offered_skill_ids"][0] == "grounding_5_4_3_2_1"
 
 
 def test_sleep_hygiene_skill_schema_is_valid():
@@ -1600,9 +1599,8 @@ async def test_selects_sleep_hygiene_for_insomnia_phrasing():
         primary_intent="new_skill",
     )
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "sleep_hygiene", \
-        "'can't sleep' phrasing must activate sleep_hygiene skill"
-    assert result["active_step_id"] == "assess_sleep"
+    assert result["offered_skill_ids"][0] == "sleep_hygiene", \
+        "'can't sleep' phrasing must offer sleep_hygiene skill"
 
 
 @pytest.mark.asyncio
@@ -1613,7 +1611,7 @@ async def test_selects_sleep_hygiene_for_insomnia_keyword():
         primary_intent="new_skill",
     )
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "sleep_hygiene"
+    assert result["offered_skill_ids"][0] == "sleep_hygiene"
 
 
 # S-2: Extended step_policy tests for new skills
@@ -1929,10 +1927,10 @@ async def test_semantic_fallback_catches_nothing_good_enough():
     """
     state = make_state(message_en="nothing I do is good enough")
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "cbt_thought_record", (
-        "'nothing I do is good enough' must activate cbt_thought_record"
+    assert (result.get("offered_skill_ids") or [None])[0] == "cbt_thought_record", (
+        "'nothing I do is good enough' must offer cbt_thought_record"
     )
-    assert result["skill_match_method"] in ("keyword", "semantic")
+    assert result["skill_match_method"] in ("keyword_offer", "semantic_offer")
 
 
 @pytest.mark.slow
@@ -1951,10 +1949,10 @@ async def test_semantic_fallback_catches_spiralling():
         message_en="I feel like I am losing touch with reality, everything looks strange and distant"
     )
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "grounding_5_4_3_2_1", (
-        "Derealization/dissociative phrasing must activate grounding_5_4_3_2_1 via semantic fallback"
+    assert (result.get("offered_skill_ids") or [None])[0] == "grounding_5_4_3_2_1", (
+        "Derealization/dissociative phrasing must offer grounding_5_4_3_2_1 via semantic fallback"
     )
-    assert result["skill_match_method"] == "semantic"
+    assert result["skill_match_method"] == "semantic_offer"
 
 
 @pytest.mark.slow
@@ -1974,10 +1972,10 @@ async def test_semantic_fallback_catches_exhausted_mind_racing():
     """Sleep-register message that keyword-misses; semantic fallback must catch → sleep_hygiene."""
     state = make_state(message_en="my brain just won't let me rest when it's dark")
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "sleep_hygiene", (
-        "Sleep difficulty described without any keyword substring must activate sleep_hygiene via semantic fallback"
+    assert (result.get("offered_skill_ids") or [None])[0] == "sleep_hygiene", (
+        "Sleep difficulty described without any keyword substring must offer sleep_hygiene via semantic fallback"
     )
-    assert result["skill_match_method"] == "semantic"
+    assert result["skill_match_method"] == "semantic_offer"
 
 
 @pytest.mark.slow
@@ -1988,6 +1986,9 @@ async def test_semantic_fallback_rejects_weather_question():
     result = await skill_select_node(state)
     assert result["active_skill_id"] is None, (
         "Weather question must not activate any skill"
+    )
+    assert not result.get("offered_skill_ids"), (
+        "Weather question must not produce a skill offer either"
     )
 
 
@@ -2009,7 +2010,9 @@ async def test_semantic_fallback_rejects_diagnosis_request():
     result = await skill_select_node(state)
     # intent_route classifies this as info_request/general_chat in production;
     # in isolation skill_select semantically matches psychoed_depression (score ~0.55).
-    assert result["active_skill_id"] in (None, "psychoed_depression"), (
+    # R1: a semantic match surfaces as an offer, so check the primary offered skill.
+    primary = result.get("active_skill_id") or (result.get("offered_skill_ids") or [None])[0]
+    assert primary in (None, "psychoed_depression"), (
         "Diagnosis request routes to psychoed_depression or None at skill_select level; "
         "intent_route enforces the production-level scope refusal."
     )
@@ -2022,8 +2025,8 @@ async def test_keyword_match_takes_priority_over_semantic():
     # "my fault" is in CBT target_presentations — this is a guaranteed keyword match
     state = make_state(message_en="I feel like everything is my fault")
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "cbt_thought_record"
-    assert result["skill_match_method"] == "keyword", (
+    assert result["offered_skill_ids"][0] == "cbt_thought_record"
+    assert result["skill_match_method"] == "keyword_offer", (
         "Keyword match must fire before semantic fallback"
     )
     assert result["semantic_score"] is None
@@ -2039,7 +2042,7 @@ async def test_semantic_match_returns_score_in_result():
     """
     state = make_state(message_en="my body is shaking and I can not catch my breath")
     result = await skill_select_node(state)
-    assert result["skill_match_method"] == "semantic", (
+    assert result["skill_match_method"] == "semantic_offer", (
         "Somatic grounding phrase without keyword phrasing must reach semantic fallback"
     )
     assert isinstance(result["semantic_score"], float)

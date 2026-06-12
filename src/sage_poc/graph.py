@@ -171,8 +171,19 @@ def _route_after_intent(state: SageState) -> str:
     # with the content unreferred. Bypasses the confidence gate (like monitoring) because
     # the redirect must not depend on classification confidence. Deterministic routing is
     # the gate; prompt adaptation is not (audit: L5 alone already failed).
+    #
+    # PRECEDENCE (merge #4 ⊕ #6/S2-10, 2026-06-13): this check is SENIOR to the R1
+    # offer-accept branch below. If a psychotic disclosure co-occurs with a live skill
+    # offer (e.g. the user accepts an offer in the same turn they disclose), the safety
+    # referral must win — never let an engagement-layer accept short-circuit the referral.
     if ("psychotic_disclosure" in (state.get("clinical_flags") or [])
             and not state.get("psychotic_referral_delivered")):
+        return "skill_select"
+    # R1: accept reply to a pending offer routes to skill_select for promotion.
+    # Bypasses the confidence gate: bare accepts classify low-confidence by nature
+    # (same precedent as post-crisis monitoring). Subordinate to the psychotic-referral
+    # check above by design.
+    if (state.get("offered_skill_ids") or []) and state.get("offer_response") == "accept":
         return "skill_select"
     if confidence < 0.6:
         return "low_confidence"

@@ -178,7 +178,9 @@ async def test_full_routing(expected_skill: str, phrase: str) -> None:
         primary_intent="new_skill",
     )
     result = await skill_select_node(state)
-    actual_skill = result.get("active_skill_id")
+    # R1: non-acute matches surface as offers; the routing target is the primary
+    # offered skill (acute direct entry still writes active_skill_id).
+    actual_skill = result.get("active_skill_id") or (result.get("offered_skill_ids") or [None])[0]
     method = result.get("skill_match_method")
     score = result.get("semantic_score")
 

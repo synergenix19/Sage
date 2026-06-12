@@ -412,9 +412,10 @@ async def test_skill_select_keyword_tier_unaffected_by_timeout_patch():
     ):
         result = await skill_select_node(state)
 
-    # "can't sleep" is a keyword in sleep_hygiene — keyword tier fires before embedding
-    assert result["active_skill_id"] == "sleep_hygiene"
-    assert result["skill_match_method"] == "keyword"
+    # "can't sleep" is a keyword in sleep_hygiene — keyword tier fires before embedding.
+    # R1: keyword matches surface as a consent offer, not direct activation.
+    assert result["offered_skill_ids"][0] == "sleep_hygiene"
+    assert result["skill_match_method"] == "keyword_offer"
 
 
 # ── Server BGE-M3 warmup ──────────────────────────────────────────────────────
