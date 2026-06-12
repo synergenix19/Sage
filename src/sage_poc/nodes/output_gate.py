@@ -308,6 +308,25 @@ async def output_gate_node(state: SageState) -> dict:
                         if not t.cancelled() and t.exception() else None
                     )
 
+    # Invariant: user-visible offer ⇔ promotable state (S1-1a). If the vetted
+    # fallback replaced an offer created THIS turn ("skill_offer_made" is in this
+    # turn's path; state["path"] is per-turn, reset by _build_state), the user never
+    # saw the offer options, so the offer must not stay promotable in the checkpoint.
+    # An offer from an EARLIER turn (already seen by the user) is left alone;
+    # re-rendering it next turn is correct there.
+    _offer_voided = False
+    if (
+        banned_opener_fallback_used
+        and state.get("offered_skill_ids")
+        and "skill_offer_made" in state.get("path", [])
+    ):
+        _offer_voided = True
+        path = path + ["offer_voided_fallback"]
+        _log.warning(
+            "[output_gate] fallback replaced an offer-creating turn; voiding unseen offer %s",
+            state.get("offered_skill_ids"),
+        )
+
     violations = _FORMAT_VIOLATIONS.findall(response_en)
     if violations:
         _log.warning("[output_gate] format violations: %s", violations)
@@ -407,7 +426,7 @@ async def output_gate_node(state: SageState) -> dict:
         if not t.cancelled() and t.exception() else None
     )
 
-    return {
+    result = {
         "response": final_response,
         "gate_path": gate_path or "standard",
         "path": path,
@@ -424,3 +443,8 @@ async def output_gate_node(state: SageState) -> dict:
         "banned_opener_violation": banned_opener_violation,
         "banned_opener_fallback_used": banned_opener_fallback_used,
     }
+    if _offer_voided:
+        # Key included only when voiding so a normal turn's channel merge never
+        # clobbers an offer set by skill_select this turn or pending from earlier.
+        result["offered_skill_ids"] = None
+    return result
