@@ -153,6 +153,9 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
             # offer template next turn (a gentle re-ask) — the intended
             # degradation path. An explicit "other" classification remains the
             # path that releases the conversation.
+            # Routing safety: result carries no offer_response key here, so
+            # _route_after_intent sees the per-turn None that _build_state
+            # resets each turn — the accept bypass cannot fire on this path.
             result["path"] = result["path"] + ["offer_unparsed"]
         else:
             result["offer_response"] = offer_response
