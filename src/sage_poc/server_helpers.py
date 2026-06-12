@@ -2,13 +2,53 @@
 Must not import FastAPI or any module that opens DB connections at import time.
 """
 from __future__ import annotations
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
 
+_log = logging.getLogger(__name__)
+
 # Skill context (active_skill_id/active_step_id) is in-session workflow position.
 # It should not survive a multi-hour gap — 4h covers long pauses, resets overnight.
 _SKILL_STALE_HOURS = 4
+
+
+async def _void_unseen_offer(graph, session_id: str) -> None:
+    """Best-effort compensating cleanup after an errored offer-creating turn (S1-1b).
+
+    Invariant: user-visible offer ⇔ promotable state. When graph.ainvoke times out
+    or errors, the client receives [[SERVER_ERROR]] but the graph's checkpoint may
+    have already persisted an offer created on that same turn. The user never saw
+    the offer options, so the next turn must not promote it. The discriminator for
+    "created this turn" is "skill_offer_made" in the persisted path channel —
+    path is per-turn (reset by _build_state), so the checkpoint's path describes
+    the turn that just errored. A pending offer from an earlier turn (path without
+    the marker) was already seen by the user and is left untouched.
+
+    Never raises: cleanup must not mask the original error response. Failures are
+    logged at WARNING and swallowed.
+    """
+    try:
+        checkpointer = getattr(graph, "checkpointer", None)
+        if checkpointer is None:
+            return
+        config = {"configurable": {"thread_id": session_id}}
+        snap = await checkpointer.aget(config)
+        if not snap:
+            return
+        values = snap.get("channel_values") or {}
+        if values.get("offered_skill_ids") and "skill_offer_made" in (values.get("path") or []):
+            await graph.aupdate_state(config, {"offered_skill_ids": None})
+            _log.info(
+                "[sage/chat] offer voided after errored turn (session %s, offer %s)",
+                session_id, values.get("offered_skill_ids"),
+            )
+    except Exception as exc:
+        _log.warning(
+            "[sage/chat] offer-void cleanup failed for session %s: %s",
+            session_id, exc,
+        )
 
 
 def _stale_skill_overrides(checkpoint_values: dict) -> dict:
