@@ -39,7 +39,24 @@ def build_intent_prompt(state: SageState) -> str:
         f"{m['role'].upper()}: {m['content']}" for m in (state.get("conversation_history") or [])[-3:]
     )
     history_block = f"\nRecent history:\n{history_lines}" if history_lines else ""
-    return f"{active}{history_block}\n\nUser message: {state['message_en']}"
+    offer_block = ""
+    offered = state.get("offered_skill_ids") or []
+    if offered:
+        names = ", ".join(f'"{sid}"' for sid in offered)
+        offer_block = (
+            "\nPENDING OFFER: Last turn Sage offered the user a choice of these exercises: "
+            f"[{names}]. Add two EXTRA fields to your JSON:\n"
+            '- offer_response: "accept" if the user agrees to try an offered exercise, '
+            '"decline" if they refuse the offer or prefer to keep talking, "other" if the '
+            "message is about something else entirely (new topic, new symptom, a question).\n"
+            "- offer_choice_skill_id: when offer_response is accept, the chosen exercise id "
+            f"(one of [{names}]; if the user did not specify which, use the first), else null.\n"
+            'A short bare agreement ("yes", "ok", "sure", "yalla", or Arabic equivalents) is accept. '
+            'References like "the first one", "the second one", and their Arabic equivalents '
+            '("الاول", "الثاني") map to the options by position. '
+            "All other classification rules are unchanged; classify primary_intent as usual."
+        )
+    return f"{active}{history_block}{offer_block}\n\nUser message: {state['message_en']}"
 
 
 def _safe_int(value, default: int) -> int:
@@ -78,6 +95,26 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
         "engagement": _safe_int(data.get("engagement"), 5),
         "path": state["path"] + ["intent_route"],
     }
+    offered = state.get("offered_skill_ids") or []
+    if offered:
+        offer_response = data.get("offer_response")
+        if offer_response not in ("accept", "decline", "other"):
+            offer_response = "other"
+        result["offer_response"] = offer_response
+        if offer_response == "accept":
+            choice = data.get("offer_choice_skill_id")
+            result["offer_choice_skill_id"] = choice if choice in offered else offered[0]
+            result["path"] = result["path"] + ["offer_accepted"]
+        elif offer_response == "decline":
+            result["offered_skill_ids"] = None
+            # dict.fromkeys: order-preserving dedup (clinical audit convention)
+            result["declined_skills"] = list(dict.fromkeys(
+                (state.get("declined_skills") or []) + list(offered)
+            ))
+            result["path"] = result["path"] + ["offer_declined"]
+        else:
+            result["offered_skill_ids"] = None
+            result["path"] = result["path"] + ["offer_ignored"]
     if primary_intent in ("scope_refusal", "jailbreak"):
         result["gate_path"] = primary_intent
     return result
