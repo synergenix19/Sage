@@ -117,6 +117,7 @@ def test_stale_gap_clears_pending_offer_and_declined():
     })
     assert overrides["offered_skill_ids"] is None
     assert overrides["declined_skills"] == []
+    assert overrides["crisis_state"] == "none"
 
 
 def test_fresh_session_does_not_clear_offer_or_declined():
@@ -131,6 +132,37 @@ def test_fresh_session_does_not_clear_offer_or_declined():
         "declined_skills": ["box_breathing"],
     })
     assert overrides == {}
+
+
+def test_stale_gap_clears_declined_only():
+    from datetime import datetime, timedelta, timezone
+    from sage_poc.server_helpers import _stale_skill_overrides
+    old = (datetime.now(timezone.utc) - timedelta(hours=5)).isoformat()
+    overrides = _stale_skill_overrides({
+        "last_turn_at": old,
+        "active_skill_id": None,
+        "crisis_state": "none",
+        "offered_skill_ids": None,
+        "declined_skills": ["box_breathing"],
+    })
+    assert overrides["declined_skills"] == []
+    assert "offered_skill_ids" not in overrides
+    assert overrides["crisis_state"] == "none"
+
+
+def test_stale_gap_clears_offer_only():
+    from datetime import datetime, timedelta, timezone
+    from sage_poc.server_helpers import _stale_skill_overrides
+    old = (datetime.now(timezone.utc) - timedelta(hours=5)).isoformat()
+    overrides = _stale_skill_overrides({
+        "last_turn_at": old,
+        "active_skill_id": None,
+        "crisis_state": "none",
+        "offered_skill_ids": ["worry_time"],
+        "declined_skills": [],
+    })
+    assert overrides["offered_skill_ids"] is None
+    assert "declined_skills" not in overrides
 
 
 def test_build_state_resets_offer_response_fields():

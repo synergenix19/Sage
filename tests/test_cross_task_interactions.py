@@ -614,3 +614,25 @@ class TestC5StalenessAndReEscalationFlag:
             "A 2h gap is below the 4h threshold; stale override must return {} "
             "(crisis_state must not be reset prematurely)"
         )
+
+
+# ── Crisis offer-clearing contract ────────────────────────────────────────────
+
+
+async def test_crisis_response_clears_pending_offer():
+    """Crisis bypasses the consent gate; a pending offer must not survive the turn.
+    declined_skills intentionally DOES survive (preference state, not workflow position)."""
+    from sage_poc.graph import _crisis_response_node
+
+    state = _crisis_node_state(
+        offered_skill_ids=["worry_time"],
+        declined_skills=["box_breathing"],
+    )
+    mock_engine = _mock_crisis_rules_engine()
+
+    with patch("sage_poc.rules.engine", mock_engine), \
+         patch("sage_poc.graph.asyncio.create_task"):
+        result = await _crisis_response_node(state)
+
+    assert result["offered_skill_ids"] is None
+    assert "declined_skills" not in result

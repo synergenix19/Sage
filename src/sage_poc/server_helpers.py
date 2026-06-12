@@ -24,7 +24,10 @@ def _stale_skill_overrides(checkpoint_values: dict) -> dict:
     "monitoring" or "active", even if active_skill_id is None. This covers the
     canonical CSM-3 gap: _crisis_response_node sets active_skill_id=None, so a
     user who hit crisis and disappeared for 4h+ had their monitoring state survive
-    the old early-return guard.
+    the old early-return guard. The gate ALSO allows through any checkpoint where
+    offered_skill_ids is non-null or declined_skills is non-empty, so a 4h+ gap
+    clears those session-scoped fields even when no active skill or crisis state
+    is present.
 
     When active_skill_id is None (crisis-only stale session), only crisis_state
     is reset — there is no skill to clear, so active_skill_id / active_step_id /
