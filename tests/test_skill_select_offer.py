@@ -83,8 +83,11 @@ async def test_two_keyword_matches_offer_top_two_by_specificity():
     result = await skill_select_node(state)
     offered = result["offered_skill_ids"]
     assert set(offered) == {"cbt_thought_record", "worry_time"}
-    expected_first = "cbt_thought_record" if len(kw_a) >= len(kw_b) else "worry_time"
-    assert offered[0] == expected_first
+    # Ordering is only deterministic by specificity when keyword lengths differ;
+    # on a tie the stable sort falls back to registry order, so skip the check.
+    if len(kw_a) != len(kw_b):
+        expected_first = "cbt_thought_record" if len(kw_a) >= len(kw_b) else "worry_time"
+        assert offered[0] == expected_first
 
 
 async def test_declined_skill_is_not_offered_again():
@@ -122,6 +125,24 @@ async def test_accept_with_invalid_choice_falls_back_to_first():
     )
     result = await skill_select_node(state)
     assert result["active_skill_id"] == "worry_time"
+
+
+async def test_stale_unresolvable_offer_is_cleared_from_checkpoint(monkeypatch):
+    """A checkpoint offer referencing renamed/unknown skills must be cleared by the
+    node's RETURN (local rebinds never reach the checkpoint), or the offer template
+    re-renders forever."""
+    monkeypatch.setattr(
+        ss, "_semantic_match_with_runner_up",
+        lambda message_en, profile_context="": (None, 0.0, None),
+    )
+    state = make_state(
+        message_en="just thinking out loud today",
+        offered_skill_ids=["renamed_old_skill"],
+        offer_response="accept",
+    )
+    result = await skill_select_node(state)
+    assert result.get("offered_skill_ids") is None
+    assert "offered_skill_ids" in result, "the clear must be in the returned dict"
 
 
 async def test_post_crisis_auto_select_bypasses_offer():

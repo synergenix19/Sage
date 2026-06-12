@@ -100,8 +100,10 @@ class TestEvaluatorIsolated:
         assert res.fired == []
 
     def test_equal_priority_resolves_in_list_order(self):
+        # Contract (2026-06-12): the loader pre-sorts by priority (stable, file order
+        # on ties); the evaluator iterates in list order. Direct callers own ordering.
         from sage_poc.rules.engine import _eval_skill_matching
         r_a = self._rule(rule_id="a", priority=50)
         r_b = self._rule(rule_id="b", priority=50)
         res = _eval_skill_matching([r_a, r_b], _ctx())
-        assert res.fired[0].rule_id == "a", "stable sort: equal priority = list order"
+        assert res.fired[0].rule_id == "a", "loader-sorted input: equal priority = list order"

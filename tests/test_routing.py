@@ -540,3 +540,13 @@ def test_crisis_still_beats_pending_offer():
         active_skill_id=None,
     )
     assert _route_after_intent(state) == "crisis"
+
+
+def test_offer_pending_no_active_skill_routes_to_freeflow():
+    from sage_poc.graph import _route_after_skill_select
+    state = {
+        "primary_intent": "new_skill",
+        "active_skill_id": None,
+        "offered_skill_ids": ["worry_time"],
+    }
+    assert _route_after_skill_select(state) == "freeflow"

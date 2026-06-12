@@ -92,6 +92,9 @@ def load_rules(category: str) -> list:
         seen_priorities: dict[int, str] = {}
         for rule in rules:
             if rule.priority in seen_priorities:
+                # Stable sort below preserves file order on ties, so first-match-wins
+                # still resolves duplicates by file order — fragile for clinician-
+                # authored rules, hence the warning.
                 _log.warning(
                     "[rules/loader] skill_matching rules %s and %s share priority %d; "
                     "first-match-wins resolves by file order, which is fragile for "
@@ -100,6 +103,9 @@ def load_rules(category: str) -> list:
                 )
             else:
                 seen_priorities[rule.priority] = rule.rule_id
+        # Pre-sort by ascending priority once at load time; the evaluator iterates
+        # in list order on every call (hot path) and relies on this ordering.
+        rules.sort(key=lambda r: r.priority)
     return rules
 
 

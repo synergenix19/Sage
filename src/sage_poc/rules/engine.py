@@ -335,7 +335,9 @@ def _eval_cultural_output(rules: list[CulturalOutputRule], context: dict) -> Eva
 def _eval_skill_matching(rules: list[SkillMatchingRule], context: dict) -> EvalResult:
     """
     Decide how a matched skill enters the conversation: direct entry or consent offer.
-    First-match-wins by ascending priority; returns at most one fired rule.
+    First-match-wins in list order; the loader pre-sorts skill_matching rules by
+    ascending priority at load time (stable, file order on ties), so the evaluator
+    does not re-sort on this hot path. Direct callers own list ordering.
 
     context keys:
       matched_skill_id (str)    — primary candidate from Tier 1/Tier 2 matching
@@ -345,7 +347,7 @@ def _eval_skill_matching(rules: list[SkillMatchingRule], context: dict) -> EvalR
     intensity = int(context.get("emotional_intensity") or 5)
 
     result = EvalResult()
-    for rule in sorted(rules, key=lambda r: r.priority):
+    for rule in rules:
         cond = rule.condition
         if "matched_skill_in" in cond and matched_skill_id not in cond["matched_skill_in"]:
             continue

@@ -175,6 +175,7 @@ def _resolve_entry(
     conversation, then build the node result. candidates are ranked, NOT yet
     filtered by declined_skills: declined handling is the fired rule's decision
     (the acute rule sets ignore_declined)."""
+    # declined_skills updates on user decline are intent_route's responsibility (Task 8).
     primary = candidates[0]
     eval_result = rules_engine.evaluate("skill_matching", {
         "matched_skill_id": primary,
@@ -280,6 +281,11 @@ async def skill_select_node(state: SageState) -> dict:
 
     # R1: accepted offer promotion. Runs after all auto-select safety paths so
     # post-crisis and psychotic referral always take precedence over a stale offer.
+    # stale_offer_clear is spread into every return downstream of the promotion
+    # block: a local `state` rebind never reaches the LangGraph checkpoint, so an
+    # unresolvable stale offer must be cleared via the node's RETURN dict or the
+    # offer template re-renders every turn.
+    stale_offer_clear: dict = {}
     offered = state.get("offered_skill_ids") or []
     if offered and state.get("offer_response") == "accept":
         chosen = state.get("offer_choice_skill_id")
@@ -296,12 +302,13 @@ async def skill_select_node(state: SageState) -> dict:
                 "path": state["path"] + ["skill_select", "offer_promoted"],
             }
         # Stale checkpoint after a skill rename: no offered id resolves to a known
-        # skill. Clear the offer and fall through to normal matching.
+        # skill. Clear the offer (via the returned dict, not a local rebind) and
+        # fall through to normal matching.
         logger.warning(
             "[skill_select] accepted offer contains no known skill ids %s; "
             "clearing offer and re-matching", offered,
         )
-        state = {**state, "offered_skill_ids": None}
+        stale_offer_clear = {"offered_skill_ids": None}
 
     message_en = state["message_en"].lower()
     raw_message = (state.get("raw_message") or "").lower()
@@ -328,7 +335,9 @@ async def skill_select_node(state: SageState) -> dict:
     if kw_matches:
         ranked_kw = sorted(kw_matches.items(), key=lambda x: x[1], reverse=True)
         candidates = [sid for sid, _ in ranked_kw]
-        return _resolve_entry(state, candidates, method="keyword", semantic_score=None)
+        # resolve result must win the merge: offer results set offered_skill_ids themselves
+        return {**stale_offer_clear,
+                **_resolve_entry(state, candidates, method="keyword", semantic_score=None)}
 
     # Pre-Tier-2 exclusion guard: words with no therapeutic skill match in this registry.
     # Prevents BGE-M3 from routing somatic/physiological disclosures (appetite loss, food
@@ -337,6 +346,7 @@ async def skill_select_node(state: SageState) -> dict:
     # See corpus_constants.SEMANTIC_EXCLUSION_WORDS for the word list and rationale.
     if _SEMANTIC_EXCLUSION_RE.search(message_en):
         return {
+            **stale_offer_clear,
             "active_skill_id": None,
             "active_step_id": None,
             "skill_match_method": None,
@@ -361,6 +371,7 @@ async def skill_select_node(state: SageState) -> dict:
             EMBEDDING_TIMEOUT_SECONDS,
         )
         return {
+            **stale_offer_clear,
             "active_skill_id": None,
             "active_step_id": None,
             "skill_match_method": None,
@@ -373,9 +384,12 @@ async def skill_select_node(state: SageState) -> dict:
         candidates = [semantic_skill]
         if runner_up is not None and runner_up[0] != semantic_skill:
             candidates.append(runner_up[0])
-        return _resolve_entry(state, candidates, method="semantic", semantic_score=round(score, 4))
+        # resolve result must win the merge: offer results set offered_skill_ids themselves
+        return {**stale_offer_clear,
+                **_resolve_entry(state, candidates, method="semantic", semantic_score=round(score, 4))}
 
     return {
+        **stale_offer_clear,
         "active_skill_id": None,
         "active_step_id": None,
         "skill_match_method": None,

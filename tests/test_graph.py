@@ -101,6 +101,7 @@ def test_english_skill_routing_e2e():
 
     # Accept turn: intent_route offer-classification is simulated via state
     # (offer_response is a per-turn field); promotion happens in skill_select.
+    # offer_response/offer_choice injected directly; production sets these via intent_route's PENDING OFFER classification (Task 8)
     result = asyncio.run(graph.ainvoke(carry_state(
         result,
         "Yes, let's try that",
@@ -143,6 +144,7 @@ def test_cbt_full_3_step_progression_e2e():
         "CBT-triggering message must offer the skill"
 
     # Turn 2: accept the offer (offer_response simulated via state; per-turn field)
+    # offer_response/offer_choice injected directly; production sets these via intent_route's PENDING OFFER classification (Task 8)
     result = asyncio.run(graph.ainvoke(carry_state(
         result,
         "Yes, I would like to try that",
@@ -259,6 +261,7 @@ def test_session_full_lifecycle_e2e():
     print(f"[LIFECYCLE] Turn 2 (offer) offered: {r2_offer['offered_skill_ids']}")
 
     # Turn 2b: accept — identify_thought always runs first after promotion
+    # offer_response/offer_choice injected directly; production sets these via intent_route's PENDING OFFER classification (Task 8)
     r2 = asyncio.run(graph.ainvoke(carry_state(
         r2_offer,
         "Yes, let's do that",
