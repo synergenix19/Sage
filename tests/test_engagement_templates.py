@@ -39,3 +39,33 @@ class TestR3GeneralChatEngageThenBridge:
     def test_no_em_dash_in_content(self):
         tmpl = get_intent_template("general_chat")
         assert "—" not in tmpl.content, "em dashes mirror into LLM output; use commas"
+
+
+class TestOfferDescriptionsCoverage:
+    _PATH = _PROMPTS_DIR / "offer_descriptions.json"
+
+    def _load(self) -> dict:
+        return json.loads(self._PATH.read_text(encoding="utf-8"))["descriptions"]
+
+    def test_every_offerable_skill_has_a_description(self):
+        from sage_poc.skill_ids import SKILL_REGISTRY
+        from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP
+        descs = self._load()
+        offerable = [s for s in SKILL_REGISTRY if s not in KEYWORD_SEMANTIC_SKIP]
+        missing = [s for s in offerable if s not in descs]
+        assert not missing, (
+            f"offer_descriptions.json missing blurbs for: {missing}. Every offerable "
+            "skill needs one or its offers fall back to the bare skill_name."
+        )
+
+    def test_bilingual_envelope_and_clean_content(self):
+        descs = self._load()
+        for sid, entry in descs.items():
+            for field in ("display_name", "description"):
+                assert set(entry[field].keys()) == {"en", "ar"}, (
+                    f"{sid}.{field}: bilingual envelope {{en, ar}} required"
+                )
+                en = entry[field]["en"]
+                assert en and en.strip(), f"{sid}.{field}.en empty"
+                assert "—" not in en, f"{sid}.{field}: em dash in content"
+            assert len(entry["description"]["en"]) <= 160, f"{sid}: blurb too long for an offer line"

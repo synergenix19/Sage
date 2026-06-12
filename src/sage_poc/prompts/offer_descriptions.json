@@ -1,0 +1,37 @@
+{
+  "_meta": {
+    "version": "0.2.0",
+    "status": "draft-pending-review",
+    "authored_by": "engineering",
+    "approved_by": null,
+    "purpose": "Plain-language descriptions used in R1 skill offers. Bilingual envelope: ar null falls back to en (output_gate translates the composed reply for Arabic sessions). When clinician-authored Khaleeji blurbs land, they become the verbatim display names echoed in offers and accept-classification.",
+    "review_required": ["Clinical review of every display_name and description before production"]
+  },
+  "descriptions": {
+    "box_breathing": {"display_name": {"en": "Box breathing", "ar": null}, "description": {"en": "a short guided breathing exercise, around five minutes, that helps your body settle when it feels wound up", "ar": null}},
+    "grounding_5_4_3_2_1": {"display_name": {"en": "5-4-3-2-1 grounding", "ar": null}, "description": {"en": "a quick exercise using your five senses to come back to the present moment, takes a few minutes", "ar": null}},
+    "stop_technique": {"display_name": {"en": "The STOP pause", "ar": null}, "description": {"en": "a one minute pause technique for catching yourself before reacting in a heated moment", "ar": null}},
+    "dbt_tipp": {"display_name": {"en": "TIPP reset", "ar": null}, "description": {"en": "a fast physical reset using cold water and movement for very intense moments, about ten minutes", "ar": null}},
+    "progressive_muscle_relaxation": {"display_name": {"en": "Muscle relaxation", "ar": null}, "description": {"en": "a guided exercise tensing and releasing muscle groups to let go of physical tension, ten to fifteen minutes", "ar": null}},
+    "safe_place_visualization": {"display_name": {"en": "Safe place imagery", "ar": null}, "description": {"en": "a calming exercise where you picture a place that feels safe and settle into it, about ten minutes", "ar": null}},
+    "mindfulness_body_scan": {"display_name": {"en": "Body scan", "ar": null}, "description": {"en": "a slow check-in through your body to notice and release tension, ten to fifteen minutes", "ar": null}},
+    "cbt_thought_record": {"display_name": {"en": "Thought check", "ar": null}, "description": {"en": "a step by step way to take one heavy thought and test how true it really is, ten to fifteen minutes", "ar": null}},
+    "cognitive_restructuring": {"display_name": {"en": "Reframing practice", "ar": null}, "description": {"en": "working through a stuck thought pattern and finding a fairer way to see it, ten to fifteen minutes", "ar": null}},
+    "behavioral_activation": {"display_name": {"en": "Small steps plan", "ar": null}, "description": {"en": "picking one small doable activity to lift the week, planned together in about ten minutes", "ar": null}},
+    "worry_time": {"display_name": {"en": "Worry time", "ar": null}, "description": {"en": "a way to contain spinning worries by giving them a fixed daily slot instead of the whole day, ten minutes to set up", "ar": null}},
+    "problem_solving_therapy": {"display_name": {"en": "Problem solving", "ar": null}, "description": {"en": "breaking one real problem into options and a first step you choose, ten to fifteen minutes", "ar": null}},
+    "sleep_hygiene": {"display_name": {"en": "Sleep reset", "ar": null}, "description": {"en": "going through what is disrupting your sleep and building a wind down routine that fits you, about ten minutes", "ar": null}},
+    "mood_check_in": {"display_name": {"en": "Mood check-in", "ar": null}, "description": {"en": "a short guided check-in on how you are really doing, about five minutes", "ar": null}},
+    "mi_readiness_ruler": {"display_name": {"en": "Readiness check", "ar": null}, "description": {"en": "a quick way to weigh how ready you feel for a change you have been considering, about five minutes", "ar": null}},
+    "values_clarification": {"display_name": {"en": "What matters most", "ar": null}, "description": {"en": "exploring what you care about most so decisions get easier, ten to fifteen minutes", "ar": null}},
+    "assertive_communication": {"display_name": {"en": "Speaking up practice", "ar": null}, "description": {"en": "preparing how to say a hard thing clearly and kindly, with practice, ten to fifteen minutes", "ar": null}},
+    "interpersonal_effectiveness": {"display_name": {"en": "Asking for what you need", "ar": null}, "description": {"en": "a structured way to prepare a difficult ask or set a limit with someone, ten to fifteen minutes", "ar": null}},
+    "self_compassion_break": {"display_name": {"en": "Self-kindness pause", "ar": null}, "description": {"en": "a short practice for being as kind to yourself as you would be to a friend, about five minutes", "ar": null}},
+    "act_psychological_flexibility": {"display_name": {"en": "Unhooking from thoughts", "ar": null}, "description": {"en": "practicing how to notice difficult thoughts without being dragged around by them, about ten minutes", "ar": null}},
+    "psychoed_anxiety": {"display_name": {"en": "Understanding anxiety", "ar": null}, "description": {"en": "a plain language walk through of how anxiety works in the body and what actually helps, about ten minutes", "ar": null}},
+    "psychoed_depression": {"display_name": {"en": "Understanding low mood", "ar": null}, "description": {"en": "a plain language walk through of how low mood feeds itself and what helps break the loop, about ten minutes", "ar": null}},
+    "psychoed_stress": {"display_name": {"en": "Understanding stress", "ar": null}, "description": {"en": "a plain language walk through of what stress does to you and practical ways to lower it, about ten minutes", "ar": null}},
+    "financial_anxiety": {"display_name": {"en": "Money worry support", "ar": null}, "description": {"en": "working through money stress step by step and finding one thing in your control, ten to fifteen minutes", "ar": null}},
+    "grief_loss": {"display_name": {"en": "Space for grief", "ar": null}, "description": {"en": "gentle guided space to be with a loss at your own pace, no fixing, about fifteen minutes", "ar": null}}
+  }
+}
