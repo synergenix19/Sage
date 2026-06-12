@@ -5,7 +5,7 @@ import re as _re
 from pathlib import Path
 from sage_poc.rules.schemas import (
     SafetyRule, CrisisContentRule, CulturalRule, PromptInjectionRule,
-    CulturalOutputRule,
+    CulturalOutputRule, SkillMatchingRule,
 )
 
 _log = logging.getLogger(__name__)
@@ -49,6 +49,7 @@ _RULE_MODELS: dict[str, type] = {
     "cultural": CulturalRule,
     "prompt_injection": PromptInjectionRule,
     "cultural_output": CulturalOutputRule,
+    "skill_matching": SkillMatchingRule,
 }
 
 _DATA_DIR = Path(__file__).parent / "data"
@@ -80,7 +81,7 @@ def load_rules(category: str) -> list:
             if rule.active:
                 if isinstance(rule, SafetyRule) and rule.match_type == "regex":
                     _lint_arabic_regex_rule(rule)
-                if isinstance(rule, SafetyRule) and rule.approved_by is None:
+                if isinstance(rule, (SafetyRule, SkillMatchingRule)) and rule.approved_by is None:
                     _log.warning(
                         "[rules/loader] UNAPPROVED ACTIVE SAFETY RULE: %s "
                         "(authored_by=%s) — clinical sign-off required before production",

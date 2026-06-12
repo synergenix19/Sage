@@ -1,0 +1,35 @@
+{
+  "category": "skill_matching",
+  "description": "Controls how a matched therapeutic skill enters the conversation: immediate entry or a consent offer the user must accept. First-match-wins by ascending priority. Clinician-ownable: the acute skill list, intensity threshold, offer count, and declined handling are all data, not code.",
+  "rules": [
+    {
+      "rule_id": "acute_direct_entry",
+      "version": "0.1.0",
+      "category": "skill_matching",
+      "authored_by": "engineering",
+      "approved_by": null,
+      "effective_date": "2026-06-12",
+      "active": true,
+      "description": "At panic-level intensity a choice menu adds cognitive load; MI supports directiveness in acute distress. Enters the matched acute somatic skill immediately. ignore_declined: a prior decline does not block acute entry, safety over preference.",
+      "priority": 1,
+      "condition": {
+        "matched_skill_in": ["box_breathing", "grounding_5_4_3_2_1", "stop_technique", "dbt_tipp"],
+        "emotional_intensity_gte": 8
+      },
+      "action": {"type": "enter_direct", "ignore_declined": true}
+    },
+    {
+      "rule_id": "default_offer",
+      "version": "0.1.0",
+      "category": "skill_matching",
+      "authored_by": "engineering",
+      "approved_by": null,
+      "effective_date": "2026-06-12",
+      "active": true,
+      "description": "Default consent gate: every other match is offered, never imposed. Up to max_offered options plus the always-present choice to keep talking. declined_scope session: a declined skill is not re-offered for the rest of the session; the 4h stale-gap reset clears the declined list.",
+      "priority": 99,
+      "condition": {},
+      "action": {"type": "offer", "max_offered": 2, "declined_scope": "session"}
+    }
+  ]
+}

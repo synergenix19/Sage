@@ -3,7 +3,7 @@ import logging
 import re
 from sage_poc.rules.schemas import (
     SafetyRule, CrisisContentRule, CulturalRule, PromptInjectionRule,
-    CulturalOutputRule,
+    CulturalOutputRule, SkillMatchingRule,
     EvalResult, FiredRule,
 )
 from sage_poc.rules.loader import get_rules
@@ -332,12 +332,39 @@ def _eval_cultural_output(rules: list[CulturalOutputRule], context: dict) -> Eva
     return result
 
 
+def _eval_skill_matching(rules: list[SkillMatchingRule], context: dict) -> EvalResult:
+    """
+    Decide how a matched skill enters the conversation: direct entry or consent offer.
+    First-match-wins by ascending priority; returns at most one fired rule.
+
+    context keys:
+      matched_skill_id (str)    — primary candidate from Tier 1/Tier 2 matching
+      emotional_intensity (int) — current turn's intensity score (1-10)
+    """
+    matched_skill_id = context.get("matched_skill_id", "")
+    intensity = int(context.get("emotional_intensity", 5))
+
+    result = EvalResult()
+    for rule in sorted(rules, key=lambda r: r.priority):
+        cond = rule.condition
+        if "matched_skill_in" in cond and matched_skill_id not in cond["matched_skill_in"]:
+            continue
+        if "emotional_intensity_gte" in cond and intensity < cond["emotional_intensity_gte"]:
+            continue
+        result.fired.append(FiredRule(
+            rule_id=rule.rule_id, version=rule.version, action=rule.action,
+        ))
+        break
+    return result
+
+
 _EVAL_DISPATCH = {
     "safety": _eval_safety,
     "crisis_content": _eval_crisis_content,
     "cultural": _eval_cultural,
     "prompt_injection": _eval_prompt_injection,
     "cultural_output": _eval_cultural_output,
+    "skill_matching": _eval_skill_matching,
 }
 
 

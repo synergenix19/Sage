@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 
 class SafetyRule(BaseModel):
@@ -82,6 +82,54 @@ class CulturalOutputRule(BaseModel):
     condition_value: str | None = None
     patterns: list[str]
     action: dict
+
+
+# Condition keys _eval_skill_matching resolves at runtime. Any key outside this set
+# is spec-present-runtime-inert, the exact failure class behind the 21 dead
+# step_policy signals. Reject at load, never skip silently.
+_SKILL_MATCHING_CONDITION_KEYS = frozenset({"matched_skill_in", "emotional_intensity_gte"})
+
+
+class SkillMatchingRule(BaseModel):
+    rule_id: str
+    version: str = "1.0.0"
+    category: Literal["skill_matching"]
+    authored_by: str = "sage_clinics"
+    approved_by: str | None = None
+    effective_date: str
+    active: bool = True
+    description: str = ""
+    priority: int = 100          # ascending; first match wins
+    condition: dict = Field(default_factory=dict)   # empty = always matches
+    action: dict
+
+    @field_validator("condition")
+    @classmethod
+    def known_condition_keys_only(cls, v):
+        unknown = set(v) - _SKILL_MATCHING_CONDITION_KEYS
+        if unknown:
+            raise ValueError(
+                f"skill_matching condition keys not resolvable at runtime: {sorted(unknown)}. "
+                f"Known: {sorted(_SKILL_MATCHING_CONDITION_KEYS)} (dead-signal guard)."
+            )
+        return v
+
+    @field_validator("action")
+    @classmethod
+    def implemented_actions_only(cls, v):
+        if v.get("type") not in ("enter_direct", "offer"):
+            raise ValueError(
+                f"skill_matching action.type must be 'enter_direct' or 'offer', got {v.get('type')!r}"
+            )
+        if v.get("type") == "offer":
+            if not isinstance(v.get("max_offered"), int) or v["max_offered"] < 1:
+                raise ValueError("offer action requires integer max_offered >= 1")
+            if v.get("declined_scope", "session") != "session":
+                raise ValueError(
+                    "declined_scope: only 'session' is implemented. Declaring other scopes "
+                    "in data without runtime support recreates the dead-signal failure class."
+                )
+        return v
 
 
 @dataclass
