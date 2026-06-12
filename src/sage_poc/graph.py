@@ -122,6 +122,7 @@ async def _crisis_response_node(state: SageState) -> dict:
         "is_safe": False,
         "active_skill_id": None,
         "active_step_id": None,
+        "offered_skill_ids": None,
         "gate_path": "crisis",
         "response": response_text,
         "response_en": response_text,

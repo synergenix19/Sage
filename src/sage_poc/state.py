@@ -43,6 +43,10 @@ class SageState(TypedDict):
     prev_step_id: Optional[str]        # step executed on the PREVIOUS turn; persists via LangGraph checkpoint for continuation detection
     skill_match_method: Optional[str]   # "keyword" | "semantic" | None
     semantic_score: Optional[float]     # cosine similarity if semantic match
+    offered_skill_ids: Optional[list[str]]  # R1: 1-2 skills offered, pending accept/decline; persists via checkpoint; cleared on accept (skill_select), decline/ignore (intent_route), crisis (crisis_response), stale gap
+    offer_response: Optional[str]           # R1: "accept" | "decline" | "other"; per-turn, reset in _build_state
+    offer_choice_skill_id: Optional[str]    # R1: skill chosen on accept; per-turn, reset in _build_state
+    declined_skills: list[str]              # R1: skills declined this session; never re-offered (declined_scope "session" in skill_matching rules); persists via checkpoint; cleared at 4h stale gap
     prompt_layers: list[str]            # layer names included in the composed LLM prompt
     token_usage: dict                   # {"input": N, "output": N, "total": N} from LLM
     escalation_triggered: Optional[dict]  # {"level": "L1"|"L2", "reason": str, "action": str}

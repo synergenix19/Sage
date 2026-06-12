@@ -32,12 +32,25 @@ def _stale_skill_overrides(checkpoint_values: dict) -> dict:
 
     Clinical flags are intentionally NOT cleared — they are true longitudinal
     signals (v7 §6.3), not in-session workflow position.
+
+    Offer and declined-skills clearing: offered_skill_ids and declined_skills
+    follow the skill_matching rules' "declined_scope: session" contract — they
+    are scoped to the current session, not the user's longitudinal history. A 4h+
+    gap constitutes a session boundary, so any pending offer (offered_skill_ids)
+    and the session-scoped decline list (declined_skills) are cleared alongside
+    the stale skill. This prevents stale offers from surfacing after a long pause
+    and allows re-offer of previously declined skills in a fresh session.
     """
     last_turn_at = checkpoint_values.get("last_turn_at")
     active_skill_id = checkpoint_values.get("active_skill_id")
     crisis_state = checkpoint_values.get("crisis_state", "none")
     is_stale_crisis = crisis_state in ("monitoring", "active")
-    if not last_turn_at or (not active_skill_id and not is_stale_crisis):
+    offered_pending = bool(checkpoint_values.get("offered_skill_ids"))
+    declined_pending = bool(checkpoint_values.get("declined_skills"))
+    if not last_turn_at or (
+        not active_skill_id and not is_stale_crisis
+        and not offered_pending and not declined_pending
+    ):
         return {}
     try:
         last = datetime.fromisoformat(last_turn_at)
@@ -52,6 +65,10 @@ def _stale_skill_overrides(checkpoint_values: dict) -> dict:
                 overrides["active_skill_id"] = None
                 overrides["active_step_id"] = None
                 overrides["stale_skill_id"] = active_skill_id
+            if offered_pending:
+                overrides["offered_skill_ids"] = None
+            if declined_pending:
+                overrides["declined_skills"] = []
             return overrides
     except (ValueError, TypeError):
         pass
@@ -120,6 +137,8 @@ def _build_state(req: _RequestLike) -> dict:
         "knowledge_source":        "",
         "knowledge_abstain":       False,
         "knowledge_passages":      [],
+        "offer_response":          None,
+        "offer_choice_skill_id":   None,
         # Set from request — needed by tools and summary persistence
         "session_id": req.session_id,
         "user_id":    req.user_id,
