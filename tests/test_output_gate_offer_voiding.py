@@ -135,6 +135,39 @@ async def test_fallback_substitution_preserves_offer_from_prior_turn():
 
 
 @pytest.mark.asyncio
+async def test_empty_response_on_retry_voids_offer_created_this_turn():
+    """Empty response after a retry (response_en="") substitutes the vetted
+    fallback and must void an offer created THIS turn — the LLM rate-limit /
+    token-budget failure path (output_gate.py ~line 255).  This sub-path is
+    distinct from the banned-opener-exhausted branch: the response is empty
+    rather than violating, but the offer-voiding invariant is identical because
+    the user never saw the offer options in either case."""
+    state = _base_state(
+        response_en="",
+        banned_opener_retry_count=1,
+        offered_skill_ids=["worry_time"],
+        path=["safety_check", "intent_route", "skill_select",
+              "skill_offer_made", "freeflow_respond"],
+    )
+
+    result = await _run_gate(state)
+
+    assert result.get("banned_opener_fallback_used") is True, (
+        "Empty response on retry must set banned_opener_fallback_used=True"
+    )
+    assert "offered_skill_ids" in result, (
+        "Empty-response fallback on an offer-creating turn must include "
+        "offered_skill_ids in the state update to void the unseen offer"
+    )
+    assert result["offered_skill_ids"] is None, (
+        f"Unseen offer must be voided. Got: {result['offered_skill_ids']!r}"
+    )
+    assert "offer_voided_fallback" in result.get("path", []), (
+        "Audit trail must carry the offer_voided_fallback path marker"
+    )
+
+
+@pytest.mark.asyncio
 async def test_normal_offer_turn_leaves_offer_untouched():
     """Clean (non-fallback) offer turn: the user saw the offer, so output_gate
     must not touch offered_skill_ids."""
