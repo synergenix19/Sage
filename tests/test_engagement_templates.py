@@ -88,3 +88,60 @@ class TestOfferDescriptionsCoverage:
                             f"{sid}.{field}.ar contains placeholder marker {marker!r}"
                         )
             assert len(entry["description"]["en"]) <= 160, f"{sid}: blurb too long for an offer line"
+
+
+def _composer_state(**overrides) -> dict:
+    base = {
+        "raw_message": "I keep worrying about everything",
+        "message_en": "I keep worrying about everything",
+        "detected_language": "en",
+        "is_safe": True,
+        "crisis_flags": [],
+        "clinical_flags": [],
+        "new_clinical_flags_turn": [],
+        "third_party_crisis": False,
+        "crisis_state": "none",
+        "code_switching": False,
+        "primary_intent": "new_skill",
+        "secondary_intent": None,
+        "intent_confidence": 0.9,
+        "emotional_intensity": 5,
+        "engagement": 6,
+        "active_skill_id": None,
+        "active_step_id": None,
+        "executed_step_id": None,
+        "step_instruction": None,
+        "rule_fired": None,
+        "knowledge_passages": [],
+        "knowledge_abstain": False,
+        "knowledge_source": "",
+        "conversation_history": [],
+        "conversation_summary": None,
+        "therapeutic_profile": None,
+        "path": [],
+        "turn_count": 1,
+    }
+    return {**base, **overrides}
+
+
+class TestSkillOfferComposition:
+    def test_offer_template_selected_when_offer_pending(self):
+        from sage_poc.prompts.composer import compose_prompt
+        state = _composer_state(offered_skill_ids=["worry_time", "cognitive_restructuring"])
+        system_str, user_str, layers = compose_prompt(state)
+        assert "Worry time" in user_str, "en display_name from offer_descriptions must be injected"
+        assert "Reframing practice" in user_str
+        assert "Do not begin any exercise this turn" in user_str
+        assert "continuing to talk" in user_str
+
+    def test_unmatched_template_still_used_without_offer(self):
+        from sage_poc.prompts.composer import compose_prompt
+        state = _composer_state()
+        system_str, user_str, layers = compose_prompt(state)
+        assert "Do not begin any exercise this turn" not in user_str
+
+    def test_offer_template_is_draft_and_clean(self):
+        tmpl = get_intent_template("skill_offer")
+        assert tmpl is not None
+        assert "—" not in tmpl.content
+        assert set(tmpl.variables) == {"intensity", "intensity_guidance", "offer_options_block"}

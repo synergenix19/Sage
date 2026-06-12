@@ -1,6 +1,9 @@
 from __future__ import annotations
 import re
 import logging
+import json as _json
+from functools import lru_cache
+from pathlib import Path
 from sage_poc.state import SageState
 from sage_poc.skills.schema import SkillStep, load_skill
 from sage_poc.rules import engine as rules_engine
@@ -89,6 +92,43 @@ _INTENSITY_GUIDANCE: dict[str, str] = {
     "high": "The user is significantly distressed. Name the specific thing they said, directly. Ask one focused question about it. Do NOT paraphrase or reflect back what they said. Do NOT begin with 'It sounds like', 'That sounds', or any reflective opener. Do NOT offer guidance yet.",
 }
 
+_OFFER_DESCRIPTIONS_PATH = Path(__file__).parent / "offer_descriptions.json"
+
+
+@lru_cache(maxsize=1)
+def _offer_descriptions() -> dict:
+    try:
+        return _json.loads(_OFFER_DESCRIPTIONS_PATH.read_text(encoding="utf-8"))["descriptions"]
+    except Exception as exc:
+        _log.warning("offer_descriptions.json unavailable: %s", exc)
+        return {}
+
+
+def _bilingual(entry_field: dict, language: str) -> str:
+    """Bilingual envelope accessor: ar falls back to en when null/absent."""
+    return entry_field.get(language) or entry_field["en"]
+
+
+def _build_offer_options_block(offered_skill_ids: list[str], language: str) -> str:
+    """One numbered line per offered skill: display name plus plain blurb.
+    Falls back to registry skill_name when a blurb is missing (coverage test
+    in test_engagement_templates.py should make that unreachable)."""
+    descs = _offer_descriptions()
+    lines: list[str] = []
+    for i, sid in enumerate(offered_skill_ids, 1):
+        entry = descs.get(sid)
+        if entry:
+            name = _bilingual(entry["display_name"], language)
+            desc = _bilingual(entry["description"], language)
+            lines.append(f"{i}. {name}: {desc}")
+        else:
+            try:
+                lines.append(f"{i}. {load_skill(sid).skill_name}")
+            except Exception:
+                _log.warning("offer options: unknown skill_id %s skipped", sid)
+    return "\n".join(lines)
+
+
 _L1_BASE_BUDGET = 450
 _L1_FLEX_BUDGET = 600
 _L1_MINIMUM_BUDGET = 150  # defensive floor — clinical minimum; unreachable after Task 0 cap reduction
@@ -146,6 +186,7 @@ def _build_l2_intent_block(
     intensity: int,
     secondary_intent: str | None = None,
     variant: str | None = None,
+    extra_variables: dict[str, str] | None = None,
 ) -> str:
     intent = primary_intent or "general_chat"
     tmpl = get_intent_template(intent, variant=variant)
@@ -159,6 +200,7 @@ def _build_l2_intent_block(
     variables: dict[str, str] = {
         "intensity": str(intensity),
         "intensity_guidance": guidance,
+        **(extra_variables or {}),
     }
     content = tmpl.content
     for var in tmpl.variables:
@@ -501,12 +543,20 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     # unmatched-disclosure template (structural constraints: name disclosed content,
     # do not re-probe named emotions, offer space not solutions). Selector pending
     # Rule 1 approval — template is draft-pending-review.
-    _l2_intent = (
-        "new_skill_unmatched"
-        if primary_intent == "new_skill" and not state.get("active_skill_id")
-        else primary_intent
-    )
-    l2_block = _build_l2_intent_block(_l2_intent, intensity, secondary_intent)
+    # R1 (2026-06-12): a pending skill offer overrides intent-based L2 selection.
+    # State-driven because the offer is created by skill_select, not intent_route.
+    _offer_ids = state.get("offered_skill_ids") or []
+    if _offer_ids:
+        _l2_intent = "skill_offer"
+        _l2_extra = {"offer_options_block": _build_offer_options_block(_offer_ids, language)}
+    else:
+        _l2_intent = (
+            "new_skill_unmatched"
+            if primary_intent == "new_skill" and not state.get("active_skill_id")
+            else primary_intent
+        )
+        _l2_extra = None
+    l2_block = _build_l2_intent_block(_l2_intent, intensity, secondary_intent, extra_variables=_l2_extra)
     user_parts.append(l2_block)
     layers.append("intent")
 
