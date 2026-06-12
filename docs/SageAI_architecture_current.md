@@ -1,7 +1,7 @@
 # SageAI Architecture — Current State
 
 **Document type:** Living codebase reference  
-**Last updated:** 2026-05-31 (Phase 1: L2 unmatched-disclosure template; embedding field audit; open items GRIEF-SKILL, TIER2-DUALIDX, L2-AUTHORITY, EMOTIONS-FIELD added)  
+**Last updated:** 2026-06-12 (R1 consent-gated skill entry via skill_matching rules category; R3 engage-then-bridge in L2_general_chat v1.3.0; R5 criteria_hold_budget; see docs/superpowers/plans/2026-06-12-engagement-r1-r3-r5.md). Prior: 2026-05-31 (Phase 1: L2 unmatched-disclosure template; embedding field audit; open items GRIEF-SKILL, TIER2-DUALIDX, L2-AUTHORITY, EMOTIONS-FIELD added)  
 **Supersedes:** `SageAI_v7_FINAL_COMPLETE.docx` and `docs/v7.1-post-crisis-state-addendum.md` for all code-level claims  
 **Ground truth path:** `sage-poc/`
 
@@ -120,6 +120,8 @@ output_gate
 | S1 or S3 fires (is_safe=False) | `crisis_response` regardless of crisis_state |
 | `crisis_state == "monitoring"` AND `s7_result == "NEW_CRISIS"` | `crisis_response` |
 | `crisis_state == "monitoring"` AND safe | `intent_route` → forced to `skill_select` (bypasses confidence gate) |
+| `offered_skill_ids` set AND `offer_response == "accept"` | `skill_select` (offer promotion; bypasses confidence gate, same precedent as monitoring) |
+| Tier 1/Tier 2 match, `acute_direct_entry` rule NOT fired | `freeflow_respond` with `L2_skill_offer` (consent offer turn; `active_skill_id` stays `None`) |
 | `intent_confidence < 0.6` (not monitoring) | `low_confidence_respond` |
 | `primary_intent == "info_request"` | `skill_select` → immediate early-return → `knowledge_retrieve` |
 | `primary_intent == "exit_skill"` AND active skill | `skill_executor` (runs L1 exit protocol) |
@@ -294,22 +296,25 @@ Canonical inventory: `docs/SageAI_Skills_Knowledge_Base.md`. Proposed future ski
 
 ### 5.2 Matching
 
-`nodes/skill_select.py`. Two-tier — but three early-return paths run before either tier:
+`nodes/skill_select.py`. Two-tier — with several early-return paths ahead of the tiers. The in-node order is:
 
-**Early-return paths (skip all matching):**
-1. `primary_intent == "info_request"` → returns immediately with `active_skill_id=None`, routes to `knowledge_retrieve`
+**Early-return order (each skips everything below it):**
+1. `primary_intent == "info_request"` → returns immediately (preserving any active skill), routes to `knowledge_retrieve`
 2. `crisis_state == "monitoring"` → `post_crisis_check_in` auto-selected unconditionally, no keyword or semantic check
-3. Tier 1 match found → returns immediately, Tier 2 never runs
+3. `psychotic_disclosure` flag active AND referral not yet delivered → `psychotic_referral` auto-selected
+4. Offer promotion (R1): pending `offered_skill_ids` AND `offer_response == "accept"` → the chosen offered skill is activated directly (`skill_match_method="offer_accept"`, path marker `offer_promoted`); a stale offer whose ids no longer resolve to known skills is cleared via the node's return dict and matching continues
+5. Tier 1 match found → Tier 2 never runs
+6. Tier 2 semantic matching
 
 **Tier 1 — Keyword matching:**
 
-Iterates over all 20 skills in `SKILL_REGISTRY` order. For each skill, checks every entry in `target_presentations`. Match condition: `keyword.lower() in message_en.lower()` — case-insensitive substring. First keyword match across any skill wins and returns immediately. Registry order in `skill_ids.py` is therefore the priority order: skills listed earlier take precedence when multiple skills share overlapping keywords.
+Best-match keyword scoring (SF-1 semantics). Collects ALL matches across all skills in `SKILL_REGISTRY`, checking every `target_presentations` entry with `keyword.lower() in message_en.lower()` — case-insensitive substring. Matches are ranked by longest matched keyword (most specific first); the stable sort preserves registry order on ties. This eliminates the registry-order-as-tiebreaker dominant-shadower failures where a short keyword in a low-index skill blocked a longer, more-specific keyword in a high-index skill. For Arabic sessions, keywords are also matched against `raw_message` (Arabic-script keywords cannot match a translated English string).
 
-A single keyword match activates the entire skill and starts from `skill.steps[0].step_id`. There is no partial or contextual keyword match — it is always substring presence.
+There is no partial or contextual keyword match — it is always substring presence. The ranked candidate list is handed to the consent gate (below), which decides whether the top candidate activates directly or is offered.
 
 **Tier 2 — BGE-M3 semantic matching:**
 
-Only runs if Tier 1 found no match. Encodes `state["message_en"]` with BGE-M3 (in a thread, 10s timeout `EMBEDDING_TIMEOUT_SECONDS`). Computes cosine similarity against pre-computed embeddings of all skills' `semantic_description` fields. Returns the best-scoring skill if its score ≥ `SEMANTIC_THRESHOLD = 0.459`.
+Only runs if Tier 1 found no match. Encodes `state["message_en"]` with BGE-M3 (in a thread, 10s timeout `EMBEDDING_TIMEOUT_SECONDS`). Computes cosine similarity against pre-computed embeddings of all skills' `semantic_description` fields. Returns the best-scoring skill if its score ≥ `SEMANTIC_THRESHOLD`, plus a runner-up — the highest-scoring OTHER skill at/above `SEMANTIC_THRESHOLD` — which R1 uses as the second offer candidate.
 
 The embeddings are built at startup (or first request if warmup disabled) from `skill.semantic_description` for all skills that have a non-empty description. `post_crisis_check_in` has an empty description and is never in the semantic pool.
 
@@ -320,6 +325,27 @@ The embeddings are built at startup (or first request if warmup disabled) from `
 **No-match fallback path:** When both tiers miss (neither keyword nor semantic match), `_route_after_skill_select` returns `"freeflow"` (not `"knowledge_retrieve"` — that is the `info_request` path). The freeflow response is generated with the `L2_new_skill_unmatched` template (see §7.1), which supplies structural constraints. Without a matched skill, L3 is entirely absent from the prompt.
 
 **Embedding field note (2026-05-31):** Tier 2 embeds `semantic_description` only — the technique-identity field. `target_presentations` (symptom/presentation language) is used exclusively in Tier 1 keyword matching. This is intentional: Tier 2 was calibrated for cross-cluster disambiguation between existing skills, not for catching novel symptom phrasings. A `new_skill` disclosure with no `target_presentations` keyword match AND no semantically adjacent skill will always fall through to the no-match path. The fix for a missing skill is authoring the skill with broad `target_presentations`, not extending Tier 2 (which is a standalone §4.3 evaluation — see §20.4).
+
+**Consent gate (R1, 2026-06-12):**
+
+A Tier 1 or Tier 2 match no longer activates a skill unconditionally. Once either tier produces ranked candidates (Tier 1: longest-keyword best-match list; Tier 2: best match plus a runner-up ≥ `SEMANTIC_THRESHOLD`), `skill_select._resolve_entry()` calls `rules_engine.evaluate("skill_matching", {matched_skill_id, emotional_intensity})` to decide how the primary candidate enters the conversation. Evaluation is first-match-wins by ascending priority; the loader pre-sorts at load time so the evaluator does not re-sort on the hot path.
+
+Two rules are live in `rules/data/skill_matching/skill_matching_rules.json`:
+
+- **`acute_direct_entry`** (priority 1): the 4 acute somatic skills (`box_breathing`, `grounding_5_4_3_2_1`, `stop_technique`, `dbt_tipp`) at `emotional_intensity ≥ 8` → direct activation, exactly the pre-R1 behaviour. `ignore_declined: true` — a prior decline does not block acute entry (safety over preference).
+- **`default_offer`** (priority 99, empty condition = always matches): candidates become `offered_skill_ids` (≤ `max_offered` 2, declined skills filtered out), `active_skill_id` stays `None`, and the turn routes to `freeflow_respond`, which renders the `L2_skill_offer` template with plain-language blurbs from `prompts/offer_descriptions.json` (bilingual envelope; `ar: null` falls back to `en` — output_gate translates the composed reply for Arabic sessions).
+
+If no rule fires at all (rules file missing/empty), the node falls back to a consent offer (`fallback_offer`) — consent is the fail-safe default, never silent entry. The fired rule_id always lands in `path` as `skill_matching_rule:<id>`.
+
+**Path markers (the offer lifecycle audit trail):** `skill_offer_made` (offer created), `offer_promoted` (skill_select activated an accepted offer), `offer_accepted` / `offer_declined` / `offer_ignored` (intent_route classified the reply), `offer_unparsed` (classifier output unusable; offer preserved), `all_candidates_declined` (every candidate already declined; freeflow with no offer), `enter_direct_declined_fallback` (see rule-author note below). Acceptance-rate metric: `count(offer_accepted) / count(skill_offer_made)` over `session_audit.path`.
+
+**Declined skills:** session-scoped (`declined_scope: "session"` in the rules data). `intent_route` records declines (all skills in the declined offer are appended to `declined_skills`, order-preserving dedup via `dict.fromkeys`); declined skills are never re-offered within the session; the 4h stale-gap reset in `server_helpers._stale_skill_overrides` clears both `declined_skills` and any pending `offered_skill_ids` (session boundary). `_crisis_response_node` clears pending offers (`offered_skill_ids=None`) but does NOT clear declines.
+
+**Rule-author note:** an `enter_direct` rule WITHOUT `ignore_declined` that matches a declined skill does not enter — it falls through to the consent path, and the path marker `enter_direct_declined_fallback` is appended so the audit trail explains the divergence between the fired rule and the action taken on that turn.
+
+**Offer-reply classification (intent_route):** when `offered_skill_ids` is pending, `build_intent_prompt` appends a `PENDING OFFER` block to the per-turn user prompt asking the classifier for two extra JSON fields, `offer_response` ("accept" / "decline" / "other") and `offer_choice_skill_id`. `INTENT_SYSTEM` is untouched. Choice resolution (`_resolve_offer_choice`) tolerates display-name echo and positional index echo ("the first one", "الاول"). An absent `offer_response` field is treated as classifier degradation: the offer is preserved (`offer_unparsed`) and the composer re-renders it next turn as a gentle re-ask; an explicit `"other"` releases the offer. Total LLM failure on `intent_route` returns the neutral JSON fallback from `resilience/fallbacks.json` (general_chat, no `offer_response` key), so pending offers survive outages rather than being silently dropped.
+
+**Governance status:** the `skill_matching` rules, `L2_skill_offer` template, `offer_descriptions.json`, and `soft_advance_instruction.json` are all `draft-pending-review`, `approved_by: null` — merge-gated on Rule 1 approval + clinical sign-off.
 
 ### 5.3 Skill Schema
 
@@ -341,6 +367,7 @@ The embeddings are built at startup (or first request if warmup disabled) from `
 | `escalation_matrix.L1` | Yes | L1 exit step instruction |
 | `escalation_matrix.L2–L4` | STORED_ONLY | Validated, not read at runtime |
 | `cultural_overrides` | Yes | Injected into L3 system prompt (200-word budget) |
+| `criteria_hold_budget` | Yes | `skill_executor` `evaluate_step_policy` criteria-blocked branch; `null` = no budget (hold indefinitely); 10 word-count skills opt in at `1` |
 
 **SkillStep fields:**
 
@@ -422,8 +449,20 @@ skill_executor → reads active_skill_id="box_breathing", active_step_id="step_2
 | `step_instruction` | `skill_executor` | No (reset each turn) | The instruction text `compose_prompt` injects as L3 |
 | `prev_step_id` | `skill_executor` | Yes | Step executed on the **previous** turn; used for continuation detection in step_policy |
 | `rule_fired` | `skill_executor` | No (reset each turn) | True when a step_policy rule fired (not a normal advance); causes `compose_prompt` to use plain `step_instruction` instead of rebuilding from skill JSON |
+| `criteria_hold_count` | `skill_executor` | Yes | R5: consecutive criteria holds at the current step; reset to 0 when `criteria_hold_step_id` no longer matches the step being executed |
+| `criteria_hold_step_id` | `skill_executor` | Yes | R5: step the hold counter belongs to |
 
 **Why `executed_step_id` and not `active_step_id` in L3:** After `skill_executor` runs, `active_step_id` has already been updated to the NEXT step. `compose_prompt` reads `executed_step_id` (the step just used) to rebuild the full L3 block with goal/technique/examples. Using `active_step_id` would show the LLM next turn's step — wrong.
+
+#### Criteria hold budget and soft advance (R5, 2026-06-12)
+
+`criteria_hold_count` is the **seventh** signal in `_KNOWN_STEP_POLICY_SIGNALS` — skill authors may write `step_policy` rules against it like any other signal. Independent of authored rules, a system-default budget rule lives in `evaluate_step_policy`: it fires **only at the criteria-blocked point** (after no step_policy rule fired and criteria did not pass), so it can never fire over a turn whose criteria actually passed.
+
+When `skill.criteria_hold_budget` is non-null and `criteria_hold_count >= criteria_hold_budget`, the step soft-advances instead of holding: the action becomes `advance` (or `complete` on the last step) and governed text from `rules/data/step_policy/soft_advance_instruction.json` is appended to the step instruction ("respond to what they said, move forward naturally, do not repeat the previous question"). Therapeutic language does not live in `.py` files; the JSON carries the standard governance envelope (`draft-pending-review`, `approved_by: null`). The soft advance sets `rule_fired=True` so `compose_prompt` uses the appended `step_instruction` verbatim — the note survives composition rather than being lost to an L3 rebuild from skill JSON.
+
+Code invariants the data cannot override: `entry_screen` steps are exempt (the medical-safety gate must never be budget-advanced), and `null` budget means no budget (hold indefinitely — the pre-R5 behaviour). 10 word-count-heuristic skills opt in at budget `1`; the `_LLM_CRITERIA_SKILLS` (which have a real evaluator rather than a token count) do not.
+
+Counter lifecycle follows the **post-precedence-resolver** outcome, not the Phase 1 sentinel: the counter resets to 0 only when the final result is an advance/complete; it increments when the turn was criteria-blocked and the LLM evaluator did not confirm criteria; a Phase 2 safety hold (`validate_only`) that overrides a soft advance preserves the counter unchanged (the held turn neither resets nor double-counts). The counter also resets when the executor sees a different `criteria_hold_step_id` than the step being executed, and on L1 exit.
 
 #### Skill completion
 
@@ -551,7 +590,7 @@ After `knowledge_retrieve`, routing always goes to `freeflow_respond`, which use
 
 **User role** (in order):
 - **L1** (`L1_history.json`): Last 8 turns (default; `tmpl.window_size or 8`), word-budget constrained (450w with active skill/knowledge, 600w freeflow; reduced by cultural_override word count)
-- **L2** (`L2_intents/`): Intent-specific framing — always included. Template is selected by `composer.py` based on `primary_intent`. One selector override exists: when `primary_intent == "new_skill"` AND `active_skill_id is None` (skill_select found no match), composer selects `L2_new_skill_unmatched` instead of `L2_new_skill`. This template carries structural constraints for the unmatched-disclosure path: name the specific disclosure, do not re-probe emotions already stated, offer presence over solutions. It prevents the generic freeflow anti-pattern ("how are you managing those feelings?") when emotional disclosures fall through skill matching. Template is `draft-pending-review` (Rule 1 + clinical); `approved_by: null`, `effective_date: pending`.
+- **L2** (`L2_intents/`): Intent-specific framing — always included. Template is selected by `composer.py` based on `primary_intent`. Two selector overrides exist. (1) When `primary_intent == "new_skill"` AND `active_skill_id is None` (skill_select found no match), composer selects `L2_new_skill_unmatched` instead of `L2_new_skill`. This template carries structural constraints for the unmatched-disclosure path: name the specific disclosure, do not re-probe emotions already stated, offer presence over solutions. It prevents the generic freeflow anti-pattern ("how are you managing those feelings?") when emotional disclosures fall through skill matching. Template is `draft-pending-review` (Rule 1 + clinical); `approved_by: null`, `effective_date: pending`. (2) R1 (2026-06-12): pending `offered_skill_ids` overrides intent-based selection entirely — composer selects `L2_skill_offer` with the `{offer_options_block}` variable (one numbered line per offered skill: display name + plain blurb from `prompts/offer_descriptions.json`). State-driven because the offer is created by `skill_select`, not `intent_route`. The offer block's actual word count is deducted from the L1 history budget proactively (`offer_words` param on `_compute_l1_budget`), so the offer never triggers reactive history shrinking. An empty options block (all ids unknown) falls back to intent-based L2 selection — the offer template never renders with a blank menu. `L2_skill_offer` is `draft-pending-review` (Rule 1 + clinical); `approved_by: null`. Separately, `L2_general_chat` is at v1.3.0 (R3, 2026-06-12): engage-then-bridge — engage briefly and substantively with non-wellbeing topics then connect back to the user; the prior deflection clause was removed, and answering a direct question with a feelings probe is explicitly prohibited.
 - **L5** (`L5_user_context.json`): Clinical flags + cross-session therapeutic profile summary
 - Inline injections: `third_party_crisis` block, `post_crisis_context` block (includes `s7_result`), `stale_skill_context` block
 - **L3** (`L3_skill_wrapper.json`): Full templated skill step block when `executed_step_id` matches a step; falls back to plain `SKILL INSTRUCTION:` on escalation or rule override (layer tag: `"L3_skill_wrapper"` vs `"skill_instruction"` vs `"skill_instruction_override"`)
@@ -948,10 +987,21 @@ Origins from `CORS_ALLOWED_ORIGINS` env var (comma-separated). Default: `http://
 Full `TypedDict` definition in `state.py`.
 
 **Per-turn input (set by `_build_state`, reset each turn):**
-`raw_message`, `message_en`, `detected_language`, `is_safe`, `crisis_flags`, `third_party_crisis`, `primary_intent`, `secondary_intent`, `intent_confidence`, `emotional_intensity`, `engagement`, `executed_step_id`, `step_instruction`, `rule_fired`, `escalation_triggered`, `gate_path`, `response_en`, `response`, `path`, `code_switching`, `s7_result`, `s7_method`, `skill_match_method`, `semantic_score`, `prompt_layers`, `token_usage`, `cultural_output_violations`, `new_clinical_flags_turn`, `resistance_score`, `knowledge_source`, `knowledge_abstain`, `knowledge_passages`, `session_id`, `user_id`, `banned_opener_retry_count`, `banned_opener_correction`, `banned_opener_fallback_used`
+`raw_message`, `message_en`, `detected_language`, `is_safe`, `crisis_flags`, `third_party_crisis`, `primary_intent`, `secondary_intent`, `intent_confidence`, `emotional_intensity`, `engagement`, `executed_step_id`, `step_instruction`, `rule_fired`, `escalation_triggered`, `gate_path`, `response_en`, `response`, `path`, `code_switching`, `s7_result`, `s7_method`, `skill_match_method`, `semantic_score`, `prompt_layers`, `token_usage`, `cultural_output_violations`, `new_clinical_flags_turn`, `resistance_score`, `knowledge_source`, `knowledge_abstain`, `knowledge_passages`, `session_id`, `user_id`, `banned_opener_retry_count`, `banned_opener_correction`, `banned_opener_fallback_used`, `offer_response`, `offer_choice_skill_id`
 
 **Persistent via checkpoint (NOT set by `_build_state`):**
-`conversation_history`, `crisis_state`, `active_skill_id`, `active_step_id`, `clinical_flags`, `distress_trajectory`, `engagement_trajectory`, `conversation_summary`, `turn_count`, `therapeutic_profile`, `resistance_history`, `prev_step_id`, `stale_skill_id`, `last_turn_at`, `re_escalation_within_monitoring`
+`conversation_history`, `crisis_state`, `active_skill_id`, `active_step_id`, `clinical_flags`, `distress_trajectory`, `engagement_trajectory`, `conversation_summary`, `turn_count`, `therapeutic_profile`, `resistance_history`, `prev_step_id`, `stale_skill_id`, `last_turn_at`, `re_escalation_within_monitoring`, `offered_skill_ids`, `declined_skills`, `criteria_hold_count`, `criteria_hold_step_id`
+
+**R1/R5 field semantics (2026-06-12):**
+
+| Field | Persistence | Lifecycle |
+|---|---|---|
+| `offered_skill_ids` | Checkpoint | Set by `skill_select` (consent offer). Cleared on accept (`skill_select` promotion), decline/ignore (`intent_route`), crisis (`_crisis_response_node`), and the 4h stale gap (`_stale_skill_overrides`) |
+| `offer_response` | Per-turn (reset in `_build_state`) | `"accept"` / `"decline"` / `"other"`, written by `intent_route`; absent field preserves the offer (`offer_unparsed`) |
+| `offer_choice_skill_id` | Per-turn (reset in `_build_state`) | Resolved offered skill id on accept; tolerates display-name and index echo |
+| `declined_skills` | Checkpoint | Appended by `intent_route` on decline (order-preserving dedup); never re-offered within the session; cleared ONLY at the 4h stale gap — crisis does NOT clear declines |
+| `criteria_hold_count` | Checkpoint | Consecutive criteria holds at the current step (R5); reset on advance/complete, L1 exit, or step change; preserved through a `validate_only` safety hold |
+| `criteria_hold_step_id` | Checkpoint | Step the hold counter belongs to (R5) |
 
 **Written by nodes, returned in final result:**
 `identity_substitution_rule_id`, `original_response_hash`, `original_response_text`, `banned_opener_violation`, `s7_result`, `s7_method`, `turn_number`
@@ -1003,9 +1053,9 @@ All three must be applied before Gitex demo.
 
 ## 16. Rules Engine
 
-`rules/engine.py`. A stateless evaluator that never reads or writes `SageState`. Called from `safety_check_node`, `compose_prompt`, and `output_gate_node` with different categories and contexts.
+`rules/engine.py`. A stateless evaluator that never reads or writes `SageState`. Called from `safety_check_node`, `skill_select_node`, `compose_prompt`, and `output_gate_node` with different categories and contexts.
 
-### 16.1 Five Rule Categories
+### 16.1 Six Rule Categories
 
 | Category | Called by | What it does |
 |---|---|---|
@@ -1014,6 +1064,7 @@ All three must be applied before Gitex demo.
 | `cultural` | `compose_prompt` | Injects cultural adaptations into system prompt |
 | `prompt_injection` | `compose_prompt` | Injects clinical/situational adaptations into prompt |
 | `cultural_output` | `output_gate_node` | Post-generation check — validates response against cultural constraints |
+| `skill_matching` | `skill_select_node` | Decides how a matched skill enters the conversation: direct entry or consent offer (R1, 2026-06-12) |
 
 ### 16.2 Safety Rule Evaluation
 
@@ -1090,6 +1141,24 @@ Two-phase per rule:
 **`audit_warn` violations do NOT reach the clinician review queue.** They are written to the server log and included in the `cultural_output_violations` field of the Supabase session_audit row. `PostgresNotifier.notify_review_required()` is not called. Clinicians see nothing in their dashboard about a cultural output violation — that queue is only triggered by `crisis_flags` and `clinical_flags`.
 
 CUO-IS-001 checks that when the user used Islamic vocabulary, the response also contains some Islamic vocabulary or patience/trust language — verifying that mirroring occurred, not preventing it.
+
+### 16.7 Skill Matching Rule Evaluation
+
+Context: `{matched_skill_id, emotional_intensity}`. Called from `skill_select._resolve_entry()` after Tier 1 or Tier 2 produces ranked candidates (see §5.2 Consent gate for the full flow and path markers).
+
+**`SkillMatchingRule` schema** (`rules/schemas.py`): governance envelope (`rule_id`, `version`, `authored_by`, `approved_by`, `effective_date`, `active`, `description`) + `priority` (ascending; first match wins) + `condition` (`matched_skill_in`: list of skill ids; `emotional_intensity_gte`: int; empty condition = always matches) + `action` (`{type: "enter_direct", ignore_declined?}` or `{type: "offer", max_offered, declined_scope}`).
+
+**Load-time dead-signal validators** — the same failure class behind the 21 dead step_policy signals (spec present, runtime inert) is rejected at startup, never skipped silently:
+- Condition keys outside `{matched_skill_in, emotional_intensity_gte}` → `ValueError` at model validation
+- `action.type` outside `{enter_direct, offer}` → rejected
+- `declined_scope` other than `"session"` → rejected (declaring unimplemented scopes in data recreates the dead-signal failure class)
+- `matched_skill_in` as a bare string → rejected (would silently degrade to a substring test)
+
+**Loader behaviour** (`rules/loader.py`): pre-sorts `skill_matching` rules by ascending priority at load time (stable — file order on ties), so the evaluator iterates in list order on the hot path without re-sorting. Warns on duplicate priorities (first-match-wins then resolves by file order, fragile for clinician-authored rules) and on any ACTIVE rule with `approved_by: null` (clinical sign-off required before production — same treatment as unapproved safety rules).
+
+**Evaluation** (`_eval_skill_matching`): first-match-wins; at most one rule fires; a condition key absent from a rule is not checked. Live rules: `acute_direct_entry` (priority 1) and `default_offer` (priority 99) — see §5.2.
+
+**Governance note:** the `skill_matching` category itself is an architectural addition pending human sign-off per the architecture-doc-debt convention; both live rules are `approved_by: null`, draft-pending-review, merge-gated on Rule 1 + clinical sign-off.
 
 ---
 
