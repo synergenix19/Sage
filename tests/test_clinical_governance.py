@@ -155,6 +155,8 @@ def test_draft_templates_are_actually_inert():
     # removed from composer routing entirely.
     KNOWN_LIVE_TEMPLATES = {
         "L2_new_skill_unmatched",   # draft-pending-review but wired into production — audit 2026-06-04
+        "L2_skill_offer",           # draft-pending-review, wired via composer offered_skill_ids selector — audit 2026-06-13 S2-9b
+        "L2_general_chat",          # v1.3.0 engineering-rewritten live content, unsigned — audit 2026-06-13 S2-9a
     }
 
     for t in _load_all_templates():

@@ -1,9 +1,13 @@
 {
   "template_id": "L2_general_chat",
   "version": "1.3.0",
-  "authored_by": "sage_clinics",
+  "status": "draft-pending-review",
+  "authored_by": "engineering",
   "approved_by": null,
   "effective_date": "2026-06-12",
+  "_review_required": [
+    "Clinical review (engage-then-bridge replaces deflection clause; v1.2.0 and earlier content was sage_clinics-authored, v1.3.0 rewrite is engineering-authored on feat/engagement-r1-r3-r5; audit finding S2-9a)"
+  ],
   "layer": "L2",
   "role": "user",
   "always_include": true,
