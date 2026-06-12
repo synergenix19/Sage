@@ -90,6 +90,13 @@ def test_get_fallback_response_unknown_node_returns_default():
     assert isinstance(r, str) and len(r) > 5
 
 
+def test_intent_route_fallback_is_parseable_neutral_json():
+    raw = get_fallback_response("intent_route", "en")
+    data = json.loads(raw[raw.index("{"):raw.rindex("}") + 1])
+    assert data["primary_intent"] == "general_chat"
+    assert "offer_response" not in data
+
+
 def test_get_fallback_response_unknown_node_ar_falls_back():
     r = get_fallback_response("no_such_node", "ar")
     assert isinstance(r, str) and len(r) > 5

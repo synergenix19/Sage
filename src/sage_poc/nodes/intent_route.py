@@ -33,6 +33,51 @@ Rules:
 Return ONLY the JSON object. No explanation."""
 
 
+def _offer_display_map(offered: list[str]) -> str:
+    """'1. "Box breathing" = box_breathing, 2. ...' — grounds the classifier to return ids."""
+    try:
+        from sage_poc.prompts.composer import _offer_descriptions
+        descs = _offer_descriptions()
+    except Exception:
+        descs = {}
+    parts = []
+    for i, sid in enumerate(offered, 1):
+        entry = descs.get(sid)
+        if entry:
+            name = entry["display_name"].get("en") or sid
+            parts.append(f'{i}. "{name}" = {sid}')
+        else:
+            parts.append(f"{i}. {sid}")
+    return ", ".join(parts)
+
+
+def _resolve_offer_choice(choice, offered: list[str]) -> str:
+    """Map the classifier's choice to an offered skill id. Tolerates display-name
+    echo and positional indices; falls back to the first offer only when the
+    reply truly did not specify."""
+    if choice in offered:
+        return choice
+    if isinstance(choice, int) or (isinstance(choice, str) and choice.strip().isdigit()):
+        idx = int(choice) - 1
+        if 0 <= idx < len(offered):
+            return offered[idx]
+    if isinstance(choice, str) and choice.strip():
+        try:
+            from sage_poc.prompts.composer import _offer_descriptions
+            descs = _offer_descriptions()
+        except Exception:
+            descs = {}
+        lowered = choice.strip().lower()
+        for sid in offered:
+            entry = descs.get(sid)
+            if not entry:
+                continue
+            for lang_val in entry["display_name"].values():
+                if lang_val and lang_val.strip().lower() == lowered:
+                    return sid
+    return offered[0]
+
+
 def build_intent_prompt(state: SageState) -> str:
     active = f"Active skill: {state['active_skill_id']}" if state.get("active_skill_id") else "No active skill."
     history_lines = "\n".join(
@@ -50,7 +95,7 @@ def build_intent_prompt(state: SageState) -> str:
             '"decline" if they refuse the offer or prefer to keep talking, "other" if the '
             "message is about something else entirely (new topic, new symptom, a question).\n"
             "- offer_choice_skill_id: when offer_response is accept, the chosen exercise id "
-            f"(one of [{names}]; if the user did not specify which, use the first), else null.\n"
+            f"(return the id from this map: {_offer_display_map(offered)}; if the user did not specify which, use the first), else null.\n"
             'A short bare agreement ("yes", "ok", "sure", "yalla", or Arabic equivalents) is accept. '
             'References like "the first one", "the second one", and their Arabic equivalents '
             '("الاول", "الثاني") map to the options by position. '
@@ -99,22 +144,32 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
     if offered:
         offer_response = data.get("offer_response")
         if offer_response not in ("accept", "decline", "other"):
-            offer_response = "other"
-        result["offer_response"] = offer_response
-        if offer_response == "accept":
-            choice = data.get("offer_choice_skill_id")
-            result["offer_choice_skill_id"] = choice if choice in offered else offered[0]
-            result["path"] = result["path"] + ["offer_accepted"]
-        elif offer_response == "decline":
-            result["offered_skill_ids"] = None
-            # dict.fromkeys: order-preserving dedup (clinical audit convention)
-            result["declined_skills"] = list(dict.fromkeys(
-                (state.get("declined_skills") or []) + list(offered)
-            ))
-            result["path"] = result["path"] + ["offer_declined"]
+            if "offer_response" in data:
+                offer_response = "other"  # explicit but invalid value → deliberate non-engagement
+            else:
+                offer_response = None  # field absent → classifier degradation; preserve the offer
+        if offer_response is None:
+            # Trade-off: preserving the offer means the composer re-renders the
+            # offer template next turn (a gentle re-ask) — the intended
+            # degradation path. An explicit "other" classification remains the
+            # path that releases the conversation.
+            result["path"] = result["path"] + ["offer_unparsed"]
         else:
-            result["offered_skill_ids"] = None
-            result["path"] = result["path"] + ["offer_ignored"]
+            result["offer_response"] = offer_response
+            if offer_response == "accept":
+                choice = data.get("offer_choice_skill_id")
+                result["offer_choice_skill_id"] = _resolve_offer_choice(choice, offered)
+                result["path"] = result["path"] + ["offer_accepted"]
+            elif offer_response == "decline":
+                result["offered_skill_ids"] = None
+                # dict.fromkeys: order-preserving dedup (clinical audit convention)
+                result["declined_skills"] = list(dict.fromkeys(
+                    (state.get("declined_skills") or []) + list(offered)
+                ))
+                result["path"] = result["path"] + ["offer_declined"]
+            else:
+                result["offered_skill_ids"] = None
+                result["path"] = result["path"] + ["offer_ignored"]
     if primary_intent in ("scope_refusal", "jailbreak"):
         result["gate_path"] = primary_intent
     return result

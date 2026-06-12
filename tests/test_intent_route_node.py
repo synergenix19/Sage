@@ -404,6 +404,53 @@ async def test_offer_accept_invalid_choice_defaults_to_first():
 
 
 @pytest.mark.asyncio
+async def test_offer_accept_display_name_echo_resolves_to_correct_skill():
+    from sage_poc.nodes.intent_route import intent_route_node
+    mock_response = (
+        '{"primary_intent": "general_chat", "secondary_intent": null, '
+        '"intent_confidence": 0.5, "emotional_intensity": 4, "engagement": 5, '
+        '"offer_response": "accept", "offer_choice_skill_id": "5-4-3-2-1 grounding"}'
+    )
+    state = _base_state(message_en="the grounding one please", **_OFFER_STATE_KW)
+    with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=mock_response)):
+        result = await intent_route_node(state)
+    assert result["offer_choice_skill_id"] == "grounding_5_4_3_2_1", (
+        "display-name echo must map to the chosen skill, not silently fall back to the first"
+    )
+
+
+@pytest.mark.asyncio
+async def test_offer_accept_index_echo_resolves_positionally():
+    from sage_poc.nodes.intent_route import intent_route_node
+    mock_response = (
+        '{"primary_intent": "general_chat", "secondary_intent": null, '
+        '"intent_confidence": 0.5, "emotional_intensity": 4, "engagement": 5, '
+        '"offer_response": "accept", "offer_choice_skill_id": "2"}'
+    )
+    state = _base_state(message_en="the second", **_OFFER_STATE_KW)
+    with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=mock_response)):
+        result = await intent_route_node(state)
+    assert result["offer_choice_skill_id"] == "grounding_5_4_3_2_1"
+
+
+@pytest.mark.asyncio
+async def test_missing_offer_fields_preserves_pending_offer():
+    """Classifier degradation (no offer_response field) must not destroy the offer;
+    a deliberate pivot is an EXPLICIT "other"."""
+    from sage_poc.nodes.intent_route import intent_route_node
+    mock_response = (
+        '{"primary_intent": "general_chat", "secondary_intent": null, '
+        '"intent_confidence": 0.6, "emotional_intensity": 4, "engagement": 5}'
+    )
+    state = _base_state(message_en="hmm", **_OFFER_STATE_KW)
+    with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=mock_response)):
+        result = await intent_route_node(state)
+    assert "offered_skill_ids" not in result, "offer must remain pending in the checkpoint"
+    assert "offer_response" not in result
+    assert "offer_unparsed" in result["path"]
+
+
+@pytest.mark.asyncio
 async def test_offer_decline_clears_offer_and_records_declines():
     from sage_poc.nodes.intent_route import intent_route_node
     mock_response = (
