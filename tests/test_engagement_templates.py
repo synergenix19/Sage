@@ -145,3 +145,23 @@ class TestSkillOfferComposition:
         assert tmpl is not None
         assert "—" not in tmpl.content
         assert set(tmpl.variables) == {"intensity", "intensity_guidance", "offer_options_block"}
+
+    def test_all_unknown_offer_ids_fall_back_to_intent_l2(self):
+        from sage_poc.prompts.composer import compose_prompt
+        state = _composer_state(offered_skill_ids=["ghost_skill_a", "ghost_skill_b"])
+        system_str, user_str, layers = compose_prompt(state)
+        assert "Do not begin any exercise this turn" not in user_str, (
+            "an offer template with a blank options block must never render"
+        )
+
+    def test_bilingual_missing_en_degrades_not_crashes(self):
+        from sage_poc.prompts.composer import _bilingual
+        assert _bilingual({"ar": None}, "en") == ""
+        assert _bilingual({}, "ar") == ""
+
+    def test_offer_turn_deducts_from_l1_budget(self):
+        from sage_poc.prompts.composer import _compute_l1_budget
+        state = _composer_state()
+        base = _compute_l1_budget(state)
+        reduced = _compute_l1_budget(state, offer_words=120)
+        assert reduced == base - 120

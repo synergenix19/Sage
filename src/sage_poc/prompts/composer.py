@@ -97,23 +97,29 @@ _OFFER_DESCRIPTIONS_PATH = Path(__file__).parent / "offer_descriptions.json"
 
 @lru_cache(maxsize=1)
 def _offer_descriptions() -> dict:
-    try:
-        return _json.loads(_OFFER_DESCRIPTIONS_PATH.read_text(encoding="utf-8"))["descriptions"]
-    except Exception as exc:
-        _log.warning("offer_descriptions.json unavailable: %s", exc)
-        return {}
+    # Raises on load failure — the try/except lives in _build_offer_options_block
+    # so a failed load is NOT cached. lru_cache still gives process-lifetime
+    # caching on success, while the file appearing later allows recovery.
+    return _json.loads(_OFFER_DESCRIPTIONS_PATH.read_text(encoding="utf-8"))["descriptions"]
 
 
 def _bilingual(entry_field: dict, language: str) -> str:
-    """Bilingual envelope accessor: ar falls back to en when null/absent."""
-    return entry_field.get(language) or entry_field["en"]
+    """Bilingual envelope accessor: ar falls back to en when null/absent.
+
+    A malformed entry (missing/null en) degrades to "" rather than raising —
+    this runs on the hot path and must never abort the turn."""
+    return entry_field.get(language) or entry_field.get("en") or ""
 
 
 def _build_offer_options_block(offered_skill_ids: list[str], language: str) -> str:
     """One numbered line per offered skill: display name plus plain blurb.
     Falls back to registry skill_name when a blurb is missing (coverage test
     in test_engagement_templates.py should make that unreachable)."""
-    descs = _offer_descriptions()
+    try:
+        descs = _offer_descriptions()
+    except Exception as exc:
+        _log.warning("offer_descriptions.json unavailable: %s", exc)
+        descs = {}
     lines: list[str] = []
     for i, sid in enumerate(offered_skill_ids, 1):
         entry = descs.get(sid)
@@ -143,7 +149,10 @@ def _intensity_guidance(intensity: int) -> str:
 
 
 def _compute_l1_budget(
-    state: SageState, override_words: int = 0, guardrail_words: int = 0
+    state: SageState,
+    override_words: int = 0,
+    guardrail_words: int = 0,
+    offer_words: int = 0,
 ) -> int:
     """Return the L1 word budget for this turn.
 
@@ -162,7 +171,13 @@ def _compute_l1_budget(
         alongside override_words so the L1 flex budget (600w) is proactively
         reduced before history is sized, preventing the overflow guard from
         firing and emergency-shrinking L1 history on long freeflow turns.
-        On skill-execution turns this is 0 (guardrail not injected).
+        On skill-execution turns and skill-offer turns this is 0 (guardrail
+        not injected — see the freeflow-vs-offer discriminator at the call site).
+
+    offer_words: actual word count of the L2 offer options block on a
+        skill-offer turn, deducted the same way so the offer never triggers
+        the reactive overflow guard. On a skill-offer turn guardrail_words is 0
+        and vice versa, so the two never both apply on the same turn.
 
     SPEC DIVERGENCE (§5.6.1): v7 §5.6.1 specifies ~300w for L1. The 450/600
     values are a pre-existing architectural deviation pending review. Do not
@@ -178,7 +193,7 @@ def _compute_l1_budget(
     has_knowledge = state.get("primary_intent") == "info_request" or \
                     state.get("secondary_intent") == "info_request"
     base = _L1_BASE_BUDGET if (has_skill or has_knowledge) else _L1_FLEX_BUDGET
-    return max(_L1_MINIMUM_BUDGET, base - override_words - guardrail_words)
+    return max(_L1_MINIMUM_BUDGET, base - override_words - guardrail_words - offer_words)
 
 
 def _build_l2_intent_block(
@@ -511,6 +526,27 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     # ---- User role ---------------------------------------------------------
     user_parts: list[str] = []
 
+    # R1 (2026-06-12): a pending skill offer overrides intent-based L2 selection.
+    # State-driven because the offer is created by skill_select, not intent_route.
+    # Computed BEFORE the L1 budget so the offer block's words deduct proactively
+    # from L1 instead of tripping the reactive overflow guard (C-1).
+    _offer_ids = state.get("offered_skill_ids") or []
+    _offer_block_str = ""
+    _offer_words = 0
+    if _offer_ids:
+        _offer_block_str = _build_offer_options_block(_offer_ids, language)
+        if not _offer_block_str.strip():
+            # I-1: the skill_offer template must never render with a blank
+            # options block — fall back to intent-based L2 for this turn.
+            _log.warning(
+                "offer options block is empty for ids %s; falling back to intent-based L2",
+                _offer_ids,
+            )
+            _offer_ids = []
+            _offer_block_str = ""
+        else:
+            _offer_words = count_words(_offer_block_str)
+
     # Freeflow guided-protocol guardrail (S2-7 B1) — pre-compute before _compute_l1_budget.
     # The block is built here (freeflow turns only) so its word count can be passed into
     # _compute_l1_budget as guardrail_words, proactively reducing L1 budget before history
@@ -519,15 +555,26 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     # overflow guard that emergency-shrinks L1 history — degrading exactly the
     # emotional-support turns that benefit most from rich history context.
     # The pre-built string is reused when appending below (not built twice).
+    #
+    # MERGE RESOLUTION (#4 ⊕ #8, 2026-06-13): a skill-offer turn also has no
+    # step_instruction, so the freeflow discriminator alone would inject the
+    # guardrail ON TOP OF the skill_offer L2 framing — two different response
+    # contracts stacked in one prompt. The offer turn has its own framing
+    # (present named options, await a choice), so the guardrail is suppressed
+    # when an offer is live. This keeps guardrail_words and offer_words mutually
+    # exclusive per turn, matching the budget docstring.
     _guardrail_block: str | None = None
     _guardrail_words: int = 0
-    if not state.get("step_instruction"):
+    if not state.get("step_instruction") and not _offer_ids:
         _guardrail_block = _build_freeflow_guardrail_block()
         _guardrail_words = count_words(_guardrail_block)
 
     # L1: Conversation history
     l1_budget = _compute_l1_budget(
-        state, override_words=_override_words, guardrail_words=_guardrail_words
+        state,
+        override_words=_override_words,
+        guardrail_words=_guardrail_words,
+        offer_words=_offer_words,
     )
     l1_block = _build_l1_history_block(
         state.get("conversation_history", []),
@@ -543,12 +590,11 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     # unmatched-disclosure template (structural constraints: name disclosed content,
     # do not re-probe named emotions, offer space not solutions). Selector pending
     # Rule 1 approval — template is draft-pending-review.
-    # R1 (2026-06-12): a pending skill offer overrides intent-based L2 selection.
-    # State-driven because the offer is created by skill_select, not intent_route.
-    _offer_ids = state.get("offered_skill_ids") or []
+    # Offer override: _offer_ids / _offer_block_str were precomputed above the
+    # L1 budget call so the block is built exactly once per turn.
     if _offer_ids:
         _l2_intent = "skill_offer"
-        _l2_extra = {"offer_options_block": _build_offer_options_block(_offer_ids, language)}
+        _l2_extra = {"offer_options_block": _offer_block_str}
     else:
         _l2_intent = (
             "new_skill_unmatched"
