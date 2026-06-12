@@ -342,7 +342,7 @@ def _eval_skill_matching(rules: list[SkillMatchingRule], context: dict) -> EvalR
       emotional_intensity (int) — current turn's intensity score (1-10)
     """
     matched_skill_id = context.get("matched_skill_id", "")
-    intensity = int(context.get("emotional_intensity", 5))
+    intensity = int(context.get("emotional_intensity") or 5)
 
     result = EvalResult()
     for rule in sorted(rules, key=lambda r: r.priority):

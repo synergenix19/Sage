@@ -42,6 +42,13 @@ class TestEvaluator:
         res = rules_engine.evaluate("skill_matching", _ctx())
         assert len(res.fired) == 1, "first-match-wins: exactly one rule fires"
 
+    def test_none_intensity_falls_back_to_default(self):
+        res = rules_engine.evaluate("skill_matching", {
+            "matched_skill_id": "box_breathing", "emotional_intensity": None})
+        assert res.fired and res.fired[0].rule_id == "default_offer", (
+            "None intensity must default to 5, below the acute threshold, never crash"
+        )
+
 
 class TestSchemaGuards:
     _BASE = dict(
@@ -64,3 +71,37 @@ class TestSchemaGuards:
             SkillMatchingRule.model_validate(
                 {**self._BASE,
                  "action": {"type": "offer", "max_offered": 2, "declined_scope": "persistent"}})
+
+    def test_string_matched_skill_in_rejected(self):
+        with pytest.raises(ValidationError, match="list of skill ids"):
+            SkillMatchingRule.model_validate(
+                {**self._BASE, "condition": {"matched_skill_in": "box_breathing"}})
+
+    def test_non_int_intensity_threshold_rejected(self):
+        with pytest.raises(ValidationError, match="integer"):
+            SkillMatchingRule.model_validate(
+                {**self._BASE, "condition": {"emotional_intensity_gte": "8"}})
+
+
+class TestEvaluatorIsolated:
+    """Direct _eval_skill_matching tests with constructed rules: no-rule-fires is a
+    distinct meaningful outcome (skill_select falls back to consent offer)."""
+
+    def _rule(self, **kwargs):
+        base = dict(
+            rule_id="r1", category="skill_matching", effective_date="2026-06-12",
+            action={"type": "enter_direct"},
+        )
+        return SkillMatchingRule.model_validate({**base, **kwargs})
+
+    def test_empty_rules_list_fires_nothing(self):
+        from sage_poc.rules.engine import _eval_skill_matching
+        res = _eval_skill_matching([], _ctx())
+        assert res.fired == []
+
+    def test_equal_priority_resolves_in_list_order(self):
+        from sage_poc.rules.engine import _eval_skill_matching
+        r_a = self._rule(rule_id="a", priority=50)
+        r_b = self._rule(rule_id="b", priority=50)
+        res = _eval_skill_matching([r_a, r_b], _ctx())
+        assert res.fired[0].rule_id == "a", "stable sort: equal priority = list order"

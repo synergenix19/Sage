@@ -112,6 +112,13 @@ class SkillMatchingRule(BaseModel):
                 f"skill_matching condition keys not resolvable at runtime: {sorted(unknown)}. "
                 f"Known: {sorted(_SKILL_MATCHING_CONDITION_KEYS)} (dead-signal guard)."
             )
+        if "matched_skill_in" in v and not isinstance(v["matched_skill_in"], list):
+            raise ValueError(
+                "matched_skill_in must be a list of skill ids; a bare string would "
+                "silently degrade to a substring test in the evaluator"
+            )
+        if "emotional_intensity_gte" in v and not isinstance(v["emotional_intensity_gte"], int):
+            raise ValueError("emotional_intensity_gte must be an integer")
         return v
 
     @field_validator("action")

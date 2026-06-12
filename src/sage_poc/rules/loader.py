@@ -83,11 +83,23 @@ def load_rules(category: str) -> list:
                     _lint_arabic_regex_rule(rule)
                 if isinstance(rule, (SafetyRule, SkillMatchingRule)) and rule.approved_by is None:
                     _log.warning(
-                        "[rules/loader] UNAPPROVED ACTIVE SAFETY RULE: %s "
+                        "[rules/loader] UNAPPROVED ACTIVE %s RULE: %s "
                         "(authored_by=%s) — clinical sign-off required before production",
-                        rule.rule_id, rule.authored_by,
+                        rule.category.upper(), rule.rule_id, rule.authored_by,
                     )
                 rules.append(rule)
+    if category == "skill_matching":
+        seen_priorities: dict[int, str] = {}
+        for rule in rules:
+            if rule.priority in seen_priorities:
+                _log.warning(
+                    "[rules/loader] skill_matching rules %s and %s share priority %d; "
+                    "first-match-wins resolves by file order, which is fragile for "
+                    "clinician-authored rules — assign distinct priorities",
+                    seen_priorities[rule.priority], rule.rule_id, rule.priority,
+                )
+            else:
+                seen_priorities[rule.priority] = rule.rule_id
     return rules
 
 
