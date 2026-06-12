@@ -22,6 +22,7 @@ EXPECTED_FIELDS = {
     "step.contraindications",
     "step.completion_criteria",
     "skill.cultural_overrides",
+    "skill.criteria_hold_budget",
     "skill.escalation_matrix.L1",
     "skill.escalation_matrix.L2",
     "skill.escalation_matrix.L3",
@@ -51,6 +52,10 @@ def test_every_field_has_note():
 def test_cultural_overrides_is_used():
     """After Task 1, cultural_overrides must be USED."""
     assert SCHEMA_CONFORMANCE["skill.cultural_overrides"]["status"] == "USED"
+
+
+def test_criteria_hold_budget_is_used():
+    assert SCHEMA_CONFORMANCE["skill.criteria_hold_budget"]["status"] == "USED"
 
 
 def test_escalation_matrix_l1_is_used():

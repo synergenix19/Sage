@@ -1118,7 +1118,10 @@ class TestR5CriteriaHoldBudget:
 
     async def test_entry_screen_never_soft_advances(self):
         """Code invariant: budget can never advance past an entry_screen safety gate,
-        whatever the JSON says."""
+        whatever the JSON says. The invariant under test is the code-level entry_screen
+        guard in evaluate_step_policy (current_step_id == 'entry_screen' forces
+        heuristic_met=False), not the LLM path — the synthetic skill is not in
+        _LLM_CRITERIA_SKILLS so evaluate_completion_criteria is never called."""
         skill = self._budgeted_skill()
         skill.steps[0].step_id = "entry_screen"
         state = _make_executor_state(
@@ -1127,11 +1130,7 @@ class TestR5CriteriaHoldBudget:
             criteria_hold_count=5,
             criteria_hold_step_id="entry_screen",
         )
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill), \
-             patch(
-                 "sage_poc.nodes.skill_executor.evaluate_completion_criteria",
-                 new=AsyncMock(return_value=False),
-             ):
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
             result = await skill_executor_node(state)
         assert result["active_step_id"] == "entry_screen"
 
@@ -1142,6 +1141,30 @@ class TestR5CriteriaHoldBudget:
             result = await skill_executor_node(state)
         assert result["criteria_hold_count"] == 0
         assert result["criteria_hold_step_id"] is None
+
+    async def test_phase2_safety_hold_preserves_counter_over_soft_advance(self):
+        """A validate_only resistance hold overrides a budget soft-advance; the
+        counter must NOT reset on the held turn."""
+        from sage_poc.skills.schema import StepPolicyRule, StepPolicyCondition
+        skill = self._budgeted_skill()
+        skill.step_policy.append(StepPolicyRule(
+            condition=StepPolicyCondition(signal="resistance", operator=">", value=6, step="ANY"),
+            action="validate_only",
+            instruction="Pause and validate before any forward movement.",
+            next_step_id="current",
+        ))
+        state = _make_executor_state(
+            message_en="ok", criteria_hold_count=1, criteria_hold_step_id="step_1")
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill), \
+             patch(
+                 "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
+                 new=AsyncMock(return_value=9),
+             ):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "step_1", "safety hold must win over soft advance"
+        assert result["criteria_hold_count"] != 0 or result["criteria_hold_step_id"] is not None, (
+            "counter must not reset on a held turn"
+        )
 
     def test_criteria_hold_count_is_a_known_step_policy_signal(self):
         from sage_poc.nodes.skill_executor import _KNOWN_STEP_POLICY_SIGNALS

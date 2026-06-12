@@ -653,7 +653,10 @@ async def skill_executor_node(state: SageState) -> dict:
     if result.get("skill_complete") and skill_id == "psychotic_referral":
         psychotic_referral_update = {"psychotic_referral_delivered": True}
 
-    if soft_advanced or result.get("action") in ("advance", "complete") or result.get("skill_complete"):
+    # Use the final result, not the Phase 1 sentinel, to decide counter reset.
+    # soft_advanced alone is insufficient: a Phase 2 safety hold (validate_only) can
+    # override the soft advance, and the counter must not reset on a held turn.
+    if result.get("action") in ("advance", "complete") or result.get("skill_complete"):
         criteria_hold_update = {"criteria_hold_count": 0, "criteria_hold_step_id": None}
     elif p1_criteria_blocked and llm_criteria_met is not True:
         criteria_hold_update = {
