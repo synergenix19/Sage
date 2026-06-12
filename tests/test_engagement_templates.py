@@ -3,6 +3,9 @@
 Pins template content, blurb coverage, and composer offer selection so future
 edits that silently regress engagement behavior fail CI instead of shipping.
 """
+# NOTE: TestOfferDescriptionsCoverage reads offer_descriptions.json directly from
+# disk (no loader cache involved), so the autouse _fresh_templates fixture is
+# irrelevant to it by design.
 import json
 from pathlib import Path
 
@@ -52,15 +55,23 @@ class TestOfferDescriptionsCoverage:
         from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP
         descs = self._load()
         offerable = [s for s in SKILL_REGISTRY if s not in KEYWORD_SEMANTIC_SKIP]
+        offerable_set = set(offerable)
         missing = [s for s in offerable if s not in descs]
         assert not missing, (
             f"offer_descriptions.json missing blurbs for: {missing}. Every offerable "
             "skill needs one or its offers fall back to the bare skill_name."
         )
+        phantom = [s for s in descs if s not in offerable_set]
+        assert not phantom, (
+            f"offer_descriptions.json has blurbs for non-offerable/unknown skills: {phantom}. "
+            "Remove or migrate these entries when a skill is renamed or removed."
+        )
 
     def test_bilingual_envelope_and_clean_content(self):
+        from sage_poc.corpus_constants import PLACEHOLDER_MARKERS
         descs = self._load()
         for sid, entry in descs.items():
+            assert len(entry["display_name"]["en"]) <= 50, f"{sid}: display_name too long for a UI label"
             for field in ("display_name", "description"):
                 assert set(entry[field].keys()) == {"en", "ar"}, (
                     f"{sid}.{field}: bilingual envelope {{en, ar}} required"
@@ -68,4 +79,12 @@ class TestOfferDescriptionsCoverage:
                 en = entry[field]["en"]
                 assert en and en.strip(), f"{sid}.{field}.en empty"
                 assert "—" not in en, f"{sid}.{field}: em dash in content"
+                ar = entry[field]["ar"]
+                if ar is not None:
+                    assert ar and ar.strip(), f"{sid}.{field}.ar present but empty"
+                    assert "—" not in ar, f"{sid}.{field}: em dash in ar content"
+                    for marker in PLACEHOLDER_MARKERS:
+                        assert marker not in ar, (
+                            f"{sid}.{field}.ar contains placeholder marker {marker!r}"
+                        )
             assert len(entry["description"]["en"]) <= 160, f"{sid}: blurb too long for an offer line"
