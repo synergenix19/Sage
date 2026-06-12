@@ -82,8 +82,8 @@ def test_get_conformance_report_is_json_serializable():
     assert len(serialized) > 0
 
 
-def test_total_field_count_is_15():
-    assert len(SCHEMA_CONFORMANCE) == 15, (
+def test_total_field_count_is_16():
+    assert len(SCHEMA_CONFORMANCE) == 16, (
         f"Got {len(SCHEMA_CONFORMANCE)} fields — update this count when adding new schema fields"
     )
 
@@ -107,7 +107,7 @@ def test_schema_conformance_endpoint_returns_expected_shape(client):
     data = client.get("/health/schema-conformance").json()
     assert "summary" in data
     assert "fields" in data
-    assert data["summary"]["total"] == 15
+    assert data["summary"]["total"] == 16
 
 
 def test_schema_conformance_endpoint_cultural_overrides_is_used(client):

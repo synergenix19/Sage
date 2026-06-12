@@ -48,6 +48,8 @@ class SageState(TypedDict):
     escalation_triggered: Optional[dict]  # {"level": "L1"|"L2", "reason": str, "action": str}
     resistance_history: list[int]       # rolling 3-turn Falcon-3B resistance scores; persists via LangGraph checkpoint across turns within a session
     resistance_score: Optional[int]     # current turn's resistance score; reset each turn in _build_state()
+    criteria_hold_count: int                 # R5: consecutive criteria holds at the current step; persists via LangGraph checkpoint
+    criteria_hold_step_id: Optional[str]     # R5: step the hold counter belongs to; persists via LangGraph checkpoint
 
     cultural_output_violations: list[str]  # rule_ids fired in output_gate cultural check
 

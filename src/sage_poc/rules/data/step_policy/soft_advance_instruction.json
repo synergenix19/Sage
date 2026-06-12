@@ -1,0 +1,10 @@
+{
+  "content_id": "soft_advance_instruction",
+  "version": "0.1.0",
+  "status": "draft-pending-review",
+  "authored_by": "engineering",
+  "approved_by": null,
+  "effective_date": "2026-06-12",
+  "description": "Appended to the step instruction when criteria_hold_budget is exhausted. Therapeutic language must not live in .py files.",
+  "instruction": "NOTE: The user answered briefly and was already asked once. Respond to what they said, move forward naturally, do not repeat the previous question. Invite more detail only as an option, never as a requirement."
+}

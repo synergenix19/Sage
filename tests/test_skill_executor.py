@@ -1062,3 +1062,123 @@ def test_arabic_session_with_single_arabic_example_does_not_revert_to_all_englis
     assert len(selected) == 2
     assert _has_arabic(selected[0]), "First selected example must be Arabic for Arabic session"
     assert not _has_arabic(selected[1]), "Top-up example should be English when only 1 Arabic exists"
+
+
+# ── R5: criteria_hold_count signal + per-skill hold budget (2026-06-12) ───────
+
+class TestR5CriteriaHoldBudget:
+    """criteria_hold_count is a step_policy signal; the per-skill criteria_hold_budget
+    (schema field, default null) converts the (budget+1)th consecutive criteria hold
+    into a soft advance with a governed no-re-ask instruction. entry_screen steps are
+    exempt by code invariant. Null budget = current behavior."""
+
+    def _budgeted_skill(self, **kwargs):
+        skill = _make_skill(**kwargs)
+        skill.criteria_hold_budget = 1
+        return skill
+
+    async def test_first_short_answer_holds_and_arms_counter(self):
+        state = _make_executor_state(message_en="ok")  # 1 word, heuristic fails
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._budgeted_skill()):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "step_1"
+        assert result["criteria_hold_count"] == 1
+        assert result["criteria_hold_step_id"] == "step_1"
+
+    async def test_budget_exhausted_soft_advances_with_governed_note(self):
+        state = _make_executor_state(
+            message_en="ok", criteria_hold_count=1, criteria_hold_step_id="step_1")
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._budgeted_skill()):
+            result = await skill_executor_node(state)
+        assert result["active_skill_id"] is None, "single-step skill: budget advance completes"
+        assert result["rule_fired"] is True, (
+            "soft advance must set rule_fired so compose_prompt uses the plain "
+            "step_instruction and the appended note survives composition"
+        )
+        assert "do not repeat the previous question" in result["step_instruction"]
+        assert result["criteria_hold_count"] == 0
+        assert result["criteria_hold_step_id"] is None
+
+    async def test_null_budget_holds_indefinitely(self):
+        skill = _make_skill()  # criteria_hold_budget stays None
+        state = _make_executor_state(
+            message_en="ok", criteria_hold_count=7, criteria_hold_step_id="step_1")
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "step_1", "null budget = no budget, current behavior"
+
+    async def test_counter_resets_on_step_change(self):
+        state = _make_executor_state(
+            message_en="ok", criteria_hold_count=1, criteria_hold_step_id="some_previous_step")
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._budgeted_skill()):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "step_1", "stale counter must not trigger soft advance"
+        assert result["criteria_hold_count"] == 1
+        assert result["criteria_hold_step_id"] == "step_1"
+
+    async def test_entry_screen_never_soft_advances(self):
+        """Code invariant: budget can never advance past an entry_screen safety gate,
+        whatever the JSON says."""
+        skill = self._budgeted_skill()
+        skill.steps[0].step_id = "entry_screen"
+        state = _make_executor_state(
+            active_step_id="entry_screen",
+            message_en="ok",
+            criteria_hold_count=5,
+            criteria_hold_step_id="entry_screen",
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill), \
+             patch(
+                 "sage_poc.nodes.skill_executor.evaluate_completion_criteria",
+                 new=AsyncMock(return_value=False),
+             ):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "entry_screen"
+
+    async def test_long_answer_never_arms_counter(self):
+        state = _make_executor_state(
+            message_en="I am breathing in slowly and holding it like you said")
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._budgeted_skill()):
+            result = await skill_executor_node(state)
+        assert result["criteria_hold_count"] == 0
+        assert result["criteria_hold_step_id"] is None
+
+    def test_criteria_hold_count_is_a_known_step_policy_signal(self):
+        from sage_poc.nodes.skill_executor import _KNOWN_STEP_POLICY_SIGNALS
+        assert "criteria_hold_count" in _KNOWN_STEP_POLICY_SIGNALS, (
+            "skill authors must be able to write step_policy rules against the signal"
+        )
+
+    def test_skill_authored_rule_can_reference_signal(self):
+        """A per-skill rule on criteria_hold_count fires in normal Phase 1 evaluation."""
+        from sage_poc.skills.schema import StepPolicyRule, StepPolicyCondition
+        skill = _make_skill()
+        skill.step_policy.append(StepPolicyRule(
+            condition=StepPolicyCondition(
+                signal="criteria_hold_count", operator=">=", value=2, step="ANY"),
+            action="offer_break",
+            instruction="Would a short break help before we continue?",
+            next_step_id="current",
+        ))
+        result = evaluate_step_policy(
+            skill=skill, current_step_id="step_1", emotional_intensity=5,
+            engagement=7, message_en="ok", criteria_hold_count=2,
+        )
+        assert result["action"] == "offer_break"
+
+    async def test_word_count_production_skills_opted_in(self):
+        """The 10 word-count-heuristic skills carry criteria_hold_budget: 1;
+        LLM-criteria skills stay null."""
+        from sage_poc.skills.schema import load_skill as real_load
+        from sage_poc.nodes.skill_executor import _LLM_CRITERIA_SKILLS
+        from sage_poc.skill_ids import SKILL_REGISTRY
+        for sid in SKILL_REGISTRY:
+            skill = real_load(sid)
+            if sid in _LLM_CRITERIA_SKILLS or sid in ("psychotic_referral", "post_crisis_check_in"):
+                assert skill.criteria_hold_budget is None, (
+                    f"{sid}: LLM-criteria/auto-select skills must not be silently budgeted"
+                )
+            else:
+                assert skill.criteria_hold_budget == 1, (
+                    f"{sid}: word-count skill missing criteria_hold_budget opt-in"
+                )

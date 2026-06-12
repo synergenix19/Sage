@@ -2,6 +2,7 @@
   "skill_id": "mood_check_in",
   "skill_name": "Mood Check-in",
   "skill_type": "structured",
+  "criteria_hold_budget": 1,
   "evidence_base": "Kroenke, Spitzer & Williams (2001) PHQ-9; IAPT Minimum Dataset v2.0 (2018)",
   "self_evolution": "manual_only",
   "target_presentations": [

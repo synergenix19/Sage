@@ -2,6 +2,7 @@
   "skill_id": "grounding_5_4_3_2_1",
   "skill_name": "5-4-3-2-1 Grounding",
   "skill_type": "structured",
+  "criteria_hold_budget": 1,
   "self_evolution": "manual_only",
   "evidence_base": "Linehan (1993); DBT Skills Training Manual",
   "target_presentations": [

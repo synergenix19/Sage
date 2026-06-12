@@ -57,6 +57,12 @@ class Skill(BaseModel):
     step_policy: list[StepPolicyRule]
     escalation_matrix: dict[str, str]
     cultural_overrides: dict = Field(default_factory=dict)
+    criteria_hold_budget: int | None = Field(
+        default=None, ge=1,
+        description="Max consecutive criteria holds per step before soft advance. "
+                    "null = no budget (hold indefinitely, current behavior). "
+                    "Clinician-ownable per skill.",
+    )
 
     @field_validator("cultural_overrides", mode="before")
     @classmethod

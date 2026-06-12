@@ -2,6 +2,7 @@
   "skill_id": "psychoed_depression",
   "skill_name": "Depression Psychoeducation",
   "skill_type": "structured",
+  "criteria_hold_budget": 1,
   "self_evolution": "manual_only",
   "evidence_base": "APA DSM-5-TR; Gotlib & Hammen (2002) Handbook of Depression; NICE CG90 (Depression in Adults); Beck (1967) cognitive triad",
   "approved_by": "clinical_lead",

@@ -23,6 +23,23 @@ _RESISTANCE_PROMPT_PATH = (
     / "rules" / "data" / "resistance_scoring" / "resistance_prompt.json"
 )
 
+_SOFT_ADVANCE_INSTRUCTION_PATH = (
+    Path(__file__).parent.parent
+    / "rules" / "data" / "step_policy" / "soft_advance_instruction.json"
+)
+try:
+    _SOFT_ADVANCE_INSTRUCTION: str = json.loads(
+        _SOFT_ADVANCE_INSTRUCTION_PATH.read_text(encoding="utf-8")
+    )["instruction"]
+except Exception:  # missing content file must not take the executor down
+    _SOFT_ADVANCE_INSTRUCTION = (
+        "NOTE: The user answered briefly and was already asked once. Move forward "
+        "naturally and do not repeat the previous question."
+    )
+    logging.getLogger(__name__).warning(
+        "[skill_executor] soft_advance_instruction.json unavailable; using fallback text"
+    )
+
 # Actions that should fire once (entry turn) then allow normal step advancement.
 # Default for any action NOT in this set: hold the step (fire every turn until
 # the triggering condition resolves). This is intentionally conservative —
@@ -104,6 +121,7 @@ _KNOWN_STEP_POLICY_SIGNALS: frozenset[str] = frozenset({
     "prior_exposure",
     "resistance",
     "user_stop_request",
+    "criteria_hold_count",
 })
 
 
@@ -307,6 +325,7 @@ def evaluate_step_policy(
     prior_exposure: int = 0,
     criteria_met: bool | None = None,
     prev_step_id: str | None = None,
+    criteria_hold_count: int = 0,
 ) -> dict:
     """Synchronous two-phase policy evaluation. Returns a result dict.
 
@@ -332,6 +351,7 @@ def evaluate_step_policy(
         "engagement":             engagement,
         "re_escalation_detected": re_escalation_detected,
         "prior_exposure":         prior_exposure,
+        "criteria_hold_count":    criteria_hold_count,
     }
     if resistance_score is not None:
         signals["resistance"] = resistance_score
@@ -416,6 +436,26 @@ def evaluate_step_policy(
         heuristic_met = _meets_completion_criteria(message_en)
     met = criteria_met if criteria_met is not None else heuristic_met
     if not met:
+        # System-default budget rule, overridable per skill via step_policy rules on
+        # the criteria_hold_count signal. Evaluated only at the criteria-blocked point
+        # so it can never fire over a turn whose criteria actually passed.
+        # Code invariants the data cannot override: entry_screen steps are exempt;
+        # null budget means no budget.
+        if (
+            skill.criteria_hold_budget is not None
+            and current_step_id != "entry_screen"
+            and criteria_hold_count >= skill.criteria_hold_budget
+        ):
+            step_ids = [s.step_id for s in skill.steps]
+            current_idx = step_ids.index(current_step_id)
+            next_id = step_ids[current_idx + 1] if current_idx + 1 < len(step_ids) else None
+            return {
+                "action":         "advance" if next_id else "complete",
+                "instruction":    step_instruction + " " + _SOFT_ADVANCE_INSTRUCTION,
+                "next_step_id":   next_id or current_step_id,
+                "skill_complete": next_id is None,
+                "_soft_advanced": True,
+            }
         return {
             "action":            "stay",
             "instruction":       step_instruction,
@@ -473,6 +513,8 @@ async def skill_executor_node(state: SageState) -> dict:
             "active_skill_id":     None,
             "escalation_triggered": l1,
             "resistance_score":    None,
+            "criteria_hold_count": 0,
+            "criteria_hold_step_id": None,
             "path": state["path"] + ["skill_executor"],
             **crisis_update,
         }
@@ -500,6 +542,10 @@ async def skill_executor_node(state: SageState) -> dict:
         resistance_history = []
         _log.debug("[skill_executor] resistance_history reset: step change %s → %s", prev_step_id, step_id)
 
+    criteria_hold_count = state.get("criteria_hold_count") or 0
+    if state.get("criteria_hold_step_id") != step_id:
+        criteria_hold_count = 0
+
     _base_policy_kwargs = {
         "skill":                skill,
         "current_step_id":      step_id,
@@ -512,11 +558,13 @@ async def skill_executor_node(state: SageState) -> dict:
         "engagement_trajectory": engagement_trajectory,
         "prior_exposure":       prior_exposure,
         "prev_step_id":         prev_step_id,
+        "criteria_hold_count":  criteria_hold_count,
     }
 
     def _clean_policy_result(r: dict) -> dict:
         r.pop("_det_rule_fired", None)
         r.pop("_criteria_blocked", None)
+        r.pop("_soft_advanced", None)
         return r
 
     # Phase 1: deterministic rules only (resistance_score=None → resistance rules skipped).
@@ -537,6 +585,7 @@ async def skill_executor_node(state: SageState) -> dict:
     # LLM criteria evaluation — only for the 11 target skills, only when Phase 1
     # returned _criteria_blocked (word-count heuristic blocked advancement, no rule fired).
     p1_criteria_blocked = result.pop("_criteria_blocked", False)
+    soft_advanced = bool(result.pop("_soft_advanced", False))
     # Track whether the LLM confirmed criteria met, so resistance Phase 2 re-run can
     # honour it (avoids the heuristic re-blocking an LLM-approved advance).
     llm_criteria_met: bool | None = None
@@ -562,7 +611,7 @@ async def skill_executor_node(state: SageState) -> dict:
             p2_result = _clean_policy_result(evaluate_step_policy(
                 **_base_policy_kwargs,
                 resistance_score=new_resistance_score,
-                criteria_met=llm_criteria_met,
+                criteria_met=True if soft_advanced else llm_criteria_met,
             ))
             _p2_action = p2_result.get("action")
             result = p2_result
@@ -604,13 +653,26 @@ async def skill_executor_node(state: SageState) -> dict:
     if result.get("skill_complete") and skill_id == "psychotic_referral":
         psychotic_referral_update = {"psychotic_referral_delivered": True}
 
+    if soft_advanced or result.get("action") in ("advance", "complete") or result.get("skill_complete"):
+        criteria_hold_update = {"criteria_hold_count": 0, "criteria_hold_step_id": None}
+    elif p1_criteria_blocked and llm_criteria_met is not True:
+        criteria_hold_update = {
+            "criteria_hold_count": criteria_hold_count + 1,
+            "criteria_hold_step_id": step_id,
+        }
+    else:
+        criteria_hold_update = {
+            "criteria_hold_count": criteria_hold_count,
+            "criteria_hold_step_id": state.get("criteria_hold_step_id"),
+        }
+
     return {
         "step_instruction":    result["instruction"],
         "executed_step_id":    step_id,
         "active_step_id":      result["next_step_id"],
         "active_skill_id":     None if result.get("skill_complete") else skill_id,
         "completed_skill_id":  skill_id if result.get("skill_complete") else None,
-        "rule_fired":          result.get("action") not in ("advance", "complete", "stay", None),
+        "rule_fired":          soft_advanced or result.get("action") not in ("advance", "complete", "stay", None),
         "prev_step_id":        step_id,   # persists via LangGraph checkpoint; absent from _build_state
         "escalation_triggered": l2,  # advisory stored for audit; None if no L2 this turn
         "resistance_score":    new_resistance_score,
@@ -619,6 +681,7 @@ async def skill_executor_node(state: SageState) -> dict:
         # CSM-2: explicit per-turn write so stale checkpoint value from prior
         # crisis_response does not persist into the routing decision.
         "re_escalation_within_monitoring": re_escalation_detected,
+        **criteria_hold_update,
         **crisis_state_update,
         **psychotic_referral_update,
     }

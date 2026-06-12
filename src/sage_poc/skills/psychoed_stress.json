@@ -2,6 +2,7 @@
   "skill_id": "psychoed_stress",
   "skill_name": "Stress Psychoeducation",
   "skill_type": "structured",
+  "criteria_hold_budget": 1,
   "self_evolution": "manual_only",
   "evidence_base": "Selye (1956) General Adaptation Syndrome; Lazarus & Folkman (1984) Stress, Appraisal, and Coping; NICE NG123 (Mental health problems in the workplace); McEwen (1998) allostatic load",
   "target_presentations": [
