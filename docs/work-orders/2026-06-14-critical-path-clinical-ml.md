@@ -89,11 +89,15 @@ SF-1/SF-6 fixture.
    priority engineering effort in the program** — state it that way to whoever allocates ML time.
    Keep the merge choreography parked, but do not let "parked" read as "the lower-priority items
    get attention while the critical one waits."
-3. **Pilot gate.** A pilot must not start with S2 unbuilt and crisis recall at 37.1% (self-harm 18%)
-   on the only representative bench — and with Arabic unmeasured entirely. **Flag:**
-   `scripts/check_pilot_gate.py` reportedly exits 0; confirm that gate scores against the CRADLE
-   bench (and an Arabic bench), not the curated SF-1/SF-6 suite — else the pilot decision inherits
-   the same false-comfort.
+3. **Pilot gate — CONFIRMED to inherit the false comfort (2026-06-14).** Verified
+   `scripts/check_pilot_gate.py`: it scores against `_TP_PASSIVE_SI_RECALL_GAPS` imported from the
+   **curated fixture** (`tests/fixtures/safety/cases.py`), **not** the CRADLE bench. Those curated
+   gaps are resolved (S1 tuned via ea33684), so the gate **exits 0 / PASS** — while real-bench
+   recall is 37.1% (self-harm 18%) and Arabic is unmeasured. **The pilot gate certifies "ready"
+   against the surface S1 was tuned to pass, not the representative one** — the same
+   green-on-the-wrong-surface pattern as the unit-gate/test_nodes gap, now at the pilot-decision
+   level. The gate must be re-pointed at the CRADLE bench (+ an Arabic crisis bench) before its
+   PASS means anything; until then a PASS is not evidence of crisis-path pilot-readiness.
 
 ---
 
