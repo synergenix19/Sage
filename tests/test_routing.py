@@ -270,8 +270,9 @@ async def test_cognitive_restructuring_routes_for_unhelpful_thinking_pattern():
         intent_confidence=0.9,
     )
     result = await skill_select_node(state)
-    assert result.get("active_skill_id") == "cognitive_restructuring", (
-        f"Expected cognitive_restructuring, got {result.get('active_skill_id')!r}. "
+    assert result.get("active_skill_id") is None, "R1: keyword match must offer, not activate"
+    assert result["offered_skill_ids"][0] == "cognitive_restructuring", (
+        f"Expected cognitive_restructuring offer, got {result.get('offered_skill_ids')!r}. "
         "Confirm 'thinking patterns are unhelpful' is in cognitive_restructuring.target_presentations."
     )
 
@@ -284,8 +285,9 @@ async def test_cbt_thought_record_routes_for_catastrophizing():
         intent_confidence=0.9,
     )
     result = await skill_select_node(state)
-    assert result.get("active_skill_id") == "cbt_thought_record", (
-        f"Expected cbt_thought_record, got {result.get('active_skill_id')!r}"
+    assert result.get("active_skill_id") is None, "R1: keyword match must offer, not activate"
+    assert result["offered_skill_ids"][0] == "cbt_thought_record", (
+        f"Expected cbt_thought_record offer, got {result.get('offered_skill_ids')!r}"
     )
 
 
@@ -297,8 +299,9 @@ async def test_interpersonal_effectiveness_routes_for_relationship_navigation():
         intent_confidence=0.9,
     )
     result = await skill_select_node(state)
-    assert result.get("active_skill_id") == "interpersonal_effectiveness", (
-        f"Expected interpersonal_effectiveness, got {result.get('active_skill_id')!r}"
+    assert result.get("active_skill_id") is None, "R1: keyword match must offer, not activate"
+    assert result["offered_skill_ids"][0] == "interpersonal_effectiveness", (
+        f"Expected interpersonal_effectiveness offer, got {result.get('offered_skill_ids')!r}"
     )
 
 
@@ -310,8 +313,9 @@ async def test_assertive_communication_routes_for_boundary_expression():
         intent_confidence=0.9,
     )
     result = await skill_select_node(state)
-    assert result.get("active_skill_id") == "assertive_communication", (
-        f"Expected assertive_communication, got {result.get('active_skill_id')!r}"
+    assert result.get("active_skill_id") is None, "R1: keyword match must offer, not activate"
+    assert result["offered_skill_ids"][0] == "assertive_communication", (
+        f"Expected assertive_communication offer, got {result.get('offered_skill_ids')!r}"
     )
 
 
@@ -323,8 +327,9 @@ async def test_financial_anxiety_routes_for_gulf_financial_distress():
         intent_confidence=0.9,
     )
     result = await skill_select_node(state)
-    assert result.get("active_skill_id") == "financial_anxiety", (
-        f"Expected financial_anxiety, got {result.get('active_skill_id')!r}"
+    assert result.get("active_skill_id") is None, "R1: keyword match must offer, not activate"
+    assert result["offered_skill_ids"][0] == "financial_anxiety", (
+        f"Expected financial_anxiety offer, got {result.get('offered_skill_ids')!r}"
     )
 
 
@@ -336,8 +341,9 @@ async def test_grief_loss_routes_for_bereavement():
         intent_confidence=0.9,
     )
     result = await skill_select_node(state)
-    assert result.get("active_skill_id") == "grief_loss", (
-        f"Expected grief_loss, got {result.get('active_skill_id')!r}"
+    assert result.get("active_skill_id") is None, "R1: keyword match must offer, not activate"
+    assert result["offered_skill_ids"][0] == "grief_loss", (
+        f"Expected grief_loss offer, got {result.get('offered_skill_ids')!r}"
     )
 
 
@@ -353,6 +359,10 @@ async def test_financial_anxiety_does_not_capture_general_anxiety():
     assert result.get("active_skill_id") != "financial_anxiety", (
         f"financial_anxiety captured a general anxiety trigger. Got: {result.get('active_skill_id')!r}"
     )
+    assert "financial_anxiety" != (result.get("offered_skill_ids") or [None])[0], (
+        f"financial_anxiety offered first for a general anxiety trigger. "
+        f"Got: {result.get('offered_skill_ids')!r}"
+    )
 
 
 async def test_grief_loss_does_not_capture_relationship_conflict():
@@ -366,6 +376,10 @@ async def test_grief_loss_does_not_capture_relationship_conflict():
     result = await skill_select_node(state)
     assert result.get("active_skill_id") != "grief_loss", (
         f"grief_loss captured a relationship conflict trigger. Got: {result.get('active_skill_id')!r}"
+    )
+    assert "grief_loss" != (result.get("offered_skill_ids") or [None])[0], (
+        f"grief_loss offered first for a relationship conflict trigger. "
+        f"Got: {result.get('offered_skill_ids')!r}"
     )
 
 # ── post_crisis_check_in routing invariant ────────────────────────────────────
@@ -509,3 +523,71 @@ def test_jailbreak_precedes_psychotic_referral():
         clinical_flags=["psychotic_disclosure"],
     )
     assert _route_after_intent(state) == "gate"
+
+
+def test_psychotic_referral_senior_to_offer_accept():
+    """Merge invariant (#4 + #6/S2-10, 2026-06-13): a psychotic disclosure
+    co-occurring with a live offer-accept routes to skill_select via the
+    referral branch, which is senior to R1 offer-accept. Both branches target
+    skill_select, but the referral check sits above offer-accept in
+    _route_after_intent so the safety redirect is the reason — skill_select then
+    auto-selects psychotic_referral ahead of offer promotion.
+    """
+    state = make_full_state(
+        primary_intent="general_chat",
+        intent_confidence=0.3,   # below gate; would otherwise hit low_confidence
+        crisis_state="none",
+        clinical_flags=["psychotic_disclosure"],
+        offered_skill_ids=["worry_time"],
+        offer_response="accept",
+        active_skill_id=None,
+    )
+    assert _route_after_intent(state) == "skill_select"
+
+
+# ── R1: pending-offer routing ─────────────────────────────────────────────────
+
+def test_offer_accept_routes_to_skill_select_bypassing_confidence():
+    state = make_full_state(
+        primary_intent="general_chat",
+        intent_confidence=0.3,   # below gate; bare accepts are expected
+        crisis_state="none",
+        offered_skill_ids=["worry_time"],
+        offer_response="accept",
+        active_skill_id=None,
+    )
+    assert _route_after_intent(state) == "skill_select"
+
+
+def test_offer_decline_routes_normally():
+    state = make_full_state(
+        primary_intent="general_chat",
+        intent_confidence=0.9,
+        crisis_state="none",
+        offered_skill_ids=None,   # intent_route cleared it on decline
+        offer_response="decline",
+        active_skill_id=None,
+    )
+    assert _route_after_intent(state) == "freeflow"
+
+
+def test_crisis_still_beats_pending_offer():
+    state = make_full_state(
+        primary_intent="crisis",
+        intent_confidence=0.9,
+        crisis_state="none",
+        offered_skill_ids=["worry_time"],
+        offer_response="accept",
+        active_skill_id=None,
+    )
+    assert _route_after_intent(state) == "crisis"
+
+
+def test_offer_pending_no_active_skill_routes_to_freeflow():
+    from sage_poc.graph import _route_after_skill_select
+    state = {
+        "primary_intent": "new_skill",
+        "active_skill_id": None,
+        "offered_skill_ids": ["worry_time"],
+    }
+    assert _route_after_skill_select(state) == "freeflow"

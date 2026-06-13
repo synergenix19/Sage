@@ -2,6 +2,7 @@
   "skill_id": "stop_technique",
   "skill_name": "STOP Technique",
   "skill_type": "structured",
+  "criteria_hold_budget": 1,
   "evidence_base": "Linehan (1993) DBT distress tolerance; Kabat-Zinn (1990) MBSR mindfulness pause; adapted as STOP in mindfulness-based interventions",
   "self_evolution": "manual_only",
   "target_presentations": [

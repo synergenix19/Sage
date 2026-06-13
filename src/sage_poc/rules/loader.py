@@ -5,7 +5,7 @@ import re as _re
 from pathlib import Path
 from sage_poc.rules.schemas import (
     SafetyRule, CrisisContentRule, CulturalRule, PromptInjectionRule,
-    CulturalOutputRule,
+    CulturalOutputRule, SkillMatchingRule,
 )
 
 _log = logging.getLogger(__name__)
@@ -49,6 +49,7 @@ _RULE_MODELS: dict[str, type] = {
     "cultural": CulturalRule,
     "prompt_injection": PromptInjectionRule,
     "cultural_output": CulturalOutputRule,
+    "skill_matching": SkillMatchingRule,
 }
 
 _DATA_DIR = Path(__file__).parent / "data"
@@ -80,13 +81,31 @@ def load_rules(category: str) -> list:
             if rule.active:
                 if isinstance(rule, SafetyRule) and rule.match_type == "regex":
                     _lint_arabic_regex_rule(rule)
-                if isinstance(rule, SafetyRule) and rule.approved_by is None:
+                if isinstance(rule, (SafetyRule, SkillMatchingRule)) and rule.approved_by is None:
                     _log.warning(
-                        "[rules/loader] UNAPPROVED ACTIVE SAFETY RULE: %s "
+                        "[rules/loader] UNAPPROVED ACTIVE %s RULE: %s "
                         "(authored_by=%s) — clinical sign-off required before production",
-                        rule.rule_id, rule.authored_by,
+                        rule.category.upper(), rule.rule_id, rule.authored_by,
                     )
                 rules.append(rule)
+    if category == "skill_matching":
+        seen_priorities: dict[int, str] = {}
+        for rule in rules:
+            if rule.priority in seen_priorities:
+                # Stable sort below preserves file order on ties, so first-match-wins
+                # still resolves duplicates by file order — fragile for clinician-
+                # authored rules, hence the warning.
+                _log.warning(
+                    "[rules/loader] skill_matching rules %s and %s share priority %d; "
+                    "first-match-wins resolves by file order, which is fragile for "
+                    "clinician-authored rules — assign distinct priorities",
+                    seen_priorities[rule.priority], rule.rule_id, rule.priority,
+                )
+            else:
+                seen_priorities[rule.priority] = rule.rule_id
+        # Pre-sort by ascending priority once at load time; the evaluator iterates
+        # in list order on every call (hot path) and relies on this ordering.
+        rules.sort(key=lambda r: r.priority)
     return rules
 
 

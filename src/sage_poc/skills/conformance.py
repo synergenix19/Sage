@@ -59,6 +59,26 @@ SCHEMA_CONFORMANCE: dict[str, dict] = {
             "so L1 history is proactively sized — not reactively shrunk — when overrides are used."
         ),
     },
+    "skill.criteria_hold_budget": {
+        "status": "USED",
+        "injected_by": "skill_executor_node → evaluate_step_policy (criteria-blocked branch)",
+        "note": (
+            "Per-skill opt-in cap on consecutive word-count criteria holds at one step. "
+            "null = no budget. Never applies to entry_screen steps (code invariant). "
+            "Soft-advance instruction text lives in rules/data/step_policy/soft_advance_instruction.json."
+        ),
+    },
+    "skill.hold_ceiling": {
+        "status": "USED",
+        "injected_by": "skill_executor_node (rule-hold ceiling → exit-ramp surfacing)",
+        "note": (
+            "Per-skill opt-in cap on consecutive deterministic non-safety rule-holds at one step. "
+            "Past the ceiling, the hold surfaces the user-owned exit ramp (appended to the "
+            "instruction) instead of re-probing; the step is NOT advanced (clinical holds stay "
+            "senior). null = unbounded. Never applies to entry_screen steps (code invariant). "
+            "Exit-ramp text lives in rules/data/step_policy/soft_advance_instruction.json (exit_ramp field)."
+        ),
+    },
     "skill.escalation_matrix.L1": {
         "status": "USED",
         "injected_by": "skill_executor_node → check_escalation (phrase-triggered hard exit)",

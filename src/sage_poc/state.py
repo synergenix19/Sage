@@ -43,11 +43,19 @@ class SageState(TypedDict):
     prev_step_id: Optional[str]        # step executed on the PREVIOUS turn; persists via LangGraph checkpoint for continuation detection
     skill_match_method: Optional[str]   # "keyword" | "semantic" | None
     semantic_score: Optional[float]     # cosine similarity if semantic match
+    offered_skill_ids: Optional[list[str]]  # R1: 1-2 skills offered, pending accept/decline; persists via checkpoint; cleared on accept (skill_select), decline/ignore (intent_route), crisis (crisis_response), stale gap
+    offer_response: Optional[str]           # R1: "accept" | "decline" | "other"; per-turn, reset in _build_state
+    offer_choice_skill_id: Optional[str]    # R1: skill chosen on accept; per-turn, reset in _build_state
+    declined_skills: list[str]              # R1: skills declined this session; never re-offered (declined_scope "session" in skill_matching rules); persists via checkpoint; cleared at 4h stale gap
     prompt_layers: list[str]            # layer names included in the composed LLM prompt
     token_usage: dict                   # {"input": N, "output": N, "total": N} from LLM
     escalation_triggered: Optional[dict]  # {"level": "L1"|"L2", "reason": str, "action": str}
     resistance_history: list[int]       # rolling 3-turn Falcon-3B resistance scores; persists via LangGraph checkpoint across turns within a session
     resistance_score: Optional[int]     # current turn's resistance score; reset each turn in _build_state()
+    criteria_hold_count: int                 # R5: consecutive criteria holds at the current step; persists via LangGraph checkpoint
+    criteria_hold_step_id: Optional[str]     # R5: step the hold counter belongs to; persists via LangGraph checkpoint
+    rule_hold_count: int                  # D/S2-4: consecutive deterministic non-safety rule-holds at the current step; persists via checkpoint
+    rule_hold_step_id: Optional[str]       # D/S2-4: step the rule-hold counter belongs to; persists via checkpoint
 
     cultural_output_violations: list[str]  # rule_ids fired in output_gate cultural check
 

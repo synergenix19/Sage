@@ -50,3 +50,12 @@ def reload_all() -> None:
     global _loaded
     _cache.clear()
     _loaded = False
+    # Composer's offer-blurb cache is derived from template content; keep it
+    # coherent with a template reload. Import inside the function to avoid a
+    # cycle (composer imports from loader).
+    try:
+        from sage_poc.prompts.composer import _offer_descriptions, _declined_instruction
+        _offer_descriptions.cache_clear()
+        _declined_instruction.cache_clear()
+    except Exception:
+        pass

@@ -362,3 +362,195 @@ def test_general_chat_template_contains_exception_clause_for_floor_return():
         "OPTION-A FAIL: exception clause must instruct 'concrete' suggestions — "
         "not a restatement of the exploratory posture. Check general_chat.json."
     )
+
+
+# ── R1: pending-offer classification ─────────────────────────────────────────
+
+_OFFER_STATE_KW = dict(
+    offered_skill_ids=["box_breathing", "grounding_5_4_3_2_1"],
+    declined_skills=[],
+)
+
+
+@pytest.mark.asyncio
+async def test_offer_accept_parsed_with_choice():
+    from sage_poc.nodes.intent_route import intent_route_node
+    mock_response = (
+        '{"primary_intent": "general_chat", "secondary_intent": null, '
+        '"intent_confidence": 0.4, "emotional_intensity": 4, "engagement": 5, '
+        '"offer_response": "accept", "offer_choice_skill_id": "grounding_5_4_3_2_1"}'
+    )
+    state = _base_state(message_en="the second one", **_OFFER_STATE_KW)
+    with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=mock_response)):
+        result = await intent_route_node(state)
+    assert result["offer_response"] == "accept"
+    assert result["offer_choice_skill_id"] == "grounding_5_4_3_2_1"
+    assert "offered_skill_ids" not in result, "accept must NOT clear the offer; skill_select promotes it"
+    assert "offer_accepted" in result["path"]
+
+
+@pytest.mark.asyncio
+async def test_offer_accept_invalid_choice_defaults_to_first():
+    from sage_poc.nodes.intent_route import intent_route_node
+    mock_response = (
+        '{"primary_intent": "general_chat", "secondary_intent": null, '
+        '"intent_confidence": 0.5, "emotional_intensity": 4, "engagement": 5, '
+        '"offer_response": "accept", "offer_choice_skill_id": "hallucinated_skill"}'
+    )
+    state = _base_state(message_en="yes", **_OFFER_STATE_KW)
+    with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=mock_response)):
+        result = await intent_route_node(state)
+    assert result["offer_choice_skill_id"] == "box_breathing"
+
+
+@pytest.mark.asyncio
+async def test_offer_accept_display_name_echo_resolves_to_correct_skill():
+    from sage_poc.nodes.intent_route import intent_route_node
+    mock_response = (
+        '{"primary_intent": "general_chat", "secondary_intent": null, '
+        '"intent_confidence": 0.5, "emotional_intensity": 4, "engagement": 5, '
+        '"offer_response": "accept", "offer_choice_skill_id": "5-4-3-2-1 grounding"}'
+    )
+    state = _base_state(message_en="the grounding one please", **_OFFER_STATE_KW)
+    with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=mock_response)):
+        result = await intent_route_node(state)
+    assert result["offer_choice_skill_id"] == "grounding_5_4_3_2_1", (
+        "display-name echo must map to the chosen skill, not silently fall back to the first"
+    )
+
+
+@pytest.mark.asyncio
+async def test_offer_accept_index_echo_resolves_positionally():
+    from sage_poc.nodes.intent_route import intent_route_node
+    mock_response = (
+        '{"primary_intent": "general_chat", "secondary_intent": null, '
+        '"intent_confidence": 0.5, "emotional_intensity": 4, "engagement": 5, '
+        '"offer_response": "accept", "offer_choice_skill_id": "2"}'
+    )
+    state = _base_state(message_en="the second", **_OFFER_STATE_KW)
+    with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=mock_response)):
+        result = await intent_route_node(state)
+    assert result["offer_choice_skill_id"] == "grounding_5_4_3_2_1"
+
+
+@pytest.mark.asyncio
+async def test_missing_offer_fields_preserves_pending_offer():
+    """Classifier degradation (no offer_response field) must not destroy the offer;
+    a deliberate pivot is an EXPLICIT "other"."""
+    from sage_poc.nodes.intent_route import intent_route_node
+    mock_response = (
+        '{"primary_intent": "general_chat", "secondary_intent": null, '
+        '"intent_confidence": 0.6, "emotional_intensity": 4, "engagement": 5}'
+    )
+    state = _base_state(message_en="hmm", **_OFFER_STATE_KW)
+    with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=mock_response)):
+        result = await intent_route_node(state)
+    assert "offered_skill_ids" not in result, "offer must remain pending in the checkpoint"
+    assert "offer_response" not in result
+    assert "offer_unparsed" in result["path"]
+
+
+@pytest.mark.asyncio
+async def test_offer_decline_clears_offer_and_records_declines():
+    from sage_poc.nodes.intent_route import intent_route_node
+    mock_response = (
+        '{"primary_intent": "general_chat", "secondary_intent": null, '
+        '"intent_confidence": 0.8, "emotional_intensity": 4, "engagement": 5, '
+        '"offer_response": "decline", "offer_choice_skill_id": null}'
+    )
+    state = _base_state(message_en="no, I would rather just talk", **_OFFER_STATE_KW)
+    with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=mock_response)):
+        result = await intent_route_node(state)
+    assert result["offer_response"] == "decline"
+    assert result["offered_skill_ids"] is None
+    assert result["declined_skills"] == ["box_breathing", "grounding_5_4_3_2_1"]
+    assert "offer_declined" in result["path"]
+
+
+@pytest.mark.asyncio
+async def test_offer_other_clears_offer_without_declining():
+    from sage_poc.nodes.intent_route import intent_route_node
+    mock_response = (
+        '{"primary_intent": "new_skill", "secondary_intent": null, '
+        '"intent_confidence": 0.9, "emotional_intensity": 6, "engagement": 7, '
+        '"offer_response": "other", "offer_choice_skill_id": null}'
+    )
+    state = _base_state(message_en="actually my real problem is I cannot sleep", **_OFFER_STATE_KW)
+    with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=mock_response)):
+        result = await intent_route_node(state)
+    assert result["offered_skill_ids"] is None
+    assert "declined_skills" not in result, "ignoring an offer is not a decline; no cooldown"
+    assert "offer_ignored" in result["path"]
+
+
+@pytest.mark.asyncio
+async def test_no_offer_pending_emits_no_offer_fields():
+    from sage_poc.nodes.intent_route import intent_route_node
+    mock_response = (
+        '{"primary_intent": "general_chat", "secondary_intent": null, '
+        '"intent_confidence": 0.9, "emotional_intensity": 3, "engagement": 5}'
+    )
+    state = _base_state(message_en="hello")
+    with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=mock_response)):
+        result = await intent_route_node(state)
+    assert "offer_response" not in result
+
+
+def test_prompt_contains_pending_offer_block_only_when_offered():
+    from sage_poc.nodes.intent_route import build_intent_prompt
+    with_offer = build_intent_prompt(_base_state(message_en="yes", **_OFFER_STATE_KW))
+    without = build_intent_prompt(_base_state(message_en="yes"))
+    assert "PENDING OFFER" in with_offer
+    assert "box_breathing" in with_offer
+    assert "the first one" in with_offer, "ordinal mapping instruction must be present"
+    assert "PENDING OFFER" not in without
+
+
+# Arabic-session offer classification: the node logic is language-blind (it reads
+# message_en), but these pin the contract for Arabic sessions — the only fragile
+# point in the Arabic offer path until authored Arabic display names land.
+# (C-1/C-2 lesson: English-validated-only is how cultural gaps shipped before.)
+
+@pytest.mark.asyncio
+async def test_arabic_accept_with_positional_choice():
+    from sage_poc.nodes.intent_route import intent_route_node
+    mock_response = (
+        '{"primary_intent": "general_chat", "secondary_intent": null, '
+        '"intent_confidence": 0.5, "emotional_intensity": 4, "engagement": 5, '
+        '"offer_response": "accept", "offer_choice_skill_id": "grounding_5_4_3_2_1"}'
+    )
+    state = _base_state(
+        message_en="yes let's try the second one",
+        detected_language="ar",
+        **_OFFER_STATE_KW,
+    )
+    state["raw_message"] = "ايه يلا نجرب الثاني"
+    with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=mock_response)):
+        result = await intent_route_node(state)
+    assert result["offer_response"] == "accept"
+    assert result["offer_choice_skill_id"] == "grounding_5_4_3_2_1", (
+        "Arabic ordinal ('الثاني') must map to the second offered option"
+    )
+    assert "offer_accepted" in result["path"]
+
+
+@pytest.mark.asyncio
+async def test_arabic_decline_records_cooldown():
+    from sage_poc.nodes.intent_route import intent_route_node
+    mock_response = (
+        '{"primary_intent": "general_chat", "secondary_intent": null, '
+        '"intent_confidence": 0.7, "emotional_intensity": 4, "engagement": 4, '
+        '"offer_response": "decline", "offer_choice_skill_id": null}'
+    )
+    state = _base_state(
+        message_en="no I just want to talk",
+        detected_language="ar",
+        **_OFFER_STATE_KW,
+    )
+    state["raw_message"] = "لا بس ابي اتكلم"
+    with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=mock_response)):
+        result = await intent_route_node(state)
+    assert result["offer_response"] == "decline"
+    assert result["offered_skill_ids"] is None
+    assert result["declined_skills"] == ["box_breathing", "grounding_5_4_3_2_1"]
+    assert "offer_declined" in result["path"]

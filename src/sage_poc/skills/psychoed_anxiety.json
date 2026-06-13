@@ -2,6 +2,7 @@
   "skill_id": "psychoed_anxiety",
   "skill_name": "Anxiety Psychoeducation",
   "skill_type": "structured",
+  "criteria_hold_budget": 1,
   "self_evolution": "manual_only",
   "evidence_base": "NICE CG113 (Generalised Anxiety Disorder); NICE CG159 (Panic Disorder); Beck (1985) cognitive model of anxiety; Clark (1986) cognitive model of panic",
   "target_presentations": [

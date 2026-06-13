@@ -2,6 +2,7 @@
   "skill_id": "self_compassion_break",
   "skill_name": "Self-Compassion Break",
   "skill_type": "structured",
+  "criteria_hold_budget": 1,
   "self_evolution": "manual_only",
   "evidence_base": "Neff (2011) Self-Compassion: The Proven Power of Being Kind to Yourself; Germer (2009) The Mindful Path to Self-Compassion; Neff & Germer (2013) MSC program; NICE-endorsed mindful self-compassion protocol",
   "target_presentations": [

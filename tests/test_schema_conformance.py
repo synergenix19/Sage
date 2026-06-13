@@ -22,6 +22,8 @@ EXPECTED_FIELDS = {
     "step.contraindications",
     "step.completion_criteria",
     "skill.cultural_overrides",
+    "skill.criteria_hold_budget",
+    "skill.hold_ceiling",
     "skill.escalation_matrix.L1",
     "skill.escalation_matrix.L2",
     "skill.escalation_matrix.L3",
@@ -53,6 +55,14 @@ def test_cultural_overrides_is_used():
     assert SCHEMA_CONFORMANCE["skill.cultural_overrides"]["status"] == "USED"
 
 
+def test_criteria_hold_budget_is_used():
+    assert SCHEMA_CONFORMANCE["skill.criteria_hold_budget"]["status"] == "USED"
+
+
+def test_hold_ceiling_is_used():
+    assert SCHEMA_CONFORMANCE["skill.hold_ceiling"]["status"] == "USED"
+
+
 def test_escalation_matrix_l1_is_used():
     assert SCHEMA_CONFORMANCE["skill.escalation_matrix.L1"]["status"] == "USED"
 
@@ -82,8 +92,8 @@ def test_get_conformance_report_is_json_serializable():
     assert len(serialized) > 0
 
 
-def test_total_field_count_is_15():
-    assert len(SCHEMA_CONFORMANCE) == 15, (
+def test_total_field_count_is_17():
+    assert len(SCHEMA_CONFORMANCE) == 17, (
         f"Got {len(SCHEMA_CONFORMANCE)} fields — update this count when adding new schema fields"
     )
 
@@ -107,7 +117,7 @@ def test_schema_conformance_endpoint_returns_expected_shape(client):
     data = client.get("/health/schema-conformance").json()
     assert "summary" in data
     assert "fields" in data
-    assert data["summary"]["total"] == 15
+    assert data["summary"]["total"] == 17
 
 
 def test_schema_conformance_endpoint_cultural_overrides_is_used(client):

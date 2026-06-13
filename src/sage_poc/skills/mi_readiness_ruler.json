@@ -2,6 +2,7 @@
   "skill_id": "mi_readiness_ruler",
   "skill_name": "MI Readiness Ruler",
   "skill_type": "structured",
+  "criteria_hold_budget": 1,
   "evidence_base": "Miller & Rollnick (2013) Motivational Interviewing 3rd ed.; Rollnick et al. (1999) readiness ruler; NICE PH49 behavior change",
   "self_evolution": "manual_only",
   "target_presentations": [

@@ -1062,3 +1062,344 @@ def test_arabic_session_with_single_arabic_example_does_not_revert_to_all_englis
     assert len(selected) == 2
     assert _has_arabic(selected[0]), "First selected example must be Arabic for Arabic session"
     assert not _has_arabic(selected[1]), "Top-up example should be English when only 1 Arabic exists"
+
+
+# ── R5: criteria_hold_count signal + per-skill hold budget (2026-06-12) ───────
+
+class TestR5CriteriaHoldBudget:
+    """criteria_hold_count is a step_policy signal; the per-skill criteria_hold_budget
+    (schema field, default null) converts the (budget+1)th consecutive criteria hold
+    into a soft advance with a governed no-re-ask instruction. entry_screen steps are
+    exempt by code invariant. Null budget = current behavior."""
+
+    def _budgeted_skill(self, **kwargs):
+        skill = _make_skill(**kwargs)
+        skill.criteria_hold_budget = 1
+        return skill
+
+    async def test_first_short_answer_holds_and_arms_counter(self):
+        state = _make_executor_state(message_en="ok")  # 1 word, heuristic fails
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._budgeted_skill()):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "step_1"
+        assert result["criteria_hold_count"] == 1
+        assert result["criteria_hold_step_id"] == "step_1"
+
+    async def test_budget_exhausted_soft_advances_with_governed_note(self):
+        state = _make_executor_state(
+            message_en="ok", criteria_hold_count=1, criteria_hold_step_id="step_1")
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._budgeted_skill()):
+            result = await skill_executor_node(state)
+        assert result["active_skill_id"] is None, "single-step skill: budget advance completes"
+        assert result["rule_fired"] is True, (
+            "soft advance must set rule_fired so compose_prompt uses the plain "
+            "step_instruction and the appended note survives composition"
+        )
+        assert "do not repeat the previous question" in result["step_instruction"]
+        assert result["criteria_hold_count"] == 0
+        assert result["criteria_hold_step_id"] is None
+
+    async def test_null_budget_holds_indefinitely(self):
+        skill = _make_skill()  # criteria_hold_budget stays None
+        state = _make_executor_state(
+            message_en="ok", criteria_hold_count=7, criteria_hold_step_id="step_1")
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "step_1", "null budget = no budget, current behavior"
+
+    async def test_counter_resets_on_step_change(self):
+        state = _make_executor_state(
+            message_en="ok", criteria_hold_count=1, criteria_hold_step_id="some_previous_step")
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._budgeted_skill()):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "step_1", "stale counter must not trigger soft advance"
+        assert result["criteria_hold_count"] == 1
+        assert result["criteria_hold_step_id"] == "step_1"
+
+    async def test_entry_screen_never_soft_advances(self):
+        """Code invariant: budget can never advance past an entry_screen safety gate,
+        whatever the JSON says. The invariant under test is the code-level entry_screen
+        guard in evaluate_step_policy (current_step_id == 'entry_screen' forces
+        heuristic_met=False), not the LLM path — the synthetic skill is not in
+        _LLM_CRITERIA_SKILLS so evaluate_completion_criteria is never called."""
+        skill = self._budgeted_skill()
+        skill.steps[0].step_id = "entry_screen"
+        state = _make_executor_state(
+            active_step_id="entry_screen",
+            message_en="ok",
+            criteria_hold_count=5,
+            criteria_hold_step_id="entry_screen",
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "entry_screen"
+
+    async def test_long_answer_never_arms_counter(self):
+        state = _make_executor_state(
+            message_en="I am breathing in slowly and holding it like you said")
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._budgeted_skill()):
+            result = await skill_executor_node(state)
+        assert result["criteria_hold_count"] == 0
+        assert result["criteria_hold_step_id"] is None
+
+    async def test_phase2_safety_hold_preserves_counter_over_soft_advance(self):
+        """A validate_only resistance hold overrides a budget soft-advance; the
+        counter must NOT reset on the held turn."""
+        from sage_poc.skills.schema import StepPolicyRule, StepPolicyCondition
+        skill = self._budgeted_skill()
+        skill.step_policy.append(StepPolicyRule(
+            condition=StepPolicyCondition(signal="resistance", operator=">", value=6, step="ANY"),
+            action="validate_only",
+            instruction="Pause and validate before any forward movement.",
+            next_step_id="current",
+        ))
+        state = _make_executor_state(
+            message_en="ok", criteria_hold_count=1, criteria_hold_step_id="step_1")
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill), \
+             patch(
+                 "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
+                 new=AsyncMock(return_value=9),
+             ):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "step_1", "safety hold must win over soft advance"
+        assert result["criteria_hold_count"] != 0 or result["criteria_hold_step_id"] is not None, (
+            "counter must not reset on a held turn"
+        )
+
+    def test_criteria_hold_count_is_a_known_step_policy_signal(self):
+        from sage_poc.nodes.skill_executor import _KNOWN_STEP_POLICY_SIGNALS
+        assert "criteria_hold_count" in _KNOWN_STEP_POLICY_SIGNALS, (
+            "skill authors must be able to write step_policy rules against the signal"
+        )
+
+    def test_skill_authored_rule_can_reference_signal(self):
+        """A per-skill rule on criteria_hold_count fires in normal Phase 1 evaluation."""
+        from sage_poc.skills.schema import StepPolicyRule, StepPolicyCondition
+        skill = _make_skill()
+        skill.step_policy.append(StepPolicyRule(
+            condition=StepPolicyCondition(
+                signal="criteria_hold_count", operator=">=", value=2, step="ANY"),
+            action="offer_break",
+            instruction="Would a short break help before we continue?",
+            next_step_id="current",
+        ))
+        result = evaluate_step_policy(
+            skill=skill, current_step_id="step_1", emotional_intensity=5,
+            engagement=7, message_en="ok", criteria_hold_count=2,
+        )
+        assert result["action"] == "offer_break"
+
+    async def test_word_count_production_skills_opted_in(self):
+        """The 10 word-count-heuristic skills carry criteria_hold_budget: 1;
+        LLM-criteria skills stay null."""
+        from sage_poc.skills.schema import load_skill as real_load
+        from sage_poc.nodes.skill_executor import _LLM_CRITERIA_SKILLS
+        from sage_poc.skill_ids import SKILL_REGISTRY
+        for sid in SKILL_REGISTRY:
+            skill = real_load(sid)
+            if sid in _LLM_CRITERIA_SKILLS or sid in ("psychotic_referral", "post_crisis_check_in"):
+                assert skill.criteria_hold_budget is None, (
+                    f"{sid}: LLM-criteria/auto-select skills must not be silently budgeted"
+                )
+            else:
+                assert skill.criteria_hold_budget == 1, (
+                    f"{sid}: word-count skill missing criteria_hold_budget opt-in"
+                )
+
+
+class TestDHoldCeiling:
+    """D/S2-4: deterministic clinical holds stay SENIOR (no forced advance) but stop
+    re-probing after hold_ceiling consecutive non-safety rule-holds, surfacing the
+    user-owned exit ramp instead. Separate rule_hold_count counter, parallel to
+    criteria_hold_count. entry_screen exempt; safety holds never counted."""
+
+    _EXIT_RAMP_MARKER = "the pace is theirs"
+
+    def _hold_skill(self, hold_ceiling: int | None = 2, hold_step: str = "ANY") -> Skill:
+        """Skill whose only rule is a deterministic non-safety hold on low intensity."""
+        skill = _make_skill()
+        skill.step_policy = [
+            StepPolicyRule(
+                condition=StepPolicyCondition(
+                    signal="emotional_intensity", operator="<=", value=3, step=hold_step,
+                ),
+                action="hold_and_explore",
+                instruction="Gently explore what is making things feel heavy.",
+                next_step_id="current",
+            )
+        ]
+        skill.hold_ceiling = hold_ceiling
+        return skill
+
+    async def test_first_hold_no_exit_ramp(self):
+        state = _make_executor_state(message_en="ok", emotional_intensity=2)
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._hold_skill()):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "step_1", "clinical hold: step unchanged"
+        assert result["rule_hold_count"] == 1
+        assert result["rule_hold_step_id"] == "step_1"
+        assert self._EXIT_RAMP_MARKER not in result["step_instruction"]
+
+    async def test_second_hold_no_exit_ramp(self):
+        state = _make_executor_state(
+            message_en="ok", emotional_intensity=2,
+            rule_hold_count=1, rule_hold_step_id="step_1",
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._hold_skill()):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "step_1"
+        assert result["rule_hold_count"] == 2
+        assert self._EXIT_RAMP_MARKER not in result["step_instruction"]
+
+    async def test_third_hold_surfaces_exit_ramp_without_advancing(self):
+        state = _make_executor_state(
+            message_en="ok", emotional_intensity=2,
+            rule_hold_count=2, rule_hold_step_id="step_1",
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._hold_skill()):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "step_1", (
+            "exit ramp must NOT advance the step — clinical hold stays senior"
+        )
+        assert result["rule_hold_count"] == 3
+        assert self._EXIT_RAMP_MARKER in result["step_instruction"], (
+            "third consecutive rule-hold (3 > ceiling 2) must surface the exit ramp"
+        )
+
+    async def test_null_ceiling_never_surfaces_exit_ramp(self):
+        state = _make_executor_state(
+            message_en="ok", emotional_intensity=2,
+            rule_hold_count=9, rule_hold_step_id="step_1",
+        )
+        with patch(
+            "sage_poc.nodes.skill_executor.load_skill",
+            return_value=self._hold_skill(hold_ceiling=None),
+        ):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "step_1"
+        assert self._EXIT_RAMP_MARKER not in result["step_instruction"], (
+            "null ceiling = unbounded; never surfaces exit ramp"
+        )
+        assert result["rule_hold_count"] == 10, "counter still increments under null ceiling"
+
+    async def test_safety_hold_never_counts_or_triggers(self):
+        """A validate_only safety hold must not count toward rule_hold_count and must
+        never surface the exit ramp, even if a prior count is near the ceiling."""
+        skill = self._hold_skill()
+        # validate_only fires at high intensity; replace the rule with a safety hold trigger.
+        skill.step_policy = [
+            StepPolicyRule(
+                condition=StepPolicyCondition(
+                    signal="emotional_intensity", operator=">", value=7, step="ANY",
+                ),
+                action="validate_only",
+                instruction="User is in acute distress. Slow down and validate.",
+                next_step_id="current",
+            )
+        ]
+        state = _make_executor_state(
+            message_en="ok", emotional_intensity=9,
+            rule_hold_count=2, rule_hold_step_id="step_1",
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "step_1"
+        assert result["rule_hold_count"] == 0, "safety hold must reset, not count"
+        assert result["rule_hold_step_id"] is None
+        assert self._EXIT_RAMP_MARKER not in result["step_instruction"]
+
+    async def test_counter_resets_on_step_change(self):
+        state = _make_executor_state(
+            message_en="ok", emotional_intensity=2,
+            rule_hold_count=2, rule_hold_step_id="some_previous_step",
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._hold_skill()):
+            result = await skill_executor_node(state)
+        assert result["rule_hold_count"] == 1, "stale counter must reset on step change"
+        assert result["rule_hold_step_id"] == "step_1"
+        assert self._EXIT_RAMP_MARKER not in result["step_instruction"]
+
+    async def test_advance_turn_resets_counter_no_exit_ramp(self):
+        """A normal advance/complete turn (no rule held) resets the counter."""
+        # High-word answer, no hold rule fires (intensity normal) → heuristic completes.
+        skill = self._hold_skill()
+        state = _make_executor_state(
+            message_en="I am feeling about a seven today and things are looking up a lot",
+            emotional_intensity=5,
+            rule_hold_count=2, rule_hold_step_id="step_1",
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+            result = await skill_executor_node(state)
+        assert result["rule_hold_count"] == 0
+        assert result["rule_hold_step_id"] is None
+        assert self._EXIT_RAMP_MARKER not in result["step_instruction"]
+
+    async def test_mood_check_in_opts_in_at_two(self):
+        from sage_poc.skills.schema import load_skill as real_load
+        skill = real_load("mood_check_in")
+        assert skill.hold_ceiling == 2
+
+    async def test_exit_action_not_counted_as_rule_hold(self):
+        """Fix 1: exit_to_crisis_protocol at/above the ceiling must NOT append the exit
+        ramp and must NOT increment rule_hold_count (counter resets to 0)."""
+        skill = self._hold_skill(hold_ceiling=2)
+        # Replace the hold rule with one that fires exit_to_crisis_protocol
+        skill.step_policy = [
+            StepPolicyRule(
+                condition=StepPolicyCondition(
+                    signal="emotional_intensity", operator="<=", value=3, step="ANY",
+                ),
+                action="exit_to_crisis_protocol",
+                instruction="Exit to crisis protocol now.",
+                next_step_id="current",
+            )
+        ]
+        # rule_hold_count already at ceiling so exit ramp WOULD fire if miscounted
+        state = _make_executor_state(
+            message_en="ok", emotional_intensity=2,
+            rule_hold_count=2, rule_hold_step_id="step_1",
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+            result = await skill_executor_node(state)
+        assert self._EXIT_RAMP_MARKER not in result["step_instruction"], (
+            "exit_to_crisis_protocol must NOT trigger the exit ramp"
+        )
+        assert result["rule_hold_count"] == 0, (
+            "exit action must reset rule_hold_count (counted as non-hold turn), not increment"
+        )
+
+    async def test_l1_exit_resets_rule_hold_count(self):
+        """Fix 2: L1 early-return must reset rule_hold_count and rule_hold_step_id."""
+        state = _make_executor_state(
+            message_en="i am done with this",   # triggers L1
+            rule_hold_count=2,
+            rule_hold_step_id="step_1",
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._hold_skill()):
+            result = await skill_executor_node(state)
+        assert result.get("escalation_triggered", {}).get("level") == "L1", (
+            "test precondition: L1 must have fired"
+        )
+        assert result["rule_hold_count"] == 0, (
+            "L1 early-return must reset rule_hold_count to 0"
+        )
+        assert result["rule_hold_step_id"] is None, (
+            "L1 early-return must reset rule_hold_step_id to None"
+        )
+
+    async def test_entry_screen_never_surfaces_exit_ramp(self):
+        skill = self._hold_skill()
+        skill.steps[0].step_id = "entry_screen"
+        state = _make_executor_state(
+            active_step_id="entry_screen", message_en="ok", emotional_intensity=2,
+            rule_hold_count=5, rule_hold_step_id="entry_screen",
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "entry_screen"
+        assert self._EXIT_RAMP_MARKER not in result["step_instruction"], (
+            "entry_screen is a safety gate — never soften with the exit ramp"
+        )
+        assert result["rule_hold_count"] == 0, (
+            "entry_screen turn must reset rule_hold_count"
+        )

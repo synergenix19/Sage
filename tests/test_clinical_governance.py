@@ -155,6 +155,9 @@ def test_draft_templates_are_actually_inert():
     # removed from composer routing entirely.
     KNOWN_LIVE_TEMPLATES = {
         "L2_new_skill_unmatched",   # draft-pending-review but wired into production — audit 2026-06-04
+        # L2_skill_offer and L2_general_chat removed 2026-06-13: both signed off by the
+        # clinical lead (status=approved + approved_by set), so the forcing function is
+        # discharged. They are now covered by test_no_live_template_without_approved_by.
     }
 
     for t in _load_all_templates():

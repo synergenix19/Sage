@@ -2,13 +2,53 @@
 Must not import FastAPI or any module that opens DB connections at import time.
 """
 from __future__ import annotations
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
 
+_log = logging.getLogger(__name__)
+
 # Skill context (active_skill_id/active_step_id) is in-session workflow position.
 # It should not survive a multi-hour gap — 4h covers long pauses, resets overnight.
 _SKILL_STALE_HOURS = 4
+
+
+async def _void_unseen_offer(graph, session_id: str) -> None:
+    """Best-effort compensating cleanup after an errored offer-creating turn (S1-1b).
+
+    Invariant: user-visible offer ⇔ promotable state. When graph.ainvoke times out
+    or errors, the client receives [[SERVER_ERROR]] but the graph's checkpoint may
+    have already persisted an offer created on that same turn. The user never saw
+    the offer options, so the next turn must not promote it. The discriminator for
+    "created this turn" is "skill_offer_made" in the persisted path channel —
+    path is per-turn (reset by _build_state), so the checkpoint's path describes
+    the turn that just errored. A pending offer from an earlier turn (path without
+    the marker) was already seen by the user and is left untouched.
+
+    Never raises: cleanup must not mask the original error response. Failures are
+    logged at WARNING and swallowed.
+    """
+    try:
+        checkpointer = getattr(graph, "checkpointer", None)
+        if checkpointer is None:
+            return
+        config = {"configurable": {"thread_id": session_id}}
+        snap = await checkpointer.aget(config)
+        if not snap:
+            return
+        values = snap.get("channel_values") or {}
+        if values.get("offered_skill_ids") and "skill_offer_made" in (values.get("path") or []):
+            await graph.aupdate_state(config, {"offered_skill_ids": None})
+            _log.info(
+                "[sage/chat] offer voided after errored turn (session %s, offer %s)",
+                session_id, values.get("offered_skill_ids"),
+            )
+    except Exception as exc:
+        _log.warning(
+            "[sage/chat] offer-void cleanup failed for session %s: %s",
+            session_id, exc,
+        )
 
 
 def _stale_skill_overrides(checkpoint_values: dict) -> dict:
@@ -24,7 +64,10 @@ def _stale_skill_overrides(checkpoint_values: dict) -> dict:
     "monitoring" or "active", even if active_skill_id is None. This covers the
     canonical CSM-3 gap: _crisis_response_node sets active_skill_id=None, so a
     user who hit crisis and disappeared for 4h+ had their monitoring state survive
-    the old early-return guard.
+    the old early-return guard. The gate ALSO allows through any checkpoint where
+    offered_skill_ids is non-null or declined_skills is non-empty, so a 4h+ gap
+    clears those session-scoped fields even when no active skill or crisis state
+    is present.
 
     When active_skill_id is None (crisis-only stale session), only crisis_state
     is reset — there is no skill to clear, so active_skill_id / active_step_id /
@@ -32,12 +75,25 @@ def _stale_skill_overrides(checkpoint_values: dict) -> dict:
 
     Clinical flags are intentionally NOT cleared — they are true longitudinal
     signals (v7 §6.3), not in-session workflow position.
+
+    Offer and declined-skills clearing: offered_skill_ids and declined_skills
+    follow the skill_matching rules' "declined_scope: session" contract — they
+    are scoped to the current session, not the user's longitudinal history. A 4h+
+    gap constitutes a session boundary, so any pending offer (offered_skill_ids)
+    and the session-scoped decline list (declined_skills) are cleared alongside
+    the stale skill. This prevents stale offers from surfacing after a long pause
+    and allows re-offer of previously declined skills in a fresh session.
     """
     last_turn_at = checkpoint_values.get("last_turn_at")
     active_skill_id = checkpoint_values.get("active_skill_id")
     crisis_state = checkpoint_values.get("crisis_state", "none")
     is_stale_crisis = crisis_state in ("monitoring", "active")
-    if not last_turn_at or (not active_skill_id and not is_stale_crisis):
+    offered_pending = bool(checkpoint_values.get("offered_skill_ids"))
+    declined_pending = bool(checkpoint_values.get("declined_skills"))
+    if not last_turn_at or (
+        not active_skill_id and not is_stale_crisis
+        and not offered_pending and not declined_pending
+    ):
         return {}
     try:
         last = datetime.fromisoformat(last_turn_at)
@@ -52,6 +108,10 @@ def _stale_skill_overrides(checkpoint_values: dict) -> dict:
                 overrides["active_skill_id"] = None
                 overrides["active_step_id"] = None
                 overrides["stale_skill_id"] = active_skill_id
+            if offered_pending:
+                overrides["offered_skill_ids"] = None
+            if declined_pending:
+                overrides["declined_skills"] = []
             return overrides
     except (ValueError, TypeError):
         pass
@@ -120,6 +180,8 @@ def _build_state(req: _RequestLike) -> dict:
         "knowledge_source":        "",
         "knowledge_abstain":       False,
         "knowledge_passages":      [],
+        "offer_response":          None,
+        "offer_choice_skill_id":   None,
         # Set from request — needed by tools and summary persistence
         "session_id": req.session_id,
         "user_id":    req.user_id,

@@ -90,6 +90,13 @@ def test_get_fallback_response_unknown_node_returns_default():
     assert isinstance(r, str) and len(r) > 5
 
 
+def test_intent_route_fallback_is_parseable_neutral_json():
+    raw = get_fallback_response("intent_route", "en")
+    data = json.loads(raw[raw.index("{"):raw.rindex("}") + 1])
+    assert data["primary_intent"] == "general_chat"
+    assert "offer_response" not in data
+
+
 def test_get_fallback_response_unknown_node_ar_falls_back():
     r = get_fallback_response("no_such_node", "ar")
     assert isinstance(r, str) and len(r) > 5
@@ -412,9 +419,10 @@ async def test_skill_select_keyword_tier_unaffected_by_timeout_patch():
     ):
         result = await skill_select_node(state)
 
-    # "can't sleep" is a keyword in sleep_hygiene — keyword tier fires before embedding
-    assert result["active_skill_id"] == "sleep_hygiene"
-    assert result["skill_match_method"] == "keyword"
+    # "can't sleep" is a keyword in sleep_hygiene — keyword tier fires before embedding.
+    # R1: keyword matches surface as a consent offer, not direct activation.
+    assert result["offered_skill_ids"][0] == "sleep_hygiene"
+    assert result["skill_match_method"] == "keyword_offer"
 
 
 # ── Server BGE-M3 warmup ──────────────────────────────────────────────────────

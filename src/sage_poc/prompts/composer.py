@@ -1,6 +1,9 @@
 from __future__ import annotations
 import re
 import logging
+import json as _json
+from functools import lru_cache
+from pathlib import Path
 from sage_poc.state import SageState
 from sage_poc.skills.schema import SkillStep, load_skill
 from sage_poc.rules import engine as rules_engine
@@ -89,6 +92,105 @@ _INTENSITY_GUIDANCE: dict[str, str] = {
     "high": "The user is significantly distressed. Name the specific thing they said, directly. Ask one focused question about it. Do NOT paraphrase or reflect back what they said. Do NOT begin with 'It sounds like', 'That sounds', or any reflective opener. Do NOT offer guidance yet.",
 }
 
+_OFFER_DESCRIPTIONS_PATH = Path(__file__).parent / "offer_descriptions.json"
+_DECLINED_INSTRUCTION_PATH = Path(__file__).parent / "declined_skills_instruction.json"
+
+
+@lru_cache(maxsize=1)
+def _offer_descriptions() -> dict:
+    # Raises on load failure — the try/except lives in _build_offer_options_block
+    # so a failed load is NOT cached. lru_cache still gives process-lifetime
+    # caching on success, while the file appearing later allows recovery.
+    return _json.loads(_OFFER_DESCRIPTIONS_PATH.read_text(encoding="utf-8"))["descriptions"]
+
+
+@lru_cache(maxsize=1)
+def _declined_instruction() -> dict:
+    # Governed content (draft-pending-review). Same caching/recovery contract as
+    # _offer_descriptions: raises on load failure so the try/except in the
+    # caller decides fallback and a failed load is not cached.
+    return _json.loads(_DECLINED_INSTRUCTION_PATH.read_text(encoding="utf-8"))["instruction"]
+
+
+def _bilingual(entry_field: dict, language: str) -> str:
+    """Bilingual envelope accessor: ar falls back to en when null/absent.
+
+    A malformed entry (missing/null en) degrades to "" rather than raising —
+    this runs on the hot path and must never abort the turn."""
+    return entry_field.get(language) or entry_field.get("en") or ""
+
+
+def _build_offer_options_block(offered_skill_ids: list[str], language: str) -> str:
+    """One numbered line per offered skill: display name plus plain blurb.
+    Falls back to registry skill_name when a blurb is missing (coverage test
+    in test_engagement_templates.py should make that unreachable)."""
+    try:
+        descs = _offer_descriptions()
+    except Exception as exc:
+        _log.warning("offer_descriptions.json unavailable: %s", exc)
+        descs = {}
+    lines: list[str] = []
+    for i, sid in enumerate(offered_skill_ids, 1):
+        entry = descs.get(sid)
+        if entry:
+            name = _bilingual(entry["display_name"], language)
+            desc = _bilingual(entry["description"], language)
+            lines.append(f"{i}. {name}: {desc}")
+        else:
+            try:
+                lines.append(f"{i}. {load_skill(sid).skill_name}")
+            except Exception:
+                _log.warning("offer options: unknown skill_id %s skipped", sid)
+    return "\n".join(lines)
+
+
+def _declined_skill_names(declined_skill_ids: list[str], language: str) -> list[str]:
+    """Plain-language display names for declined skills (en/ar fallback).
+
+    Reuses the offer_descriptions display names so the freeflow signal speaks the
+    same plain language the user saw in the offer, never the raw skill_id. Unknown
+    ids fall back to the registry skill_name, then to a de-underscored id, so the
+    note never leaks an internal identifier."""
+    try:
+        descs = _offer_descriptions()
+    except Exception as exc:
+        _log.warning("offer_descriptions.json unavailable for declined note: %s", exc)
+        descs = {}
+    names: list[str] = []
+    for sid in declined_skill_ids:
+        entry = descs.get(sid)
+        if entry:
+            names.append(_bilingual(entry["display_name"], language))
+            continue
+        try:
+            names.append(load_skill(sid).skill_name)
+        except Exception:
+            _log.warning("declined note: unknown skill_id %s; using de-underscored id", sid)
+            names.append(sid.replace("_", " "))
+    return [n for n in names if n]
+
+
+def _build_declined_skills_note(declined_skill_ids: list[str], language: str) -> str:
+    """S2-7 B2: short freeflow note listing skills the user declined this session
+    so freeflow does not re-offer or re-deliver that specific content in prose.
+
+    Fixed instruction wording lives in declined_skills_instruction.json
+    (draft-pending-review). Returns "" if no display names resolve, so the caller
+    can skip the layer rather than render an empty signal."""
+    names = _declined_skill_names(declined_skill_ids, language)
+    if not names:
+        return ""
+    try:
+        instr = _declined_instruction()
+        header = _bilingual(instr["header"], language)
+        guidance = _bilingual(instr["guidance"], language)
+    except Exception as exc:
+        _log.warning("declined_skills_instruction.json unavailable: %s", exc)
+        return ""
+    names_str = ", ".join(names)
+    return f"{header}: {guidance.format(names=names_str)}"
+
+
 _L1_BASE_BUDGET = 450
 _L1_FLEX_BUDGET = 600
 _L1_MINIMUM_BUDGET = 150  # defensive floor — clinical minimum; unreachable after Task 0 cap reduction
@@ -103,7 +205,11 @@ def _intensity_guidance(intensity: int) -> str:
 
 
 def _compute_l1_budget(
-    state: SageState, override_words: int = 0, guardrail_words: int = 0
+    state: SageState,
+    override_words: int = 0,
+    guardrail_words: int = 0,
+    offer_words: int = 0,
+    declined_words: int = 0,
 ) -> int:
     """Return the L1 word budget for this turn.
 
@@ -122,7 +228,17 @@ def _compute_l1_budget(
         alongside override_words so the L1 flex budget (600w) is proactively
         reduced before history is sized, preventing the overflow guard from
         firing and emergency-shrinking L1 history on long freeflow turns.
-        On skill-execution turns this is 0 (guardrail not injected).
+        On skill-execution turns and skill-offer turns this is 0 (guardrail
+        not injected — see the freeflow-vs-offer discriminator at the call site).
+
+    offer_words: actual word count of the L2 offer options block on a
+        skill-offer turn, deducted the same way so the offer never triggers
+        the reactive overflow guard. On a skill-offer turn guardrail_words is 0
+        and vice versa, so the two never both apply on the same turn.
+
+    declined_words: actual word count of the S2-7 B2 declined-skills note on a
+        freeflow turn, deducted the same way so the consent-integrity signal
+        never pushes a long-history freeflow turn into reactive overflow shrink.
 
     SPEC DIVERGENCE (§5.6.1): v7 §5.6.1 specifies ~300w for L1. The 450/600
     values are a pre-existing architectural deviation pending review. Do not
@@ -138,7 +254,10 @@ def _compute_l1_budget(
     has_knowledge = state.get("primary_intent") == "info_request" or \
                     state.get("secondary_intent") == "info_request"
     base = _L1_BASE_BUDGET if (has_skill or has_knowledge) else _L1_FLEX_BUDGET
-    return max(_L1_MINIMUM_BUDGET, base - override_words - guardrail_words)
+    return max(
+        _L1_MINIMUM_BUDGET,
+        base - override_words - guardrail_words - offer_words - declined_words,
+    )
 
 
 def _build_l2_intent_block(
@@ -146,6 +265,7 @@ def _build_l2_intent_block(
     intensity: int,
     secondary_intent: str | None = None,
     variant: str | None = None,
+    extra_variables: dict[str, str] | None = None,
 ) -> str:
     intent = primary_intent or "general_chat"
     tmpl = get_intent_template(intent, variant=variant)
@@ -159,6 +279,7 @@ def _build_l2_intent_block(
     variables: dict[str, str] = {
         "intensity": str(intensity),
         "intensity_guidance": guidance,
+        **(extra_variables or {}),
     }
     content = tmpl.content
     for var in tmpl.variables:
@@ -469,6 +590,27 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     # ---- User role ---------------------------------------------------------
     user_parts: list[str] = []
 
+    # R1 (2026-06-12): a pending skill offer overrides intent-based L2 selection.
+    # State-driven because the offer is created by skill_select, not intent_route.
+    # Computed BEFORE the L1 budget so the offer block's words deduct proactively
+    # from L1 instead of tripping the reactive overflow guard (C-1).
+    _offer_ids = state.get("offered_skill_ids") or []
+    _offer_block_str = ""
+    _offer_words = 0
+    if _offer_ids:
+        _offer_block_str = _build_offer_options_block(_offer_ids, language)
+        if not _offer_block_str.strip():
+            # I-1: the skill_offer template must never render with a blank
+            # options block — fall back to intent-based L2 for this turn.
+            _log.warning(
+                "offer options block is empty for ids %s; falling back to intent-based L2",
+                _offer_ids,
+            )
+            _offer_ids = []
+            _offer_block_str = ""
+        else:
+            _offer_words = count_words(_offer_block_str)
+
     # Freeflow guided-protocol guardrail (S2-7 B1) — pre-compute before _compute_l1_budget.
     # The block is built here (freeflow turns only) so its word count can be passed into
     # _compute_l1_budget as guardrail_words, proactively reducing L1 budget before history
@@ -477,15 +619,50 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     # overflow guard that emergency-shrinks L1 history — degrading exactly the
     # emotional-support turns that benefit most from rich history context.
     # The pre-built string is reused when appending below (not built twice).
+    #
+    # MERGE RESOLUTION (#4 ⊕ #8, 2026-06-13): a skill-offer turn also has no
+    # step_instruction, so the freeflow discriminator alone would inject the
+    # guardrail ON TOP OF the skill_offer L2 framing — two different response
+    # contracts stacked in one prompt. The offer turn has its own framing
+    # (present named options, await a choice), so the guardrail is suppressed
+    # when an offer is live. This keeps guardrail_words and offer_words mutually
+    # exclusive per turn, matching the budget docstring.
     _guardrail_block: str | None = None
     _guardrail_words: int = 0
-    if not state.get("step_instruction"):
+    if not state.get("step_instruction") and not _offer_ids:
         _guardrail_block = _build_freeflow_guardrail_block()
         _guardrail_words = count_words(_guardrail_block)
 
+    # S2-7 B2: declined-skills signal (consent integrity). On freeflow turns
+    # (no skill step), when the user has declined skills this session, tell
+    # freeflow which ones so it does not re-offer or walk through that specific
+    # content in prose. Built BEFORE the L1 budget so its words deduct
+    # proactively from L1 (same pattern as the offer block). Depends on
+    # declined_skills (feature-branch state).
+    #
+    # MERGE NOTE (#4 ⊕ #8 ⊕ B2, 2026-06-13): unlike the guardrail, this note is
+    # NOT suppressed on offer turns. It is an exclusion constraint ("do not
+    # re-deliver these declined items"), not a competing response contract, so it
+    # is compatible with the skill_offer framing. The offer pool itself already
+    # excludes declined skills in skill_select; this note only protects the
+    # freeflow prose path, and declined_words simply adds to the same proactive
+    # L1 deduction alongside offer_words when both apply.
+    _is_freeflow = not state.get("step_instruction")
+    _declined_ids = state.get("declined_skills") or []
+    _declined_note = ""
+    _declined_words = 0
+    if _is_freeflow and _declined_ids:
+        _declined_note = _build_declined_skills_note(_declined_ids, language)
+        if _declined_note:
+            _declined_words = count_words(_declined_note)
+
     # L1: Conversation history
     l1_budget = _compute_l1_budget(
-        state, override_words=_override_words, guardrail_words=_guardrail_words
+        state,
+        override_words=_override_words,
+        guardrail_words=_guardrail_words,
+        offer_words=_offer_words,
+        declined_words=_declined_words,
     )
     l1_block = _build_l1_history_block(
         state.get("conversation_history", []),
@@ -501,12 +678,19 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     # unmatched-disclosure template (structural constraints: name disclosed content,
     # do not re-probe named emotions, offer space not solutions). Selector pending
     # Rule 1 approval — template is draft-pending-review.
-    _l2_intent = (
-        "new_skill_unmatched"
-        if primary_intent == "new_skill" and not state.get("active_skill_id")
-        else primary_intent
-    )
-    l2_block = _build_l2_intent_block(_l2_intent, intensity, secondary_intent)
+    # Offer override: _offer_ids / _offer_block_str were precomputed above the
+    # L1 budget call so the block is built exactly once per turn.
+    if _offer_ids:
+        _l2_intent = "skill_offer"
+        _l2_extra = {"offer_options_block": _offer_block_str}
+    else:
+        _l2_intent = (
+            "new_skill_unmatched"
+            if primary_intent == "new_skill" and not state.get("active_skill_id")
+            else primary_intent
+        )
+        _l2_extra = None
+    l2_block = _build_l2_intent_block(_l2_intent, intensity, secondary_intent, extra_variables=_l2_extra)
     user_parts.append(l2_block)
     layers.append("intent")
 
@@ -569,6 +753,15 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
             f"If their message is about something unrelated or more urgent, focus on that first."
         )
         layers.append("stale_skill_context")
+
+    # S2-7 B2: inject the precomputed declined-skills note (built above the L1
+    # budget). Reuses the freeflow-only string captured earlier so the note is
+    # built exactly once per turn and its word count matches the budget
+    # deduction. Wording is governed (declined_skills_instruction.json,
+    # draft-pending-review).
+    if _declined_note:
+        user_parts.append(_declined_note)
+        layers.append("declined_skills_signal")
 
     # User-targeted prompt_injection actions (Rules Service, unchanged)
     user_injections = [

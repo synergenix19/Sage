@@ -39,6 +39,18 @@ def _ss_state(**overrides):
     return base
 
 
+def _routed_skill(result: dict):
+    """The primary skill a turn routes to, independent of the consent mechanism.
+
+    Under R1 a keyword/semantic match at moderate intensity produces an OFFER
+    (offered_skill_ids), while acute_direct_entry (intensity >= 8) and the
+    Arabic-exclusion gate enter directly (active_skill_id). Routing-intent tests
+    (which skill, per the clinical bucketing) should assert the destination
+    regardless of whether it is offered or entered — that is what this returns.
+    """
+    return result.get("active_skill_id") or (result.get("offered_skill_ids") or [None])[0]
+
+
 @pytest.mark.asyncio
 async def test_monitoring_state_always_selects_post_crisis_check_in():
     """When crisis_state=='monitoring', skill_select bypasses keyword/semantic and returns post_crisis_check_in."""
@@ -85,8 +97,10 @@ async def test_resolved_state_falls_through_to_normal_skill_matching():
         crisis_state="resolved",
     )
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "cbt_thought_record"
-    assert result["skill_match_method"] == "keyword"
+    # R1: keyword match produces a consent offer, not direct activation.
+    assert result["active_skill_id"] is None
+    assert result["offered_skill_ids"][0] == "cbt_thought_record"
+    assert result["skill_match_method"] == "keyword_offer"
 
 
 async def test_skill_executor_l1_exit_from_post_crisis_sets_resolved():
@@ -134,25 +148,30 @@ async def test_skill_executor_sets_resolved_when_post_crisis_skill_completes():
 
 @pytest.mark.asyncio
 async def test_dbt_tipp_keyword_match():
-    # Message updated 2026-06-14: the prior compound ("I need to calm down fast, I'm
-    # overwhelmed and losing control") straddled the new C1 boundary — "need to calm down
-    # fast" and "overwhelmed" are now grounding-bound, so it no longer cleanly tests dbt_tipp.
-    # Use an unambiguous failed-first-line phrase (TIPP's retained indication) instead. The
-    # test's purpose — dbt_tipp keyword routing works — is preserved.
+    # R1 offer model: default intensity (5) is below acute_direct_entry (>=8), so a keyword
+    # match yields an OFFER, not direct activation. Message updated 2026-06-14: the prior
+    # compound ("...calm down fast, I'm overwhelmed and losing control") now routes to grounding
+    # under the merged C1 tiebreak, so it no longer cleanly tests dbt_tipp — use an unambiguous
+    # failed-first-line phrase (TIPP's retained indication). The test's purpose is preserved.
     state = _ss_state(message_en="my breathing isn't working and I need something stronger")
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "dbt_tipp"
-    assert result["skill_match_method"] == "keyword"
+    assert result["active_skill_id"] is None
+    assert result["offered_skill_ids"][0] == "dbt_tipp"
+    assert result["skill_match_method"] == "keyword_offer"
 
 @pytest.mark.asyncio
 async def test_calm_down_fast_arabic_routes_to_grounding():
-    # C1 decision B.3 (clinical sign-off 2026-06-14): محتاج أهدى بسرعة ("need to calm down
-    # fast") re-bucketed dbt_tipp -> grounding. Urgency is not extremity and there is no
-    # failed-first-line marker, so it falls to the lower-risk default like the other ambiguous
-    # cases. See docs/superpowers/governance/2026-06-13-overwhelm-routing-c1-conflict.md
+    # Merged 2026-06-14 (B.3 re-bucket + Arabic-exclusion gate):
+    #  - C1 B.3 (signed): محتاج أهدى بسرعة ("need to calm down fast") re-bucketed dbt_tipp ->
+    #    grounding (urgency is not extremity; no failed-first-line marker).
+    #  - Arabic-exclusion gate (Option 1): Arabic-script sessions skip the R1 consent offer and
+    #    enter the matched skill directly (pre-R1 behavior) until S2-2 ships a tested accept path.
+    # Merged outcome: B.3 target (grounding) reached via direct entry, not an offer.
+    # See docs/superpowers/governance/2026-06-13-overwhelm-routing-c1-conflict.md
     state = _ss_state(message_en="محتاج أهدى بسرعة", detected_language="ar")
     result = await skill_select_node(state)
     assert result["active_skill_id"] == "grounding_5_4_3_2_1"
+    assert not result.get("offered_skill_ids")
 
 
 def test_semantic_threshold_is_calibrated():
@@ -205,11 +224,11 @@ async def test_semantic_cbt_inherently_broken_phrase():
     )
     state = _ss_state(message_en=phrase)
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "cbt_thought_record", (
-        f"Expected cbt_thought_record, got: {result['active_skill_id']} "
+    assert result["offered_skill_ids"][0] == "cbt_thought_record", (
+        f"Expected cbt_thought_record offer, got: {result.get('offered_skill_ids')} "
         f"(score: {result.get('semantic_score')})"
     )
-    assert result["skill_match_method"] == "semantic"
+    assert result["skill_match_method"] == "semantic_offer"
 
 
 @pytest.mark.slow
@@ -222,11 +241,11 @@ async def test_semantic_behavioral_activation_stuck_cycle_phrase():
     )
     state = _ss_state(message_en=phrase)
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "behavioral_activation", (
-        f"Expected behavioral_activation, got: {result['active_skill_id']} "
+    assert result["offered_skill_ids"][0] == "behavioral_activation", (
+        f"Expected behavioral_activation offer, got: {result.get('offered_skill_ids')} "
         f"(score: {result.get('semantic_score')})"
     )
-    assert result["skill_match_method"] == "semantic"
+    assert result["skill_match_method"] == "semantic_offer"
 
 
 @pytest.mark.slow
@@ -239,11 +258,11 @@ async def test_semantic_worry_time_brain_cycling_phrase():
     )
     state = _ss_state(message_en=phrase)
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "worry_time", (
-        f"Expected worry_time, got: {result['active_skill_id']} "
+    assert result["offered_skill_ids"][0] == "worry_time", (
+        f"Expected worry_time offer, got: {result.get('offered_skill_ids')} "
         f"(score: {result.get('semantic_score')})"
     )
-    assert result["skill_match_method"] == "semantic"
+    assert result["skill_match_method"] == "semantic_offer"
 
 
 @pytest.mark.slow
@@ -256,11 +275,11 @@ async def test_semantic_dbt_tipp_internal_volcano_phrase():
     )
     state = _ss_state(message_en=phrase)
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "dbt_tipp", (
-        f"Expected dbt_tipp, got: {result['active_skill_id']} "
+    assert result["offered_skill_ids"][0] == "dbt_tipp", (
+        f"Expected dbt_tipp offer, got: {result.get('offered_skill_ids')} "
         f"(score: {result.get('semantic_score')})"
     )
-    assert result["skill_match_method"] == "semantic"
+    assert result["skill_match_method"] == "semantic_offer"
 
 
 @pytest.mark.slow
@@ -273,8 +292,8 @@ async def test_semantic_mi_readiness_half_wanting_phrase():
     )
     state = _ss_state(message_en=phrase)
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "mi_readiness_ruler", (
-        f"Expected mi_readiness_ruler, got: {result['active_skill_id']} "
+    assert result["offered_skill_ids"][0] == "mi_readiness_ruler", (
+        f"Expected mi_readiness_ruler offer, got: {result.get('offered_skill_ids')} "
         f"(score: {result.get('semantic_score')})"
     )
 
@@ -298,11 +317,11 @@ async def test_semantic_timeout_falls_back_to_keyword_match():
     with patch("sage_poc.nodes.skill_select.asyncio.wait_for", side_effect=asyncio.TimeoutError):
         result = await skill_select_node(state)
 
-    # Keyword match must still work even when semantic times out
-    assert result["active_skill_id"] == "cbt_thought_record", (
+    # Keyword match must still work even when semantic times out (R1: as an offer)
+    assert result["offered_skill_ids"][0] == "cbt_thought_record", (
         "Keyword fallback failed when semantic timed out"
     )
-    assert result["skill_match_method"] == "keyword"
+    assert result["skill_match_method"] == "keyword_offer"
     assert result.get("semantic_score") is None
 
 
@@ -347,7 +366,12 @@ async def test_semantic_timeout_returns_none_when_no_keyword_match():
 
 @pytest.mark.asyncio
 async def test_arabic_keyword_routes_via_tier1():
-    """Arabic-script keyword in target_presentations must match raw_message for Arabic sessions."""
+    """Arabic-script keyword in target_presentations must match raw_message for Arabic sessions.
+
+    Arabic-exclusion gate (Option 1, 2026-06-13): the match enters directly rather than
+    offering (Arabic is excluded from the R1 consent flow). This test still proves the
+    raw_message keyword pass fires; only the entry mechanism is direct, not offer.
+    """
     state = _ss_state(
         raw_message="تنفس معي",
         message_en="breathe with me",
@@ -356,15 +380,20 @@ async def test_arabic_keyword_routes_via_tier1():
     )
     result = await skill_select_node(state)
     assert result["active_skill_id"] == "box_breathing", (
-        f"Expected box_breathing, got {result['active_skill_id']!r}. "
+        f"Expected box_breathing direct entry, got active={result.get('active_skill_id')!r} "
+        f"offered={result.get('offered_skill_ids')!r}. "
         "Arabic-script keyword تنفس معي must match via raw_message pass."
     )
+    assert not result.get("offered_skill_ids"), "Arabic session must not offer"
     assert result["skill_match_method"] == "keyword"
 
 
 @pytest.mark.asyncio
 async def test_arabic_keyword_fires_when_translation_is_ambiguous():
-    """When Arabic message_en translation is ambiguous, raw_message keyword pass must fire."""
+    """When Arabic message_en translation is ambiguous, raw_message keyword pass must fire.
+
+    Arabic-exclusion gate (Option 1, 2026-06-13): match enters directly, not via offer.
+    """
     state = _ss_state(
         raw_message="أبي تمرين تنفس",
         message_en="I want some exercise",  # ambiguous — would miss keyword
@@ -373,9 +402,11 @@ async def test_arabic_keyword_fires_when_translation_is_ambiguous():
     )
     result = await skill_select_node(state)
     assert result["active_skill_id"] == "box_breathing", (
-        f"Expected box_breathing, got {result['active_skill_id']!r}. "
+        f"Expected box_breathing direct entry, got active={result.get('active_skill_id')!r} "
+        f"offered={result.get('offered_skill_ids')!r}. "
         "Arabic keyword أبي تمرين تنفس must match via raw_message pass."
     )
+    assert not result.get("offered_skill_ids"), "Arabic session must not offer"
     assert result["skill_match_method"] == "keyword"
 
 
@@ -393,10 +424,13 @@ async def test_arabic_raw_message_only_path():
         primary_intent="new_skill",
     )
     result = await skill_select_node(state)
+    # Arabic-exclusion gate (Option 1, 2026-06-13): match enters directly, not via offer.
     assert result["active_skill_id"] == "box_breathing", (
-        f"Expected box_breathing via raw_message, got {result['active_skill_id']!r}. "
+        f"Expected box_breathing direct entry via raw_message, got active={result.get('active_skill_id')!r} "
+        f"offered={result.get('offered_skill_ids')!r}. "
         "When message_en has no keyword, raw_message Arabic keyword must be the match source."
     )
+    assert not result.get("offered_skill_ids"), "Arabic session must not offer"
     assert result["skill_match_method"] == "keyword"
 
 
@@ -415,11 +449,12 @@ async def test_english_session_ignores_arabic_raw_message():
         primary_intent="new_skill",
     )
     result = await skill_select_node(state)
-    # Either no skill selected, OR if box_breathing matched semantically, it MUST NOT
+    # Either no skill matched, OR if box_breathing matched semantically, it MUST NOT
     # have matched via keyword (which would mean Arabic raw_message leaked into en routing).
-    if result.get("active_skill_id") == "box_breathing":
-        assert result.get("skill_match_method") != "keyword", (
-            "box_breathing matched as 'keyword' for an English session with only "
+    # R1: keyword matches surface as offers, so check the offer list and method.
+    if (result.get("offered_skill_ids") or [None])[0] == "box_breathing":
+        assert result.get("skill_match_method") != "keyword_offer", (
+            "box_breathing matched via keyword tier for an English session with only "
             "an Arabic raw_message keyword. The detected_language=='ar' guard is broken."
         )
 
@@ -474,14 +509,14 @@ async def test_dbtipp_interim_en_phrase_routes_via_keyword(phrase):
     with patch("sage_poc.nodes.skill_select.asyncio.wait_for", side_effect=asyncio.TimeoutError):
         result = await skill_select_node(state)
 
-    assert result["active_skill_id"] == "dbt_tipp", (
-        f"Expected dbt_tipp, got {result['active_skill_id']!r} for phrase {phrase!r}. "
+    assert result["offered_skill_ids"][0] == "dbt_tipp", (
+        f"Expected dbt_tipp offer, got {result.get('offered_skill_ids')!r} for phrase {phrase!r}. "
         "Phrase missing from dbt_tipp target_presentations or shadowed by lower-index skill."
     )
-    assert result["skill_match_method"] == "keyword", (
-        f"Expected keyword match, got {result['skill_match_method']!r}."
+    assert result["skill_match_method"] == "keyword_offer", (
+        f"Expected keyword_offer match, got {result['skill_match_method']!r}."
     )
-    assert result["active_skill_id"] not in ("grounding_5_4_3_2_1", "stop_technique"), (
+    assert result["offered_skill_ids"][0] not in ("grounding_5_4_3_2_1", "stop_technique"), (
         f"Phrase {phrase!r} routed to a shadowing skill instead of dbt_tipp."
     )
 
@@ -532,6 +567,13 @@ async def test_dbtipp_interim_ar_phrase_routes_via_keyword(phrase):
     """Each Arabic simpler-technique-failure phrase must route to dbt_tipp via keyword tier.
 
     Arabic keywords route via raw_message path (detected_language=='ar').
+
+    C1/#15 TARGET NOTE: these phrases match dbt_tipp ONLY (no grounding overlap), so they
+    are NOT the "overwhelmed"+"spinning" longest-match case behind #15 and the narrow
+    tiebreak fix leaves them unchanged. Whether this acute-Arabic vocabulary belongs to
+    dbt_tipp (signed 25634a3) vs grounding (C1) is a clinical-bucketing question for the
+    same clinical lead handling #15; revisit if that adjudication re-buckets acute vocab.
+    See docs/superpowers/governance/2026-06-13-overwhelm-routing-c1-conflict.md
     """
     import asyncio
     from unittest.mock import patch
@@ -545,10 +587,14 @@ async def test_dbtipp_interim_ar_phrase_routes_via_keyword(phrase):
     with patch("sage_poc.nodes.skill_select.asyncio.wait_for", side_effect=asyncio.TimeoutError):
         result = await skill_select_node(state)
 
+    # Arabic-exclusion gate (Option 1, 2026-06-13): match enters directly, not via offer.
+    # Routing target (dbt_tipp) and the anti-shadowing guarantee are unchanged.
     assert result["active_skill_id"] == "dbt_tipp", (
-        f"Expected dbt_tipp, got {result['active_skill_id']!r} for Arabic phrase {phrase!r}. "
+        f"Expected dbt_tipp direct entry, got active={result.get('active_skill_id')!r} "
+        f"offered={result.get('offered_skill_ids')!r} for Arabic phrase {phrase!r}. "
         "Phrase missing from dbt_tipp target_presentations or shadowed."
     )
+    assert not result.get("offered_skill_ids"), "Arabic session must not offer"
     assert result["skill_match_method"] == "keyword", (
         f"Expected keyword match, got {result['skill_match_method']!r}."
     )
@@ -569,13 +615,15 @@ async def test_c1_tiebreak_grounding_wins_when_both_match():
     """A: 'overwhelmed' (dbt_tipp, 11) + 'spinning' (grounding, 8) — longest-match would pick
     dbt_tipp; the C1 tiebreak routes to grounding instead. This is the unit-level proof of the
     same behavior asserted end-to-end by test_selects_grounding_for_overwhelmed_phrasing."""
+    # Under R1 this routes via a consent OFFER (grounding listed first) at moderate intensity;
+    # the C1 intent — grounding, not dbt_tipp, for ambiguous overwhelm — is what we assert,
+    # mechanism-agnostic. (At acute intensity >= 8 it would be direct entry of grounding.)
     state = _ss_state(message_en="i feel completely overwhelmed, my head is spinning",
                       primary_intent="new_skill")
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "grounding_5_4_3_2_1", (
-        f"C1 tiebreak failed: expected grounding, got {result['active_skill_id']!r}."
+    assert _routed_skill(result) == "grounding_5_4_3_2_1", (
+        f"C1 tiebreak failed: expected grounding, got {_routed_skill(result)!r}."
     )
-    assert result["skill_match_method"] == "keyword"
 
 
 @pytest.mark.asyncio
@@ -584,9 +632,9 @@ async def test_c1_tiebreak_does_not_affect_dbt_tipp_only_match():
     25634a3), so the tiebreak must NOT fire — acute flooding still routes to dbt_tipp."""
     state = _ss_state(message_en="i can't calm down", primary_intent="new_skill")
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "dbt_tipp", (
+    assert _routed_skill(result) == "dbt_tipp", (
         f"Tiebreak over-reached: 'i can't calm down' should stay dbt_tipp, got "
-        f"{result['active_skill_id']!r}."
+        f"{_routed_skill(result)!r}."
     )
 
 
@@ -649,9 +697,11 @@ async def test_acute_cluster_bucket_lock(phrase, lang, expected):
     )
     with patch("sage_poc.nodes.skill_select.asyncio.wait_for", side_effect=asyncio.TimeoutError):
         result = await skill_select_node(state)
-    assert result["active_skill_id"] == expected, (
+    # Mechanism-agnostic: EN matches route via R1 offer at moderate intensity; AR via the
+    # Arabic-exclusion direct path. The lock asserts the DESTINATION skill either way.
+    assert _routed_skill(result) == expected, (
         f"Bucket lock violated: {phrase!r} expected {expected!r}, got "
-        f"{result['active_skill_id']!r}. A move requires clinical sign-off + a governance entry."
+        f"{_routed_skill(result)!r}. A move requires clinical sign-off + a governance entry."
     )
 
 
@@ -768,10 +818,11 @@ async def test_sf1_best_match_overrides_first_match(phrase: str, expected_skill:
     not the first registry-order match. Failure = first-match-wins is still active."""
     state = make_state(message_en=phrase)
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == expected_skill, (
+    offered = result.get("offered_skill_ids") or [None]
+    assert offered[0] == expected_skill, (
         f"SF-1 FAILURE: '{phrase[:60]}'\n"
         f"  Expected: {expected_skill}\n"
-        f"  Got:      {result['active_skill_id']!r}  (method={result.get('skill_match_method')!r})\n"
+        f"  Got:      {offered[0]!r}  (method={result.get('skill_match_method')!r})\n"
         f"  Dominant-shadower failure — first-match-wins still routing to lower-index skill."
     )
 
@@ -808,6 +859,6 @@ async def test_sf1_catastrophizing_routes_to_cognitive_restructuring_gated():
         "therapeutic_profile": None,
     }
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "cognitive_restructuring"
+    assert (result.get("offered_skill_ids") or [None])[0] == "cognitive_restructuring"
 
 

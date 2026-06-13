@@ -128,6 +128,7 @@ async def _crisis_response_node(state: SageState) -> dict:
         "is_safe": False,
         "active_skill_id": None,
         "active_step_id": None,
+        "offered_skill_ids": None,
         "gate_path": "crisis",
         "response": response_text,
         "response_en": response_text,
@@ -176,8 +177,19 @@ def _route_after_intent(state: SageState) -> str:
     # with the content unreferred. Bypasses the confidence gate (like monitoring) because
     # the redirect must not depend on classification confidence. Deterministic routing is
     # the gate; prompt adaptation is not (audit: L5 alone already failed).
+    #
+    # PRECEDENCE (merge #4 ⊕ #6/S2-10, 2026-06-13): this check is SENIOR to the R1
+    # offer-accept branch below. If a psychotic disclosure co-occurs with a live skill
+    # offer (e.g. the user accepts an offer in the same turn they disclose), the safety
+    # referral must win — never let an engagement-layer accept short-circuit the referral.
     if ("psychotic_disclosure" in (state.get("clinical_flags") or [])
             and not state.get("psychotic_referral_delivered")):
+        return "skill_select"
+    # R1: accept reply to a pending offer routes to skill_select for promotion.
+    # Bypasses the confidence gate: bare accepts classify low-confidence by nature
+    # (same precedent as post-crisis monitoring). Subordinate to the psychotic-referral
+    # check above by design.
+    if (state.get("offered_skill_ids") or []) and state.get("offer_response") == "accept":
         return "skill_select"
     # Routing-SF-2 (intent-route intensity): acute distress classified as general_chat
     # must still reach skill_select so the acute down-regulation skills (dbt_tipp,
@@ -189,7 +201,8 @@ def _route_after_intent(state: SageState) -> str:
     # match -> skill_select -> freeflow (_route_after_skill_select), unchanged worst case.
     # Guarded on active_skill_id: mid-skill turns fall through to freeflow (preserving the
     # checkpoint), matching the new_skill/skill_continuation handling below and the
-    # test_mid_skill_off_topic invariant.
+    # test_mid_skill_off_topic invariant. (Under R1, "reach skill_select" yields a consent
+    # offer of the acute skill, not silent activation — consistent with the offer model.)
     if (intent == "general_chat"
             and not state.get("active_skill_id")
             and state.get("emotional_intensity", 5) >= ACUTE_INTENSITY_FLOOR):

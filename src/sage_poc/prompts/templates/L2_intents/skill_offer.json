@@ -1,0 +1,20 @@
+{
+  "template_id": "L2_skill_offer",
+  "version": "0.1.0",
+  "status": "approved",
+  "authored_by": "engineering",
+  "approved_by": "clinical_lead",
+  "effective_date": "2026-06-13",
+  "layer": "L2",
+  "role": "user",
+  "always_include": true,
+  "word_budget": 170,
+  "content": "INTENT: The user described something a short structured exercise could help with. A choice must be offered before any exercise begins. Emotional intensity: {intensity}/10. {intensity_guidance} First name the specific thing the user described, in one sentence. Then offer these options in plain everyday words, including roughly how long each takes:\n{offer_options_block}\nMake clear that simply continuing to talk is an equally good choice. Ask which they would prefer, as one short question. Do not begin any exercise this turn. Do not use clinical or technique jargon beyond the names given. Do not pressure, the user saying no is a complete answer. Keep the whole reply to 2-4 sentences plus the options.",
+  "variables": ["intensity", "intensity_guidance", "offer_options_block"],
+  "intent": "skill_offer",
+  "_review_required": [
+    "Rule 1 approval (new L2 selector in composer.py, control-layer change)",
+    "Clinical review (offer framing, non-coercion wording)"
+  ],
+  "_signed_off": "Clinical lead 2026-06-13; reasoning records on master via PR #5"
+}

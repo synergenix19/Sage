@@ -60,7 +60,18 @@ jobs:
             tests/test_composer_intensity.py
             tests/test_freeflow_guardrail.py
             tests/test_declined_skills_signal.py
+            tests/test_nodes.py
           "
+          # test_nodes.py added 2026-06-13: it carries the skill-selection acute-routing
+          # assertions (which skill a presentation routes to) that previously sat OUTSIDE
+          # the gate — the blind spot that let #15 (overwhelm -> dbt_tipp, a C1-violating
+          # production routing defect) stay red invisibly for weeks. A control that does not
+          # watch the surface it exists to protect reads as protection while providing none.
+          # NOTE: this suite is currently RED solely on #15
+          # (test_selects_grounding_for_overwhelmed_phrasing), a tracked PRE-EXISTING
+          # production defect under clinical adjudication, NOT introduced by this branch.
+          # It clears when #15's clinically-signed fix lands (separate master PR). Do not
+          # silence the assertion to make the gate green.
           FILES=""
           SKIPPED=""
           for f in $CANDIDATES; do

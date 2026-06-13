@@ -1,0 +1,16 @@
+{
+  "content_id": "soft_advance_instruction",
+  "version": "0.3.0",
+  "status": "approved",
+  "authored_by": "engineering",
+  "approved_by": "clinical_lead",
+  "effective_date": "2026-06-13",
+  "description": "Appended to the step instruction when criteria_hold_budget is exhausted (instruction) or when a deterministic non-safety rule-hold reaches hold_ceiling (exit_ramp). Therapeutic language must not live in .py files.",
+  "_signed_off": "Clinical lead 2026-06-13; reasoning records on master via PR #5",
+  "_review_required": [
+    "Clinical review (autonomy-supportive pacing; exit-ramp wording added 2026-06-13 per the sign-off alignment check). Constraint the reviewer is signing: the exit ramp must read as the user's choice of pace, never as Sage's preference to wind down. An exit ramp that signals the system wants to disengage is itself a nudge.",
+    "Clinical review of the exit_ramp field (added 2026-06-13 for the D/S2-4 hold-ceiling use). This text is appended to a deterministic clinical hold once hold_ceiling consecutive re-probes have occurred. The hold stays senior (the step is NOT advanced); this text only stops the re-asking and surfaces the user-owned choice of pace. Same constraint as above: it must never read as Sage wanting to move on or wind down. Reviewer also signs the per-skill hold_ceiling values (mood_check_in = 2)."
+  ],
+  "instruction": "NOTE: The user answered briefly and was already asked once. Respond to what they said, move forward naturally, do not repeat the previous question. Invite more detail only as an option, never as a requirement. You may let the user know the pace is theirs, for example that they can keep going or stay with this a moment if they would rather. Frame this as their choice. Never word it as you wanting to stop, wind down, or move on.",
+  "exit_ramp": "The user has answered briefly several times. Do not ask the same question again. Gently let them know the pace is theirs, for example that they can stay with this a moment or move on if they would rather. Frame it as their choice, never as you wanting to move on or wind down."
+}

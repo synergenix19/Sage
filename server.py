@@ -20,7 +20,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from sage_poc.graph import build_graph
 from sage_poc.config import RESPONDER_MODEL
-from sage_poc.server_helpers import _build_state, _stale_skill_overrides
+from sage_poc.server_helpers import _build_state, _stale_skill_overrides, _void_unseen_offer
 from sage_poc.llm import get_classifier
 from sage_poc.skills.conformance import SCHEMA_CONFORMANCE, get_conformance_report
 
@@ -276,6 +276,10 @@ async def chat(
             AINVOKE_TIMEOUT_SECONDS,
             req.session_id,
         )
+        # S1-1b: the checkpoint may have persisted an offer the user never saw
+        # (response is [[SERVER_ERROR]]). Void it so the next turn cannot promote
+        # an unseen offer. Never raises (logged WARNING inside on failure).
+        await _void_unseen_offer(graph, req.session_id)
 
         async def _timeout_err() -> AsyncGenerator[bytes, None]:
             yield b"[[SERVER_ERROR]]"
@@ -283,6 +287,8 @@ async def chat(
         return StreamingResponse(_timeout_err(), media_type="text/plain; charset=utf-8")
     except Exception as exc:
         _log.error("[sage/graph] invoke failed: %s", exc)
+        # S1-1b compensating cleanup — see timeout branch above. Never raises.
+        await _void_unseen_offer(graph, req.session_id)
 
         async def _err() -> AsyncGenerator[bytes, None]:
             yield b"\n[[SERVER_ERROR]]"

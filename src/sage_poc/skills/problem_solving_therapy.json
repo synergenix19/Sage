@@ -2,6 +2,7 @@
   "skill_id": "problem_solving_therapy",
   "skill_name": "Problem-Solving Therapy",
   "skill_type": "structured",
+  "criteria_hold_budget": 1,
   "evidence_base": "D'Zurilla and Goldfried (1971); D'Zurilla and Nezu (2007) Problem-Solving Therapy: A Positive Approach to Clinical Intervention; Mynors-Wallis et al. (2000) RCT BMJ; NICE CG90 Depression; NICE CG113 GAD",
   "self_evolution": "manual_only",
   "target_presentations": [
