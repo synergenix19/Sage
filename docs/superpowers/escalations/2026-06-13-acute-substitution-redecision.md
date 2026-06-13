@@ -106,7 +106,15 @@ if action["type"] == "enter_direct":
 - [ ] **Re-affirm the original** (`ignore_declined: true`) — with this evidence on the record. Clean, but the BETA/TIC/consistency objections stand documented against it.
 - [ ] **Accept the amendment** (substitution + safety floor) — affirming that the four acute skills are clinically substitutable for acute down-regulation, and confirming the substitution order in the data (default = `box_breathing, grounding_5_4_3_2_1, stop_technique, dbt_tipp`).
 
-On decision, engineering applies the diff (one commit, with the test inversion), and the `skill_matching_rules.json` sign-off is recorded against the chosen design.
+**Reasoning capture (required, not optional).** Whichever option is chosen, this artifact must record the *reasoning*, not only the checkbox. A re-affirmation of the original is governance-clean **only** as "decided against the amendment, with the BETA / TIC / capacity-ethics evidence explicitly seen and considered" — a bare verdict without the evidence acknowledged reads to a future auditor (or the planned external pre-launch audit) as "signed without the evidence in front of them," which hollows out the sign-off. Fill this in regardless of choice:
+
+- Decision: ____________________  Decided by: ____________  Date: __________
+- Evidence reviewed (acknowledge each): ☐ Project BETA (choices are a de-escalation domain) ☐ trauma-informed care (overriding a remembered refusal; breath work can be activating) ☐ capacity-based ethics (intensity ≠ incapacity) ☐ internal-consistency (session decline scope vs `ignore_declined`)
+- Reasoning for the call: ____________________________________________
+- If re-affirming original: why the contrary evidence does not change the decision: ____________________
+- If accepting amendment: substitutability affirmed? ☐ yes / ☐ with constraints: ______ ; substitution order set to: ______________
+
+On decision, engineering applies the diff (one commit, with the test inversion), and the `skill_matching_rules.json` sign-off is recorded against the chosen design **with this reasoning block completed**.
 
 ## Status
 

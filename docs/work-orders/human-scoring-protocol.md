@@ -42,6 +42,10 @@ The Khaleeji-explicit register guidance (MSA-correct is not the bar; "خمس ع�
 | 2 — Khaleeji transcripts | 1 reviewer scores + accepts | +1 native speaker double-rates 20–30%; anchor calibration session; reviewer 1 stays gate | ~half day |
 | 3 — Blurb authoring | direct authoring (good) | + bilingual intent-check vs EN contract; ≥2 language intuitions | folded into 2 |
 
+## Critical-path note — start the Khaleeji calibration today
+
+Element 2 is now on the critical path to Arabic launch (S2-2), so it must not drift as a "nice to have." The **long pole is the half-day Khaleeji calibration session**, which needs two things lined up before it can run: (1) **reviewer 2 identified** (a second native Khaleeji speaker, non-clinical is fine) and (2) **the anchor examples prepared** (3–5 per dimension at high/low). Both can start today, before the English scoring (Element 1) completes — the three human tracks (Element 1, Element 2, and the acute re-decision) are independent and should run in parallel, not in series. Identifying reviewer 2 and drafting anchors is the action to take first; the scoring itself is fast once the calibration is done.
+
 ## Status
 
-OPEN. Gates the English offer-turn sign-off evidence and Arabic exposure. Not started.
+OPEN. Gates the English offer-turn sign-off evidence and Arabic exposure. **Element 2 (Khaleeji) is the long pole — start reviewer-2 identification + anchor prep now.** Not started.
