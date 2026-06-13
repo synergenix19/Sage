@@ -22,26 +22,54 @@ Cold-water TIPP is a sensory-shock intervention with an individually-unpredictab
 response, delivered unsupervised — that combination is why the screen-plus-low-risk-default
 posture is worth *validating in pilot* rather than *assuming*. 05d is that validation.
 
-## Sign-off + readiness status (2026-06-14)
+## Sign-off + readiness status (corrected 2026-06-14)
 
-**Provisional sign-off received** ("proceed for now, tune later") from clinical lead +
-crisis-protocol accountable owner. Per the standing rule, **no behavioural change ships,
-merges, or pilots until the specific sign-offs below are obtained and recorded.** The
-provisional go-ahead authorises *building*; it does **not** substitute for the per-value /
-per-content sign-offs, because these govern a crisis path and do not clear on engineering
-judgement.
+**Crisis-path authorisation is binary and per-value — there is NO "provisional sign-off to
+build."** (Earlier framing retired.) The real per-value / per-content sign-offs below are
+**OUTSTANDING**. A loose "proceed for now" does not authorise building anything that depends
+on an un-signed crisis-path value or un-authored crisis-protocol content, because these
+govern a crisis path and do not clear on engineering judgement. Nothing ships, merges, or
+pilots until each specific sign-off is obtained and recorded **with name + date**.
 
-**Two blockers surfaced when implementation began — "proceed" needs these inputs first:**
+**Owners (advisory; the named parties grant, engineering does not):**
+- **G1 `acute_net_threshold` + G2 `clinical_priority` order** → clinical lead + crisis-protocol
+  accountable owner; record name + date. (`extreme_threshold = 8` is the only value that
+  reconciles to an existing signed threshold — `acute_direct_entry ≥ 8` — but still confirm.)
+- **05a PMR content + 05c branched flow** → clinical authoring + review.
+- **02 passive-SI eval** → clinical (phenotypes/taxonomy) + ML (eval run). **Highest stakes on
+  the board** (gates Crisis recall ≥95% KPI), **independent of every branch question here** —
+  keep it on its own track; do not let SF-2/C1 plumbing absorb its oxygen.
+- **03 keyword SI-audit** → clinical / CMS.
 
-1. **Architecture base (blocks SF-2 + C1).** The plan's mechanism (`skill_matching` rules,
-   `_resolve_entry`, `clinical_priority` data) is an **R1 addition that exists only on
-   feat/PR #4** — NOT on master, where the C1 fix (PR #12) lives (`_best_kw` single-select).
-   Building SF-2/C1 on the master `_best_kw` stopgap would be **thrown away** when R1's
-   `_resolve_entry` merges. **Decision needed (sequencing — yours):**
-   (a) merge R1/PR #4 first, then implement SF-2/C1 on the new master with R1 infra
-   (recommended — but PR #4 still has its own unmet gates: English scoring + review); or
-   (b) implement SF-2/C1 on feat/PR #4 (bloats the engagement PR with crisis routing); or
-   (c) re-spec SF-2/C1 for `_best_kw` and accept the rework at R1 merge.
+### Fork decision: (a), conditioned — confirmed
+
+**Topology (verified 2026-06-14):** origin/master = `a1a5a1b` (pre-R1 `_best_kw`; no C1 fix; no
+`skill_matching` infra). The C1 fix + B.2/B.3/twins live **in PR #12, unmerged** — built on the
+`_best_kw` base, **not on master**. R1's `_resolve_entry` + `skill_matching` infra live only on
+feat/PR #4. (Prior "C1 lives on master" phrasing was wrong; corrected.)
+
+SF-2 is **safety-net hardening**, not a fix for an active misrouting (Node 1 still fires for
+real crisis), so it need not be rushed — which removes the case for the bad options:
+- **(b) rejected** — putting crisis routing on the engagement PR couples a safety change to a
+  feature timeline/review. Auditable crisis code must not ride a feature PR.
+- **(c) rejected for now** — re-speccing against `_best_kw` means authoring + reviewing
+  crisis-routing code twice. No double review on a crisis path for a non-emergency.
+- **(a) chosen** — let R1/PR #4 merge **on its own merits**, then build SF-2/C1 cleanly on
+  `_resolve_entry` + `clinical_priority` (the data-driven design C1 is meant to converge to).
+
+**Condition on (a):** R1 must be on a path to merge in a reasonable window. **Risk flag:** R1
+(PR #4) is itself gated on the one-hour English clinician scoring + an approving review, neither
+done — so R1 is NOT imminently mergeable. If R1 stalls, **re-raise** SF-2/C1 and reconsider
+scope rather than holding the safety-net hostage indefinitely.
+
+**Conscious supersession:** PR #12's `_best_kw` C1 tiebreak is a **deliberate** stopgap that the
+data-driven `clinical_priority` version **replaces** when R1 lands — a planned replacement, not
+an accident. The bucket-lock test carries forward.
+
+### The remaining engineering blocker (after the base decision)
+
+1. **Architecture base (blocks SF-2 + C1) — RESOLVED to (a):** wait for R1 merge, then build on
+   `_resolve_entry` + `clinical_priority`. See condition + risk flag above.
 
 2. **Clinical authoring depth (blocks 05c + 05a).** 05c is **not** a mechanical threshold edit:
    step_policy default-advance follows step-array order, so "extreme→temperature / else→
@@ -51,9 +79,20 @@ judgement.
    `extreme_threshold = 8` reconciles with the existing `acute_direct_entry ≥ 8`, so the
    *threshold* is ready; the *flow* is not.
 
-**Net:** nothing crisis-path-behavioural shipped this turn (correctly — base-blocked or
-authoring-blocked). Unblocks: SF-2/C1 → base/sequencing decision (1); 05c → authored branched
-flow; 05a → authored PMR; 02 → clinical phenotypes + ML eval; 03 → clinical/CMS audit.
+**Net + parallelism:** nothing crisis-path-behavioural ships from engineering until its sign-off
+lands (correctly). But the tracks are independent and must run in parallel, not behind the base
+decision:
+- **05a PMR authoring is the pilot critical path** — required before pilot, clinical-authoring-blocked,
+  architecture-independent (a dbt_tipp.json edit that works on master today and survives R1). It waits
+  on no engineering decision and no fork — **clinical authoring should start now.** It is the longer pole
+  to pilot than the SF-2/C1 base decision.
+- **02 passive-SI eval** runs on its own track (highest stakes; gates Crisis recall ≥95%; branch-independent).
+- **SF-2/C1** are the only items behind the base decision (a) → R1 merge.
+- **Docs decomposed** from the gated crisis code (below) so they merge without waiting on sign-off.
+
+**PR decomposition (this turn):** the C1/B.2/B.3/twins **code** (crisis routing, clinically signed) is
+isolated into its own gated PR; the governance/plan/lock-pass **docs** go in a separate PR that merges
+now. Docs no longer ride with — or are held hostage by — gated crisis code.
 
 ## Cross-references
 
