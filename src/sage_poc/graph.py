@@ -164,6 +164,15 @@ def _route_after_intent(state: SageState) -> str:
     # messages are expected after a crisis; route to skill_select regardless of confidence.
     if state.get("crisis_state") == "monitoring":
         return "skill_select"
+    # S2-10 (safety, clinical decision 2026-06-13): a pending psychotic referral forces
+    # routing to skill_select, where psychotic_referral auto-selects. Without this, a
+    # psychotic disclosure in general_chat register routes to freeflow, which engages
+    # with the content unreferred. Bypasses the confidence gate (like monitoring) because
+    # the redirect must not depend on classification confidence. Deterministic routing is
+    # the gate; prompt adaptation is not (audit: L5 alone already failed).
+    if ("psychotic_disclosure" in (state.get("clinical_flags") or [])
+            and not state.get("psychotic_referral_delivered")):
+        return "skill_select"
     if confidence < 0.6:
         return "low_confidence"
     if intent == "exit_skill":
