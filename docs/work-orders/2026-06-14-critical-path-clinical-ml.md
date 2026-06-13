@@ -53,6 +53,48 @@ Highest stakes on the board (gates the Crisis recall ≥95% KPI). Branch-indepen
 S2" in the lock pass is more precisely an **unbuilt** S2 — surfacing this before clinical/ML spin
 up a measurement that can't run.
 
+### MEASURED BASELINE (2026-06-14) — and the false-comfort trap it exposes
+
+Ran `scripts/safety_confusion_matrix.py` today: **crisis recall 100%, passive_si 25/25, KPI PASS**
+on its fixture (`tests/fixtures/safety/cases.py`, 53 cases). **Do NOT read this as coverage.**
+`ea33684` shows S1 was *tuned* to pass this curated SF-1/SF-6 suite (recall 66.7% → 100%); memory's
+"66.7% baseline" is now stale. This suite is **not** the real passive-SI population — it is the
+green-on-a-surface-it-doesn't-cover trap (same pattern as the unit-gate/test_nodes gap).
+
+**The real number is already on record (Exhibit A, own data):**
+- `docs/governance-table-2026-06-06.md` (owner: Clinical Lead): **CRADLE Bench S1 recall = 37.1%**
+  (232 crisis cases) vs ≥95% KPI — **FAIL**; **self-harm recall = 18%** (92 cases) vs ≥50% interim
+  KPI — **FAIL**.
+- `docs/crisis-recall-gap-2026-06-05.md`: **S3 adds 0** above S1 on the CRADLE passive-SI slice (75
+  cases) at any threshold; "full semantic coverage requires MARBERT (S2)."
+- **Arabic crisis recall is entirely unmeasured** — CRADLE is English-only. A Khaleeji/Arabizi
+  crisis bench is itself an open prerequisite.
+
+**So the live deterministic crisis recall on the representative bench is 37.1% (self-harm 18%),
+S3 contributes nothing, and S2 — the layer meant to close it — is unbuilt.** The curated suite's
+100% overstates this. 02's eval set should be CRADLE-class (+ the missing Arabic bench), not the
+SF-1/SF-6 fixture.
+
+### Headline consequences (escalate to the lead + DPIA/DPO line — not buried in task 02)
+
+1. **Governance/disclosure.** The represented crisis architecture (S1+S2+S3 OR-fusion) differs from
+   what runs: **S2 absent; real-bench recall 37.1% / self-harm 18%.** This *is already disclosed*
+   (`governance-table-2026-06-06.md`, owner Clinical Lead; `crisis-recall-gap-2026-06-05.md`) — it
+   is **not** hidden — but it must be re-surfaced **as the headline of current work**, dated, owner
+   named, on the PDPL-sensitive automated-crisis-classification surface, rather than living as a
+   scope note on task 02.
+2. **Re-ranking.** SF-2, C1, the R1 fork, PR #15 are all "route to a skill once a turn is safe."
+   None matters at the rate a missed passive-SI/self-harm turn does, and the layer that catches
+   those (S2) is the one confirmed not to exist. **Building S2/MARBERT is therefore the highest-
+   priority engineering effort in the program** — state it that way to whoever allocates ML time.
+   Keep the merge choreography parked, but do not let "parked" read as "the lower-priority items
+   get attention while the critical one waits."
+3. **Pilot gate.** A pilot must not start with S2 unbuilt and crisis recall at 37.1% (self-harm 18%)
+   on the only representative bench — and with Arabic unmeasured entirely. **Flag:**
+   `scripts/check_pilot_gate.py` reportedly exits 0; confirm that gate scores against the CRADLE
+   bench (and an Arabic bench), not the curated SF-1/SF-6 suite — else the pilot decision inherits
+   the same false-comfort.
+
 ---
 
 **Engineering standing by to:** insert the authored PMR step + wire transitions (A); run/extend
