@@ -24,18 +24,25 @@ On PR #4 branch (commit `e9079ca`):
 On PR #8 branch (commit `151eaa0`):
 - `prompts/templates/freeflow_guardrail.json` — S2-7 B1 guardrail; **the broadened discriminator (covers guided breathing/grounding beyond strict entry_screen, because box_breathing has no entry_screen) is RATIFIED** at sign-off. Reasoning: PR #8 description + audit S2-7.
 
+## Governance canary — how it was satisfied (mechanism order matters)
+
+`skill_offer` and `general_chat` went green on the canary **because they were signed, then removed from `KNOWN_LIVE_TEMPLATES` as a consequence** — NOT removed in order to make the test pass. Order of operations: (1) envelopes flipped to `status: approved` + `approved_by: clinical_lead` (the sign-off), (2) the forcing-function entry removed from the canary set because it was discharged by that sign-off. A green achieved by deleting the list entry without signing would be the gate being defeated, not working; that is explicitly not what happened. The ~44 unsigned active rules and the ~12 other pre-existing unsigned live templates **stay red on purpose** (the tracked burn-down under `docs/work-orders/unsigned-rules-backlog.md`) — a green canary that hid those would be the worse outcome.
+
 ## Decisions signed that have no draft envelope (recorded here)
 
 - **S2-10 psychotic-referral routing (PR #6)** — A1 interrupt next turn, A2 pilot gated on the deterministic routing fix (prompt-adaptation is not the gate), A3 warm-interrupt (existing `psychotic_referral.json` content already matches). Rule 1 (engineering) = the code review (done). Reasoning: `docs/superpowers/escalations/2026-06-13-psychotic-referral-reachability.md`.
 - **criteria_hold_count schema extension (D/S2-4)** — approved as a step_policy signal future skill authors may use; `mood_check_in` `hold_ceiling: 2` approved. Reasoning: clinical session brief item D.
 - **C1 grounding-default** — affirmed (no code change); reasoning on record.
-- **C2 unsigned keyword edits** — disposition: **SIGNED** `cbt_thought_record` "thought record"/"thought records" (skill's own name), `box_breathing` "i need to breathe"/"need to breathe right now", `progressive_muscle_relaxation` "shoulders are so tight"/"shoulders are tight", AND the two previously-routed judgment calls now approved: `box_breathing` "do with my breathing" and `interpersonal_effectiveness` "setting limits in". No revert. (Supersedes the pending state in `docs/work-orders/unsigned-keyword-edits-c2.md`.)
+- **C2 unsigned keyword edits** — disposition: **SIGNED, no revert.** Two distinct categories, kept distinct because they carry different scrutiny:
+  - *(a) Administrative / trivial sign ("sign-the-name"):* `cbt_thought_record` "thought record" / "thought records" (the skill's own technique name), `box_breathing` "i need to breathe" / "need to breathe right now" (explicit breathing requests, consistent with C1), `progressive_muscle_relaxation` "shoulders are so tight" / "shoulders are tight". Never revert candidates.
+  - *(b) Substantive clinical approval of two routing keywords — reviewed and approved by the clinical lead 2026-06-13 (the ones a future auditor would scrutinize), NOT folded under the name-case:* `box_breathing` "do with my breathing" — the ambiguous panic-breathing phrasing most in tension with the C1 grounding-default; clinician approved it routing to **box_breathing** (an explicit breathing reference). `interpersonal_effectiveness` "setting limits in" — the GIVE/DEARMAN-vs-general-assertiveness boundary; clinician approved it routing to **interpersonal_effectiveness**, not assertive_communication.
+  - Supersedes the pending state in `docs/work-orders/unsigned-keyword-edits-c2.md`.
 
 ## Remaining gates (not cleared by this sign-off)
 
 1. **Two-rater scoring** — EN offer-turn second rater + Khaleeji calibration/scoring. Long pole; gates PR #4 + Arabic. NOT started/complete.
 2. **Pilot-scope confirmation** — English-only first exposure + a concrete exclusion mechanism (`docs/governance/2026-06-13-pilot-scope-decision.md`).
-3. **Merges** — the product owner triggers all merges (sole-maintainer admin-merge bypasses review; flagged each time). Order: #6/#8 → #4 (after its scoring gate + the `_route_after_intent` rebase).
+3. **Merges** — the product owner triggers all merges (sole-maintainer admin-merge bypasses review; flagged each time). Order: #6/#8 → #4. **The #4 rebase is a precedence decision in code, not a mechanical conflict resolution:** #6 lands the psychotic clinical-flag branch in `_route_after_intent` first; #4 adds the offer-accept branch to the same function on a base that predates #6. When #4 rebases, the psychotic-referral precedence MUST remain ahead of the offer-accept branch in the resolved function — a pending psychotic referral forcing `skill_select` is SENIOR to an offer-accept routing to `skill_select` (safety redirect outranks consent promotion). Resolve the conflict by re-asserting that order (do not accept whichever order the merge tool produces), and re-run the routing tests (`tests/test_routing.py`) after. This gets the same review the original routing did.
 4. **External pre-launch audit** — `docs/work-orders/external-pre-launch-audit.md`.
 
 ## Status
