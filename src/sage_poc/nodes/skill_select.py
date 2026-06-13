@@ -206,14 +206,31 @@ async def skill_select_node(state: SageState) -> dict:
     # For Arabic sessions, also match against raw_message (Arabic-script keywords
     # cannot match a translated English string). Backlog R1: language-tagged rules.
     _best_kw: tuple[str, int] | None = None  # (skill_id, keyword_length)
+    _matched_skill_ids: set[str] = set()
     for skill_id, skill in _SKILLS.items():
         if skill_id in KEYWORD_SEMANTIC_SKIP:
             continue
         for keyword in skill.target_presentations:
             kw_lower = keyword.lower()
             if kw_lower in message_en or (detected_language == "ar" and kw_lower in raw_message):
+                _matched_skill_ids.add(skill_id)
                 if _best_kw is None or len(kw_lower) > _best_kw[1]:
                     _best_kw = (skill_id, len(kw_lower))
+
+    # C1 acute-overlap tiebreak (clinical sign-off 2026-06-13). When BOTH grounding_5_4_3_2_1
+    # and dbt_tipp keyword-match, prefer grounding for ambiguous overwhelm: it is the
+    # contraindication-free, lower-activation skill, and under autonomous (unscreened) delivery
+    # the lower-medical-risk default. This adjudicates ONLY this one clinically-reviewed overlap:
+    # it fires only when dbt_tipp would otherwise be the longest-match winner, so SF-1
+    # longest-match is preserved for every other skill pair, and a genuinely third skill with a
+    # longer keyword still wins. "i can't calm down" matches dbt_tipp ONLY, so it is unaffected.
+    # See docs/superpowers/governance/2026-06-13-overwhelm-routing-c1-conflict.md
+    if (
+        _best_kw is not None
+        and _best_kw[0] == "dbt_tipp"
+        and {"grounding_5_4_3_2_1", "dbt_tipp"} <= _matched_skill_ids
+    ):
+        _best_kw = ("grounding_5_4_3_2_1", _best_kw[1])
 
     if _best_kw is not None:
         t1_skill_id = _best_kw[0]
