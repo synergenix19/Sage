@@ -1,5 +1,15 @@
 # R2 — L0 Persona Rewrite (engagement/UX) Implementation Plan
 
+> **SCOPE UPDATE 2026-06-14 (lean, per product owner):** at level zero this is *just a prompt
+> change* — **drop the A/B eval harness (Task 2) and two-rater scoring (Task 4) for now**;
+> build prompt-tracking harnesses later, at maturity. Lean R2 = author the L0 rewrite → run the
+> existing **safety/format regression** (must stay green) → **clinical sign-off** → ship as
+> v2.0.0. Draft written: `docs/superpowers/drafts/2026-06-14-L0_persona-v2.0.0-draft.json`
+> (not loaded; prod stays v1.4.0 until signed). LENGTH GUIDELINE: keep L0 from ballooning —
+> the draft is ~571 words (≈ v1.4.0's 548) vs the template's stated `word_budget` 150; decide to
+> raise that budget or trim the output_gate-redundant format reminders before promotion.
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development or
 > superpowers:executing-plans. Steps use checkbox (`- [ ]`) syntax.
 
