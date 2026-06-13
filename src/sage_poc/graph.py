@@ -20,6 +20,12 @@ from sage_poc.audit import write_session_audit
 
 _log = logging.getLogger(__name__)
 
+# Routing-SF-2: emotional_intensity at or above this floor makes a general_chat turn
+# reach skill_select (acute down-regulation skills). Matches the acute_direct_entry bar
+# in skill_matching_rules.json (emotional_intensity >= 8), the clinically-approved
+# threshold for acute handling. Adjust only with clinical sign-off.
+ACUTE_INTENSITY_FLOOR: int = 8
+
 
 def _get_crisis_review_pool():
     """Lazy accessor for asyncpg pool in _crisis_response_node."""
@@ -172,6 +178,21 @@ def _route_after_intent(state: SageState) -> str:
     # the gate; prompt adaptation is not (audit: L5 alone already failed).
     if ("psychotic_disclosure" in (state.get("clinical_flags") or [])
             and not state.get("psychotic_referral_delivered")):
+        return "skill_select"
+    # Routing-SF-2 (intent-route intensity): acute distress classified as general_chat
+    # must still reach skill_select so the acute down-regulation skills (dbt_tipp,
+    # grounding_5_4_3_2_1) can keyword-match. intent_route already emits
+    # emotional_intensity; routing previously ignored it, sending high-intensity
+    # general_chat to freeflow where no skill is ever offered. Placed after the
+    # monitoring/psychotic redirects and before the confidence gate: an acute redirect
+    # must not depend on classification confidence. Safe fallthrough: no acute keyword
+    # match -> skill_select -> freeflow (_route_after_skill_select), unchanged worst case.
+    # Guarded on active_skill_id: mid-skill turns fall through to freeflow (preserving the
+    # checkpoint), matching the new_skill/skill_continuation handling below and the
+    # test_mid_skill_off_topic invariant.
+    if (intent == "general_chat"
+            and not state.get("active_skill_id")
+            and state.get("emotional_intensity", 5) >= ACUTE_INTENSITY_FLOOR):
         return "skill_select"
     if confidence < 0.6:
         return "low_confidence"

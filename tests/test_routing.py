@@ -105,6 +105,47 @@ def test_route_intent_confidence_boundary_059_is_low():
     assert _route_after_intent(state) == "low_confidence"
 
 
+# --- Routing-SF-2: intent-route intensity reachability (gate-covered here) ---
+
+def test_sf2_acute_general_chat_reaches_skill_select():
+    """Routing-SF-2: general_chat at high intensity (>= ACUTE_INTENSITY_FLOOR) reaches
+    skill_select so the acute down-regulation skills (dbt_tipp/grounding) can match."""
+    state = make_full_state(primary_intent="general_chat", emotional_intensity=9, active_skill_id=None)
+    assert _route_after_intent(state) == "skill_select"
+
+
+def test_sf2_calm_general_chat_still_freeflow():
+    """Routing-SF-2 guard: low-intensity general_chat must still route to freeflow."""
+    state = make_full_state(primary_intent="general_chat", emotional_intensity=4, active_skill_id=None)
+    assert _route_after_intent(state) == "freeflow"
+
+
+def test_sf2_crisis_intent_wins_over_intensity():
+    """Routing-SF-2 guard: crisis intent wins even at max intensity (precedence over SF-2)."""
+    state = make_full_state(primary_intent="crisis", emotional_intensity=10)
+    assert _route_after_intent(state) == "crisis"
+
+
+def test_sf2_acute_general_chat_preserves_active_skill():
+    """Routing-SF-2 guard: a high-intensity general_chat turn DURING an active skill must
+    NOT route to skill_select (which would hijack/clear the mid-skill checkpoint). It falls
+    through to freeflow, preserving active_skill_id — same invariant as
+    test_mid_skill_off_topic_routes_to_freeflow_not_executor (which used intensity 5)."""
+    state = make_full_state(primary_intent="general_chat", emotional_intensity=9, active_skill_id="cbt_thought_record")
+    assert _route_after_intent(state) == "freeflow"
+
+
+def test_sf2_psychotic_disclosure_precedence_over_intensity():
+    """Routing-SF-2 ordering: a pending psychotic_disclosure is handled by the psychotic
+    redirect (which precedes SF-2), reaching skill_select even at high intensity. SF-2
+    cannot pre-empt the psychotic branch; and skill_select auto-selects psychotic_referral
+    regardless of which redirect routed there, so there is no harmful capture."""
+    state = make_full_state(primary_intent="general_chat", emotional_intensity=9,
+                            clinical_flags=["psychotic_disclosure"],
+                            psychotic_referral_delivered=False, active_skill_id=None)
+    assert _route_after_intent(state) == "skill_select"
+
+
 # --- _route_after_safety with monitoring state ---
 
 def test_route_safe_in_monitoring_when_s1_s6_safe_and_s7_recovering():
