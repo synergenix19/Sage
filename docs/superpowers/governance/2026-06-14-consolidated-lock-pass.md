@@ -22,6 +22,39 @@ Cold-water TIPP is a sensory-shock intervention with an individually-unpredictab
 response, delivered unsupervised — that combination is why the screen-plus-low-risk-default
 posture is worth *validating in pilot* rather than *assuming*. 05d is that validation.
 
+## Sign-off + readiness status (2026-06-14)
+
+**Provisional sign-off received** ("proceed for now, tune later") from clinical lead +
+crisis-protocol accountable owner. Per the standing rule, **no behavioural change ships,
+merges, or pilots until the specific sign-offs below are obtained and recorded.** The
+provisional go-ahead authorises *building*; it does **not** substitute for the per-value /
+per-content sign-offs, because these govern a crisis path and do not clear on engineering
+judgement.
+
+**Two blockers surfaced when implementation began — "proceed" needs these inputs first:**
+
+1. **Architecture base (blocks SF-2 + C1).** The plan's mechanism (`skill_matching` rules,
+   `_resolve_entry`, `clinical_priority` data) is an **R1 addition that exists only on
+   feat/PR #4** — NOT on master, where the C1 fix (PR #12) lives (`_best_kw` single-select).
+   Building SF-2/C1 on the master `_best_kw` stopgap would be **thrown away** when R1's
+   `_resolve_entry` merges. **Decision needed (sequencing — yours):**
+   (a) merge R1/PR #4 first, then implement SF-2/C1 on the new master with R1 infra
+   (recommended — but PR #4 still has its own unmet gates: English scoring + review); or
+   (b) implement SF-2/C1 on feat/PR #4 (bloats the engagement PR with crisis routing); or
+   (c) re-spec SF-2/C1 for `_best_kw` and accept the rework at R1 merge.
+
+2. **Clinical authoring depth (blocks 05c + 05a).** 05c is **not** a mechanical threshold edit:
+   step_policy default-advance follows step-array order, so "extreme→temperature / else→
+   paced_breathing" requires authoring the **branched protocol flow** (which step follows which
+   in each path) — clinical authoring. 05a (PMR content) likewise. Engineering applies once the
+   authored flow + PMR text arrive. `emotional_intensity` IS a valid step_policy signal and
+   `extreme_threshold = 8` reconciles with the existing `acute_direct_entry ≥ 8`, so the
+   *threshold* is ready; the *flow* is not.
+
+**Net:** nothing crisis-path-behavioural shipped this turn (correctly — base-blocked or
+authoring-blocked). Unblocks: SF-2/C1 → base/sequencing decision (1); 05c → authored branched
+flow; 05a → authored PMR; 02 → clinical phenotypes + ML eval; 03 → clinical/CMS audit.
+
 ## Cross-references
 
 - 05a/05b/05c detail + the bucket-audit worklist: docs/superpowers/governance/2026-06-13-overwhelm-routing-c1-conflict.md
