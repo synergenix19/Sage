@@ -84,8 +84,10 @@ def test_load_l0_persona():
     assert tmpl.layer == "L0"
     assert tmpl.role == "system"
     assert tmpl.always_include is True
-    assert tmpl.word_budget == 150
-    assert tmpl.content.startswith("IMPORTANT")
+    # L0 v2.0.0 (2026-06-14): budget raised 150->550 to match the prompt's actual scope
+    # (format + relational + safety + limits); content now starts with the FORMAT block.
+    assert tmpl.word_budget == 550
+    assert tmpl.content.startswith("FORMAT")
 
 
 def test_l0_persona_has_no_em_dashes():
@@ -172,17 +174,28 @@ def test_l0_persona_has_prescribed_self_description():
 
 
 def test_l0_persona_no_sycophantic_openers():
-    """P0-B fix: L0 persona must explicitly prohibit generic praise openers.
-    OPENERS block must name the forbidden phrases so the LLM treats them as hard constraints."""
+    """Anti-sycophancy guarantee. As of L0 v2.0.0 (2026-06-14) the persona uses POSITIVE framing
+    (prompt-engineering best practice: positive directives beat long 'don't' lists, which can prime
+    the banned phrases). The explicit banned-opener LIST was moved OUT of the prompt; the hard
+    guarantee now lives in output_gate's banned-opener enforcement. This test verifies BOTH halves
+    so the guarantee cannot silently disappear:
+      1) L0 carries the positive opener directive, and
+      2) output_gate still HARD-blocks the sycophantic praise openers (which were previously
+         prompt-only and NOT gate-enforced — see output_gate._BANNED_OPENER_PATTERNS).
+    """
     tmpl = get_template("L0_persona")
     content = tmpl.content
     assert "OPENERS" in content, "L0 persona must contain an OPENERS constraint block"
-    assert "That's great to hear" in content, (
-        "L0 persona must name 'That's great to hear' as a forbidden opener"
+    assert "stock pleasantries" in content or "Warmth comes from substance" in content, (
+        "L0 persona must carry the positive opener directive (warmth from substance, not stock phrases)"
     )
-    assert "That's really good to hear" in content, (
-        "L0 persona must name 'That's really good to hear' as a forbidden opener"
-    )
+    # The hard guarantee now lives at the gate, independent of the prompt.
+    from sage_poc.nodes.output_gate import _BANNED_OPENER_RE
+    for opener in ("That's great to hear", "That's really good to hear", "I'm glad to hear that"):
+        assert _BANNED_OPENER_RE.match(opener), (
+            f"output_gate must hard-block the sycophantic opener {opener!r} now that the L0 prompt "
+            f"no longer lists it"
+        )
 
 
 def test_l3_skill_wrapper_no_therapeutic_framing():
