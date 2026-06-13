@@ -124,6 +124,12 @@ class SkillMatchingRule(BaseModel):
     @field_validator("action")
     @classmethod
     def implemented_actions_only(cls, v):
+        if "ignore_declined" in v:
+            raise ValueError(
+                "ignore_declined is removed (clinical decision 2026-06-13); use "
+                "on_declined='substitute' with substitute_pool instead. Leaving "
+                "ignore_declined in data is silently inert (dead-signal guard)."
+            )
         if v.get("type") not in ("enter_direct", "offer"):
             raise ValueError(
                 f"skill_matching action.type must be 'enter_direct' or 'offer', got {v.get('type')!r}"

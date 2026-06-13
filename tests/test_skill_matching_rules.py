@@ -95,6 +95,12 @@ class TestSchemaGuards:
                 {**self._BASE,
                  "action": {"type": "enter_direct", "on_declined": "substitute"}})
 
+    def test_ignore_declined_rejected_at_load(self):
+        with pytest.raises(ValidationError, match="ignore_declined"):
+            SkillMatchingRule.model_validate(
+                {**self._BASE,
+                 "action": {"type": "enter_direct", "ignore_declined": True}})
+
 
 class TestEvaluatorIsolated:
     """Direct _eval_skill_matching tests with constructed rules: no-rule-fires is a
