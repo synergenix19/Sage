@@ -1741,13 +1741,15 @@ def test_persona_contains_crisis_handoff_constraint():
 
 
 def test_persona_opens_with_important_format_directive():
-    """L0 prohibition must be the first thing in PERSONA — before persona description."""
+    """The format guardrail must be the FIRST thing in PERSONA, before the persona description, for
+    correct model weighting. L0 v2.0.0 (2026-06-14) switched the opener word from 'IMPORTANT' to the
+    'FORMAT' block (positive framing); the format-first ordering is preserved."""
     from sage_poc.nodes.freeflow_respond import PERSONA
-    first_word = PERSONA.strip().split()[0].rstrip(".")
-    assert first_word == "IMPORTANT", (
-        f"PERSONA must open with 'IMPORTANT', got '{first_word}'. "
-        "Format directive must precede persona description for correct model weighting."
+    first_word = PERSONA.strip().split()[0].rstrip(".:")
+    assert first_word == "FORMAT", (
+        f"PERSONA must open with the FORMAT directive, got '{first_word}'."
     )
+    assert "plain prose" in PERSONA, "format guardrail (plain prose) must be present"
 
 
 def test_persona_contains_anti_mirroring_clause():
@@ -1758,20 +1760,31 @@ def test_persona_contains_anti_mirroring_clause():
         "not to copy formatting from L3 skill context."
     )
 
-def test_persona_contains_wrong_right_example_pair():
-    """L0 must demonstrate correct style via WRONG/RIGHT examples, not just describe it."""
+def test_persona_positive_style_directives_present():
+    """L0 v2.0.0 (2026-06-14): style guidance is POSITIVE-framed (prompt best practice), replacing
+    the prior WRONG/RIGHT example pairs. The persona carries the positive FORMAT + OPENERS directives;
+    the hard guarantees live in enforcement (output_gate openers, _sanitize_assistant_turn format),
+    asserted by test_persona_style_guarantees_enforced and the prompts-loader sycophancy test."""
     from sage_poc.nodes.freeflow_respond import PERSONA
-    assert "WRONG:" in PERSONA, "PERSONA must contain a WRONG: formatting example"
-    assert "RIGHT:" in PERSONA, "PERSONA must contain a RIGHT: formatting example"
+    assert "FORMAT" in PERSONA and "OPENERS" in PERSONA, (
+        "PERSONA must carry the positive FORMAT and OPENERS style directives"
+    )
+    assert "stock pleasantries" in PERSONA or "Warmth comes from substance" in PERSONA, (
+        "PERSONA must carry the positive opener directive (warmth from substance, not stock phrases)"
+    )
 
-def test_persona_wrong_example_contains_bold_markdown():
-    """The WRONG example must show bold markdown — the primary formatting violation to suppress."""
-    from sage_poc.nodes.freeflow_respond import PERSONA
-    wrong_block_start = PERSONA.find("WRONG:")
-    right_block_start = PERSONA.find("RIGHT:")
-    assert wrong_block_start != -1 and right_block_start != -1
-    wrong_text = PERSONA[wrong_block_start:right_block_start]
-    assert "**" in wrong_text, "WRONG example must contain bold markdown"
+def test_persona_style_guarantees_enforced():
+    """L0 v2.0.0 moved the markdown + sycophantic-opener guarantees from prompt examples to
+    enforcement, so they cannot be bypassed by prompt drift: _sanitize_assistant_turn strips
+    bold/italic markdown, and output_gate hard-blocks the praise openers."""
+    from sage_poc.prompts.composer import _sanitize_assistant_turn
+    from sage_poc.nodes.output_gate import _BANNED_OPENER_RE
+    assert "**" not in _sanitize_assistant_turn("that is **bold** here"), (
+        "sanitizer must strip bold markdown (the guarantee the old WRONG-example demonstrated)"
+    )
+    assert _BANNED_OPENER_RE.match("That's great to hear"), (
+        "output_gate must hard-block the sycophantic praise opener"
+    )
 
 def test_persona_has_no_duplicate_style_block():
     """Old mid-prompt 'Style:' block must be removed — replaced by IMPORTANT block at top."""

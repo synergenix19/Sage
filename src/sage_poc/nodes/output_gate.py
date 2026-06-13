@@ -43,6 +43,13 @@ _BANNED_OPENER_PATTERNS: list[str] = [
     r"i can hear (that|how|the)\b",
     r"i can see (that|how)\b",
     r"it looks like\b",
+    # Sycophantic praise-openers. Moved here from the L0 prompt in L0 v2.0.0 (2026-06-14):
+    # the persona switched to positive framing (prompt best practice + clinical sign-off), so the
+    # hard guarantee against these must live at the gate, alongside the reflective-filler patterns
+    # above. These were previously prompt-only and NOT gate-enforced; this closes that gap.
+    r"that's (really |so |very |genuinely )?(great|good|wonderful|lovely|nice|amazing) to hear\b",
+    r"it's (really |so )?(great|good|wonderful) to hear\b",
+    r"i'm (really |so )?(glad|happy|pleased) to hear\b",
 ]
 _BANNED_OPENER_RE = re.compile(
     r"(?i)^(" + "|".join(_BANNED_OPENER_PATTERNS) + r")"
