@@ -216,15 +216,27 @@ def test_guardrail_budget_deducted_no_overflow_shrink():
     # real function predates the guardrail_words param (pre-fix red path).
     budget_kwargs_seen: list[dict] = []
 
-    def _spy_budget(s, override_words=0, guardrail_words=0):
-        budget_kwargs_seen.append({"guardrail_words": guardrail_words, "override_words": override_words})
+    def _spy_budget(s, override_words=0, guardrail_words=0, offer_words=0, declined_words=0):
+        # Signature mirrors the merged _compute_l1_budget (#4 offer_words + B2
+        # declined_words added alongside #8 guardrail_words). On this freeflow,
+        # no-offer fixture offer_words and declined_words are 0, but the spy must
+        # accept them or the patched call raises TypeError.
+        budget_kwargs_seen.append({
+            "guardrail_words": guardrail_words,
+            "override_words": override_words,
+            "offer_words": offer_words,
+            "declined_words": declined_words,
+        })
         has_skill = bool(s.get("step_instruction"))
         has_knowledge = (
             s.get("primary_intent") == "info_request"
             or s.get("secondary_intent") == "info_request"
         )
         base = _composer_module._L1_BASE_BUDGET if (has_skill or has_knowledge) else _composer_module._L1_FLEX_BUDGET
-        return max(_composer_module._L1_MINIMUM_BUDGET, base - override_words - guardrail_words)
+        return max(
+            _composer_module._L1_MINIMUM_BUDGET,
+            base - override_words - guardrail_words - offer_words - declined_words,
+        )
 
     # Patch L0 persona to a short string so system overhead is tiny and the total
     # stays under _TOTAL_WORD_BUDGET even with a full 520w L1 block + guardrail.
