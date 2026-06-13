@@ -39,6 +39,24 @@ Open clinical questions:
 2. Is the same reachability guarantee required for any other flag-driven auto-select planned for the future (the fix could be a general flag-routing table rather than a one-off branch)?
 3. Until the fix lands: is the L5 prompt adaptation (clinical-flag injection into freeflow) an acceptable interim mitigation, or does pilot exposure need to wait on this fix? (Audit evidence suggests L5 alone did not prevent freeflow from engaging with the content.)
 
+## Evidence basis (added 2026-06-13 — sign-off alignment check)
+
+An independent literature pass converts questions 1 and 3 from open to evidence-backed. Question 2 (general flag-routing table) remains an engineering design choice for the implementation.
+
+**Q1 — interrupt on the NEXT turn; do not wait for a "natural opening."** Every un-redirected turn is an active hazard, not a neutral delay — it is a draw from a documented collusion distribution:
+- Stanford / FAccT 2025: even commercially deployed, therapy-tuned bots respond inappropriately to delusions and hallucinations at least 20% of the time (news.stanford.edu/stories/2025/06).
+- "The Psychogenic Machine" (arXiv 2509.10970): models systematically confirm rather than challenge delusions (delusion-confirmation score 0.91) and apply no safety intervention in ~40% of scenarios; safety is not emergent from scale.
+- Duration-of-untreated-psychosis literature (npj Schizophrenia s41537-017-0034-4; BJPsych care-pathways): referral delay predicts worse outcomes, benefit concentrated under 6 months. A chatbot that keeps chatting casually is functionally a referral-pathway delay point.
+- The interrupt must be a *warm interrupt*, not a conversation kill: validate the emotion ("that sounds frightening"), do NOT argue with or explore the content, stay calm/non-alarmed, connect to help (MHFA psychosis guidelines; NSW Health communicating-psychosis). A next-turn redirect that acknowledges feeling before referring is consistent with this; abrupt topic-policing is not.
+
+**Q3 — prompt-level adaptation is acceptable ONLY as the tone of the redirect, never as the gate that decides whether the redirect fires.** The Stanford study tested systems already prompt-/fine-tune-adapted for this population and they still colluded with delusions; the Psychogenic Machine shows safety varies widely and is not reliably instructable. This system is its own Exhibit A — it had clinical prompting in place and still asked "what did the voices say?". Probabilistic instruction reduces but does not eliminate content engagement, and the failure mode (delusion reinforcement) is the one with documented clinical harm (JMIR Mental Health "AI psychosis" e85799; PMC12915070, hospitalization case reports after sycophantic reinforcement loops). Therefore: deterministic routing is the gate; prompt adaptation is defense-in-depth on the redirect's wording only. L5 alone (the current interim) is NOT an acceptable safety mechanism — it is the configuration that already failed in the audit.
+
+**Industry precedent (OpenAI, Oct 2025, sensitive-conversations work, 170+ clinicians):** desired behavior for psychosis/mania is specified as — do not affirm ungrounded beliefs, respond safely and empathically, gently ground in reality, and direct to professional/crisis resources *within the response*, not after rapport-building turns (openai.com/index/strengthening-chatgpt-responses-in-sensitive-conversations).
+
+**Where the evidence is genuinely thin (recorded honestly):** no study directly compares "interrupt next turn" vs "interrupt within N turns" in chatbots; the next-turn recommendation is inferred from per-turn failure rates plus DUP harms (which operate on weeks/months). The strongest *direct* support for immediacy is OpenAI's clinician-built spec, which is expert consensus, not outcome data. No documented harm case is attributable specifically to a *delayed in-product* referral (case reports involve no referral or sustained reinforcement).
+
+This evidence should shorten the clinical session, not lengthen it: two of the three open questions arrive answered. The routing fix itself remains a safety-surface control-layer change requiring Rule 1 + clinical sign-off under the normal gate.
+
 ## Queue position
 
 Per the severity-over-tractability convention this belongs in the safety governance queue alongside SK-EN-001 (negation gap) and the crisis-recall gap — it is the most clinically serious finding in the PR #4 audit register and should be triaged in the same review session, not ride as an engagement-feature footnote.
