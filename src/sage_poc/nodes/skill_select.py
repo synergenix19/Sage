@@ -384,6 +384,22 @@ async def skill_select_node(state: SageState) -> dict:
     if kw_matches:
         ranked_kw = sorted(kw_matches.items(), key=lambda x: x[1], reverse=True)
         candidates = [sid for sid, _ in ranked_kw]
+        # C1 acute-overlap tiebreak (clinical sign-off 2026-06-13), ported into the R1 consent
+        # model. When BOTH grounding_5_4_3_2_1 and dbt_tipp keyword-match, prefer grounding for
+        # ambiguous overwhelm: contraindication-free, lower-activation, the lower-medical-risk
+        # default under autonomous (unscreened) delivery. In the pre-R1 path this made grounding
+        # the directly-entered skill; in the R1 path it makes grounding the PRIMARY candidate, so
+        # _resolve_entry offers (or, on acute_direct_entry, enters) grounding first instead of
+        # dbt_tipp. Fires only when dbt_tipp would otherwise lead the longest-match ranking, so
+        # SF-1 longest-match is preserved for every other pair and a genuinely-longer third skill
+        # still leads. "i can't calm down" matches dbt_tipp ONLY, so it is unaffected.
+        # See docs/superpowers/governance/2026-06-13-overwhelm-routing-c1-conflict.md
+        if (
+            candidates and candidates[0] == "dbt_tipp"
+            and {"grounding_5_4_3_2_1", "dbt_tipp"} <= kw_matches.keys()
+        ):
+            candidates.remove("grounding_5_4_3_2_1")
+            candidates.insert(0, "grounding_5_4_3_2_1")
         # resolve result must win the merge: offer results set offered_skill_ids themselves
         return {**stale_offer_clear,
                 **_resolve_entry(state, candidates, method="keyword", semantic_score=None)}

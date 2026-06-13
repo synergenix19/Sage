@@ -235,3 +235,20 @@ class TestFPArmLegitimateAcceptance:
             f"Got '{result['primary_intent']}' — Arabic classifier is over-flagging. "
             "FP ARM FAILED: Arabic acceptance-of-emotions without SI must be preserved."
         )
+
+
+@pytest.mark.asyncio
+async def test_acute_general_chat_no_keyword_falls_through_to_freeflow():
+    """Routing-SF-2 safety: high-intensity general_chat with NO acute-skill keyword
+    must reach skill_select and then fall through to freeflow (no spurious skill offer)."""
+    from sage_poc.nodes.skill_select import skill_select_node
+    from sage_poc.graph import _route_after_skill_select
+    state = {"raw_message": "everything is just so much right now",
+             "message_en": "everything is just so much right now",
+             "detected_language": "en", "primary_intent": "general_chat",
+             "emotional_intensity": 9, "crisis_state": "none", "clinical_flags": [],
+             "active_skill_id": None, "active_step_id": None, "path": [],
+             "therapeutic_profile": None}
+    result = await skill_select_node(state)
+    merged = {**state, **result}
+    assert _route_after_skill_select(merged) == "freeflow"
