@@ -62,8 +62,17 @@ jobs:
             tests/test_declined_skills_signal.py
           "
           FILES=""
+          SKIPPED=""
           for f in $CANDIDATES; do
-            if [ -f "$f" ]; then FILES="$FILES $f"; fi
+            if [ -f "$f" ]; then FILES="$FILES $f"; else SKIPPED="$SKIPPED $f"; fi
           done
           echo "Running existence-filtered suites:$FILES"
+          # Visibility guard: a branch that deletes/renames a covered suite silently
+          # drops it from the gate and still goes green. Surface the absent suites as a
+          # GitHub annotation so "the test that would have caught this isn't present on
+          # this branch" is visible, not invisible. Non-fatal by design: the engagement
+          # suites legitimately do not exist on master yet.
+          if [ -n "$SKIPPED" ]; then
+            echo "::warning title=unit-gate skipped suites::Not present on this branch (not run):$SKIPPED"
+          fi
           pytest $FILES -m "not slow" -p no:randomly --tb=short
