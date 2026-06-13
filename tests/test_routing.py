@@ -381,3 +381,59 @@ def test_post_crisis_check_in_absent_from_keyword_and_semantic_pools():
         "post_crisis_check_in found in semantic embedding matrix — "
         "it must not be reachable via semantic matching"
     )
+
+
+# ── S2-10: pending psychotic referral forces skill_select ─────────────────────
+# A pending psychotic referral (CF-006 psychotic_disclosure flag set, referral not
+# yet delivered) must route to skill_select so psychotic_referral auto-selects there.
+# Without this, a psychotic disclosure in general_chat register routes to freeflow,
+# which engages with the content unreferred. Clinical decision 2026-06-13 (A1/A2/A3).
+
+def test_psychotic_disclosure_forces_skill_select_on_general_chat():
+    state = make_full_state(
+        primary_intent="general_chat",
+        intent_confidence=0.9,
+        crisis_state="none",
+        clinical_flags=["psychotic_disclosure"],
+        active_skill_id=None,
+    )
+    # psychotic_referral_delivered not set
+    assert _route_after_intent(state) == "skill_select"
+
+
+def test_psychotic_referral_not_reforced_once_delivered():
+    state = make_full_state(
+        primary_intent="general_chat",
+        intent_confidence=0.9,
+        crisis_state="none",
+        clinical_flags=["psychotic_disclosure"],
+        psychotic_referral_delivered=True,
+        active_skill_id=None,
+    )
+    # Once delivered, routing is normal — no re-forcing, no loop.
+    assert _route_after_intent(state) == "freeflow"
+
+
+def test_psychotic_disclosure_low_confidence_still_forces_skill_select():
+    state = make_full_state(
+        primary_intent="general_chat",
+        intent_confidence=0.3,   # below the confidence gate
+        crisis_state="none",
+        clinical_flags=["psychotic_disclosure"],
+        active_skill_id=None,
+    )
+    # The safety redirect must not depend on classification confidence
+    # (same precedent as post-crisis monitoring).
+    assert _route_after_intent(state) == "skill_select"
+
+
+def test_crisis_precedes_psychotic_referral():
+    state = make_full_state(
+        primary_intent="crisis",
+        intent_confidence=0.9,
+        crisis_state="none",
+        clinical_flags=["psychotic_disclosure"],
+        active_skill_id=None,
+    )
+    # Crisis still wins over a pending psychotic referral.
+    assert _route_after_intent(state) == "crisis"
