@@ -437,3 +437,34 @@ def test_crisis_precedes_psychotic_referral():
     )
     # Crisis still wins over a pending psychotic referral.
     assert _route_after_intent(state) == "crisis"
+
+
+def test_scope_refusal_precedes_psychotic_referral():
+    """scope_refusal gate fires before the psychotic-referral branch.
+
+    A boundary-violation intent must be gated even when psychotic_disclosure
+    is flagged and referral not yet delivered — the gate check is higher in
+    the precedence stack than the clinical redirect.
+    """
+    state = make_full_state(
+        primary_intent="scope_refusal",
+        intent_confidence=0.9,
+        crisis_state="none",
+        clinical_flags=["psychotic_disclosure"],
+    )
+    assert _route_after_intent(state) == "gate"
+
+
+def test_jailbreak_precedes_psychotic_referral():
+    """jailbreak gate fires before the psychotic-referral branch.
+
+    Same invariant as scope_refusal: boundary-violation intents bypass
+    all clinical redirects, including a pending psychotic referral.
+    """
+    state = make_full_state(
+        primary_intent="jailbreak",
+        intent_confidence=0.95,
+        crisis_state="none",
+        clinical_flags=["psychotic_disclosure"],
+    )
+    assert _route_after_intent(state) == "gate"
