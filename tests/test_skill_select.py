@@ -443,7 +443,9 @@ _DBTIPP_AR_PHRASES = [
     "التنفس ما يساعد",
     "التنفس ما كافي",
     "أحتاج شيء أقوى من التنفس",
-    "مشاعري أقوى من قدرتي",
+    # "مشاعري أقوى من قدرتي" re-bucketed to grounding by C1 decision B.2 (2026-06-13):
+    # generic overwhelm, no failed-first-line/arousal marker. See the dedicated test below
+    # and docs/superpowers/governance/2026-06-13-overwhelm-routing-c1-conflict.md.
 ]
 
 
@@ -544,6 +546,59 @@ async def test_dbtipp_interim_ar_phrase_routes_via_keyword(phrase):
     assert result["active_skill_id"] not in ("grounding_5_4_3_2_1", "stop_technique"), (
         f"Arabic phrase {phrase!r} routed to a shadowing skill instead of dbt_tipp."
     )
+
+
+# ── C1 acute-routing adjudication (clinical sign-off 2026-06-13) ───────────────
+# Decision A: when grounding_5_4_3_2_1 AND dbt_tipp both keyword-match, prefer grounding
+# (contraindication-free, lower activation) for ambiguous overwhelm. Decision B.2: the
+# Arabic phrase مشاعري أقوى من قدرتي ("feelings stronger than my ability") re-buckets from
+# dbt_tipp to grounding (generic overwhelm, no failed-first-line/arousal marker).
+# See docs/superpowers/governance/2026-06-13-overwhelm-routing-c1-conflict.md
+
+@pytest.mark.asyncio
+async def test_c1_tiebreak_grounding_wins_when_both_match():
+    """A: 'overwhelmed' (dbt_tipp, 11) + 'spinning' (grounding, 8) — longest-match would pick
+    dbt_tipp; the C1 tiebreak routes to grounding instead. This is the unit-level proof of the
+    same behavior asserted end-to-end by test_selects_grounding_for_overwhelmed_phrasing."""
+    state = _ss_state(message_en="i feel completely overwhelmed, my head is spinning",
+                      primary_intent="new_skill")
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] == "grounding_5_4_3_2_1", (
+        f"C1 tiebreak failed: expected grounding, got {result['active_skill_id']!r}."
+    )
+    assert result["skill_match_method"] == "keyword"
+
+
+@pytest.mark.asyncio
+async def test_c1_tiebreak_does_not_affect_dbt_tipp_only_match():
+    """A guard: 'i can't calm down' matches dbt_tipp ONLY (grounding's variant removed by
+    25634a3), so the tiebreak must NOT fire — acute flooding still routes to dbt_tipp."""
+    state = _ss_state(message_en="i can't calm down", primary_intent="new_skill")
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] == "dbt_tipp", (
+        f"Tiebreak over-reached: 'i can't calm down' should stay dbt_tipp, got "
+        f"{result['active_skill_id']!r}."
+    )
+
+
+@pytest.mark.asyncio
+async def test_c1_b2_feelings_stronger_than_ability_routes_to_grounding():
+    """B.2: مشاعري أقوى من قدرتي re-bucketed dbt_tipp -> grounding. Generic overwhelm with no
+    failed-first-line/arousal marker routes to the lower-risk default under autonomous delivery."""
+    import asyncio
+    from unittest.mock import patch
+    state = _ss_state(
+        raw_message="مشاعري أقوى من قدرتي",
+        message_en="مشاعري أقوى من قدرتي",
+        detected_language="ar",
+        primary_intent="new_skill",
+    )
+    with patch("sage_poc.nodes.skill_select.asyncio.wait_for", side_effect=asyncio.TimeoutError):
+        result = await skill_select_node(state)
+    assert result["active_skill_id"] == "grounding_5_4_3_2_1", (
+        f"B.2 re-bucket failed: expected grounding, got {result['active_skill_id']!r}."
+    )
+    assert result["skill_match_method"] == "keyword"
 
 
 # ── Task 7: Rerank interface tests ────────────────────────────────────────────
