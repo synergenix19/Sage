@@ -56,8 +56,10 @@ async def test_acute_somatic_high_intensity_enters_directly():
     assert result["skill_match_method"] == "keyword"
 
 
-async def test_acute_direct_entry_ignores_declined():
-    """ignore_declined in the acute rule: a prior decline must not block acute entry."""
+async def test_acute_declined_substitutes_within_pool():
+    """Amendment 2026-06-13: a declined acute match is substituted by the first
+    non-declined skill in the clinician-ordered (grounding-first) pool, NOT entered
+    directly. ignore_declined is gone."""
     kw = load_skill("box_breathing").target_presentations[0]
     state = make_state(
         message_en=f"Help, {kw}",
@@ -65,7 +67,40 @@ async def test_acute_direct_entry_ignores_declined():
         declined_skills=["box_breathing"],
     )
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "box_breathing", "safety over preference"
+    assert result["active_skill_id"] == "grounding_5_4_3_2_1", (
+        "first non-declined in grounding-first pool"
+    )
+    assert result["active_skill_id"] != "box_breathing"
+    assert "acute_substitute_declined" in result["path"]
+
+
+async def test_acute_declined_substitutes_skipping_further_declines():
+    """Pool order grounding, stop, box, tipp: with grounding also declined the
+    substitute is stop_technique (next non-declined)."""
+    kw = load_skill("box_breathing").target_presentations[0]
+    state = make_state(
+        message_en=f"Help, {kw}",
+        emotional_intensity=9,
+        declined_skills=["box_breathing", "grounding_5_4_3_2_1"],
+    )
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] == "stop_technique"
+    assert "acute_substitute_declined" in result["path"]
+
+
+async def test_acute_all_declined_safety_floor():
+    """Whole pool declined: safety floor enters the matched (declined) skill directly."""
+    kw = load_skill("box_breathing").target_presentations[0]
+    state = make_state(
+        message_en=f"Help, {kw}",
+        emotional_intensity=9,
+        declined_skills=[
+            "box_breathing", "grounding_5_4_3_2_1", "stop_technique", "dbt_tipp",
+        ],
+    )
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] == "box_breathing", "safety floor over preference"
+    assert "acute_safety_floor_all_declined" in result["path"]
 
 
 async def test_acute_somatic_low_intensity_still_offers():

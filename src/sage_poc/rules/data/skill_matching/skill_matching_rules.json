@@ -10,13 +10,17 @@
       "approved_by": null,
       "effective_date": "2026-06-12",
       "active": true,
-      "description": "At panic-level intensity a choice menu adds cognitive load; MI supports directiveness in acute distress. Enters the matched acute somatic skill immediately. ignore_declined: a prior decline does not block acute entry, safety over preference.",
+      "description": "Direct entry at panic intensity (no menu); a declined match is replaced by the first non-declined pool member in listed order (grounding-first, activation-risk order per clinical decision 2026-06-13); the declined match is entered only if the whole pool was declined (safety floor); substitutes still pass their own entry_screen.",
       "priority": 1,
       "condition": {
         "matched_skill_in": ["box_breathing", "grounding_5_4_3_2_1", "stop_technique", "dbt_tipp"],
         "emotional_intensity_gte": 8
       },
-      "action": {"type": "enter_direct", "ignore_declined": true}
+      "action": {
+        "type": "enter_direct",
+        "on_declined": "substitute",
+        "substitute_pool": ["grounding_5_4_3_2_1", "stop_technique", "box_breathing", "dbt_tipp"]
+      }
     },
     {
       "rule_id": "default_offer",

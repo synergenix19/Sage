@@ -174,7 +174,7 @@ def _resolve_entry(
     """Ask the skill_matching rules how the primary candidate enters the
     conversation, then build the node result. candidates are ranked, NOT yet
     filtered by declined_skills: declined handling is the fired rule's decision
-    (the acute rule sets ignore_declined)."""
+    (the acute rule substitutes within a pool via action.on_declined)."""
     # declined_skills updates on user decline are intent_route's responsibility (Task 8).
     primary = candidates[0]
     eval_result = rules_engine.evaluate("skill_matching", {
@@ -193,7 +193,7 @@ def _resolve_entry(
     audit_markers = ["skill_select", f"skill_matching_rule:{rule_id}"]
 
     if action["type"] == "enter_direct":
-        if action.get("ignore_declined") or primary not in declined:
+        if primary not in declined:
             skill = _SKILLS[primary]
             return {
                 "active_skill_id": primary,
@@ -202,9 +202,34 @@ def _resolve_entry(
                 "semantic_score": semantic_score,
                 "path": state["path"] + audit_markers,
             }
-        # A clinician-authored enter_direct rule without ignore_declined matched a
-        # declined skill: consent fallback wins, and the audit trail must say so,
-        # the fired rule's action and the action taken differ on this turn.
+        # The matched acute skill was declined this session. on_declined decides:
+        # substitute within a clinician-ordered pool, or (legacy/default) fall to consent.
+        on_declined = action.get("on_declined", "offer")
+        if on_declined == "substitute":
+            pool = action.get("substitute_pool", [])  # deterministic order = data order (grounding-first)
+            substitute = next(
+                (s for s in pool if s not in declined and s in _SKILLS), None
+            )
+            if substitute is not None:
+                skill = _SKILLS[substitute]
+                return {
+                    "active_skill_id": substitute,
+                    "active_step_id": skill.steps[0].step_id,
+                    "skill_match_method": method,
+                    "semantic_score": semantic_score,
+                    "path": state["path"] + audit_markers + ["acute_substitute_declined"],
+                }
+            # Whole pool declined — safety floor: enter the matched (declined) skill directly.
+            skill = _SKILLS[primary]
+            return {
+                "active_skill_id": primary,
+                "active_step_id": skill.steps[0].step_id,
+                "skill_match_method": method,
+                "semantic_score": semantic_score,
+                "path": state["path"] + audit_markers + ["acute_safety_floor_all_declined"],
+            }
+        # on_declined == "offer" (legacy/default): consent fallback wins, and the audit
+        # trail must say so, the fired rule's action and the action taken differ this turn.
         audit_markers.append("enter_direct_declined_fallback")
 
     offerable = [sid for sid in candidates if sid not in declined]

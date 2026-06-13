@@ -136,6 +136,18 @@ class SkillMatchingRule(BaseModel):
                     "declined_scope: only 'session' is implemented. Declaring other scopes "
                     "in data without runtime support recreates the dead-signal failure class."
                 )
+        if "on_declined" in v:
+            if v["on_declined"] not in ("substitute", "offer"):
+                raise ValueError(
+                    f"on_declined must be 'substitute' or 'offer', got {v.get('on_declined')!r}"
+                )
+            if v["on_declined"] == "substitute":
+                pool = v.get("substitute_pool")
+                if not isinstance(pool, list) or not pool:
+                    raise ValueError(
+                        "on_declined 'substitute' requires a non-empty list substitute_pool; "
+                        "a substitute action with no pool is silently inert (dead-signal guard)."
+                    )
         return v
 
 

@@ -23,7 +23,8 @@ class TestEvaluator:
             matched_skill_id="box_breathing", emotional_intensity=9))
         assert res.fired and res.fired[0].rule_id == "acute_direct_entry"
         assert res.fired[0].action["type"] == "enter_direct"
-        assert res.fired[0].action["ignore_declined"] is True
+        assert res.fired[0].action["on_declined"] == "substitute"
+        assert res.fired[0].action["substitute_pool"][0] == "grounding_5_4_3_2_1"
 
     def test_acute_skill_low_intensity_falls_to_default_offer(self):
         res = rules_engine.evaluate("skill_matching", _ctx(
@@ -81,6 +82,18 @@ class TestSchemaGuards:
         with pytest.raises(ValidationError, match="integer"):
             SkillMatchingRule.model_validate(
                 {**self._BASE, "condition": {"emotional_intensity_gte": "8"}})
+
+    def test_unknown_on_declined_value_rejected(self):
+        with pytest.raises(ValidationError):
+            SkillMatchingRule.model_validate(
+                {**self._BASE,
+                 "action": {"type": "enter_direct", "on_declined": "teleport"}})
+
+    def test_substitute_without_pool_rejected(self):
+        with pytest.raises(ValidationError, match="substitute_pool"):
+            SkillMatchingRule.model_validate(
+                {**self._BASE,
+                 "action": {"type": "enter_direct", "on_declined": "substitute"}})
 
 
 class TestEvaluatorIsolated:
