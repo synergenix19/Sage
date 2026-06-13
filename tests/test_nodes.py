@@ -2501,3 +2501,29 @@ async def test_safety_check_increments_turn_number_from_existing():
     state = make_state(raw_message="I feel stressed", turn_number=3)
     result = await safety_check_node(state)
     assert result["turn_number"] == 4
+
+
+def test_route_after_intent_acute_general_chat_reaches_skill_select():
+    """Routing-SF-2: general_chat at high intensity must route to skill_select so
+    acute down-regulation skills (dbt_tipp/grounding) can match."""
+    from sage_poc.graph import _route_after_intent
+    state = {"primary_intent": "general_chat", "intent_confidence": 1.0,
+             "emotional_intensity": 9, "crisis_state": "none",
+             "clinical_flags": [], "active_skill_id": None}
+    assert _route_after_intent(state) == "skill_select"
+
+def test_route_after_intent_calm_general_chat_still_freeflow():
+    """Routing-SF-2 guard: low-intensity general_chat must STILL route to freeflow."""
+    from sage_poc.graph import _route_after_intent
+    state = {"primary_intent": "general_chat", "intent_confidence": 1.0,
+             "emotional_intensity": 4, "crisis_state": "none",
+             "clinical_flags": [], "active_skill_id": None}
+    assert _route_after_intent(state) == "freeflow"
+
+def test_route_after_intent_crisis_still_wins_over_intensity():
+    """Routing-SF-2 guard: crisis intent must still win even at max intensity."""
+    from sage_poc.graph import _route_after_intent
+    state = {"primary_intent": "crisis", "intent_confidence": 1.0,
+             "emotional_intensity": 10, "crisis_state": "none",
+             "clinical_flags": [], "active_skill_id": None}
+    assert _route_after_intent(state) == "crisis"
