@@ -187,7 +187,11 @@ def _route_after_intent(state: SageState) -> str:
     # monitoring/psychotic redirects and before the confidence gate: an acute redirect
     # must not depend on classification confidence. Safe fallthrough: no acute keyword
     # match -> skill_select -> freeflow (_route_after_skill_select), unchanged worst case.
+    # Guarded on active_skill_id: mid-skill turns fall through to freeflow (preserving the
+    # checkpoint), matching the new_skill/skill_continuation handling below and the
+    # test_mid_skill_off_topic invariant.
     if (intent == "general_chat"
+            and not state.get("active_skill_id")
             and state.get("emotional_intensity", 5) >= ACUTE_INTENSITY_FLOOR):
         return "skill_select"
     if confidence < 0.6:

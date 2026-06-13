@@ -2512,6 +2512,17 @@ def test_route_after_intent_acute_general_chat_reaches_skill_select():
              "clinical_flags": [], "active_skill_id": None}
     assert _route_after_intent(state) == "skill_select"
 
+def test_route_after_intent_acute_general_chat_preserves_active_skill():
+    """Routing-SF-2 guard: a high-intensity general_chat turn DURING an active skill must
+    NOT route to skill_select (which would hijack or clear the active skill). It must fall
+    through to freeflow, preserving the mid-skill checkpoint — same invariant as
+    test_mid_skill_off_topic_routes_to_freeflow_not_executor, which only used intensity 5."""
+    from sage_poc.graph import _route_after_intent
+    state = {"primary_intent": "general_chat", "intent_confidence": 1.0,
+             "emotional_intensity": 9, "crisis_state": "none",
+             "clinical_flags": [], "active_skill_id": "cbt_thought_record"}
+    assert _route_after_intent(state) == "freeflow"
+
 def test_route_after_intent_calm_general_chat_still_freeflow():
     """Routing-SF-2 guard: low-intensity general_chat must STILL route to freeflow."""
     from sage_poc.graph import _route_after_intent
