@@ -8,10 +8,23 @@ from sage_poc.nodes.low_confidence_respond import low_confidence_respond_node
 
 @pytest.fixture(scope="module")
 def client():
-    """TestClient used as context manager so lifespan (app.state init) runs."""
-    from server import app
-    with TestClient(app) as c:
-        yield c
+    """TestClient used as context manager so lifespan (app.state init) runs.
+
+    The /chat endpoint depends on require_ready(), which returns 503 until the
+    background BGE-M3 warmup sets _bge_ready. The lifespan yields BEFORE warmup
+    completes (port opens immediately), so in CI (BGE not warm/cached) a request
+    races a 503. These server tests mock the graph and assert request/response and
+    ferry-header behavior, not warmup, so the readiness gate is incidental — we
+    override it. No test asserts the 503 readiness behavior (verified 2026-06-13);
+    /health/ready warmup gating is exercised against the deployed service, not here.
+    """
+    from server import app, require_ready
+    app.dependency_overrides[require_ready] = lambda: None
+    try:
+        with TestClient(app) as c:
+            yield c
+    finally:
+        app.dependency_overrides.pop(require_ready, None)
 
 
 @pytest.fixture
