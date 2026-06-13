@@ -118,4 +118,8 @@ On decision, engineering applies the diff (one commit, with the test inversion),
 
 ## Status
 
-**DECIDED 2026-06-13 — amendment accepted; code being applied** with the grounding-first pool order. **One open sub-item before the `skill_matching_rules.json` sign-off is recorded:** explicit closure of TIPP's place in the auto-substitution pool (stays-last vs excluded — a one-line data edit). The other four PR #4 sign-offs are unaffected.
+**DECIDED 2026-06-13 — amendment accepted and IMPLEMENTED; TIPP sub-item CLOSED.** Code on PR #4: `4c22155` (substitution + safety floor), `0760e62` (dead-key guard + doc), `8cb8f31` (TIPP exclusion).
+
+**TIPP closure (2026-06-13):** `dbt_tipp` is EXCLUDED from the auto-substitution pool. Final pool: `[grounding_5_4_3_2_1, stop_technique, box_breathing]`. Rationale: TIPP's temperature / intense-exercise components carry cautions (cardiac, eating-disorder, pregnancy) the other three do not, so auto-substituting INTO TIPP by default is the failure mode the amendment exists to prevent. TIPP remains in `condition.matched_skill_in`, so it still fires `acute_direct_entry` as a DIRECT keyword match (running its own entry_screen) — it is simply never reached as a silent substitute. The all-pool-declined case falls to the safety floor (enter the matched declined skill), not TIPP.
+
+**The `skill_matching_rules.json` clinical sign-off is now unblocked** — the open sub-item is resolved. Record the sign-off against the implemented design (substitution + safety floor, 3-member grounding-first pool, TIPP excluded).

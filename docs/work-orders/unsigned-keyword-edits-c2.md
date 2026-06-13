@@ -23,6 +23,20 @@ For each row: ☐ Sign (record reason) / ☐ Revert. The two flagged rows (`box_
 - Reasoning for any sign: ____________________
 - On decision → engineering: signs = add `approved_by` provenance to the governance record; reverts = remove the specific keyword(s) from `target_presentations` (one commit, re-run the wrong-skill routing suite to confirm no collision regression on the kept keywords).
 
+## Disposition (recorded 2026-06-13)
+
+Per the decision "sign the name case, route the two real judgment calls" — NOT a blanket revert (reverting a skill's own name would manufacture a regression to satisfy a procedure).
+
+- **SIGNED (kept, provenance recorded here):**
+  - `cbt_thought_record` "thought record", "thought records" — the skill's own technique name; trivial sign, never a revert candidate.
+  - `box_breathing` "i need to breathe", "need to breathe right now" — explicit breathing requests; consistent with the C1 affirmation that explicit-breathing language owns box_breathing.
+  - `progressive_muscle_relaxation` "shoulders are so tight", "shoulders are tight" — benign somatic-tension phrasing for PMR.
+- **ROUTED to clinician (still pending; the only real judgment calls):**
+  - `box_breathing` "do with my breathing" — leans SIGN: "what do I do with my breathing" is an explicit breathing reference, consistent with C1 (explicit-breathing owns box_breathing). Clinician confirms.
+  - `interpersonal_effectiveness` "setting limits in" — the one to SCRUTINIZE MOST for over-broad matching (GIVE/DEARMAN routing vs general assertiveness). Clinician's routing call.
+
+No code change to skill JSONs (the signed keywords stay as-is). If the clinician reverts either routed keyword, that is a one-line `target_presentations` removal + a wrong-skill-routing-suite re-run to confirm no collision regression on the kept keywords.
+
 ## Status
 
-OPEN — held for the per-keyword pick. Both the revert diff (flagged rows) and the sign-off entry are preparable on decision. Does not block PR #4 merge on its own, but unsigned clinical content shaping live acute routing should not persist into pilot.
+PARTIALLY CLOSED — signed keywords disposed; two routed keywords pending the clinician's per-keyword call. Does not block PR #4 merge; the two pending keywords should be resolved before pilot (unsigned clinical content shaping live acute routing).
