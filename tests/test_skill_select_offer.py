@@ -103,10 +103,11 @@ async def test_acute_all_declined_safety_floor():
     assert "acute_safety_floor_all_declined" in result["path"]
 
 
-async def test_acute_substitute_reaches_tipp_last_in_pool():
-    """Pool order: grounding, stop, dbt_tipp. With box + grounding + stop all declined,
-    dbt_tipp is the only non-declined pool member and must be the substitute.
-    The substitute must start at its own entry_screen (safety gate preserved)."""
+async def test_acute_pool_exhausted_hits_safety_floor_tipp_excluded():
+    """Clinical decision 2026-06-13: dbt_tipp is EXCLUDED from the substitute_pool.
+    With box + grounding + stop all declined, no non-declined pool member remains.
+    The safety floor must fire: enter the matched (declined) skill directly.
+    TIPP must never appear as a silent auto-substitute."""
     kw = load_skill("box_breathing").target_presentations[0]
     state = make_state(
         message_en=f"Help, {kw}",
@@ -114,15 +115,30 @@ async def test_acute_substitute_reaches_tipp_last_in_pool():
         declined_skills=["box_breathing", "grounding_5_4_3_2_1", "stop_technique"],
     )
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "dbt_tipp", (
-        "last non-declined pool member must be selected when all prior pool members are declined"
+    assert result["active_skill_id"] == "box_breathing", (
+        "safety floor must enter the matched skill when the 3-member pool is fully declined"
     )
-    assert "acute_substitute_declined" in result["path"], (
-        "path must record the substitution"
+    assert "acute_safety_floor_all_declined" in result["path"], (
+        "path must record the safety floor"
     )
-    assert result["active_step_id"] == "entry_screen", (
-        "dbt_tipp's first step is entry_screen; the entry-screen safety gate must be preserved "
-        "even on a substituted skill"
+    assert "acute_substitute_declined" not in result["path"], (
+        "no substitute should have fired — pool was exhausted"
+    )
+
+
+async def test_tipp_not_used_as_silent_substitute():
+    """dbt_tipp must NEVER appear as an auto-substitute (clinical decision 2026-06-13).
+    Its temperature/intense-exercise cautions make it not a clean interchangeable substitute.
+    It is entered only as a direct keyword match running its own entry_screen."""
+    kw = load_skill("box_breathing").target_presentations[0]
+    state = make_state(
+        message_en=f"Help, {kw}",
+        emotional_intensity=9,
+        declined_skills=["box_breathing", "grounding_5_4_3_2_1", "stop_technique"],
+    )
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] != "dbt_tipp", (
+        "TIPP must never be auto-substituted into; it is only entered on a direct keyword match"
     )
 
 

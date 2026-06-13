@@ -10,7 +10,7 @@
       "approved_by": null,
       "effective_date": "2026-06-12",
       "active": true,
-      "description": "Direct entry at panic intensity (no menu); a declined match is replaced by the first non-declined pool member in listed order (grounding-first, activation-risk order per clinical decision 2026-06-13); the declined match is entered only if the whole pool was declined (safety floor); substitutes still pass their own entry_screen.",
+      "description": "Direct entry at panic intensity (no menu); a declined match is replaced by the first non-declined pool member in listed order (grounding-first, activation-risk order per clinical decision 2026-06-13); the declined match is entered only if the whole pool was declined (safety floor); substitutes still pass their own entry_screen. dbt_tipp is intentionally EXCLUDED from the substitute_pool (clinical decision 2026-06-13, its temperature/intense-exercise cautions make it not a clean auto-substitute; it is entered only as a direct keyword match running its own entry_screen); the all-pool-declined case falls to the safety floor.",
       "priority": 1,
       "condition": {
         "matched_skill_in": ["box_breathing", "grounding_5_4_3_2_1", "stop_technique", "dbt_tipp"],
@@ -19,7 +19,7 @@
       "action": {
         "type": "enter_direct",
         "on_declined": "substitute",
-        "substitute_pool": ["grounding_5_4_3_2_1", "stop_technique", "box_breathing", "dbt_tipp"]
+        "substitute_pool": ["grounding_5_4_3_2_1", "stop_technique", "box_breathing"]
       }
     },
     {
