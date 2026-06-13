@@ -1,11 +1,13 @@
 {
   "_meta": {
     "version": "0.1.0",
-    "status": "draft-pending-review",
+    "status": "approved",
     "authored_by": "engineering",
-    "approved_by": null,
+    "approved_by": "clinical_lead",
+    "effective_date": "2026-06-13",
     "purpose": "S2-7 B2 consent-integrity signal. Fixed instruction wording for the freeflow declined-skills note. When the user has declined skills this session, freeflow is told which ones (plain-language display names from offer_descriptions.json) so it does not re-offer or walk the user through that specific content in prose. Bilingual envelope: ar null falls back to en (output_gate translates the composed reply for Arabic sessions).",
-    "review_required": ["Clinical review of the instruction wording before production"]
+    "review_required": ["Clinical review of the instruction wording before production"],
+    "_signed_off": "Clinical lead 2026-06-13; reasoning records on master via PR #5"
   },
   "instruction": {
     "header": {

@@ -122,8 +122,8 @@ class TestDeclinedSkillsSignal:
     def test_no_em_dash_in_governed_content(self):
         path = _PROMPTS_DIR / "declined_skills_instruction.json"
         raw = json.loads(path.read_text(encoding="utf-8"))
-        assert raw["_meta"]["approved_by"] is None
-        assert raw["_meta"]["status"] == "draft-pending-review"
+        assert raw["_meta"]["approved_by"] == "clinical_lead"
+        assert raw["_meta"]["status"] == "approved"
         for value in raw["instruction"].values():
             assert "—" not in value, "em dashes mirror into LLM output; use commas"
 

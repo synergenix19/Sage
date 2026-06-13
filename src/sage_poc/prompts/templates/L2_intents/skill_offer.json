@@ -1,10 +1,10 @@
 {
   "template_id": "L2_skill_offer",
   "version": "0.1.0",
-  "status": "draft-pending-review",
+  "status": "approved",
   "authored_by": "engineering",
-  "approved_by": null,
-  "effective_date": "pending",
+  "approved_by": "clinical_lead",
+  "effective_date": "2026-06-13",
   "layer": "L2",
   "role": "user",
   "always_include": true,
@@ -15,5 +15,6 @@
   "_review_required": [
     "Rule 1 approval (new L2 selector in composer.py, control-layer change)",
     "Clinical review (offer framing, non-coercion wording)"
-  ]
+  ],
+  "_signed_off": "Clinical lead 2026-06-13; reasoning records on master via PR #5"
 }

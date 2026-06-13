@@ -1,11 +1,12 @@
 {
   "content_id": "soft_advance_instruction",
   "version": "0.3.0",
-  "status": "draft-pending-review",
+  "status": "approved",
   "authored_by": "engineering",
-  "approved_by": null,
+  "approved_by": "clinical_lead",
   "effective_date": "2026-06-13",
   "description": "Appended to the step instruction when criteria_hold_budget is exhausted (instruction) or when a deterministic non-safety rule-hold reaches hold_ceiling (exit_ramp). Therapeutic language must not live in .py files.",
+  "_signed_off": "Clinical lead 2026-06-13; reasoning records on master via PR #5",
   "_review_required": [
     "Clinical review (autonomy-supportive pacing; exit-ramp wording added 2026-06-13 per the sign-off alignment check). Constraint the reviewer is signing: the exit ramp must read as the user's choice of pace, never as Sage's preference to wind down. An exit ramp that signals the system wants to disengage is itself a nudge.",
     "Clinical review of the exit_ramp field (added 2026-06-13 for the D/S2-4 hold-ceiling use). This text is appended to a deterministic clinical hold once hold_ceiling consecutive re-probes have occurred. The hold stays senior (the step is NOT advanced); this text only stops the re-asking and surfaces the user-owned choice of pace. Same constraint as above: it must never read as Sage wanting to move on or wind down. Reviewer also signs the per-skill hold_ceiling values (mood_check_in = 2)."

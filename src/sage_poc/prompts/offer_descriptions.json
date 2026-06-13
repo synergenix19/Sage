@@ -1,11 +1,13 @@
 {
   "_meta": {
     "version": "0.2.0",
-    "status": "draft-pending-review",
+    "status": "approved-en-pending-ar",
     "authored_by": "engineering",
-    "approved_by": null,
+    "approved_by": "clinical_lead",
+    "effective_date": "2026-06-13",
     "purpose": "Plain-language descriptions used in R1 skill offers. Bilingual envelope: ar null falls back to en (output_gate translates the composed reply for Arabic sessions). When clinician-authored Khaleeji blurbs land, they become the verbatim display names echoed in offers and accept-classification.",
-    "review_required": ["Clinical review of every display_name and description before production"]
+    "review_required": ["Clinical review of every display_name and description before production"],
+    "_signed_off": "EN blurb wording clinician-approved 2026-06-13; ar pending S2-2 + two-rater Khaleeji scoring. NOTE: this records clinician content approval only; the two-rater EN offer-turn QUALITY scoring is a SEPARATE gate and is NOT yet complete (gates PR #4 merge)."
   },
   "descriptions": {
     "box_breathing": {"display_name": {"en": "Box breathing", "ar": null}, "description": {"en": "a short guided breathing exercise, around five minutes, that helps your body settle when it feels wound up", "ar": null}},
