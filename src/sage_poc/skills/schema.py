@@ -63,6 +63,13 @@ class Skill(BaseModel):
                     "null = no budget (hold indefinitely, current behavior). "
                     "Clinician-ownable per skill.",
     )
+    hold_ceiling: int | None = Field(
+        default=None, ge=1,
+        description="Max consecutive deterministic non-safety rule-holds at one step before "
+                    "the hold surfaces the user-owned exit ramp instead of re-probing. "
+                    "null = unbounded (current behavior). Clinical holds stay senior (no forced "
+                    "advance); this only bounds re-probing. Clinician-ownable per skill.",
+    )
 
     @field_validator("cultural_overrides", mode="before")
     @classmethod

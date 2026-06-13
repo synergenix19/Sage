@@ -1205,3 +1205,150 @@ class TestR5CriteriaHoldBudget:
                 assert skill.criteria_hold_budget == 1, (
                     f"{sid}: word-count skill missing criteria_hold_budget opt-in"
                 )
+
+
+class TestDHoldCeiling:
+    """D/S2-4: deterministic clinical holds stay SENIOR (no forced advance) but stop
+    re-probing after hold_ceiling consecutive non-safety rule-holds, surfacing the
+    user-owned exit ramp instead. Separate rule_hold_count counter, parallel to
+    criteria_hold_count. entry_screen exempt; safety holds never counted."""
+
+    _EXIT_RAMP_MARKER = "the pace is theirs"
+
+    def _hold_skill(self, hold_ceiling: int | None = 2, hold_step: str = "ANY") -> Skill:
+        """Skill whose only rule is a deterministic non-safety hold on low intensity."""
+        skill = _make_skill()
+        skill.step_policy = [
+            StepPolicyRule(
+                condition=StepPolicyCondition(
+                    signal="emotional_intensity", operator="<=", value=3, step=hold_step,
+                ),
+                action="hold_and_explore",
+                instruction="Gently explore what is making things feel heavy.",
+                next_step_id="current",
+            )
+        ]
+        skill.hold_ceiling = hold_ceiling
+        return skill
+
+    async def test_first_hold_no_exit_ramp(self):
+        state = _make_executor_state(message_en="ok", emotional_intensity=2)
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._hold_skill()):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "step_1", "clinical hold: step unchanged"
+        assert result["rule_hold_count"] == 1
+        assert result["rule_hold_step_id"] == "step_1"
+        assert self._EXIT_RAMP_MARKER not in result["step_instruction"]
+
+    async def test_second_hold_no_exit_ramp(self):
+        state = _make_executor_state(
+            message_en="ok", emotional_intensity=2,
+            rule_hold_count=1, rule_hold_step_id="step_1",
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._hold_skill()):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "step_1"
+        assert result["rule_hold_count"] == 2
+        assert self._EXIT_RAMP_MARKER not in result["step_instruction"]
+
+    async def test_third_hold_surfaces_exit_ramp_without_advancing(self):
+        state = _make_executor_state(
+            message_en="ok", emotional_intensity=2,
+            rule_hold_count=2, rule_hold_step_id="step_1",
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._hold_skill()):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "step_1", (
+            "exit ramp must NOT advance the step — clinical hold stays senior"
+        )
+        assert result["rule_hold_count"] == 3
+        assert self._EXIT_RAMP_MARKER in result["step_instruction"], (
+            "third consecutive rule-hold (3 > ceiling 2) must surface the exit ramp"
+        )
+
+    async def test_null_ceiling_never_surfaces_exit_ramp(self):
+        state = _make_executor_state(
+            message_en="ok", emotional_intensity=2,
+            rule_hold_count=9, rule_hold_step_id="step_1",
+        )
+        with patch(
+            "sage_poc.nodes.skill_executor.load_skill",
+            return_value=self._hold_skill(hold_ceiling=None),
+        ):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "step_1"
+        assert self._EXIT_RAMP_MARKER not in result["step_instruction"], (
+            "null ceiling = unbounded; never surfaces exit ramp"
+        )
+        assert result["rule_hold_count"] == 10, "counter still increments under null ceiling"
+
+    async def test_safety_hold_never_counts_or_triggers(self):
+        """A validate_only safety hold must not count toward rule_hold_count and must
+        never surface the exit ramp, even if a prior count is near the ceiling."""
+        skill = self._hold_skill()
+        # validate_only fires at high intensity; replace the rule with a safety hold trigger.
+        skill.step_policy = [
+            StepPolicyRule(
+                condition=StepPolicyCondition(
+                    signal="emotional_intensity", operator=">", value=7, step="ANY",
+                ),
+                action="validate_only",
+                instruction="User is in acute distress. Slow down and validate.",
+                next_step_id="current",
+            )
+        ]
+        state = _make_executor_state(
+            message_en="ok", emotional_intensity=9,
+            rule_hold_count=2, rule_hold_step_id="step_1",
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "step_1"
+        assert result["rule_hold_count"] == 0, "safety hold must reset, not count"
+        assert result["rule_hold_step_id"] is None
+        assert self._EXIT_RAMP_MARKER not in result["step_instruction"]
+
+    async def test_counter_resets_on_step_change(self):
+        state = _make_executor_state(
+            message_en="ok", emotional_intensity=2,
+            rule_hold_count=2, rule_hold_step_id="some_previous_step",
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._hold_skill()):
+            result = await skill_executor_node(state)
+        assert result["rule_hold_count"] == 1, "stale counter must reset on step change"
+        assert result["rule_hold_step_id"] == "step_1"
+        assert self._EXIT_RAMP_MARKER not in result["step_instruction"]
+
+    async def test_entry_screen_never_surfaces_exit_ramp(self):
+        skill = self._hold_skill()
+        skill.steps[0].step_id = "entry_screen"
+        state = _make_executor_state(
+            active_step_id="entry_screen", message_en="ok", emotional_intensity=2,
+            rule_hold_count=5, rule_hold_step_id="entry_screen",
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "entry_screen"
+        assert self._EXIT_RAMP_MARKER not in result["step_instruction"], (
+            "entry_screen is a safety gate — never soften with the exit ramp"
+        )
+
+    async def test_advance_turn_resets_counter_no_exit_ramp(self):
+        """A normal advance/complete turn (no rule held) resets the counter."""
+        # High-word answer, no hold rule fires (intensity normal) → heuristic completes.
+        skill = self._hold_skill()
+        state = _make_executor_state(
+            message_en="I am feeling about a seven today and things are looking up a lot",
+            emotional_intensity=5,
+            rule_hold_count=2, rule_hold_step_id="step_1",
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+            result = await skill_executor_node(state)
+        assert result["rule_hold_count"] == 0
+        assert result["rule_hold_step_id"] is None
+        assert self._EXIT_RAMP_MARKER not in result["step_instruction"]
+
+    async def test_mood_check_in_opts_in_at_two(self):
+        from sage_poc.skills.schema import load_skill as real_load
+        skill = real_load("mood_check_in")
+        assert skill.hold_ceiling == 2

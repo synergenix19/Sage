@@ -54,6 +54,8 @@ class SageState(TypedDict):
     resistance_score: Optional[int]     # current turn's resistance score; reset each turn in _build_state()
     criteria_hold_count: int                 # R5: consecutive criteria holds at the current step; persists via LangGraph checkpoint
     criteria_hold_step_id: Optional[str]     # R5: step the hold counter belongs to; persists via LangGraph checkpoint
+    rule_hold_count: int                  # D/S2-4: consecutive deterministic non-safety rule-holds at the current step; persists via checkpoint
+    rule_hold_step_id: Optional[str]       # D/S2-4: step the rule-hold counter belongs to; persists via checkpoint
 
     cultural_output_violations: list[str]  # rule_ids fired in output_gate cultural check
 

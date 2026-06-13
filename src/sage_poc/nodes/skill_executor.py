@@ -40,6 +40,24 @@ except Exception:  # missing content file must not take the executor down
         "[skill_executor] soft_advance_instruction.json unavailable; using fallback text"
     )
 
+# D/S2-4: governed exit-ramp text appended to a deterministic non-safety rule-hold once
+# hold_ceiling consecutive re-probes have occurred. Surfaces the user-owned choice of pace
+# WITHOUT advancing the step (clinical holds stay senior). Lives in the same governed JSON.
+try:
+    _HOLD_CEILING_EXIT_RAMP: str = json.loads(
+        _SOFT_ADVANCE_INSTRUCTION_PATH.read_text(encoding="utf-8")
+    )["exit_ramp"]
+except Exception:  # missing content key must not take the executor down
+    _HOLD_CEILING_EXIT_RAMP = (
+        "The user has answered briefly several times. Do not ask the same question again. "
+        "Gently let them know the pace is theirs, that they can stay with this a moment or "
+        "move on if they would rather. Frame it as their choice, never as you wanting to "
+        "move on or wind down."
+    )
+    logging.getLogger(__name__).warning(
+        "[skill_executor] soft_advance_instruction.json exit_ramp unavailable; using fallback text"
+    )
+
 # Actions that should fire once (entry turn) then allow normal step advancement.
 # Default for any action NOT in this set: hold the step (fire every turn until
 # the triggering condition resolves). This is intentionally conservative —
@@ -669,6 +687,37 @@ async def skill_executor_node(state: SageState) -> dict:
             "criteria_hold_step_id": state.get("criteria_hold_step_id"),
         }
 
+    # ── D/S2-4: deterministic non-safety rule-hold ceiling → exit-ramp surfacing ──
+    # Parallel to and independent of criteria_hold_count above. Counts consecutive
+    # deterministic non-safety rule-holds (e.g. hold_and_explore) at one step. At the
+    # ceiling, the hold SURFACES the user-owned exit ramp instead of re-probing — it does
+    # NOT advance the step (clinical holds stay senior; this only bounds re-asking).
+    _final_action = result.get("action")
+    is_rule_hold = (
+        not soft_advanced
+        and _final_action not in ("advance", "complete", "stay", None)
+        and _final_action not in _SAFETY_HOLD_ACTIONS
+    )
+
+    rule_hold_count = state.get("rule_hold_count") or 0
+    if state.get("rule_hold_step_id") != step_id:
+        rule_hold_count = 0
+
+    if is_rule_hold and step_id != "entry_screen":
+        new_rule_hold = rule_hold_count + 1
+        if skill.hold_ceiling is not None and new_rule_hold > skill.hold_ceiling:
+            # Surface the exit ramp; do NOT change next_step_id (no forced advance).
+            result["instruction"] = result["instruction"] + " " + _HOLD_CEILING_EXIT_RAMP
+            _log.info(
+                "[skill_executor] hold ceiling reached: surfacing exit ramp "
+                "(count=%d > ceiling=%d) skill=%s step=%s — step NOT advanced",
+                new_rule_hold, skill.hold_ceiling, skill_id, step_id,
+            )
+        rule_hold_update = {"rule_hold_count": new_rule_hold, "rule_hold_step_id": step_id}
+    else:
+        # Non-rule-hold turn (advance/complete/safety-hold/normal) OR entry_screen: reset.
+        rule_hold_update = {"rule_hold_count": 0, "rule_hold_step_id": None}
+
     return {
         "step_instruction":    result["instruction"],
         "executed_step_id":    step_id,
@@ -685,6 +734,7 @@ async def skill_executor_node(state: SageState) -> dict:
         # crisis_response does not persist into the routing decision.
         "re_escalation_within_monitoring": re_escalation_detected,
         **criteria_hold_update,
+        **rule_hold_update,
         **crisis_state_update,
         **psychotic_referral_update,
     }
