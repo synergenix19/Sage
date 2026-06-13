@@ -1319,20 +1319,6 @@ class TestDHoldCeiling:
         assert result["rule_hold_step_id"] == "step_1"
         assert self._EXIT_RAMP_MARKER not in result["step_instruction"]
 
-    async def test_entry_screen_never_surfaces_exit_ramp(self):
-        skill = self._hold_skill()
-        skill.steps[0].step_id = "entry_screen"
-        state = _make_executor_state(
-            active_step_id="entry_screen", message_en="ok", emotional_intensity=2,
-            rule_hold_count=5, rule_hold_step_id="entry_screen",
-        )
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
-            result = await skill_executor_node(state)
-        assert result["active_step_id"] == "entry_screen"
-        assert self._EXIT_RAMP_MARKER not in result["step_instruction"], (
-            "entry_screen is a safety gate — never soften with the exit ramp"
-        )
-
     async def test_advance_turn_resets_counter_no_exit_ramp(self):
         """A normal advance/complete turn (no rule held) resets the counter."""
         # High-word answer, no hold rule fires (intensity normal) → heuristic completes.
@@ -1352,3 +1338,68 @@ class TestDHoldCeiling:
         from sage_poc.skills.schema import load_skill as real_load
         skill = real_load("mood_check_in")
         assert skill.hold_ceiling == 2
+
+    async def test_exit_action_not_counted_as_rule_hold(self):
+        """Fix 1: exit_to_crisis_protocol at/above the ceiling must NOT append the exit
+        ramp and must NOT increment rule_hold_count (counter resets to 0)."""
+        skill = self._hold_skill(hold_ceiling=2)
+        # Replace the hold rule with one that fires exit_to_crisis_protocol
+        skill.step_policy = [
+            StepPolicyRule(
+                condition=StepPolicyCondition(
+                    signal="emotional_intensity", operator="<=", value=3, step="ANY",
+                ),
+                action="exit_to_crisis_protocol",
+                instruction="Exit to crisis protocol now.",
+                next_step_id="current",
+            )
+        ]
+        # rule_hold_count already at ceiling so exit ramp WOULD fire if miscounted
+        state = _make_executor_state(
+            message_en="ok", emotional_intensity=2,
+            rule_hold_count=2, rule_hold_step_id="step_1",
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+            result = await skill_executor_node(state)
+        assert self._EXIT_RAMP_MARKER not in result["step_instruction"], (
+            "exit_to_crisis_protocol must NOT trigger the exit ramp"
+        )
+        assert result["rule_hold_count"] == 0, (
+            "exit action must reset rule_hold_count (counted as non-hold turn), not increment"
+        )
+
+    async def test_l1_exit_resets_rule_hold_count(self):
+        """Fix 2: L1 early-return must reset rule_hold_count and rule_hold_step_id."""
+        state = _make_executor_state(
+            message_en="i am done with this",   # triggers L1
+            rule_hold_count=2,
+            rule_hold_step_id="step_1",
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._hold_skill()):
+            result = await skill_executor_node(state)
+        assert result.get("escalation_triggered", {}).get("level") == "L1", (
+            "test precondition: L1 must have fired"
+        )
+        assert result["rule_hold_count"] == 0, (
+            "L1 early-return must reset rule_hold_count to 0"
+        )
+        assert result["rule_hold_step_id"] is None, (
+            "L1 early-return must reset rule_hold_step_id to None"
+        )
+
+    async def test_entry_screen_never_surfaces_exit_ramp(self):
+        skill = self._hold_skill()
+        skill.steps[0].step_id = "entry_screen"
+        state = _make_executor_state(
+            active_step_id="entry_screen", message_en="ok", emotional_intensity=2,
+            rule_hold_count=5, rule_hold_step_id="entry_screen",
+        )
+        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+            result = await skill_executor_node(state)
+        assert result["active_step_id"] == "entry_screen"
+        assert self._EXIT_RAMP_MARKER not in result["step_instruction"], (
+            "entry_screen is a safety gate — never soften with the exit ramp"
+        )
+        assert result["rule_hold_count"] == 0, (
+            "entry_screen turn must reset rule_hold_count"
+        )

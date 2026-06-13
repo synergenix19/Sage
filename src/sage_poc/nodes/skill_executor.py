@@ -71,6 +71,11 @@ _SKIP_ONCE_ACTIONS: frozenset[str] = frozenset({"skip_psychoeducation"})
 # advancement beats resistance.  See precedence resolver in skill_executor_node.
 _SAFETY_HOLD_ACTIONS: frozenset[str] = frozenset({"validate_only"})
 
+# Skill-exit actions that terminate the current skill (or hand off to crisis protocol).
+# These are NOT rule-holds: counting them toward rule_hold_count would misclassify a
+# crisis handoff as a re-probe and could append the exit-ramp text to a crisis instruction.
+_EXIT_ACTIONS: frozenset[str] = frozenset({"exit_warm_closing", "exit_to_crisis_protocol"})
+
 # Skills where word-count heuristic is clinically insufficient — these require
 # LLM evaluation of completion_criteria after Phase 1 returns _criteria_blocked.
 _LLM_CRITERIA_SKILLS: frozenset[str] = frozenset({
@@ -533,6 +538,8 @@ async def skill_executor_node(state: SageState) -> dict:
             "resistance_score":    None,
             "criteria_hold_count": 0,
             "criteria_hold_step_id": None,
+            "rule_hold_count":     0,
+            "rule_hold_step_id":   None,
             "path": state["path"] + ["skill_executor"],
             **crisis_update,
         }
@@ -697,6 +704,7 @@ async def skill_executor_node(state: SageState) -> dict:
         not soft_advanced
         and _final_action not in ("advance", "complete", "stay", None)
         and _final_action not in _SAFETY_HOLD_ACTIONS
+        and _final_action not in _EXIT_ACTIONS
     )
 
     rule_hold_count = state.get("rule_hold_count") or 0
