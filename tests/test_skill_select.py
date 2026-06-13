@@ -134,7 +134,12 @@ async def test_skill_executor_sets_resolved_when_post_crisis_skill_completes():
 
 @pytest.mark.asyncio
 async def test_dbt_tipp_keyword_match():
-    state = _ss_state(message_en="I need to calm down fast, I'm overwhelmed and losing control")
+    # Message updated 2026-06-14: the prior compound ("I need to calm down fast, I'm
+    # overwhelmed and losing control") straddled the new C1 boundary — "need to calm down
+    # fast" and "overwhelmed" are now grounding-bound, so it no longer cleanly tests dbt_tipp.
+    # Use an unambiguous failed-first-line phrase (TIPP's retained indication) instead. The
+    # test's purpose — dbt_tipp keyword routing works — is preserved.
+    state = _ss_state(message_en="my breathing isn't working and I need something stronger")
     result = await skill_select_node(state)
     assert result["active_skill_id"] == "dbt_tipp"
     assert result["skill_match_method"] == "keyword"
@@ -603,6 +608,51 @@ async def test_c1_b2_feelings_stronger_than_ability_routes_to_grounding():
         f"B.2 re-bucket failed: expected grounding, got {result['active_skill_id']!r}."
     )
     assert result["skill_match_method"] == "keyword"
+
+
+# ── Acute-cluster bucket lock (clinical sign-off 2026-06-13/14) ────────────────
+# DECIDED phrases only. Each (phrase, lang, expected_skill) is a signed routing decision; a
+# move requires a clinical sign-off + an edit here, so neighbors cannot drift unreviewed.
+# This deliberately EXCLUDES the still-pending audit phrases (overwhelmed family,
+# unbearable/can't-handle/emotions-too-much, control-loss) — those await the lead's
+# per-phrase ruling and must NOT be locked to today's un-adjudicated bucket. See
+# docs/superpowers/governance/2026-06-13-overwhelm-routing-c1-conflict.md (audit worklist).
+_BUCKET_LOCK = [
+    # grounding — C1 ambiguous-overwhelm / signed re-buckets (B.2, B.3, EN/AR twins)
+    ("مشاعري أقوى من قدرتي", "ar", "grounding_5_4_3_2_1"),   # B.2
+    ("محتاج أهدى بسرعة", "ar", "grounding_5_4_3_2_1"),        # B.3
+    ("مشاعري أقوى مني", "ar", "grounding_5_4_3_2_1"),         # B.2 twin
+    ("مشاعري فوق طاقتي", "ar", "grounding_5_4_3_2_1"),        # B.2 twin
+    ("need to calm down fast", "en", "grounding_5_4_3_2_1"),  # B.3 EN twin
+    ("I need to calm down", "en", "grounding_5_4_3_2_1"),     # B.3 EN twin
+    # dbt_tipp — retained: failed-first-line / explicit extremity / acute inability (25634a3)
+    ("breathing isn't working", "en", "dbt_tipp"),
+    ("need something stronger than breathing", "en", "dbt_tipp"),
+    ("urge to act out", "en", "dbt_tipp"),
+    ("I'm about to explode", "en", "dbt_tipp"),
+    ("can't calm down", "en", "dbt_tipp"),                    # inability, signed 25634a3
+    ("التنفس ما يساعد", "ar", "dbt_tipp"),                    # breathing-failed
+    ("أشعر إني سأنفجر", "ar", "dbt_tipp"),                    # about to explode
+]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("phrase,lang,expected", _BUCKET_LOCK)
+async def test_acute_cluster_bucket_lock(phrase, lang, expected):
+    import asyncio
+    from unittest.mock import patch
+    state = _ss_state(
+        message_en=phrase,
+        raw_message=phrase if lang == "ar" else "",
+        detected_language=lang,
+        primary_intent="new_skill",
+    )
+    with patch("sage_poc.nodes.skill_select.asyncio.wait_for", side_effect=asyncio.TimeoutError):
+        result = await skill_select_node(state)
+    assert result["active_skill_id"] == expected, (
+        f"Bucket lock violated: {phrase!r} expected {expected!r}, got "
+        f"{result['active_skill_id']!r}. A move requires clinical sign-off + a governance entry."
+    )
 
 
 # ── Task 7: Rerank interface tests ────────────────────────────────────────────
