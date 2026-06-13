@@ -102,7 +102,9 @@ def _intensity_guidance(intensity: int) -> str:
     return _INTENSITY_GUIDANCE["high"]
 
 
-def _compute_l1_budget(state: SageState, override_words: int = 0) -> int:
+def _compute_l1_budget(
+    state: SageState, override_words: int = 0, guardrail_words: int = 0
+) -> int:
     """Return the L1 word budget for this turn.
 
     On freeflow turns (no skill step, no knowledge lookup), L3 and L4 layers
@@ -114,6 +116,13 @@ def _compute_l1_budget(state: SageState, override_words: int = 0) -> int:
         is proactively sized rather than shrunk reactively by the overflow guard.
         After Task 0 (cap=200w), max subtraction is 200, giving L1 ≥ 250w on
         skill turns — _L1_MINIMUM_BUDGET (150) is unreachable in practice.
+
+    guardrail_words: actual word count of the freeflow guided-protocol guardrail
+        block (S2-7 B1) injected into user_parts on freeflow turns. Subtracted
+        alongside override_words so the L1 flex budget (600w) is proactively
+        reduced before history is sized, preventing the overflow guard from
+        firing and emergency-shrinking L1 history on long freeflow turns.
+        On skill-execution turns this is 0 (guardrail not injected).
 
     SPEC DIVERGENCE (§5.6.1): v7 §5.6.1 specifies ~300w for L1. The 450/600
     values are a pre-existing architectural deviation pending review. Do not
@@ -129,7 +138,7 @@ def _compute_l1_budget(state: SageState, override_words: int = 0) -> int:
     has_knowledge = state.get("primary_intent") == "info_request" or \
                     state.get("secondary_intent") == "info_request"
     base = _L1_BASE_BUDGET if (has_skill or has_knowledge) else _L1_FLEX_BUDGET
-    return max(_L1_MINIMUM_BUDGET, base - override_words)
+    return max(_L1_MINIMUM_BUDGET, base - override_words - guardrail_words)
 
 
 def _build_l2_intent_block(
@@ -255,6 +264,29 @@ def _build_l5_user_context_block(
 def _build_l0_system_block(variant: str | None = None) -> str:
     tmpl = get_template("L0_persona", variant=variant)
     _log.debug("L0_persona@%s loaded", tmpl.version)
+    return tmpl.content
+
+
+def _build_freeflow_guardrail_block(variant: str | None = None) -> str:
+    """Guided-protocol guardrail for FREEFLOW turns only (S2-7 B1).
+
+    Forbids leading a structured therapeutic protocol (guided breathing,
+    grounding, PMR, body scan, safe-place visualization, TIPP-style reset) as
+    free prose, which would route around the contraindication screening those
+    protocols carry. Permits suggesting + offering the guided version. Must NOT
+    be injected on skill-execution turns, where the executor delivers the
+    protocol via the L3 step instruction. Draft-pending clinical review.
+
+    Coverage boundary: this guardrail reaches only the compose_prompt freeflow
+    path. low_confidence_respond_node uses a hardcoded _SYSTEM prompt and
+    bypasses compose_prompt entirely, so the guardrail does not reach it. This
+    is benign today because low_confidence_respond caps its output at 2
+    sentences, making free-prose protocol delivery practically impossible. If
+    that 2-sentence cap is ever removed, the guardrail must be added to
+    low_confidence_respond_node's _SYSTEM prompt as well.
+    """
+    tmpl = get_template("freeflow_guardrail", variant=variant)
+    _log.debug("freeflow_guardrail@%s loaded", tmpl.version)
     return tmpl.content
 
 
@@ -437,8 +469,24 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     # ---- User role ---------------------------------------------------------
     user_parts: list[str] = []
 
+    # Freeflow guided-protocol guardrail (S2-7 B1) — pre-compute before _compute_l1_budget.
+    # The block is built here (freeflow turns only) so its word count can be passed into
+    # _compute_l1_budget as guardrail_words, proactively reducing L1 budget before history
+    # is sized. Without this deduction the guardrail's ~90 words are appended AFTER the
+    # budget calculation, pushing the total over _TOTAL_WORD_BUDGET and triggering the
+    # overflow guard that emergency-shrinks L1 history — degrading exactly the
+    # emotional-support turns that benefit most from rich history context.
+    # The pre-built string is reused when appending below (not built twice).
+    _guardrail_block: str | None = None
+    _guardrail_words: int = 0
+    if not state.get("step_instruction"):
+        _guardrail_block = _build_freeflow_guardrail_block()
+        _guardrail_words = count_words(_guardrail_block)
+
     # L1: Conversation history
-    l1_budget = _compute_l1_budget(state, override_words=_override_words)
+    l1_budget = _compute_l1_budget(
+        state, override_words=_override_words, guardrail_words=_guardrail_words
+    )
     l1_block = _build_l1_history_block(
         state.get("conversation_history", []),
         word_budget=l1_budget,
@@ -461,6 +509,17 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     l2_block = _build_l2_intent_block(_l2_intent, intensity, secondary_intent)
     user_parts.append(l2_block)
     layers.append("intent")
+
+    # Freeflow guided-protocol guardrail (S2-7 B1) — FREEFLOW TURNS ONLY.
+    # Mirrors the freeflow discriminator used by _compute_l1_budget: a turn with no
+    # step_instruction is freeflow (no active skill / no L3 step). On skill-execution
+    # turns the executor legitimately delivers the protocol via the L3 step instruction,
+    # so the guardrail must NOT fire there (it would conflict with L3). This is why the
+    # block lives in the composer conditioned on freeflow, not in L0_persona.
+    # The block was pre-built above; reuse the string to avoid building it twice.
+    if _guardrail_block is not None:
+        user_parts.append(_guardrail_block)
+        layers.append("freeflow_guardrail")
 
     # L5: User context (before skill/knowledge so LLM has profile context first)
     l5_block = _build_l5_user_context_block(
