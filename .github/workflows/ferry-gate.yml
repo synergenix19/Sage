@@ -2,7 +2,7 @@ name: ferry-gate
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - 'server.py'
       - 'src/sage_poc/state.py'
