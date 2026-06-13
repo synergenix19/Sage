@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "version": "0.1.0",
+    "status": "draft-pending-review",
+    "authored_by": "engineering",
+    "approved_by": null,
+    "purpose": "S2-7 B2 consent-integrity signal. Fixed instruction wording for the freeflow declined-skills note. When the user has declined skills this session, freeflow is told which ones (plain-language display names from offer_descriptions.json) so it does not re-offer or walk the user through that specific content in prose. Bilingual envelope: ar null falls back to en (output_gate translates the composed reply for Arabic sessions).",
+    "review_required": ["Clinical review of the instruction wording before production"]
+  },
+  "instruction": {
+    "header": {
+      "en": "DECLINED THIS SESSION",
+      "ar": null
+    },
+    "guidance": {
+      "en": "The user has already declined the following support this session: {names}. Do not re-offer these and do not walk the user through them in your reply this turn. You are still free to stay present with the user and, if it fits, suggest other kinds of support.",
+      "ar": null
+    }
+  }
+}
