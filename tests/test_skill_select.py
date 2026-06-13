@@ -150,6 +150,14 @@ async def test_dbt_tipp_keyword_arabic():
     # from the R1 consent-offer flow until S2-2 ships a tested Khaleeji accept path, so
     # the match enters directly (pre-R1 behavior) rather than offering. Routing target
     # (dbt_tipp) is unchanged; only the entry mechanism is direct, not offer.
+    #
+    # C1/#15 TARGET NOTE: this asserts dbt_tipp for an acute-Arabic phrase. Mechanically
+    # the phrase matches dbt_tipp ONLY (no grounding keyword overlap), so it is NOT the
+    # "overwhelmed"+"spinning" longest-match case behind #15, and the narrow tiebreak fix
+    # leaves it unchanged. Whether this acute-Arabic vocabulary should route to dbt_tipp
+    # (per signed 25634a3) vs grounding (per C1) is a clinical-bucketing question for the
+    # SAME clinical lead handling #15; revisit this target if that adjudication re-buckets
+    # acute-overwhelm vocabulary. See docs/superpowers/governance/2026-06-13-overwhelm-routing-c1-conflict.md
     state = _ss_state(message_en="محتاج أهدى بسرعة", detected_language="ar")
     result = await skill_select_node(state)
     assert result["active_skill_id"] == "dbt_tipp"
@@ -547,6 +555,13 @@ async def test_dbtipp_interim_ar_phrase_routes_via_keyword(phrase):
     """Each Arabic simpler-technique-failure phrase must route to dbt_tipp via keyword tier.
 
     Arabic keywords route via raw_message path (detected_language=='ar').
+
+    C1/#15 TARGET NOTE: these phrases match dbt_tipp ONLY (no grounding overlap), so they
+    are NOT the "overwhelmed"+"spinning" longest-match case behind #15 and the narrow
+    tiebreak fix leaves them unchanged. Whether this acute-Arabic vocabulary belongs to
+    dbt_tipp (signed 25634a3) vs grounding (C1) is a clinical-bucketing question for the
+    same clinical lead handling #15; revisit if that adjudication re-buckets acute vocab.
+    See docs/superpowers/governance/2026-06-13-overwhelm-routing-c1-conflict.md
     """
     import asyncio
     from unittest.mock import patch
