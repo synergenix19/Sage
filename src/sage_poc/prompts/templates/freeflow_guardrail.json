@@ -2,9 +2,9 @@
   "template_id": "freeflow_guardrail",
   "content_id": "freeflow_guardrail",
   "version": "0.1.0",
-  "status": "draft-pending-review",
+  "status": "approved",
   "authored_by": "engineering",
-  "approved_by": null,
+  "approved_by": "clinical_lead",
   "effective_date": "2026-06-13",
   "layer": "L2",
   "role": "user",
@@ -15,5 +15,6 @@
   "_review_required": [
     "Clinical review of the guardrail wording before status moves off draft-pending-review.",
     "The discriminator was broadened beyond strict entry_screen presence to also cover guided breathing and grounding scripts. Reason: box_breathing (the cited contraindication example, breath-work activating a trauma survivor) has NO entry_screen (its first step is inhale_hold), so a strict entry-screen-only guardrail would miss it. Clinician to ratify the exact coverage set: act_psychological_flexibility, dbt_tipp, mindfulness_body_scan, progressive_muscle_relaxation, safe_place_visualization (entry-screen-bearing) plus guided breathing and grounding (named explicitly)."
-  ]
+  ],
+  "_signed_off": "Clinical lead 2026-06-13; discriminator broadening (covers guided breathing/grounding beyond strict entry_screen, per box_breathing having no entry_screen) RATIFIED at sign-off."
 }
