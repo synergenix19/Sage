@@ -140,10 +140,14 @@ async def test_dbt_tipp_keyword_match():
     assert result["skill_match_method"] == "keyword"
 
 @pytest.mark.asyncio
-async def test_dbt_tipp_keyword_arabic():
+async def test_calm_down_fast_arabic_routes_to_grounding():
+    # C1 decision B.3 (clinical sign-off 2026-06-14): محتاج أهدى بسرعة ("need to calm down
+    # fast") re-bucketed dbt_tipp -> grounding. Urgency is not extremity and there is no
+    # failed-first-line marker, so it falls to the lower-risk default like the other ambiguous
+    # cases. See docs/superpowers/governance/2026-06-13-overwhelm-routing-c1-conflict.md
     state = _ss_state(message_en="محتاج أهدى بسرعة", detected_language="ar")
     result = await skill_select_node(state)
-    assert result["active_skill_id"] == "dbt_tipp"
+    assert result["active_skill_id"] == "grounding_5_4_3_2_1"
 
 
 def test_semantic_threshold_is_calibrated():
