@@ -212,6 +212,59 @@ delivery, lower medical risk is the default for ambiguous presentations.**
   `semantic_description`/`semantic_anchors` change — so per the calibration protocol it does
   NOT trigger `calibrate_threshold.py`. Noted for verification, not assumed silently.
 
+## Structural finding — reactive phrase-by-phrase adjudication leaves neighbors unreviewed
+
+The C1 thread has cleaned acute routing one phrase at a time, at the points where a test
+happened to assert something. Every generic-overwhelm phrase in `target_presentations` that
+**no test asserts** keeps its original (possibly wrong) bucket, unreviewed, until a future
+test or a real user trips it. The thread already produced visible inconsistencies:
+
+- B.2 moved `مشاعري أقوى من قدرتي` → grounding, but the near-twins **`مشاعري أقوى مني`**
+  ("feelings stronger than me") and **`مشاعري فوق طاقتي`** ("feelings beyond my capacity")
+  still sit in dbt_tipp.
+- B.3 moved Arabic `محتاج أهدى بسرعة` → grounding, but the English twins **`need to calm down
+  fast`** / **`I need to calm down`** still sit in dbt_tipp.
+- The #15 keyword **`overwhelmed`** / `I'm overwhelmed` still routes dbt_tipp on a bare match —
+  the A tiebreak only catches the grounding∩dbt_tipp *overlap*, not a lone "I'm overwhelmed".
+
+### Proposed proactive fix (one comprehensive clinical pass, not more reactive patches)
+
+Enumerated dbt_tipp `target_presentations` (post A/B.2/B.3), bucketed by the lead's
+discriminator. **Candidates are engineering-flagged input; the lead adjudicates the whole list
+at once.** Nothing below is re-bucketed without that sign-off.
+
+**KEEP dbt_tipp — failed-first-line / explicit escalation:** `breathing isn't working`,
+`breathing is not enough`, `too intense to breathe through`, `need something stronger than
+breathing`, `breathing won't help right now`, `need an intense physical reset`, `need something
+much stronger`, `bring my body down`; AR `التنفس ما يساعد`, `التنفس ما كافي`, `أحتاج شيء أقوى من التنفس`.
+
+**KEEP dbt_tipp — confirmed extremity / urge-to-act / scale / explicit skill request:**
+`urge to act out`, `I'm about to explode`, `emotions are at a ten`, `I'm too activated`,
+`flooded`, `TIPP`, `tipp technique`, `distress tolerance`, `cold water technique`;
+AR `أشعر إني سأنفجر`, `غاضب جداً` (borderline).
+
+**KEEP dbt_tipp — acute inability (signed 25634a3, "can't calm down"):** `can't calm down`,
+`cant calm down`; AR `ما أقدر أتحكم`, `ما أتحمل` (borderline).
+
+**CANDIDATES for grounding (ambiguous overwhelm, no failed-first-line/extremity marker — the
+"invisible" bucket the lead should rule on):**
+- EN: `overwhelmed`, `I'm overwhelmed`, `im overwhelmed` (bare-match #15 residue);
+  `need to calm down fast`, `I need to calm down` (B.3 English twins — immediate inconsistency);
+  `emotions too intense`, `emotions are too much`, `unbearable feelings`, `feelings are
+  unbearable`, `I can't handle this`, `cant handle this`, `I'm losing it`, `im losing it`;
+  borderline `feeling out of control`, `losing control` (could read as extremity).
+- AR: `مشاعري أقوى مني`, `مشاعري فوق طاقتي` (near-twins of the moved B.2 phrase — immediate
+  inconsistency); `شعور طاغي` (overwhelming feeling).
+
+### Lock the corpus going forward (test design — NOT asserting current buckets)
+
+A bucket-lock regression test should assert each acute-cluster phrase against the bucket the
+**lead decides** in the audit — authored *after* the audit, not now (asserting today's
+un-adjudicated buckets would "bless" the very state under question, the same trap the Arabic
+offer tests fell into). Going forward, a new acute-cluster keyword requires a recorded bucket
+decision + its lock-test entry, so neighbors can't re-enter the corpus unreviewed. Tracked as
+its own task; this is the proactive replacement for reactive phrase-by-phrase cleanup.
+
 ## Item 4 — dbt_tipp content safety under autonomous delivery (PRE-PILOT, highest severity)
 
 **This is broader than any bucketing decision and ranks above them.** It protects *every* user
