@@ -265,3 +265,45 @@ async def test_enter_direct_without_ignore_declined_falls_back_to_offer_with_aud
     result = await skill_select_node(state)
     assert result["active_skill_id"] is None, "consent fallback must win over a declined direct entry"
     assert "enter_direct_declined_fallback" in result["path"]
+
+
+# ── Arabic-exclusion gate (2026-06-13) ────────────────────────────────────────
+# The R1 consent-offer flow is English-only until S2-2 ships a tested Khaleeji
+# accept path (the Arabic accept parse is audit-confirmed broken). Until then an
+# Arabic-script session must NEVER produce an offer — it falls through to pre-R1
+# behavior (the matched skill is entered directly). This is the test that converts
+# "English-only by intention" into "English-only by enforcement".
+
+async def test_arabic_session_skill_match_produces_no_offer_and_routes_to_prior_behavior():
+    """Arabic-script session with a skill match produces no offer and routes to prior behavior.
+
+    Contrast with test_keyword_match_creates_offer_not_activation: the SAME skill match
+    that offers in English must enter directly (active_skill_id set, no offered_skill_ids)
+    when detected_language == 'ar'.
+    """
+    kw = load_skill("cbt_thought_record").target_presentations[0]
+    state = make_state(
+        message_en=f"Lately {kw} and it will not stop",
+        raw_message="مؤخراً أفكاري لا تتوقف",
+        detected_language="ar",
+    )
+    result = await skill_select_node(state)
+    # No offer on an Arabic session.
+    assert not result.get("offered_skill_ids"), "Arabic session must not produce an offer"
+    assert "skill_offer_made" not in result["path"]
+    # Prior (pre-R1) behavior: the matched skill is entered directly.
+    assert result["active_skill_id"] == "cbt_thought_record"
+    assert result["active_step_id"] is not None
+    assert "arabic_offer_excluded" in result["path"]
+
+
+async def test_english_session_same_match_still_offers():
+    """Guard: the exclusion is language-scoped. The identical match in an English
+    session must still offer (R1 unchanged for English)."""
+    kw = load_skill("cbt_thought_record").target_presentations[0]
+    state = make_state(message_en=f"Lately {kw} and it will not stop")  # detected_language defaults to 'en'
+    result = await skill_select_node(state)
+    assert result["active_skill_id"] is None
+    assert result["offered_skill_ids"][0] == "cbt_thought_record"
+    assert "skill_offer_made" in result["path"]
+    assert "arabic_offer_excluded" not in result["path"]

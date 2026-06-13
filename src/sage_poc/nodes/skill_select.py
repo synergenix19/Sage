@@ -177,6 +177,30 @@ def _resolve_entry(
     (the acute rule substitutes within a pool via action.on_declined)."""
     # declined_skills updates on user decline are intent_route's responsibility (Task 8).
     primary = candidates[0]
+
+    # Arabic-exclusion gate (2026-06-13): the R1 consent-offer flow is English-only
+    # until S2-2 ships a tested Khaleeji accept path. The Arabic accept-parse is
+    # audit-confirmed broken, so offering in Arabic would create an un-acceptable offer
+    # (the consent-gate bypass this layer exists to prevent). Arabic-script sessions
+    # therefore fall through to pre-R1 behavior: enter the first non-declined matched
+    # skill directly, never produce an offer. When every candidate is declined (only
+    # reachable in a mixed-language session that earlier declined an English offer),
+    # fall through to the normal path below — which yields acute substitution or an
+    # all_candidates_declined no-op, never an Arabic offer.
+    detected_language = (state.get("detected_language") or "en").lower()
+    if detected_language == "ar":
+        declined_ar = set(state.get("declined_skills") or [])
+        entry = next((c for c in candidates if c not in declined_ar), None)
+        if entry is not None:
+            skill = _SKILLS[entry]
+            return {
+                "active_skill_id": entry,
+                "active_step_id": skill.steps[0].step_id,
+                "skill_match_method": method,
+                "semantic_score": semantic_score,
+                "path": state["path"] + ["skill_select", "arabic_offer_excluded"],
+            }
+
     eval_result = rules_engine.evaluate("skill_matching", {
         "matched_skill_id": primary,
         "emotional_intensity": state.get("emotional_intensity", 5),

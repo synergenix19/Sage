@@ -146,10 +146,14 @@ async def test_dbt_tipp_keyword_match():
 
 @pytest.mark.asyncio
 async def test_dbt_tipp_keyword_arabic():
+    # Arabic-exclusion gate (Option 1, 2026-06-13): Arabic-script sessions are excluded
+    # from the R1 consent-offer flow until S2-2 ships a tested Khaleeji accept path, so
+    # the match enters directly (pre-R1 behavior) rather than offering. Routing target
+    # (dbt_tipp) is unchanged; only the entry mechanism is direct, not offer.
     state = _ss_state(message_en="محتاج أهدى بسرعة", detected_language="ar")
     result = await skill_select_node(state)
-    assert result["active_skill_id"] is None
-    assert result["offered_skill_ids"][0] == "dbt_tipp"
+    assert result["active_skill_id"] == "dbt_tipp"
+    assert not result.get("offered_skill_ids")
 
 
 def test_semantic_threshold_is_calibrated():
@@ -344,7 +348,12 @@ async def test_semantic_timeout_returns_none_when_no_keyword_match():
 
 @pytest.mark.asyncio
 async def test_arabic_keyword_routes_via_tier1():
-    """Arabic-script keyword in target_presentations must match raw_message for Arabic sessions."""
+    """Arabic-script keyword in target_presentations must match raw_message for Arabic sessions.
+
+    Arabic-exclusion gate (Option 1, 2026-06-13): the match enters directly rather than
+    offering (Arabic is excluded from the R1 consent flow). This test still proves the
+    raw_message keyword pass fires; only the entry mechanism is direct, not offer.
+    """
     state = _ss_state(
         raw_message="تنفس معي",
         message_en="breathe with me",
@@ -352,16 +361,21 @@ async def test_arabic_keyword_routes_via_tier1():
         primary_intent="new_skill",
     )
     result = await skill_select_node(state)
-    assert result["offered_skill_ids"][0] == "box_breathing", (
-        f"Expected box_breathing offer, got {result.get('offered_skill_ids')!r}. "
+    assert result["active_skill_id"] == "box_breathing", (
+        f"Expected box_breathing direct entry, got active={result.get('active_skill_id')!r} "
+        f"offered={result.get('offered_skill_ids')!r}. "
         "Arabic-script keyword تنفس معي must match via raw_message pass."
     )
-    assert result["skill_match_method"] == "keyword_offer"
+    assert not result.get("offered_skill_ids"), "Arabic session must not offer"
+    assert result["skill_match_method"] == "keyword"
 
 
 @pytest.mark.asyncio
 async def test_arabic_keyword_fires_when_translation_is_ambiguous():
-    """When Arabic message_en translation is ambiguous, raw_message keyword pass must fire."""
+    """When Arabic message_en translation is ambiguous, raw_message keyword pass must fire.
+
+    Arabic-exclusion gate (Option 1, 2026-06-13): match enters directly, not via offer.
+    """
     state = _ss_state(
         raw_message="أبي تمرين تنفس",
         message_en="I want some exercise",  # ambiguous — would miss keyword
@@ -369,11 +383,13 @@ async def test_arabic_keyword_fires_when_translation_is_ambiguous():
         primary_intent="new_skill",
     )
     result = await skill_select_node(state)
-    assert result["offered_skill_ids"][0] == "box_breathing", (
-        f"Expected box_breathing offer, got {result.get('offered_skill_ids')!r}. "
+    assert result["active_skill_id"] == "box_breathing", (
+        f"Expected box_breathing direct entry, got active={result.get('active_skill_id')!r} "
+        f"offered={result.get('offered_skill_ids')!r}. "
         "Arabic keyword أبي تمرين تنفس must match via raw_message pass."
     )
-    assert result["skill_match_method"] == "keyword_offer"
+    assert not result.get("offered_skill_ids"), "Arabic session must not offer"
+    assert result["skill_match_method"] == "keyword"
 
 
 @pytest.mark.asyncio
@@ -390,11 +406,14 @@ async def test_arabic_raw_message_only_path():
         primary_intent="new_skill",
     )
     result = await skill_select_node(state)
-    assert result["offered_skill_ids"][0] == "box_breathing", (
-        f"Expected box_breathing offer via raw_message, got {result.get('offered_skill_ids')!r}. "
+    # Arabic-exclusion gate (Option 1, 2026-06-13): match enters directly, not via offer.
+    assert result["active_skill_id"] == "box_breathing", (
+        f"Expected box_breathing direct entry via raw_message, got active={result.get('active_skill_id')!r} "
+        f"offered={result.get('offered_skill_ids')!r}. "
         "When message_en has no keyword, raw_message Arabic keyword must be the match source."
     )
-    assert result["skill_match_method"] == "keyword_offer"
+    assert not result.get("offered_skill_ids"), "Arabic session must not offer"
+    assert result["skill_match_method"] == "keyword"
 
 
 @pytest.mark.asyncio
@@ -541,14 +560,18 @@ async def test_dbtipp_interim_ar_phrase_routes_via_keyword(phrase):
     with patch("sage_poc.nodes.skill_select.asyncio.wait_for", side_effect=asyncio.TimeoutError):
         result = await skill_select_node(state)
 
-    assert result["offered_skill_ids"][0] == "dbt_tipp", (
-        f"Expected dbt_tipp offer, got {result.get('offered_skill_ids')!r} for Arabic phrase {phrase!r}. "
+    # Arabic-exclusion gate (Option 1, 2026-06-13): match enters directly, not via offer.
+    # Routing target (dbt_tipp) and the anti-shadowing guarantee are unchanged.
+    assert result["active_skill_id"] == "dbt_tipp", (
+        f"Expected dbt_tipp direct entry, got active={result.get('active_skill_id')!r} "
+        f"offered={result.get('offered_skill_ids')!r} for Arabic phrase {phrase!r}. "
         "Phrase missing from dbt_tipp target_presentations or shadowed."
     )
-    assert result["skill_match_method"] == "keyword_offer", (
-        f"Expected keyword_offer match, got {result['skill_match_method']!r}."
+    assert not result.get("offered_skill_ids"), "Arabic session must not offer"
+    assert result["skill_match_method"] == "keyword", (
+        f"Expected keyword match, got {result['skill_match_method']!r}."
     )
-    assert result["offered_skill_ids"][0] not in ("grounding_5_4_3_2_1", "stop_technique"), (
+    assert result["active_skill_id"] not in ("grounding_5_4_3_2_1", "stop_technique"), (
         f"Arabic phrase {phrase!r} routed to a shadowing skill instead of dbt_tipp."
     )
 
