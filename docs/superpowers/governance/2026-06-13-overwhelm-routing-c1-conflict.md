@@ -265,6 +265,34 @@ offer tests fell into). Going forward, a new acute-cluster keyword requires a re
 decision + its lock-test entry, so neighbors can't re-enter the corpus unreviewed. Tracked as
 its own task; this is the proactive replacement for reactive phrase-by-phrase cleanup.
 
+### Audit status (2026-06-14) — first tranche shipped in PR #12; worklist needs the lead's ruling
+
+**DONE (signed-precedent EN/AR consistency completions, in PR #12):**
+- `مشاعري أقوى مني`, `مشاعري فوق طاقتي` → grounding (B.2 twins)
+- `need to calm down fast`, `I need to calm down` → grounding (B.3 EN twins)
+- `test_acute_cluster_bucket_lock` seeded over DECIDED phrases only (a move now needs sign-off
+  + a governance entry). `test_dbt_tipp_keyword_match` message updated (old compound straddled
+  the new boundary).
+
+**WORKLIST — needs the lead's per-phrase ruling (engineering lean noted; NOT shipped):**
+Implementing the audit surfaced two reasons these are not clean mechanical moves:
+1. **Distress-intolerance vs ambiguous-overwhelm coin-flips.** `unbearable feelings` / `feelings
+   are unbearable`, `I can't handle this` / `cant handle this`, `emotions too intense` /
+   `emotions are too much` use distress-*tolerance* language (TIPP's own domain) yet lack an
+   extremity/failed-line marker. Genuine clinical coin-flips — engineering will not guess them.
+2. **`overwhelmed` family is FP-entangled.** `overwhelmed` / `I'm overwhelmed` / `im overwhelmed`
+   is a dbt_tipp keyword **specifically to block a sleep_hygiene semantic false-positive**
+   (`test_overwhelmed_and_anxious_matches_dbt_tipp` asserts it → dbt_tipp today — itself a
+   #15-sibling that contradicts C1). Moving it to grounding is *probably* right per C1 and the
+   keyword would still block the sleep FP from grounding, but it re-touches a signed FP guard,
+   so it needs an explicit ruling + FP re-verification, not a blind move.
+3. **Control-loss** (`feeling out of control`, `losing control`) is extremity-adjacent (the
+   out-of-control/urge-to-act state TIPP targets) — engineering lean: KEEP dbt_tipp.
+
+Recommended ruling (lead to confirm each): overwhelmed family → grounding (FP re-verified);
+`I'm losing it`/`im losing it`, `شعور طاغي` → grounding; the distress-intolerance trio → lead's
+call; control-loss → keep dbt_tipp. On ruling, each moves + gains a bucket-lock entry in one pass.
+
 ## Item 4 — dbt_tipp content safety under autonomous delivery (PRE-PILOT, highest severity)
 
 **This is broader than any bucketing decision and ranks above them.** It protects *every* user
@@ -284,6 +312,32 @@ clinically-authored, signed work item** — NOT a routing fix and NOT something 
 authors. Severity: **pre-pilot blocker** on the same logic as the S2-7 contraindication concern —
 an unscreened user getting a cold-water instruction should not be live during a pilot. Tracked as
 its own task; flagged to the clinical lead at that severity, not as a footnote.
+
+### Engineering assessment of the CURRENT dbt_tipp content (2026-06-14) — changes what's needed
+
+dbt_tipp **already has** much of this, which narrows the actual work:
+- **Step 0 `entry_screen` already exists** and is the contraindication gate: it asks one
+  physical-readiness question *before* any physical component, and its `contraindications` /
+  `completion_criteria` hold + redirect (to box breathing / grounding) on cardiac, pacemaker,
+  arrhythmia, disability, injury, or disordered eating — naming the cold-water/bradycardia and
+  electrolyte risks explicitly. So "screen before cold water" (Item 4 part b) is **largely
+  satisfied today.**
+- **`cultural_overrides`** already give cold-water alternatives (wrists/neck for hijab/niqab)
+  and modest-exercise alternatives.
+- **What is NOT done (the real residual):** step *order* still leads with `temperature`
+  (cold water) → `intense_exercise` → `paced_breathing`. Item 4 part (a) wants paced
+  breathing first. There is **no PMR step** to add.
+
+**The residual is a genuine clinical tradeoff, not a mechanical edit.** Standard TIPP leads
+with Temperature precisely because the dive reflex is the fastest interrupt for *confirmed
+extreme* arousal — which, after the routing fixes, is now mostly what reaches dbt_tipp.
+"Lead with low-risk" trades that speed for safety. With the entry_screen already gating
+contraindications, the marginal safety gain of reordering vs the efficacy cost is a clinical
+call, and reordering requires **rewriting the step transitions** (clinical authoring). So
+engineering will **not** unilaterally reorder the live crisis protocol. **Decision needed from
+the lead:** given the entry_screen gate already exists, is the step-reorder still wanted (and if
+so, clinical authoring produces the reordered sequence + transitions), or does the existing gate
+suffice for pilot? Engineering can apply a signed, authored reorder mechanically once provided.
 
 ## Disposition
 
