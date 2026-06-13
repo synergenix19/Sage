@@ -258,6 +258,21 @@ def _build_l0_system_block(variant: str | None = None) -> str:
     return tmpl.content
 
 
+def _build_freeflow_guardrail_block(variant: str | None = None) -> str:
+    """Guided-protocol guardrail for FREEFLOW turns only (S2-7 B1).
+
+    Forbids leading a structured therapeutic protocol (guided breathing,
+    grounding, PMR, body scan, safe-place visualization, TIPP-style reset) as
+    free prose, which would route around the contraindication screening those
+    protocols carry. Permits suggesting + offering the guided version. Must NOT
+    be injected on skill-execution turns, where the executor delivers the
+    protocol via the L3 step instruction. Draft-pending clinical review.
+    """
+    tmpl = get_template("freeflow_guardrail", variant=variant)
+    _log.debug("freeflow_guardrail@%s loaded", tmpl.version)
+    return tmpl.content
+
+
 def _build_l1_history_block(
     conversation_history: list[dict],
     variant: str | None = None,
@@ -461,6 +476,16 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     l2_block = _build_l2_intent_block(_l2_intent, intensity, secondary_intent)
     user_parts.append(l2_block)
     layers.append("intent")
+
+    # Freeflow guided-protocol guardrail (S2-7 B1) — FREEFLOW TURNS ONLY.
+    # Mirrors the freeflow discriminator used by _compute_l1_budget: a turn with no
+    # step_instruction is freeflow (no active skill / no L3 step). On skill-execution
+    # turns the executor legitimately delivers the protocol via the L3 step instruction,
+    # so the guardrail must NOT fire there (it would conflict with L3). This is why the
+    # block lives in the composer conditioned on freeflow, not in L0_persona.
+    if not state.get("step_instruction"):
+        user_parts.append(_build_freeflow_guardrail_block())
+        layers.append("freeflow_guardrail")
 
     # L5: User context (before skill/knowledge so LLM has profile context first)
     l5_block = _build_l5_user_context_block(
