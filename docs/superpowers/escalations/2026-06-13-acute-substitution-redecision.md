@@ -103,19 +103,19 @@ if action["type"] == "enter_direct":
 
 ## Decision
 
-- [ ] **Re-affirm the original** (`ignore_declined: true`) — with this evidence on the record. Clean, but the BETA/TIC/consistency objections stand documented against it.
-- [ ] **Accept the amendment** (substitution + safety floor) — affirming that the four acute skills are clinically substitutable for acute down-regulation, and confirming the substitution order in the data (default = `box_breathing, grounding_5_4_3_2_1, stop_technique, dbt_tipp`).
+- [ ] ~~**Re-affirm the original** (`ignore_declined: true`)~~ — not chosen.
+- [x] **Accept the amendment** (substitution + safety floor).
 
-**Reasoning capture (required, not optional).** Whichever option is chosen, this artifact must record the *reasoning*, not only the checkbox. A re-affirmation of the original is governance-clean **only** as "decided against the amendment, with the BETA / TIC / capacity-ethics evidence explicitly seen and considered" — a bare verdict without the evidence acknowledged reads to a future auditor (or the planned external pre-launch audit) as "signed without the evidence in front of them," which hollows out the sign-off. Fill this in regardless of choice:
+**Reasoning capture (completed 2026-06-13, clinical lead).**
 
-- Decision: ____________________  Decided by: ____________  Date: __________
-- Evidence reviewed (acknowledge each): ☐ Project BETA (choices are a de-escalation domain) ☐ trauma-informed care (overriding a remembered refusal; breath work can be activating) ☐ capacity-based ethics (intensity ≠ incapacity) ☐ internal-consistency (session decline scope vs `ignore_declined`)
-- Reasoning for the call: ____________________________________________
-- If re-affirming original: why the contrary evidence does not change the decision: ____________________
-- If accepting amendment: substitutability affirmed? ☐ yes / ☐ with constraints: ______ ; substitution order set to: ______________
+- **Decision: ACCEPT THE AMENDMENT** (substitution + safety floor over `ignore_declined`). Decided by: clinical lead, recorded 2026-06-13.
+- Evidence reviewed (acknowledged): ☑ Project BETA (choices are a de-escalation domain) ☑ trauma-informed care (overriding a remembered refusal; breath work can be activating) ☑ capacity-based ethics (intensity ≠ incapacity) ☑ internal-consistency (session decline scope vs `ignore_declined`)
+- Reasoning for the call: overriding a remembered decline of a specific technique is not grounded by panic intensity (intensity is not incapacity), and the "low-risk" assumption fails specifically for breath work, which can be activating for trauma survivors — which is why `box_breathing` carries an entry screen. Substituting a different acute skill preserves the no-menu directiveness while honoring the decline, and resolves the contradiction with the session-scoped decline rule.
+- **Substitutability: affirmed WITH a constraint.** The acute skills are substitutable for acute down-regulation EXCEPT TIPP's cold-water / intense-exercise component, which may not be a clean swap for a breathing/grounding exercise. **Open sub-item requiring explicit closure:** does TIPP stay in the auto-substitution pool (reached only if all others were declined) or is it excluded entirely? Until closed, the amendment is implemented conservatively with **TIPP last** in the pool.
+- **Substitution order (activation-risk, grounding-first):** `grounding_5_4_3_2_1, stop_technique, box_breathing, dbt_tipp`. Consequence of decision C1 (grounding is the safer first move for ambiguous acute presentation; the pool inherits the lowest-activation-risk-first logic). `box_breathing` is mid-pool (breath focus is higher-activation than grounding/STOP, lower than TIPP's cold water); `dbt_tipp` last.
 
-On decision, engineering applies the diff (one commit, with the test inversion), and the `skill_matching_rules.json` sign-off is recorded against the chosen design **with this reasoning block completed**.
+On decision, engineering applies the diff (one commit, with the test inversion), pool ordered as above.
 
 ## Status
 
-OPEN — code held. Blocks the `skill_matching_rules.json` clinical sign-off (one of the five PR #4 sign-offs). Does not block the other four.
+**DECIDED 2026-06-13 — amendment accepted; code being applied** with the grounding-first pool order. **One open sub-item before the `skill_matching_rules.json` sign-off is recorded:** explicit closure of TIPP's place in the auto-substitution pool (stays-last vs excluded — a one-line data edit). The other four PR #4 sign-offs are unaffected.
