@@ -82,6 +82,16 @@ _BANNED_OPENER_PATTERNS: list[str] = [
     r"that's (really |so |very |genuinely )?(great|good|wonderful|lovely|nice|amazing) to hear\b",
     r"it's (really |so )?(great|good|wonderful) to hear\b",
     r"i'm (really |so )?(glad|happy|pleased) to hear\b",
+    # Sympathy-opener family. Added 2026-06-14 after the stock-opener RCA: the prior
+    # list caught reflective fillers and praise but NOT "I'm sorry to hear ...", the most
+    # common distress-response default. These are high-precision openers (anchored at ^),
+    # so a mid-reply "I'm sorry, could you say more" is unaffected. See
+    # docs/superpowers/audits/2026-06-14-stock-opener-rca.md
+    r"i'm sorry to hear\b",
+    r"i'm sorry you\b",
+    r"i'm sorry that\b",
+    r"i'm so sorry\b",
+    r"sorry to hear\b",
 ]
 _BANNED_OPENER_RE = re.compile(
     r"(?i)^(" + "|".join(_BANNED_OPENER_PATTERNS) + r")"
