@@ -302,6 +302,44 @@ S20_ENGAGEMENT_TRAJECTORY_ENRICHED = {
 }
 
 
+# ── Directive / advice-posture scenarios (S21–S22) ─────────────────────────────
+# These are freeflow (no skill) scenarios targeting the anti-generic eval dimension.
+# The user explicitly pushes for direct answers and resists Socratic questioning.
+# Clinician scoring of register_score and specificity_tailoring is the primary signal.
+
+S21_DIRECTIVE_FATHER_CONFLICT = {
+    "id": "directive_father_conflict",
+    "description": (
+        "User asks how to handle a parent's reaction, then explicitly "
+        "delegates and pushes back on being questioned (advice-loop regression)."
+    ),
+    "skill_id": None,
+    "initial_step": None,
+    "initial_state_overrides": {
+        "message_en": "How do I deal with my father's response like this?",
+    },
+    "_turn_overrides": {
+        2: {"message_en": "It makes me feel powerless. You need to guide me, not ask me."},
+        3: {"message_en": "What do you keep asking me? I thought you were the one with the answers."},
+        4: {"message_en": "I want answers, not questions."},
+    },
+    "_max_turns": 4,
+    "kpi_targets": {"completion": False, "rule_id": None},
+}
+
+S22_DIRECTIVE_DECISION_HELP = {
+    "id": "directive_decision_help",
+    "description": "User asks for a concrete decision recommendation (delegation).",
+    "skill_id": None,
+    "initial_step": None,
+    "initial_state_overrides": {
+        "message_en": "I can't decide whether to take the new job. Just tell me what to do.",
+    },
+    "_max_turns": 1,
+    "kpi_targets": {"completion": False, "rule_id": None},
+}
+
+
 ALL_SCENARIOS = [
     S01_CBT_HAPPY_PATH,
     S02_DBT_TIPP_HAPPY_PATH,
@@ -323,4 +361,6 @@ ALL_SCENARIOS = [
     S18_CLINICAL_FLAGS_NO_BLOCK,
     S19_PRIOR_EXPOSURE_ENRICHED,
     S20_ENGAGEMENT_TRAJECTORY_ENRICHED,
+    S21_DIRECTIVE_FATHER_CONFLICT,
+    S22_DIRECTIVE_DECISION_HELP,
 ]
