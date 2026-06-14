@@ -343,12 +343,13 @@ def test_general_chat_template_contains_exception_clause_for_floor_return():
     from sage_poc.prompts.composer import _build_l2_intent_block
 
     block = _build_l2_intent_block("general_chat", intensity=5, secondary_intent=None)
-    # Option A absorbed into the v1.4.0 base posture (2026-06-14): floor-return is now
-    # expressed as "say they do not know -> give specific suggestions", not a literal
-    # "Exception:" clause. Behaviour preserved; wording changed.
+    # v1.4.0 (2026-06-14): the Option-A floor-return Exception clause is PRESERVED from
+    # v1.3.0, now strengthened to yield specific (not generic) suggestions. R3
+    # engage-then-bridge wording also preserved.
+    assert "exception" in block.lower(), "floor-return Exception clause missing from base posture"
     assert "do not know" in block.lower(), "floor-return trigger missing from base posture"
     assert "specific" in block.lower(), "floor-return must yield specific suggestions, not a re-ask"
-    assert "rephrasing the same question" in block.lower(), "must forbid re-asking on floor-return"
+    assert "rephrasing the same exploratory question" in block.lower(), "must forbid re-asking on floor-return"
 
 
 # ── R1: pending-offer classification ─────────────────────────────────────────

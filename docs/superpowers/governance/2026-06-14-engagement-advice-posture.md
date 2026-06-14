@@ -24,12 +24,19 @@ audit trail requires per-person attribution.
 - D1 question-discipline scope: FREEFLOW-ONLY (skip skill-execution turns). Approved 2026-06-14.
 - D3 over-affirmation challenge: gentle, non-acute only. Approved 2026-06-14.
 
-## Absolute Rule 1 — L0/L2 word-budget deviation
-- L2 general_chat: 50 → 100 (v1.4.0, ~95w). L2 general_chat_directive: 100 (~95w, replaces base).
+## Absolute Rule 1 — L0/L2 word-budget deviation (CORRECTED 2026-06-14)
+- L2 general_chat: **130 → 190** (v1.4.0, ~185w). CORRECTION: the earlier "50→100" estimate was wrong
+  — (a) the shipped baseline was already 130 (v1.3.0), not 50; (b) the 100 came from a draft rewrite
+  that erroneously DROPPED shipped R3 engage-then-bridge wording. v1.4.0 PRESERVES R3
+  ("engage with the topic itself briefly", "Never deflect") + the Option-A "Exception" floor-return
+  clause, and ADDS validate-first + specific-not-generic. Net new vs the shipped 130 baseline ≈ +55w.
+- L2 general_chat_directive: 100 (~95w, replaces base on directive turns, mutually exclusive).
 - L0 persona: 550 → 590 (v2.1.0, ~585w).
-- Total-ceiling: L3/L4 do not fire on general_chat freeflow turns (composer.py:216/780); net new
-  always-on ≈ +90w. Accepted for POC.
+- Total-ceiling: L3/L4 do not fire on general_chat freeflow turns (composer.py:216/780); the realistic
+  general_chat turn is L0(~585)+L1(flex cap 600, truncation cap)+L2(~185)+L5(~100). Accepted for POC.
 - [x] **Product-owner Rule-1 approval (budget deviation, compress option):** product owner, 2026-06-14
+  (NOTE: approved at the 100 figure; corrected to 190 to preserve shipped R3 — flagged to product owner
+  2026-06-14, smaller net-new than feared since baseline was 130. Re-confirm if the 190 figure needs it.)
 
 ## Absolute Rule 1 — question-discipline as clinical policy in engineer code (DEVIATION)
 Question-discipline (one-question threshold + crisis/monitoring/skill-step carve-outs) is hardcoded in

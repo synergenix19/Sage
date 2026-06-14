@@ -35,9 +35,11 @@ class TestR3GeneralChatEngageThenBridge:
         assert "engage with the topic itself briefly" in tmpl.content
         assert "Never deflect" in tmpl.content
 
-    def test_template_version_is_1_3_0(self):
+    def test_template_version_is_1_4_0(self):
         tmpl = get_intent_template("general_chat")
-        assert tmpl.version == "1.3.0"
+        # v1.4.0 (2026-06-14): validate-first + specific-not-generic added to the R3 base;
+        # R3 engage-then-bridge + Option-A Exception clause preserved.
+        assert tmpl.version == "1.4.0"
 
     def test_no_em_dash_in_content(self):
         tmpl = get_intent_template("general_chat")
