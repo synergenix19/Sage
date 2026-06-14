@@ -84,9 +84,10 @@ def test_load_l0_persona():
     assert tmpl.layer == "L0"
     assert tmpl.role == "system"
     assert tmpl.always_include is True
-    # L0 v2.1.0 (2026-06-14): budget raised 550->590 (one-question + anti-affirmation rules);
-    # content now starts with the FORMAT block.
-    assert tmpl.word_budget == 590
+    # L0 v2.2.0 (2026-06-14): budget 590->600 (reply length keyed to weight not input length;
+    # over-affirmation duplication between WARMTH and CONVERSATION DISCIPLINE consolidated).
+    # content starts with the FORMAT block.
+    assert tmpl.word_budget == 600
     assert tmpl.content.startswith("FORMAT")
 
 
@@ -319,4 +320,28 @@ def test_l0_persona_has_one_question_and_anti_over_affirmation():
     lowered = tmpl.content.lower()
     assert "one question" in lowered and ("never stack" in lowered or "not stack" in lowered)
     assert "over-affirm" in lowered or "uncritical" in lowered
-    assert tmpl.version == "2.1.0"
+    assert tmpl.version == "2.2.0"
+
+
+def test_l0_reply_length_keyed_to_weight_not_input_length():
+    """v2.2.0 (2026-06-14): a SHORT-but-heavy disclosure must get a substantive, more PRESENT
+    reply — reply length keyed to emotional WEIGHT, not input length. The extra length is
+    presence/validation, NOT more advice or questions (so it cannot collide with the
+    one-question gate or WARMTH-IS-NOT-CONSTANT-AGREEMENT). Register-matching is tone/formality,
+    not 'energy'/length.
+
+    NOTE: this is additive comfort in a probabilistic layer, NOT a safety mechanism. The
+    short-but-heavy (passive-SI / veiled-distress) case is a crisis surface owned by Node 1
+    recall — this prompt directive does not 'handle' it.
+    """
+    c = get_template("L0_persona").content.lower()
+    # length keyed to weight, expands even for brief input
+    assert "even when it is brief" in c, "brief-but-heavy disclosure must still get a longer, more present reply"
+    # extra length = presence/validation, not stacked content (no collision with one-question / anti-affirmation)
+    assert "presence and validation, not more advice or more questions" in c, (
+        "extra length must be presence/validation, not more advice or questions"
+    )
+    # decouple length from input length; register = tone/formality, 'energy' dropped
+    assert "not the length of their message" in c, "length must be explicitly decoupled from input length"
+    assert "energy" not in c, "'energy' reads as intensity/length matching; register must be tone/formality only"
+    assert "tone and level of formality" in c
