@@ -301,3 +301,14 @@ def test_compose_prompt_no_directive_variant_when_flag_unset(monkeypatch):
     state = {**_GENERAL_CHAT_BASE_STATE, "primary_intent": "general_chat", "directive_posture": False}
     composer.compose_prompt(state)
     assert captured["variant"] is None
+
+
+def test_general_chat_base_posture_directives_present():
+    from sage_poc.prompts.composer import _build_l2_intent_block
+    block = _build_l2_intent_block("general_chat", intensity=5, secondary_intent=None).lower()
+    assert "validate before you inform" in block      # validate-first
+    assert "specific" in block                         # specific-not-generic
+    assert "do not know" in block or "suggest" in block  # floor-return (absorbs Option A)
+    assert "wellness companion" in block               # companion-scope
+    # NOTE: one-question + resist-over-affirmation are asserted in L0, NOT here — they are
+    # global persona rules, deliberately not duplicated per-L2.

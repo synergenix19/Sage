@@ -329,39 +329,26 @@ def test_intent_system_contains_safety_carveout_for_acceptance_framed_harm():
 # it is because the routing changed, not because the template regressed.
 
 def test_general_chat_template_contains_exception_clause_for_floor_return():
-    """OPTION-A GUARD: general_chat L2 template must contain the floor-return exception.
+    """OPTION-A GUARD (re-pointed v1.4.0 2026-06-14): general_chat L2 template must
+    contain the floor-return behaviour.
 
     When the user says 'I don't know, can you suggest something?', intent_route
-    currently routes to general_chat (no advice_request category in INTENT_SYSTEM).
-    The fix is in the template: the exception clause tells the LLM to answer its
-    own question with concrete suggestions rather than re-asking.
+    routes to general_chat. The v1.3.0 fix was an explicit 'Exception:' clause;
+    v1.4.0 absorbs floor-return into the base posture: validate-first, then give
+    specific suggestions when the user signals they do not know / asks to suggest.
 
-    If this assertion fails: check general_chat.json — the exception clause
-    ('Exception: if the user says they do not know...') must be present. This is
-    the Option A fix; removing it re-opens the advice deflection bug.
-
-    If this assertion starts failing after Option B activates: the routing change
-    in INTENT_SYSTEM may have moved delegation traffic away from general_chat.
-    Verify advice_request.json contains the equivalent instruction before removing
-    this guard.
+    If this assertion fails: check general_chat.json — the floor-return trigger
+    ('do not know') and specific-suggestions directive must be present.
     """
     from sage_poc.prompts.composer import _build_l2_intent_block
 
     block = _build_l2_intent_block("general_chat", intensity=5, secondary_intent=None)
-
-    assert "Exception" in block, (
-        "OPTION-A FAIL: general_chat L2 block missing the exception clause. "
-        "The LLM will not see the instruction to provide concrete suggestions "
-        "when the user returns the conversational floor. Check general_chat.json."
-    )
-    assert "do not know" in block.lower(), (
-        "OPTION-A FAIL: exception clause must address 'do not know' — the "
-        "dispreferred-response signal. Check general_chat.json exception wording."
-    )
-    assert "concrete" in block.lower(), (
-        "OPTION-A FAIL: exception clause must instruct 'concrete' suggestions — "
-        "not a restatement of the exploratory posture. Check general_chat.json."
-    )
+    # Option A absorbed into the v1.4.0 base posture (2026-06-14): floor-return is now
+    # expressed as "say they do not know -> give specific suggestions", not a literal
+    # "Exception:" clause. Behaviour preserved; wording changed.
+    assert "do not know" in block.lower(), "floor-return trigger missing from base posture"
+    assert "specific" in block.lower(), "floor-return must yield specific suggestions, not a re-ask"
+    assert "rephrasing the same question" in block.lower(), "must forbid re-asking on floor-return"
 
 
 # ── R1: pending-offer classification ─────────────────────────────────────────
