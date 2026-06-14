@@ -226,3 +226,78 @@ def test_advice_request_draft_removed():
     must be gone so it can never be selected by primary_intent."""
     from sage_poc.prompts.loader import get_intent_template
     assert get_intent_template("advice_request") is None
+
+
+# ---------------------------------------------------------------------------
+# Task 4: composer selects directive variant when directive_posture flag is set
+# ---------------------------------------------------------------------------
+
+# Reuse _BASE_STATE from test_l5_profile_injection as a complete general_chat state.
+_GENERAL_CHAT_BASE_STATE: dict = {
+    "raw_message": "I've been struggling again",
+    "detected_language": "en",
+    "message_en": "I've been struggling again",
+    "is_safe": True,
+    "crisis_flags": [],
+    "clinical_flags": [],
+    "crisis_state": "none",
+    "s7_result": None,
+    "s7_method": None,
+    "distress_trajectory": [],
+    "code_switching": False,
+    "primary_intent": "general_chat",
+    "secondary_intent": None,
+    "intent_confidence": 0.9,
+    "emotional_intensity": 5,
+    "engagement": 6,
+    "active_skill_id": None,
+    "active_step_id": None,
+    "executed_step_id": None,
+    "step_instruction": None,
+    "skill_match_method": None,
+    "semantic_score": None,
+    "escalation_triggered": None,
+    "gate_path": None,
+    "response_en": None,
+    "response": None,
+    "path": [],
+    "turn_count": 3,
+    "conversation_history": [],
+    "prompt_layers": [],
+    "token_usage": {},
+    "therapeutic_profile": None,
+}
+
+
+def test_compose_prompt_uses_directive_variant_when_flag_set(monkeypatch):
+    """When directive_posture is True on a general_chat turn, compose_prompt must select
+    the L2_general_chat_directive variant."""
+    from sage_poc.prompts import composer
+    captured = {}
+    real = composer._build_l2_intent_block
+
+    def _spy(primary_intent, intensity, secondary_intent=None, variant=None, extra_variables=None):
+        captured["variant"] = variant
+        return real(primary_intent, intensity, secondary_intent, variant, extra_variables)
+
+    monkeypatch.setattr(composer, "_build_l2_intent_block", _spy)
+    state = {**_GENERAL_CHAT_BASE_STATE, "primary_intent": "general_chat", "directive_posture": True}
+    composer.compose_prompt(state)
+    assert captured["variant"] == "directive"
+
+
+def test_compose_prompt_no_directive_variant_when_flag_unset(monkeypatch):
+    """When directive_posture is False (or absent) on a general_chat turn, compose_prompt
+    must NOT pass a variant to _build_l2_intent_block."""
+    from sage_poc.prompts import composer
+    captured = {}
+    real = composer._build_l2_intent_block
+
+    def _spy(primary_intent, intensity, secondary_intent=None, variant=None, extra_variables=None):
+        captured["variant"] = variant
+        return real(primary_intent, intensity, secondary_intent, variant, extra_variables)
+
+    monkeypatch.setattr(composer, "_build_l2_intent_block", _spy)
+    state = {**_GENERAL_CHAT_BASE_STATE, "primary_intent": "general_chat", "directive_posture": False}
+    composer.compose_prompt(state)
+    assert captured["variant"] is None
