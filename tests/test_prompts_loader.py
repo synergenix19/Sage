@@ -84,9 +84,9 @@ def test_load_l0_persona():
     assert tmpl.layer == "L0"
     assert tmpl.role == "system"
     assert tmpl.always_include is True
-    # L0 v2.0.0 (2026-06-14): budget raised 150->550 to match the prompt's actual scope
-    # (format + relational + safety + limits); content now starts with the FORMAT block.
-    assert tmpl.word_budget == 550
+    # L0 v2.1.0 (2026-06-14): budget raised 550->590 (one-question + anti-affirmation rules);
+    # content now starts with the FORMAT block.
+    assert tmpl.word_budget == 590
     assert tmpl.content.startswith("FORMAT")
 
 
@@ -312,3 +312,11 @@ def test_general_chat_base_posture_directives_present():
     assert "wellness companion" in block               # companion-scope
     # NOTE: one-question + resist-over-affirmation are asserted in L0, NOT here — they are
     # global persona rules, deliberately not duplicated per-L2.
+
+
+def test_l0_persona_has_one_question_and_anti_over_affirmation():
+    tmpl = get_template("L0_persona")
+    lowered = tmpl.content.lower()
+    assert "one question" in lowered and ("never stack" in lowered or "not stack" in lowered)
+    assert "over-affirm" in lowered or "uncritical" in lowered
+    assert tmpl.version == "2.1.0"
