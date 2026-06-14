@@ -27,6 +27,7 @@ class SageState(TypedDict):
     engagement_trajectory: list[int]
     conversation_summary: Optional[str]
     code_switching: bool
+    directive_posture: bool   # deterministic flag: user explicitly delegated / is frustrated by questions and wants direct guidance (set in intent_route, NOT the LLM classifier)
 
     primary_intent: Optional[Intent]
     secondary_intent: Optional[Intent]  # blended intent — e.g. "info_request" alongside "new_skill"

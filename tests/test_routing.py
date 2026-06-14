@@ -591,3 +591,16 @@ def test_offer_pending_no_active_skill_routes_to_freeflow():
         "offered_skill_ids": ["worry_time"],
     }
     assert _route_after_skill_select(state) == "freeflow"
+
+
+def test_build_state_resets_directive_posture_false():
+    """directive_posture is a per-turn deterministic flag — it must reset to False each
+    turn so a prior directive turn cannot leak into the next."""
+    from sage_poc.server_helpers import _build_state
+
+    class _Req:
+        messages = [type("M", (), {"role": "user", "content": "hello"})()]
+        session_id = "s1"
+        user_id = None
+    state = _build_state(_Req())
+    assert state["directive_posture"] is False
