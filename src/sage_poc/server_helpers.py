@@ -165,6 +165,7 @@ def _build_state(req: _RequestLike) -> dict:
         "response":           None,
         "path":               [],
         "code_switching":     False,
+        "directive_posture":  False,
         "s7_result":          None,
         "s7_method":          None,
         "skill_match_method": None,

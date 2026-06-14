@@ -68,6 +68,8 @@ def _blank_rubric() -> dict:
         "matches_instruction":    None,   # 1-5: response follows step_instruction
         "validation_genuine":     None,   # 1-5: validation feels authentic, not scripted
         "socratic_quality":       None,   # 1-5: open questions invite reflection
+        "register_score":         None,   # 1-5: warmth/register; gate target >= 4.0
+        "specificity_tailoring":  None,   # 1-5: advice is specific to THIS user, not generic
         "overall":                None,   # 1-5: holistic quality rating
         "reviewer_notes":         None,
     }
@@ -241,6 +243,8 @@ async def _main(
             "quality_score":   "≥4.0/5.0 clinician-scored",
             "rule_accuracy":   "binary per rule (see test_rule_accuracy.py)",
             "turn_latency":    "<3s p95 (see test_latency.py)",
+            "register_score":  "≥4.0/5.0 clinician-scored (anti-generic / warmth)",
+            "specificity":     "≥4.0/5.0 clinician-scored (advice tailored, not boilerplate)",
         },
         "clinician_notes": {
             "harness_limitations": (

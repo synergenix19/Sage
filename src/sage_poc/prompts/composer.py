@@ -690,7 +690,14 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
             else primary_intent
         )
         _l2_extra = None
-    l2_block = _build_l2_intent_block(_l2_intent, intensity, secondary_intent, extra_variables=_l2_extra)
+    # Directive posture (deterministic flag from intent_route): when set on a general_chat
+    # turn, select the stronger directive variant (lead with specific suggestions, do not
+    # re-probe, no closing question). Falls back to base general_chat automatically if the
+    # variant file is missing (get_intent_template returns the base on unknown variant).
+    _l2_variant = "directive" if (state.get("directive_posture") and _l2_intent == "general_chat") else None
+    l2_block = _build_l2_intent_block(
+        _l2_intent, intensity, secondary_intent, variant=_l2_variant, extra_variables=_l2_extra
+    )
     user_parts.append(l2_block)
     layers.append("intent")
 

@@ -36,6 +36,38 @@ _FORMAT_VIOLATIONS = re.compile(
     r"]"
 )
 
+# Question-discipline (Node 8, deterministic). MIND-SAFE: one question at a time, never
+# stack. Cannot be a cultural_output rule (that schema is blocklist/allowlist substitute
+# only — see rules/schemas.py), so it lives here as structural logic.
+_SENT_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+_TRAILING_QUESTION_RE = re.compile(r"(?:\s*[^.!?]*\?)+\s*$")
+
+
+def _limit_to_one_question(text: str) -> str:
+    """Keep at most one question sentence (the first); drop later question sentences.
+    Statements are preserved in order. No-op when 0 or 1 question. Never returns empty."""
+    if not text or text.count("?") <= 1:
+        return text
+    out, seen_q = [], False
+    for sent in _SENT_SPLIT_RE.split(text.strip()):
+        if sent.rstrip().endswith("?"):
+            if seen_q:
+                continue
+            seen_q = True
+        out.append(sent)
+    result = " ".join(out).strip()
+    return result if result else text
+
+
+def _strip_trailing_question(text: str) -> str:
+    """Drop trailing question sentence(s) so an advice turn ends on substance. Returns the
+    original unchanged if stripping would empty the turn (whole turn was a question)."""
+    if not text or "?" not in text:
+        return text
+    stripped = _TRAILING_QUESTION_RE.sub("", text).rstrip()
+    return stripped if stripped else text
+
+
 _BANNED_OPENER_PATTERNS: list[str] = [
     r"it sounds like\b",
     r"that sounds (really |very |incredibly |quite )?(tough|hard|difficult|painful|overwhelming|exhausting|challenging|frustrating|lonely|scary|frightening)\b",
@@ -315,6 +347,28 @@ async def output_gate_node(state: SageState) -> dict:
                         if not t.cancelled() and t.exception() else None
                     )
 
+    # Question discipline (deterministic). Global on freeflow turns: collapse stacked
+    # questions to one (MIND-SAFE: one question at a time). Directive turns additionally end
+    # on substance, not a question. Runs on English text before translation so the Arabic
+    # render inherits the cleaned text.
+    # SAFETY CARVE-OUT: NEVER run on a crisis/monitoring turn — a monitoring turn can carry
+    # a safety question ("Are you safe right now?") as the 2nd question, which collapse would
+    # strip. crisis_response already bypasses output_gate (graph.py END edge); this guards the
+    # monitoring path that DOES transit here. D1: also skip skill-execution turns
+    # (step_instruction set) so clinician-authored L3 step questions are never overridden.
+    if (
+        gate_path not in ("scope_refusal", "jailbreak")
+        and state.get("crisis_state") in (None, "none")
+        and not state.get("step_instruction")
+        and response_en
+    ):
+        _disciplined = _limit_to_one_question(response_en)
+        if state.get("directive_posture"):
+            _disciplined = _strip_trailing_question(_disciplined)
+        if _disciplined != response_en:
+            response_en = _disciplined
+            path = path + ["question_discipline_applied"]
+
     # Invariant: user-visible offer ⇔ promotable state (S1-1a). If the vetted
     # fallback replaced an offer created THIS turn ("skill_offer_made" is in this
     # turn's path; state["path"] is per-turn, reset by _build_state), the user never
@@ -435,6 +489,7 @@ async def output_gate_node(state: SageState) -> dict:
 
     result = {
         "response": final_response,
+        "response_en": response_en,
         "gate_path": gate_path or "standard",
         "path": path,
         "turn_count": next_turn,

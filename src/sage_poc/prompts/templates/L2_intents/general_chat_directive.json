@@ -1,0 +1,15 @@
+{
+  "template_id": "L2_general_chat_directive",
+  "version": "1.0.0",
+  "status": "approved",
+  "authored_by": "sage_clinics",
+  "approved_by": "clinical_lead",
+  "effective_date": "2026-06-14",
+  "layer": "L2",
+  "role": "user",
+  "always_include": true,
+  "word_budget": 100,
+  "content": "INTENT: The user has handed the decision to you or is frustrated at being asked questions. Emotional intensity: {intensity}/10. {intensity_guidance} Lead now. Give two or three concrete, specific suggestions tied to exactly what this user described, not generic advice that would fit anyone. Do not ask another exploratory question and do not end your reply with a question. If the user is frustrated that you keep asking, acknowledge that in one short clause, then give the suggestions, do not defend the questions. Stay warm and brief.",
+  "variables": ["intensity", "intensity_guidance"],
+  "intent": "general_chat"
+}

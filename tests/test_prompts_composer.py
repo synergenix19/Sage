@@ -239,8 +239,9 @@ from sage_poc.prompts.composer import _build_l0_system_block, _build_l1_history_
 
 
 def test_l0_system_block_starts_with_important():
+    # L0 v2.0.0+ opens with the FORMAT block, not "IMPORTANT"; assertion updated accordingly.
     block = _build_l0_system_block()
-    assert block.startswith("IMPORTANT")
+    assert block.startswith("FORMAT")
 
 
 def test_l1_history_empty_returns_none():
@@ -492,9 +493,10 @@ def test_compose_prompt_returns_three_tuple():
 
 
 def test_compose_prompt_system_starts_with_important():
+    # L0 v2.0.0+ opens with the FORMAT block, not "IMPORTANT"; assertion updated accordingly.
     with patch("sage_poc.prompts.composer.rules_engine.evaluate", side_effect=_no_rules()):
         system_str, _, _ = compose_prompt(_BASE_STATE)
-    assert system_str.startswith("IMPORTANT")
+    assert system_str.startswith("FORMAT")
 
 
 def test_compose_prompt_layers_always_contains_persona_and_intent():

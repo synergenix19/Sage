@@ -329,39 +329,27 @@ def test_intent_system_contains_safety_carveout_for_acceptance_framed_harm():
 # it is because the routing changed, not because the template regressed.
 
 def test_general_chat_template_contains_exception_clause_for_floor_return():
-    """OPTION-A GUARD: general_chat L2 template must contain the floor-return exception.
+    """OPTION-A GUARD (re-pointed v1.4.0 2026-06-14): general_chat L2 template must
+    contain the floor-return behaviour.
 
     When the user says 'I don't know, can you suggest something?', intent_route
-    currently routes to general_chat (no advice_request category in INTENT_SYSTEM).
-    The fix is in the template: the exception clause tells the LLM to answer its
-    own question with concrete suggestions rather than re-asking.
+    routes to general_chat. The v1.3.0 fix was an explicit 'Exception:' clause;
+    v1.4.0 absorbs floor-return into the base posture: validate-first, then give
+    specific suggestions when the user signals they do not know / asks to suggest.
 
-    If this assertion fails: check general_chat.json — the exception clause
-    ('Exception: if the user says they do not know...') must be present. This is
-    the Option A fix; removing it re-opens the advice deflection bug.
-
-    If this assertion starts failing after Option B activates: the routing change
-    in INTENT_SYSTEM may have moved delegation traffic away from general_chat.
-    Verify advice_request.json contains the equivalent instruction before removing
-    this guard.
+    If this assertion fails: check general_chat.json — the floor-return trigger
+    ('do not know') and specific-suggestions directive must be present.
     """
     from sage_poc.prompts.composer import _build_l2_intent_block
 
     block = _build_l2_intent_block("general_chat", intensity=5, secondary_intent=None)
-
-    assert "Exception" in block, (
-        "OPTION-A FAIL: general_chat L2 block missing the exception clause. "
-        "The LLM will not see the instruction to provide concrete suggestions "
-        "when the user returns the conversational floor. Check general_chat.json."
-    )
-    assert "do not know" in block.lower(), (
-        "OPTION-A FAIL: exception clause must address 'do not know' — the "
-        "dispreferred-response signal. Check general_chat.json exception wording."
-    )
-    assert "concrete" in block.lower(), (
-        "OPTION-A FAIL: exception clause must instruct 'concrete' suggestions — "
-        "not a restatement of the exploratory posture. Check general_chat.json."
-    )
+    # v1.4.0 (2026-06-14): the Option-A floor-return Exception clause is PRESERVED from
+    # v1.3.0, now strengthened to yield specific (not generic) suggestions. R3
+    # engage-then-bridge wording also preserved.
+    assert "exception" in block.lower(), "floor-return Exception clause missing from base posture"
+    assert "do not know" in block.lower(), "floor-return trigger missing from base posture"
+    assert "specific" in block.lower(), "floor-return must yield specific suggestions, not a re-ask"
+    assert "rephrasing the same exploratory question" in block.lower(), "must forbid re-asking on floor-return"
 
 
 # ── R1: pending-offer classification ─────────────────────────────────────────
@@ -554,3 +542,34 @@ async def test_arabic_decline_records_cooldown():
     assert result["offered_skill_ids"] is None
     assert result["declined_skills"] == ["box_breathing", "grounding_5_4_3_2_1"]
     assert "offer_declined" in result["path"]
+
+
+@pytest.mark.asyncio
+async def test_intent_route_sets_directive_posture_deterministically():
+    """directive_posture is set by the deterministic detector regardless of what the LLM
+    classifier returns — it does not depend on primary_intent."""
+    from sage_poc.nodes.intent_route import intent_route_node
+
+    mock_response = (
+        '{"primary_intent": "general_chat", "secondary_intent": null, '
+        '"intent_confidence": 0.4, "emotional_intensity": 5, "engagement": 4}'
+    )
+    state = _base_state(message_en="just tell me what to do")
+
+    with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=mock_response)):
+        result = await intent_route_node(state)
+
+    assert result["directive_posture"] is True
+
+
+@pytest.mark.asyncio
+async def test_intent_route_directive_posture_false_for_normal_message():
+    from sage_poc.nodes.intent_route import intent_route_node
+    mock_response = (
+        '{"primary_intent": "general_chat", "secondary_intent": null, '
+        '"intent_confidence": 0.9, "emotional_intensity": 3, "engagement": 8}'
+    )
+    state = _base_state(message_en="how do I deal with my father's response like this?")
+    with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=mock_response)):
+        result = await intent_route_node(state)
+    assert result["directive_posture"] is False
