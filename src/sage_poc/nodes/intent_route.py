@@ -3,6 +3,7 @@ import re
 from sage_poc.state import SageState
 from sage_poc.llm import get_classifier, get_fallback_classifier
 from sage_poc.resilience import resilient_invoke
+from sage_poc.nodes.directive_detect import detect_directive_request
 
 # SINGLE-POINT-OF-FAILURE WARNING: The general_chat classification below is the sole
 # gate preventing bare emotional words ("stressed", "depressed", "anxious", "I feel sad")
@@ -139,6 +140,7 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
         "emotional_intensity": _safe_int(data.get("emotional_intensity"), 5),
         "engagement": _safe_int(data.get("engagement"), 5),
         "path": state["path"] + ["intent_route"],
+        "directive_posture": detect_directive_request(state),
     }
     offered = state.get("offered_skill_ids") or []
     if offered:

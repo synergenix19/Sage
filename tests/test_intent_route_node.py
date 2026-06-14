@@ -554,3 +554,34 @@ async def test_arabic_decline_records_cooldown():
     assert result["offered_skill_ids"] is None
     assert result["declined_skills"] == ["box_breathing", "grounding_5_4_3_2_1"]
     assert "offer_declined" in result["path"]
+
+
+@pytest.mark.asyncio
+async def test_intent_route_sets_directive_posture_deterministically():
+    """directive_posture is set by the deterministic detector regardless of what the LLM
+    classifier returns — it does not depend on primary_intent."""
+    from sage_poc.nodes.intent_route import intent_route_node
+
+    mock_response = (
+        '{"primary_intent": "general_chat", "secondary_intent": null, '
+        '"intent_confidence": 0.4, "emotional_intensity": 5, "engagement": 4}'
+    )
+    state = _base_state(message_en="just tell me what to do")
+
+    with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=mock_response)):
+        result = await intent_route_node(state)
+
+    assert result["directive_posture"] is True
+
+
+@pytest.mark.asyncio
+async def test_intent_route_directive_posture_false_for_normal_message():
+    from sage_poc.nodes.intent_route import intent_route_node
+    mock_response = (
+        '{"primary_intent": "general_chat", "secondary_intent": null, '
+        '"intent_confidence": 0.9, "emotional_intensity": 3, "engagement": 8}'
+    )
+    state = _base_state(message_en="how do I deal with my father's response like this?")
+    with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=mock_response)):
+        result = await intent_route_node(state)
+    assert result["directive_posture"] is False
