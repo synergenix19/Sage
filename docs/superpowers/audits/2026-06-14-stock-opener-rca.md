@@ -61,12 +61,39 @@ Local pytest could not run (`sentence_transformers` absent; blocked by an `autou
 Tests: `tests/test_opener_layer_conflict.py` (content contract + regex backstop + over-match guards).
 Verified red→green in isolation against the real source.
 
-## Residuals / follow-ups
+## Post-deploy re-probe (2026-06-14)
 
-- The "X can be very painful" reflective-sympathy form (screenshot 1) is **not** blocklisted
-  (too high a false-positive risk for a generic regex). The PRIMARY L2 rewrite targets this class;
-  confirm via post-deploy prod probe.
-- `_VETTED_FALLBACK_RESPONSE` is itself a generic opener (boundary #10). Left unchanged here to keep
-  the fix minimal; flagged for a separate decision.
-- Behavioral proof is the live prod re-probe after deploy (Railway is manual `railway up`, no
-  auto-deploy), with the exact screenshot phrases.
+Merged to master via PR #27 (merge commit `8dc42ba`, both commits preserved; admin-merge bypass of
+the REVIEW_REQUIRED gate, logged with green CI run `27500319703`). Deployed from master with
+`railway up` (deployment `fdf39a43`, SUCCESS). Re-probed live prod:
+
+| Probe | Result | node-path | Read |
+|---|---|---|---|
+| "I'm not feeling too good today." | "You're not feeling too good today. What's been going on that might be affecting how you feel?" | `… output_gate → output_gate_banned_opener_retry → freeflow_respond → output_gate` | **PASS.** Model still generated "I'm sorry to hear…" first; the **blocklist caught it** and the retry produced a direct-naming opener. Before fix this exact phrase returned "I'm sorry to hear you're not feeling too good today." |
+| "I am not feeling too good today." | "I'm here with you. What would feel most helpful to share right now?" | `… banned_opener_retry → … → output_gate_fallback_substituted` | Net held. Generator produced a banned opener **twice**; gate substituted the vetted fallback. Safe but generic → follow-up #29. |
+| "I feel completely worthless lately." | "Feeling worthless can be incredibly hard. What has been contributing to these feelings for you lately?" | `safety_check → intent_route → freeflow_respond → output_gate` | Paraphrase opener persists. Not blocklisted (FP risk); L2 v1.5.0 **inert** here, not harmful. Validation intact, no advice-first → follow-up #28. |
+
+### Verdict
+- **`b6d41c9` (blocklist): VERIFIED LIVE.** The retry node firing on probe 1 and replacing
+  "I'm sorry to hear…" is direct proof it earns its place.
+- **`41ed043` (L2 v1.5.0): shipped, contract-locked by tests, NO observed live effect yet, NO observed
+  harm.** Not "verified" — inert on the one probe that could have exercised it. The net holds because
+  the deterministic backstop is strong, not (yet) because the prompt layer changed the model's instinct.
+  Prompt-layer real-world efficacy remains an **open question**.
+
+### Rollback-trigger correction (do not read as "fail ignored")
+The pre-agreed sub-condition (a) ("paraphrase opener present → revert `41ed043`") **fired** on probe 3,
+but was **retired as over-broad**, not waived. (a) was a looser draft of the top-level trigger
+("validate-before-inform weakened OR advice-first creeping in"), which is the correct, regression-scoped
+rule and did **not** fire on any probe. Probe 3's paraphrase is a **pre-existing residual neither commit
+caused** and the blocklist deliberately does not catch. Reverting `41ed043` would restore v1.4.0's
+literal *"reflect the feeling back before anything else"* — i.e. re-introduce more of exactly the
+behavior (a) was written to catch. Honoring (a) would optimize the proxy against the goal it stands for.
+**Decision: keep both.** Trigger set corrected; condition (a) removed in favor of the regression-scoped trigger.
+
+## Open follow-ups
+- **#28** — pure-feeling paraphrase opener ("thing == feeling" collision). Needs a clinical-content
+  design decision (what is a good opener when the feeling is the whole message?), not a regex.
+- **#29** — generic vetted-fallback regresses openers to the mean on the double-banned path
+  (boundary #10). Track the frequency of the double-banned → fallback path; it is a direct proxy for
+  how often the prompt layer fails to internalize substance-first.
