@@ -1,10 +1,10 @@
 {
   "template_id": "L2_general_chat_directive",
   "version": "1.0.0",
-  "status": "draft-pending-review",
+  "status": "approved",
   "authored_by": "sage_clinics",
-  "approved_by": null,
-  "effective_date": "pending",
+  "approved_by": "clinical_lead",
+  "effective_date": "2026-06-14",
   "layer": "L2",
   "role": "user",
   "always_include": true,
