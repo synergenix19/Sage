@@ -431,3 +431,123 @@ def test_wellness_identity_rule_file_loads_and_is_valid():
     assert rule.action["type"] == "substitute"
     assert "wellness companion" in rule.action["substitute_with"]
     assert "mental health coach" in rule.patterns
+
+
+# ---------------------------------------------------------------------------
+# Task 8: Question-discipline helpers
+# ---------------------------------------------------------------------------
+
+def test_limit_to_one_question_collapses_stacked_questions():
+    from sage_poc.nodes.output_gate import _limit_to_one_question
+    text = ("Where would you place yourself from one to ten? And what could help boost "
+            "your confidence a bit more?")
+    out = _limit_to_one_question(text)
+    assert out.count("?") == 1
+    assert "Where would you place yourself" in out
+
+
+def test_limit_to_one_question_keeps_statements_and_first_question():
+    from sage_poc.nodes.output_gate import _limit_to_one_question
+    text = "That sounds heavy. What's weighing on you most? Do you feel anxious?"
+    out = _limit_to_one_question(text)
+    assert out == "That sounds heavy. What's weighing on you most?"
+
+
+def test_limit_to_one_question_noop_for_single_question():
+    from sage_poc.nodes.output_gate import _limit_to_one_question
+    text = "That sounds hard. What's been hardest?"
+    assert _limit_to_one_question(text) == text
+
+
+def test_strip_trailing_question_removes_dangling_question():
+    from sage_poc.nodes.output_gate import _strip_trailing_question
+    text = ("Prepare a few calm, assertive phrases beforehand. You can set a boundary by "
+            "naming when you need a break. How does this sit with you?")
+    assert _strip_trailing_question(text).endswith("need a break.")
+
+
+def test_strip_trailing_question_keeps_question_only_response():
+    from sage_poc.nodes.output_gate import _strip_trailing_question
+    text = "What feels hardest right now?"
+    assert _strip_trailing_question(text) == text
+
+
+# ---------------------------------------------------------------------------
+# Task 8: Question-discipline node integration tests
+# ---------------------------------------------------------------------------
+
+import pytest
+
+
+@pytest.mark.asyncio
+async def test_output_gate_collapses_stacked_questions_on_default_freeflow_turn():
+    """Flag-2 permanent guard: a DEFAULT freeflow turn (no crisis_state / step_instruction
+    kwargs) MUST collapse stacked questions, so the carve-out can't go silently inert."""
+    from sage_poc.nodes import output_gate as og
+    state = make_state(
+        primary_intent="general_chat",
+        directive_posture=False,
+        response_en="That's a lot. What's heaviest? And what would help right now?",
+    )
+    with patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()):
+        result = await og.output_gate_node(state)
+    assert result["response_en"].count("?") == 1
+
+
+@pytest.mark.asyncio
+async def test_output_gate_strips_trailing_question_on_directive_turn():
+    from sage_poc.nodes import output_gate as og
+    state = make_state(
+        primary_intent="general_chat",
+        directive_posture=True,
+        response_en="Prepare a few calm, assertive phrases beforehand. How does this sit with you?",
+    )
+    with patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()):
+        result = await og.output_gate_node(state)
+    assert "?" not in result["response_en"]
+    assert "Prepare a few calm, assertive phrases beforehand." in result["response_en"]
+
+
+@pytest.mark.asyncio
+async def test_question_discipline_skips_monitoring_turn_preserving_safety_question():
+    """SAFETY: on a post-crisis monitoring turn, stacked questions must NOT be collapsed -
+    a safety question appearing as the 2nd question must survive."""
+    from sage_poc.nodes import output_gate as og
+    state = make_state(
+        primary_intent="general_chat",
+        directive_posture=False,
+        crisis_state="monitoring",
+        response_en="I hear how much pain you're in. What's happening? Are you safe right now?",
+    )
+    with patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()):
+        result = await og.output_gate_node(state)
+    assert "Are you safe right now?" in result["response_en"], (
+        "safety question was stripped on a monitoring turn -- crisis_state carve-out missing"
+    )
+
+
+@pytest.mark.asyncio
+async def test_question_discipline_skips_skill_execution_turn():
+    """D1 freeflow-only: a skill-execution turn (step_instruction set) must NOT be disciplined."""
+    from sage_poc.nodes import output_gate as og
+    state = make_state(
+        primary_intent="skill_continuation",
+        directive_posture=False,
+        step_instruction="Ask the user to recall the situation. What happened? How did you feel?",
+        response_en="Let's look at that. What happened? How did you feel?",
+    )
+    with patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()):
+        result = await og.output_gate_node(state)
+    assert result["response_en"].count("?") == 2, (
+        "discipline ran on a skill-execution turn -- step_instruction guard missing"
+    )
+
+
+def test_crisis_response_bypasses_output_gate_edge():
+    """SAFETY: crisis_response routes straight to END, never through output_gate."""
+    import sage_poc.graph as g
+    import inspect
+    src = inspect.getsource(g.build_graph)
+    assert 'add_edge("crisis_response", END)' in src, (
+        "crisis_response must edge directly to END (bypassing output_gate)"
+    )
