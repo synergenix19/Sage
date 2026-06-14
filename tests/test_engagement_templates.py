@@ -35,11 +35,13 @@ class TestR3GeneralChatEngageThenBridge:
         assert "engage with the topic itself briefly" in tmpl.content
         assert "Never deflect" in tmpl.content
 
-    def test_template_version_is_1_4_0(self):
+    def test_template_version_is_1_5_0(self):
         tmpl = get_intent_template("general_chat")
-        # v1.4.0 (2026-06-14): validate-first + specific-not-generic added to the R3 base;
-        # R3 engage-then-bridge + Option-A Exception clause preserved.
-        assert tmpl.version == "1.4.0"
+        # v1.5.0 (2026-06-14): opener changed from "reflect the feeling back before anything
+        # else" to a substance-first opener (name the specific thing, then validate) to resolve
+        # the L0/L2 conflict; validate-before-inform preserved; R3 engage-then-bridge + Option-A
+        # Exception clause preserved. See docs/superpowers/audits/2026-06-14-stock-opener-rca.md
+        assert tmpl.version == "1.5.0"
 
     def test_no_em_dash_in_content(self):
         tmpl = get_intent_template("general_chat")
