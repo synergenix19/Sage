@@ -209,3 +209,20 @@ def test_l3_skill_wrapper_no_therapeutic_framing():
     assert "SUPPORT APPROACH" in tmpl.content, (
         "L3_skill_wrapper header must use 'SUPPORT APPROACH FOR THIS TURN'"
     )
+
+
+def test_general_chat_directive_variant_loads():
+    from sage_poc.prompts.loader import get_intent_template
+    tmpl = get_intent_template("general_chat", variant="directive")
+    assert tmpl is not None, "general_chat_directive variant missing"
+    assert tmpl.template_id == "L2_general_chat_directive"
+    lowered = tmpl.content.lower()
+    assert "specific" in lowered or "concrete" in lowered
+    assert "do not end" in lowered and "question" in lowered  # no closing question
+
+
+def test_advice_request_draft_removed():
+    """The discrete advice_request intent approach was superseded; its draft template
+    must be gone so it can never be selected by primary_intent."""
+    from sage_poc.prompts.loader import get_intent_template
+    assert get_intent_template("advice_request") is None
