@@ -14,7 +14,7 @@ The Arabic therapeutic experience is complete and verified:
 - The translation pipeline (Arabic input → English processing → Khaleeji output) is live.
 - 20 Arabic knowledge articles in Gulf dialect are in the retrieval corpus.
 - Cultural output validation, code-switching detection, and register calibration are active on every turn, including high-stakes escalation turns (fix verified 2026-06-05).
-- Crisis path for English: S1 lexicon + S3 semantic OR-fusion. Measured recall: **37.1%** (86/232 CRADLE cases). Precision: **95.7%**. KPI is ≥95% recall — gap is **57.9 points**.
+- Crisis path for English: S1 lexicon + S3 semantic OR-fusion. Measured recall: **37.1%** (86/232 CRADLE cases). Specificity: **95.7%** (178/186). Precision: **91.5%** (86/94). KPI is ≥95% recall — gap is **57.9 points**. (Corrected 2026-06-15: the 95.7% figure was previously mislabeled "precision"; it is specificity. True precision is 91.5%, given the frozen 2026-06-05 numerators — see tests/test_cradle_bench.py header.)
 
 ---
 
