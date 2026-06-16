@@ -98,3 +98,13 @@ def test_variant_rule_thresholds():
     assert _variant_for(2) == "reoffer"
     assert _variant_for(3) == "reoffer"
     assert _variant_for(0) is None
+
+
+def test_base_offer_template_instructs_variation():
+    reload_all()
+    base = get_intent_template("skill_offer")
+    assert "stock sentence" in base.content.lower() or "vary your" in base.content.lower(), (
+        "base offer template must instruct the model to vary its wording"
+    )
+    # Non-coercion guardrail must remain intact
+    assert "the user saying no is a complete answer" in base.content
