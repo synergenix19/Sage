@@ -1,10 +1,10 @@
 {
   "template_id": "L2_skill_offer",
   "version": "0.2.0",
-  "status": "draft_pending_signoff",
+  "status": "approved",
   "authored_by": "engineering",
-  "approved_by": null,
-  "effective_date": "2026-06-13",
+  "approved_by": "clinical_lead",
+  "effective_date": "2026-06-16",
   "layer": "L2",
   "role": "user",
   "always_include": true,
@@ -18,5 +18,5 @@
     "Clinical review (offer framing, non-coercion wording)",
     "Clinical review of the new variation instruction (v0.2.0)"
   ],
-  "_signed_off": ""
+  "_signed_off": "Clinical lead approved 2026-06-16 (offer-variation v0.2.0; relayed via product owner)"
 }

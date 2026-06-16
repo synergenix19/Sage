@@ -224,7 +224,7 @@
 
 ## Sign-off
 
-- Rater name: ____________________  Date: ____________
-- Overall verdict: PASS / FAIL (circle)
-- If PASS: fill `_signed_off` on the three draft artifacts and clear A4 §20.1.
-- If FAIL: list corrections above; fold into `khaleeji_translation_exemplars.json`, bump version, re-run this harness.
+- **Verdict: PASS — A4 §20.1 Dialect-QA APPROVED.**
+- Approved by: Clinical lead (Dialect-QA), 2026-06-16. Relayed via product owner through the Claude Code session.
+- Provenance note: approval recorded at the overall-verdict level. Per-row 1–5 scores above were NOT individually returned to this session and are intentionally left blank — not fabricated. If the clinician provides a filled per-row sheet, attach it here and supersede this block.
+- Result: `_signed_off` filled and `status: approved` set on the three artifacts (exemplars, skill_offer v0.2.0, skill_offer_reoffer). A4 §20.1 gate CLOSED.

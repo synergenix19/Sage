@@ -1,0 +1,1275 @@
+{
+  "core": [
+    {
+      "tag": "cc:depression",
+      "intensity": 5,
+      "message": "I have so many issues to address. I have a history of sexual abuse, I’m a breast cancer survivor and I am a lifetime insomniac.    I have a long history of depression and I’m beginning to have anxiety. I have low self esteem but I’ve been happily married for almost 35 years.\n   I’ve never had counseling about any of this. Do I have too many issues to address in counseling?",
+      "baseline": {
+        "reply": "It sounds like you've been through a lot and have shown incredible resilience along the way. It's understandable to feel like there are many layers to address, but counseling can be a supportive space to explore these experiences, one step at a time. There is no limit to the number of issues you can bring into therapy; it's a place where you can work through them gradually and safely. Your long and happy marriage shows strength and connection, which can be a supportive aspect as you navigate these feelings. How do you feel about the possibility of starting counseling now?",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 5,
+        "words": 100
+      },
+      "draft": {
+        "reply": "It sounds like you've faced a lot of challenges, and it's understandable to wonder if counseling could handle everything you've experienced. Each of these parts of your life is significant, and counseling can provide a space to explore them at your own pace. It's never too much to bring to a counselor; they are there to support you across different aspects of your life. If you're open to it, starting with a counselor could help you find ways to manage what you're feeling now, and build on the strengths you've shown in your marriage and your journey through breast cancer.",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [
+          "counseling"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 4,
+        "words": 100
+      }
+    },
+    {
+      "tag": "cc:anxiety",
+      "intensity": 5,
+      "message": "I start counseling/therapy in a few days (I'm freaking out) but my main fear is that I'll cry and embarrass myself, is it something to worry about?",
+      "baseline": {
+        "reply": "Starting therapy can feel like a big step, and it's natural to feel nervous about it. Crying is actually quite common in therapy, and therapists are there to support you, not to judge. It can be a sign that you're connecting with your feelings, which is a positive thing. How are you feeling about starting this new journey?",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "therapy"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 4,
+        "words": 58
+      },
+      "draft": {
+        "reply": "It's understandable to feel anxious about starting therapy, especially if you're worried about crying. Crying is a natural response and many people find it happens during therapy. It's a safe space where expressing emotions is part of the process. If you feel overwhelmed, remember that therapists are used to it and are there to support you through whatever comes up. You might find it helpful to tell your therapist about this fear at the start—it can ease some of the pressure you might be feeling.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "therapy"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 5,
+        "words": 85
+      }
+    },
+    {
+      "tag": "cc:parenting",
+      "intensity": 5,
+      "message": "When my daughter is stressed about a silly thing from school, she starts crying and freaking out. She is a bright student, always has a 4.0, but I am afraid she is stressing too much. I’m afraid it’s going to break her. I don't know if I should get her to a doctor or someone because this is not normal.",
+      "baseline": {
+        "reply": "It sounds like you care deeply about your daughter's well-being and her future. Her academic performance is impressive, but it's understandable to worry about the stress she's experiencing. It's common for high-achieving students to feel pressure, and sometimes it can become overwhelming. You might consider speaking with her about how she's feeling and see if she can share what might be causing her distress. If it feels right, you could explore support options at her school, like a counselor or advisor, who could offer guidance.",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [
+          "daughter"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 5,
+        "words": 85
+      },
+      "draft": {
+        "reply": "It sounds like you're really concerned about your daughter's stress and how it's affecting her. It's understandable to feel worried when you see her getting overwhelmed, even though she's a bright student. One step you could take is to talk to her about how she's feeling and see if she's open to discussing it. This can help you understand her perspective better. If she continues to feel overwhelmed, you might consider speaking with her school counselor or a trusted teacher for additional support. They can often provide useful resources or advice tailored to students in similar situations.",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [
+          "daughter"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 6,
+        "words": 97
+      }
+    },
+    {
+      "tag": "cc:self-esteem",
+      "intensity": 5,
+      "message": "I feel like I hate myself physically and emotionally sometimes. How can I start accepting myself and be more confident?",
+      "baseline": {
+        "reply": "It sounds really challenging to feel that way about yourself. Building self-acceptance and confidence can be a journey. One idea is to start by recognizing and celebrating small achievements or qualities you appreciate about yourself, even if they're minor. Another approach can be practicing positive self-talk, where you consciously replace negative thoughts with kinder ones. Connecting with someone who supports and values you might also help reinforce your sense of worth. Does any of this resonate with you?",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 6,
+        "words": 78
+      },
+      "draft": {
+        "reply": "Feeling like you hate yourself at times can be really tough. It's important to remember that you're not alone in feeling this way. One gentle step you could take is to practice self-compassion. This means treating yourself with the same kindness and understanding that you would offer a friend. It might help to start with a small, positive affirmation each day, like reminding yourself of one thing you appreciate about who you are. Over time, this can create a more positive mindset and help build self-acceptance.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "hate"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 6,
+        "words": 86
+      }
+    },
+    {
+      "tag": "cc:relationship-dissolution",
+      "intensity": 5,
+      "message": "How do I decide if I should end my relationship with my boyfriend?",
+      "baseline": {
+        "reply": "Deciding whether to end a relationship can be really challenging. It might help to consider how the relationship makes you feel overall. Are there patterns that bring you joy or concern? Reflecting on what you truly want and need in a partnership could also guide you. If you like, I can suggest some steps to explore this further.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "relationship"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 1,
+        "sentences": 5,
+        "words": 58
+      },
+      "draft": {
+        "reply": "Deciding whether to end a relationship can be a really challenging process. It's important to consider how the relationship makes you feel and whether it aligns with your values and needs. One concrete step you might take is to reflect on the positives and negatives of the relationship, perhaps by making a list. This can help you see things more clearly and guide your decision.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "relationship"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 4,
+        "words": 65
+      }
+    },
+    {
+      "tag": "cc:workplace-relationships",
+      "intensity": 5,
+      "message": "I'm a teenager, and I just got my first job. I am a month and a half in. Yesterday, my boss pushed me to the point where I had to go to the restroom and cry. She didn't see me, and I'm glad, but when I went to talk to her about it today, I let a tear or two come out. I hate it. I feel like they're not going to keep me anymore.",
+      "baseline": {
+        "reply": "It sounds like you had a really tough moment at work, and it's understandable to feel upset about it. It's hard when emotions come out in front of others, especially at work. Your feelings are valid, and it's okay to be emotional sometimes. How did the conversation with your boss go after that moment?",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 4,
+        "words": 54
+      },
+      "draft": {
+        "reply": "It sounds like you're feeling a lot of pressure at your new job, and having that moment of vulnerability with your boss must have been tough. It's understandable to feel worried about what your boss might think, but showing emotion is human and doesn't mean you're not capable or strong. If you're comfortable, you might consider discussing how you can manage the workload or stress with your boss to find a more balanced approach. This can show initiative and help you feel more supported at work.",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [
+          "boss"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 4,
+        "words": 86
+      }
+    },
+    {
+      "tag": "cc:spirituality",
+      "intensity": 5,
+      "message": "Maybe this is a stupid question, but I sometimes don't know what's real or not. If feel at times like everyone's lying. How do I know if God is one of those lies?",
+      "baseline": {
+        "reply": "It's understandable to feel uncertain about what's real, especially when it seems like trust is hard to come by. Questioning deeper truths, like the existence of God, is a part of many people's spiritual journey. It might help to reflect on your personal experiences or feelings that have connected you to your faith or spirituality in the past. What are some moments or feelings that have reassured you or brought you peace?",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "real"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 4,
+        "words": 72
+      },
+      "draft": {
+        "reply": "It sounds like you're grappling with some deep questions about trust and reality. It's okay to have doubts and wonder about these things. Faith and belief can be a very personal journey, and it's normal to question and seek understanding. One way to explore this is by reflecting on your own experiences and feelings about your faith, perhaps through prayer, meditation, or speaking with someone you trust about your spiritual journey.",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 4,
+        "words": 71
+      }
+    },
+    {
+      "tag": "cc:trauma",
+      "intensity": 5,
+      "message": "I am a survivor of multiple sexual abuse/rape experiences. Triggers are having an effect on my daily life and my sexual relationship with my partner. I'm trying to learn to cope with them.",
+      "baseline": {
+        "reply": "I'm so sorry to hear that you've been through such painful experiences. It's understandable that triggers are affecting different parts of your life. Learning to cope with them can be a challenging journey, but it's a positive step that you're looking to find ways to manage them. Have you found anything that helps even a little, or are there specific situations where you feel it impacts you the most?",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [
+          "experiences"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 4,
+        "words": 69
+      },
+      "draft": {
+        "reply": "I'm really sorry to hear that you're dealing with this. It sounds like a very challenging situation, and it's important to acknowledge how difficult it can be to cope with triggers. You're taking a brave step by trying to learn how to manage them. One approach that might help is to establish a grounding technique that you can use when you feel triggered. This could be as simple as focusing on your breath or identifying things you can see, hear, and feel around you. If you think it might be helpful, I can guide you through a structured exercise for grounding.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 6,
+        "words": 101
+      }
+    },
+    {
+      "tag": "cc:domestic-violence",
+      "intensity": 5,
+      "message": "Every time my partner gets angry for anything, she takes it out on me. Nothing I do is right, and once she's mad, she calls me all kinds of names and is verbally abusive. She says it isn’t abuse, it’s just angry verbal bashing, and that it’s different. It gets worse each time. The names are very vulgar now.",
+      "baseline": {
+        "reply": "It sounds really difficult to be on the receiving end of such harsh words, especially when it feels like it's getting worse. Being called names and experiencing verbal abuse can be very hurtful and damaging. How do you feel after these incidents happen?",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "worse"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 3,
+        "words": 43
+      },
+      "draft": {
+        "reply": "It sounds really difficult to be on the receiving end of such hurtful words, especially from someone you care about. Being called names and experiencing verbal aggression can be very distressing. It's important to recognize that what you're experiencing is not okay, and it is a form of verbal abuse, regardless of how it's labeled. It might be helpful to talk to someone you trust about this, like a friend or a mental health professional, to get support and perspective. If you're open to it, setting clear boundaries about how you want to be treated could also be a step to consider.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 5,
+        "words": 102
+      }
+    },
+    {
+      "tag": "cc:anger-management",
+      "intensity": 5,
+      "message": "When I got home, my boyfriend and I got into an argument. He got upset and he started hitting his face. That is the first time he has ever done that, but I would be lying if I said that didn't scare me. I locked myself in the room.",
+      "baseline": {
+        "reply": "That sounds like a very frightening experience. It's understandable that you felt scared when you saw that happen. How are you feeling now? Are you in a safe place?",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 2,
+        "sentences": 4,
+        "words": 29
+      },
+      "draft": {
+        "reply": "That sounds like a really frightening experience. It's understandable to feel scared when something like this happens. It's important to prioritize your safety and well-being. Consider reaching out to someone you trust about this, whether it's a friend, family member, or a professional who can offer support and guidance.",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 4,
+        "words": 49
+      }
+    },
+    {
+      "tag": "cc:sleep-improvement",
+      "intensity": 5,
+      "message": "I have been having horrendous nightmares this whole month.",
+      "baseline": {
+        "reply": "That sounds really tough. Nightmares can be so distressing and leave you feeling unsettled. Have you noticed if there's anything specific that's been triggering them, or do they seem to come out of nowhere?",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 3,
+        "words": 34
+      },
+      "draft": {
+        "reply": "That sounds really distressing. Nightmares can be unsettling and disruptive to your sleep. One thing you might try is a calming bedtime routine that helps relax your mind before sleep. This could include activities like reading a gentle book, listening to soothing music, or practicing deep breathing exercises. These can help create a more peaceful transition to sleep.",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 5,
+        "words": 58
+      }
+    },
+    {
+      "tag": "cc:intimacy",
+      "intensity": 5,
+      "message": "My spouse visited the red light district a couple of years back in Amsterdam. After he got back from the trip he got me tested for stds. In the aftermath he has provided multiple versions of what happened, from having a total blackout to being touched by a prostitute. How do I know if he had sex?",
+      "baseline": {
+        "reply": "It sounds like this situation has been really challenging and confusing for you. It's understandable to want clarity, especially when trust feels shaken. You might consider having an open and honest conversation with him about how this affects you and what you need to feel secure in your relationship. Sometimes talking about boundaries and expectations together can help rebuild trust. How have these conversations been for you so far?",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 5,
+        "words": 69
+      },
+      "draft": {
+        "reply": "It sounds like you're dealing with a lot of uncertainty and mixed feelings about this situation. Trust and clear communication are important in a relationship, and it can be really hard when there's doubt. It might help to have an open and honest conversation with your spouse about how this is affecting you and what you need to feel reassured or to rebuild trust. Seeking support from a relationship counselor could also provide a safe space to explore these feelings together.",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 4,
+        "words": 81
+      }
+    },
+    {
+      "tag": "cc:grief-and-loss",
+      "intensity": 5,
+      "message": "I just lost my grandpa and i'm having a rough time with it.    I need some help to deal with the loss, but I don’t think I can pay for counseling. Where Can I get help?",
+      "baseline": {
+        "reply": "I'm sorry to hear about your grandpa's passing. It's understandable to feel like you're having a rough time. Grieving is a natural process, and it's important to have support. You might find comfort in talking with family or friends who knew him. Sharing stories and memories can be healing. If you're looking for more support, some communities have free or low-cost support groups for grief. You could also explore online resources, like forums or websites, where people share their experiences and coping strategies. How are you managing day-to-day right now?",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [
+          "grandpa"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 8,
+        "words": 90
+      },
+      "draft": {
+        "reply": "I'm so sorry to hear about your grandpa. Losing someone close is really hard, and it's normal to feel overwhelmed. If you're looking for support without the cost of counseling, you might find comfort in talking to family or friends who understand what you're going through. Sharing memories and feelings with loved ones can be a source of strength. There are also community support groups or online forums where you can connect with others who are experiencing loss. If you would like, I can suggest a guided exercise to help you find a moment of calm right now.",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [
+          "grandpa"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 6,
+        "words": 98
+      }
+    },
+    {
+      "tag": "cc:substance-abuse",
+      "intensity": 5,
+      "message": "I'm planning to have baby, so I have to quit smoking - but it's hard. Sometimes it's not a physical need, it's mental.\n   I cannot help myself from thinking about smoking. What can I do to get rid of this addiction?",
+      "baseline": {
+        "reply": "Quitting smoking is a big step, especially when planning for a baby. It's understandable that the mental aspect can be just as challenging as the physical. Have you considered finding new habits or activities to help distract your mind when cravings hit? Sometimes, things like going for a walk, practicing deep breathing, or even having a healthy snack can help shift the focus. What do you think might work for you?",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "baby",
+          "planning",
+          "smoking"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 2,
+        "sentences": 5,
+        "words": 71
+      },
+      "draft": {
+        "reply": "Quitting smoking, especially when planning to have a baby, is a significant step. It makes sense that you're finding the mental side of it challenging. One practical approach could be to identify your smoking triggers and find healthier alternatives or distractions for those moments. For example, if you often smoke when stressed, you might try a quick walk or deep breathing exercise instead. It's also helpful to reach out for support, whether from friends, family, or a support group, to keep you motivated and accountable.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "baby",
+          "planning",
+          "smoking"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 5,
+        "words": 85
+      }
+    },
+    {
+      "tag": "cc:family-conflict",
+      "intensity": 5,
+      "message": "My mother has Alzheimer's and she has become so nasty and mean to everyone and she always asks for unrealistic, silly or meaningless items. I get so frustrated and angry, but then I feel guilty because I know it probably isn’t her fault. How can I cope with feeling like this?",
+      "baseline": {
+        "reply": "That sounds incredibly tough. Balancing your own feelings of frustration and anger with understanding that it's the illness affecting her behavior is a lot to manage. It's important to remember that your feelings are valid, even when you know why things are happening. One approach is to make sure you have time for yourself, where you can step back and recharge. This might mean taking short breaks when needed or finding someone to talk to who understands what you're going through. It could also help to learn more about Alzheimer's, so you can feel more equipped to handle these situations. How do you find relief or support right now?",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 7,
+        "words": 109
+      },
+      "draft": {
+        "reply": "Caring for your mother as she goes through Alzheimer's is incredibly challenging. It's understandable to feel frustrated and guilty when her behavior changes and demands become difficult to handle. Remember that your feelings are valid, and you're not alone in this. One way to cope might be to remind yourself that these changes are part of the illness, not who your mother truly is. It might also help to connect with a support group for caregivers, where you can share experiences and advice with others going through similar situations. They can offer understanding and tips on managing these complex emotions.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "alzheimer",
+          "mother"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 6,
+        "words": 100
+      }
+    },
+    {
+      "tag": "cc:marriage",
+      "intensity": 5,
+      "message": "I'm always listening to my husband, but it feels like he never listens to me.    How do I get my husband to listen to me instead of me listening to him all the time?",
+      "baseline": {
+        "reply": "It sounds like you're feeling unheard in your relationship, and that's tough. Communication goes both ways, and it can be challenging when it feels unbalanced. One approach could be to find a calm moment to express how important it is for you to feel heard, perhaps using \"I\" statements to share your feelings without sounding accusatory. How does that sound to you?",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 4,
+        "words": 62
+      },
+      "draft": {
+        "reply": "It sounds frustrating to feel like you're not being heard. One approach could be to choose a calm moment to express how you feel about the balance in your conversations. You might start by sharing that you value listening to him, and you also hope for the same in return. A direct, gentle conversation can sometimes open up space for change.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 4,
+        "words": 61
+      }
+    },
+    {
+      "tag": "cc:eating-disorders",
+      "intensity": 5,
+      "message": "I need to speak to someone about sexual addiction and binge eating immediately.",
+      "baseline": {
+        "reply": "It sounds like you're dealing with some tough challenges right now. Reaching out to talk about sexual addiction and binge eating is a brave step. How are you feeling at this moment?",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 3,
+        "words": 32
+      },
+      "draft": {
+        "reply": "It sounds like you're dealing with some challenging issues right now. It's important to have support for these kinds of struggles. Speaking with a professional who specializes in these areas could be really beneficial. They can provide guidance tailored to your needs. In the meantime, if you'd like, I can help you find resources or just be here to listen.",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 5,
+        "words": 60
+      }
+    },
+    {
+      "tag": "cc:relationships",
+      "intensity": 5,
+      "message": "We've been in a long distance relationship for two and a half years. I recently saw his phone and saw the people he texts the most and one of them was a female coworker. I don't know how to approach this situation. How do I ask him about it?.",
+      "baseline": {
+        "reply": "It sounds like this has left you feeling uncertain about how to address it. It might be helpful to have an open and honest conversation with him about how you feel. You could start by expressing your feelings and concerns without making assumptions. How do you think he might respond to such a conversation?",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 4,
+        "words": 54
+      },
+      "draft": {
+        "reply": "It's understandable to feel uncertain about how to approach a situation like this. You care about your relationship and it's natural to want clarity. One way to start the conversation is to express how you're feeling and why. You might say something like, \"I've been feeling a bit uneasy and would like to talk about it with you.\" This way, you're opening up a dialogue without making it confrontational. It can help set a tone for an honest and reassuring conversation.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "approach",
+          "situation"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 6,
+        "words": 81
+      }
+    },
+    {
+      "tag": "cc:lgbtq",
+      "intensity": 5,
+      "message": "I am a heterosexual male in my late 20s. I find myself wearing pantyhose, heels, skirts and other women's clothing in private. I am torn on how to feel about it. I enjoy it very much. I have had a pantyhose/stocking fascination and other kinky fetish interests since I was young. I have no history of sexual abuse growing up. I am currently single.",
+      "baseline": {
+        "reply": "It's understandable to feel torn when you're navigating these interests and how they fit into your life. Enjoying wearing certain clothing in private is a personal experience, and it's okay to explore what makes you feel comfortable and happy. How do these interests make you feel about yourself, and is there anything specific you're wondering about or would like to explore further?",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "interests",
+          "torn"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 3,
+        "words": 62
+      },
+      "draft": {
+        "reply": "It's understandable to feel torn when you're exploring aspects of yourself that might not align with traditional expectations. It's important to remember that enjoying wearing women's clothing in private, whether for comfort, expression, or any other reason, is a personal choice and not inherently harmful. If you're feeling conflicted, it might be helpful to reflect on what wearing these clothes means to you and how it makes you feel. Understanding your own feelings and desires more fully can be empowering and help you find peace with this part of yourself.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "torn"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 4,
+        "words": 90
+      }
+    },
+    {
+      "tag": "cc:behavioral-change",
+      "intensity": 5,
+      "message": "Often times I find myself thinking scary thoughts and sometimes I even scare myself into thinking that something bad is going to happen to me. Once it starts, the thought continues going through my head and I can't get it out. How can I stop these thoughts?",
+      "baseline": {
+        "reply": "It sounds like those thoughts can be really unsettling and persistent. Recognizing this is a big step. One approach that might help is to gently challenge these thoughts when they arise. Ask yourself if there's evidence to support them, or what you would say to a friend who had the same worries. Sometimes writing them down and looking at them from a different perspective can help. Another option is to try a guided exercise for calming the mind, like deep breathing or grounding, if you'd like. Let me know if you'd like to try one.",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [
+          "thoughts"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 7,
+        "words": 95
+      },
+      "draft": {
+        "reply": "It sounds like those thoughts can be really unsettling and difficult to shake off. When they start to spiral like that, it can help to ground yourself in the present moment. One way to do this is by focusing on your senses—what you can see, hear, touch, smell, and taste. This can help bring your mind back to the here and now, interrupting the cycle of those scary thoughts. If you'd like, I can guide you through a grounding exercise for this.",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [
+          "thoughts"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 5,
+        "words": 82
+      }
+    },
+    {
+      "tag": "cc:addiction",
+      "intensity": 5,
+      "message": "My father is an alcoholic, and I see tendencies of that in myself. I am recently married, and I feel it affecting our relationship. I'm not sure why I do it, but I want to stop. How can I find the willpower?",
+      "baseline": {
+        "reply": "It sounds like you are really aware of how this is affecting both you and your relationship. That's a strong first step. Building willpower often involves understanding the reasons behind the behavior and finding healthier coping mechanisms. Have you considered speaking with someone who specializes in this area, like a counselor or support group? They can offer guidance and support tailored to your situation. Also, having open conversations with your partner about your intentions and struggles might strengthen your bond and create a supportive environment. How does that sound to you?",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [
+          "affecting",
+          "relationship"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 2,
+        "sentences": 7,
+        "words": 91
+      },
+      "draft": {
+        "reply": "It sounds like you're very aware of how this is affecting you and your relationship, and that's a strong first step. Wanting to change is a powerful motivation. It might be helpful to explore support groups or counseling, where you can connect with others who understand what you're going through and learn strategies to address these tendencies. This could provide a supportive environment to help you build the willpower you need.",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [
+          "affecting",
+          "relationship"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 4,
+        "words": 71
+      }
+    },
+    {
+      "tag": "cc:legal-regulatory",
+      "intensity": 5,
+      "message": "I terminated my counseling relationship with a social worker several years ago. I am now realizing that I would like to begin counseling again. The social worker’s voicemail message says that he returns calls in 24 hours, but he hasn't called me back. I called him on the weekend and made it clear that I want him to call me back. Can he just ignore me?",
+      "baseline": {
+        "reply": "It sounds frustrating to be waiting for a response, especially when you're ready to start counseling again. Sometimes, weekends can delay responses, or there might be other reasons for the delay. If you don't hear back soon, you might consider reaching out to another counselor or exploring other options. How are you feeling about starting counseling again?",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "again",
+          "counseling"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 4,
+        "words": 57
+      },
+      "draft": {
+        "reply": "It sounds frustrating to be waiting for a call back when you're ready to start counseling again. There could be a few reasons for the delay, like his schedule or availability. It might help to try reaching out once more during weekday business hours, when he might be more likely to check messages. If you don't hear back soon, considering other counselors could also be a good step.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "again",
+          "back",
+          "call",
+          "counseling"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 4,
+        "words": 68
+      }
+    },
+    {
+      "tag": "crafted",
+      "intensity": 8,
+      "message": "I just found out my dad has cancer and I can't stop shaking.",
+      "baseline": {
+        "reply": "Hearing that your dad has cancer must be incredibly overwhelming. It's understandable that you're feeling shaken right now. How are you coping with everything at the moment?",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "cancer"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 3,
+        "words": 27
+      },
+      "draft": {
+        "reply": "Hearing that your dad has cancer must be incredibly overwhelming. It's understandable to feel shaken right now. How are you taking care of yourself at this moment?",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "cancer"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 3,
+        "words": 27
+      }
+    },
+    {
+      "tag": "crafted",
+      "intensity": 7,
+      "message": "Everyone at work got promoted except me and I feel completely worthless.",
+      "baseline": {
+        "reply": "Being passed over for promotion can really sting, especially when it feels like everyone else is moving forward. What’s been the hardest part of this experience for you?",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "everyone"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 2,
+        "words": 28
+      },
+      "draft": {
+        "reply": "Not getting the promotion at work must feel really difficult, especially when it seems like everyone else did. How are you coping with those feelings right now?",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "everyone",
+          "work"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 2,
+        "words": 27
+      }
+    },
+    {
+      "tag": "crafted",
+      "intensity": 8,
+      "message": "My wife left last night and took the kids. I don't know what to do.",
+      "baseline": {
+        "reply": "It sounds like a very painful and confusing moment for you. How are you holding up right now?",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 2,
+        "words": 18
+      },
+      "draft": {
+        "reply": "I'm here with you in this difficult moment. It must be incredibly hard to face this situation. Have you been able to reach out to anyone close to you for support?",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 3,
+        "words": 31
+      }
+    },
+    {
+      "tag": "crafted",
+      "intensity": 6,
+      "message": "I keep lying awake replaying every mistake I've ever made.",
+      "baseline": {
+        "reply": "That sounds like a tough cycle to be caught in. It can be hard when those thoughts keep coming back at night. Sometimes, writing things down can help clear your mind a bit. Would you like to try a guided exercise to help ease your thoughts?",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 4,
+        "words": 46
+      },
+      "draft": {
+        "reply": "Replaying mistakes can make it hard to find peace and rest. It sounds exhausting and stressful. One thing you might try is journaling before bed, writing down any thoughts or worries you have. This can help clear your mind and create some distance from those thoughts.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "replaying"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 4,
+        "words": 46
+      }
+    },
+    {
+      "tag": "crafted",
+      "intensity": 6,
+      "message": "I snapped at my son again today and I hate the parent I'm becoming.",
+      "baseline": {
+        "reply": "It sounds like you're feeling frustrated with yourself. Parenting can be really challenging, and it's normal to have moments where things don't go as planned. What do you think might help you feel more at ease in those moments with your son?",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 3,
+        "words": 42
+      },
+      "draft": {
+        "reply": "It sounds like you're feeling upset about how things went with your son today. It's understandable to feel frustrated when our actions don't align with the kind of parent we want to be. One thing that might help is taking a moment for yourself to pause and breathe deeply next time you feel the tension building. This can create a little space to respond more calmly. Remember, every parent has moments they wish they could take back, and it's okay to learn and grow from them.",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [
+          "today"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 5,
+        "words": 86
+      }
+    },
+    {
+      "tag": "crafted",
+      "intensity": 5,
+      "message": "I moved to a new city for this job and I have nobody here.",
+      "baseline": {
+        "reply": "Moving to a new city and being away from family and familiar faces can feel really isolating. It's completely natural to miss the connections and the support of loved ones. Have you found any ways to stay in touch with your family or connect with others who share your culture? Sometimes regular calls or joining a community group can make a difference.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "city"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": false,
+        "num_questions": 1,
+        "sentences": 4,
+        "words": 62
+      },
+      "draft": {
+        "reply": "Moving to a new city for work and finding yourself without familiar faces around can be really challenging. It's natural to feel the weight of that distance from loved ones, especially when you're in a place where everything is new. One thing that might help is trying to connect with a community that shares your background or interests. This could be through cultural associations, religious gatherings, or even groups that share a common language. Finding even a small circle of people with whom you feel comfortable can make a big difference.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "city"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 5,
+        "words": 91
+      }
+    }
+  ],
+  "sweep": [
+    {
+      "tag": "cc:depression",
+      "intensity": 2,
+      "message": "I have so many issues to address. I have a history of sexual abuse, I’m a breast cancer survivor and I am a lifetime insomniac.    I have a long history of depression and I’m beginning to have anxiety. I have low self esteem but I’ve been happily married for almost 35 years.\n   I’ve never had counseling about any of this. Do I have too many issues to address in counseling?",
+      "baseline": {
+        "reply": "It sounds like you've faced a lot of challenges and have shown great resilience, especially being a breast cancer survivor and maintaining a happy marriage for so long. It's understandable to wonder about counseling. Many people find it helpful for a range of issues, and it can be a space to explore each aspect at your own pace. You're not alone in having multiple concerns, and a counselor can work with you to prioritize what feels most important. How are you feeling about the idea of starting counseling?",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [
+          "breast",
+          "cancer",
+          "long",
+          "survivor"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 5,
+        "words": 88
+      },
+      "draft": {
+        "reply": "It sounds like you've been through a lot, and it's understandable to wonder if counseling can help with multiple areas at once. It's important to know that counseling can be a supportive space to explore and address various concerns, no matter how many there are. Many therapists work with people who have multiple aspects of their lives to discuss, and they can help you find ways to manage and understand them. If you're considering counseling, it might be helpful to start by prioritizing one or two areas that feel most pressing to you right now. This can be a good starting point.",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [
+          "counseling"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 5,
+        "words": 102
+      }
+    },
+    {
+      "tag": "cc:depression",
+      "intensity": 5,
+      "message": "I have so many issues to address. I have a history of sexual abuse, I’m a breast cancer survivor and I am a lifetime insomniac.    I have a long history of depression and I’m beginning to have anxiety. I have low self esteem but I’ve been happily married for almost 35 years.\n   I’ve never had counseling about any of this. Do I have too many issues to address in counseling?",
+      "baseline": {
+        "reply": "It sounds like you've been through a lot, and it's understandable to wonder about how to start addressing these issues. The fact that you've been happily married for almost 35 years shows a strong foundation of support in your life, which is a great asset. Counseling can be a space to explore all these aspects at your own pace. You deserve support that can help you navigate each part of your experience. How do you feel about the idea of starting counseling?",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [
+          "issues"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 5,
+        "words": 82
+      },
+      "draft": {
+        "reply": "It sounds like you've been carrying a lot with you, and it's understandable to wonder if counseling can address all these experiences. Each of these areas is important, and counseling can help you explore them in a way that feels manageable. It's a space where you can unpack these experiences at your own pace. It might be helpful to start by thinking about one or two areas that feel most pressing for you right now. Therapy can be a supportive journey, and you deserve to have that space for yourself.",
+        "robotic_opener": true,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [
+          "address",
+          "counseling"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 5,
+        "words": 90
+      }
+    },
+    {
+      "tag": "cc:depression",
+      "intensity": 8,
+      "message": "I have so many issues to address. I have a history of sexual abuse, I’m a breast cancer survivor and I am a lifetime insomniac.    I have a long history of depression and I’m beginning to have anxiety. I have low self esteem but I’ve been happily married for almost 35 years.\n   I’ve never had counseling about any of this. Do I have too many issues to address in counseling?",
+      "baseline": {
+        "reply": "It's understandable to feel overwhelmed with so much on your plate. Your long, happy marriage shows strength and resilience. It’s never too late to seek counseling. A therapist can help you work through these issues at your own pace. What has made you consider counseling now?",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 5,
+        "words": 46
+      },
+      "draft": {
+        "reply": "You mentioned having a history of sexual abuse, being a breast cancer survivor, and dealing with lifelong insomnia, depression, and anxiety. It's understandable to feel overwhelmed by so many challenges. It’s important to know that counseling is designed to help with a wide range of issues, and you're not alone in feeling you have many to address. Each of your experiences is significant and deserves attention. Reaching out to a counselor can be a positive step in finding support for all these areas. Would you like to explore finding a counselor who can help you with this?",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "abuse",
+          "anxiety",
+          "breast",
+          "cancer",
+          "depression"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 6,
+        "words": 97
+      }
+    },
+    {
+      "tag": "cc:anxiety",
+      "intensity": 2,
+      "message": "I start counseling/therapy in a few days (I'm freaking out) but my main fear is that I'll cry and embarrass myself, is it something to worry about?",
+      "baseline": {
+        "reply": "It's completely normal to feel nervous about starting therapy, and crying is a natural way to express emotions. Therapists are used to it and create a safe space where you can be yourself without judgment. How are you feeling about the idea of opening up in therapy, aside from the worry about crying?",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "therapy"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 3,
+        "words": 53
+      },
+      "draft": {
+        "reply": "It's completely normal to feel anxious about starting therapy, and many people worry about showing emotions like crying. It's a space meant for you to express yourself, and therapists understand that emotions can come up. Crying is a natural way to release feelings, and it's okay to let it happen if it does. You might find it helpful to remind yourself that the therapist is there to support you, not to judge.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "therapy",
+          "worry"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 4,
+        "words": 72
+      }
+    },
+    {
+      "tag": "cc:anxiety",
+      "intensity": 5,
+      "message": "I start counseling/therapy in a few days (I'm freaking out) but my main fear is that I'll cry and embarrass myself, is it something to worry about?",
+      "baseline": {
+        "reply": "Starting counseling is a big step, and it's normal to feel nervous about it. Crying during a session is quite common, and therapists are used to it. It can even be a healthy release. How do you feel about sharing your feelings with your therapist when you start?",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "counseling"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 4,
+        "words": 48
+      },
+      "draft": {
+        "reply": "It's completely natural to feel nervous about starting therapy, and worrying about crying is something many people share. Crying is a normal and healthy way to express feelings, especially in a space meant for your well-being. Therapists are used to seeing emotions and are there to support you through them. If it helps, you might want to remind yourself that this is a safe space to be yourself, emotions and all.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "something",
+          "therapy"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 4,
+        "words": 71
+      }
+    },
+    {
+      "tag": "cc:anxiety",
+      "intensity": 8,
+      "message": "I start counseling/therapy in a few days (I'm freaking out) but my main fear is that I'll cry and embarrass myself, is it something to worry about?",
+      "baseline": {
+        "reply": "It's understandable to feel anxious about starting therapy and the possibility of crying. Many people find that crying can be a natural part of the process and therapists are accustomed to it. What do you hope to gain from your sessions?",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "therapy"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 3,
+        "words": 41
+      },
+      "draft": {
+        "reply": "It's understandable to feel nervous about starting counseling and worrying about crying. Many people find that it's a safe space where it's okay to express emotions, even if that means crying. If you feel up to it, you might mention this concern to your counselor at the start; it could ease your mind to know they're aware and supportive.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "counseling"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 3,
+        "words": 59
+      }
+    },
+    {
+      "tag": "crafted",
+      "intensity": 2,
+      "message": "I just found out my dad has cancer and I can't stop shaking.",
+      "baseline": {
+        "reply": "Hearing that your dad has cancer must be really difficult. It's natural to feel shaken by news like this. I'm here with you. How are you taking care of yourself in this moment?",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "cancer"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 4,
+        "words": 33
+      },
+      "draft": {
+        "reply": "Hearing that your dad has cancer must be incredibly difficult. It's understandable to feel shaken by such news. Taking a few slow, deep breaths can sometimes help calm your body a little. If you'd like, I can guide you through a brief breathing exercise to help steady yourself.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "cancer"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 4,
+        "words": 48
+      }
+    },
+    {
+      "tag": "crafted",
+      "intensity": 5,
+      "message": "I just found out my dad has cancer and I can't stop shaking.",
+      "baseline": {
+        "reply": "Finding out about your dad's diagnosis must be incredibly difficult, and it's understandable to feel shaken right now. It's important to take a moment for yourself. Maybe focusing on your breath or finding a quiet place to sit could help calm your nerves a bit. If you’d like, I can guide you through a calming exercise or just be here to listen.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 4,
+        "words": 62
+      },
+      "draft": {
+        "reply": "Hearing about your dad's cancer must be a huge shock. It's understandable that you're feeling shaken right now. Taking a few deep breaths might help to calm your body a little. If you want, we could try a guided exercise together. Let me know if that's something you'd like to do.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "cancer"
+        ],
+        "has_advice": true,
+        "advice_after_validation": true,
+        "ends_with_question": false,
+        "num_questions": 0,
+        "sentences": 5,
+        "words": 51
+      }
+    },
+    {
+      "tag": "crafted",
+      "intensity": 8,
+      "message": "I just found out my dad has cancer and I can't stop shaking.",
+      "baseline": {
+        "reply": "Hearing that your dad has cancer must be incredibly hard. It's natural to feel overwhelmed right now. How are you holding up at this moment?",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": true,
+        "opener_overlap_terms": [
+          "cancer"
+        ],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": true,
+        "num_questions": 1,
+        "sentences": 3,
+        "words": 25
+      },
+      "draft": {
+        "reply": "This news about your dad must feel incredibly overwhelming. It's okay to feel shaken right now. Would it help to take a moment for yourself, perhaps with a guided exercise to ground yourself a bit? I can help with that if you're interested.",
+        "robotic_opener": false,
+        "opens_with_question": false,
+        "substance_first": false,
+        "opener_overlap_terms": [],
+        "has_advice": false,
+        "advice_after_validation": false,
+        "ends_with_question": false,
+        "num_questions": 1,
+        "sentences": 4,
+        "words": 43
+      }
+    }
+  ]
+}
