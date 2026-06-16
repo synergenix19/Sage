@@ -1,10 +1,10 @@
 {
   "template_id": "L2_skill_offer_reoffer",
   "version": "0.1.0",
-  "status": "draft_pending_signoff",
+  "status": "approved",
   "authored_by": "engineering",
-  "approved_by": null,
-  "effective_date": "PENDING",
+  "approved_by": "clinical_lead",
+  "effective_date": "2026-06-16",
   "layer": "L2",
   "role": "user",
   "always_include": true,
@@ -16,5 +16,5 @@
   "_review_required": [
     "Clinical review: non-coercion preserved on the re-ask; no escalation of pressure across repeated offers."
   ],
-  "_signed_off": ""
+  "_signed_off": "Clinical lead approved 2026-06-16 (re-ask variant; relayed via product owner)"
 }

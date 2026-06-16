@@ -1,9 +1,11 @@
 # Product-Owner Risk Acceptance: Deploy Khaleeji dialect fix with A4 §20.1 OPEN
 
-> **Status:** ACTIVE risk acceptance. Deployed to production with a documented gate open.
+> **Status:** RESOLVED — A4 §20.1 Dialect-QA approved by clinical lead 2026-06-16; gate CLOSED. The risk window below is no longer outstanding.
 > **Date:** 2026-06-16
 > **Authorized by:** Product owner / admin (synergenix), explicitly, via Claude Code session.
 > **Change:** PR #32 — `feat/dialect-exemplars-offer-variation`.
+>
+> **Resolution (2026-06-16):** Clinical lead approved the A4 §20.1 Dialect-QA (verdict PASS, relayed via product owner). `_signed_off` filled and `status: approved` set on all three artifacts. The deploy-with-gate-open window is closed retroactively; no revert required. Record: `docs/superpowers/governance/2026-06-16-khaleeji-a4-dialect-eval.md`.
 
 ## Decision
 The product owner directed an **admin-bypass merge to `master` and a production Railway

@@ -1,10 +1,10 @@
 {
   "version": "0.1.0",
-  "status": "draft_pending_signoff",
+  "status": "approved",
   "authored_by": "engineering",
-  "approved_by": null,
+  "approved_by": "clinical_lead",
   "dialect_name": "Emirati Gulf Arabic (Khaleeji)",
-  "effective_date": "PENDING",
+  "effective_date": "2026-06-16",
   "exemplars": [
     {
       "en": "That sounds really heavy. I'm here with you, and we can take this slowly.",
@@ -27,5 +27,5 @@
     "NATIVE EMIRATI LINGUIST: verify every Arabic line is natural Emirati Gulf register (e.g. وياك/هني/خلنا/شوي/قاعد/لحالك), not Levantine or MSA, and not a different Gulf sub-dialect.",
     "CLINICAL: confirm warmth and meaning are preserved and no line changes clinical intent (no advice, no minimisation)."
   ],
-  "_signed_off": ""
+  "_signed_off": "Clinical lead — A4 §20.1 Dialect-QA approved 2026-06-16 (relayed via product owner; verdict PASS)"
 }
