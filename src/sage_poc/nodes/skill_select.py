@@ -262,6 +262,7 @@ def _resolve_entry(
         return {
             "active_skill_id": None,
             "active_step_id": None,
+            "offer_count": 0,
             "skill_match_method": None,
             "semantic_score": None,
             "path": state["path"] + audit_markers + ["all_candidates_declined"],
@@ -270,6 +271,7 @@ def _resolve_entry(
         "active_skill_id": None,
         "active_step_id": None,
         "offered_skill_ids": offerable,
+        "offer_count": 1,
         "skill_match_method": f"{method}_offer",
         "semantic_score": semantic_score,
         "path": state["path"] + audit_markers + ["skill_offer_made"],
@@ -346,6 +348,7 @@ async def skill_select_node(state: SageState) -> dict:
                 "active_skill_id": chosen,
                 "active_step_id": skill.steps[0].step_id,
                 "offered_skill_ids": None,
+                "offer_count": 0,
                 "skill_match_method": "offer_accept",
                 "semantic_score": None,
                 "path": state["path"] + ["skill_select", "offer_promoted"],

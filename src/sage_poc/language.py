@@ -1,4 +1,7 @@
+import json
 import re
+from functools import lru_cache
+from pathlib import Path
 
 from langdetect import detect_langs, LangDetectException
 
@@ -55,6 +58,42 @@ def detect_language(text: str | None) -> str:
         return "en"
 
 
+_EXEMPLARS_PATH = Path(__file__).parent / "data" / "khaleeji_translation_exemplars.json"
+
+
+@lru_cache(maxsize=1)
+def _khaleeji_exemplars() -> dict:
+    """Load the Emirati Gulf translation exemplars once (cached)."""
+    return json.loads(_EXEMPLARS_PATH.read_text(encoding="utf-8"))
+
+
+def _build_khaleeji_translation_prompt(text: str) -> str:
+    """Build a few-shot prompt that anchors the translator on named Emirati Gulf
+    exemplars so the output dialect stays consistent turn to turn.
+
+    Single source of truth for both the sync and async Arabic translators.
+    """
+    data = _khaleeji_exemplars()
+    dialect = data["dialect_name"]
+    lines = [
+        f"You are translating warm, supportive messages from a wellness companion "
+        f"named Sage into {dialect}. Keep the same warmth and conversational rhythm. "
+        f"Use natural everyday {dialect} phrasing, not formal or clinical Modern "
+        f"Standard Arabic. Stay in {dialect} consistently across the whole message. "
+        f"Return only the translation.",
+        "",
+        "Examples:",
+    ]
+    for ex in data["exemplars"]:
+        lines.append(f"English: {ex['en']}")
+        lines.append(f"Arabic: {ex['ar']}")
+        lines.append("")
+    lines.append("Now translate this:")
+    lines.append(f"English: {text}")
+    lines.append("Arabic:")
+    return "\n".join(lines)
+
+
 def translate_to_english(text: str) -> str:
     """Translate *text* to English.
 
@@ -88,12 +127,7 @@ def translate_to_arabic(text: str) -> str:
         llm = get_translator()
         response = llm.invoke([{
             "role": "user",
-            "content": (
-                "You are translating warm, supportive messages from a wellness companion named Sage. "
-                "Translate to informal Gulf Arabic (Khaleeji dialect). Preserve emotional warmth and "
-                "conversational tone. Avoid formal or clinical Arabic. Return only the translation.\n\n"
-                f"{text}"
-            ),
+            "content": _build_khaleeji_translation_prompt(text),
         }])
         return response.content.strip()
     except Exception:
@@ -110,12 +144,7 @@ async def async_translate_to_arabic(text: str) -> str:
         get_translator(),
         [{
             "role": "user",
-            "content": (
-                "You are translating warm, supportive messages from a wellness companion named Sage. "
-                "Translate to informal Gulf Arabic (Khaleeji dialect). Preserve emotional warmth and "
-                "conversational tone. Avoid formal or clinical Arabic. Return only the translation.\n\n"
-                f"{text}"
-            ),
+            "content": _build_khaleeji_translation_prompt(text),
         }],
         node="translate_to_arabic",
         language="ar",

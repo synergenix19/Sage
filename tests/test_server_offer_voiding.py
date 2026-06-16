@@ -84,7 +84,7 @@ def test_timeout_on_offer_creating_turn_voids_offer(monkeypatch, client, session
     )
     args = graph.aupdate_state.await_args.args
     assert args[0] == {"configurable": {"thread_id": session_id}}
-    assert args[1] == {"offered_skill_ids": None}
+    assert args[1] == {"offered_skill_ids": None, "offer_count": 0}
 
 
 def test_generic_error_on_offer_creating_turn_voids_offer(monkeypatch, client, session_id):
@@ -102,7 +102,7 @@ def test_generic_error_on_offer_creating_turn_voids_offer(monkeypatch, client, s
 
     assert "[[SERVER_ERROR]]" in res.text
     assert graph.aupdate_state.await_count == 1
-    assert graph.aupdate_state.await_args.args[1] == {"offered_skill_ids": None}
+    assert graph.aupdate_state.await_args.args[1] == {"offered_skill_ids": None, "offer_count": 0}
 
 
 def test_error_with_prior_turn_offer_does_not_void(monkeypatch, client, session_id):
@@ -158,7 +158,7 @@ async def test_void_unseen_offer_helper_clears_offer():
 
     graph.aupdate_state.assert_awaited_once_with(
         {"configurable": {"thread_id": "sess-1"}},
-        {"offered_skill_ids": None},
+        {"offered_skill_ids": None, "offer_count": 0},
     )
 
 

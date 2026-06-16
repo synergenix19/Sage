@@ -67,8 +67,8 @@ def test_translate_to_arabic_prompt_specifies_khaleeji():
     assert "Khaleeji" in prompt, (
         f"'Khaleeji' not found in translate_to_arabic prompt.\nGot: {prompt}"
     )
-    assert "Modern Standard Arabic" not in prompt, (
-        f"Old MSA instruction still present in translate_to_arabic.\nGot: {prompt}"
+    assert "not formal or clinical Modern Standard Arabic" in prompt, (
+        f"Prompt must explicitly steer away from MSA, not request it.\nGot: {prompt}"
     )
 
 
@@ -128,8 +128,8 @@ async def test_async_translate_to_arabic_prompt_specifies_khaleeji():
     assert "Khaleeji" in prompt, (
         f"'Khaleeji' not found in async_translate_to_arabic prompt.\nGot: {prompt}"
     )
-    assert "Modern Standard Arabic" not in prompt, (
-        f"Old MSA instruction still present in async_translate_to_arabic.\nGot: {prompt}"
+    assert "not formal or clinical Modern Standard Arabic" in prompt, (
+        f"Prompt must explicitly steer away from MSA, not request it.\nGot: {prompt}"
     )
 
 

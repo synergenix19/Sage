@@ -683,6 +683,11 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     if _offer_ids:
         _l2_intent = "skill_offer"
         _l2_extra = {"offer_options_block": _offer_block_str}
+        # Repeat-offer variant: on the 2nd+ consecutive render of the same offer
+        # (offer_count tracked across turns), switch to the lighter re-ask template
+        # so the consent prompt does not read as a repeated script. Falls back to
+        # the base skill_offer template automatically if the variant file is absent.
+        _l2_variant = "reoffer" if (state.get("offer_count") or 0) >= 2 else None
     else:
         _l2_intent = (
             "new_skill_unmatched"
@@ -690,11 +695,11 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
             else primary_intent
         )
         _l2_extra = None
-    # Directive posture (deterministic flag from intent_route): when set on a general_chat
-    # turn, select the stronger directive variant (lead with specific suggestions, do not
-    # re-probe, no closing question). Falls back to base general_chat automatically if the
-    # variant file is missing (get_intent_template returns the base on unknown variant).
-    _l2_variant = "directive" if (state.get("directive_posture") and _l2_intent == "general_chat") else None
+        # Directive posture (deterministic flag from intent_route): when set on a general_chat
+        # turn, select the stronger directive variant (lead with specific suggestions, do not
+        # re-probe, no closing question). Falls back to base general_chat automatically if the
+        # variant file is missing (get_intent_template returns the base on unknown variant).
+        _l2_variant = "directive" if (state.get("directive_posture") and _l2_intent == "general_chat") else None
     l2_block = _build_l2_intent_block(
         _l2_intent, intensity, secondary_intent, variant=_l2_variant, extra_variables=_l2_extra
     )
