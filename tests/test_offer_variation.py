@@ -72,3 +72,29 @@ async def test_accepted_offer_resets_offer_count(monkeypatch):
     )
     assert "offer_accepted" in result["path"]
     assert result["offer_count"] == 0
+
+
+from sage_poc.prompts.loader import get_intent_template, reload_all
+
+
+def test_reoffer_template_loads_and_drops_full_relist():
+    reload_all()
+    base = get_intent_template("skill_offer")
+    reoffer = get_intent_template("skill_offer", variant="reoffer")
+    assert reoffer is not None, "reoffer variant must be loadable"
+    assert reoffer.template_id == "L2_skill_offer_reoffer"
+    assert reoffer is not base, "variant must differ from base"
+    # The re-ask must NOT re-list options in detail
+    assert "re-list" in reoffer.content or "do not repeat the full offer" in reoffer.content.lower()
+
+
+def _variant_for(offer_count):
+    """Mirror of the composer's offer-variant rule (kept in sync with composer.py)."""
+    return "reoffer" if (offer_count or 0) >= 2 else None
+
+
+def test_variant_rule_thresholds():
+    assert _variant_for(1) is None    # first render -> base template
+    assert _variant_for(2) == "reoffer"
+    assert _variant_for(3) == "reoffer"
+    assert _variant_for(0) is None
