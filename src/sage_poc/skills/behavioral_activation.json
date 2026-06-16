@@ -57,7 +57,19 @@
     "things i used to enjoy",
     "nothing feels worth doing",
     "keep cancelling",
-    "given up on hobbies"
+    "given up on hobbies",
+    "nothing for us to do",
+    "nothing else to do",
+    "nothing to do today",
+    "nothing to do anymore",
+    "no activities",
+    "no activities that interest",
+    "anything that interests me",
+    "interest me or excite me",
+    "don't feel like doing anything",
+    "dont feel like doing anything",
+    "no hobbies",
+    "nothing i enjoy"
   ],
   "semantic_description": "Behavioral activation: graded activity scheduling protocol. Adapted from Martell et al. (2001) and Richards et al. (2016) low-intensity BA: identify one concrete task, assign a specific day and time, complete it, observe the result. Activity hierarchy: start with smallest achievable step and build up. Pleasurable activity planning: pick one activity, schedule it, report back. Activity monitoring log: track what is completed and when. One-task experiment per day. Schedule one achievable task this week. Behavioral engagement through structured task scheduling.",
   "steps": [
