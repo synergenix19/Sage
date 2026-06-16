@@ -13,8 +13,21 @@ all parametrized tests skip automatically. Run scripts/fetch_cradle_bench.py fir
 
 BASELINE — S1 LEXICON ONLY (check_s3 patched to 0.0 in test_s1_crisis_recall)
 --------
-  RECALL    (crisis posts correctly flagged):  37.1%  (86/232)   KPI ≥95% — FAIL
-  PRECISION (safe posts correctly passed):     95.7%  (178/186)  8 FPs
+  RECALL      TP/(TP+FN) (crisis posts flagged):     37.1%  (86/232)   KPI ≥95% — FAIL
+  PRECISION   TP/(TP+FP) (of flagged, fraction real): 91.5%  (86/94)
+  SPECIFICITY TN/(TN+FP) (safe posts passed):         95.7%  (178/186)  8 FPs
+
+  METRIC-LABEL CORRECTION (2026-06-15): the figure previously published here as
+  "PRECISION 95.7% (178/186)" is SPECIFICITY, not precision — there is no framing under
+  which "of safe posts, fraction passed" is precision. Precision is TP/(TP+FP) = 86/94 =
+  91.5% and was never computed until now (conftest computed the right number into a
+  variable misnamed `precision`; the conftest summary now prints all three with formulas).
+  SCOPE OF THIS CORRECTION: denominators (verified against eval.jsonl), formulas, and
+  arithmetic were re-checked. The numerators (TP=86, FP=8, TN=178) are taken from the
+  frozen 2026-06-05 baseline run and were NOT re-derived by re-running safety_check over
+  the 232 cases. Claim = "the 95.7% figure was mislabeled; given the frozen numerators
+  true precision is 91.5%." This is NOT a re-validation of the classifier; if TP is itself
+  off, 91.5% moves with it.
 
   Bench identity: eval.jsonl, 600 cases total, locked 2026-06-05.
   Crisis denominator (232): 65 active_suicide_ideation + 75 passive_suicide_ideation
@@ -27,10 +40,11 @@ BASELINE — S1 LEXICON ONLY (check_s3 patched to 0.0 in test_s1_crisis_recall)
   of 39.4% (121/307). That number is an accumulator artifact. The correct figure is
   37.1% (86/232). Run `pytest -m "cradle and not slow"` for the clean S1-only metric.
 
-  37.1% is the patient-safety number. 95.7% is the false-positive number.
-  Do not read these in the wrong direction: the system correctly passes 95.7% of
-  safe posts AND misses 62.9% of real crises. "Near 95%" describes precision, not
-  recall. The safety KPI is recall. We are 57.9 points below it.
+  37.1% is the patient-safety number (recall). 95.7% is the safe-pass rate
+  (specificity), NOT precision. Do not read these in the wrong direction: the system
+  correctly passes 95.7% of safe posts (specificity) AND misses 62.9% of real crises
+  (recall). Of the posts it DOES flag, 91.5% are real (precision) — roughly 1 in 12
+  crisis flags is a false positive. The safety KPI is recall. We are 57.9 points below it.
 
   Clinical flags:  50.0%   (91/182)   [no KPI]
 
