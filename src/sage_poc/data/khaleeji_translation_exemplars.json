@@ -1,0 +1,31 @@
+{
+  "version": "0.1.0",
+  "status": "draft_pending_signoff",
+  "authored_by": "engineering",
+  "approved_by": null,
+  "dialect_name": "Emirati Gulf Arabic (Khaleeji)",
+  "effective_date": "PENDING",
+  "exemplars": [
+    {
+      "en": "That sounds really heavy. I'm here with you, and we can take this slowly.",
+      "ar": "هذا الشي ثقيل عليك وايد، وأنا وياك هني. خلنا ناخذها على راحتنا، ما في استعجال."
+    },
+    {
+      "en": "It's completely okay to feel this way. Do you want to tell me a bit more about what's going on?",
+      "ar": "عادي تماماً تحس بهالإحساس، ما في شي غلط فيك. تحب تقول لي شوي عن اللي قاعد يصير وياك؟"
+    },
+    {
+      "en": "You don't have to carry this on your own. I'm listening.",
+      "ar": "ما لازم تشيل هذا الحمل لحالك. أنا أسمعك."
+    },
+    {
+      "en": "Take your time, there's no rush at all. Whatever you're feeling is welcome here.",
+      "ar": "خذ راحتك، ما في أي استعجال أبداً. أي شي تحس فيه مرحب فيه هني."
+    }
+  ],
+  "_review_required": [
+    "NATIVE EMIRATI LINGUIST: verify every Arabic line is natural Emirati Gulf register (e.g. وياك/هني/خلنا/شوي/قاعد/لحالك), not Levantine or MSA, and not a different Gulf sub-dialect.",
+    "CLINICAL: confirm warmth and meaning are preserved and no line changes clinical intent (no advice, no minimisation)."
+  ],
+  "_signed_off": ""
+}
