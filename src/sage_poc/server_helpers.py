@@ -39,7 +39,7 @@ async def _void_unseen_offer(graph, session_id: str) -> None:
             return
         values = snap.get("channel_values") or {}
         if values.get("offered_skill_ids") and "skill_offer_made" in (values.get("path") or []):
-            await graph.aupdate_state(config, {"offered_skill_ids": None})
+            await graph.aupdate_state(config, {"offered_skill_ids": None, "offer_count": 0})
             _log.info(
                 "[sage/chat] offer voided after errored turn (session %s, offer %s)",
                 session_id, values.get("offered_skill_ids"),
@@ -110,6 +110,7 @@ def _stale_skill_overrides(checkpoint_values: dict) -> dict:
                 overrides["stale_skill_id"] = active_skill_id
             if offered_pending:
                 overrides["offered_skill_ids"] = None
+                overrides["offer_count"] = 0
             if declined_pending:
                 overrides["declined_skills"] = []
             return overrides

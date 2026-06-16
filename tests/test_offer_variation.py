@@ -108,3 +108,22 @@ def test_base_offer_template_instructs_variation():
     )
     # Non-coercion guardrail must remain intact
     assert "the user saying no is a complete answer" in base.content
+
+
+from sage_poc.server_helpers import _stale_skill_overrides
+
+
+def test_stale_gap_clears_offer_count():
+    # A checkpoint with a pending offer that is now stale (4h+ gap) must clear
+    # offered_skill_ids, declined_skills, AND offer_count together.
+    import datetime
+    old = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=5)).isoformat()
+    checkpoint = {
+        "offered_skill_ids": ["box_breathing"],
+        "declined_skills": ["grounding_5_4_3_2_1"],
+        "offer_count": 3,
+        "last_turn_at": old,
+    }
+    overrides = _stale_skill_overrides(checkpoint)
+    assert overrides.get("offered_skill_ids") is None
+    assert overrides.get("offer_count") == 0
