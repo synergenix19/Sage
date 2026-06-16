@@ -1,0 +1,20 @@
+{
+  "template_id": "L2_skill_offer_reoffer",
+  "version": "0.1.0",
+  "status": "draft_pending_signoff",
+  "authored_by": "engineering",
+  "approved_by": null,
+  "effective_date": "PENDING",
+  "layer": "L2",
+  "role": "user",
+  "always_include": true,
+  "word_budget": 90,
+  "budget_note": "Exceeds §5.6 ~50-word L2 target by design: skill-offer turns carry no L3/L4/L5 layers, so total composed prompt stays under budget.",
+  "content": "INTENT: You already offered this user a choice between a short exercise and simply continuing to talk, and they have not yet chosen. Do not repeat the full offer or re-list the options in detail. In one short, warm sentence, gently check what they would like, make clear there is no rush, and that just continuing to talk is completely fine. Use different wording than you used before, do not reuse the same stock sentence or the same closing question. Do not pressure. Keep it to one or two sentences.",
+  "variables": [],
+  "intent": "skill_offer",
+  "_review_required": [
+    "Clinical review: non-coercion preserved on the re-ask; no escalation of pressure across repeated offers."
+  ],
+  "_signed_off": ""
+}
