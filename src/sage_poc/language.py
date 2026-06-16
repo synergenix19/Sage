@@ -127,12 +127,7 @@ def translate_to_arabic(text: str) -> str:
         llm = get_translator()
         response = llm.invoke([{
             "role": "user",
-            "content": (
-                "You are translating warm, supportive messages from a wellness companion named Sage. "
-                "Translate to informal Gulf Arabic (Khaleeji dialect). Preserve emotional warmth and "
-                "conversational tone. Avoid formal or clinical Arabic. Return only the translation.\n\n"
-                f"{text}"
-            ),
+            "content": _build_khaleeji_translation_prompt(text),
         }])
         return response.content.strip()
     except Exception:
@@ -149,12 +144,7 @@ async def async_translate_to_arabic(text: str) -> str:
         get_translator(),
         [{
             "role": "user",
-            "content": (
-                "You are translating warm, supportive messages from a wellness companion named Sage. "
-                "Translate to informal Gulf Arabic (Khaleeji dialect). Preserve emotional warmth and "
-                "conversational tone. Avoid formal or clinical Arabic. Return only the translation.\n\n"
-                f"{text}"
-            ),
+            "content": _build_khaleeji_translation_prompt(text),
         }],
         node="translate_to_arabic",
         language="ar",
