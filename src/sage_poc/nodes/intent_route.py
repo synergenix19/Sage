@@ -159,12 +159,16 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
             # _route_after_intent sees the per-turn None that _build_state
             # resets each turn — the accept bypass cannot fire on this path.
             result["path"] = result["path"] + ["offer_unparsed"]
+            # Same offer survives to be re-rendered: count the re-ask so the
+            # composer switches to the lighter reoffer variant on render 2+.
+            result["offer_count"] = (state.get("offer_count") or 0) + 1
         else:
             result["offer_response"] = offer_response
             if offer_response == "accept":
                 choice = data.get("offer_choice_skill_id")
                 result["offer_choice_skill_id"] = _resolve_offer_choice(choice, offered)
                 result["path"] = result["path"] + ["offer_accepted"]
+                result["offer_count"] = 0
             elif offer_response == "decline":
                 result["offered_skill_ids"] = None
                 # dict.fromkeys: order-preserving dedup (clinical audit convention)
@@ -172,9 +176,11 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
                     (state.get("declined_skills") or []) + list(offered)
                 ))
                 result["path"] = result["path"] + ["offer_declined"]
+                result["offer_count"] = 0
             else:
                 result["offered_skill_ids"] = None
                 result["path"] = result["path"] + ["offer_ignored"]
+                result["offer_count"] = 0
     if primary_intent in ("scope_refusal", "jailbreak"):
         result["gate_path"] = primary_intent
     return result
