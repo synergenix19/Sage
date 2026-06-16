@@ -120,3 +120,36 @@ def test_ba_pd_routing(phrase, expected_skill):
     assert result == expected_skill, (
         f"'{phrase}' → {result!r}, expected {expected_skill!r}"
     )
+
+
+# Activity-deficit / anhedonia colloquial phrasings observed in a real test-user
+# session (session 40a8ba18, 2026-06-07): the user disclosed loss of interest and
+# "nothing to do" across turns but no existing BA keyword matched his exact wording,
+# so Tier 1 never fired and Tier 2 surfaced grounding instead of BA. These are his
+# verbatim turn fragments plus close paraphrases; all must route to BA.
+@pytest.mark.parametrize("phrase", [
+    "there's nothing for us to do",
+    "I am not able to do anything that interests me",
+    "no activities that interest me or excite me",
+    "there's no activities that interest me",
+    "I don't feel like doing anything anymore",
+    "we have no hobbies and nothing to do today",
+])
+def test_ba_anhedonia_colloquial_routing(phrase):
+    assert _tier1_match(phrase) == "behavioral_activation", (
+        f"'{phrase}' → {_tier1_match(phrase)!r}, expected 'behavioral_activation'"
+    )
+
+
+# False-positive guard: the high-frequency idiom "nothing to do with X" must NOT be
+# read as activity-deficit. This is why the bare keyword "nothing to do" was rejected
+# during design (it false-matched "it has nothing to do with my job").
+@pytest.mark.parametrize("phrase", [
+    "it has nothing to do with my job",
+    "that has nothing to do with it",
+    "there is nothing to do about the weather now",
+])
+def test_ba_idiom_not_misrouted(phrase):
+    assert _tier1_match(phrase) != "behavioral_activation", (
+        f"idiom '{phrase}' wrongly routed to behavioral_activation"
+    )
