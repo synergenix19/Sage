@@ -48,6 +48,7 @@ class SageState(TypedDict):
     offer_response: Optional[str]           # R1: "accept" | "decline" | "other"; per-turn, reset in _build_state
     offer_choice_skill_id: Optional[str]    # R1: skill chosen on accept; per-turn, reset in _build_state
     declined_skills: list[str]              # R1: skills declined this session; never re-offered (declined_scope "session" in skill_matching rules); persists via checkpoint; cleared at 4h stale gap
+    offer_count: int                        # consecutive turns the current offer has been shown: set to 1 when an offer is first made (skill_select), +1 each re-ask (offer_unparsed in intent_route), 0 when no/resolved offer; persists via checkpoint; cleared at 4h stale gap. Drives the composer's reoffer variant.
     prompt_layers: list[str]            # layer names included in the composed LLM prompt
     token_usage: dict                   # {"input": N, "output": N, "total": N} from LLM
     escalation_triggered: Optional[dict]  # {"level": "L1"|"L2", "reason": str, "action": str}
