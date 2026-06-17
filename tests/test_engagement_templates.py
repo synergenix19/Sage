@@ -91,7 +91,16 @@ class TestOfferDescriptionsCoverage:
                         assert marker not in ar, (
                             f"{sid}.{field}.ar contains placeholder marker {marker!r}"
                         )
-            assert len(entry["description"]["en"]) <= 160, f"{sid}: blurb too long for an offer line"
+            # Blurbs must give enough for an informed choice (clinician-approved 2026-06-17,
+            # intensity gating deferred): a bare clause is not enough to decide on a skill
+            # without starting it. Lower bound enforces substance; upper bound keeps the
+            # offer scannable and within the skill_offer word budget.
+            en_desc = entry["description"]["en"]
+            assert len(en_desc) >= 110, (
+                f"{sid}: blurb too thin for an informed choice ({len(en_desc)} chars). "
+                "Say what it is, what you actually do, and what it helps with, plus duration."
+            )
+            assert len(en_desc) <= 320, f"{sid}: blurb too long for an offer line ({len(en_desc)} chars)"
 
 
 def _composer_state(**overrides) -> dict:
