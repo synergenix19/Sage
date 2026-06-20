@@ -1036,3 +1036,80 @@ def test_compose_prompt_no_overflow_with_large_cultural_override():
     assert total <= 1100, (
         f"Total prompt {total}w exceeds 1100w budget even with proactive L1 reduction."
     )
+
+
+# ---------------------------------------------------------------------------
+# Intent-dependent light-structure formatting for knowledge answers (L4)
+# Spec: docs/superpowers/plans/2026-06-19-intent-dependent-formatting-knowledge-answers.md
+# ---------------------------------------------------------------------------
+from sage_poc.prompts.composer import _allow_light_structure, _sanitize_assistant_turn
+
+_INFO_PASSAGE = [{"text": "Anxiety is a feeling of worry.", "source_id": "ax-001", "citation": "APA (2013)"}]
+
+
+# -- gate computation (the three-part gate) --
+
+def test_allow_light_structure_true_for_pure_info_answer():
+    state = _make_state(knowledge_passages=_INFO_PASSAGE, active_skill_id=None, crisis_state="none")
+    assert _allow_light_structure(state) is True
+
+
+def test_allow_light_structure_false_without_passages():
+    state = _make_state(knowledge_passages=[], active_skill_id=None, crisis_state="none")
+    assert _allow_light_structure(state) is False
+
+
+def test_allow_light_structure_false_mid_skill():
+    state = _make_state(knowledge_passages=_INFO_PASSAGE, active_skill_id="cbt_thought_record", crisis_state="none")
+    assert _allow_light_structure(state) is False
+
+
+def test_allow_light_structure_false_during_crisis_monitoring():
+    state = _make_state(knowledge_passages=_INFO_PASSAGE, active_skill_id=None, crisis_state="monitoring")
+    assert _allow_light_structure(state) is False
+
+
+# -- directive injection in the L4 block --
+
+def test_l4_block_injects_structure_directive_when_allowed():
+    block = _build_l4_knowledge_block(_INFO_PASSAGE, abstain=False, allow_light_structure=True)
+    assert "numbered list" in block.lower()
+
+
+def test_l4_block_omits_structure_directive_by_default():
+    block = _build_l4_knowledge_block(_INFO_PASSAGE, abstain=False)
+    assert "numbered list" not in block.lower()
+
+
+def test_l4_block_abstain_never_gets_structure_directive():
+    block = _build_l4_knowledge_block([], abstain=True, allow_light_structure=True)
+    assert "numbered list" not in block.lower()
+
+
+def test_compose_prompt_injects_structure_directive_for_info_answer():
+    state = _make_state(
+        primary_intent="info_request", active_skill_id=None, crisis_state="none",
+        knowledge_passages=_INFO_PASSAGE, knowledge_abstain=False,
+    )
+    with patch("sage_poc.prompts.composer.rules_engine.evaluate", side_effect=_no_rules()):
+        _, user_str, _ = compose_prompt(state)
+    assert "numbered list" in user_str.lower()
+
+
+# -- T3: sanitizer regression guard (characterization of existing contract) --
+
+def test_sanitize_preserves_numbered_and_bulleted_lists():
+    text = "A few things.\n1. Consistent schedule\n2. Wind down\n- dim the lights"
+    out = _sanitize_assistant_turn(text)
+    assert "1. Consistent schedule" in out
+    assert "2. Wind down" in out
+    assert "- dim the lights" in out
+
+
+def test_sanitize_strips_emphasis_dash_emoji_keeps_text():
+    text = "This is **bold** and *italic*, an em dash — and emoji \U0001F642"
+    out = _sanitize_assistant_turn(text)
+    assert "**" not in out and "bold" in out
+    assert "italic" in out
+    assert "—" not in out
+    assert "\U0001F642" not in out

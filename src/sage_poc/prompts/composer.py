@@ -300,10 +300,24 @@ _FLAG_DESCRIPTIONS: dict[str, str] = {
 }
 
 
+def _allow_light_structure(state: SageState) -> bool:
+    """Permit light list structure on a grounded info answer only.
+
+    Gate (all three required): Node 6 populated knowledge_passages (info_request answer
+    with evidence; the knowledge_lookup tool does not write this field), no active skill
+    (mid-skill info detours stay prose), and not a crisis monitoring/resolved aftercare turn
+    (active crisis never reaches here). See the 2026-06-19 spec for the routing rationale.
+    """
+    return bool(state.get("knowledge_passages")) \
+        and not state.get("active_skill_id") \
+        and state.get("crisis_state", "none") == "none"
+
+
 def _build_l4_knowledge_block(
     passages: list[dict],
     abstain: bool,
     variant: str | None = None,
+    allow_light_structure: bool = False,
 ) -> str | None:
     if abstain and not passages:
         return (
@@ -318,8 +332,14 @@ def _build_l4_knowledge_block(
         f"[{i+1}] {p['text']} (Source: {p.get('citation', p.get('source_id', ''))})"
         for i, p in enumerate(passages[:5])
     )
-    content = tmpl.content.format(passages=_esc(passage_lines))
-    _log.debug("L4_knowledge@%s loaded (%d passages)", tmpl.version, len(passages))
+    directive = ""
+    if allow_light_structure and tmpl.light_structure_directive:
+        directive = "\n\n" + tmpl.light_structure_directive
+    content = tmpl.content.format(passages=_esc(passage_lines), format_directive=directive)
+    _log.debug(
+        "L4_knowledge@%s loaded (%d passages, light_structure=%s)",
+        tmpl.version, len(passages), allow_light_structure,
+    )
     return content
 
 
@@ -821,7 +841,11 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     knowledge_passages = state.get("knowledge_passages") or []
     knowledge_abstain = state.get("knowledge_abstain", False)
     if knowledge_passages or knowledge_abstain:
-        l4_block = _build_l4_knowledge_block(knowledge_passages, knowledge_abstain)
+        l4_block = _build_l4_knowledge_block(
+            knowledge_passages,
+            knowledge_abstain,
+            allow_light_structure=_allow_light_structure(state),
+        )
         if l4_block:
             user_parts.append(l4_block)
             layers.append("knowledge")

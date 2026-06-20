@@ -20,3 +20,4 @@ class PromptTemplate(BaseModel):
     window_size: Optional[int] = None      # L1: verbatim turn count
     summary_trigger: Optional[int] = None  # L1: turn at which summarisation fires (Full Build)
     max_passages: Optional[int] = None     # L4: max knowledge passages
+    light_structure_directive: Optional[str] = None  # L4: permits light list structure on info answers
