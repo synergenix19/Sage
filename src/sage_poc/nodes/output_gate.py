@@ -36,6 +36,51 @@ _FORMAT_VIOLATIONS = re.compile(
     r"]"
 )
 
+# T6 (DEV-2026-06-19-C) — deterministic output-format strip. Load-bearing since the
+# GPT-primary decision (DEV-B, 2026-06-20): the model prior is fixed and not retrainable
+# in-house, so this Node 8 gate is the PRIMARY style guarantee, not a backstop. It enforces
+# the L0 "plain prose, no markdown/emoji/dashes" rule deterministically on the live turn
+# (which was previously log-only — see _FORMAT_VIOLATIONS above), while preserving the L4
+# light-structure permission (newlines + numbered/hyphen lists).
+_TRIPLE_EMPHASIS_RE = re.compile(r"\*\*\*(.+?)\*\*\*")
+_BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
+_ITALIC_RE = re.compile(r"(?<!\*)\*([^*\n]+?)\*(?!\*)")
+_EMOJI_STRIP_RE = re.compile(
+    r"[\U0001F300-\U0001F9FF\U00002600-\U000027BF\U0001FA00-\U0001FAFF]"
+)
+_EMDASH_SPACED_RE = re.compile(r"\s*—\s*")
+_QUOTED_SPAN_RE = re.compile(r"[\"“][^\"”]*[\"”]")
+
+
+def _strip_output_format(text: str) -> str:
+    """Deterministically remove banned style tokens from an outgoing turn.
+
+    Removes paired ***/**/* emphasis and emoji. Replaces em-dash with ", " OUTSIDE quoted
+    spans only, so a cited passage that legitimately contains an em-dash is not corrupted
+    (T6 false-positive guard). Lone "*" (citation/footnote markers) and newlines + numbered/
+    hyphen lists are preserved.
+
+    DESIGN DECISIONS flagged for the T6 owner / clinical confirm (see the L4 spec, T6):
+      - em-dash quote-awareness is the chosen policy for the false-positive guard;
+      - the *italic* regex (inherited from composer._sanitize_assistant_turn) can still
+        mis-pair two lone asterisks on one line (e.g. "note* and ref*"); single-marker
+        citations are safe. Tighten only if multi-marker corpora appear.
+    """
+    if not text:
+        return text
+    text = _TRIPLE_EMPHASIS_RE.sub(r"\1", text)
+    text = _BOLD_RE.sub(r"\1", text)
+    text = _ITALIC_RE.sub(r"\1", text)
+    text = _EMOJI_STRIP_RE.sub("", text)
+    out: list[str] = []
+    last = 0
+    for m in _QUOTED_SPAN_RE.finditer(text):
+        out.append(_EMDASH_SPACED_RE.sub(", ", text[last:m.start()]))
+        out.append(m.group(0))  # quoted span preserved verbatim (cited content)
+        last = m.end()
+    out.append(_EMDASH_SPACED_RE.sub(", ", text[last:]))
+    return "".join(out)
+
 # Question-discipline (Node 8, deterministic). MIND-SAFE: one question at a time, never
 # stack. Cannot be a cultural_output rule (that schema is blocklist/allowlist substitute
 # only — see rules/schemas.py), so it lives here as structural logic.
@@ -398,14 +443,18 @@ async def output_gate_node(state: SageState) -> dict:
             state.get("offered_skill_ids"),
         )
 
+    response_en = _strip_output_format(response_en)
     violations = _FORMAT_VIOLATIONS.findall(response_en)
     if violations:
-        _log.warning("[output_gate] format violations: %s", violations)
+        # Now telemetry only: anything surviving the deterministic strip (e.g. a stray
+        # em-dash preserved inside a quoted span) — not a leak to act on.
+        _log.warning("[output_gate] format tokens after strip: %s", violations)
 
     if lang == "ar" and not _response_en_is_arabic:
         final_response = await async_translate_to_arabic(response_en)
     else:
         final_response = response_en
+    final_response = _strip_output_format(final_response)
 
     if AUDIT_LOG_ENABLED:
         audit = {
