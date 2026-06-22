@@ -22,8 +22,12 @@ export function MessageBubble({ message, supabaseId, onFeedback }: Props) {
   return (
     <div className={cn('flex flex-col', isUser ? 'items-end' : 'items-start')}>
       <div
+        dir="auto"
         className={cn(
-          'max-w-[78%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
+          // whitespace-pre-wrap: render the L4 line structure (numbered lists) instead of
+          // collapsing newlines to run-on text. dir="auto": resolve direction from the first
+          // strong character so Arabic answers render RTL (mixed-lead cases verified in the UI).
+          'max-w-[78%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
           isUser
             ? 'bg-[var(--color-primary-dark)] text-white rounded-ee-sm'
             : 'bg-[var(--color-surface-tinted)] text-[var(--color-text-primary)] rounded-es-sm'
