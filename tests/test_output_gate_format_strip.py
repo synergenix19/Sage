@@ -62,3 +62,29 @@ def test_strip_idempotent_and_empty_safe():
     assert _strip_output_format("") == ""
     once = _strip_output_format("**x** — y \U0001F642")
     assert _strip_output_format(once) == once
+
+
+# false-positive guard (T6.iv) — asterisk analogue: MULTIPLE lone citation markers on one
+# line must survive (the case the earlier regex mangled). Pinned in both languages.
+
+def test_strip_preserves_multiple_lone_asterisk_markers_en():
+    text = "see note* and also ref* below"
+    assert _strip_output_format(text) == text
+
+
+def test_strip_preserves_multiple_lone_asterisk_markers_arabic():
+    text = "راجع المصدر* والمرجع* أدناه"
+    assert _strip_output_format(text) == text
+
+
+def test_strip_preserves_adjacent_lone_asterisks_no_spaces():
+    # markers attached to words; only spaces separate the tokens
+    assert _strip_output_format("alpha* beta* gamma*") == "alpha* beta* gamma*"
+
+
+def test_strip_still_removes_genuine_italic_en():
+    assert _strip_output_format("this is *important* today") == "this is important today"
+
+
+def test_strip_still_removes_genuine_italic_arabic():
+    assert _strip_output_format("هذا *مهم* اليوم") == "هذا مهم اليوم"

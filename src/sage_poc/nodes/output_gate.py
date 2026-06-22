@@ -44,7 +44,10 @@ _FORMAT_VIOLATIONS = re.compile(
 # light-structure permission (newlines + numbered/hyphen lists).
 _TRIPLE_EMPHASIS_RE = re.compile(r"\*\*\*(.+?)\*\*\*")
 _BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
-_ITALIC_RE = re.compile(r"(?<!\*)\*([^*\n]+?)\*(?!\*)")
+# Italic: a * only opens/closes emphasis at a word boundary (not attached to a word char).
+# Unicode \w covers Arabic, so lone citation markers ("note*", "المصدر*") never open emphasis,
+# even when several appear on one line. Emphasis edges must be non-space (CommonMark-ish).
+_ITALIC_RE = re.compile(r"(?<![\w*])\*(\S(?:[^*\n]*?\S)?)\*(?![\w*])")
 _EMOJI_STRIP_RE = re.compile(
     r"[\U0001F300-\U0001F9FF\U00002600-\U000027BF\U0001FA00-\U0001FAFF]"
 )
@@ -60,11 +63,11 @@ def _strip_output_format(text: str) -> str:
     (T6 false-positive guard). Lone "*" (citation/footnote markers) and newlines + numbered/
     hyphen lists are preserved.
 
-    DESIGN DECISIONS flagged for the T6 owner / clinical confirm (see the L4 spec, T6):
-      - em-dash quote-awareness is the chosen policy for the false-positive guard;
-      - the *italic* regex (inherited from composer._sanitize_assistant_turn) can still
-        mis-pair two lone asterisks on one line (e.g. "note* and ref*"); single-marker
-        citations are safe. Tighten only if multi-marker corpora appear.
+    DESIGN DECISION flagged for the T6 owner / clinical confirm (see the L4 spec, T6):
+      - em-dash quote-awareness is the chosen policy for the false-positive guard.
+    The *italic* rule is word-boundary anchored (Unicode \\w), so lone citation markers in
+    either language and any number of them on a line are preserved; only true *emphasis* at
+    word boundaries is stripped (pinned by tests).
     """
     if not text:
         return text
