@@ -20,6 +20,7 @@ interface SdkMessage {
   content: string
   supabaseId?: string  // Supabase UUID from X-Sage-Ai-Message-Id header
   isCrisis?: boolean
+  direction?: 'ltr' | 'rtl'  // authoritative from X-Sage-Direction (detected_language)
 }
 
 interface Props {
@@ -84,6 +85,10 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
         const aiSupabaseId = res.headers.get('X-Sage-Ai-Message-Id') ?? undefined
         const newCrisisState = res.headers.get('X-Sage-Crisis-State')
         if (newCrisisState) setCrisisState(newCrisisState)
+        // Authoritative text direction from the backend; functional, present on every turn.
+        const aiDirectionRaw = res.headers.get('X-Sage-Direction')
+        const aiDirection: 'ltr' | 'rtl' | undefined =
+          aiDirectionRaw === 'rtl' || aiDirectionRaw === 'ltr' ? aiDirectionRaw : undefined
 
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
@@ -108,7 +113,7 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
             : accumulated
           setMessages((curr) =>
             curr.map((m) =>
-              m.id === assistantId ? { ...m, content: displayContent, isCrisis: isCrisisMsg } : m
+              m.id === assistantId ? { ...m, content: displayContent, isCrisis: isCrisisMsg, direction: aiDirection } : m
             )
           )
         }
@@ -298,6 +303,7 @@ export function ChatInterface({ initialSession, initialMessages = [], userName, 
                   intent: null,
                   sessionId: initialSession?.id ?? '',
                   createdAt: '',
+                  direction: m.direction,
                 }}
                 supabaseId={m.supabaseId}
                 onFeedback={handleFeedback}

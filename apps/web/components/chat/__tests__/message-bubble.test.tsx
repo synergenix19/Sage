@@ -91,16 +91,21 @@ describe('MessageBubble — L4 structure & RTL rendering', () => {
     expect(el.textContent).toBe(list) // newlines intact in the DOM, not collapsed
   })
 
-  // Edge A (reviewer): dir="auto" keys off the first strong char. An Arabic answer whose
-  // lead opens on a non-Arabic char is the case that can land on the wrong side. jsdom does
-  // not run the bidi algorithm, so this pins attribute + content integrity; the visual
-  // direction on this mixed-lead case is confirmed in the app-UI check (the real T4).
-  it('keeps dir="auto" and full content when an Arabic answer opens on a non-Arabic character', () => {
+  // Edge A (reviewer, now FIXED): an Arabic answer whose lead opens on a non-Arabic token
+  // ("CBT") resolves LTR under dir="auto" (first-strong-character heuristic). The backend
+  // sends the authoritative direction (X-Sage-Direction, from detected_language); the
+  // renderer uses it, so the answer is RTL regardless of the lead character.
+  it('uses server-provided direction=rtl even when an Arabic answer opens on a non-Arabic token', () => {
     const content = '"CBT" هو علاج فعّال ومدعوم بالأبحاث للقلق'
-    render(<MessageBubble message={{ ...base, role: 'ai', content }} />)
+    render(<MessageBubble message={{ ...base, role: 'ai', content, direction: 'rtl' }} />)
     const el = screen.getByText(/CBT/)
-    expect(el).toHaveAttribute('dir', 'auto')
+    expect(el).toHaveAttribute('dir', 'rtl')
     expect(el.textContent).toBe(content)
+  })
+
+  it('uses server-provided direction=ltr for an English answer', () => {
+    render(<MessageBubble message={{ ...base, role: 'ai', content: 'Hello there', direction: 'ltr' }} />)
+    expect(screen.getByText('Hello there')).toHaveAttribute('dir', 'ltr')
   })
 
   // Edge B (reviewer): whitespace-pre-wrap now faithfully renders the model's whitespace,

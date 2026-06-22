@@ -33,6 +33,9 @@ export interface ChatMessage {
   content: string
   intent: Intent | null
   createdAt: string
+  /** Authoritative text direction from the backend (X-Sage-Direction, derived from
+   *  detected_language). When absent, the renderer falls back to dir="auto". */
+  direction?: 'ltr' | 'rtl'
 }
 
 export interface SessionInsight {

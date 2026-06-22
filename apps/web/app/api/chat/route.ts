@@ -236,6 +236,11 @@ export async function POST(req: Request) {
   const crisisStateHeader = sageRes.headers.get('X-Sage-Crisis-State')
   if (crisisStateHeader) responseHeaders['X-Sage-Crisis-State'] = crisisStateHeader
 
+  // Text direction is always forwarded — functional (drives RTL rendering), present on
+  // every assistant turn, not just info answers. Authoritative over the client's dir="auto".
+  const directionHeader = sageRes.headers.get('X-Sage-Direction')
+  if (directionHeader) responseHeaders['X-Sage-Direction'] = directionHeader
+
   if (process.env.SAGE_EXPOSE_DIAGNOSTIC_HEADERS === 'true') {
     for (const header of SAGE_HEADERS_WHITELIST) {
       const value = sageRes.headers.get(header)
