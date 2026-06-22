@@ -58,6 +58,16 @@ def detect_language(text: str | None) -> str:
         return "en"
 
 
+def text_direction(language: str | None) -> str:
+    """Writing direction for a language code: 'rtl' for Arabic, 'ltr' otherwise.
+
+    Authoritative source for the X-Sage-Direction response header. The frontend uses this
+    instead of re-inferring direction from message content, because dir="auto" keys off the
+    first strong character and flips an Arabic answer that opens on a Latin token (e.g. "CBT").
+    """
+    return "rtl" if language == "ar" else "ltr"
+
+
 _EXEMPLARS_PATH = Path(__file__).parent / "data" / "khaleeji_translation_exemplars.json"
 
 

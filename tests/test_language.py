@@ -227,3 +227,20 @@ async def test_async_translate_to_english_prompt_unchanged():
         f"Khaleeji instruction leaked into async_translate_to_english.\nGot: {prompt}"
     )
     assert "English" in prompt
+
+
+# text_direction: authoritative source for the X-Sage-Direction response header.
+def test_text_direction_arabic_is_rtl():
+    from sage_poc.language import text_direction
+    assert text_direction("ar") == "rtl"
+
+
+def test_text_direction_english_is_ltr():
+    from sage_poc.language import text_direction
+    assert text_direction("en") == "ltr"
+
+
+def test_text_direction_unknown_or_missing_defaults_ltr():
+    from sage_poc.language import text_direction
+    assert text_direction(None) == "ltr"
+    assert text_direction("fr") == "ltr"

@@ -20,6 +20,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from sage_poc.graph import build_graph
 from sage_poc.config import RESPONDER_MODEL
+from sage_poc.language import text_direction
 from sage_poc.server_helpers import _build_state, _stale_skill_overrides, _void_unseen_offer
 from sage_poc.llm import get_classifier
 from sage_poc.skills.conformance import SCHEMA_CONFORMANCE, get_conformance_report
@@ -319,6 +320,7 @@ async def chat(
             "X-Sage-Clinical-Flags":        json.dumps(result.get("clinical_flags") or []),
             "X-Sage-Emotional-Intensity":   str(result.get("emotional_intensity") or 0),
             "X-Sage-Crisis-State":          result.get("crisis_state") or "none",
+            "X-Sage-Direction":             text_direction(result.get("detected_language")),
             "X-Sage-Distress-Trajectory":   json.dumps(result.get("distress_trajectory") or []),
             "X-Sage-Engagement-Trajectory": json.dumps(result.get("engagement_trajectory") or []),
             "X-Sage-Conversation-Summary":  result.get("conversation_summary") or "",
