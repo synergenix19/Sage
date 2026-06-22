@@ -111,6 +111,18 @@ External links are composed/rendered as source chips, not model markdown, so the
 
 T1–T3 are pure engineering with no clinical/behavioural dependency → clear to build now. T4 is the stop point where Option A/B, clinical courtesy review, and the bilingual judgment converge. This is POC composer work on a track separate from the Phase-0 routing harness — no dependency or competition — so it proceeds in parallel.
 
+## 7. RTL rendering — direction architecture, and a named limitation
+
+T4 surfaced that the L4 structure (numbered lists) had **never rendered end-to-end** — the frontend `message-bubble` rendered raw text with no `dir` and collapsed whitespace, so lists flattened to run-on text (silently in EN, visibly RTL-jumbled in AR). Fix shipped in two halves:
+- **Frontend** (cdai `6929fb3`, `a87f588`): `whitespace-pre-wrap` + direction. Direction is **authoritative from the backend** (`X-Sage-Direction`), `dir="auto"` only the fallback. Closes "edge A" (an Arabic answer whose lead opens on a Latin token like "CBT" resolves LTR under `dir="auto"`'s first-strong-character heuristic).
+- **Backend** (sage-poc L4 branch `0f5ed6f`): `text_direction(detected_language)` → `X-Sage-Direction` header on every assistant turn.
+
+### ⚠️ KNOWN LIMITATION — error/timeout turns carry no authoritative direction
+`X-Sage-Direction` rides the normal `/chat` header dict, so the **error and timeout response paths do not emit it**, and the client falls back to `dir="auto"`. This is the heuristic just proven unreliable on Arabic-with-Latin-lead — and a fallback turn (something went wrong, output may be malformed/mixed-script) is **disproportionately likely to be exactly the edge-A case**. So the one rendering path without authoritative direction is the one where direction is hardest to infer. **Not a blocker** (`dir="auto"` is strictly better than nothing and matches prior behaviour), but recorded here so a future reader does not believe "authoritative on every turn" is a guarantee without a hole. *Authoritative on success/crisis paths; `dir="auto"` fallback on error/timeout; edge A can recur on fallback turns.* Closing it = emit the header on the error/timeout paths too.
+
+### T4 verification record (2026-06-22) — criterion 4 signed off (rendering/UX)
+End-to-end through the **running app** (not a mockup): Arabic "CBT" turn → real cdai chat UI → Next `/api/chat` → live sage-poc backend → `X-Sage-Direction: rtl` (captured at the socket) → `chat-interface` → bubble rendered **`dir="rtl"`**, RTL, numbered list intact, Latin "CBT" embedded. Playwright e2e (`edge-a-rtl.spec.ts`, throwaway) asserted `dir==='rtl'` and screenshotted `edge-a-real-render.png`. Clinician graded content criteria 1–3 PASS (MSA register, no bleed-through, forbid honoured); rendering criterion 4 verified here. **Cross-repo deploy gate:** confirm BOTH the backend header and the frontend consumer are *live in production* before merge-enable — either alone leaves edge A broken for real users while all tests stay green.
+
 ---
 
 *Spec only; verified against the live codebase. Implement via superpowers:test-driven-development task-by-task. No memory writes from this work session (coordinator rule).*
