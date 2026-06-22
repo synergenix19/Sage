@@ -848,13 +848,17 @@ from sage_poc.nodes.output_gate import output_gate_node
 
 @pytest.mark.asyncio
 async def test_output_gate_english_passthrough():
+    # English is not translated (it passes through the Arabic-translation step). T6 (the
+    # deterministic format strip, DEV-2026-06-19-C) still applies: the em-dash is converted to
+    # a comma per the L0 "use commas, not dashes" rule. So output_gate is a *translation*
+    # passthrough for English, not a verbatim one — banned style tokens are stripped on every path.
     state = make_state(
         detected_language="en",
         response_en="Three weeks of that — what's shifted for you recently?",
         path=["safety_check", "intent_route", "skill_select", "skill_executor", "freeflow_respond"],
     )
     result = await output_gate_node(state)
-    assert result["response"] == "Three weeks of that — what's shifted for you recently?"
+    assert result["response"] == "Three weeks of that, what's shifted for you recently?"
     assert "output_gate" in result["path"]
 
 @pytest.mark.asyncio
