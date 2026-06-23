@@ -4,6 +4,7 @@ import json
 import logging
 import hmac
 import os
+import pathlib
 import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -115,6 +116,41 @@ async def _warmup_task() -> None:
     _bge_ready = True
 
 
+async def _corpus_sync_task(pool) -> None:
+    """Reconcile the on-disk knowledge corpus into pgvector on startup.
+
+    Idempotent and fail-open: unchanged articles are skipped (no re-embed), so this
+    is cheap on every boot; any failure logs a WARNING and leaves retrieval to
+    abstain (never crashes startup). Waits for BGE-M3 warmup first because
+    ingestion embeds each new/changed chunk with the same model.
+
+    Disable with SAGE_SYNC_CORPUS=0. Prune DB-only articles with SAGE_CORPUS_PRUNE=1.
+    """
+    if os.environ.get("SAGE_SYNC_CORPUS", "1") == "0":
+        _log.info("[sage/startup] corpus sync skipped (SAGE_SYNC_CORPUS=0)")
+        return
+    # Embeddings need the model loaded; wait for warmup (bounded).
+    for _ in range(300):  # up to ~10 min at 2s
+        if _bge_ready:
+            break
+        await asyncio.sleep(2)
+    if not _bge_ready:
+        _log.warning("[sage/startup] corpus sync skipped — BGE-M3 not ready in time")
+        return
+    try:
+        from sage_poc.knowledge.sync import sync_corpus
+        default_dir = pathlib.Path(__file__).resolve().parent / "data" / "knowledge_corpus"
+        corpus_dir = os.environ.get("SAGE_CORPUS_DIR", str(default_dir))
+        prune = os.environ.get("SAGE_CORPUS_PRUNE", "0") == "1"
+        result = await sync_corpus(corpus_dir, pool, prune=prune)
+        _log.info(
+            "[sage/startup] corpus sync: ingested=%d skipped=%d pruned=%d chunks=%d locked_out=%s",
+            result.ingested, result.skipped, result.pruned, result.chunks, result.locked_out,
+        )
+    except Exception as exc:
+        _log.warning("[sage/startup] corpus sync failed (retrieval will abstain): %s", exc)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _bge_ready
@@ -175,6 +211,9 @@ async def lifespan(app: FastAPI):
         saver = AsyncPostgresSaver(saver_pool)
         app.state._graph = build_graph(checkpointer=saver)
         _log.info("[sage/startup] checkpointer ready")
+        # Auto-load/refresh the knowledge corpus once embeddings are warm.
+        # Background + fail-open: never blocks readiness, never crashes startup.
+        asyncio.create_task(_corpus_sync_task(asyncpg_pool))
         yield
         await saver_pool.close()
         await asyncpg_pool.close()

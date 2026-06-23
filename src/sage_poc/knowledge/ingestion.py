@@ -16,6 +16,7 @@ Chunk IDs: "{article_id}-{language}-{chunk_index:03d}" for multi-chunk articles.
           "{article_id}-{language}" for single-chunk (crisis) articles.
 """
 from __future__ import annotations
+import hashlib
 import json
 import re
 import logging
@@ -24,6 +25,23 @@ from typing import Any
 _log = logging.getLogger(__name__)
 
 _REQUIRED_FIELDS = {"article_id", "language", "title", "source_url", "citation", "content", "is_crisis_content"}
+
+# Fields whose change should trigger a re-ingest (re-embed). Stable order.
+_HASHED_FIELDS = ("article_id", "language", "title", "source_url", "citation",
+                  "content", "is_crisis_content")
+
+
+def content_hash(article: dict) -> str:
+    """Stable hash of the fields that affect retrieval/render output.
+
+    Stored in citation_metadata.content_hash so sync_corpus can skip unchanged
+    articles without re-embedding.
+    """
+    payload = json.dumps(
+        {k: article.get(k) for k in _HASHED_FIELDS},
+        sort_keys=True, ensure_ascii=False,
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 _SENTENCE_END_RE = re.compile(r"(?<=[.!?])\s+")
 
@@ -86,6 +104,7 @@ async def ingest_article(article: dict[str, Any], pool) -> int:
         "title": article.get("title", ""),
         "source_url": article.get("source_url", ""),
         "citation": article.get("citation", ""),
+        "content_hash": content_hash(article),
     }
 
     chunks = chunk_text(article["content"], is_crisis_content=is_crisis)
