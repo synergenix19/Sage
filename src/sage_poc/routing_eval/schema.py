@@ -12,9 +12,10 @@ from dataclasses import dataclass
 # Controlled vocabularies (§1.1).
 LANGS = ("en", "ar")
 STRATA = ("in_scope", "id_oos", "far_oos")
-CASE_KINDS = ("normal", "crisis_invariance", "referral_exclusion", "stale_state")
+CASE_KINDS = ("normal", "crisis_invariance", "referral_exclusion", "stale_state", "medical_referral")
 ABSTAIN = "ABSTAIN"
 ESCALATE = "ESCALATE"   # crisis safety-net outcome: must escalate, never be absorbed by a skill
+MEDICAL_REFERRAL = "MEDICAL_REFERRAL"  # red-flag somatic outcome (case-29): urgent medical eval, never a skill
 
 # Referral/after-care pathways excluded as skill_select targets (brief A1 / A2.8).
 EXCLUDED_REFERRALS = ("psychotic_referral", "post_crisis_check_in")
