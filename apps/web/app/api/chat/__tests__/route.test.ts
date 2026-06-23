@@ -111,6 +111,42 @@ describe('POST /api/chat', () => {
     expect(res).toBeInstanceOf(Response)
   })
 
+  it('retries the backend fetch on a transient ECONNRESET and then succeeds (200, not 503)', async () => {
+    // Simulates the Vercel->Railway "socket disconnected before secure TLS" reset: the
+    // first connection attempt fails before the backend is reached, the retry succeeds.
+    const connErr = Object.assign(new TypeError('fetch failed'), { cause: { code: 'ECONNRESET' } })
+    ;(global.fetch as ReturnType<typeof vi.fn>)
+      .mockRejectedValueOnce(connErr)
+      .mockResolvedValue(makeSageResponse())
+
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'hi' }],
+        sessionId: VALID_SESSION_UUID,
+      }),
+    })
+    const res = await POST(req)
+    expect(res.status).toBe(200)
+    // The first /chat attempt rejected and a retry was issued.
+    expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('returns 503 only when the backend connection keeps resetting across all retries', async () => {
+    const connErr = Object.assign(new TypeError('fetch failed'), { cause: { code: 'ECONNRESET' } })
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(connErr)
+
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'hi' }],
+        sessionId: VALID_SESSION_UUID,
+      }),
+    })
+    const res = await POST(req)
+    expect(res.status).toBe(503)
+  })
+
   it('persists new trace columns in the AI message insert', async () => {
     const req = new Request('http://localhost/api/chat', {
       method: 'POST',
