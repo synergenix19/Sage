@@ -52,6 +52,13 @@ async function fetchSageChat(init: RequestInit, attempts = 3): Promise<Response>
     } catch (err) {
       lastErr = err
       if (!_isTransientConnError(err) || i === attempts - 1) throw err
+      // Observable on purpose: a successful retry would otherwise be silent, making
+      // "no resets fired" and "resets absorbed into 200s" indistinguishable in the logs.
+      // This line + a 200 on the same request is the positive confirmation signal.
+      console.warn(
+        `[chat/route] backend TLS connection reset (attempt ${i + 1}/${attempts}), retrying:`,
+        (err as { cause?: unknown } | null)?.cause ?? err,
+      )
       await new Promise((r) => setTimeout(r, 250 * (i + 1)))
     }
   }
