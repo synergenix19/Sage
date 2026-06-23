@@ -54,7 +54,9 @@
 - [ ] Approved with the modifications marked above
 - [ ] Rejected — reasoning: ________________________________________
 
-**Engineering note:** implements only the affirmed values; the F3/F4 rule/skill commits are tagged `clinical-signoff: 2026-06-23-tipp-offer-entry` and must not merge until this file records *Approved*. The substitute/offer eligibility and the hold-ceiling N live in data (`skill_matching_rules.json` / `dbt_tipp.json`), so any value you set here is changed in data, not code.
+**Engineering note:** implements only the affirmed values; the F3/F4 rule/skill commits are tagged `clinical-signoff: 2026-06-23-tipp-offer-entry`.
+
+**Enforcement (decided 2026-06-23, product owner):** the merge hold is a **process gate, not a technical block** — goal is production, and we are not building CI enforcement for it. The hard gate is GitHub's `required reviews: 1`; this signed doc is the audit trail and the commit tag is a label. On record: a reviewer *could* merge without re-checking this doc, so the gate's integrity rests on review discipline, not a failing check. D2's exact user-facing wording remains a **gated artifact** (drafted, returned to this doc for approval, not merged on a glance). The substitute/offer eligibility and the hold-ceiling N live in data (`skill_matching_rules.json` / `dbt_tipp.json`), so any value you set here is changed in data, not code.
 
 ---
 
