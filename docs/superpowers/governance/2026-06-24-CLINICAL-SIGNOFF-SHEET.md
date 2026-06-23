@@ -7,9 +7,9 @@
 
 ## 0. ELEVATED — ~38% crisis recall  **[PILOT — highest stakes on this sheet]**
 *Not a freeze item, but the clinician flagged it as the highest-stakes figure here and asked it not sit in a footnote.* ~38% recall means the detector misses ~6 in 10 crisis presentations, and it fails specifically on the **indirect/oblique** risk signals — the same Gulf-under-stigma presentation the Arabic design is built around, so the cultural and crisis axes **compound**. Three requirements to attach to **pilot graduation** (none block the freeze):
-- [ ] **Recall bar set high, sensitivity-first** — accept more false positives to avoid missed crises. **38% does not graduate a pilot.**
-- [ ] **Deterministic high-recall red-flag/keyword layer *under* the learned detector** so explicit risk language is never silently missed by an ML miss. *(Note: a Layer-1 deterministic crisis layer already exists — confirm it provides this floor and expand coverage.)*
-- [ ] **ABSTAIN freeflow fallback reliably surfaces human/crisis resources** — since ABSTAIN is the safe default, its floor behavior is part of the crisis safety net, not separate from it. Confirm/verify.
+- [ ] **[GRADUATION — clinical]** Recall bar set high, sensitivity-first — accept more false positives to avoid missed crises. **38% does not graduate a pilot.**
+- [ ] **[VERIFY NOW — engineering, live-pilot check]** Confirm the **Layer-1 deterministic red-flag/keyword floor's actual coverage** under the learned detector. This is not a graduation gate — it's load-bearing for the *current* pilot: if the deterministic floor is weaker than assumed, ~38% isn't "ML misses 6/10 but explicit language is caught," it's "6/10 missed with an unverified floor." That's the difference between an intact safety net and a hole. Verify now.
+- [ ] **[VERIFY NOW — engineering, live-pilot check]** Verify the **ABSTAIN freeflow fallback reliably surfaces human/crisis resources** — ABSTAIN is the default path, so its floor behavior is part of the *current* crisis safety net. Checkable today; don't defer.
 
 ---
 
@@ -29,17 +29,20 @@
 **Clinical route-label confirmations (within the AR cells):**
 - ✅ Faith-framing **case 2** (negative religious coping) → **support + risk screen** — **CONFIRMED** (spiritual struggle strongly linked to poorer MH; punishment/abandonment framing co-travels with hopelessness).
 - ✅ Faith-framing **case 3** (genuinely coped) → **ABSTAIN** control — **CONFIRMED with authoring note:** operationalize "coped" as *functioning + not help-seeking*, not mere صبر/ابتلاء vocabulary, or it stops being a clean negative control.
-- ⚠️ Collectivist interpersonal → **CONDITIONAL — do not rubber-stamp.** Joint native+clinical read: natural coaching → confirm `assertive_communication`/`interpersonal_effectiveness`; importing a Western boundary script → prefer a differently-framed interpersonal skill or ABSTAIN. *(Still open.)*
+- ⚠️ Collectivist interpersonal → **CONDITIONAL — do not rubber-stamp.** Joint native+clinical read: natural coaching → confirm `assertive_communication`/`interpersonal_effectiveness`; importing a Western boundary script → prefer a differently-framed interpersonal skill or ABSTAIN.
+  - **Convener:** clinical lead convenes the joint read with the native reviewer (both in the loop at once — it's a scheduling dependency, not a checkbox).
+  - **Sequencing rule:** this read **must resolve before or during** `ar/in_scope` interpersonal-case authoring, **not after**. If those cases are authored against an unsettled route label, it's the borderline-pending trap reappearing in Arabic — the exact thing just cleared on the EN side.
 - [ ] Case-29 **AR red-flag idioms** (2 drafted) — clinical floor confirmed (radiation arm/jaw/neck/back, exertional, cold sweat, not relieved by rest/reassurance, SOB/nausea, any cardiac history); native reviewer supplies the idioms.
 
 ### 2. Two id_oos safety-boundary cases  **[ADDITIVE]** — RULED + BUILT 2026-06-24
 *Clinician ruled; both built (additive, didn't block the freeze). Detail: `2026-06-24-id_oos-boundary-flags.md`, `additive_safety_cases.jsonl`.*
 - ✅ **Harm-OCD → ABSTAIN**, included as contrast — **AND the insisted addition: a matched ego-syntonic postpartum-psychosis → ESCALATE** case, so the router can't learn "baby+harm→always abstain" and miss psychosis (~70% of perinatal practitioners misidentify harm obsessions). Built as a two-direction contrast pair; ABSTAIN response flagged to be warm/OCD-literate, not cold.
+  - *Credit:* this improved on the original engineering recommendation (a single ABSTAIN negative-control). The clinician saw the deeper failure mode — a router trained on "baby+harm→ABSTAIN" learns the wrong invariant and misses the ego-syntonic presentation that must escalate — so a contrast *pair* that forces discrimination is the right design, not one case. This is the harm-OCD/harm-intent disambiguation, now built as a two-direction eval contrast.
 - ✅ **Active-restriction ED → ABSTAIN + `safety_net` flag** (both, per ruling): firmer than body-image; new `safety_net` harm tier means a self-help-skill route now fails the harm gate (referral not BMI-dependent; warm signpost to assessment).
 - [ ] *Open only:* author the **AR** versions of the perinatal pair (native + clinical, given sensitivity).
 
 ### 3. Case-29 cardiac-somatic — remaining conditions
-- [ ] **Cond 3 — caveat wording + Gulf red-flag idioms** reviewed natively **[FREEZE-adjacent]** (overlaps item 1; the medical rule-out caveat language + Khaleeji red-flag detection).
+- ➡️ **Cond 3 — caveat wording + Gulf red-flag idioms** → **resolved to: part of Item 1 [FREEZE]** (not "adjacent"). The native reviewer supplies the red-flag idioms while authoring the AR cells, so it lives inside Item 1's freeze blocker. The caveat *wording* principle (signpost, not reassurance) is recorded in the case-29 doc.
 - [ ] **Cond 4 — DHA/MOH digital-health + medical-disclaimer wording** on the referral language **[PILOT]** — **owner: local legal/compliance counsel, NOT the clinical lead** (UAE regulatory question; clinician explicitly out of lane). Gates pilot-past-POC, not the freeze.
   - *Caveat wording principle (clinician):* the caveat is a medical rule-out **signpost, not diagnostic reassurance** — "probably just anxiety" is the failure mode; panic itself can trigger ischemia, so chest pain in a panic context is not assumed benign.
 
@@ -63,6 +66,28 @@
 - ✅ All G6 values (#1–#7) signed.
 
 ---
+
+## Section 3 — Pilot-graduation safety-detection blockers (consolidated)
+*These were scattered across §0/§3-cond4/§5. Consolidated here so the graduation gate is legible as one set. NONE block the dataset freeze or the V2 routing flip — they gate widening/graduating the pilot. This is what "prefer safety over capability" actually points at, and it is now four items deep.*
+
+| # | Blocker | Status | Owner |
+|---|---|---|---|
+| G1 | **Cardiac red-flag detector in prod** (case-29: eval has MEDICAL_REFERRAL; prod doesn't enforce it) | floor signed; detector unbuilt | **clinical** (floor) + engineering (build) |
+| G2 | **~38% crisis recall** — sensitivity-first bar; build path | bar unset; S2/MARBERT unbuilt | **clinical** (bar) + engineering (build) |
+| G3 | **Harm-OCD vs harm-intent prod detection** (eval contrast built this turn; prod detection open) | eval-built; prod-detection open | **engineering** |
+| G4 | **Harm-to-others escalation target + duty-to-warn** (UAE ≠ Tarasoff) | open | **compliance** (duty-to-warn) + engineering (escalation target) |
+
+*Two live-pilot verifications (NOT graduation gates) are pulled forward to now — see §0: confirm the Layer-1 deterministic crisis floor's real coverage, and verify ABSTAIN surfaces crisis resources. These check the **current** pilot's safety net.*
+
+## Section 4 — Path to V2 in production (answering "what else to ship V2")
+V2 = the retrieval-core routing (per-route thresholds + ABSTAIN + debias). It is **orthogonal to crisis detection** (Node 1 is deterministic and never reaches skill_select), so the §3 safety blockers gate *pilot widening*, not the V2 routing flip. Shipping V2 takes, in order:
+
+1. **[needs you/clinicians — the only human gate left]** Freeze the held-out set: native AR authoring (3 cells, collectivist read sequenced first) + values ratification. This is the sole remaining [FREEZE] work.
+2. **[engineering, after freeze]** Run §2 calibration + §5 flip-gate on the real held-out set.
+3. **[conditional — the honest part]** V2 ships **only if it wins gate-6 per-stratum** (beats V1 within every lang×stratum cell, BC3 powered, harm gate + per-cell tolerance pass). The V2 probe showed exemplar-embedding alone *regresses*; §2/§3 are the demonstrated minimum, but the real held-out run is what decides. If V2 loses, it stays off and we iterate — "ship V2" is not unconditional.
+4. **[engineering, if V2 wins]** Wire per-route thresholds + debias + ABSTAIN into skill_select behind `SKILL_ROUTING_V2`; prove flag-off is byte-identical to prod V1 (stash-control + wrong-skill suite 240/10); deploy; flip the flag.
+
+**So the only thing I need from you/clinicians to *start* the path is item 1 — the native AR authoring + values signatures.** Everything after is engineering + a gate that V2 must actually pass.
 
 ## Sign-off
 ```
