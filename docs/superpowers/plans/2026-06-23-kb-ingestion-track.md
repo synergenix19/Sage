@@ -67,11 +67,26 @@ anxiety, panic attacks, low mood / depression basics, sleep hygiene, stress, gro
 ### A.4 Crisis content stays single-chunk + Node 1 authoritative
 `is_crisis_content=true` articles are never chunked (already enforced). Crisis info is **second-line** to Node 1's deterministic crisis path (UAE 800 46342 / 999) — KB never overrides it. (See §B.0 crisis-exclusion for the link side.)
 
+### A.5 Translation track — REQUIRED clinical-faithfulness gate (do not skip)
+Producing the `-ar` pair of an already-approved `-en` article is **translation, not authoring** — the clinical decision was made when the English was approved. That keeps it on the code-review side **only if the translation is a faithful rendering** (no adaptation, no reworded clinical instruction, no changed example). The boundary is real: a Khaleeji cultural adaptation, a "may"→"should" drift, or a reordered technique instruction turns it back into **new clinical content** that needs full authoring sign-off.
+
+**The trap:** "faithful" is itself a clinical judgment. A non-clinical translator can produce a faithful-*sounding* MSA rendering that drifts on a clinical nuance, and the RAG+L4 path will retrieve and render the drifted version exactly as confidently as a correct one. **Retrieval/render tests prove the content flows; they do NOT prove it is clinically faithful.** (Same distinction as "structure renders" vs "register is right" from the T4 saga — an English reader structurally cannot catch an Arabic faithfulness drift.)
+
+**Required gate for every translated pair, baked into the pattern (not appended after):**
+1. Engineering produces the faithful translation + verifies schema / pairing / retrieval.
+2. **A qualified Arabic clinical reviewer grades the translation for clinical faithfulness** before it is treated as approved-in-Arabic. This is a *required* step, not a flag-for-later.
+3. The PR states which gate applies (faithful translation vs adaptation) so the reviewer knows.
+
+**Hard carve-out — trauma and `crisis-*` (any `is_crisis_content=true`) do NOT use this track.** They go through the **same clinical authorship gate as original crisis content**, not "translated by engineering, verified by retrieval." A faithfulness drift in a breathing article is a quality bug; in a crisis/trauma article it is a safety event, in exactly the content class where the architecture is most deterministic *because* the stakes are highest. Do not let the smooth ingestion pipeline set the pace for these.
+
+**Status — `cbt-001-ar` (shipped 2026-06-23, live in prod):** faithful MSA translation of approved `en/cbt-001`, but graded **only by engineering self-assessment — clinical faithfulness NOT yet verified by a qualified Arabic clinical reviewer.** Action: get it graded promptly (it is live). Do not ship the remaining 9 EN-only pairs until this A.5 gate is part of the pattern. Register delta (MSA vs Khaleeji corpus) separately flagged for the content owner.
+
 ### A — deliverables
 1. Content lifecycle doc (draft→review→approve→publish→ingest) + reviewer checklist.
 2. Bilingual-pair publish gate (promote `check_bilingual_pairing` warning → hard error in the publish path).
 3. First bilingual article batch (§A.2), clinically signed off.
-4. Threshold recalibration run + recorded value (after ≥ 10 articles).
+4. ~~Threshold recalibration~~ — **superseded**: measured 2026-06-23, no single-score cutoff separates relevant from off-topic; real fix is the BGE-reranker (see the calibration audit + reranker scoping). Threshold stays `0.0`.
+5. **A.5 clinical-faithfulness sign-off gate** wired into the translation pattern; `cbt-001-ar` graded; trauma/`crisis-*` routed to clinical authorship.
 
 ---
 
