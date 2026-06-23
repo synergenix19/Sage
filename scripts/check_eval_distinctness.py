@@ -25,8 +25,11 @@ def main(path: str, max_jaccard: float = 0.7, intra_max_jaccard: float = 0.5) ->
         if not line.strip():
             continue
         r = json.loads(line)
+        # Intra-set redundancy applies to every cluster (in_scope skills AND the ABSTAIN OOS
+        # strata) — keyed by (stratum, route) so far_oos and id_oos are checked within themselves.
+        by_route[(r.get("stratum", "?"), r.get("expected_route", "?"))].append(r["utterance"])
+        # Anchor overfit is an in_scope concern only (a skill case near-copying its presentations).
         if r.get("stratum") == "in_scope":
-            by_route[r.get("expected_route", "?")].append(r["utterance"])
             ok, j, tp, sid = check_distinct(r["utterance"], tps, max_jaccard=max_jaccard)
             if not ok:
                 violations.append((j, r["utterance"], tp, sid))
@@ -36,9 +39,9 @@ def main(path: str, max_jaccard: float = 0.7, intra_max_jaccard: float = 0.5) ->
 
     # Intra-set pass: cases must be distinct from EACH OTHER, not only from anchors.
     intra = []
-    for route, us in by_route.items():
+    for (stratum, route), us in by_route.items():
         for j, ua, ub in intra_set_redundancy(us, max_jaccard=intra_max_jaccard):
-            intra.append((j, route, ua, ub))
+            intra.append((j, f"{stratum}/{route}", ua, ub))
     for j, route, ua, ub in sorted(intra, reverse=True):
         print(f"INTRA-DUP j={j:.2f}  [{route}]  '{ua[:45]}'  ~  '{ub[:45]}'")
     print(f"{len(intra)} intra-set near-duplicate pair(s) in {path}")
