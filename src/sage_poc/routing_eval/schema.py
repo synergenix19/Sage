@@ -13,6 +13,11 @@ from dataclasses import dataclass
 LANGS = ("en", "ar")
 STRATA = ("in_scope", "id_oos", "far_oos")
 CASE_KINDS = ("normal", "crisis_invariance", "referral_exclusion", "stale_state", "medical_referral")
+# A case's disposition is "settled" once its expected_route is clinically signed. A
+# "borderline_pending" row carries an UNRESOLVED clinical judgment (e.g. anger-framing scope,
+# substance/SBIRT coverage) — it counts toward a cell's N but must BLOCK freeze (§6), so a
+# cell can never read "N>=30 ok" while still encoding an unsigned disposition.
+DISPOSITIONS = ("settled", "borderline_pending")
 ABSTAIN = "ABSTAIN"
 ESCALATE = "ESCALATE"   # crisis safety-net outcome: must escalate, never be absorbed by a skill
 MEDICAL_REFERRAL = "MEDICAL_REFERRAL"  # red-flag somatic outcome (case-29): urgent medical eval, never a skill
@@ -43,3 +48,4 @@ class EvalRecord:
     prior_state: str | None = None           # rolling state summary; None = utterance-only (base calibration set, §5.4)
     harm_severity: str | None = None          # "critical" (crisis absorbed) | "iatrogenic" (e.g. OCD→cognitive) | "low" | None
     acceptable_routes: tuple[str, ...] = ()   # blended/comorbid: any of these (incl. ABSTAIN) is a correct route
+    disposition: str = "settled"              # "settled" | "borderline_pending" (unsigned route → blocks freeze, §6)

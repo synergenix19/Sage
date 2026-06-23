@@ -14,6 +14,10 @@ import json
 from dataclasses import dataclass
 
 from sage_poc.routing_eval.gate_runner import RoutingMetrics
+from sage_poc.routing_eval.schema import EvalRecord
+
+# Dispositions that must block a freeze: an unsigned/unresolved clinical route.
+_BLOCKING_DISPOSITIONS = ("borderline_pending",)
 
 
 @dataclass(frozen=True)
@@ -49,7 +53,51 @@ class FrozenBaseline:
         ).hexdigest()
 
 
-def freeze_baseline(metrics_by_stratum: dict[tuple[str, str], RoutingMetrics]) -> FrozenBaseline:
+@dataclass(frozen=True)
+class FreezeReadiness:
+    ready: bool
+    unresolved: dict[tuple[str, str], tuple[str, ...]]   # (lang, stratum) -> blocking utterances
+
+
+def check_freeze_readiness(records: list[EvalRecord]) -> FreezeReadiness:
+    """A held-out cell is freeze-ready only if NONE of its rows carry a blocking (unsigned)
+    disposition. Mirrors BC3's insufficient_to_assert: a count gate ('N>=30 ok') must never let
+    a cell freeze while it still encodes an unresolved clinical judgment. Non-held-out rows are
+    not freeze cells, so they don't gate."""
+    unresolved: dict[tuple[str, str], list[str]] = {}
+    for r in records:
+        if r.held_out and r.disposition in _BLOCKING_DISPOSITIONS:
+            unresolved.setdefault((r.lang, r.stratum), []).append(r.utterance)
+    return FreezeReadiness(
+        ready=not unresolved,
+        unresolved={k: tuple(v) for k, v in unresolved.items()},
+    )
+
+
+class UnresolvedDispositionError(Exception):
+    """Raised by freeze_baseline when a cell still carries a borderline_pending row. Freeze is a
+    terminal commit; a RAISE (not a returnable verdict) makes a dishonest freeze impossible
+    rather than merely discouraged — the caveat can't decay into a thing a human must remember."""
+
+    def __init__(self, readiness: FreezeReadiness):
+        self.readiness = readiness
+        cells = ", ".join(
+            f"{lang}/{stratum}({len(u)})"
+            for (lang, stratum), u in sorted(readiness.unresolved.items())
+        )
+        super().__init__(f"cannot freeze: unresolved borderline_pending dispositions in {cells}")
+
+
+def freeze_baseline(
+    metrics_by_stratum: dict[tuple[str, str], RoutingMetrics],
+    records: list[EvalRecord],
+) -> FrozenBaseline:
+    """Freeze the signed gate-6 baseline. REFUSES (raises UnresolvedDispositionError) if any
+    held-out cell still carries an unsigned (borderline_pending) disposition. `records` is
+    required — no silent default — so every freeze site must present the set being frozen."""
+    readiness = check_freeze_readiness(records)
+    if not readiness.ready:
+        raise UnresolvedDispositionError(readiness)
     return FrozenBaseline(dict(metrics_by_stratum))
 
 
