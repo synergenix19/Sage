@@ -1113,3 +1113,77 @@ def test_sanitize_strips_emphasis_dash_emoji_keeps_text():
     assert "italic" in out
     assert "—" not in out
     assert "\U0001F642" not in out
+
+
+# Regression: token-budget overflow must PRESERVE conversation_summary.
+#
+# Root cause (read from prod state for session aa0a9256, turn 12): on a freeflow
+# turn over the 1100-word budget, the reactive overflow path rebuilt L1 from the
+# last raw turns and dropped conversation_summary entirely, so the model lost all
+# older context and re-asked what the user had already answered.
+#
+# Invariant under test (v7 5.6.3, "shrink history first"): the summary is the
+# compact carrier of older context and is trimmed LAST. The raw recent window is
+# the elastic budget and shrinks (to ZERO turns if necessary) so the summary
+# always survives. These assert the invariant, not any particular word count.
+# ---------------------------------------------------------------------------
+
+_SUMMARY_MARKER = "EARLIER CONTEXT: the user's children were breaking things and yelling."
+
+
+def _render_capturing_overflow(state):
+    """compose_prompt() with overflow warnings captured. Returns (user_str, overflow_fired)."""
+    warning_calls: list[str] = []
+
+    def _spy(msg, *args, **kwargs):
+        warning_calls.append(msg % args if args else msg)
+
+    with (
+        patch("sage_poc.prompts.composer.rules_engine.evaluate", side_effect=_no_rules()),
+        patch("sage_poc.prompts.composer._log") as mock_log,
+    ):
+        mock_log.warning.side_effect = _spy
+        _, user_str, _ = compose_prompt(state)
+    overflow_fired = any("Token budget overflow" in w for w in warning_calls)
+    return user_str, overflow_fired
+
+
+def test_overflow_on_freeflow_turn_preserves_conversation_summary():
+    filler = " ".join(["word"] * 70)
+    history = [
+        {"role": "user" if i % 2 == 0 else "assistant", "content": f"turn{i} {filler}"}
+        for i in range(8)
+    ]
+    state = _make_state(
+        primary_intent="general_chat", secondary_intent=None,
+        active_skill_id=None, step_instruction=None,
+        conversation_history=history,
+        conversation_summary=_SUMMARY_MARKER,
+        message_en="not sure",
+    )
+    user_str, overflow_fired = _render_capturing_overflow(state)
+    assert overflow_fired, "test did not trigger the overflow path; lengthen history"
+    # Invariant: the summary survives the overflow trim.
+    assert "SUMMARY (earlier context)" in user_str
+    assert "EARLIER CONTEXT" in user_str
+
+
+def test_overflow_preserves_summary_even_when_raw_window_must_shrink_to_zero():
+    # A single recent turn so verbose no raw turn can fit beside the summary.
+    # The raw window must shrink to zero while the summary survives unconditionally.
+    huge = " ".join(["filler"] * 1300)  # exceeds the total budget on its own
+    history = [{"role": "user", "content": f"RAWTURNMARKER {huge}"}]
+    state = _make_state(
+        primary_intent="general_chat", secondary_intent=None,
+        active_skill_id=None, step_instruction=None,
+        conversation_history=history,
+        conversation_summary=_SUMMARY_MARKER,
+        message_en="ok",
+    )
+    user_str, overflow_fired = _render_capturing_overflow(state)
+    assert overflow_fired, "test did not trigger the overflow path; enlarge the recent turn"
+    # Invariant: summary survives unconditionally...
+    assert "SUMMARY (earlier context)" in user_str
+    assert "EARLIER CONTEXT" in user_str
+    # ...and the verbose raw turn is dropped (raw window shrank to zero).
+    assert "RAWTURNMARKER" not in user_str

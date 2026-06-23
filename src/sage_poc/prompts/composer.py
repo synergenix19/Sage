@@ -859,17 +859,33 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
         layers.append("banned_opener_correction")
 
     # ---- Token budget enforcement (overflow: shrink L1 first) --------------
+    # v7 §5.6.3: shrink history first. The conversation_summary is the compact
+    # carrier of all older context and is trimmed LAST — it survives every
+    # overflow unconditionally. The raw recent window is the elastic budget: it
+    # shrinks (down to zero turns if necessary) so the summary always fits.
+    # (Previously the shrink rebuilt L1 from the last raw turns and dropped the
+    # summary, silently erasing older context on long freeflow turns.)
     total_words = count_words(system_str) + count_words_in_parts(user_parts)
     if total_words > _TOTAL_WORD_BUDGET and "history" in layers:
         history = state.get("conversation_history", [])
+        summary = state.get("conversation_summary")
         l1_tmpl = get_template("L1_history")
         half_window = max(1, (l1_tmpl.window_size or 8) // 2)
-        shrunk = _build_l1_history_block(
-            history[-half_window:],
-            word_budget=300,    # conservative for overflow case
-        ) or ""
+        non_l1_words = total_words - count_words(user_parts[0])
+        for raw_turns in range(half_window, -1, -1):
+            recent = history[-raw_turns:] if raw_turns else []
+            shrunk = _build_l1_history_block(
+                recent,
+                word_budget=300,    # conservative for overflow case
+                conversation_summary=summary,
+            ) or ""
+            if non_l1_words + count_words(shrunk) <= _TOTAL_WORD_BUDGET or raw_turns == 0:
+                break
         user_parts[0] = shrunk  # history is always index 0 when present (appended first)
-        _log.warning("Token budget overflow: L1 history shrunk to %d turns", half_window)
+        _log.warning(
+            "Token budget overflow: L1 raw window shrunk to %d turns (summary preserved)",
+            raw_turns,
+        )
 
     user_str = "\n\n".join(user_parts)
     return system_str, user_str, layers
