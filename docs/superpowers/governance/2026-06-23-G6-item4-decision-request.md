@@ -33,5 +33,10 @@ If A: confirm ≤1%/~300 bar is a tracked pre-pilot reopening (not dropped): ___
 ```
 On decision: native reviewer gets the `ar/id_oos` target N and starts; G6 item #4 moves from RISK-ACCEPTED-arm-unspecified to SIGNED. Records into `2026-06-22-G6-values-DRAFT.md`.
 
+## Stopping rule + power-floor honesty (clinician refinement)
+**The ≤4.6% bound is fragile and must not be read as a tolerance for one error.** `3/N ≈ 4.6%` at N≈65 is the rule-of-three upper bound **conditional on ZERO observed mis-routes**. A single mis-route at N=65 breaks it: the exact 95% upper bound for 1/65 is ≈8.6%, well past 4.6%. So the **fail rule is explicit: ≥1 mis-route in the held-out `ar/id_oos` cell fails Arm A's bar** — it triggers either more labeled data to re-establish the bound (~N≥100+ to re-bound after one error) or a routing fix. It is **not** "one mistake is within budget."
+
+**The `in_scope`/`far_oos` N≥30 floor was asserted (the #5 eng value), not derived — naming that honestly.** N=30 is a *minimum-stable-estimate* floor; it is **not** a powered detector of a δ=0.05 parity difference (that needs N in the hundreds). To put it on the same derived footing as the id_oos bound, state its effect size via the same rule-of-three: **N=30 at 0 errors gives a ≤10% upper bound.** So either (a) adopt **≤10% upper bound at zero errors** as the explicit `in_scope`/`far_oos` tolerance (deriving N≥30 the same way ≤4.6% derives N≈65), or (b) if a tighter bound or a true powered parity test is wanted, **N must rise** — and that's a value for the product owner / clinical lead to set, not something the harness should assert. **Recommend (a) for POC, flagged as a deliberately weaker bound than the worst cell.** *(Open value — please confirm or set.)*
+
 ---
 *Does not gate, and must not be conflated with: the production red-flag detector and ~38% crisis recall — those are **pilot-graduation** gates, separate column. This decision gates **V2 flip-eligibility** only.*

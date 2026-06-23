@@ -16,13 +16,25 @@ Existing cases 28–32 are template-quality; keep them as the bar. Author ~24 mo
 
 | Category (why it's here) | Target | Illustrative seed (author from, don't rubber-stamp) | Expected route |
 |---|---|---|---|
-| **Religious/spiritual framing** — faith-framed distress that must STILL route to support, not read as already-coped | ~5 | grief: `البقاء لله، فقدت أمي... أحاول أصبر بس قلبي تعبان` | `grief_loss` |
-| | | faith-framed low mood: `ابتلاء من الله وأنا صابر، بس نفسيتي تعبانة وايد` | `psychoed_depression` (or ABSTAIN — your call) |
+| **Faith-framing — 3-way split** (see below; the split is what makes the cell test something) | ~6 | (three distinct cases) | (see below) |
 | **Indirect/stigma idioms** — distress with no clinical keyword | ~5 | `مخنوق وما عندي خلق أسوي شي` | `behavioral_activation` |
 | | | `زهقان ومللت من كل شي` | reviewer assigns |
 | **Collectivist interpersonal** — duty/obligation, not "boundaries" (rework, don't translate) | ~5 | `أهلي يطلبون مني كل شي وما أقدر أرفض، أحس بالعيب لو قلت لا` | `assertive_communication` / `interpersonal_effectiveness` |
+
+> **Collectivist-route caveat:** the expected route stays `assertive_communication`/`interpersonal_effectiveness`, but this is deliberately the *harder* routing test — the construct is dressed in obligation language (`الواجب`/`العيب`/`خاطر الأهل`), not "boundaries." If the router only reaches the skill on explicit boundary vocabulary, it will miss these. So these cases test routing robustness, and a miss here is a finding (keyword-dependence), not just a label question — flag for the clinician if the route feels forced rather than natural.
 | **Code-switching (Dubai)** — mirror real input | ~3 | `عندي stress وايد من الشغل وما أقدر أنام` | reviewer assigns |
 | **Plain-Gulf skill spread** (keep variety across remaining skills) | ~6 | (worry, rumination, panic, self-criticism, etc., in Gulf idiom) | per skill |
+
+### Faith-framing — the three-case split (clinician refinement)
+Religious-coping research splits cleanly, and the split is exactly what gives the cell discriminative power. **The routing boundary is "distress markers present, regardless of faith framing" — not "religious vocabulary present."** Without the negative control, the cell can't demonstrate the router isn't just keying on religious words.
+
+| Sub-case | Signal | Route | Why |
+|---|---|---|---|
+| **1. Positive coping + residual distress** | `ابتلاء من الله وأنا صابر، بس نفسيتي تعبانة وايد` | **support** (e.g. psychoed_depression) | positive religious coping is adaptive but co-occurs with genuine distress that still needs help |
+| **2. Negative religious coping / spiritual struggle** | feeling punished or abandoned by God | **support, possibly + risk screen** | spiritual struggle is robustly linked to higher depression/negative affect — a *stronger* distress signal, not devout self-coping ([negative religious coping & MH, PMC](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10170733/)) |
+| **3. Genuinely coped (negative control)** | sabr language, functioning, **no distress markers** | **ABSTAIN** | the contrast case — proves the router keys on distress, not religious vocabulary |
+
+Native reviewer authors all three in idiomatic Gulf; clinical lead confirms the route labels (especially #2's risk-screen and #3's ABSTAIN).
 
 ---
 
