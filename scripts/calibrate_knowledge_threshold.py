@@ -93,4 +93,8 @@ async def main():
     await pool.close()
 
 
-asyncio.run(main())
+if __name__ == "__main__":
+    # Inert on import: a manually-invoked harness that hits the live corpus, never a
+    # test. CI does not collect it (not test_*.py, not in tests/); guarding the entry
+    # keeps an accidental import from running retrieval / reaching for DBURL.
+    asyncio.run(main())
