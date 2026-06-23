@@ -88,7 +88,11 @@ def _strip_output_format(text: str) -> str:
 # stack. Cannot be a cultural_output rule (that schema is blocklist/allowlist substitute
 # only — see rules/schemas.py), so it lives here as structural logic.
 _SENT_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
-_TRAILING_QUESTION_RE = re.compile(r"(?:\s*[^.!?]*\?)+\s*$")
+# Anchor-safe: the leading \s* was redundant (\s ⊂ [^.!?]) and its overlap with [^.!?]*
+# inside the repeated group caused catastrophic backtracking (ReDoS) on replies with many
+# '?' clauses and a non-question tail — a synchronous freeze of the single-replica event
+# loop. Groups are uniquely delimited by '?', so this form is linear and behaviourally identical.
+_TRAILING_QUESTION_RE = re.compile(r"(?:[^.!?]*\?)+\s*$")
 
 
 def _limit_to_one_question(text: str) -> str:

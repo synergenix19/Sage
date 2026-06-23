@@ -472,6 +472,21 @@ def test_strip_trailing_question_keeps_question_only_response():
     assert _strip_trailing_question(text) == text
 
 
+def test_strip_trailing_question_no_catastrophic_backtracking():
+    """ReDoS guard: a degenerate reply with many '?' clauses and a non-question tail must not
+    trigger catastrophic regex backtracking, which would synchronously freeze the single-replica
+    event loop. The strip must return near-instantly, not in seconds. (re holds the GIL during
+    matching, so a thread/signal timeout can't preempt it — we measure wall-clock directly. The
+    input is calibrated to ~5s on the vulnerable regex, so the assertion fails fast on regression.)"""
+    import time
+    from sage_poc.nodes.output_gate import _strip_trailing_question
+    evil = ("word word? " * 20) + " trailing tail with no terminator"  # many '?'-groups, end-anchor fails
+    start = time.perf_counter()
+    _strip_trailing_question(evil)
+    elapsed = time.perf_counter() - start
+    assert elapsed < 1.0, f"_strip_trailing_question took {elapsed:.2f}s — catastrophic backtracking"
+
+
 # ---------------------------------------------------------------------------
 # Task 8: Question-discipline node integration tests
 # ---------------------------------------------------------------------------
