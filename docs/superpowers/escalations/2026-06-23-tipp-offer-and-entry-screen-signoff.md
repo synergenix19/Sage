@@ -97,10 +97,24 @@ The `entry_screen` evaluation becomes a **3-way signal**:
 
 **Load-bearing design rule — detection must be deterministic, not just the action.** `contraindication_disclosed` is set by a **deterministic pattern/keyword match** against the skill's declared contraindication list — the same architecture as Node-1 crisis-lexicon matching — **NOT** by an LLM classification. The LLM may render the exit warmly; it must not be the thing that decides a contraindication is present. If detection is LLM-classified, the gap is relocated, not closed.
 
-### Clinician confirmation needed (these are clinical artifacts, not engineering choices)
-1. **The deterministic contraindication match set** (proposed, from `dbt_tipp.json` contraindications — confirm additions/removals; this list IS the safety surface):
-   cardiac/heart condition · pacemaker · arrhythmia / irregular heartbeat / AFib · disordered eating / eating disorder / anorexia / bulimia · on beta-blockers · physical disability or injury preventing exercise · cold sensitivity / cold allergy / Raynaud's. *(Pregnancy: include?)*
-2. **Redirect-target safety:** box breathing is the redirect on BOTH the contraindication exit and the N=2 ceiling. Confirm box breathing is not itself contraindicated for any condition in the list above (it has no physical requirement, so expected safe — but confirm, do not assume). If any condition makes the redirect target inappropriate, the redirect is not unconditional.
+### Clinician confirmation — RESOLVED 2026-06-23 (Rohan)
+
+**1. Deterministic contraindication match set — CONFIRMED + EXPANDED.** This list IS the safety surface.
+Keep all proposed: cardiac / heart condition / heart disease · pacemaker · arrhythmia / irregular heartbeat / AFib · severe bradycardia · disordered eating / eating disorder / anorexia / bulimia · on beta-blockers · physical disability or injury preventing exercise · cold sensitivity / Raynaud's.
+- *Eating-disorder rationale is specifically CARDIAC* (low resting HR + electrolyte imbalance + reduced cardiac mass → added bradycardia is dangerous) — not a generic ED flag.
+**Strong adds (own named tokens — these users won't self-identify as "cardiac"):**
+- **Uncontrolled / poorly controlled hypertension** (distinct from "heart condition" in every cold-immersion source).
+- **Cold urticaria / cold allergy** — own token, separate from Raynaud's; anaphylaxis tail (welts → hypotension / fainting / shock), so the matcher must catch it reliably.
+**Include (defensible; high severity if missed):**
+- **Seizure disorder / epilepsy** — cold + breath-hold + hypocapnia lowers seizure threshold; a seizure with the face in water carries aspiration/drowning risk.
+- **Recent stroke** — cerebrovascular (not caught by "cardiac"); cold-shock BP surge is contraindicated post-event.
+- **Pregnancy / pregnant** — precautionary redirect. Direct facial-dive evidence is thinner than the cardiac items, but the payoff is asymmetric (false-positive cost ≈ 0 — user just gets breathing) and the redirect's own breath-hold component carries a pregnancy caution. Token on self-disclosure.
+**Do NOT add:** peripheral vascular disease, neuropathy, general hypothermia cautions — whole-body-plunge concerns, not a brief face dip; padding the deterministic list raises false-positive redirects without safety gain.
+
+**2. Redirect-target safety — CORRECTION → D3 PREREQUISITE (do not skip).**
+Verified in data: `box_breathing.json` encodes 4-4-4-4 **with breath-holds** (`inhale_hold`, `exhale_hold`; semantic_description "four-count hold… four-count hold"). Breath-retention carries mild **pregnancy + hypertension** cautions — exactly two conditions added to the list above. So **box breathing is NOT a cleanly-safe redirect**: it would route a pregnant/hypertensive user out of one breath-hold-adjacent risk and into another.
+**Resolution:** the redirect target must be a **hold-free paced-breathing variant** (slow breathing, extended exhale, e.g. ~4-in / 6-out, NO retention) — the most benign breathwork profile, no contraindication relevant to this population → genuinely unconditional.
+**Prerequisite for D3:** no hold-free paced-breathing skill exists today (only `box_breathing` [holds] and `progressive_muscle_relaxation` [own pain/injury cautions]). Before D3 ships, EITHER (a) add a hold-free paced-breathing skill as the redirect target, OR (b) add a hold-free mode to `box_breathing`. The redirect must not be box-breathing-with-holds. This is a code prerequisite gated by this clinical finding, not an optional polish.
 
 ### Test plan (TDD, both safety tests written RED-first, before implementation)
 - `contraindication on turn 1 → immediate exit + box-breathing redirect; criteria_hold_count UNTOUCHED; fires regardless of current count.`
