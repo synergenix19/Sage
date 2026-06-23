@@ -19,11 +19,19 @@ on:
       - 'src/sage_poc/**'
       - 'tests/**'
       - 'pyproject.toml'
+      # Corpus is content-as-code: auto-sync ingests it to the prod clinical surface
+      # on deploy, so a malformed/mistagged/clinically-wrong chunk must be gated like
+      # code. Pairs with test_corpus_integrity.py in CANDIDATES below.
+      - 'data/knowledge_corpus/**'
   pull_request:
     paths:
       - 'src/sage_poc/**'
       - 'tests/**'
       - 'pyproject.toml'
+      # Corpus is content-as-code: auto-sync ingests it to the prod clinical surface
+      # on deploy, so a malformed/mistagged/clinically-wrong chunk must be gated like
+      # code. Pairs with test_corpus_integrity.py in CANDIDATES below.
+      - 'data/knowledge_corpus/**'
 
 jobs:
   unit:
@@ -48,6 +56,7 @@ jobs:
         run: |
           set -euo pipefail
           CANDIDATES="
+            tests/test_corpus_integrity.py
             tests/test_routing.py
             tests/test_skill_select.py
             tests/test_skill_select_offer.py
