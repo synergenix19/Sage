@@ -6,7 +6,7 @@ against its own training data. At volume this is the rule most likely to erode, 
 per-case check: flag near-verbatim matches, but allow a short keyword appearing naturally
 inside a longer sentence (that's normal language, not overfit).
 """
-from sage_poc.routing_eval.distinctness import check_distinct
+from sage_poc.routing_eval.distinctness import check_distinct, intra_set_redundancy
 
 
 def test_verbatim_presentation_string_is_flagged():
@@ -39,3 +39,23 @@ def test_checks_against_all_skills_not_just_one():
     tps = {"sleep_hygiene": ["can't sleep", "insomnia"], "worry_time": ["constant worry"]}
     distinct, j, tp, sid = check_distinct("constant worry", tps, max_jaccard=0.7)
     assert distinct is False and sid == "worry_time"
+
+
+def test_intra_set_flags_mutual_near_duplicates():
+    us = [
+        "I can't get out of bed and I've stopped doing anything I enjoy",
+        "I can't get out of bed and I've stopped doing the things I enjoy",  # near-dupe of #1
+        "Money worries keep me awake every single night",                     # distinct
+    ]
+    pairs = intra_set_redundancy(us, max_jaccard=0.5)
+    assert len(pairs) == 1
+    assert pairs[0][0] >= 0.5
+
+
+def test_intra_set_passes_when_all_distinct():
+    us = [
+        "everything feels like my fault even when it isn't",
+        "I lie awake for hours unable to fall asleep",
+        "I keep avoiding things because I'm scared of failing",
+    ]
+    assert intra_set_redundancy(us, max_jaccard=0.5) == []

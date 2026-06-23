@@ -8,6 +8,7 @@ fan-out so volume can't quietly reintroduce the overfit the rule exists to preve
 """
 from __future__ import annotations
 
+import itertools
 import re
 
 
@@ -20,6 +21,27 @@ def load_all_target_presentations() -> dict[str, list[str]]:
     from sage_poc.skill_ids import SKILL_REGISTRY
     from sage_poc.skills.schema import load_skill
     return {sid: load_skill(sid).target_presentations for sid in SKILL_REGISTRY}
+
+
+def intra_set_redundancy(
+    utterances: list[str],
+    *,
+    max_jaccard: float = 0.5,
+) -> list[tuple[float, str, str]]:
+    """Pairs of utterances that are mutually near-identical (token-Jaccard >= max_jaccard).
+
+    The anchor check (check_distinct) proves cases aren't near-copies of the embedded
+    presentations; this proves cases aren't near-copies of EACH OTHER — the parallel-fan-out
+    risk where two agents independently paraphrase the same construct identically, wasting
+    min-N coverage. Returned sorted worst-first."""
+    pairs: list[tuple[float, str, str]] = []
+    toks = [(u, _tokens(u)) for u in utterances]
+    for (ua, ta), (ub, tb) in itertools.combinations(toks, 2):
+        if ta | tb:
+            j = len(ta & tb) / len(ta | tb)
+            if j >= max_jaccard:
+                pairs.append((round(j, 3), ua, ub))
+    return sorted(pairs, reverse=True)
 
 
 def check_distinct(
