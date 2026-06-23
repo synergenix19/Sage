@@ -38,3 +38,4 @@ class EvalRecord:
     override_fired: bool = False
     reached_skill_select: bool = False       # path trace; only meaningful for crisis_invariance
     winning_anchor_type: str | None = None   # "exemplar" | "description"
+    prior_state: str | None = None           # rolling state summary; None = utterance-only (base calibration set, §5.4)
