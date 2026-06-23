@@ -100,6 +100,54 @@ async def test_standard_path_passes_through_response_en():
 
 
 @pytest.mark.asyncio
+async def test_output_gate_writes_latency_ms_to_audit_when_turn_started_at_present():
+    """Latency instrumentation: output_gate must derive latency_ms from turn_started_at
+    (stamped before ainvoke) and fold it into the session_audit row. Previously NULL in prod
+    because nothing ever wrote state['latency_ms']."""
+    import time as _time
+    from sage_poc.nodes import output_gate as og
+
+    state = make_state(
+        gate_path=None,
+        response_en="Here is a helpful reply.",
+        turn_started_at=_time.monotonic() - 1.5,  # turn began ~1.5s ago
+    )
+    audit_mock = AsyncMock()
+    with (
+        patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()),
+        patch("sage_poc.nodes.output_gate.write_session_audit", new=audit_mock),
+    ):
+        await og.output_gate_node(state)
+        await asyncio.sleep(0)  # let the fire-and-forget audit task schedule
+
+    audited = [c.args[0] for c in audit_mock.call_args_list if c.args]
+    assert audited, "output_gate must call write_session_audit"
+    row = audited[-1]
+    assert isinstance(row.get("latency_ms"), int), f"latency_ms must be an int, got {row.get('latency_ms')!r}"
+    assert row["latency_ms"] >= 1400, f"latency_ms should reflect ~1.5s elapsed, got {row['latency_ms']}"
+
+
+@pytest.mark.asyncio
+async def test_output_gate_latency_ms_none_safe_without_turn_started_at():
+    """No turn_started_at (e.g. a path that didn't go through server.py) must not crash and
+    must leave latency_ms unset rather than fabricating a value."""
+    from sage_poc.nodes import output_gate as og
+
+    state = make_state(gate_path=None, response_en="Hi")  # no turn_started_at
+    audit_mock = AsyncMock()
+    with (
+        patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()),
+        patch("sage_poc.nodes.output_gate.write_session_audit", new=audit_mock),
+    ):
+        result = await og.output_gate_node(state)
+        await asyncio.sleep(0)
+
+    assert result["response"] == "Hi"
+    audited = [c.args[0] for c in audit_mock.call_args_list if c.args]
+    assert audited and audited[-1].get("latency_ms") is None
+
+
+@pytest.mark.asyncio
 async def test_crisis_passthrough_path():
     """Crisis response text from crisis_response_node must flow through the standard path unchanged."""
     from sage_poc.nodes.output_gate import output_gate_node

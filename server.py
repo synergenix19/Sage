@@ -314,6 +314,10 @@ async def chat(
         except Exception as exc:
             _log.warning("[sage/chat] therapeutic profile load failed: %s", exc)
     _request_start = time.monotonic()  # consumed by Tasks 3+4 (latency audit)
+    # Stamp the turn start into state so output_gate can compute latency_ms for session_audit.
+    # The audit row is written INSIDE the graph (output_gate), before this handler resumes, so
+    # the latency must be derived from a monotonic timestamp carried through the graph state.
+    state["turn_started_at"] = _request_start
     try:
         result = await asyncio.wait_for(
             graph.ainvoke(

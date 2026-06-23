@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from sage_poc.state import SageState
@@ -269,6 +270,13 @@ async def _persist_session_summary(
 
 async def output_gate_node(state: SageState) -> dict:
     gate_path = state.get("gate_path")
+    # Per-turn latency for session_audit. turn_started_at is stamped before ainvoke (server.py);
+    # output_gate is the last node, so now - turn_started_at captures ~the full graph turn. Folded
+    # into state here so every write_session_audit({**state, ...}) below picks it up. None-safe:
+    # unit tests and any path without the stamp simply leave latency_ms unset (NULL in audit).
+    _turn_started_at = state.get("turn_started_at")
+    if _turn_started_at is not None:
+        state = {**state, "latency_ms": int((time.monotonic() - _turn_started_at) * 1000)}
     lang = state["detected_language"]
     path = (state.get("path") or []) + ["output_gate"]
     session_id = state.get("session_id")
