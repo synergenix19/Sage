@@ -84,5 +84,6 @@ All three gates lean on inferred `emotional_intensity` and text matching against
 ## Recorded outcome
 - [x] Approved with the modifications recorded above (D1 + required match-tightening; D2 resolved to bundled attestation, reversing "do not list contraindications"; D3 N=2 with the two constraints).
 
-**Reviewing clinician (name):** ____________________   **Date:** 2026-06-23
-*(Relayed via product owner; awaiting the reviewing clinician's name to finalise the signature line. Implementation of the affirmed values may begin; merge remains gated on this name being recorded.)*
+**Reviewing clinician (name):** Rohan   **Date:** 2026-06-23
+
+*Audit-trail transparency note:* "Rohan" is also the git-commit identity and the product owner who relayed this review (`rohan@synergenix.ai`). This signature stands as an independent clinical sign-off **iff Rohan is the credentialed clinical lead**. If signed in a product-owner capacity, it is a dual-hat self-approval and should be countersigned by an independent clinician before external pilot exposure — flagged here per the project's admin/self-approval disclosure convention, not to question the review (the relayed clinical content — dive-reflex physiology, DBT contraindication norms, BETA/trauma-informed/bioethics reasoning — was clinical-grade).
