@@ -4,6 +4,7 @@ from sage_poc.state import SageState
 from sage_poc.llm import get_classifier, get_fallback_classifier
 from sage_poc.resilience import resilient_invoke
 from sage_poc.nodes.directive_detect import detect_directive_request
+from sage_poc.conversation_stall import detect_stall
 
 # SINGLE-POINT-OF-FAILURE WARNING: The general_chat classification below is the sole
 # gate preventing bare emotional words ("stressed", "depressed", "anxious", "I feel sad")
@@ -52,10 +53,12 @@ def _offer_display_map(offered: list[str]) -> str:
     return ", ".join(parts)
 
 
-def _resolve_offer_choice(choice, offered: list[str]) -> str:
+def _resolve_offer_choice(choice, offered: list[str]) -> str | None:
     """Map the classifier's choice to an offered skill id. Tolerates display-name
-    echo and positional indices; falls back to the first offer only when the
-    reply truly did not specify."""
+    echo and positional indices. Returns None when the choice cannot be resolved
+    AND more than one skill was offered — the caller must re-ask rather than guess
+    which option the user meant. With a single offer, an unresolved 'yes' is
+    unambiguous, so that offer is returned."""
     if choice in offered:
         return choice
     if isinstance(choice, int) or (isinstance(choice, str) and choice.strip().isdigit()):
@@ -76,7 +79,9 @@ def _resolve_offer_choice(choice, offered: list[str]) -> str:
             for lang_val in entry["display_name"].values():
                 if lang_val and lang_val.strip().lower() == lowered:
                     return sid
-    return offered[0]
+    # Unresolvable choice: a single offer makes "yes" unambiguous, so promote it.
+    # With multiple offers, do not guess — signal a re-ask.
+    return offered[0] if len(offered) == 1 else None
 
 
 def build_intent_prompt(state: SageState) -> str:
@@ -141,6 +146,14 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
         "engagement": _safe_int(data.get("engagement"), 5),
         "path": state["path"] + ["intent_route"],
         "directive_posture": detect_directive_request(state),
+        # Deterministic stall-guard signal (read by the composer to inject a
+        # re-grounding change-of-tack). The decision is made here in code; the
+        # LLM only renders the recovery turn, it never decides "is this a stall".
+        "stall_detected": detect_stall(
+            [m["content"] for m in (state.get("conversation_history") or [])
+             if m.get("role") == "user"]
+            + [state.get("message_en", "")]
+        ),
     }
     offered = state.get("offered_skill_ids") or []
     if offered:
@@ -162,25 +175,38 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
             # Same offer survives to be re-rendered: count the re-ask so the
             # composer switches to the lighter reoffer variant on render 2+.
             result["offer_count"] = (state.get("offer_count") or 0) + 1
-        else:
-            result["offer_response"] = offer_response
-            if offer_response == "accept":
-                choice = data.get("offer_choice_skill_id")
-                result["offer_choice_skill_id"] = _resolve_offer_choice(choice, offered)
+        elif offer_response == "accept":
+            choice = data.get("offer_choice_skill_id")
+            resolved = _resolve_offer_choice(choice, offered)
+            if resolved is None:
+                # Ambiguous acceptance of a multi-option offer: the user said yes
+                # but did not pick which one, and the choice could not be resolved
+                # to a specific offered skill. Re-ask rather than silently
+                # promoting offered[0] — the system must never guess which option
+                # the user chose ("picks A, gets B"). offer_response is left unset
+                # so the accept bypass cannot fire; the offer survives in state and
+                # is re-rendered next turn (lighter reoffer variant via offer_count).
+                result["path"] = result["path"] + ["offer_choice_ambiguous"]
+                result["offer_count"] = (state.get("offer_count") or 0) + 1
+            else:
+                result["offer_response"] = offer_response
+                result["offer_choice_skill_id"] = resolved
                 result["path"] = result["path"] + ["offer_accepted"]
                 result["offer_count"] = 0
-            elif offer_response == "decline":
-                result["offered_skill_ids"] = None
-                # dict.fromkeys: order-preserving dedup (clinical audit convention)
-                result["declined_skills"] = list(dict.fromkeys(
-                    (state.get("declined_skills") or []) + list(offered)
-                ))
-                result["path"] = result["path"] + ["offer_declined"]
-                result["offer_count"] = 0
-            else:
-                result["offered_skill_ids"] = None
-                result["path"] = result["path"] + ["offer_ignored"]
-                result["offer_count"] = 0
+        elif offer_response == "decline":
+            result["offer_response"] = offer_response
+            result["offered_skill_ids"] = None
+            # dict.fromkeys: order-preserving dedup (clinical audit convention)
+            result["declined_skills"] = list(dict.fromkeys(
+                (state.get("declined_skills") or []) + list(offered)
+            ))
+            result["path"] = result["path"] + ["offer_declined"]
+            result["offer_count"] = 0
+        else:
+            result["offer_response"] = offer_response
+            result["offered_skill_ids"] = None
+            result["path"] = result["path"] + ["offer_ignored"]
+            result["offer_count"] = 0
     if primary_intent in ("scope_refusal", "jailbreak"):
         result["gate_path"] = primary_intent
     return result

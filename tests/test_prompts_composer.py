@@ -1187,3 +1187,66 @@ def test_overflow_preserves_summary_even_when_raw_window_must_shrink_to_zero():
     assert "EARLIER CONTEXT" in user_str
     # ...and the verbose raw turn is dropped (raw window shrank to zero).
     assert "RAWTURNMARKER" not in user_str
+# ── stall-guard wiring: composer injects a re-grounding change-of-tack ────────
+
+
+def test_stall_recovery_instruction_regrounds_in_prior_content():
+    """When the deterministic guard fires, the recovery instruction must direct
+    the model to RE-GROUND in what the user already shared, not merely avoid the
+    repeated question (which would just yield a different generic opener — the
+    banned-opener failure mode in a new hat). The prior content must also be
+    present in the prompt for the model to ground on."""
+    history = [
+        {"role": "user", "content": "my kids are breaking things and yelling"},
+        {"role": "assistant", "content": "That sounds really hard."},
+        {"role": "user", "content": "not sure"},
+        {"role": "assistant", "content": "What might help?"},
+    ]
+    state = _make_state(
+        primary_intent="general_chat", secondary_intent=None,
+        active_skill_id=None, step_instruction=None,
+        conversation_history=history, message_en="not sure",
+        stall_detected=True,
+    )
+    with patch("sage_poc.prompts.composer.rules_engine.evaluate", side_effect=_no_rules()):
+        _, user_str, layers = compose_prompt(state)
+    assert "stall_recovery" in layers
+    low = user_str.lower()
+    # directs re-grounding in established context...
+    assert "already" in low
+    # ...and forbids another generic open question
+    assert "do not ask another" in low
+    # ...and the prior substantive content is actually in the prompt to ground on
+    assert "breaking things" in user_str
+
+
+def test_stall_recovery_not_injected_when_no_stall():
+    state = _make_state(
+        primary_intent="general_chat", secondary_intent=None,
+        active_skill_id=None, step_instruction=None,
+        conversation_history=[
+            {"role": "user", "content": "hi"}, {"role": "assistant", "content": "hello"},
+        ],
+        stall_detected=False,
+    )
+    with patch("sage_poc.prompts.composer.rules_engine.evaluate", side_effect=_no_rules()):
+        _, _, layers = compose_prompt(state)
+    assert "stall_recovery" not in layers
+
+
+def test_stall_recovery_not_injected_on_skill_turn():
+    """Recovery is freeflow-only; during a skill step the executor owns the turn."""
+    state = _make_state(
+        primary_intent="skill_continuation", secondary_intent=None,
+        active_skill_id="cbt_thought_record",
+        step_instruction="Guide the user to identify the thought.",
+        conversation_history=[
+            {"role": "user", "content": "not sure"}, {"role": "assistant", "content": "ok"},
+            {"role": "user", "content": "not sure"}, {"role": "assistant", "content": "ok"},
+        ],
+        message_en="not sure",
+        stall_detected=True,
+    )
+    with patch("sage_poc.prompts.composer.rules_engine.evaluate", side_effect=_no_rules()):
+        _, _, layers = compose_prompt(state)
+    assert "stall_recovery" not in layers

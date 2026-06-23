@@ -76,6 +76,7 @@ class SageState(TypedDict):
     turn_started_at: float   # time.monotonic() stamped before ainvoke (server.py); output_gate uses it to compute latency_ms
     latency_ms: int          # per-turn graph latency, computed in output_gate from turn_started_at; written to session_audit
     conversation_history: list[dict]
+    stall_detected: Optional[bool]       # deterministic stall-guard signal (per-turn); set in intent_route, read by composer
     therapeutic_profile: Optional[dict]  # loaded at turn start; injected into L5
     user_id:    Optional[str]            # authenticated user UUID from request
     session_id: Optional[str]            # = thread_id; needed by tools and summary persistence
