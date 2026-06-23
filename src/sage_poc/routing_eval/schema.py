@@ -46,6 +46,6 @@ class EvalRecord:
     reached_skill_select: bool = False       # path trace; only meaningful for crisis_invariance
     winning_anchor_type: str | None = None   # "exemplar" | "description"
     prior_state: str | None = None           # rolling state summary; None = utterance-only (base calibration set, §5.4)
-    harm_severity: str | None = None          # "critical" (crisis absorbed) | "iatrogenic" (e.g. OCD→cognitive) | "low" | None
+    harm_severity: str | None = None          # "critical" | "iatrogenic" | "safety_net" (assessment-warranting, e.g. active-ED) | "low" | None
     acceptable_routes: tuple[str, ...] = ()   # blended/comorbid: any of these (incl. ABSTAIN) is a correct route
     disposition: str = "settled"              # "settled" | "borderline_pending" (unsigned route → blocks freeze, §6)
