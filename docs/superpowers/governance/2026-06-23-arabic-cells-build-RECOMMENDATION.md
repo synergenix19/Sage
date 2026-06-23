@@ -21,7 +21,7 @@ Existing cases 28–32 are template-quality; keep them as the bar. Author ~24 mo
 | | | `زهقان ومللت من كل شي` | reviewer assigns |
 | **Collectivist interpersonal** — duty/obligation, not "boundaries" (rework, don't translate) | ~5 | `أهلي يطلبون مني كل شي وما أقدر أرفض، أحس بالعيب لو قلت لا` | `assertive_communication` / `interpersonal_effectiveness` |
 
-> **Collectivist-route caveat:** the expected route stays `assertive_communication`/`interpersonal_effectiveness`, but this is deliberately the *harder* routing test — the construct is dressed in obligation language (`الواجب`/`العيب`/`خاطر الأهل`), not "boundaries." If the router only reaches the skill on explicit boundary vocabulary, it will miss these. So these cases test routing robustness, and a miss here is a finding (keyword-dependence), not just a label question — flag for the clinician if the route feels forced rather than natural.
+> **Collectivist-route caveat — CONDITIONAL (clinician, do NOT rubber-stamp):** the assertiveness framing ("say no to family") can be culturally *forced* where العيب and obligation are the organizing logic, and DBT interpersonal-effectiveness skills carry known cultural-adaptation caveats. **Requires a joint native + clinical read:** if the route reads as natural coaching → confirm `assertive_communication`/`interpersonal_effectiveness`; if it reads as importing a Western boundary script → prefer a **differently-framed interpersonal skill or ABSTAIN** over a forced assertiveness route. Separately, this is also the harder routing test: if the router only reaches the skill on explicit boundary vocabulary it will miss these, so a keyword-dependent miss is a finding, not just a label question.
 | **Code-switching (Dubai)** — mirror real input | ~3 | `عندي stress وايد من الشغل وما أقدر أنام` | reviewer assigns |
 | **Plain-Gulf skill spread** (keep variety across remaining skills) | ~6 | (worry, rumination, panic, self-criticism, etc., in Gulf idiom) | per skill |
 
@@ -34,7 +34,9 @@ Religious-coping research splits cleanly, and the split is exactly what gives th
 | **2. Negative religious coping / spiritual struggle** | feeling punished or abandoned by God | **support, possibly + risk screen** | spiritual struggle is robustly linked to higher depression/negative affect — a *stronger* distress signal, not devout self-coping ([negative religious coping & MH, PMC](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10170733/)) |
 | **3. Genuinely coped (negative control)** | sabr language, functioning, **no distress markers** | **ABSTAIN** | the contrast case — proves the router keys on distress, not religious vocabulary |
 
-Native reviewer authors all three in idiomatic Gulf; clinical lead confirms the route labels (especially #2's risk-screen and #3's ABSTAIN).
+Native reviewer authors all three in idiomatic Gulf; clinical lead confirms the route labels (especially #2's risk-screen and #3's ABSTAIN). **Clinician sign-off 2026-06-24:** #2 confirmed; #3 confirmed **with authoring note** — "coped" must be operationalized as *functioning and not help-seeking*, NOT merely the presence of صبر/ابتلاء vocabulary (positive religious coping can be adaptive, harmful, or neutral depending on context, so faith language alone cannot carry the ABSTAIN). Write #3 as unambiguously a person who is okay, or it stops being a clean negative control.
+
+**Register (clinician):** lean **casual typed-chat** (real help-seeking arrives casual and code-switched, and the somatic/indirect categories live in that register — a formal register loses ecological validity for exactly the cases that matter). Native reviewer's final call; whatever is chosen, **apply it consistently across all AR cells** so register isn't a confound.
 
 ---
 
