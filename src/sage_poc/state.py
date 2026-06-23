@@ -73,6 +73,8 @@ class SageState(TypedDict):
     path: list[str]
     turn_count: int
     turn_number: int   # incremented by safety_check_node on every message; used for session_audit
+    turn_started_at: float   # time.monotonic() stamped before ainvoke (server.py); output_gate uses it to compute latency_ms
+    latency_ms: int          # per-turn graph latency, computed in output_gate from turn_started_at; written to session_audit
     conversation_history: list[dict]
     therapeutic_profile: Optional[dict]  # loaded at turn start; injected into L5
     user_id:    Optional[str]            # authenticated user UUID from request
