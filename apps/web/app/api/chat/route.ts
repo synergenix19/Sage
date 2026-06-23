@@ -27,6 +27,37 @@ const SAGE_API_URL = process.env.SAGE_API_URL ?? 'http://localhost:8000'
 // FIRST_BYTE_TIMEOUT_MS (58s) so the three ceilings are ordered backend < client < Vercel.
 export const maxDuration = 60
 
+// Vercel(Mumbai) -> Railway TLS connections intermittently reset DURING establishment
+// ("Client network socket disconnected before secure TLS connection was established",
+// ECONNRESET). It surfaces as a fast 3-5s 503 -> "tap to retry" for any user, on new or
+// existing chats. Because the reset happens before the request reaches the backend, the
+// turn was NEVER processed — so retrying is safe (no double checkpoint / audit / persist).
+// Only connection-ESTABLISHMENT errors are retried; a mid-stream failure is not (it would
+// risk double-processing). A single retry catches a healthy connection.
+function _isTransientConnError(err: unknown): boolean {
+  const cause = (err as { cause?: { code?: string } } | null)?.cause
+  const code = cause?.code ?? ''
+  const msg = String(cause ?? err)
+  return (
+    ['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'UND_ERR_SOCKET', 'UND_ERR_CONNECT_TIMEOUT'].includes(code) ||
+    /socket disconnected|other side closed|network socket|fetch failed/i.test(msg)
+  )
+}
+
+async function fetchSageChat(init: RequestInit, attempts = 3): Promise<Response> {
+  let lastErr: unknown
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fetch(`${SAGE_API_URL}/chat`, init)
+    } catch (err) {
+      lastErr = err
+      if (!_isTransientConnError(err) || i === attempts - 1) throw err
+      await new Promise((r) => setTimeout(r, 250 * (i + 1)))
+    }
+  }
+  throw lastErr
+}
+
 function parseJsonHeader<T>(raw: string | null, fallback: T): T {
   if (!raw) return fallback
   try { return JSON.parse(raw) as T } catch { return fallback }
@@ -55,7 +86,7 @@ export async function POST(req: Request) {
   const sageStart = Date.now()
   let sageRes: Response
   try {
-    sageRes = await fetch(`${SAGE_API_URL}/chat`, {
+    sageRes = await fetchSageChat({
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
