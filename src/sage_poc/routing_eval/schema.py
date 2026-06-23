@@ -14,6 +14,7 @@ LANGS = ("en", "ar")
 STRATA = ("in_scope", "id_oos", "far_oos")
 CASE_KINDS = ("normal", "crisis_invariance", "referral_exclusion", "stale_state")
 ABSTAIN = "ABSTAIN"
+ESCALATE = "ESCALATE"   # crisis safety-net outcome: must escalate, never be absorbed by a skill
 
 # Referral/after-care pathways excluded as skill_select targets (brief A1 / A2.8).
 EXCLUDED_REFERRALS = ("psychotic_referral", "post_crisis_check_in")
@@ -39,3 +40,5 @@ class EvalRecord:
     reached_skill_select: bool = False       # path trace; only meaningful for crisis_invariance
     winning_anchor_type: str | None = None   # "exemplar" | "description"
     prior_state: str | None = None           # rolling state summary; None = utterance-only (base calibration set, §5.4)
+    harm_severity: str | None = None          # "critical" (crisis absorbed) | "iatrogenic" (e.g. OCD→cognitive) | "low" | None
+    acceptable_routes: tuple[str, ...] = ()   # blended/comorbid: any of these (incl. ABSTAIN) is a correct route

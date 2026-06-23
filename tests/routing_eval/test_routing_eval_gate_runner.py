@@ -43,7 +43,7 @@ def _bc3(ar_n=10):
 # --- happy path --------------------------------------------------------------
 
 def test_flip_when_all_strata_pass_bc3_pass_path_pass():
-    fv = evaluate_flip(_v1(), _v2(), bc3_result=_bc3(), path_checks_pass=True, reranker_in_budget=True)
+    fv = evaluate_flip(_v1(), _v2(), bc3_result=_bc3(), path_checks_pass=True, harm_gate_pass=True, reranker_in_budget=True)
     assert fv.flip is True
 
 
@@ -51,30 +51,30 @@ def test_flip_when_all_strata_pass_bc3_pass_path_pass():
 
 def test_veto_misroute():
     v2 = {EN: _m(0.10, 0.70, 0.85), AR: _m(0.30, 0.62, 0.82)}      # ar misroute 0.30 > 0.25
-    fv = evaluate_flip(_v1(), v2, bc3_result=_bc3(), path_checks_pass=True, reranker_in_budget=True)
+    fv = evaluate_flip(_v1(), v2, bc3_result=_bc3(), path_checks_pass=True, harm_gate_pass=True, reranker_in_budget=True)
     assert fv.flip is False and fv.per_stratum[AR].gate_misroute is False
 
 
 def test_veto_override():
     v2 = {EN: _m(0.10, 0.70, 0.85), AR: _m(0.15, 0.62, 0.82, override=1)}
-    fv = evaluate_flip(_v1(), v2, bc3_result=_bc3(), path_checks_pass=True, reranker_in_budget=True)
+    fv = evaluate_flip(_v1(), v2, bc3_result=_bc3(), path_checks_pass=True, harm_gate_pass=True, reranker_in_budget=True)
     assert fv.flip is False and fv.per_stratum[AR].gate_override is False
 
 
 def test_veto_recall():
     v2 = {EN: _m(0.10, 0.70, 0.85), AR: _m(0.15, 0.50, 0.82)}      # ar recall 0.50 < 0.55
-    fv = evaluate_flip(_v1(), v2, bc3_result=_bc3(), path_checks_pass=True, reranker_in_budget=True)
+    fv = evaluate_flip(_v1(), v2, bc3_result=_bc3(), path_checks_pass=True, harm_gate_pass=True, reranker_in_budget=True)
     assert fv.flip is False and fv.per_stratum[AR].gate_recall is False
 
 
 def test_veto_abstain():
     v2 = {EN: _m(0.10, 0.70, 0.85), AR: _m(0.15, 0.62, 0.70)}      # ar abstain 0.70 < 0.78
-    fv = evaluate_flip(_v1(), v2, bc3_result=_bc3(), path_checks_pass=True, reranker_in_budget=True)
+    fv = evaluate_flip(_v1(), v2, bc3_result=_bc3(), path_checks_pass=True, harm_gate_pass=True, reranker_in_budget=True)
     assert fv.flip is False and fv.per_stratum[AR].gate_abstain is False
 
 
 def test_veto_blocking_checks():
-    fv = evaluate_flip(_v1(), _v2(), bc3_result=_bc3(), path_checks_pass=False, reranker_in_budget=True)
+    fv = evaluate_flip(_v1(), _v2(), bc3_result=_bc3(), path_checks_pass=False, harm_gate_pass=True, reranker_in_budget=True)
     assert fv.flip is False
 
 
@@ -82,7 +82,7 @@ def test_veto_blocking_checks():
 
 def test_strong_english_does_not_mask_weak_khaleeji():
     v2 = {EN: _m(0.02, 0.95, 0.97), AR: _m(0.30, 0.50, 0.78)}      # EN excellent, AR regresses
-    fv = evaluate_flip(_v1(), v2, bc3_result=_bc3(), path_checks_pass=True, reranker_in_budget=True)
+    fv = evaluate_flip(_v1(), v2, bc3_result=_bc3(), path_checks_pass=True, harm_gate_pass=True, reranker_in_budget=True)
     assert fv.flip is False, "pooled improvement must not flip when the worst cell regresses"
     assert fv.per_stratum[EN].passed is True
     assert fv.per_stratum[AR].passed is False
@@ -90,7 +90,7 @@ def test_strong_english_does_not_mask_weak_khaleeji():
 
 def test_insufficient_to_assert_cell_blocks_flip():
     # Underpowered Khaleeji cell → BC3 not 'pass' → must block, not silently read as ✓.
-    fv = evaluate_flip(_v1(), _v2(), bc3_result=_bc3(ar_n=3), path_checks_pass=True, reranker_in_budget=True)
+    fv = evaluate_flip(_v1(), _v2(), bc3_result=_bc3(ar_n=3), path_checks_pass=True, harm_gate_pass=True, reranker_in_budget=True)
     assert fv.bc3_passed is False
     assert fv.flip is False
 
@@ -98,7 +98,7 @@ def test_insufficient_to_assert_cell_blocks_flip():
 # --- gate 5 defined-negative -------------------------------------------------
 
 def test_reranker_off_defined_negative_still_flips():
-    fv = evaluate_flip(_v1(), _v2(), bc3_result=_bc3(), path_checks_pass=True, reranker_in_budget=False)
+    fv = evaluate_flip(_v1(), _v2(), bc3_result=_bc3(), path_checks_pass=True, harm_gate_pass=True, reranker_in_budget=False)
     assert fv.flip is True and fv.reranker_shipped is False
 
 
