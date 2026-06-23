@@ -86,6 +86,32 @@ All three gates lean on inferred `emotional_intensity` and text matching against
 ## Recorded outcome
 - [x] Approved with the modifications recorded above (D1 + required match-tightening; D2 resolved to bundled attestation, reversing "do not list contraindications"; D3 N=2 with the two constraints).
 
+## D3 implementation contract — full D3 (deterministic contraindication detection)
+
+Reduced-D3 (ceiling only, LLM-driven contraindication) is **rejected**: it would leave "does the pacemaker patient proceed with cold-water TIPP" as an LLM judgment, contradicting the cardinal rule (*safety is deterministic; the LLM never decides whether to invoke a safety check*). Constraint 2 is the reason D3 exists, so full D3 is the only conformant build.
+
+The `entry_screen` evaluation becomes a **3-way signal**:
+- `advance` — clear proceed-signal, no contraindication.
+- `contraindication_disclosed` → **deterministic immediate exit + redirect to box breathing**; does **NOT** increment `criteria_hold_count`; fires regardless of the current count.
+- `ambiguous` → hold; increments the counter; at **N=2**, redirect to box breathing (non-punitive).
+
+**Load-bearing design rule — detection must be deterministic, not just the action.** `contraindication_disclosed` is set by a **deterministic pattern/keyword match** against the skill's declared contraindication list — the same architecture as Node-1 crisis-lexicon matching — **NOT** by an LLM classification. The LLM may render the exit warmly; it must not be the thing that decides a contraindication is present. If detection is LLM-classified, the gap is relocated, not closed.
+
+### Clinician confirmation needed (these are clinical artifacts, not engineering choices)
+1. **The deterministic contraindication match set** (proposed, from `dbt_tipp.json` contraindications — confirm additions/removals; this list IS the safety surface):
+   cardiac/heart condition · pacemaker · arrhythmia / irregular heartbeat / AFib · disordered eating / eating disorder / anorexia / bulimia · on beta-blockers · physical disability or injury preventing exercise · cold sensitivity / cold allergy / Raynaud's. *(Pregnancy: include?)*
+2. **Redirect-target safety:** box breathing is the redirect on BOTH the contraindication exit and the N=2 ceiling. Confirm box breathing is not itself contraindicated for any condition in the list above (it has no physical requirement, so expected safe — but confirm, do not assume). If any condition makes the redirect target inappropriate, the redirect is not unconditional.
+
+### Test plan (TDD, both safety tests written RED-first, before implementation)
+- `contraindication on turn 1 → immediate exit + box-breathing redirect; criteria_hold_count UNTOUCHED; fires regardless of current count.`
+- `ambiguous holds → at N=2, redirect; contraindication path NEVER ticks the counter (the two paths do not bleed).`
+- Plus: deterministic-detection test (a declared contraindication phrase sets `contraindication_disclosed` with the LLM mocked out / uninvolved).
+
+### Staging
+This touches the safety-critical criteria evaluator. **Recommended as the first task of a clean session** (session-depth judgment, 2026-06-23) — TDD strictly, the two safety tests red-first, and a clinician confirms items 1–2 above before merge. "Faithful to the sign-off" on this file is a clinical judgment, not an engineering self-assessment.
+
+---
+
 **Reviewing clinician (name):** Rohan   **Date:** 2026-06-23
 
 *Audit-trail transparency note:* "Rohan" is also the git-commit identity and the product owner who relayed this review (`rohan@synergenix.ai`). This signature stands as an independent clinical sign-off **iff Rohan is the credentialed clinical lead**. If signed in a product-owner capacity, it is a dual-hat self-approval and should be countersigned by an independent clinician before external pilot exposure — flagged here per the project's admin/self-approval disclosure convention, not to question the review (the relayed clinical content — dive-reflex physiology, DBT contraindication norms, BETA/trauma-informed/bioethics reasoning — was clinical-grade).
