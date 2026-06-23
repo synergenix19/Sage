@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import re
 import threading
 
@@ -45,6 +46,40 @@ _anchor_skill_ids: list[str] = []    # one entry per anchor (description or sema
 _anchor_embeddings: np.ndarray | None = None  # shape (n_anchors, 1024)
 _init_lock = threading.Lock()
 
+# Retrieval-core flag (spec rev4). Default OFF — production routing is unchanged until
+# the POC demonstrates the delta and we flip it deliberately.
+SKILL_ROUTING_V2: bool = os.environ.get("SKILL_ROUTING_V2", "0") == "1"
+
+# Referral/after-care pathways excluded as skill_select targets under v2, per the FROZEN
+# A1 boundary (2026-06-23): reached via deterministic/clinical-state paths, not semantic match.
+EXCLUDED_REFERRALS = ("psychotic_referral", "post_crisis_check_in")
+
+
+def build_anchor_pairs(skills, *, include_exemplars: bool) -> list[tuple[str, str]]:
+    """Build (skill_id, text) anchor pairs for the BGE-M3 semantic index.
+
+    v1 (include_exemplars=False, current prod): each skill contributes its
+    semantic_description + semantic_anchors. Behavior is unchanged.
+
+    SKILL_ROUTING_V2 (include_exemplars=True): ALSO embed target_presentations as exemplar
+    anchors (spec §6.1, "the change that does the real work"), and EXCLUDE the referral
+    pathways from the index (frozen A1 boundary). max-over-anchors pooling is unchanged.
+    """
+    pairs: list[tuple[str, str]] = []
+    for sid, skill in skills.items():
+        if sid in KEYWORD_SEMANTIC_SKIP:
+            continue
+        if include_exemplars and sid in EXCLUDED_REFERRALS:
+            continue
+        if skill.semantic_description:
+            pairs.append((sid, skill.semantic_description))
+        for anchor in skill.semantic_anchors:
+            pairs.append((sid, anchor))
+        if include_exemplars:
+            for tp in skill.target_presentations:
+                pairs.append((sid, tp))
+    return pairs
+
 
 def _ensure_semantic_ready() -> None:
     """Load BGE-M3 and embed all skill descriptions + semantic_anchors. No-op when ready."""
@@ -66,14 +101,7 @@ def _ensure_semantic_ready() -> None:
             except (OSError, EnvironmentError):
                 model = SentenceTransformer("BAAI/bge-m3", revision=_BGE_M3_REVISION)
 
-        pairs: list[tuple[str, str]] = []
-        for sid, skill in _SKILLS.items():
-            if sid in KEYWORD_SEMANTIC_SKIP:
-                continue
-            if skill.semantic_description:
-                pairs.append((sid, skill.semantic_description))
-            for anchor in skill.semantic_anchors:
-                pairs.append((sid, anchor))
+        pairs = build_anchor_pairs(_SKILLS, include_exemplars=SKILL_ROUTING_V2)
 
         _anchor_skill_ids = [sid for sid, _ in pairs]
         anchor_texts = [text for _, text in pairs]
