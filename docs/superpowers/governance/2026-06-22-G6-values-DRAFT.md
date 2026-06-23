@@ -1,7 +1,7 @@
 # Gate-6 Values — DRAFT proposal for sign-off
 
 **Date:** 2026-06-22 · **rev 2026-06-23** (coordinator + clinical-lead review folded in).
-**Status:** PARTIALLY SIGNED 2026-06-23. Clinical rows **#3 (abstain floor = 0.80) and #7 (loss ratio = 4×) SIGNED by clinical lead** (recommended values adopted). Engineering rows #5/#6 SET on rationale. Risk rows **#1/#2/#4 hold provisional working values** (eng-proposed defaults) pending **product/risk-owner** confirmation — a clinician cannot supply risk acceptance, so that role's sign-off is still outstanding. All rows now have working values (harness will not hard-error), but #1/#2/#4 are not *risk-accepted* until the owner signs; #4 in particular governs labeling volume.
+**Status:** SIGNED except #4-arm, 2026-06-23. Clinical **#3 (0.80) + #7 (1.0/4.0)** SIGNED (clinical lead). Engineering **#5 (30) + #6 (8)** SET. Product/risk owner **SIGNED #1 (δ=0.05) + #2 (per-stratum 0.05/0.03)**, and risk-accepted **#4 in principle — but the BINARY ARM is unspecified**: POC-phased (≤4.6% @ N≈65 + ≤1%/~300 pre-commit) **vs** ≤1% up front (~300). Until the arm is named the `ar/id_oos` cell cannot be sized (schedule gate). Every other value is real and signed. **Not closeable by this doc:** §3a (safety determination, native-dialect+task#21 only) and A2 set *existence* (labor, not approval) — see companion + brief.
 **Companion:** `2026-06-22-A1-boundary-freeze-DRAFT.md`, harness spec §1.4/§2.4.
 
 ---
@@ -10,10 +10,10 @@
 
 | Row | Structure | The number | Set by | Status |
 |---|---|---|---|---|
-| #1 δ tolerance | endorsed | 0.05 (provisional) | product / risk owner | ⏳ owner confirm |
-| #2 δ granularity (per-stratum) | endorsed | 0.05 / 0.03 worst-cell (provisional) | product / risk owner | ⏳ owner confirm |
+| #1 δ tolerance | endorsed | **0.05** | product / risk owner | ✅ SIGNED 2026-06-23 |
+| #2 δ granularity (per-stratum) | endorsed | **0.05 / 0.03 worst-cell** | product / risk owner | ✅ SIGNED 2026-06-23 |
 | #3 abstain floor | endorsed | **0.80** | clinical lead | ✅ SIGNED 2026-06-23 |
-| #4 mis-route bar + phasing | endorsed | POC ≤4.6%@N≈65, pre-pilot ≤1%/~300 (provisional) | product / risk owner | ⏳ owner confirm |
+| #4 mis-route bar + phasing | endorsed | risk-accepted; **ARM UNSPECIFIED** (POC-phased vs ≤1%-upfront) | product / risk owner | ⚠ ARM PENDING — gates ar/id_oos sizing |
 | #5 per-cell N floor | endorsed | 30 | engineering | ✅ set |
 | #6 per-skill min-N | endorsed | 8 | engineering | ✅ set |
 | #7 loss weights | ordering endorsed | **1.0 / 4.0** | clinical lead | ✅ SIGNED 2026-06-23 |
@@ -40,13 +40,14 @@ Engineering supplies #5/#6 and the *mechanics* of #1/#2; it does **not** supply 
 
 ## Schedule gate — #4 blocks worst-cell labeling (do not let provisional harden)
 
-**HARD GATE for Track A:** the `ar/id_oos` held-out cell **must not be sized or labeled until #4 is risk-accepted** by the product/risk owner. Reason: #4 sets that cell's N at ~65 (POC bound) vs ~300 (≤1% pilot bound) — a 4–5× swing. Labeling to the provisional ~65 before the owner signs re-introduces, at execution time, exactly the rework the F2 finding existed to prevent. **All other (lang × stratum) cells may proceed now against the frozen boundary** — #4 sizes only the worst cell. So #4 is *concurrent-with-A2-start*, not whenever-convenient: route it before the labeling team commits worst-cell volume.
+**HARD GATE for Track A (now narrowed to the arm):** #4 is risk-accepted, but the `ar/id_oos` held-out cell **must not be sized or labeled until #4's ARM is named** — POC-phased (N≈65) vs ≤1%-upfront (~300). The acceptance closed; the *number* did not, and the number is the cell's N. Sizing to the wrong arm is a 4–5× swing in worst-cell labeling — exactly the F2 rework, re-introduced at execution time. **All other (lang × stratum) cells may proceed now against the frozen boundary** — #4 sizes only the worst cell. The arm is the single value still standing between A2 and full sizing.
 
 ## Sign-off
 
 ```
 #3 abstain floor (0.80) + #7 loss ratio (1.0/4.0):  SIGNED clinical lead (name: ______)  Date: 2026-06-23
-#1 δ / #2 granularity / #4 mis-route bar (risk):    ______________  Date: ____  (product/risk owner — OUTSTANDING)
+#1 δ (0.05) / #2 granularity (0.05/0.03):           SIGNED product/risk owner   Date: 2026-06-23
+#4 mis-route bar — accepted; ARM (65 vs 300):       ______________  Date: ____  (ARM PENDING — gates sizing)
 #5 N floor (30) / #6 min-N (8):                      SET engineering, on rationale     Date: 2026-06-23
 ```
 Clinical + engineering rows are signed; the three risk rows carry provisional working values and are **not risk-accepted** until the product/risk owner signs. A clinician's approval does not cover risk acceptance — that separation is deliberate.
