@@ -5,6 +5,7 @@ import logging
 import hmac
 import os
 import pathlib
+import re
 import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -53,6 +54,17 @@ async def require_ready() -> None:
 
 _cors_origins_raw = os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
 _CORS_ORIGINS: list[str] = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
+
+# Stream tokeniser: alternating whitespace-run / word tokens so "".join() reconstructs
+# the response byte-for-byte. The old `response_text.split()` collapsed every newline,
+# flattening L4 numbered lists into a wall of text (the frontend renders newlines via
+# whitespace-pre-wrap, so the line structure must survive streaming).
+_STREAM_TOKEN_RE = re.compile(r"\s+|\S+")
+
+
+def _stream_tokens(text: str) -> list[str]:
+    """Chunk text for streaming while preserving newlines and exact whitespace."""
+    return _STREAM_TOKEN_RE.findall(text)
 
 
 def _warmup_bge_m3() -> None:
@@ -342,8 +354,8 @@ async def chat(
     async def _body() -> AsyncGenerator[bytes, None]:
         if not is_safe:
             yield (CRISIS_SIGNAL + "\n").encode()
-        for word in response_text.split():
-            yield (word + " ").encode()
+        for token in _stream_tokens(response_text):
+            yield token.encode()
 
     return StreamingResponse(
         _body(),
