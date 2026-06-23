@@ -74,6 +74,7 @@ class SageState(TypedDict):
     turn_count: int
     turn_number: int   # incremented by safety_check_node on every message; used for session_audit
     conversation_history: list[dict]
+    stall_detected: Optional[bool]       # deterministic stall-guard signal (per-turn); set in intent_route, read by composer
     therapeutic_profile: Optional[dict]  # loaded at turn start; injected into L5
     user_id:    Optional[str]            # authenticated user UUID from request
     session_id: Optional[str]            # = thread_id; needed by tools and summary persistence

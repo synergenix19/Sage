@@ -92,6 +92,18 @@ _INTENSITY_GUIDANCE: dict[str, str] = {
     "high": "The user is significantly distressed. Name the specific thing they said, directly. Ask one focused question about it. Do NOT paraphrase or reflect back what they said. Do NOT begin with 'It sounds like', 'That sounds', or any reflective opener. Do NOT offer guidance yet.",
 }
 
+# Stall-guard recovery instruction (freeflow-only). Fires when the deterministic
+# detector flags a stall. It must RE-GROUND in established context, not merely
+# suppress the repeated question (which would degrade into a different generic
+# opener). No em dashes: rule content mirrors into LLM output.
+_STALL_RECOVERY_INSTRUCTION = (
+    "RECOVERY: The user has repeated themselves or has not moved forward over the "
+    "last few turns. Do not ask another open ended question and do not open with a "
+    "new generic line. Use what they have ALREADY shared earlier in this "
+    "conversation, name those specific details back to them, and offer one "
+    "concrete next step grounded in those details."
+)
+
 _OFFER_DESCRIPTIONS_PATH = Path(__file__).parent / "offer_descriptions.json"
 _DECLINED_INSTRUCTION_PATH = Path(__file__).parent / "declined_skills_instruction.json"
 
@@ -736,6 +748,14 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     if _guardrail_block is not None:
         user_parts.append(_guardrail_block)
         layers.append("freeflow_guardrail")
+
+    # Stall-guard recovery (freeflow only). The deterministic detector set the
+    # flag in intent_route; here we direct the model to re-ground in prior context
+    # rather than ask yet another open question. On skill turns the executor owns
+    # the protocol, so this must not fire there.
+    if _is_freeflow and state.get("stall_detected"):
+        user_parts.append(_STALL_RECOVERY_INSTRUCTION)
+        layers.append("stall_recovery")
 
     # L5: User context (before skill/knowledge so LLM has profile context first)
     l5_block = _build_l5_user_context_block(

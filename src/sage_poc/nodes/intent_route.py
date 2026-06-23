@@ -4,6 +4,7 @@ from sage_poc.state import SageState
 from sage_poc.llm import get_classifier, get_fallback_classifier
 from sage_poc.resilience import resilient_invoke
 from sage_poc.nodes.directive_detect import detect_directive_request
+from sage_poc.conversation_stall import detect_stall
 
 # SINGLE-POINT-OF-FAILURE WARNING: The general_chat classification below is the sole
 # gate preventing bare emotional words ("stressed", "depressed", "anxious", "I feel sad")
@@ -145,6 +146,14 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
         "engagement": _safe_int(data.get("engagement"), 5),
         "path": state["path"] + ["intent_route"],
         "directive_posture": detect_directive_request(state),
+        # Deterministic stall-guard signal (read by the composer to inject a
+        # re-grounding change-of-tack). The decision is made here in code; the
+        # LLM only renders the recovery turn, it never decides "is this a stall".
+        "stall_detected": detect_stall(
+            [m["content"] for m in (state.get("conversation_history") or [])
+             if m.get("role") == "user"]
+            + [state.get("message_en", "")]
+        ),
     }
     offered = state.get("offered_skill_ids") or []
     if offered:
