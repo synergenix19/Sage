@@ -24,6 +24,17 @@
 
 **§3a — crisis-adjacent dialect line** — routed to a **native-dialect clinician + task #21 cross-check**. Recorded methodological guidance (not a clinical decision): draw conservatively toward escalation; OR-fusion already biases that way; residual = which dialectal phrasings count as a crisis signal at all. Owner: native-speaker clinician on the task #21 track.
 
+**Hand-off register (a routed loop needs an owner + a return path, not just dispatch).** This is the highest-stakes boundary in the system, so it must not sit in transit:
+
+| Field | Value |
+|---|---|
+| Routed to | task #21 (Arabic crisis bench) — native-dialect clinician |
+| Named owner | __________ (to be confirmed by task #21 lead) |
+| Return path | resolution recorded back in this register + the §6 §3a sign-off line |
+| Status | **AWAITING ACKNOWLEDGEMENT** — not yet confirmed picked up by task #21 |
+
+Until Status reads "accepted by task #21 owner," §3a is an *open loop*, not a closed hand-off. Confirm pickup; do not treat "routed onward" as resolved.
+
 ## Sign-off
 
 ```

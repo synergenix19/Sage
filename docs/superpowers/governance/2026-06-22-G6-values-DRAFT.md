@@ -38,6 +38,10 @@ Engineering supplies #5/#6 and the *mechanics* of #1/#2; it does **not** supply 
 
 2. **#4 and #5 measure different things at different N — do not conflate.** The per-cell N floor (#5 = 30) certifies the **AUGRC/parity** verdict. It does **not** certify the **mis-route bar** (#4): 30 rows cannot distinguish a 1% from a 4.6% override-misroute rate. The mis-route bar carries its own N (≈65 for the POC bound, ~300 for the pilot bound). Anyone reading "N≥30" as certifying #4 is misreading it; this note exists to prevent that.
 
+## Schedule gate — #4 blocks worst-cell labeling (do not let provisional harden)
+
+**HARD GATE for Track A:** the `ar/id_oos` held-out cell **must not be sized or labeled until #4 is risk-accepted** by the product/risk owner. Reason: #4 sets that cell's N at ~65 (POC bound) vs ~300 (≤1% pilot bound) — a 4–5× swing. Labeling to the provisional ~65 before the owner signs re-introduces, at execution time, exactly the rework the F2 finding existed to prevent. **All other (lang × stratum) cells may proceed now against the frozen boundary** — #4 sizes only the worst cell. So #4 is *concurrent-with-A2-start*, not whenever-convenient: route it before the labeling team commits worst-cell volume.
+
 ## Sign-off
 
 ```
