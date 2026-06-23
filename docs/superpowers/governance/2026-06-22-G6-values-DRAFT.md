@@ -13,7 +13,7 @@
 | #1 δ tolerance | endorsed | **0.05** | product / risk owner | ✅ SIGNED 2026-06-23 |
 | #2 δ granularity (per-stratum) | endorsed | **0.05 / 0.03 worst-cell** | product / risk owner | ✅ SIGNED 2026-06-23 |
 | #3 abstain floor | endorsed | **0.80** | clinical lead | ✅ SIGNED 2026-06-23 |
-| #4 mis-route bar + phasing | endorsed | risk-accepted; **ARM UNSPECIFIED** (POC-phased vs ≤1%-upfront) | product / risk owner | ⚠ ARM PENDING — gates ar/id_oos sizing |
+| #4 mis-route bar + phasing | endorsed | **POC arm: ≤4.6%@N≈65** (≤1%/~300 deferred pre-pilot) | product / risk owner | ✅ POC-SIGNED 2026-06-23 (see 2026-06-23-POC-assumptions.md) |
 | #5 per-cell N floor | endorsed | 30 | engineering | ✅ set |
 | #6 per-skill min-N | endorsed | 8 | engineering | ✅ set |
 | #7 loss weights | ordering endorsed | **1.0 / 4.0** | clinical lead | ✅ SIGNED 2026-06-23 |
