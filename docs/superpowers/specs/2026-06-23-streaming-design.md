@@ -18,7 +18,7 @@ Real streaming improves **time-to-first-paint** to ~2–4s and makes a slow-but-
 Streaming fixes **time-to-first-paint**, **not total latency**. It must **not** be reported against the CRISP-DM **<3s p95 total-response** KPI.
 
 - In the **POC**, the 15–30s total is driven by **OpenAI `gpt-4o` + multiple sequential LLM calls per turn (classifier, responder, banned-opener retry, translation) + cross-region DB (SFO API ↔ Mumbai Supabase)**.
-- In the **production target**, total latency is a **Falcon-34B (Node 7) inference** problem.
+- In the **production target**, total latency is a **Node 7 inference** problem (generation model TBD — see §4.5; not necessarily Falcon).
 
 Both are Node-7 total-latency concerns, separate from first-paint. Streaming masks total latency perceptually; it does not meet the p95 KPI. The **banned-opener retry (~21% of casual turns)** delaying first paint is the correct, load-bearing cost and **stays**.
 
@@ -72,11 +72,31 @@ CUO-ID-001 (identity/impersonation substitution) is **not unique** — it is one
 
 When CUO-ID-001 fires on sentence N, every prior **emitted** sentence already passed the **full** per-sentence gate (not just the identity check) — independently clean, non-impersonating, non-diagnostic. The canned correction **disclaims the false identity in the same turn** (satisfies persona-robustness, Intelligence Eval T-11). The user never receives an un-corrected impersonation. This is a defensible refinement of "replace whole response" → "correct from the violation point." **Write the sign-off treating CUO-ID-001 as an identity-robustness rule (L3-adjacent), not a generic cultural rule.**
 
-### 4.3 Correctness guard on (a)
+### 4.3 Correctness guard on (a) — and a NEW deviation it depends on
 
 "Substitute-remainder-and-halt" is sound **only if** the canned correction reads coherently appended after the clean prefix, i.e. the clean prefix cannot be semantically poisoned by what follows. Concretely: if sentence 1 = "your symptoms sound serious" and sentence 2 = impersonation, sentence 1 must **already have failed the per-sentence scope/diagnosis check on its own**.
 
 **Mandatory invariant:** the per-sentence gate runs **scope + diagnosis checks on every sentence**, independently. Otherwise the halt point can leave a standalone scope/diagnosis violation emitted.
+
+**This is a NEW architectural addition, not a precondition to confirm.** In v7, scope/diagnosis are **not** standalone deterministic checks — they live **inside the Node 8 LLM safety post-check** (§4.4). The §4.3 invariant therefore requires **extracting a new deterministic per-sentence check out of what is currently an LLM judgment** — its own deviation requiring sign-off. The soundness of the entire (a) path rests on it existing and running independently on every sentence.
+
+### 4.4 The Node 8 LLM safety post-check — the binding constraint
+
+v7 defines Node 8 as **"safety post-check + cultural rules + audit trail,"** with a **probabilistic LLM safety post-check** (v7's model = Falcon-3B + rules). §5's table classifies every *deterministic* operation, but the LLM safety post-check is the one **probabilistic, emit-gating** check — and the hardest to classify. By Condition 1, **an unclassified gate operation does not stream.**
+
+**Implication of buffer-by-default (§4.1):** if the LLM safety post-check is whole-response and emit-gating, then **every safe freeflow turn buffers and streaming delivers zero benefit until that check is decomposed.** This project is therefore fundamentally **"decompose Node 8's safety judgment into a streamable form,"** not "wire up `astream`." Everything else (cultural rules, §4.3) is downstream of this.
+
+Options:
+- **(W) whole-response, emit-gating** — no streaming on freeflow. Zero deviation, zero benefit.
+- **(P) per-sentence LLM call** — streams, but N serialized safety-LLM calls per turn on single-loop infra; latency/cost likely worse than buffered. **Rejected.**
+- **(H) decompose** *(recommended, requires sign-off)* — a **deterministic per-sentence emit-gate** (impersonation / diagnosis / scope / crisis-leak as patterns; this *is* the §4.3 work) **plus** a small, fast **safety classifier** run **whole-response at turn-close as an audit/escalation backstop, NOT emit-gating**. Streams and stays affordable, but **changes the safety contract** (the LLM no longer gates emission), so the deterministic gate must be **provably sufficient** and the change signed off.
+
+### 4.5 Model recommendation (answers "we may not use Falcon")
+
+- **Node 8 safety:** do **not** use a generative LLM as a per-sentence emit-gate. Use the (H) decomposition — deterministic per-sentence patterns for emit-gating, plus a small fast **bilingual safety classifier** (Llama-Guard-class, or built on the **MARBERT** direction already roadmapped for the S2 crisis classifier) run **per-turn at close** as the audit/escalation backstop. Decouples safety from the generation model; a per-turn classifier is affordable where per-sentence generative calls are not.
+- **Node 7 generation:** stay **model-agnostic at the `astream` boundary**. POC: `gpt-4o` (native streaming + tool-calling). Production: a vLLM/TGI-served sovereign model (streaming + tool-calling) — **not necessarily Falcon**. The design must not bind to specific weights.
+
+Both are changes to the v7 Node 8 model definition and ride the **same clinical/architectural sign-off standard as the TIPP thresholds** — the sign-off is what makes them conformant, not gate-equivalence alone.
 
 ---
 
@@ -90,6 +110,8 @@ When CUO-ID-001 fires on sentence N, every prior **emitted** sentence already pa
 | Per-sentence scope + diagnosis check | per-sentence (REQUIRED, §4.3) | every sentence, independently, before emit |
 | Arabic translate-back (`async_translate_to_arabic`) | per-sentence | translate each EN sentence → emit AR (Condition 4) |
 | `cultural_output` substitution / identity (CUO-ID-001 and class) | **(b) default → (a) on per-rule promotion** | §4 decision rule |
+| **Node 8 LLM safety post-check** (v7 probabilistic check) | **THE binding constraint — §4.4** | (b) buffer by default; streams only via the (H) decomposition (deterministic per-sentence emit-gate + classifier backstop at close), with sign-off |
+| **Mid-generation tool calls** (5 tools, v7 §5.4/§7) | **suspend emission — §6.1** | stream only the post-tool-resolution terminal answer; never emit a prefix a pending tool could invalidate |
 | `scope_refusal` / `jailbreak` hardcoded paths | non-streamed | whole pre-validated script (push upstream where possible) |
 | Crisis / L3–L4 escalation | non-streamed (Condition 3) | complete pre-validated script + helpline one-tap |
 | Session audit record | whole-turn, at close (Condition 2) | one record assembled at turn end |
@@ -102,15 +124,25 @@ When CUO-ID-001 fires on sentence N, every prior **emitted** sentence already pa
 2. Safe freeflow path: `freeflow_respond` calls `llm.astream`; tokens accumulate into a sentence buffer.
 3. On each completed sentence, the **per-sentence gate** runs: scope+diagnosis (§4.3), banned-opener (sentence 1), T6 strip, question-discipline holdback, promoted replacement-rule checks, then AR translate-back for AR turns.
 4. A clean sentence is emitted over SSE. A sentence that trips a promoted replacement rule → emit the canned correction, **halt** the stream.
-5. At turn close: assemble and write the **single** session_audit record (Condition 2), including `latency_ms` and `cultural rules applied`.
+5. At turn close: run the whole-response safety-classifier backstop (§4.4 (H)); assemble and write the **single** session_audit record (Condition 2), including `latency_ms` and `cultural rules applied`.
+
+### 6.1 Mid-generation tool calls (v7 §5.4/§7)
+
+Node 7 binds 5 tools the LLM can call mid-generation (knowledge_lookup, check_user_history, etc.). `freeflow_respond` already loops invoke→tools→invoke for the terminal answer. Rule: **only the post-tool-resolution terminal answer is streamed.** A tool call **suspends emission**; any pre-tool partial is **discarded, never emitted** — so a tool result can never invalidate an already-streamed prefix. Task 0 must classify this explicitly (and confirm the model cannot interleave a user-facing token and a tool call in the same generation step under the chosen serving stack).
 
 ---
 
 ## 7. Implementation ordering — BLOCKING FIRST TASK
 
-**Task 0 (blocking): full `cultural_output` rule-set audit.** Classify **every** rule as per-sentence-decomposable vs irreducibly-whole-response, against the §4.1 promotion criteria. **No streaming ships for any replacement rule until that rule passes the audit** (gate-equivalence + sign-off). Until a rule is promoted, its turns buffer (default (b)).
+**Task 0 (blocking): full Node 8 gate audit — NOT just the cultural_output rule set.** Classify **every** gate operation against the §4.1 promotion criteria, and explicitly resolve the three checks the deterministic table is silent on:
+1. **The Node 8 LLM safety post-check (§4.4)** — decide (W)/(P)/(H); if (H), specify the deterministic per-sentence emit-gate and the close-time classifier backstop, and obtain sign-off (this is the project's binding decision).
+2. **The per-sentence scope + diagnosis check (§4.3)** — this is a *new* deterministic check extracted from the LLM judgment; specify and sign off as its own deviation.
+3. **Mid-generation tool-call interaction (§6.1)** — confirm suspend-emission/discard-partial holds under the chosen serving stack.
+Plus the `cultural_output` replacement-rule classification (per-sentence-decomposable vs irreducibly-whole-response).
 
-Subsequent tasks (sequenced in the implementation plan): astream wiring at Node 7; the sentence buffer/gate component; per-sentence gate (scope/diagnosis/banned-opener/T6/question-discipline); AR per-sentence translate-back; SSE transport + frontend consumption; non-streamed crisis/escalation path; one-record-per-turn audit assembly at close; upstream routing for known scope/diagnosis/jailbreak.
+**No streaming ships for any check/rule until it passes this audit** (gate-equivalence + sign-off). Until then, turns buffer (default (b)). **If the §4.4 decomposition is not achievable/signed off, the project yields no streaming benefit on safe freeflow turns — that is the gating risk.**
+
+Subsequent tasks (sequenced in the implementation plan): astream wiring at Node 7; the sentence buffer/gate component; per-sentence gate (scope/diagnosis/banned-opener/T6/question-discipline); close-time safety-classifier backstop; AR per-sentence translate-back; SSE transport + frontend consumption; non-streamed crisis/escalation path; one-record-per-turn audit assembly at close; upstream routing for known scope/diagnosis/jailbreak.
 
 ---
 
@@ -144,6 +176,9 @@ Subsequent tasks (sequenced in the implementation plan): astream wiring at Node 
 
 ## 11. Open items requiring sign-off before/within implementation
 
-- **Clinical/architectural sign-off** to promote each replacement rule from (b)→(a), treating CUO-ID-001 as an identity-robustness (L3-adjacent) rule (§4.2).
-- Output of the **Task 0 cultural_output audit** (which rules are promotable).
-- Confirmation that the per-sentence **scope + diagnosis** checks exist or are added (§4.3 invariant).
+- **Node 8 LLM safety post-check decomposition (§4.4)** — the binding decision: (W)/(P)/(H). If (H), sign off the deterministic per-sentence emit-gate + close-time classifier backstop, and the change to the v7 Node 8 model definition. *Without this, streaming yields no benefit on safe turns.*
+- **Model choice (§4.5)** — Node 8 safety classifier (Llama-Guard / MARBERT-class, not a generative LLM); Node 7 generation model kept model-agnostic at the astream boundary (not necessarily Falcon).
+- **Per-sentence scope + diagnosis check (§4.3)** — sign off as a *new* deterministic check extracted from the LLM judgment (a deviation, not a confirmation).
+- **Replacement-rule promotion (§4.1/§4.2)** — clinical/architectural sign-off to promote each rule (b)→(a), treating CUO-ID-001 as identity-robustness (L3-adjacent).
+- **Mid-generation tool-call handling (§6.1)** — confirm suspend-emission/discard-partial under the chosen serving stack.
+- Output of the **Task 0 audit** (which checks/rules are promotable).
