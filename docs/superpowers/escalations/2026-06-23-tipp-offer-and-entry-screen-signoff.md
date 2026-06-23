@@ -55,3 +55,34 @@
 - [ ] Rejected — reasoning: ________________________________________
 
 **Engineering note:** implements only the affirmed values; the F3/F4 rule/skill commits are tagged `clinical-signoff: 2026-06-23-tipp-offer-entry` and must not merge until this file records *Approved*. The substitute/offer eligibility and the hold-ceiling N live in data (`skill_matching_rules.json` / `dbt_tipp.json`), so any value you set here is changed in data, not code.
+
+---
+
+# Clinical review and resolution — 2026-06-23
+
+**Grounding fact (all three decisions orbit this):** cold-water facial immersion triggers the mammalian dive reflex, with an estimated **up to ~40% heart-rate reduction** — a large, fast physiological intervention. In individuals with preexisting cardiac pathology, sudden cold-water exposure can precipitate **arrhythmias, including atrial or ventricular fibrillation**. This is not a low-stakes "splash water" feature; the contraindicated subgroups face real physical risk. That is precisely why TIPP is the one skill in the set whose mis-indication has physical stakes. (Sources: dive-reflex physiology, US PTO/NIH; DBT TIPP self-help guidance naming heart conditions, eating disorders, beta-blockers, cold allergy/sensitivity — Kind Mind Psychology, Stevenson School, dbtselfhelp.)
+
+## Decision 1 (F3) — APPROVED, with a REQUIRED match-tightening
+Affirmed: `dbt_tipp` is excluded from the semantic-offer set. The cold-water piece is a crisis-survival tool for extreme arousal, not a default for non-specific overwhelm; a moderately frustrated parent is not the indicated population.
+**Required, not optional:** the explicit-keyword gate must require **self-directed physical-reset intent**, not topical overlap with distress vocabulary — otherwise the false-positive simply moves from the semantic path to the keyword path. The current `target_presentations` reproduce the incident: they include topical terms ("overwhelmed", "can't calm down", "cant calm down", "losing control", "I can't handle this", "I'm losing it") that match the original parent phrasing. These must be removed/demoted; keep only intent-bearing requests ("need an intense physical reset", "need something stronger than breathing", "breathing isn't working", "TIPP", "cold water technique").
+**Intensity:** NOT a hard floor — inferred `emotional_intensity` is noisy and must not deny a genuine request. Low inferred intensity plus context ("my kids") may act only as a **secondary guard that downgrades a loose keyword hit**, never as the sole gate.
+
+## Decision 2 (F4a) — RESOLVED to bundled named-contraindication attestation (contingency verified)
+Parser fix: AFFIRMED — a clear proceed-signal ("okay sure", "lets start") must be recognised as consent; rejecting it as vague is a defect.
+**Contingency check (clinician's instruction, now verified in code):** the current entry screen shows the user only the ACTIVITY — *"anything physical worth mentioning? This technique involves cold water and some brief intense movement"* — and the step instruction explicitly says **"Do not list contraindications."** The at-risk conditions are named only in the model-facing instruction, never to the user.
+**Therefore:** passive non-disclosure is too weak. The at-risk users (arrhythmia, disordered eating, on beta-blockers) will not connect their condition to "cold water on the face" unless told. The screen must **surface the named contraindications** (heart condition / arrhythmia / pacemaker / on beta-blockers / eating disorder / cold sensitivity) and require a **single bundled acknowledgment** to advance: *"None of these apply — start"* vs *"One applies — show me box breathing."* One tap; not a per-condition interrogation; does not reintroduce the loop.
+**This consciously reverses an existing design choice.** The current "Do not list contraindications" instruction (cognitive-load protection) is overridden in favour of legibility, because the tool is unsupervised and the at-risk users are exactly those who will not self-identify. A reasonable clinician could hold the opposite (prominent warning + non-disclosure) as a crisis-friction tradeoff; the signer is choosing attestation.
+
+## Decision 3 (F4b) — APPROVED (N=2 + box breathing), with two constraints
+Affirmed: after **N=2** holds without clear consent or a disclosed condition, stop and redirect to `box_breathing`.
+1. Redirect tone is **non-punitive** ("Let's try box breathing instead — no equipment needed"); the user must not feel they failed a test.
+2. A **disclosed contraindication exits immediately on the first turn** and does **not** count toward N. The ceiling governs ambiguous/unparsed consent only, never someone who named a condition.
+
+## Cross-cutting (signer should be comfortable with this)
+All three gates lean on inferred `emotional_intensity` and text matching against distress vocabulary — and the original failure WAS a matching/threshold artifact (a 0.4791 sub-threshold semantic match surfacing a high-risk skill). Tightening rules on top of an unreliable intensity signal can relocate the false-positive rather than close it. The package fails safe at each step only as the sequence: **explicit intent-bearing request to reach TIPP at all (D1) → named-contraindication attestation to start (D2) → bounded, graceful exit if consent is unclear (D3).**
+
+## Recorded outcome
+- [x] Approved with the modifications recorded above (D1 + required match-tightening; D2 resolved to bundled attestation, reversing "do not list contraindications"; D3 N=2 with the two constraints).
+
+**Reviewing clinician (name):** ____________________   **Date:** 2026-06-23
+*(Relayed via product owner; awaiting the reviewing clinician's name to finalise the signature line. Implementation of the affirmed values may begin; merge remains gated on this name being recorded.)*
