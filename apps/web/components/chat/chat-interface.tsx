@@ -36,7 +36,12 @@ interface Props {
 // `toUIMessageStreamResponse()`. To avoid changing the route contract or adding
 // a dep, we consume the raw text stream directly.
 // Exported for testability only — not part of the public component API.
-const FIRST_BYTE_TIMEOUT_MS = 25_000
+// Aligned just above the backend graph ceiling (AINVOKE_TIMEOUT_SECONDS=55) and below the
+// Vercel route maxDuration (60s). A turn legitimately takes 15-50s and the backend buffers
+// the whole graph before the first byte, so a 25s cutoff fired WHILE the backend was still
+// working — surfacing a premature "tap to retry" that invited a retry and stacked a second
+// server-side run. At 58s the backend's own result or [[SERVER_ERROR]] arrives first.
+const FIRST_BYTE_TIMEOUT_MS = 58_000
 export function useStreamingChat(sessionId: string | undefined, userId: string | undefined, initialMessages: SdkMessage[] = []) {
   const [messages, setMessages]     = useState<SdkMessage[]>(initialMessages)
   const [isLoading, setIsLoading]   = useState(false)
@@ -48,6 +53,10 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
   const timedOutRef                 = useRef(false)
   // Stores the active first-byte timeout ID so stream() can clear it on first byte.
   const firstByteTimerRef           = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // True while a stream is genuinely in flight. Guards reload() so a re-tap cannot stack a
+  // second server-side graph run on the same thread (a client abort does NOT cancel the
+  // backend ainvoke), which produced fast checkpoint-conflict errors on rapid retries.
+  const inFlightRef                 = useRef(false)
 
   const stream = useCallback(
     async (history: SdkMessage[]) => {
@@ -57,6 +66,7 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
 
       setError(null)
       setIsLoading(true)
+      inFlightRef.current = true
 
       const controller = new AbortController()
       abortRef.current = controller
@@ -140,7 +150,10 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
         // must never be shown. v7 output_gate: un-gated partial content must not display.
         setMessages((curr) => curr.filter((m) => m.id !== assistantId))
       } finally {
-        // Always clear the first-byte timer — prevents it firing 25s after a
+        // The stream has settled (completed, errored, or was aborted by the timeout); the
+        // request is no longer in flight, so reload() may start a fresh one.
+        inFlightRef.current = false
+        // Always clear the first-byte timer — prevents it firing 58s after a
         // pre-response network error and overwriting the real error message.
         if (firstByteTimerRef.current !== null) {
           clearTimeout(firstByteTimerRef.current)
@@ -157,7 +170,7 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
   )
 
   /**
-   * Registers the 25-second first-byte timeout synchronously (before any await)
+   * Registers the first-byte timeout (FIRST_BYTE_TIMEOUT_MS) synchronously (before any await)
    * so vi.advanceTimersByTime() in tests can fire it before stream()'s async body runs.
    * The timeout callback sets error state directly, then aborts the in-flight request.
    * stream() cancels the timer on first byte via firstByteTimerRef.
@@ -209,6 +222,10 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
   )
 
   const reload = useCallback(() => {
+    // Don't stack a second server-side run on top of one still in flight. A client abort
+    // doesn't cancel the backend ainvoke, so re-tapping during an active turn just piles
+    // concurrent runs onto the same thread — the retry-storm amplifier.
+    if (inFlightRef.current) return
     // Replay from the last user message onward.
     const lastUserIdx = (() => {
       for (let i = messages.length - 1; i >= 0; i--) {

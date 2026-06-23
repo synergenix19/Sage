@@ -122,7 +122,7 @@ describe('useStreamingChat — first-byte timeout', () => {
     vi.useRealTimers()
   })
 
-  it('sets error and clears placeholder when server sends no bytes within 25s', async () => {
+  it('sets error and clears placeholder when server sends no bytes within the first-byte timeout', async () => {
     // Minimal ReadableStream that never yields — simulates hung server.
     const neverStream = new ReadableStream<Uint8Array>({ start() {} })
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
@@ -143,9 +143,9 @@ describe('useStreamingChat — first-byte timeout', () => {
     // Before timeout: still loading, empty placeholder present.
     expect(result.current.isLoading).toBe(true)
 
-    // Advance past the 25s timeout.
+    // Advance past the first-byte timeout (58s — aligned just above the backend's 55s ceiling).
     await act(async () => {
-      vi.advanceTimersByTime(25_001)
+      vi.advanceTimersByTime(58_001)
     })
 
     expect(result.current.isLoading).toBe(false)
@@ -188,6 +188,35 @@ describe('useStreamingChat — first-byte timeout', () => {
       expect(result.current.error).toBeNull()
       expect(result.current.isLoading).toBe(false)
     })
+  })
+
+  it('reload() is a no-op while a stream is already in flight (no stacked server runs)', async () => {
+    // Never-yielding body: the request stays in flight so reload() must not start another.
+    const neverStream = new ReadableStream<Uint8Array>({ start() {} })
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      body: neverStream,
+      headers: new Headers(),
+    } as unknown as Response)
+
+    const { result } = renderHook(() =>
+      useStreamingChat('sess-guard-1', 'user-1', [])
+    )
+
+    await act(async () => {
+      result.current.append({ role: 'user', content: 'hello' })
+    })
+
+    // Exactly one in-flight request.
+    expect(result.current.isLoading).toBe(true)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+
+    // Re-tapping retry while the first run is still in flight must NOT issue a second fetch.
+    await act(async () => {
+      result.current.reload()
+    })
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 })
 
