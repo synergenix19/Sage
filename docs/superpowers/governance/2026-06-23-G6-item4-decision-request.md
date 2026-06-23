@@ -1,5 +1,10 @@
 # G6 Item #4 — Mis-route Arm: Decision Request (Product Owner)
 
+> ## DECIDED 2026-06-23 — **Arm A (POC-phased)**. Product owner signed.
+> `ar/id_oos` sized to **~65** (≤4.6% mis-route, rule-of-three upper bound). The ≤1%/~300 bar is a **tracked pre-pilot reopening**, not dropped — it binds exactly when worst-cell precision becomes safety-relevant. Rationale on the record: Arm A defers a *routing-quality* tolerance, not a *safety* one, and reversibly; the POC safety net is human oversight + NO-GO-by-default crisis handling, neither of which this touches. **G6 item #4 → SIGNED; all G6 values now signed.** Native reviewer's Phase-2 cell can now be sized.
+
+
+
 **One binary decision. It is fast to make and it gates the slowest work on the board** — the native Khaleeji reviewer cannot be given a target size for the Arabic worst cell (`ar/id_oos`) until this is named, and that cell is the long pole to V2 flip-eligibility. Everything else in the dataset is either done (EN side, all three cells now N≥30) or sequenced behind this.
 
 ## What's being decided
