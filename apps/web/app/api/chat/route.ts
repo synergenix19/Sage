@@ -18,6 +18,15 @@ const ChatRequestSchema = z.object({
 
 const SAGE_API_URL = process.env.SAGE_API_URL ?? 'http://localhost:8000'
 
+// A single Sage turn can legitimately take 15-50s (sequential LLM calls + cross-region
+// checkpoint I/O + buffered, non-streamed ainvoke). Without this override the Vercel
+// function uses the short platform default and severs the request before the backend can
+// respond — failing users who go through the route even though direct-to-backend succeeds.
+// Set just above the backend's own ceiling (AINVOKE_TIMEOUT_SECONDS=55) so the backend's
+// result or [[SERVER_ERROR]] is what wins, not this layer. Pairs with the browser's
+// FIRST_BYTE_TIMEOUT_MS (58s) so the three ceilings are ordered backend < client < Vercel.
+export const maxDuration = 60
+
 function parseJsonHeader<T>(raw: string | null, fallback: T): T {
   if (!raw) return fallback
   try { return JSON.parse(raw) as T } catch { return fallback }
