@@ -14,7 +14,7 @@ from sage_poc.resilience import EMBEDDING_TIMEOUT_SECONDS
 from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP, SEMANTIC_EXCLUSION_WORDS
 from sage_poc.rules import engine as rules_engine
 from sage_poc.config import (
-    SKILL_RUNNER_UP_MIN, SKILL_RUNNER_UP_MARGIN, SKILL_OFFER_CONFIDENCE_FLOOR,
+    SKILL_RUNNER_UP_MIN, SKILL_RUNNER_UP_MARGIN,
 )
 
 logger = logging.getLogger(__name__)
@@ -466,17 +466,6 @@ async def skill_select_node(state: SageState) -> dict:
         }
 
     if semantic_skill is not None:
-        if score < SKILL_OFFER_CONFIDENCE_FLOOR:
-            # Noise-band match (>= routing threshold but below offer confidence): explore in
-            # freeflow instead of offering an off-target skill (feedback #6, A5).
-            return {
-                **stale_offer_clear,
-                "active_skill_id": None,
-                "active_step_id": None,
-                "skill_match_method": None,
-                "semantic_score": round(score, 4),
-                "path": state["path"] + ["skill_select", "offer_floor_freeflow"],
-            }
         candidates = [semantic_skill]
         if runner_up is not None and runner_up[0] != semantic_skill:
             candidates.append(runner_up[0])

@@ -31,11 +31,9 @@ CRISIS_LINE_UAE = "800 46342"
 KNOWLEDGE_ABSTAIN_THRESHOLD = float(os.getenv("SAGE_KNOWLEDGE_ABSTAIN_THRESHOLD", "0.015"))
 
 # Skill-routing precision (feedback #6). A runner-up (second offer) must be strong AND close
-# to the primary, else only the primary is offered. The offer floor suppresses noise-band
-# single matches (0.46-0.49) into freeflow exploration. Defaults conservative; confirm with clinical.
+# to the primary, else only the primary is offered. Defaults conservative; confirm with clinical.
 SKILL_RUNNER_UP_MIN = float(os.getenv("SAGE_SKILL_RUNNER_UP_MIN", "0.50"))
 SKILL_RUNNER_UP_MARGIN = float(os.getenv("SAGE_SKILL_RUNNER_UP_MARGIN", "0.05"))
-SKILL_OFFER_CONFIDENCE_FLOOR = float(os.getenv("SAGE_SKILL_OFFER_CONFIDENCE_FLOOR", "0.50"))
 
 # Connection-pool ceilings (feedback #9). POC ran asyncpg max_size=5 and httpx keepalive=5,
 # which throttled under the 58-user load behind the p95 latency. Raise + make env-configurable.
