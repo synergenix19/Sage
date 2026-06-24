@@ -50,6 +50,14 @@ _init_lock = threading.Lock()
 # the POC demonstrates the delta and we flip it deliberately.
 SKILL_ROUTING_V2: bool = os.environ.get("SKILL_ROUTING_V2", "0") == "1"
 
+
+def _v2_enabled() -> bool:
+    """The retrieval-core flag, read DYNAMICALLY. Every calibrated-V2 behavior gates on this
+    (not the import-time SKILL_ROUTING_V2 constant) so the byte-identical guard can toggle the
+    flag per-test and a flip needs no module reload. The module constant is retained only for
+    the warmup anchor build (read once at startup — the prod path)."""
+    return os.environ.get("SKILL_ROUTING_V2", "0") == "1"
+
 # Referral/after-care pathways excluded as skill_select targets under v2, per the FROZEN
 # A1 boundary (2026-06-23): reached via deterministic/clinical-state paths, not semantic match.
 EXCLUDED_REFERRALS = ("psychotic_referral", "post_crisis_check_in")
