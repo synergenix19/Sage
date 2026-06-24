@@ -185,7 +185,8 @@ git commit -m "feat(routing): extend directive-posture to info_request + questio
 
 ---
 
-### Task 4: D3 — offer cooldown (value in data) + drop the menu close
+### Task 4a: D3 — offer cooldown (mechanic + value in data) — UNGATED (merges with batch)
+> **Split (condition 2, verified):** `skill_offer.json` is `status:"approved"`, `approved_by:clinical_lead`, v0.2.0, and **live-serving** (loader serves regardless of status). So the "drop the which-would-you-prefer close" copy edit is a change to **live clinician-approved therapeutic copy** → it is **Task 4b (gated)**: a separate draft→review→canary change (sign-off C1), NOT shipped on this merge. Task 4a below is the cooldown mechanic/state/config only and merges freely.
 **Files:**
 - Modify: `src/sage_poc/config.py` (`SKILL_OFFER_COOLDOWN_TURNS = int(os.getenv("SAGE_SKILL_OFFER_COOLDOWN_TURNS", "2"))` as the fallback when the rule omits it)
 - Modify: `src/sage_poc/rules/data/skill_matching/skill_matching_rules.json` (`default_offer` action gains `"cooldown_turns": 2`)
@@ -230,7 +231,7 @@ async def test_offer_suppressed_within_cooldown():
   - **G2 (verified safe):** at this placement `stale_offer_clear` is `{}` in the normal case (it is only `{"offered_skill_ids": None}` on a *stale-rename* accept, where clearing is correct), and the cooldown itself never touches `offered_skill_ids` — so it cannot void a pending offer the user already saw. A pending offer being *accepted* already returned at `:366-371` above this check.
   - **SF3 (verified):** `turn_count` exists (`state.py:74`) and is incremented every turn in `output_gate` (`:557`, returned `:606`), so the cross-turn arithmetic is sound — no new counter needed.
   - Add `_offer_cooldown_turns()` reading the `default_offer` rule's `cooldown_turns` (fallback `config.SKILL_OFFER_COOLDOWN_TURNS`). When an offer is made (the `skill_offer_made` return ~`:290`), add `"last_offer_turn": state.get("turn_count", 0)` to that returned dict. Add `last_offer_turn: int | None` to `state.py` SageState.
-- [ ] **Step 4: skill_offer.json** — remove the trailing "Ask which they would prefer, as one short question." sentence from the template content (keep the offer presentation; this is clinical copy → bump template version + leave `approved_by` as-is pending sign-off, consistent with its `draft-pending-review` status).
+- [ ] **Step 4: (moved to Task 4b — gated)** Do NOT edit `skill_offer.json` in Task 4a. The copy edit (remove "Ask which they would prefer, as one short question.") is **Task 4b**: it touches a live approved template, so it goes on a **separate branch/PR held for clinical sign-off C1 + canary (v7 §9.5)** and is excluded from the ungated merge batch. Task 4a ships the cooldown only; the repeat-menu feel is reduced by suppression (4a) now, and the single-woven-offer copy lands with 4b after C1.
 - [ ] **Step 5: Run — expect PASS**; run `tests/test_skill_select.py tests/test_skill_select_offer_cooldown.py -q`.
 - [ ] **Step 6: Commit**
 ```bash
