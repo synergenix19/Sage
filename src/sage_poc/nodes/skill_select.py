@@ -145,6 +145,38 @@ def _skill_cluster(skill_id: str) -> str | None:
     return None
 
 
+# Anchor-count debias strength (behavior #3, §6.1). Conservative + PRECAUTIONARY: shipped on the
+# §3.4 pre-commit (anchor_count/FP correlation is insufficient_power at N=27), NOT validated to
+# remove the bias at this scale. Mechanism = reweight (not cap); chosen here, spec left it open.
+_ANCHOR_DEBIAS_LAMBDA: float = 0.01
+
+
+def _anchor_counts() -> dict[str, int]:
+    """How many index anchors each skill contributes (description + semantic_anchors [+ exemplars
+    under v2]). The count that drives the max-over-anchors bias."""
+    counts: dict[str, int] = {}
+    for sid in _anchor_skill_ids:
+        counts[sid] = counts.get(sid, 0) + 1
+    return counts
+
+
+def _apply_anchor_debias(
+    skill_scores: dict[str, float],
+    anchor_counts: dict[str, int],
+) -> dict[str, float]:
+    """Counter the max-over-anchors count bias (anchor-rich skills get more shots at a spurious
+    high max). Subtract a small penalty monotonic in anchor count, normalized to the MINIMUM count
+    so the least-anchored skill is unpenalized and only the RELATIVE advantage is removed. Equal
+    counts → exact identity (no relative bias to remove). Called only under flag-on."""
+    if not anchor_counts:
+        return skill_scores
+    min_n = min(anchor_counts.values())
+    return {
+        sid: score - _ANCHOR_DEBIAS_LAMBDA * float(np.log1p(anchor_counts.get(sid, min_n) - min_n))
+        for sid, score in skill_scores.items()
+    }
+
+
 def _route_decision(
     ranked: list[tuple[str, float]],
     lang: str,
@@ -227,6 +259,10 @@ def _semantic_match_with_runner_up(
 
     if not skill_scores:
         return None, 0.0, None
+
+    # V2 behavior #3: anchor-count debias before ranking. Flag-off skips entirely (byte-identical).
+    if _v2_enabled():
+        skill_scores = _apply_anchor_debias(skill_scores, _anchor_counts())
 
     ranked = sorted(skill_scores.items(), key=lambda x: x[1], reverse=True)
     return _route_decision(ranked, lang, message_en)
