@@ -1036,3 +1036,217 @@ def test_compose_prompt_no_overflow_with_large_cultural_override():
     assert total <= 1100, (
         f"Total prompt {total}w exceeds 1100w budget even with proactive L1 reduction."
     )
+
+
+# ---------------------------------------------------------------------------
+# Intent-dependent light-structure formatting for knowledge answers (L4)
+# Spec: docs/superpowers/plans/2026-06-19-intent-dependent-formatting-knowledge-answers.md
+# ---------------------------------------------------------------------------
+from sage_poc.prompts.composer import _allow_light_structure, _sanitize_assistant_turn
+
+_INFO_PASSAGE = [{"text": "Anxiety is a feeling of worry.", "source_id": "ax-001", "citation": "APA (2013)"}]
+
+
+# -- gate computation (the three-part gate) --
+
+def test_allow_light_structure_true_for_pure_info_answer():
+    state = _make_state(knowledge_passages=_INFO_PASSAGE, active_skill_id=None, crisis_state="none")
+    assert _allow_light_structure(state) is True
+
+
+def test_allow_light_structure_false_without_passages():
+    state = _make_state(knowledge_passages=[], active_skill_id=None, crisis_state="none")
+    assert _allow_light_structure(state) is False
+
+
+def test_allow_light_structure_false_mid_skill():
+    state = _make_state(knowledge_passages=_INFO_PASSAGE, active_skill_id="cbt_thought_record", crisis_state="none")
+    assert _allow_light_structure(state) is False
+
+
+def test_allow_light_structure_false_during_crisis_monitoring():
+    state = _make_state(knowledge_passages=_INFO_PASSAGE, active_skill_id=None, crisis_state="monitoring")
+    assert _allow_light_structure(state) is False
+
+
+# -- directive injection in the L4 block --
+
+def test_l4_block_injects_structure_directive_when_allowed():
+    block = _build_l4_knowledge_block(_INFO_PASSAGE, abstain=False, allow_light_structure=True)
+    assert "numbered list" in block.lower()
+
+
+def test_l4_block_omits_structure_directive_by_default():
+    block = _build_l4_knowledge_block(_INFO_PASSAGE, abstain=False)
+    assert "numbered list" not in block.lower()
+
+
+def test_l4_block_abstain_never_gets_structure_directive():
+    block = _build_l4_knowledge_block([], abstain=True, allow_light_structure=True)
+    assert "numbered list" not in block.lower()
+
+
+def test_compose_prompt_injects_structure_directive_for_info_answer():
+    state = _make_state(
+        primary_intent="info_request", active_skill_id=None, crisis_state="none",
+        knowledge_passages=_INFO_PASSAGE, knowledge_abstain=False,
+    )
+    with patch("sage_poc.prompts.composer.rules_engine.evaluate", side_effect=_no_rules()):
+        _, user_str, _ = compose_prompt(state)
+    assert "numbered list" in user_str.lower()
+
+
+# -- T3: sanitizer regression guard (characterization of existing contract) --
+
+def test_sanitize_preserves_numbered_and_bulleted_lists():
+    text = "A few things.\n1. Consistent schedule\n2. Wind down\n- dim the lights"
+    out = _sanitize_assistant_turn(text)
+    assert "1. Consistent schedule" in out
+    assert "2. Wind down" in out
+    assert "- dim the lights" in out
+
+
+def test_sanitize_strips_emphasis_dash_emoji_keeps_text():
+    text = "This is **bold** and *italic*, an em dash — and emoji \U0001F642"
+    out = _sanitize_assistant_turn(text)
+    assert "**" not in out and "bold" in out
+    assert "italic" in out
+    assert "—" not in out
+    assert "\U0001F642" not in out
+
+
+# Regression: token-budget overflow must PRESERVE conversation_summary.
+#
+# Root cause (read from prod state for session aa0a9256, turn 12): on a freeflow
+# turn over the 1100-word budget, the reactive overflow path rebuilt L1 from the
+# last raw turns and dropped conversation_summary entirely, so the model lost all
+# older context and re-asked what the user had already answered.
+#
+# Invariant under test (v7 5.6.3, "shrink history first"): the summary is the
+# compact carrier of older context and is trimmed LAST. The raw recent window is
+# the elastic budget and shrinks (to ZERO turns if necessary) so the summary
+# always survives. These assert the invariant, not any particular word count.
+# ---------------------------------------------------------------------------
+
+_SUMMARY_MARKER = "EARLIER CONTEXT: the user's children were breaking things and yelling."
+
+
+def _render_capturing_overflow(state):
+    """compose_prompt() with overflow warnings captured. Returns (user_str, overflow_fired)."""
+    warning_calls: list[str] = []
+
+    def _spy(msg, *args, **kwargs):
+        warning_calls.append(msg % args if args else msg)
+
+    with (
+        patch("sage_poc.prompts.composer.rules_engine.evaluate", side_effect=_no_rules()),
+        patch("sage_poc.prompts.composer._log") as mock_log,
+    ):
+        mock_log.warning.side_effect = _spy
+        _, user_str, _ = compose_prompt(state)
+    overflow_fired = any("Token budget overflow" in w for w in warning_calls)
+    return user_str, overflow_fired
+
+
+def test_overflow_on_freeflow_turn_preserves_conversation_summary():
+    filler = " ".join(["word"] * 70)
+    history = [
+        {"role": "user" if i % 2 == 0 else "assistant", "content": f"turn{i} {filler}"}
+        for i in range(8)
+    ]
+    state = _make_state(
+        primary_intent="general_chat", secondary_intent=None,
+        active_skill_id=None, step_instruction=None,
+        conversation_history=history,
+        conversation_summary=_SUMMARY_MARKER,
+        message_en="not sure",
+    )
+    user_str, overflow_fired = _render_capturing_overflow(state)
+    assert overflow_fired, "test did not trigger the overflow path; lengthen history"
+    # Invariant: the summary survives the overflow trim.
+    assert "SUMMARY (earlier context)" in user_str
+    assert "EARLIER CONTEXT" in user_str
+
+
+def test_overflow_preserves_summary_even_when_raw_window_must_shrink_to_zero():
+    # A single recent turn so verbose no raw turn can fit beside the summary.
+    # The raw window must shrink to zero while the summary survives unconditionally.
+    huge = " ".join(["filler"] * 1300)  # exceeds the total budget on its own
+    history = [{"role": "user", "content": f"RAWTURNMARKER {huge}"}]
+    state = _make_state(
+        primary_intent="general_chat", secondary_intent=None,
+        active_skill_id=None, step_instruction=None,
+        conversation_history=history,
+        conversation_summary=_SUMMARY_MARKER,
+        message_en="ok",
+    )
+    user_str, overflow_fired = _render_capturing_overflow(state)
+    assert overflow_fired, "test did not trigger the overflow path; enlarge the recent turn"
+    # Invariant: summary survives unconditionally...
+    assert "SUMMARY (earlier context)" in user_str
+    assert "EARLIER CONTEXT" in user_str
+    # ...and the verbose raw turn is dropped (raw window shrank to zero).
+    assert "RAWTURNMARKER" not in user_str
+# ── stall-guard wiring: composer injects a re-grounding change-of-tack ────────
+
+
+def test_stall_recovery_instruction_regrounds_in_prior_content():
+    """When the deterministic guard fires, the recovery instruction must direct
+    the model to RE-GROUND in what the user already shared, not merely avoid the
+    repeated question (which would just yield a different generic opener — the
+    banned-opener failure mode in a new hat). The prior content must also be
+    present in the prompt for the model to ground on."""
+    history = [
+        {"role": "user", "content": "my kids are breaking things and yelling"},
+        {"role": "assistant", "content": "That sounds really hard."},
+        {"role": "user", "content": "not sure"},
+        {"role": "assistant", "content": "What might help?"},
+    ]
+    state = _make_state(
+        primary_intent="general_chat", secondary_intent=None,
+        active_skill_id=None, step_instruction=None,
+        conversation_history=history, message_en="not sure",
+        stall_detected=True,
+    )
+    with patch("sage_poc.prompts.composer.rules_engine.evaluate", side_effect=_no_rules()):
+        _, user_str, layers = compose_prompt(state)
+    assert "stall_recovery" in layers
+    low = user_str.lower()
+    # directs re-grounding in established context...
+    assert "already" in low
+    # ...and forbids another generic open question
+    assert "do not ask another" in low
+    # ...and the prior substantive content is actually in the prompt to ground on
+    assert "breaking things" in user_str
+
+
+def test_stall_recovery_not_injected_when_no_stall():
+    state = _make_state(
+        primary_intent="general_chat", secondary_intent=None,
+        active_skill_id=None, step_instruction=None,
+        conversation_history=[
+            {"role": "user", "content": "hi"}, {"role": "assistant", "content": "hello"},
+        ],
+        stall_detected=False,
+    )
+    with patch("sage_poc.prompts.composer.rules_engine.evaluate", side_effect=_no_rules()):
+        _, _, layers = compose_prompt(state)
+    assert "stall_recovery" not in layers
+
+
+def test_stall_recovery_not_injected_on_skill_turn():
+    """Recovery is freeflow-only; during a skill step the executor owns the turn."""
+    state = _make_state(
+        primary_intent="skill_continuation", secondary_intent=None,
+        active_skill_id="cbt_thought_record",
+        step_instruction="Guide the user to identify the thought.",
+        conversation_history=[
+            {"role": "user", "content": "not sure"}, {"role": "assistant", "content": "ok"},
+            {"role": "user", "content": "not sure"}, {"role": "assistant", "content": "ok"},
+        ],
+        message_en="not sure",
+        stall_detected=True,
+    )
+    with patch("sage_poc.prompts.composer.rules_engine.evaluate", side_effect=_no_rules()):
+        _, _, layers = compose_prompt(state)
+    assert "stall_recovery" not in layers

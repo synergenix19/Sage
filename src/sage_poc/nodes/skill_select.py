@@ -14,6 +14,9 @@ from sage_poc.skills.schema import load_skill
 from sage_poc.resilience import EMBEDDING_TIMEOUT_SECONDS
 from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP, SEMANTIC_EXCLUSION_WORDS
 from sage_poc.rules import engine as rules_engine
+from sage_poc.config import (
+    SKILL_RUNNER_UP_MIN, SKILL_RUNNER_UP_MARGIN,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +43,23 @@ SEMANTIC_THRESHOLD: float = 0.4593
 _CLUSTER_ARGMAX_FLOOR: float = 0.42   # sub-threshold floor for within-cluster argmax
 _RERANK_MARGIN: float = 0.05          # invoke reranker when top-2 scores are within this margin
 _RERANK_TOP_K: int = 3                # max candidates passed to reranker
+
+
+def _select_runner_up(
+    ranked: list[tuple[str, float]], best_sid: str, best_score: float
+) -> tuple[str, float] | None:
+    """Second offer candidate: the highest OTHER skill that is both strong
+    (>= SKILL_RUNNER_UP_MIN) and close to the primary (within SKILL_RUNNER_UP_MARGIN).
+    Returns None otherwise, so a weak/distant second skill is never offered (feedback #6)."""
+    for sid, sc in ranked:
+        if sid == best_sid:
+            continue
+        if sc >= SKILL_RUNNER_UP_MIN and (best_score - sc) <= SKILL_RUNNER_UP_MARGIN:
+            return (sid, sc)
+        # ranked is descending; once a candidate fails the min, none after it can pass
+        return None
+    return None
+
 
 _embed_model = None
 _anchor_skill_ids: list[str] = []    # one entry per anchor (description or semantic_anchors item)
@@ -215,12 +235,14 @@ def _route_decision(
     best_sid, best_score = ranked[0]
 
     def _runner_up(best: str | None) -> tuple[str, float] | None:
+        # RECONCILE: master's runner-up fix (offer-confidence floor: strong AND close to primary,
+        # feedback #6) is the runner-up mechanism in BOTH flag states — it superseded behavior-#1's
+        # per-route runner-up loop, which was minor (per-route τ still gates the PRIMARY route).
+        # Keeping this call is what makes master's fix LIVE, not dead code (the reverse-direction
+        # check the runner-up-blind stash-control can't see).
         if best is None:
             return None
-        for sid, sc in ranked:
-            if sid != best and sc >= routing_threshold(lang, sid):
-                return (sid, sc)
-        return None
+        return _select_runner_up(ranked, best, best_score)
 
     # Within-cluster argmax: when top-2 share a clinical cluster and the second exceeds the soft
     # floor, trust relative ordering rather than absolute threshold gating.
@@ -290,6 +312,9 @@ def _semantic_match_with_runner_up(
         skill_scores = _apply_anchor_debias(skill_scores, _anchor_counts())
 
     ranked = sorted(skill_scores.items(), key=lambda x: x[1], reverse=True)
+    # RECONCILE (master ↔ V2): _route_decision is the superset — flag-off reproduces master's
+    # primary routing exactly, flag-on adds the four V2 behaviors. Master's runner-up fix
+    # (_select_runner_up, offer-confidence floor) is kept LIVE inside _route_decision's _runner_up.
     return _route_decision(ranked, lang, message_en)
 
 

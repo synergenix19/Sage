@@ -1,15 +1,16 @@
 from __future__ import annotations
 import json
 import logging
+from sage_poc.config import KNOWLEDGE_ABSTAIN_THRESHOLD  # env-configurable; see config.py
 from sage_poc.knowledge.models import KnowledgePassage, KnowledgeResult
 from sage_poc.knowledge.repository import KnowledgeRepository
 
 _log = logging.getLogger(__name__)
 
-# POC default: abstain only on zero-score (no subsystem returned any match at all).
-# Calibrate with scripts/calibrate_retrieval_threshold.py once seed corpus >= 10 articles.
-# Pre-production: add BGE-reranker-v2-m3 reranking pass after RRF (insert here).
-KNOWLEDGE_ABSTAIN_THRESHOLD: float = 0.0
+
+def _passes_abstain(rrf_score: float) -> bool:
+    """A passage clears the abstain floor when its RRF score exceeds the threshold."""
+    return rrf_score > KNOWLEDGE_ABSTAIN_THRESHOLD
 
 # Reciprocal Rank Fusion constant (k=60 is standard literature default).
 _RRF_K = 60
@@ -99,7 +100,7 @@ class PostgresKnowledgeRepository(KnowledgeRepository):
 
         passages = []
         for row in rows:
-            if row["rrf_score"] <= KNOWLEDGE_ABSTAIN_THRESHOLD:
+            if not _passes_abstain(row["rrf_score"]):
                 continue
             raw_meta = row["citation_metadata"] or {}
             meta = json.loads(raw_meta) if isinstance(raw_meta, str) else raw_meta

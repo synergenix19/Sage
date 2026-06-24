@@ -4,6 +4,8 @@ import json
 import logging
 import hmac
 import os
+import pathlib
+import re
 import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -19,7 +21,8 @@ from pydantic import BaseModel
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from sage_poc.graph import build_graph
-from sage_poc.config import RESPONDER_MODEL
+from sage_poc.config import RESPONDER_MODEL, DB_POOL_MAX_SIZE
+from sage_poc.language import text_direction
 from sage_poc.server_helpers import _build_state, _stale_skill_overrides, _void_unseen_offer
 from sage_poc.llm import get_classifier
 from sage_poc.skills.conformance import SCHEMA_CONFORMANCE, get_conformance_report
@@ -51,6 +54,17 @@ async def require_ready() -> None:
 
 _cors_origins_raw = os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
 _CORS_ORIGINS: list[str] = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
+
+# Stream tokeniser: alternating whitespace-run / word tokens so "".join() reconstructs
+# the response byte-for-byte. The old `response_text.split()` collapsed every newline,
+# flattening L4 numbered lists into a wall of text (the frontend renders newlines via
+# whitespace-pre-wrap, so the line structure must survive streaming).
+_STREAM_TOKEN_RE = re.compile(r"\s+|\S+")
+
+
+def _stream_tokens(text: str) -> list[str]:
+    """Chunk text for streaming while preserving newlines and exact whitespace."""
+    return _STREAM_TOKEN_RE.findall(text)
 
 
 def _warmup_bge_m3() -> None:
@@ -114,6 +128,41 @@ async def _warmup_task() -> None:
     _bge_ready = True
 
 
+async def _corpus_sync_task(pool) -> None:
+    """Reconcile the on-disk knowledge corpus into pgvector on startup.
+
+    Idempotent and fail-open: unchanged articles are skipped (no re-embed), so this
+    is cheap on every boot; any failure logs a WARNING and leaves retrieval to
+    abstain (never crashes startup). Waits for BGE-M3 warmup first because
+    ingestion embeds each new/changed chunk with the same model.
+
+    Disable with SAGE_SYNC_CORPUS=0. Prune DB-only articles with SAGE_CORPUS_PRUNE=1.
+    """
+    if os.environ.get("SAGE_SYNC_CORPUS", "1") == "0":
+        _log.info("[sage/startup] corpus sync skipped (SAGE_SYNC_CORPUS=0)")
+        return
+    # Embeddings need the model loaded; wait for warmup (bounded).
+    for _ in range(300):  # up to ~10 min at 2s
+        if _bge_ready:
+            break
+        await asyncio.sleep(2)
+    if not _bge_ready:
+        _log.warning("[sage/startup] corpus sync skipped — BGE-M3 not ready in time")
+        return
+    try:
+        from sage_poc.knowledge.sync import sync_corpus
+        default_dir = pathlib.Path(__file__).resolve().parent / "data" / "knowledge_corpus"
+        corpus_dir = os.environ.get("SAGE_CORPUS_DIR", str(default_dir))
+        prune = os.environ.get("SAGE_CORPUS_PRUNE", "0") == "1"
+        result = await sync_corpus(corpus_dir, pool, prune=prune)
+        _log.info(
+            "[sage/startup] corpus sync: ingested=%d skipped=%d pruned=%d chunks=%d locked_out=%s",
+            result.ingested, result.skipped, result.pruned, result.chunks, result.locked_out,
+        )
+    except Exception as exc:
+        _log.warning("[sage/startup] corpus sync failed (retrieval will abstain): %s", exc)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _bge_ready
@@ -161,7 +210,7 @@ async def lifespan(app: FastAPI):
             asyncpg_pool = await asyncpg.create_pool(
                 db_url,
                 min_size=1,
-                max_size=5,
+                max_size=DB_POOL_MAX_SIZE,
                 max_inactive_connection_lifetime=300,  # recycle connections idle >5 min
             )
         except Exception as exc:
@@ -174,6 +223,9 @@ async def lifespan(app: FastAPI):
         saver = AsyncPostgresSaver(saver_pool)
         app.state._graph = build_graph(checkpointer=saver)
         _log.info("[sage/startup] checkpointer ready")
+        # Auto-load/refresh the knowledge corpus once embeddings are warm.
+        # Background + fail-open: never blocks readiness, never crashes startup.
+        asyncio.create_task(_corpus_sync_task(asyncpg_pool))
         yield
         await saver_pool.close()
         await asyncpg_pool.close()
@@ -262,11 +314,26 @@ async def chat(
         except Exception as exc:
             _log.warning("[sage/chat] therapeutic profile load failed: %s", exc)
     _request_start = time.monotonic()  # consumed by Tasks 3+4 (latency audit)
+    # Stamp the turn start into state so output_gate can compute latency_ms for session_audit.
+    # The audit row is written INSIDE the graph (output_gate), before this handler resumes, so
+    # the latency must be derived from a monotonic timestamp carried through the graph state.
+    state["turn_started_at"] = _request_start
     try:
         result = await asyncio.wait_for(
             graph.ainvoke(
                 state,
                 config={"configurable": {"thread_id": req.session_id}},
+                # Persist one checkpoint at graph exit, not per super-step. Prod measured
+                # ~7.5 checkpoint + ~105 checkpoint_writes rows/turn (LangGraph default
+                # durability="async" writes per super-step), each a cross-region INSERT;
+                # exit collapses a turn to ~1 write. Cross-turn memory is preserved (exit
+                # checkpoint still written). Verified (test_durability_exit.py): a value
+                # set before a mid-graph crash is RETAINED under exit too — LangGraph still
+                # records the completed node's pending write — so clinical_flags are not
+                # dropped on a crashed turn. No mid-graph interrupts exist, so nothing to
+                # resume is lost. Residual: a true pod death mid-turn loses intra-turn
+                # state (same tiny window async has between a node finishing and its flush).
+                durability="exit",
             ),
             timeout=AINVOKE_TIMEOUT_SECONDS,
         )
@@ -302,8 +369,8 @@ async def chat(
     async def _body() -> AsyncGenerator[bytes, None]:
         if not is_safe:
             yield (CRISIS_SIGNAL + "\n").encode()
-        for word in response_text.split():
-            yield (word + " ").encode()
+        for token in _stream_tokens(response_text):
+            yield token.encode()
 
     return StreamingResponse(
         _body(),
@@ -319,6 +386,7 @@ async def chat(
             "X-Sage-Clinical-Flags":        json.dumps(result.get("clinical_flags") or []),
             "X-Sage-Emotional-Intensity":   str(result.get("emotional_intensity") or 0),
             "X-Sage-Crisis-State":          result.get("crisis_state") or "none",
+            "X-Sage-Direction":             text_direction(result.get("detected_language")),
             "X-Sage-Distress-Trajectory":   json.dumps(result.get("distress_trajectory") or []),
             "X-Sage-Engagement-Trajectory": json.dumps(result.get("engagement_trajectory") or []),
             "X-Sage-Conversation-Summary":  result.get("conversation_summary") or "",

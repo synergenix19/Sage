@@ -184,6 +184,7 @@ def _build_state(req: _RequestLike) -> dict:
         "knowledge_passages":      [],
         "offer_response":          None,
         "offer_choice_skill_id":   None,
+        "stall_detected":          None,   # per-turn; set in intent_route
         # Set from request — needed by tools and summary persistence
         "session_id": req.session_id,
         "user_id":    req.user_id,

@@ -92,6 +92,18 @@ _INTENSITY_GUIDANCE: dict[str, str] = {
     "high": "The user is significantly distressed. Name the specific thing they said, directly. Ask one focused question about it. Do NOT paraphrase or reflect back what they said. Do NOT begin with 'It sounds like', 'That sounds', or any reflective opener. Do NOT offer guidance yet.",
 }
 
+# Stall-guard recovery instruction (freeflow-only). Fires when the deterministic
+# detector flags a stall. It must RE-GROUND in established context, not merely
+# suppress the repeated question (which would degrade into a different generic
+# opener). No em dashes: rule content mirrors into LLM output.
+_STALL_RECOVERY_INSTRUCTION = (
+    "RECOVERY: The user has repeated themselves or has not moved forward over the "
+    "last few turns. Do not ask another open ended question and do not open with a "
+    "new generic line. Use what they have ALREADY shared earlier in this "
+    "conversation, name those specific details back to them, and offer one "
+    "concrete next step grounded in those details."
+)
+
 _OFFER_DESCRIPTIONS_PATH = Path(__file__).parent / "offer_descriptions.json"
 _DECLINED_INSTRUCTION_PATH = Path(__file__).parent / "declined_skills_instruction.json"
 
@@ -300,10 +312,24 @@ _FLAG_DESCRIPTIONS: dict[str, str] = {
 }
 
 
+def _allow_light_structure(state: SageState) -> bool:
+    """Permit light list structure on a grounded info answer only.
+
+    Gate (all three required): Node 6 populated knowledge_passages (info_request answer
+    with evidence; the knowledge_lookup tool does not write this field), no active skill
+    (mid-skill info detours stay prose), and not a crisis monitoring/resolved aftercare turn
+    (active crisis never reaches here). See the 2026-06-19 spec for the routing rationale.
+    """
+    return bool(state.get("knowledge_passages")) \
+        and not state.get("active_skill_id") \
+        and state.get("crisis_state", "none") == "none"
+
+
 def _build_l4_knowledge_block(
     passages: list[dict],
     abstain: bool,
     variant: str | None = None,
+    allow_light_structure: bool = False,
 ) -> str | None:
     if abstain and not passages:
         return (
@@ -318,8 +344,14 @@ def _build_l4_knowledge_block(
         f"[{i+1}] {p['text']} (Source: {p.get('citation', p.get('source_id', ''))})"
         for i, p in enumerate(passages[:5])
     )
-    content = tmpl.content.format(passages=_esc(passage_lines))
-    _log.debug("L4_knowledge@%s loaded (%d passages)", tmpl.version, len(passages))
+    directive = ""
+    if allow_light_structure and tmpl.light_structure_directive:
+        directive = "\n\n" + tmpl.light_structure_directive
+    content = tmpl.content.format(passages=_esc(passage_lines), format_directive=directive)
+    _log.debug(
+        "L4_knowledge@%s loaded (%d passages, light_structure=%s)",
+        tmpl.version, len(passages), allow_light_structure,
+    )
     return content
 
 
@@ -717,6 +749,14 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
         user_parts.append(_guardrail_block)
         layers.append("freeflow_guardrail")
 
+    # Stall-guard recovery (freeflow only). The deterministic detector set the
+    # flag in intent_route; here we direct the model to re-ground in prior context
+    # rather than ask yet another open question. On skill turns the executor owns
+    # the protocol, so this must not fire there.
+    if _is_freeflow and state.get("stall_detected"):
+        user_parts.append(_STALL_RECOVERY_INSTRUCTION)
+        layers.append("stall_recovery")
+
     # L5: User context (before skill/knowledge so LLM has profile context first)
     l5_block = _build_l5_user_context_block(
         clinical_flags, intensity, engagement,
@@ -821,7 +861,11 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     knowledge_passages = state.get("knowledge_passages") or []
     knowledge_abstain = state.get("knowledge_abstain", False)
     if knowledge_passages or knowledge_abstain:
-        l4_block = _build_l4_knowledge_block(knowledge_passages, knowledge_abstain)
+        l4_block = _build_l4_knowledge_block(
+            knowledge_passages,
+            knowledge_abstain,
+            allow_light_structure=_allow_light_structure(state),
+        )
         if l4_block:
             user_parts.append(l4_block)
             layers.append("knowledge")
@@ -835,17 +879,33 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
         layers.append("banned_opener_correction")
 
     # ---- Token budget enforcement (overflow: shrink L1 first) --------------
+    # v7 §5.6.3: shrink history first. The conversation_summary is the compact
+    # carrier of all older context and is trimmed LAST — it survives every
+    # overflow unconditionally. The raw recent window is the elastic budget: it
+    # shrinks (down to zero turns if necessary) so the summary always fits.
+    # (Previously the shrink rebuilt L1 from the last raw turns and dropped the
+    # summary, silently erasing older context on long freeflow turns.)
     total_words = count_words(system_str) + count_words_in_parts(user_parts)
     if total_words > _TOTAL_WORD_BUDGET and "history" in layers:
         history = state.get("conversation_history", [])
+        summary = state.get("conversation_summary")
         l1_tmpl = get_template("L1_history")
         half_window = max(1, (l1_tmpl.window_size or 8) // 2)
-        shrunk = _build_l1_history_block(
-            history[-half_window:],
-            word_budget=300,    # conservative for overflow case
-        ) or ""
+        non_l1_words = total_words - count_words(user_parts[0])
+        for raw_turns in range(half_window, -1, -1):
+            recent = history[-raw_turns:] if raw_turns else []
+            shrunk = _build_l1_history_block(
+                recent,
+                word_budget=300,    # conservative for overflow case
+                conversation_summary=summary,
+            ) or ""
+            if non_l1_words + count_words(shrunk) <= _TOTAL_WORD_BUDGET or raw_turns == 0:
+                break
         user_parts[0] = shrunk  # history is always index 0 when present (appended first)
-        _log.warning("Token budget overflow: L1 history shrunk to %d turns", half_window)
+        _log.warning(
+            "Token budget overflow: L1 raw window shrunk to %d turns (summary preserved)",
+            raw_turns,
+        )
 
     user_str = "\n\n".join(user_parts)
     return system_str, user_str, layers

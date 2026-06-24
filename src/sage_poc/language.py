@@ -58,6 +58,16 @@ def detect_language(text: str | None) -> str:
         return "en"
 
 
+def text_direction(language: str | None) -> str:
+    """Writing direction for a language code: 'rtl' for Arabic, 'ltr' otherwise.
+
+    Authoritative source for the X-Sage-Direction response header. The frontend uses this
+    instead of re-inferring direction from message content, because dir="auto" keys off the
+    first strong character and flips an Arabic answer that opens on a Latin token (e.g. "CBT").
+    """
+    return "rtl" if language == "ar" else "ltr"
+
+
 _EXEMPLARS_PATH = Path(__file__).parent / "data" / "khaleeji_translation_exemplars.json"
 
 
@@ -67,11 +77,14 @@ def _khaleeji_exemplars() -> dict:
     return json.loads(_EXEMPLARS_PATH.read_text(encoding="utf-8"))
 
 
-def _build_khaleeji_translation_prompt(text: str) -> str:
+def _build_khaleeji_translation_prompt(text: str, *, strict: bool = False) -> str:
     """Build a few-shot prompt that anchors the translator on named Emirati Gulf
     exemplars so the output dialect stays consistent turn to turn.
 
     Single source of truth for both the sync and async Arabic translators.
+
+    When strict=True, the prompt forbids leaving any English word untranslated,
+    forcing the LLM to transliterate or translate all terms.
     """
     data = _khaleeji_exemplars()
     dialect = data["dialect_name"]
@@ -80,7 +93,11 @@ def _build_khaleeji_translation_prompt(text: str) -> str:
         f"named Sage into {dialect}. Keep the same warmth and conversational rhythm. "
         f"Use natural everyday {dialect} phrasing, not formal or clinical Modern "
         f"Standard Arabic. Stay in {dialect} consistently across the whole message. "
-        f"Return only the translation.",
+        f"Return only the translation."
+        + (
+            " The output must be entirely in Arabic script with no English words; "
+            "translate or transliterate any names or terms." if strict else ""
+        ),
         "",
         "Examples:",
     ]
@@ -137,14 +154,14 @@ def translate_to_arabic(text: str) -> str:
 TRANSLATION_TIMEOUT_SECONDS: float = 30.0
 
 
-async def async_translate_to_arabic(text: str) -> str:
+async def async_translate_to_arabic(text: str, *, strict: bool = False) -> str:
     """Translate text to Khaleeji Gulf Arabic using resilient_invoke. Returns original on failure."""
     from sage_poc.resilience import resilient_invoke
     result = await resilient_invoke(
         get_translator(),
         [{
             "role": "user",
-            "content": _build_khaleeji_translation_prompt(text),
+            "content": _build_khaleeji_translation_prompt(text, strict=strict),
         }],
         node="translate_to_arabic",
         language="ar",

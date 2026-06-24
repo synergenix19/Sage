@@ -38,10 +38,32 @@ def _patch_graph(monkeypatch, mock_ainvoke):
     from server import app
 
     class _MockGraph:
-        async def ainvoke(self, state, config=None):
+        async def ainvoke(self, state, config=None, **kwargs):
             return await mock_ainvoke(state)
 
     monkeypatch.setattr(app.state, "_graph", _MockGraph())
+
+
+def test_chat_invokes_graph_with_durability_exit(monkeypatch, client, session_id):
+    """Per-turn ainvoke must use durability='exit' to avoid per-super-step checkpoint
+    write amplification (each write is a cross-region INSERT). See 2026-06-24 latency RCA."""
+    from server import app
+
+    captured = {}
+
+    class _RecordingGraph:
+        async def ainvoke(self, state, config=None, **kwargs):
+            captured.update(kwargs)
+            return {"response": "ok", "path": ["freeflow_respond"],
+                    "is_safe": True, "turn_count": 1}
+
+    monkeypatch.setattr(app.state, "_graph", _RecordingGraph())
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "hi"}],
+        "session_id": session_id,
+    })
+    assert res.status_code == 200
+    assert captured.get("durability") == "exit"
 
 
 def test_chat_bad_request_empty_messages(client):
@@ -83,7 +105,7 @@ def test_chat_graph_error_returns_sentinel(monkeypatch, client):
     from server import app
 
     class _ErrGraph:
-        async def ainvoke(self, state, config=None):
+        async def ainvoke(self, state, config=None, **kwargs):
             raise RuntimeError("simulated graph failure")
 
     monkeypatch.setattr(app.state, "_graph", _ErrGraph())
@@ -206,7 +228,7 @@ def test_skill_response_audit_headers(monkeypatch, client):
         }
 
     class _MockGraph:
-        async def ainvoke(self, state, config=None):
+        async def ainvoke(self, state, config=None, **kwargs):
             return await _mock_skill(state)
 
     monkeypatch.setattr(app.state, "_graph", _MockGraph())
@@ -242,7 +264,7 @@ def test_freeflow_response_audit_headers(monkeypatch, client):
         }
 
     class _MockGraph:
-        async def ainvoke(self, state, config=None):
+        async def ainvoke(self, state, config=None, **kwargs):
             return await _mock_freeflow(state)
 
     monkeypatch.setattr(app.state, "_graph", _MockGraph())
@@ -282,7 +304,7 @@ def test_chat_response_has_all_trace_headers(monkeypatch, client):
         }
 
     class _MockGraph:
-        async def ainvoke(self, state, config=None):
+        async def ainvoke(self, state, config=None, **kwargs):
             return await _mock_trace(state)
 
     monkeypatch.setattr(app.state, "_graph", _MockGraph())
@@ -331,7 +353,7 @@ def test_skill_ferry_headers_present(monkeypatch, client):
         }
 
     class _MockGraph:
-        async def ainvoke(self, state, config=None):
+        async def ainvoke(self, state, config=None, **kwargs):
             return await _mock(state)
 
     monkeypatch.setattr(app.state, "_graph", _MockGraph())
@@ -402,7 +424,7 @@ def test_chat_passes_thread_id_as_config(monkeypatch, client):
     received_config = {}
 
     class _MockGraph:
-        async def ainvoke(self, state, config=None):
+        async def ainvoke(self, state, config=None, **kwargs):
             received_config.update(config or {})
             return {
                 "path": ["output_gate"],
@@ -453,7 +475,7 @@ def test_chat_ainvoke_timeout_returns_server_error(monkeypatch, client):
     class _HangingGraph:
         checkpointer = None
 
-        async def ainvoke(self, state, config=None):
+        async def ainvoke(self, state, config=None, **kwargs):
             await asyncio.sleep(999)
 
     monkeypatch.setattr("server.AINVOKE_TIMEOUT_SECONDS", 0.05)
@@ -480,7 +502,7 @@ def test_chat_ainvoke_timeout_fires_within_window(monkeypatch, client):
     class _HangingGraph:
         checkpointer = None
 
-        async def ainvoke(self, state, config=None):
+        async def ainvoke(self, state, config=None, **kwargs):
             await asyncio.sleep(999)
 
     monkeypatch.setattr("server.AINVOKE_TIMEOUT_SECONDS", 0.1)

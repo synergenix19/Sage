@@ -4,11 +4,12 @@ import json
 import logging
 import os
 import re
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from sage_poc.state import SageState
 from sage_poc.language import async_translate_to_arabic
-from sage_poc.config import AUDIT_LOG_ENABLED
+from sage_poc.config import AUDIT_LOG_ENABLED, CRISIS_LINE_UAE
 from sage_poc.rules import engine as rules_engine
 from sage_poc.prompts.summarizer import summarise_history
 from sage_poc.audit import write_session_audit, write_identity_substitution_audit
@@ -36,11 +37,63 @@ _FORMAT_VIOLATIONS = re.compile(
     r"]"
 )
 
+# T6 (DEV-2026-06-19-C) — deterministic output-format strip. Load-bearing since the
+# GPT-primary decision (DEV-B, 2026-06-20): the model prior is fixed and not retrainable
+# in-house, so this Node 8 gate is the PRIMARY style guarantee, not a backstop. It enforces
+# the L0 "plain prose, no markdown/emoji/dashes" rule deterministically on the live turn
+# (which was previously log-only — see _FORMAT_VIOLATIONS above), while preserving the L4
+# light-structure permission (newlines + numbered/hyphen lists).
+_TRIPLE_EMPHASIS_RE = re.compile(r"\*\*\*(.+?)\*\*\*")
+_BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
+# Italic: a * only opens/closes emphasis at a word boundary (not attached to a word char).
+# Unicode \w covers Arabic, so lone citation markers ("note*", "المصدر*") never open emphasis,
+# even when several appear on one line. Emphasis edges must be non-space (CommonMark-ish).
+_ITALIC_RE = re.compile(r"(?<![\w*])\*(\S(?:[^*\n]*?\S)?)\*(?![\w*])")
+_EMOJI_STRIP_RE = re.compile(
+    r"[\U0001F300-\U0001F9FF\U00002600-\U000027BF\U0001FA00-\U0001FAFF]"
+)
+_EMDASH_SPACED_RE = re.compile(r"\s*—\s*")
+_QUOTED_SPAN_RE = re.compile(r"[\"“][^\"”]*[\"”]")
+
+
+def _strip_output_format(text: str) -> str:
+    """Deterministically remove banned style tokens from an outgoing turn.
+
+    Removes paired ***/**/* emphasis and emoji. Replaces em-dash with ", " OUTSIDE quoted
+    spans only, so a cited passage that legitimately contains an em-dash is not corrupted
+    (T6 false-positive guard). Lone "*" (citation/footnote markers) and newlines + numbered/
+    hyphen lists are preserved.
+
+    DESIGN DECISION flagged for the T6 owner / clinical confirm (see the L4 spec, T6):
+      - em-dash quote-awareness is the chosen policy for the false-positive guard.
+    The *italic* rule is word-boundary anchored (Unicode \\w), so lone citation markers in
+    either language and any number of them on a line are preserved; only true *emphasis* at
+    word boundaries is stripped (pinned by tests).
+    """
+    if not text:
+        return text
+    text = _TRIPLE_EMPHASIS_RE.sub(r"\1", text)
+    text = _BOLD_RE.sub(r"\1", text)
+    text = _ITALIC_RE.sub(r"\1", text)
+    text = _EMOJI_STRIP_RE.sub("", text)
+    out: list[str] = []
+    last = 0
+    for m in _QUOTED_SPAN_RE.finditer(text):
+        out.append(_EMDASH_SPACED_RE.sub(", ", text[last:m.start()]))
+        out.append(m.group(0))  # quoted span preserved verbatim (cited content)
+        last = m.end()
+    out.append(_EMDASH_SPACED_RE.sub(", ", text[last:]))
+    return "".join(out)
+
 # Question-discipline (Node 8, deterministic). MIND-SAFE: one question at a time, never
 # stack. Cannot be a cultural_output rule (that schema is blocklist/allowlist substitute
 # only — see rules/schemas.py), so it lives here as structural logic.
 _SENT_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
-_TRAILING_QUESTION_RE = re.compile(r"(?:\s*[^.!?]*\?)+\s*$")
+# Anchor-safe: the leading \s* was redundant (\s ⊂ [^.!?]) and its overlap with [^.!?]*
+# inside the repeated group caused catastrophic backtracking (ReDoS) on replies with many
+# '?' clauses and a non-question tail — a synchronous freeze of the single-replica event
+# loop. Groups are uniquely delimited by '?', so this form is linear and behaviourally identical.
+_TRAILING_QUESTION_RE = re.compile(r"(?:[^.!?]*\?)+\s*$")
 
 
 def _limit_to_one_question(text: str) -> str:
@@ -97,6 +150,16 @@ _BANNED_OPENER_RE = re.compile(
     r"(?i)^(" + "|".join(_BANNED_OPENER_PATTERNS) + r")"
 )
 _HAS_ARABIC_RE = re.compile(r"[؀-ۿ]")
+# Arabic-output English-bleed guard (feedback #4). Latin alphabetic runs of length >= 3 that
+# are not known acronyms/brands indicate an untranslated English word in an Arabic reply.
+_LATIN_WORD_RE = re.compile(r"[A-Za-z]{3,}")
+_LATIN_ALLOWLIST = {"cbt", "act", "dbt", "tipp", "sage", "youtube"}
+
+
+def _has_english_bleed(text: str) -> bool:
+    return any(w.lower() not in _LATIN_ALLOWLIST for w in _LATIN_WORD_RE.findall(text))
+
+
 _BANNED_OPENER_CORRECTION = (
     "Your previous response began with a banned opener. "
     "Respond again without beginning with 'It sounds like', 'That sounds', or any "
@@ -111,6 +174,13 @@ _BANNED_OPENER_CORRECTION = (
 # (5) treat as user-facing copy with measurable frequency, not a rare error message.
 # Review doc: docs/superpowers/reviews/FALLBACK_RESPONSE_REVIEW.md
 _VETTED_FALLBACK_RESPONSE = "I'm here with you. What would feel most helpful to share right now?"
+
+# Re-surface resources if a MONITORING (post-crisis) turn would otherwise return blank.
+# A silent turn during crisis monitoring is the worst failure mode; commas only (no em dash).
+_EMPTY_MONITORING_FALLBACK = (
+    "I'm still here with you. If things get harder, please reach out right now, "
+    f"the UAE MoHAP support line on {CRISIS_LINE_UAE}, or 999 for an emergency."
+)
 
 JAILBREAK_RESPONSE = (
     "I'm Sage, a wellness companion here to offer emotional support and evidence-based coping "
@@ -217,6 +287,13 @@ async def _persist_session_summary(
 
 async def output_gate_node(state: SageState) -> dict:
     gate_path = state.get("gate_path")
+    # Per-turn latency for session_audit. turn_started_at is stamped before ainvoke (server.py);
+    # output_gate is the last node, so now - turn_started_at captures ~the full graph turn. Folded
+    # into state here so every write_session_audit({**state, ...}) below picks it up. None-safe:
+    # unit tests and any path without the stamp simply leave latency_ms unset (NULL in audit).
+    _turn_started_at = state.get("turn_started_at")
+    if _turn_started_at is not None:
+        state = {**state, "latency_ms": int((time.monotonic() - _turn_started_at) * 1000)}
     lang = state["detected_language"]
     path = (state.get("path") or []) + ["output_gate"]
     session_id = state.get("session_id")
@@ -228,6 +305,20 @@ async def output_gate_node(state: SageState) -> dict:
         response_en = JAILBREAK_RESPONSE
     else:
         response_en = state["response_en"] or ""
+
+    # Empty-reply fail-safe (RC-6 / feedback #2). Fires on the FIRST attempt too (the existing
+    # retry-only substitution below only covers banned_opener_retry_count >= 1). A monitoring
+    # turn re-surfaces resources rather than a generic line; never return silence.
+    if not response_en and gate_path not in ("scope_refusal", "jailbreak"):
+        if state.get("crisis_state") == "monitoring":
+            response_en = _EMPTY_MONITORING_FALLBACK
+        else:
+            response_en = _VETTED_FALLBACK_RESPONSE
+        path = path + ["output_gate_empty_fallback"]
+        _log.warning(
+            "[output_gate] empty response substituted (crisis_state=%s, session=%s)",
+            state.get("crisis_state"), session_id,
+        )
 
     _arabic_chars = len(_HAS_ARABIC_RE.findall(response_en))
     _total_chars = len(response_en.strip())
@@ -398,14 +489,24 @@ async def output_gate_node(state: SageState) -> dict:
             state.get("offered_skill_ids"),
         )
 
+    response_en = _strip_output_format(response_en)
     violations = _FORMAT_VIOLATIONS.findall(response_en)
     if violations:
-        _log.warning("[output_gate] format violations: %s", violations)
+        # Now telemetry only: anything surviving the deterministic strip (e.g. a stray
+        # em-dash preserved inside a quoted span) — not a leak to act on.
+        _log.warning("[output_gate] format tokens after strip: %s", violations)
 
     if lang == "ar" and not _response_en_is_arabic:
         final_response = await async_translate_to_arabic(response_en)
+        if _has_english_bleed(final_response):
+            _log.warning("[output_gate] English bleed in Arabic output; re-translating strict")
+            final_response = await async_translate_to_arabic(response_en, strict=True)
+            path = path + ["arabic_token_guard_retranslate"]
+            if _has_english_bleed(final_response):
+                _log.warning("[output_gate] English bleed persists after strict re-translate (telemetry only)")
     else:
         final_response = response_en
+    final_response = _strip_output_format(final_response)
 
     if AUDIT_LOG_ENABLED:
         audit = {
