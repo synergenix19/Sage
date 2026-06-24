@@ -39,6 +39,16 @@ SKILL_RUNNER_UP_MARGIN = float(os.getenv("SAGE_SKILL_RUNNER_UP_MARGIN", "0.05"))
 # Value is the fallback when the skill_matching default_offer rule omits cooldown_turns.
 SKILL_OFFER_COOLDOWN_TURNS = int(os.getenv("SAGE_SKILL_OFFER_COOLDOWN_TURNS", "2"))
 
+# D5 deterministic acuity gate (GATED — default OFF, pending standalone clinical sign-off).
+# When enabled, _intensity_guidance() returns a validate-only string at/above the floor:
+# name the specific thing said, stay purely supportive, do NOT challenge a distorted belief.
+# Floor default 8 matches the executor validate_only floor (emotional_intensity > 7, v7 §9.2 rule 1).
+# Floor/band gap (clinical decision): intensity == 7 is in the high band but below floor=8,
+# so it gets standard high guidance, NOT the D5 challenge-suppress. Set SAGE_D5_ACUITY_FLOOR=7
+# to cover the full high band; pin the value at the standalone clinical sign-off.
+D5_ACUITY_GATE_ENABLED: bool = os.getenv("SAGE_D5_ACUITY_GATE", "false").lower() == "true"
+D5_ACUITY_FLOOR: int = int(os.getenv("SAGE_D5_ACUITY_FLOOR", "8"))
+
 # Connection-pool ceilings (feedback #9). POC ran asyncpg max_size=5 and httpx keepalive=5,
 # which throttled under the 58-user load behind the p95 latency. Raise + make env-configurable.
 DB_POOL_MAX_SIZE = int(os.getenv("SAGE_DB_POOL_MAX_SIZE", "20"))
