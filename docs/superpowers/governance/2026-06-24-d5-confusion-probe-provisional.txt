@@ -1,0 +1,25 @@
+# D5 intensity-classifier confusion probe (6-vs-7 direction)
+PROVISIONAL labels — NOT clinician-validated; harness demonstration only.
+
+  true=6 [en] pred=5  | Work has been stressful and I'm pretty worn down, but I'm getting thro
+  true=6 [en] pred=6  | I had a rough week and I keep feeling on edge about everything.
+  true=6 [en] pred=6  | I'm frustrated with myself lately, I feel like I keep falling short.
+  true=6 [en] pred=7  | Things feel heavy right now and I'm tired of pushing through.
+  true=6 [ar] pred=5  | الأسبوع كان صعب وأحس بضغط، بس أمشي حالي.
+  true=7 [en] pred=7  | I feel like I'm failing at everything and I can't seem to get anything
+  true=7 [en] pred=7  | I'm overwhelmed and it feels like it's all falling apart around me.
+  true=7 [en] pred=8  | I can't shake the feeling that I'm letting everyone down and it's crus
+  true=7 [en] pred=8  | Everything feels like too much and I don't know how much more I can ta
+  true=7 [ar] pred=7  | أحس إني فاشل في كل شي وما أقدر أسوي أي شي صح.
+  true=5 [en] pred=4  | I'm a bit down today but mostly okay.
+  true=8 [en] pred=10  | I'm completely broken, I can't function, everything is unbearable righ
+
+## 6-vs-7 boundary direction
+  true-7 under-rated (<7): 0/5   <- if high, gate may need to fire lower / classifier needs work (the important finding)
+  true-6 over-rated (>6):  1/5    <- if high, floor 8 gains a case
+
+## interpretation rule (per clinician)
+  under-rating dominates -> 7 clearly right (a labeled 7 may really be an 8); consider firing lower.
+  over-rating dominates  -> 8 has a case (avoid flattening moderate distress).
+
+NEXT: replace SEED with a clinician-validated labeled set before this informs the floor pin.
