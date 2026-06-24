@@ -33,3 +33,16 @@ def test_score_pairs_ranks_relevant_above_offtopic():
         ("what time does the grocery store close today", _REL_DESC),
     ])
     assert scores[0] - scores[1] > 3.0, f"relevant must outscore off-topic by >3 logits, got {scores}"
+
+
+@pytest.mark.slow
+def test_rerank_route_promotes_correct_skill_over_higher_bi_encoder(monkeypatch):
+    # The promotion behavior the build rests on: the reranker re-ranks the top-k and can route a
+    # skill the bi-encoder scored LOWER. worry_time (0.58) must win over cbt_thought_record (0.61)
+    # for a rumination query — the reranker's semantic re-scoring, live through the active precision.
+    from sage_poc.nodes import skill_select as ss
+    monkeypatch.setenv("SKILL_RERANK_ENABLED", "1")
+    ranked = [("worry_time", 0.58), ("cbt_thought_record", 0.61), ("box_breathing", 0.50),
+              ("sleep_hygiene", 0.48), ("grief_loss", 0.46)]
+    routed, _, _ = ss._rerank_route(ranked, "en", "I keep ruminating on worst-case scenarios I cannot control", lambda b: None)
+    assert routed == "worry_time", f"reranker should promote worry_time for rumination, got {routed}"

@@ -222,6 +222,52 @@ def _apply_anchor_debias(
     }
 
 
+_RERANK_K: int = 5                         # top-k bi-encoder candidates fed to the cross-encoder (offline-measured config)
+_RERANK_TAU: dict | float | None = None    # global reranker-τ, loaded at warmup (commit 3); None until then
+
+
+def _rerank_enabled() -> bool:
+    """The §4.3 cross-encoder SELECTOR flag, read dynamically. Default OFF — gates the reranker
+    pipeline so flag-off routing is byte-identical V1. Expects SKILL_ROUTING_V2 too (the exemplar
+    +debias bi-encoder candidate set the offline gate measured)."""
+    return os.environ.get("SKILL_RERANK_ENABLED", "0") == "1"
+
+
+def _rerank_tau(lang: str) -> float:
+    """The GLOBAL reranker-τ operating point (calibrated on reranker logits, loaded at warmup in
+    commit 3). Until loaded → -inf, so the reranker routes its top-1 (τ-gate inert pre-calibration;
+    the full re-gate uses the real τ). Global, not per-route — the cross-encoder's confidence is
+    uniformly scaled (per-route fragments it: measured 52 vs 60)."""
+    if _RERANK_TAU is None:
+        return float("-inf")
+    return _RERANK_TAU if isinstance(_RERANK_TAU, float) else _RERANK_TAU.get(lang, float("-inf"))
+
+
+def _rerank_route(
+    ranked: list[tuple[str, float]],
+    lang: str,
+    message_en: str,
+    runner_up,
+) -> tuple[str | None, float, tuple[str, float] | None]:
+    """V2 selector pipeline, faithful to the offline-measured shape (62/90/100): bi-encoder top-k →
+    cross-encoder re-score the k → GLOBAL reranker-τ → route-or-ABSTAIN. Supersedes the per-route /
+    cluster-argmax decision (#1/#2) when the reranker is on. Runner-up via the same closure → master's
+    _select_runner_up stays live."""
+    topk = ranked[:_RERANK_K]
+    if not topk:
+        return None, 0.0, None
+    from sage_poc.nodes.skill_rerank_model import score_pairs
+    from sage_poc.skills.schema import load_skill
+    bi_score = dict(ranked)
+    pairs = [(message_en, load_skill(sid).semantic_description or sid) for sid, _ in topk]
+    rr_scores = score_pairs(pairs)
+    reranked = sorted(((sid, rr) for (sid, _), rr in zip(topk, rr_scores)), key=lambda x: -x[1])
+    top_sid, top_rr = reranked[0]
+    if top_rr >= _rerank_tau(lang):
+        return top_sid, bi_score.get(top_sid, 0.0), runner_up(top_sid)
+    return None, ranked[0][1], None  # ABSTAIN — below the reranker's confidence floor
+
+
 def _route_decision(
     ranked: list[tuple[str, float]],
     lang: str,
@@ -243,6 +289,14 @@ def _route_decision(
         if best is None:
             return None
         return _select_runner_up(ranked, best, best_score)
+
+    # V2 SELECTOR (commit 2): when the cross-encoder reranker is enabled, it re-scores the top-k
+    # bi-encoder candidates and a GLOBAL reranker-τ gates route-or-ABSTAIN — the §4.3 selector,
+    # the exact pipeline the offline gate measured (62/90/100). It supersedes the per-route /
+    # cluster-argmax decision (#1/#2) below. Flag-off (default): this branch is never taken, so the
+    # decision is byte-identical V1.
+    if _rerank_enabled():
+        return _rerank_route(ranked, lang, message_en, _runner_up)
 
     # Within-cluster argmax: when top-2 share a clinical cluster and the second exceeds the soft
     # floor, trust relative ordering rather than absolute threshold gating.
