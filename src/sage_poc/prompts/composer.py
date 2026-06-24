@@ -7,6 +7,7 @@ from pathlib import Path
 from sage_poc.state import SageState
 from sage_poc.skills.schema import SkillStep, load_skill
 from sage_poc.rules import engine as rules_engine
+from sage_poc import config as _config
 from .loader import get_template, get_intent_template
 from .tokens import count_words, count_words_in_parts
 
@@ -91,6 +92,17 @@ _INTENSITY_GUIDANCE: dict[str, str] = {
     "mid": "The user is moderately engaged. Be present and attentive.",
     "high": "The user is significantly distressed. Name the specific thing they said, directly. Ask one focused question about it. Do NOT paraphrase or reflect back what they said. Do NOT begin with 'It sounds like', 'That sounds', or any reflective opener. Do NOT offer guidance yet.",
 }
+
+# D5 acuity guidance (GATED, default-off). Returned only when D5_ACUITY_GATE_ENABLED is True
+# AND emotional_intensity >= D5_ACUITY_FLOOR (default 8). Replaces the high-intensity string
+# at peak distress: validate by naming the specific thing said, stay purely supportive,
+# do NOT challenge or question a distorted belief. No em dashes (rule content mirrors into LLM output).
+_D5_ACUITY_GUIDANCE = (
+    "The user is at peak distress. Validate the feeling by naming the specific thing they said, "
+    "not a generic reflection. Stay purely supportive. Do not challenge or question a distorted "
+    "belief here. Do NOT begin with 'It sounds like', 'That sounds', or any reflective opener. "
+    "Do NOT offer guidance yet."
+)
 
 # Stall-guard recovery instruction (freeflow-only). Fires when the deterministic
 # detector flags a stall. It must RE-GROUND in established context, not merely
@@ -213,6 +225,12 @@ def _intensity_guidance(intensity: int) -> str:
         return _INTENSITY_GUIDANCE["low"]
     if intensity <= 6:
         return _INTENSITY_GUIDANCE["mid"]
+    # High band (intensity >= 7). D5 acuity gate fires only when explicitly enabled AND
+    # intensity reaches the acuity floor (default 8). Gate is OFF by default; when OFF the
+    # return value is byte-identical to pre-D5 production. Floor/band gap is documented in
+    # config.py: intensity == 7 is in the high band but below D5_ACUITY_FLOOR=8 by design.
+    if _config.D5_ACUITY_GATE_ENABLED and intensity >= _config.D5_ACUITY_FLOOR:
+        return _D5_ACUITY_GUIDANCE
     return _INTENSITY_GUIDANCE["high"]
 
 

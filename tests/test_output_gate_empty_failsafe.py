@@ -31,3 +31,14 @@ async def test_empty_response_on_monitoring_turn_resurfaces_resources():
         result = await output_gate_node(state)
     assert "800 46342" in result["response"], "monitoring blank must re-surface the crisis line"
     assert "999" in result["response"]
+
+
+@pytest.mark.asyncio
+async def test_vetted_fallback_survives_directive_posture():
+    from sage_poc.nodes.output_gate import _VETTED_FALLBACK_RESPONSE, _strip_trailing_question
+    # the fallback must not collapse to a fragment when trailing-question stripping runs
+    assert _strip_trailing_question(_VETTED_FALLBACK_RESPONSE) == _VETTED_FALLBACK_RESPONSE
+    assert len(_VETTED_FALLBACK_RESPONSE.split()) >= 6
+    # it is emitted on a fallback path; it must not itself be a banned opener (second-order strip)
+    from sage_poc.nodes.output_gate import _BANNED_OPENER_RE
+    assert _BANNED_OPENER_RE.match(_VETTED_FALLBACK_RESPONSE.lstrip()) is None

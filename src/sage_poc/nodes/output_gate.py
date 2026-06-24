@@ -88,22 +88,23 @@ def _strip_output_format(text: str) -> str:
 # Question-discipline (Node 8, deterministic). MIND-SAFE: one question at a time, never
 # stack. Cannot be a cultural_output rule (that schema is blocklist/allowlist substitute
 # only — see rules/schemas.py), so it lives here as structural logic.
-_SENT_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+_SENT_SPLIT_RE = re.compile(r"(?<=[.!?؟])\s+")
 # Anchor-safe: the leading \s* was redundant (\s ⊂ [^.!?]) and its overlap with [^.!?]*
 # inside the repeated group caused catastrophic backtracking (ReDoS) on replies with many
 # '?' clauses and a non-question tail — a synchronous freeze of the single-replica event
 # loop. Groups are uniquely delimited by '?', so this form is linear and behaviourally identical.
-_TRAILING_QUESTION_RE = re.compile(r"(?:[^.!?]*\?)+\s*$")
+# Updated to include Arabic question mark (؟) for language-aware discipline.
+_TRAILING_QUESTION_RE = re.compile(r"(?:[^.!?؟]*[?؟])+\s*$")
 
 
 def _limit_to_one_question(text: str) -> str:
     """Keep at most one question sentence (the first); drop later question sentences.
     Statements are preserved in order. No-op when 0 or 1 question. Never returns empty."""
-    if not text or text.count("?") <= 1:
+    if not text or (text.count("?") + text.count("؟")) <= 1:
         return text
     out, seen_q = [], False
     for sent in _SENT_SPLIT_RE.split(text.strip()):
-        if sent.rstrip().endswith("?"):
+        if sent.rstrip().endswith(("?", "؟")):
             if seen_q:
                 continue
             seen_q = True
@@ -115,7 +116,7 @@ def _limit_to_one_question(text: str) -> str:
 def _strip_trailing_question(text: str) -> str:
     """Drop trailing question sentence(s) so an advice turn ends on substance. Returns the
     original unchanged if stripping would empty the turn (whole turn was a question)."""
-    if not text or "?" not in text:
+    if not text or ("?" not in text and "؟" not in text):
         return text
     stripped = _TRAILING_QUESTION_RE.sub("", text).rstrip()
     return stripped if stripped else text
@@ -173,7 +174,7 @@ _BANNED_OPENER_CORRECTION = (
 # (4) must work in EN and AR turns (translation pipeline still runs on this string),
 # (5) treat as user-facing copy with measurable frequency, not a rare error message.
 # Review doc: docs/superpowers/reviews/FALLBACK_RESPONSE_REVIEW.md
-_VETTED_FALLBACK_RESPONSE = "I'm here with you. What would feel most helpful to share right now?"
+_VETTED_FALLBACK_RESPONSE = "I'm here with you, and what you've shared matters. Take a moment, I'm listening whenever you're ready."
 
 # Re-surface resources if a MONITORING (post-crisis) turn would otherwise return blank.
 # A silent turn during crisis monitoring is the worst failure mode; commas only (no em dash).
@@ -464,7 +465,7 @@ async def output_gate_node(state: SageState) -> dict:
         and response_en
     ):
         _disciplined = _limit_to_one_question(response_en)
-        if state.get("directive_posture"):
+        if state.get("directive_posture") and not (state.get("offered_skill_ids")):
             _disciplined = _strip_trailing_question(_disciplined)
         if _disciplined != response_en:
             response_en = _disciplined

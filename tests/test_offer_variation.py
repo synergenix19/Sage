@@ -32,7 +32,7 @@ async def _route(monkeypatch, raw_json, state):
     monkeypatch.setattr(intent_route, "resilient_invoke", _fake_invoke)
     monkeypatch.setattr(intent_route, "get_classifier", lambda: object())
     monkeypatch.setattr(intent_route, "get_fallback_classifier", lambda: object())
-    monkeypatch.setattr(intent_route, "detect_directive_request", lambda s: False)
+    monkeypatch.setattr(intent_route, "detect_directive_request", lambda s, primary_intent=None: False)
     return await intent_route.intent_route_node(state)
 
 

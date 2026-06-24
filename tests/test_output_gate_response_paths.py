@@ -147,6 +147,62 @@ async def test_output_gate_latency_ms_none_safe_without_turn_started_at():
     assert audited and audited[-1].get("latency_ms") is None
 
 
+# ---------------------------------------------------------------------------
+# G1 guard: directive_posture + live offer -> closing question preserved (Step 4)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_g1_offer_closing_question_preserved_when_directive_posture_and_offer_live():
+    """G1: directive_posture=True + offered_skill_ids set must NOT strip the offer's
+    closing question. The question-discipline block must skip _strip_trailing_question
+    when an offer is live, so the user sees the offer's closing prompt."""
+    from sage_poc.nodes import output_gate as og
+
+    # A response that ends with a question (the offer's closing prompt).
+    offer_response = "Here are two options that might help. Would you like to try one?"
+    state = make_state(
+        gate_path=None,
+        response_en=offer_response,
+        directive_posture=True,
+        offered_skill_ids=["box_breathing", "body_scan"],
+    )
+    audit_mock = AsyncMock()
+    with (
+        patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()),
+        patch("sage_poc.nodes.output_gate.write_session_audit", new=audit_mock),
+    ):
+        result = await og.output_gate_node(state)
+
+    # The closing question must survive intact.
+    assert result["response"].endswith("?"), (
+        f"G1: offer closing question must not be stripped, got: {result['response']!r}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_directive_posture_no_offer_strips_trailing_question():
+    """G1 negative: directive_posture=True + NO offered_skill_ids -> strip still fires."""
+    from sage_poc.nodes import output_gate as og
+
+    response_with_q = "Here is what I suggest. Does that sound right to you?"
+    state = make_state(
+        gate_path=None,
+        response_en=response_with_q,
+        directive_posture=True,
+        offered_skill_ids=None,
+    )
+    audit_mock = AsyncMock()
+    with (
+        patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()),
+        patch("sage_poc.nodes.output_gate.write_session_audit", new=audit_mock),
+    ):
+        result = await og.output_gate_node(state)
+
+    assert not result["response"].endswith("?"), (
+        f"G1 negative: trailing question should be stripped without an offer, got: {result['response']!r}"
+    )
+
+
 @pytest.mark.asyncio
 async def test_crisis_passthrough_path():
     """Crisis response text from crisis_response_node must flow through the standard path unchanged."""
