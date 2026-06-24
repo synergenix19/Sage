@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sage_poc.state import SageState
 from sage_poc.language import async_translate_to_arabic
-from sage_poc.config import AUDIT_LOG_ENABLED
+from sage_poc.config import AUDIT_LOG_ENABLED, CRISIS_LINE_UAE
 from sage_poc.rules import engine as rules_engine
 from sage_poc.prompts.summarizer import summarise_history
 from sage_poc.audit import write_session_audit, write_identity_substitution_audit
@@ -165,6 +165,13 @@ _BANNED_OPENER_CORRECTION = (
 # Review doc: docs/superpowers/reviews/FALLBACK_RESPONSE_REVIEW.md
 _VETTED_FALLBACK_RESPONSE = "I'm here with you. What would feel most helpful to share right now?"
 
+# Re-surface resources if a MONITORING (post-crisis) turn would otherwise return blank.
+# A silent turn during crisis monitoring is the worst failure mode; commas only (no em dash).
+_EMPTY_MONITORING_FALLBACK = (
+    "I'm still here with you. If things get harder, please reach out right now, "
+    f"the UAE MoHAP support line on {CRISIS_LINE_UAE}, or 999 for an emergency."
+)
+
 JAILBREAK_RESPONSE = (
     "I'm Sage, a wellness companion here to offer emotional support and evidence-based coping "
     "techniques. That's my role. What's been on your mind today?"
@@ -288,6 +295,20 @@ async def output_gate_node(state: SageState) -> dict:
         response_en = JAILBREAK_RESPONSE
     else:
         response_en = state["response_en"] or ""
+
+    # Empty-reply fail-safe (RC-6 / feedback #2). Fires on the FIRST attempt too (the existing
+    # retry-only substitution below only covers banned_opener_retry_count >= 1). A monitoring
+    # turn re-surfaces resources rather than a generic line; never return silence.
+    if not response_en and gate_path not in ("scope_refusal", "jailbreak"):
+        if state.get("crisis_state") == "monitoring":
+            response_en = _EMPTY_MONITORING_FALLBACK
+        else:
+            response_en = _VETTED_FALLBACK_RESPONSE
+        path = path + ["output_gate_empty_fallback"]
+        _log.warning(
+            "[output_gate] empty response substituted (crisis_state=%s, session=%s)",
+            state.get("crisis_state"), session_id,
+        )
 
     _arabic_chars = len(_HAS_ARABIC_RE.findall(response_en))
     _total_chars = len(response_en.strip())
