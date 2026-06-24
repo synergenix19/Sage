@@ -58,6 +58,26 @@ def _v2_enabled() -> bool:
     the warmup anchor build (read once at startup — the prod path)."""
     return os.environ.get("SKILL_ROUTING_V2", "0") == "1"
 
+
+# Calibrated per-route/per-language threshold table (V2 behavior #1). None until a table fit by
+# the §2 offline calibration on real held_out=False scores is loaded at warmup. While None (and
+# always when the flag is off) the router uses the global SEMANTIC_THRESHOLD, so flag-on without
+# a calibrated table is byte-identical to V1 too.
+_THRESHOLD_TABLE = None
+
+
+def routing_threshold(lang: str, route: str) -> float:
+    """The operating threshold for one candidate route. Flag-off OR no calibrated table → the
+    global SEMANTIC_THRESHOLD (byte-identical to V1). Flag-on with a table → the route's own
+    (lang, route) τ; a route the calibration never saw falls back to global (the safe direction
+    given the over-firing failure mode). Per-(lang, route) by construction — no stratum pooling."""
+    if not _v2_enabled() or _THRESHOLD_TABLE is None:
+        return SEMANTIC_THRESHOLD
+    try:
+        return _THRESHOLD_TABLE.threshold(lang, route)
+    except KeyError:
+        return SEMANTIC_THRESHOLD
+
 # Referral/after-care pathways excluded as skill_select targets under v2, per the FROZEN
 # A1 boundary (2026-06-23): reached via deterministic/clinical-state paths, not semantic match.
 EXCLUDED_REFERRALS = ("psychotic_referral", "post_crisis_check_in")
@@ -128,6 +148,7 @@ def _skill_cluster(skill_id: str) -> str | None:
 def _semantic_match_with_runner_up(
     message_en: str,
     profile_context: str = "",
+    lang: str = "en",
 ) -> tuple[str | None, float, tuple[str, float] | None]:
     """Max-over-anchors matching with cluster argmax, state-in-query, and rerank margin guard.
 
@@ -165,7 +186,7 @@ def _semantic_match_with_runner_up(
         if best is None:
             return None
         for sid, sc in ranked:
-            if sid != best and sc >= SEMANTIC_THRESHOLD:
+            if sid != best and sc >= routing_threshold(lang, sid):
                 return (sid, sc)
         return None
 
@@ -178,8 +199,9 @@ def _semantic_match_with_runner_up(
             if best_cluster is not None and best_cluster == _skill_cluster(second_sid):
                 return best_sid, best_score, _runner_up(best_sid)
 
-    # Absolute threshold gate — cross-cluster or single-cluster without argmax floor
-    above = [(sid, score) for sid, score in ranked if score >= SEMANTIC_THRESHOLD]
+    # Absolute threshold gate — cross-cluster or single-cluster without argmax floor.
+    # Per-route: each candidate is gated by ITS OWN (lang, route) τ (global flag-off). No pooling.
+    above = [(sid, score) for sid, score in ranked if score >= routing_threshold(lang, sid)]
     if len(above) == 1:
         return above[0][0], above[0][1], _runner_up(above[0][0])
     if len(above) >= 2:
@@ -465,7 +487,7 @@ async def skill_select_node(state: SageState) -> dict:
     )
     try:
         semantic_skill, score, runner_up = await asyncio.wait_for(
-            asyncio.to_thread(_semantic_match_with_runner_up, state["message_en"], profile_context),
+            asyncio.to_thread(_semantic_match_with_runner_up, state["message_en"], profile_context, detected_language),
             timeout=EMBEDDING_TIMEOUT_SECONDS,
         )
     except asyncio.TimeoutError:

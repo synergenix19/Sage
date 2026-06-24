@@ -11,7 +11,11 @@ companion (no model load) that CAN stand in CI: it pins the flag-off routing *co
 (anchor set + thresholds + decision seams) to V1 and proves the guard has teeth (flag-on
 differs). Each V2 wiring extends this file with a flag-off==V1 assertion for its seam.
 """
-from sage_poc.nodes.skill_select import build_anchor_pairs, _SKILLS, _v2_enabled
+from sage_poc.nodes import skill_select as ss
+from sage_poc.nodes.skill_select import (
+    build_anchor_pairs, _SKILLS, _v2_enabled, routing_threshold, SEMANTIC_THRESHOLD,
+)
+from sage_poc.routing_eval.calibration import ThresholdTable
 
 
 def _anchor_set(include_exemplars):
@@ -35,3 +39,20 @@ def test_guard_has_teeth_flag_on_anchor_set_differs_from_v1(monkeypatch):
     # so a flag-off==v1 assertion is meaningfully distinguishing, not always-true.
     monkeypatch.setenv("SKILL_ROUTING_V2", "1")
     assert _anchor_set(_v2_enabled()) != _anchor_set(False)
+
+
+# --- behavior #1 wiring: per-route thresholds. Flag-off must ignore any loaded table. ---
+
+def test_flag_off_threshold_seam_is_global_even_with_a_table_loaded(monkeypatch):
+    monkeypatch.setenv("SKILL_ROUTING_V2", "0")
+    monkeypatch.setattr(ss, "_THRESHOLD_TABLE", ThresholdTable(
+        per_route={("en", "box_breathing"): 0.99}, cluster={}, route_cluster={}, fallback=frozenset()))
+    # flag-off: the 0.99 per-route τ must NOT leak into routing — global stays in force.
+    assert routing_threshold("en", "box_breathing") == SEMANTIC_THRESHOLD
+
+
+def test_guard_has_teeth_flag_on_threshold_seam_uses_the_table(monkeypatch):
+    monkeypatch.setenv("SKILL_ROUTING_V2", "1")
+    monkeypatch.setattr(ss, "_THRESHOLD_TABLE", ThresholdTable(
+        per_route={("en", "box_breathing"): 0.99}, cluster={}, route_cluster={}, fallback=frozenset()))
+    assert routing_threshold("en", "box_breathing") == 0.99  # distinguishing, not vacuous
