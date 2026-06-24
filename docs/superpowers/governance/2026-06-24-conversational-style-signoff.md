@@ -1,7 +1,7 @@
 # Conversational-Style (D4 / D3 / D5) — Decisions & Sign-off Register
 **Date:** 2026-06-24 · **For:** product owner + clinical lead
 **Plan:** `docs/superpowers/plans/2026-06-24-conversational-style-d3-d4-d5.md` · **Spec:** `docs/superpowers/specs/2026-06-24-conversational-style-d3-d4-d5-design.md`
-**Status:** all five code tasks built, individually reviewed, and whole-branch reviewed. Nothing merged, pushed, or deployed. Pre-merge audit A–E complete and green (§6). **Nothing ships into an unsigned state.**
+**Status:** all five code tasks built, individually reviewed, and whole-branch reviewed. Nothing merged, pushed, or deployed. Pre-merge audit A–E complete and green; **full test suite run — branch is regression-free, all 16 remaining failures proven pre-existing on `master`** (§6). T4a cooldown now ships **inert behind a default-off flag** so it can merge without C3, with the flip gated on C3 (§C3/§4). **Nothing ships into an unsigned state.**
 
 ---
 
@@ -19,10 +19,10 @@ Each decision states: **what you approve**, **who signs**, **what goes live on m
 
 1. **Hold** all five tasks on branch `feat/2026-06-24-conversational-style` (done — nothing merged).
 2. **Collect signatures:** A1, A2, A3, C2, C3 (§2). These are the only blockers for this release.
-3. **If C3 lags** the others: I add a default-off flag to the cooldown (T4a) so it rides the release **inert** and flips later on a short C3 sign-off — same pattern as D5/T5. (Contingency, §4.)
-4. **One pull request** for the full reviewed set (T1, T2, T3, T4a, T5-inert).
-5. **Re-run audit A–E on the final merge commit** (the tree changes once T3 is folded in; the A-result in §6 is for the current tip and must be re-verified on the actual merge SHA).
-6. **Merge.** Repo is sole-account, so a second-reviewer approval is not mechanically available; merge uses the admin path on `REVIEW_REQUIRED` — **logged** (approver, SHA, reason, link to the green whole-branch review), per standing practice. This is the operational-reality exception, not a judgment override.
+3. **C3-lag is already handled (done):** the cooldown ships **inert** behind `SAGE_SKILL_OFFER_COOLDOWN_ENABLED` (default OFF, commit `90ec0ac`), so T4a can merge without C3. **The flip to live is the C3 sign-off** — an explicit, logged, signed decision, not an auto-flip (§C3/§4). T5 (D5) ships inert the same way.
+4. **One pull request** for the full reviewed set (T1, T2, T3, T4a-inert, T5-inert).
+5. **Re-run the full test suite on the final merge commit** (the tree changes once T3 is folded in; §6 numbers are for the current tip). This is non-negotiable — it is what caught the `offer_variation` stale mock (§6.2). Re-confirm the A–E checks on the merge SHA too.
+6. **Merge via the sanctioned path (§5):** sole-account → no second reviewer is mechanically available → admin path on `REVIEW_REQUIRED`, with a **named approver** and a full log (approver, SHA, reason, link to the green whole-branch + full-suite audit). This must be the agreed release mechanism, not "how it was done last time." The live-prod boundary is a real gate.
 7. **Staging smoke** on `sage-api-staging`: a handful of §9 audit-replay IDs + a crisis probe in **English and Khaleeji Arabic** + an empty-response probe (to exercise the T2 fallback).
 8. **Promote** to production. **Rollback armed** on prod deploy pin `1c1fff96-641` (the current SUCCESS deploy) for the smoke window.
 9. **Held, not in this release:** T4b offer copy (C1 + canary), T5 flag flip (B1 + EN/AR regression), Task 6 behavioural acceptance.
@@ -60,11 +60,11 @@ When generation fails, Sage shows a vetted fallback. T2 changes it from a **ques
 - **Recommendation:** **Approve** — it fixes a live bug (the old question could be stripped to "I'm here with you.") and reads as warm presence, not a prompt.
 - [ ] Approve · [ ] Approve with edits: ________ · Signer: ____________  Date: ______
 
-### C3 — Offer cooldown value N = 2 (goes live this release) · **Signer: Clinical lead**
+### C3 — Offer cooldown value N = 2 (ships inert; flip is this sign-off) · **Signer: Clinical lead**
 After Sage offers a coping skill, it will **not** re-offer for **N = 2** turns (stops the repeat-menu feel users flagged). The value lives in the `skill_matching` rule (data, not code); the suppression mechanic is in code (governed by A1).
-- **Why this is a blocking sign-off:** there is currently **no flag holding this inert**, so merging makes N = 2 live immediately (see snag 2, §4). If you approve, it ships live; if it lags, see the §4 contingency.
-- **Recommendation:** **Approve N = 2.** Two turns is the lightest cooldown that removes the repeat-offer feel without hiding a genuinely needed second offer.
-- [ ] Approve N = 2 · [ ] Set N = ___ · [ ] Hold (→ ship inert via §4 flag) · Signer: ____________  Date: ______
+- **No longer blocks the merge, but still gates the behaviour.** The cooldown now ships **inert** behind `SAGE_SKILL_OFFER_COOLDOWN_ENABLED` (default OFF, commit `90ec0ac`) — when off, behaviour is byte-identical to today (no cooldown). So the code can merge without C3, **but the behaviour does not go live without C3.** Approving C3 is what authorises flipping the flag to ON. The flip is an explicit, logged, signed decision — the same control the merge would have been — **not** an auto-flip. This decouples merge timing from your sign-off; it does **not** route around it.
+- **Recommendation:** **Approve N = 2.** Two turns is the lightest cooldown that removes the repeat-offer feel without hiding a genuinely needed second offer. On approval, the flag is flipped (logged) and the cooldown goes live.
+- [ ] Approve N = 2 (→ flip flag, logged) · [ ] Set N = ___ · [ ] Hold (code stays inert) · Signer: ____________  Date: ______
 
 ---
 
@@ -94,35 +94,51 @@ The live EN/AR behavioural run that is both D5's flip evidence (B1.3) and the en
 
 **Snag 1 — T1 edits the gate A1 governs.** T1's Arabic `؟` fix modifies the question-discipline mechanic that A1's Rule-1 deviation covers. The implementation plan said "T1 no precondition"; the governance position is that T1 is governed by A1. **Resolution:** A1 (above) now explicitly covers T1. Signing A1 clears T1 and T3 together. No separate action.
 
-**Snag 2 — T4a has no inert flag, so N = 2 goes live on merge by side effect.** Unlike D5 (which ships behind a default-off flag), the cooldown has no off-switch; merging makes the C3 value live immediately. **Resolution, in order of preference:**
-1. **Sign C3** (cheap, recommended) — then N = 2 ships live as an approved value. No code change.
-2. **If C3 lags:** I add `SAGE_SKILL_OFFER_COOLDOWN_ENABLED` (default **false**), so T4a rides the release inert and flips later on a one-line C3 sign-off — identical to the D5/T5 pattern. (Small, reviewed code change; re-audit covers it.)
-3. **Explicit "provisional N = 2 live" call** by PO + clinical — only if you want it live before formal C3.
+**Snag 2 — T4a had no inert flag, so N = 2 would go live on merge by side effect. RESOLVED (commit `90ec0ac`).** The cooldown now ships behind `SAGE_SKILL_OFFER_COOLDOWN_ENABLED` (default OFF), exactly like the D5/T5 gate. Effect:
+- **Merge timing is decoupled from C3** — the code can land in the PR without C3, inert (byte-identical to today; a unit test proves the off-default).
+- **Behaviour is NOT decoupled from C3** — the cooldown only fires once the flag is flipped, and the flip is the C3 sign-off (an explicit, logged, signed decision, §C3). This is deliberately not an auto-flip: a quiet flag-flip would be exactly the kind of unlogged behaviour change the PDPL/v7 audit trail forbids. The flip is gated as explicitly as the merge would have been.
+- If you would rather **not** use the flag and instead ship N = 2 live on merge, sign C3 before merge and we leave the flag ON — your call.
 
 ---
 
 ## 5. Operational decisions (record, not clinical sign-off)
 
-- **Merge mechanics — logged bypass.** Sole-account repo → no second approver is mechanically available → the admin path on `REVIEW_REQUIRED` is the only way to merge. Treat as the operational-reality exception: **log** approver (you), merge SHA, reason ("sole-account, no second reviewer"), and a link to the green whole-branch review. Compensate for the absent human gate with the staging smoke (§1.7) and armed rollback (§1.8). Confirm this is acceptable, or name a second approver if one now exists.
-  - [ ] Logged-bypass acceptable (sole-account) · [ ] Second approver available: ____________
+- **Merge mechanics — must be a sanctioned named-approver path, not "how it was done last time."** This is clinical content on a clinical system with auto-deploy, so the merge **is** the deploy. The sole-account repo means a second-reviewer approval is not mechanically available, so the admin path on `REVIEW_REQUIRED` is the only mechanism. For a five-signature clinical change hitting prod on merge, "logged" is necessary but not sufficient — it must be the **agreed release mechanism**, with a **named approver** and the **staging-smoke-then-promote step actually exercised, not assumed.** Decision needed: confirm this is the sanctioned path (or name a second approver if one now exists), and that staging-smoke is a hard gate before promote.
+  - [ ] Sanctioned: admin-merge with named approver + log (approver / SHA / reason / link to green whole-branch + full-suite audit) · [ ] Second approver available: ____________
+  - [ ] Staging-smoke is a hard gate before promote (not assumed)
 - **Rollback pin:** prod deploy `1c1fff96-641` (SUCCESS, 2026-06-24 13:23). Revert = re-pin this deploy on Railway + `git revert` the merge.
-- **Re-audit on final SHA:** mandatory before promote (§1.5).
+- **Two non-negotiables before promote:**
+  1. **Full-suite re-audit on the final merge SHA** (after T3 folds in). The `offer_variation` catch (§6) proves why: per-task and batch runs were green; only the full suite surfaced a stale mock against T3's changed signature. The signature-caller audit (§6) confirms that mock was the only stale one, but the full suite on the final SHA is the backstop that proves it for the merged tree, not just the current tip.
+  2. **Sanctioned merge path + staging-smoke genuinely run** (above) — the live-prod boundary is a real gate, exercised, not waved through.
 
 ---
 
 ## 6. Evidence — pre-merge audit A–E (Exhibit A, own-system data)
 
-Run 2026-06-24 on branch tip `abf1f8a` (current tip; **must be re-run on the final merge commit** per §1.5).
+Run 2026-06-24 on branch tip `90ec0ac` (current tip; the A–E checks below were first run on `abf1f8a` and re-confirmed after the inert-flag + test-mock fixes; **the full suite must be re-run on the final merge commit** per §1.5 and §5).
 
+### 6.1 Pre-merge audit A–E
 | | Check | Result |
 |---|---|---|
 | **A** | Partial-merge isolation | **CLEAN** — all D4 logic lives only in `abf1f8a`; the pre-T3 range `e5edd91..470eb7b` contains zero directive/`info_request` logic. The tree audited is the tree that merges. |
-| **B** | "Inert in prod" actually inert | **CLEAN** — production env has no `SAGE_D5_ACUITY_GATE` (D5 off by env-absence); T1 touched question-discipline only (6 lines), not banned-opener, translation, or any native-Arabic path. |
+| **B** | "Inert in prod" actually inert | **CLEAN** — production env (`railway variables`, sage-api/production) has **no** `SAGE_D5_ACUITY_GATE` and **no** `SAGE_SKILL_OFFER_COOLDOWN_ENABLED` set → both D5 and the cooldown are OFF by env-absence. T1 touched question-discipline only (6 lines), not banned-opener, translation, or any native-Arabic path. |
 | **C** | Existing-session safety on auto-deploy | **SAFE** — `last_offer_turn: Optional[int]`; both readers use `.get()`; a live checkpointed session missing the new channel reads `None` → cooldown is a no-op. No deserialization throw. |
-| **D** | Batch + crisis regression | **GREEN** — 359 batch tests pass (the 2 failures are pre-existing on master, out of scope); 314 crisis/safety tests pass incl. Arabic node-level crisis; both fallbacks clear the banned-opener check (no self-retry loop) and survive stripping unchanged. |
-| **E** | Rollback ready | Pin `1c1fff96-641`; staging `sage-api-staging` available for smoke-then-promote. |
+| **D** | Batch + crisis regression | **GREEN** — see 6.2 for the full-suite numbers; 314 crisis/safety tests pass incl. Arabic node-level crisis; both fallbacks clear the banned-opener check (no self-retry loop) and survive stripping unchanged. |
+| **E** | Rollback ready | Pin `1c1fff96-641` (SUCCESS, 13:23); staging `sage-api-staging` available for smoke-then-promote. |
 
-*The 2 pre-existing master failures (`test_output_gate_offer_voiding::test_empty_response_on_retry_voids_offer_created_this_turn`, `test_prompts_composer::test_compose_prompt_no_overflow_with_large_cultural_override`) are independent of this branch and tracked separately.*
+### 6.2 Full test suite (the production-readiness gate)
+**Branch HEAD: 2407 passed, 12 skipped, 4 xfailed, 16 failed.** **The branch is regression-free — every one of the 16 failures is pre-existing on `master`**, proven by checking each out and running it on `master` itself.
+
+| Failing test(s) | Count | Pre-existing on master? | Proof |
+|---|---|---|---|
+| `test_wrong_skill_routing::test_full_routing[…]` | 10 | **Yes** | Whole file run on both trees: **10 failed / 240 passed, identical**. Known deferred wrong-skill gaps (post-Gitex). |
+| `test_graph::test_extended_session_15_turns`, `…::test_post_crisis_monitoring_routes_safe_and_activates_skill` | 2 | **Yes** | Both fail when run from `master` source. |
+| `test_skill_routing_ba_pd::test_no_new_substring_keyword_shadowing` | 1 | **Yes** | Fails from `master` source. |
+| `test_output_gate_offer_voiding::test_empty_response_on_retry_voids_offer_created_this_turn` | 1 | **Yes** | Fails from `master` source; test last touched 2026-06-14 (#4). |
+| `test_prompts_composer::test_compose_prompt_no_overflow_with_large_cultural_override` | 1 | **Yes** | Fails from `master` source; test last touched 2026-06-23 (stall-guard). |
+| `test_entry_screen_integration::…test_ar_therapeutic_acceptance_advances_act` | 1 | **Yes (flake)** | **Passes in isolation on both** trees; only fails in the full run (LLM non-determinism / ordering), not a deterministic defect. |
+
+**Regression found and fixed during this audit (the reason the full-suite step is non-negotiable):** 4 `test_offer_variation` tests passed on `master` but failed on the branch. Cause: T3 added a `primary_intent` kwarg to `detect_directive_request`, and `test_offer_variation`'s `_route` helper still mocked the old signature (`lambda s: False`) → `TypeError`. **Production code was correct; the stale mock was the bug.** Fixed in `d33f53b`. A targeted signature-caller audit then confirmed this was the **only** stale mock: `detect_directive_request` has exactly one production caller (correct) and one mock (now fixed); T3 changed no other signature; the new kwarg has a default so all direct callers stay compatible.
 
 ---
 
