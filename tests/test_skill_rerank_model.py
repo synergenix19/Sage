@@ -46,3 +46,21 @@ def test_rerank_route_promotes_correct_skill_over_higher_bi_encoder(monkeypatch)
               ("sleep_hygiene", 0.48), ("grief_loss", 0.46)]
     routed, _, _ = ss._rerank_route(ranked, "en", "I keep ruminating on worst-case scenarios I cannot control", lambda b: None)
     assert routed == "worry_time", f"reranker should promote worry_time for rumination, got {routed}"
+
+
+@pytest.mark.slow
+def test_loaded_tau_fires_directionally(monkeypatch):
+    # Commit 3 ACTIVATION check: this is where ABSTAIN goes live. With the calibrated global-τ loaded
+    # into the read slot, an id_oos over-route (substance disclosure — clinician territory) must
+    # ABSTAIN flag-on, while an in_scope case still routes. Confirms the τ loaded right and fires in
+    # the correct DIRECTION (not inert at -inf, not over-firing) before the full re-gate (step 5).
+    from sage_poc.nodes import skill_select as ss
+    monkeypatch.setenv("SKILL_RERANK_ENABLED", "1")
+    ss._RERANK_TAU = None  # force reload from the calibration artifact
+    assert ss._rerank_tau("en") < -5, "EN τ must be loaded (not the -inf default)"
+    ido = [("dbt_tipp", 0.55), ("grounding_5_4_3_2_1", 0.50), ("box_breathing", 0.48), ("worry_time", 0.46), ("mood_check_in", 0.44)]
+    in_s = [("worry_time", 0.58), ("cbt_thought_record", 0.55), ("box_breathing", 0.50), ("sleep_hygiene", 0.48), ("grief_loss", 0.46)]
+    routed_ido, _, _ = ss._rerank_route(ido, "en", "I think I might be drinking too much and want to cut back", lambda b: None)
+    routed_ins, _, _ = ss._rerank_route(in_s, "en", "I keep ruminating on worst-case scenarios I cannot control", lambda b: None)
+    assert routed_ido is None, f"id_oos substance disclosure must ABSTAIN flag-on, routed {routed_ido}"
+    assert routed_ins is not None, "in_scope rumination must route flag-on, got ABSTAIN"

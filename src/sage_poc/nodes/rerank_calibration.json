@@ -1,0 +1,7 @@
+{
+  "rerank_tau": {
+    "en": -6.0843
+  },
+  "basis": "Global operating point (balanced Youden's-J) on bge-reranker-v2-m3 cross-encoder LOGITS (not bi-encoder), EN held-out full-data fit 2026-06-24. Precision-independent (int8 and fp32 are the same m3 weights). Gate at this tau: in_scope 60 / id_oos 86 / far_oos 100 (honest CV-OOF).",
+  "_note_ar": "AR is uncalibrated pending native-Khaleeji review (the standing data gate). A lang absent from rerank_tau resolves to -inf -> routes top-1 (no ABSTAIN), so AR does not get the reranker ABSTAIN until its cells are reviewed and its own tau is fit."
+}

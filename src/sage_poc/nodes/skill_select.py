@@ -223,7 +223,7 @@ def _apply_anchor_debias(
 
 
 _RERANK_K: int = 5                         # top-k bi-encoder candidates fed to the cross-encoder (offline-measured config)
-_RERANK_TAU: dict | float | None = None    # global reranker-τ, loaded at warmup (commit 3); None until then
+_RERANK_TAU: dict | None = None            # {lang: global reranker-τ}, lazy-loaded from rerank_calibration.json
 
 
 def _rerank_enabled() -> bool:
@@ -233,14 +233,27 @@ def _rerank_enabled() -> bool:
     return os.environ.get("SKILL_RERANK_ENABLED", "0") == "1"
 
 
+def _load_rerank_calibration() -> dict:
+    """{lang: global reranker-τ} from rerank_calibration.json. The τ is the balanced operating point
+    on RERANKER LOGITS (not bi-encoder), GLOBAL (not per-route — uniform cross-encoder confidence),
+    full-data fit. A missing file/key → {} → every lang resolves to -inf (route top-1, inert)."""
+    import json
+    import pathlib
+    try:
+        data = json.loads((pathlib.Path(__file__).parent / "rerank_calibration.json").read_text())
+        return {lang: float(tau) for lang, tau in data["rerank_tau"].items()}
+    except (FileNotFoundError, KeyError, ValueError):
+        return {}
+
+
 def _rerank_tau(lang: str) -> float:
-    """The GLOBAL reranker-τ operating point (calibrated on reranker logits, loaded at warmup in
-    commit 3). Until loaded → -inf, so the reranker routes its top-1 (τ-gate inert pre-calibration;
-    the full re-gate uses the real τ). Global, not per-route — the cross-encoder's confidence is
-    uniformly scaled (per-route fragments it: measured 52 vs 60)."""
+    """The GLOBAL reranker-τ operating point for `lang`, lazy-loaded into the slot the live path
+    reads. A lang with no calibrated τ (e.g. AR pending native review) → -inf → routes top-1 (no
+    ABSTAIN), so an uncalibrated language never gets a mis-scaled gate."""
+    global _RERANK_TAU
     if _RERANK_TAU is None:
-        return float("-inf")
-    return _RERANK_TAU if isinstance(_RERANK_TAU, float) else _RERANK_TAU.get(lang, float("-inf"))
+        _RERANK_TAU = _load_rerank_calibration()
+    return _RERANK_TAU.get(lang, float("-inf"))
 
 
 def _rerank_route(
