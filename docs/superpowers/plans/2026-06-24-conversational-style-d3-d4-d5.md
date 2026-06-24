@@ -132,7 +132,7 @@ git commit -m "fix(output_gate): make vetted fallback a statement so directive-p
 - Test: `tests/test_directive_detect.py` (extend or new)
 
 **Interfaces:**
-- Produces: `detect_directive_request(state: dict, primary_intent: str | None = None) -> bool` — returns True on existing triggers OR `primary_intent == "info_request"` OR the user message is itself a question. Default param keeps existing callers working.
+- Produces: `detect_directive_request(state: dict, primary_intent: str | None = None) -> bool` — returns True on existing triggers OR `primary_intent == "info_request"`. Default param keeps existing callers working. NOTE (must-fix, see Step 3): there is deliberately NO bare question-mark trigger; a `?` does not disambiguate an info request from an emotional disclosure ("am I broken?").
 
 - [ ] **Step 1: Failing tests**
 ```python
@@ -180,7 +180,7 @@ def test_plain_emotional_disclosure_does_not_trigger():
 - [ ] **Step 6: Commit**
 ```bash
 git add src/sage_poc/nodes/directive_detect.py src/sage_poc/nodes/intent_route.py src/sage_poc/nodes/output_gate.py tests/test_directive_detect.py
-git commit -m "feat(routing): extend directive-posture to info_request + question + curt-reply; G1 directive-offer guard [D4]"
+git commit -m "feat(routing): extend directive-posture to info_request (intent-gated, no bare-? trigger) + curt-reply; G1 directive-offer guard [D4]"
 ```
 
 ---
