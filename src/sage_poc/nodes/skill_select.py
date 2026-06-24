@@ -151,6 +151,31 @@ def _skill_cluster(skill_id: str) -> str | None:
 _ANCHOR_DEBIAS_LAMBDA: float = 0.01
 
 
+_FLAG_DISPOSITIONS_CACHE: dict[str, str] | None = None
+
+
+def _flag_dispositions() -> dict[str, str]:
+    """flag_id -> declared skill_select_disposition, read BY REFERENCE from the canonical flag
+    definitions (rules/data/safety/clinical_flag_patterns.json). The POLICY — which flags carry
+    disposition "abstain" — is OWNED by the safety lane / crisis sprint, which declares it on the
+    flag definitions; skill_select is a pure CONSUMER. A flag with no declared disposition is
+    absent from this map and routes as V1 (the safe default). Cached after first load."""
+    global _FLAG_DISPOSITIONS_CACHE
+    if _FLAG_DISPOSITIONS_CACHE is None:
+        import json
+        import pathlib
+        path = pathlib.Path(__file__).resolve().parent.parent / "rules/data/safety/clinical_flag_patterns.json"
+        data = json.loads(path.read_text(encoding="utf-8"))
+        out: dict[str, str] = {}
+        for rule in data.get("rules", []):
+            action = rule.get("action", {})
+            fid, disp = action.get("flag_id"), action.get("skill_select_disposition")
+            if fid and disp:
+                out[fid] = disp
+        _FLAG_DISPOSITIONS_CACHE = out
+    return _FLAG_DISPOSITIONS_CACHE
+
+
 def _anchor_counts() -> dict[str, int]:
     """How many index anchors each skill contributes (description + semantic_anchors [+ exemplars
     under v2]). The count that drives the max-over-anchors bias."""
@@ -473,6 +498,25 @@ async def skill_select_node(state: SageState) -> dict:
             "clearing offer and re-matching", offered,
         )
         stale_offer_clear = {"offered_skill_ids": None}
+
+    # V2 behavior #4: enforce the frozen ABSTAIN dispositions DECLARED on the flag definitions.
+    # Pure consumer — the safety lane owns which flags carry skill_select_disposition "abstain"
+    # (declared on clinical_flag_patterns.json by the crisis sprint); skill_select reads the field
+    # and DEFERS (no skill) so a flagged crisis-adjacent disclosure is not routed to a self-help
+    # skill, even one that would score above threshold. A flag with no declared disposition routes
+    # as V1 (safe no-op). Does NOT detect crisis — acute crisis is Node 1's, intercepted upstream
+    # (BC1). Flag-off: untouched.
+    if _v2_enabled():
+        _disp = _flag_dispositions()
+        if any(_disp.get(f) == "abstain" for f in (state.get("clinical_flags") or [])):
+            return {
+                **stale_offer_clear,
+                "active_skill_id": None,
+                "active_step_id": None,
+                "skill_match_method": None,
+                "semantic_score": None,
+                "path": state["path"] + ["skill_select", "clinical_flag_abstain"],
+            }
 
     message_en = state["message_en"].lower()
     raw_message = (state.get("raw_message") or "").lower()
