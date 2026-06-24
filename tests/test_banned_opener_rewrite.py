@@ -82,7 +82,7 @@ def _base_state(**overrides) -> dict:
     return base
 
 
-async def _run_gate(monkeypatch, response_en, gate_path=None, crisis_flags=None):
+async def _run_gate(monkeypatch, response_en, gate_path=None, crisis_flags=None, clinical_flags=None):
     calls = []
 
     async def _spy_rewrite(response_en, opener, user_message_en):
@@ -96,6 +96,8 @@ async def _run_gate(monkeypatch, response_en, gate_path=None, crisis_flags=None)
     state = _base_state(response_en=response_en, gate_path=gate_path)
     if crisis_flags is not None:
         state["crisis_flags"] = crisis_flags
+    if clinical_flags is not None:
+        state["clinical_flags"] = clinical_flags
     res = await output_gate.output_gate_node(state)
     res["_rewrite_calls"] = calls
     return res
@@ -120,6 +122,20 @@ async def test_crisis_state_is_never_rewritten(monkeypatch):
         gate_path=None, crisis_flags=["si_explicit"])
     assert res["_rewrite_calls"] == []
     assert "output_gate_opener_rewritten" not in res.get("path", [])
+
+
+@pytest.mark.parametrize("flag", ["trauma_indicator", "domestic_situation", "substance_use", "eating_concern", "psychotic_disclosure"])
+@pytest.mark.asyncio
+async def test_clinical_flag_replies_are_never_rewritten(monkeypatch, flag):
+    """Clinical advisory 2026-06-24 Decision 1b (conservative default): the rewrite is SUPPRESSED on
+    clinical-flag replies. The external model must not re-word a trauma/DV/substance opener; the reply
+    passes through unchanged (its soft opener and all). Revisitable per-flag once evaluator+review live."""
+    res = await _run_gate(monkeypatch,
+        response_en="It sounds like what you went through was hard. You did not deserve any of it.",
+        gate_path=None, clinical_flags=[flag])
+    assert res["_rewrite_calls"] == [], f"rewrite must be suppressed on {flag}"
+    assert "output_gate_opener_rewritten" not in res.get("path", [])
+    assert "output_gate_opener_passthrough" not in res.get("path", [])  # guard skips the block entirely
 
 
 # ---- #58 x #60 recompose: the rewrite and #60's question-discipline / directive_posture ---------

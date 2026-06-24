@@ -183,9 +183,15 @@ _OPENER_REWRITE_TIMEOUT = 4.0  # fail fast -> pass-through; never block the turn
 _OPENER_REWRITE_SYSTEM = (
     "You are lightly editing one wellness-companion reply that you wrote. It began with a "
     "reflective or sympathy cliche we avoid. Rewrite ONLY the opening so it names the specific "
-    "thing the person said, warm and present, one to one. Keep every following sentence exactly "
-    "as written. Do not add advice, do not add a question, do not change the length or the meaning. "
-    "Use plain prose, commas not dashes, no emojis. Return only the full revised reply."
+    "thing the person said, warm and present, one to one. "
+    # Register guardrails folded into the OPERATIVE instruction (clinical advisory 2026-06-24):
+    # the register standard is only enforced if it is in the prompt the model actually receives.
+    "Reflect only what the person actually expressed. Do not name or assign a strong emotion they "
+    "did not state, and keep any inference tentative. Do not restate distressing or graphic detail. "
+    "Keep the emotional intensity the same as the original, neither heavier nor lighter. "
+    "Keep every following sentence exactly as written. Do not add advice, do not add a question, "
+    "do not change the length or the meaning. Use plain prose, commas not dashes, no emojis. "
+    "Return only the full revised reply."
 )
 
 
@@ -450,12 +456,22 @@ async def output_gate_node(state: SageState) -> dict:
                 lambda t: _log.warning("[output_gate] empty-retry audit error: %s", t.exception())
                 if not t.cancelled() and t.exception() else None
             )
-    # #58: register-preserving opener fix. ALLOWLIST (not blocklist) + in-node crisis guard, so the
-    # rewrite only ever touches ordinary freeflow replies. scope_refusal/jailbreak keep their
-    # clinician-authored copy; crisis never reaches output_gate (crisis_flags => is_safe=False =>
-    # crisis route => END, verified) -- the crisis_flags check is belt-and-suspenders.
+    # #58: register-preserving opener fix. ALLOWLIST (not blocklist) so the rewrite only ever touches
+    # ordinary freeflow replies. scope_refusal/jailbreak keep their clinician-authored copy; crisis
+    # never reaches output_gate (crisis route => END) -- the crisis_flags check is belt-and-suspenders.
+    # SUPPRESS on clinical_flags (trauma_indicator, domestic_situation, substance_use, eating_concern,
+    # psychotic_disclosure, ...) -- clinical advisory 2026-06-24, Decision 1b (conservative default).
+    # The external model must not re-word the most delicate openers; flagged replies pass through
+    # unchanged (a soft opener is the lesser harm than an unsupervised rewrite that could mislabel
+    # affect or re-state trauma, which the deterministic re-check cannot catch). Revisitable per-flag
+    # once an LLM register evaluator + stratified human review over the flagged subset are live.
     opener_rewrite_audit = None
-    if gate_path in (None, "standard") and not state.get("crisis_flags") and response_en and not _response_en_is_arabic:
+    if (
+        gate_path in (None, "standard")
+        and not state.get("crisis_flags")
+        and not state.get("clinical_flags")
+        and response_en and not _response_en_is_arabic
+    ):
         banned_match = _BANNED_OPENER_RE.match(response_en.lstrip())
         if banned_match:
             opener = banned_match.group(0)
