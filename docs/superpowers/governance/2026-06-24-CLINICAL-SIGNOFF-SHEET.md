@@ -80,7 +80,7 @@
 | # | Blocker | Status | Owner |
 |---|---|---|---|
 | G1 | **Cardiac red-flag detector in prod** (case-29: eval has MEDICAL_REFERRAL; prod doesn't enforce it) | floor signed; detector unbuilt | **clinical** (floor) + engineering (build) |
-| G2 | **~38% crisis recall** — sensitivity-first bar; build path | bar unset; S2/MARBERT unbuilt | **clinical** (bar) + engineering (build) |
+| G2 | **~38% crisis recall** — ⚠️ **this is S1-LAYER recall; the COMPOSITE path (incl. LLM intent_route) is UNMEASURED.** Do NOT report as "system recall" or set the bar against it until the composite-vs-CRADLE measurement (stratified by language × directness) is done — see `2026-06-24-composite-crisis-recall-measurement-PROPOSAL.md`. No posture relaxation until measured. | bar unset; composite unmeasured; S2 unbuilt | **clinical** (bar, after measurement) + engineering (measure + build) |
 | G3 | **Harm-OCD vs harm-intent prod detection** (eval contrast built this turn; prod detection open) | eval-built; prod-detection open | **engineering** |
 | G4 | **Harm-to-others escalation target + duty-to-warn** (UAE ≠ Tarasoff) | open | **compliance** (duty-to-warn) + engineering (escalation target) |
 | **G5** | **ABSTAIN/freeflow path surfaces no crisis resource** (verified 2026-06-24) — a *missed* crisis (~62%) lands in freeflow with no helpline | **OPEN UNDER LIVE USERS** (not future work) | **engineering** (build backstop) + **clinical/product** (accept-for-now decision) |
