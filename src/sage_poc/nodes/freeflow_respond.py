@@ -69,7 +69,14 @@ async def _invoke_with_tool_loop(
     llm_with_tools = llm.bind_tools(tools)
     MAX_ITERATIONS = 5
     for _ in range(MAX_ITERATIONS):
-        ai_message = await llm_with_tools.ainvoke(messages)
+        try:
+            ai_message = await llm_with_tools.ainvoke(messages)
+        except Exception as exc:
+            import logging  # noqa: PLC0415
+            logging.getLogger(__name__).warning(
+                "[freeflow] tool-loop ainvoke failed (%s); returning empty to trigger fallback", exc
+            )
+            return ""  # caller substitutes a warm reply via resilient_invoke; never blank to user
         if not getattr(ai_message, "tool_calls", None):
             return ai_message.content or ""
         messages = list(messages) + [ai_message]
