@@ -261,3 +261,24 @@ async def test_freeflow_sets_knowledge_source_tool_lookup_when_tool_fires():
                 result = await freeflow_respond_node(state, llm=mock_llm)
 
     assert result.get("knowledge_source") == "tool_lookup"
+
+
+@pytest.mark.asyncio
+async def test_tool_loop_model_exception_falls_back_not_raises():
+    """A provider error on the bound-tools ainvoke must NOT surface as an exception;
+    the user must still receive a non-empty fallback reply (RC-6 / B1)."""
+    mock_llm = MagicMock()
+    bound = MagicMock()
+    bound.ainvoke = AsyncMock(side_effect=RuntimeError("provider 500"))
+    mock_llm.bind_tools = MagicMock(return_value=bound)
+    # base (non-tools) ainvoke is what resilient_invoke uses for the fallback
+    mock_llm.ainvoke = AsyncMock(return_value=MagicMock(content="I'm here with you. What feels most present right now?"))
+    mock_llm.model_name = "test-model"
+    mock_llm.openai_api_base = ""
+
+    with patch("sage_poc.nodes.freeflow_respond.get_fallback_responder", return_value=mock_llm), \
+         patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules()):
+        result = await freeflow_respond_node(_BASE_STATE, llm=mock_llm)
+
+    assert result["response_en"], "user must receive a non-empty reply when the tool loop errors"
+    assert "here with you" in result["response_en"].lower()

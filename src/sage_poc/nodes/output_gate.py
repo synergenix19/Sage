@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sage_poc.state import SageState
 from sage_poc.language import async_translate_to_arabic
-from sage_poc.config import AUDIT_LOG_ENABLED
+from sage_poc.config import AUDIT_LOG_ENABLED, CRISIS_LINE_UAE
 from sage_poc.rules import engine as rules_engine
 from sage_poc.prompts.summarizer import summarise_history
 from sage_poc.audit import write_session_audit, write_identity_substitution_audit
@@ -150,6 +150,16 @@ _BANNED_OPENER_RE = re.compile(
     r"(?i)^(" + "|".join(_BANNED_OPENER_PATTERNS) + r")"
 )
 _HAS_ARABIC_RE = re.compile(r"[؀-ۿ]")
+# Arabic-output English-bleed guard (feedback #4). Latin alphabetic runs of length >= 3 that
+# are not known acronyms/brands indicate an untranslated English word in an Arabic reply.
+_LATIN_WORD_RE = re.compile(r"[A-Za-z]{3,}")
+_LATIN_ALLOWLIST = {"cbt", "act", "dbt", "tipp", "sage", "youtube"}
+
+
+def _has_english_bleed(text: str) -> bool:
+    return any(w.lower() not in _LATIN_ALLOWLIST for w in _LATIN_WORD_RE.findall(text))
+
+
 _BANNED_OPENER_CORRECTION = (
     "Your previous response began with a banned opener. "
     "Respond again without beginning with 'It sounds like', 'That sounds', or any "
@@ -164,6 +174,13 @@ _BANNED_OPENER_CORRECTION = (
 # (5) treat as user-facing copy with measurable frequency, not a rare error message.
 # Review doc: docs/superpowers/reviews/FALLBACK_RESPONSE_REVIEW.md
 _VETTED_FALLBACK_RESPONSE = "I'm here with you. What would feel most helpful to share right now?"
+
+# Re-surface resources if a MONITORING (post-crisis) turn would otherwise return blank.
+# A silent turn during crisis monitoring is the worst failure mode; commas only (no em dash).
+_EMPTY_MONITORING_FALLBACK = (
+    "I'm still here with you. If things get harder, please reach out right now, "
+    f"the UAE MoHAP support line on {CRISIS_LINE_UAE}, or 999 for an emergency."
+)
 
 JAILBREAK_RESPONSE = (
     "I'm Sage, a wellness companion here to offer emotional support and evidence-based coping "
@@ -288,6 +305,20 @@ async def output_gate_node(state: SageState) -> dict:
         response_en = JAILBREAK_RESPONSE
     else:
         response_en = state["response_en"] or ""
+
+    # Empty-reply fail-safe (RC-6 / feedback #2). Fires on the FIRST attempt too (the existing
+    # retry-only substitution below only covers banned_opener_retry_count >= 1). A monitoring
+    # turn re-surfaces resources rather than a generic line; never return silence.
+    if not response_en and gate_path not in ("scope_refusal", "jailbreak"):
+        if state.get("crisis_state") == "monitoring":
+            response_en = _EMPTY_MONITORING_FALLBACK
+        else:
+            response_en = _VETTED_FALLBACK_RESPONSE
+        path = path + ["output_gate_empty_fallback"]
+        _log.warning(
+            "[output_gate] empty response substituted (crisis_state=%s, session=%s)",
+            state.get("crisis_state"), session_id,
+        )
 
     _arabic_chars = len(_HAS_ARABIC_RE.findall(response_en))
     _total_chars = len(response_en.strip())
@@ -467,6 +498,12 @@ async def output_gate_node(state: SageState) -> dict:
 
     if lang == "ar" and not _response_en_is_arabic:
         final_response = await async_translate_to_arabic(response_en)
+        if _has_english_bleed(final_response):
+            _log.warning("[output_gate] English bleed in Arabic output; re-translating strict")
+            final_response = await async_translate_to_arabic(response_en, strict=True)
+            path = path + ["arabic_token_guard_retranslate"]
+            if _has_english_bleed(final_response):
+                _log.warning("[output_gate] English bleed persists after strict re-translate (telemetry only)")
     else:
         final_response = response_en
     final_response = _strip_output_format(final_response)
