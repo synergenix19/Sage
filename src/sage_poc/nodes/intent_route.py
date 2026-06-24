@@ -5,6 +5,7 @@ from sage_poc.llm import get_classifier, get_fallback_classifier
 from sage_poc.resilience import resilient_invoke
 from sage_poc.nodes.directive_detect import detect_directive_request
 from sage_poc.conversation_stall import detect_stall
+from sage_poc.nodes.self_reference_detect import detect_self_reference
 
 # SINGLE-POINT-OF-FAILURE WARNING: The general_chat classification below is the sole
 # gate preventing bare emotional words ("stressed", "depressed", "anxious", "I feel sad")
@@ -158,6 +159,8 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
              if m.get("role") == "user"]
             + [state.get("message_en", "")]
         ),
+        # Deterministic recall signal; sole consumer is the composer eviction-exemption.
+        "self_reference": detect_self_reference(state),
     }
     offered = state.get("offered_skill_ids") or []
     if offered:

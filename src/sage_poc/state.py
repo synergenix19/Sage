@@ -28,6 +28,7 @@ class SageState(TypedDict):
     conversation_summary: Optional[str]
     code_switching: bool
     directive_posture: bool   # deterministic flag: user explicitly delegated / is frustrated by questions and wants direct guidance (set in intent_route, NOT the LLM classifier)
+    self_reference: bool      # deterministic flag: user is asking to recall their own prior disclosure (set in intent_route); sole consumer is composer eviction-exemption
 
     primary_intent: Optional[Intent]
     secondary_intent: Optional[Intent]  # blended intent — e.g. "info_request" alongside "new_skill"
