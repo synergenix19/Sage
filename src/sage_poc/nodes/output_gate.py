@@ -465,7 +465,7 @@ async def output_gate_node(state: SageState) -> dict:
         and response_en
     ):
         _disciplined = _limit_to_one_question(response_en)
-        if state.get("directive_posture"):
+        if state.get("directive_posture") and not (state.get("offered_skill_ids")):
             _disciplined = _strip_trailing_question(_disciplined)
         if _disciplined != response_en:
             response_en = _disciplined

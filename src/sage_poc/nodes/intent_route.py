@@ -138,14 +138,18 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
         data = {}
 
     primary_intent = data.get("primary_intent", "general_chat")
+    _directive_posture = detect_directive_request(state, primary_intent=primary_intent)
+    _intent_route_path = state["path"] + ["intent_route"]
+    if _directive_posture:
+        _intent_route_path = _intent_route_path + ["directive_posture_set"]
     result = {
         "primary_intent": primary_intent,
         "secondary_intent": data.get("secondary_intent"),
         "intent_confidence": float(data.get("intent_confidence", 0.5)),
         "emotional_intensity": _safe_int(data.get("emotional_intensity"), 5),
         "engagement": _safe_int(data.get("engagement"), 5),
-        "path": state["path"] + ["intent_route"],
-        "directive_posture": detect_directive_request(state),
+        "path": _intent_route_path,
+        "directive_posture": _directive_posture,
         # Deterministic stall-guard signal (read by the composer to inject a
         # re-grounding change-of-tack). The decision is made here in code; the
         # LLM only renders the recovery turn, it never decides "is this a stall".

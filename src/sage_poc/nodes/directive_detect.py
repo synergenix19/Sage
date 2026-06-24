@@ -65,12 +65,24 @@ def _last_assistant_asked_question(history: list[dict]) -> bool:
     return False
 
 
-def detect_directive_request(state: SageState) -> bool:
+def detect_directive_request(state: SageState, primary_intent: str | None = None) -> bool:
     """True when the user has explicitly delegated the decision to Sage, or is
-    objecting to being questioned after Sage asked a question. Deterministic, no LLM."""
+    objecting to being questioned after Sage asked a question, OR when the
+    current-turn intent is info_request (answer-first mode). Deterministic, no LLM.
+
+    NOTE: there is deliberately NO bare question-mark (? or Arabic question mark)
+    trigger. A question mark does not disambiguate an info request from an emotional
+    disclosure ("am I broken?"); firing directive_posture on those would let
+    _strip_trailing_question remove the earned open question from a Reflect-mode reply.
+    Genuine factual/list questions already classify as info_request via the LLM
+    classifier, so the intent trigger covers them without the false positive.
+    """
     text = (state.get("message_en") or "").lower()
     if not text:
         return False
+    # D4: intent-gated answer-first trigger. Intent-only, no punctuation shortcut.
+    if primary_intent == "info_request":
+        return True
     if any(phrase in text for phrase in _DIRECTIVE_PHRASES):
         return True
     if _last_assistant_asked_question(state.get("conversation_history") or []):
