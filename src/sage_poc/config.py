@@ -39,6 +39,14 @@ SKILL_RUNNER_UP_MARGIN = float(os.getenv("SAGE_SKILL_RUNNER_UP_MARGIN", "0.05"))
 # Value is the fallback when the skill_matching default_offer rule omits cooldown_turns.
 SKILL_OFFER_COOLDOWN_TURNS = int(os.getenv("SAGE_SKILL_OFFER_COOLDOWN_TURNS", "2"))
 
+# Offer-cooldown enable gate (GATED — default OFF). The cooldown is clinical-facing
+# behaviour (it changes when/whether Sage re-offers a coping skill), so it ships inert
+# and merging it does NOT make it live. Flipping SAGE_SKILL_OFFER_COOLDOWN_ENABLED=true
+# is an explicit, logged, signed decision gated on clinical sign-off C3 (cooldown N), the
+# same control the merge would have been — not an auto-flip. Decouples merge timing from
+# C3 timing without bypassing C3.
+SKILL_OFFER_COOLDOWN_ENABLED: bool = os.getenv("SAGE_SKILL_OFFER_COOLDOWN_ENABLED", "false").lower() == "true"
+
 # D5 deterministic acuity gate (GATED — default OFF, pending standalone clinical sign-off).
 # When enabled, _intensity_guidance() returns a validate-only string at/above the floor:
 # name the specific thing said, stay purely supportive, do NOT challenge a distorted belief.

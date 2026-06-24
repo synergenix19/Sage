@@ -15,6 +15,7 @@ from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP, SEMANTIC_EXCLUSION_
 from sage_poc.rules import engine as rules_engine
 from sage_poc.config import (
     SKILL_RUNNER_UP_MIN, SKILL_RUNNER_UP_MARGIN, SKILL_OFFER_COOLDOWN_TURNS,
+    SKILL_OFFER_COOLDOWN_ENABLED,
 )
 
 logger = logging.getLogger(__name__)
@@ -409,9 +410,12 @@ async def skill_select_node(state: SageState) -> dict:
     # G2 safe: cooldown never touches offered_skill_ids; a pending offer that was accepted
     # already returned above. The suppression routes to freeflow so the LLM can continue
     # the conversation naturally without re-presenting the skill menu.
+    # GATED: behind SKILL_OFFER_COOLDOWN_ENABLED (default OFF). When off, behaviour is
+    # byte-identical to pre-cooldown (the block is skipped entirely). The flip to ON is a
+    # logged, signed decision gated on clinical sign-off C3 — not an auto-flip on merge.
     _cooldown = _offer_cooldown_turns()
     _last = state.get("last_offer_turn")
-    if _last is not None and (state.get("turn_count", 0) - _last) < _cooldown:
+    if SKILL_OFFER_COOLDOWN_ENABLED and _last is not None and (state.get("turn_count", 0) - _last) < _cooldown:
         return {**stale_offer_clear, "active_skill_id": None, "active_step_id": None,
                 "skill_match_method": None, "semantic_score": None,
                 "path": state["path"] + ["skill_select", "offer_cooldown_suppressed"]}
