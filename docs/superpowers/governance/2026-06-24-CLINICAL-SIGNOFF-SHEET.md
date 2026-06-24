@@ -83,6 +83,17 @@
 | G2 | **~38% crisis recall** — sensitivity-first bar; build path | bar unset; S2/MARBERT unbuilt | **clinical** (bar) + engineering (build) |
 | G3 | **Harm-OCD vs harm-intent prod detection** (eval contrast built this turn; prod detection open) | eval-built; prod-detection open | **engineering** |
 | G4 | **Harm-to-others escalation target + duty-to-warn** (UAE ≠ Tarasoff) | open | **compliance** (duty-to-warn) + engineering (escalation target) |
+| **G5** | **ABSTAIN/freeflow path surfaces no crisis resource** (verified 2026-06-24) — a *missed* crisis (~62%) lands in freeflow with no helpline | **OPEN UNDER LIVE USERS** (not future work) | **engineering** (build backstop) + **clinical/product** (accept-for-now decision) |
+
+> **G5 is different from G1–G4: it is a live hole, not a graduation gate.** Stated as an owned item:
+> - **Hole:** the safe-default routing path (ABSTAIN→freeflow) does not surface crisis resources; the crisis safety net is the crisis path only, which depends on ~38% detection. A missed crisis currently gets a generic response with no helpline.
+> - **Owner:** engineering (the freeflow crisis-resource backstop fix).
+> - **Accepted-for-now by:** ⛔ **PENDING** — this acceptance is only valid if human oversight covers the gap (see below). Not yet accepted by a named owner.
+> - **Revisit trigger:** immediately if there is no all-session human review; otherwise at the next routing deploy and hard-blocked before any **pilot widening** or **S2/MARBERT build**.
+> - **The acceptance now rests entirely on one fact:** does the pilot have human review of *un-flagged* sessions?
+>   - **Code finding (2026-06-24):** every clinician-review-queue trigger is **flag-gated** (crisis flags OR clinical flags) — there is **no automated all-session review**. One *partial* automated net: `escalating_distress` (3-turn sustained-high-intensity heuristic) fires a clinical flag → review queue, so a missed crisis *with sustained distress* may still be clinician-notified. But it is **lagged 3 turns, suppressed during active skill use with good engagement, notifies clinicians (not the user), and does nothing for a single-turn oblique disclosure** — exactly the Gulf-under-stigma presentation. So the automated net is weak and partial.
+>   - **Operational question for you (decides the G5 acceptance):** is there a clinician manually reviewing *all* pilot sessions (not just flagged ones)? If yes → the hole is covered by people in the interim and noting-it is genuinely fine. If no → a single-turn missed crisis currently reaches a real user with **nothing**, and the backstop should be built now.
+> - **Backstop design direction (so this isn't a vague "fix later"):** do NOT append a helpline to every freeflow turn (that helpline-spams benign chat). Trigger freeflow resource-surfacing on a **sub-threshold risk band** — the advisory signals that currently do nothing: S3 score in the warning band (~0.62–0.806, below the crisis threshold) or an `escalating_distress` flag. That converts the currently-wasted advisory signal into a user-facing backstop precisely on near-miss turns.
 
 *Two live-pilot verifications (NOT graduation gates) are pulled forward to now — see §0: confirm the Layer-1 deterministic crisis floor's real coverage, and verify ABSTAIN surfaces crisis resources. These check the **current** pilot's safety net.*
 
