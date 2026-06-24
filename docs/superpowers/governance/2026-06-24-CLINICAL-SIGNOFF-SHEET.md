@@ -97,6 +97,18 @@
 
 *Two live-pilot verifications (NOT graduation gates) are pulled forward to now — see §0: confirm the Layer-1 deterministic crisis floor's real coverage, and verify ABSTAIN surfaces crisis resources. These check the **current** pilot's safety net.*
 
+## Section 3b — Crisis-rule approval status (5-minute clinical question — ask now)
+The `rules/loader` `approved_by` check is **advisory** (it logs `UNAPPROVED ACTIVE SAFETY RULE`, does not block). The following **active** crisis rules have `approved_by: null` — and they include the most fundamental ones:
+`SK-EN-001` (core English explicit SI), `SK-AR-001` (Arabic explicit), `SK-AZ-001` (Arabizi explicit), `SK-EN-003` (method), `SK-EN-004` (third-party), `CK-CH-001/002` (command-hallucination), `SK-EN-006` (progressive self-harm), `SK-AZ-002` (Arabizi passive), `SK-AR-003` (Gulf exhaustion idioms), `SK-EN-005` (escape metaphor), `CF-001/002/003/004`.
+By contrast, all the rules edited *later* (`SK-EN-002`, `SK-AR-002`, `SK-EN-007`, `CF-005/006`, `SK-AR-006`) carry `approved_by: clinical_lead`.
+- **Pattern strongly suggests a filing gap** (the field was adopted later; the 2026-05-21 originals were never backfilled) — but code cannot confirm intent.
+- **The question (clinical lead, ~5 min):** *were the 2026-05-21 original crisis rules clinically approved?*
+  - **Yes →** backfill `approved_by` (record-keeping, done).
+  - **No →** the crisis floor — including explicit-SI detection — has been live under real users without sign-off (a real problem to schedule with eyes open).
+```
+Crisis-rule originals approved? [ ] yes — backfill   [ ] no — escalate   Clinical lead: ______ Date: ______
+```
+
 ## Section 4 — Path to V2 in production (answering "what else to ship V2")
 V2 = the retrieval-core routing (per-route thresholds + ABSTAIN + debias). It is **orthogonal to crisis detection** (Node 1 is deterministic and never reaches skill_select), so the §3 safety blockers gate *pilot widening*, not the V2 routing flip. Shipping V2 takes, in order:
 
