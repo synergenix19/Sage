@@ -32,3 +32,11 @@ Crisis path is live + functional but **NOT recall-validated** (~38% CRADLE vs �
 
 ## Routing improvement (V2) — NOT shipped, by design
 V2 (exemplar embedding) measured to REGRESS (gap-collapse probe); flag stays off, code not on master. The real improvement = §2/§3 calibration + retrieval-core, measured through the §1 harness on held-out eval; ships only when it beats V1 on gate-6 per-stratum (Khaleeji on own calibration). Fixture-green ≠ gate-6 pass.
+
+## Deploy process invariant (added 2026-06-24 after a stale-base incident)
+**Always `git fetch` and branch/deploy off freshly-fetched `origin/master` — NEVER a local `master` ref.**
+Incident: a SK-AR-006 safety deploy was built from a stale local `master` (362eff2) that was ~2h behind `origin/master` (78644d6, PR #41). The deploy silently **rolled back PR #41** in prod (a real-user-RCA routing fix) because the deploy base did not contain it. `railway up` carries no git SHA, so the regression was invisible until reconstructed from `git reflog`.
+Rules:
+1. Before any `railway up`: `git fetch origin master` and build from `origin/master` (or a branch freshly based on it), not a local ref.
+2. Verify the deploy delta against **current prod**, computed from `origin/master`, not a stale local pointer.
+3. Reconcile prod to a known commit; treat "what's actually in prod" as a fact to verify (reflog/CI), never assume — `railway up` deploys leave no SHA to recover later.
