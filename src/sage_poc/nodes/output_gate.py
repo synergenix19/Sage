@@ -174,7 +174,7 @@ _BANNED_OPENER_CORRECTION = (
 # (4) must work in EN and AR turns (translation pipeline still runs on this string),
 # (5) treat as user-facing copy with measurable frequency, not a rare error message.
 # Review doc: docs/superpowers/reviews/FALLBACK_RESPONSE_REVIEW.md
-_VETTED_FALLBACK_RESPONSE = "I'm here with you. What would feel most helpful to share right now?"
+_VETTED_FALLBACK_RESPONSE = "I'm here with you, and what you've shared matters. Take a moment, I'm listening whenever you're ready."
 
 # Re-surface resources if a MONITORING (post-crisis) turn would otherwise return blank.
 # A silent turn during crisis monitoring is the worst failure mode; commas only (no em dash).
