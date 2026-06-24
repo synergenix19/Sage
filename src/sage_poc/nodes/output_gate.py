@@ -150,6 +150,16 @@ _BANNED_OPENER_RE = re.compile(
     r"(?i)^(" + "|".join(_BANNED_OPENER_PATTERNS) + r")"
 )
 _HAS_ARABIC_RE = re.compile(r"[؀-ۿ]")
+# Arabic-output English-bleed guard (feedback #4). Latin alphabetic runs of length >= 3 that
+# are not known acronyms/brands indicate an untranslated English word in an Arabic reply.
+_LATIN_WORD_RE = re.compile(r"[A-Za-z]{3,}")
+_LATIN_ALLOWLIST = {"cbt", "act", "dbt", "tipp", "sage", "youtube"}
+
+
+def _has_english_bleed(text: str) -> bool:
+    return any(w.lower() not in _LATIN_ALLOWLIST for w in _LATIN_WORD_RE.findall(text))
+
+
 _BANNED_OPENER_CORRECTION = (
     "Your previous response began with a banned opener. "
     "Respond again without beginning with 'It sounds like', 'That sounds', or any "
@@ -488,6 +498,12 @@ async def output_gate_node(state: SageState) -> dict:
 
     if lang == "ar" and not _response_en_is_arabic:
         final_response = await async_translate_to_arabic(response_en)
+        if _has_english_bleed(final_response):
+            _log.warning("[output_gate] English bleed in Arabic output; re-translating strict")
+            final_response = await async_translate_to_arabic(response_en, strict=True)
+            path = path + ["arabic_token_guard_retranslate"]
+            if _has_english_bleed(final_response):
+                _log.warning("[output_gate] English bleed persists after strict re-translate (telemetry only)")
     else:
         final_response = response_en
     final_response = _strip_output_format(final_response)
