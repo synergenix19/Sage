@@ -466,13 +466,20 @@ def _build_l1_history_block(
     variant: str | None = None,
     word_budget: int | None = None,
     conversation_summary: str | None = None,
+    pin_turn: dict | None = None,
 ) -> str | None:
-    if not conversation_history and not conversation_summary:
+    if not conversation_history and not conversation_summary and pin_turn is None:
         return None
     tmpl = get_template("L1_history", variant=variant)
     window_size = tmpl.window_size or 8
     effective_budget = word_budget if word_budget is not None else (tmpl.word_budget or _L1_BASE_BUDGET)
-    window = conversation_history[-window_size:]
+    window = list(conversation_history[-window_size:])
+    # self_reference eviction-exemption: guarantee the recalled disclosure turn is in the
+    # window even if it falls outside it, so an overflow shrink cannot drop the very turn
+    # the user is asking about. pin_turn is None for every non-recall caller, so the loop
+    # below preserves its original behaviour byte-for-byte in that case.
+    if pin_turn is not None and pin_turn not in window:
+        window = [pin_turn] + window
     lines: list[str] = []
     word_total = 0
     for m in reversed(window):            # newest → oldest
@@ -483,9 +490,12 @@ def _build_l1_history_block(
         )
         line = f"{m['role'].upper()}: {content}"
         words = count_words(line)
-        if lines and word_total + words > effective_budget:
+        is_pinned = pin_turn is not None and m is pin_turn
+        if lines and not is_pinned and word_total + words > effective_budget:
             _log.debug("L1 history truncated at word budget %d", effective_budget)
-            break
+            if pin_turn is None:
+                break          # original behaviour: stop at first over-budget turn
+            continue           # recall turn: skip middle turns, keep scanning for the pinned disclosure
         lines.append(line)
         word_total += words
     lines.reverse()                       # restore chronological order for prompt
@@ -504,6 +514,37 @@ def _build_l1_history_block(
     content = tmpl.content.format(history_lines=history_text)
     _log.debug("L1_history@%s loaded", tmpl.version)
     return content
+
+
+# --- self_reference eviction-exemption: find the disclosure turn the recall refers to ---
+# Language split mirrors the detector: Arabic recall + Arabic history live in raw text, so an
+# English-token anchor would silently miss every Arabic recall and fall back to most-recent —
+# landing the weak path exactly where the diagnostic found eviction worst (Arabic/cultural turns).
+_ANCHOR_STOP = {
+    "what", "did", "just", "tell", "say", "said", "you", "your", "about", "the", "that", "this",
+    "have", "with", "mention", "remember", "told", "and", "for", "was", "were", "dont", "don",
+}
+
+
+def _recall_text(state: SageState) -> str:
+    return state.get("raw_message", "") if state.get("detected_language") == "ar" else state.get("message_en", "")
+
+
+def _salient_tokens(text: str) -> set[str]:
+    return {t for t in re.findall(r"\w+", (text or "").lower()) if len(t) >= 3 and t not in _ANCHOR_STOP}
+
+
+def _anchor_turn(history: list[dict], recall_text: str) -> dict | None:
+    """Most-recent user turn sharing a salient token with the recall; else most-recent user turn."""
+    user_turns = [m for m in history if m.get("role") == "user"]
+    if not user_turns:
+        return None
+    toks = _salient_tokens(recall_text)
+    if toks:
+        for m in reversed(user_turns):
+            if toks & _salient_tokens(m.get("content", "")):
+                return m
+    return user_turns[-1]
 
 
 _CULTURAL_BUDGET_WORDS = 250
@@ -714,10 +755,16 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
         offer_words=_offer_words,
         declined_words=_declined_words,
     )
+    # self_reference eviction-exemption: pin the recalled disclosure from the INITIAL build, not
+    # only inside the overflow branch. Otherwise the normal L1 budget can drop the disclosure here,
+    # which keeps total under budget, so the overflow branch (and its pin) never runs.
+    _pin_turn = (_anchor_turn(state.get("conversation_history", []), _recall_text(state))
+                 if state.get("self_reference") else None)
     l1_block = _build_l1_history_block(
         state.get("conversation_history", []),
         word_budget=l1_budget,
         conversation_summary=state.get("conversation_summary"),
+        pin_turn=_pin_turn,
     )
     if l1_block:
         user_parts.append(l1_block)
@@ -910,12 +957,16 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
         l1_tmpl = get_template("L1_history")
         half_window = max(1, (l1_tmpl.window_size or 8) // 2)
         non_l1_words = total_words - count_words(user_parts[0])
+        # On a recall turn, pin the disclosure the user is asking about so the shrink below
+        # cannot evict it (vector 1). Reuse the pin computed for the initial build above.
+        pin_turn = _pin_turn
         for raw_turns in range(half_window, -1, -1):
             recent = history[-raw_turns:] if raw_turns else []
             shrunk = _build_l1_history_block(
                 recent,
                 word_budget=300,    # conservative for overflow case
                 conversation_summary=summary,
+                pin_turn=pin_turn,
             ) or ""
             if non_l1_words + count_words(shrunk) <= _TOTAL_WORD_BUDGET or raw_turns == 0:
                 break
@@ -924,6 +975,17 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
             "Token budget overflow: L1 raw window shrunk to %d turns (summary preserved)",
             raw_turns,
         )
+        # Recall turn where even the pinned disclosure + static layers exceed budget: keep the
+        # disclosure (never drop the thing being recalled), but make it OBSERVABLE rather than
+        # silently shipping over budget. Status sentinel is "status:"-prefixed so it is not read
+        # as a content layer. Deviation from v7 §5.6.3 shrink order is flagged in the sign-off.
+        # Structural resolution (trim L0) is the broader-bloat ticket, not this one.
+        if pin_turn is not None and non_l1_words + count_words(shrunk) > _TOTAL_WORD_BUDGET:
+            layers.append("status:prompt_over_budget")
+            _log.warning(
+                "self_reference recall over budget after pinning disclosure; kept disclosure, "
+                "prompt over budget (L0 bloat, broader-bloat ticket)"
+            )
 
     user_str = "\n\n".join(user_parts)
     return system_str, user_str, layers
