@@ -12,9 +12,20 @@ from sage_poc.config import (
     FALLBACK_RESPONDER_MODEL,
     FALLBACK_CLASSIFIER_MODEL,
     RESISTANCE_MODEL,
+    HTTP_MAX_CONNECTIONS,
+    HTTP_MAX_KEEPALIVE,
 )
 
 _HEADERS = {"HTTP-Referer": "https://sage.ai", "X-Title": "SageAI POC"}
+
+
+def _http_limits() -> httpx.Limits:
+    return httpx.Limits(
+        max_connections=HTTP_MAX_CONNECTIONS,
+        max_keepalive_connections=HTTP_MAX_KEEPALIVE,
+        keepalive_expiry=300,
+    )
+
 
 # Shared async HTTP client for all LLM calls.
 # keepalive_expiry=300 keeps the TCP connection to OpenRouter alive for 5 minutes
@@ -23,12 +34,7 @@ _HEADERS = {"HTTP-Referer": "https://sage.ai", "X-Title": "SageAI POC"}
 # a Gitex booth. 300s covers typical between-demo idle periods.
 # All ChatOpenAI instances share this client so the warmup call in server.py
 # _warmup_task() warms the same pool that handles real user requests.
-_ASYNC_HTTP_CLIENT = httpx.AsyncClient(
-    limits=httpx.Limits(
-        max_keepalive_connections=5,
-        keepalive_expiry=300,
-    ),
-)
+_ASYNC_HTTP_CLIENT = httpx.AsyncClient(limits=_http_limits())
 
 _LLM_CONFIGS: dict[str, tuple[str, float, int]] = {
     "classifier":          (CLASSIFIER_MODEL,          0,   512),

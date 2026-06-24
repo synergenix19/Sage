@@ -21,7 +21,7 @@ from pydantic import BaseModel
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from sage_poc.graph import build_graph
-from sage_poc.config import RESPONDER_MODEL
+from sage_poc.config import RESPONDER_MODEL, DB_POOL_MAX_SIZE
 from sage_poc.language import text_direction
 from sage_poc.server_helpers import _build_state, _stale_skill_overrides, _void_unseen_offer
 from sage_poc.llm import get_classifier
@@ -210,7 +210,7 @@ async def lifespan(app: FastAPI):
             asyncpg_pool = await asyncpg.create_pool(
                 db_url,
                 min_size=1,
-                max_size=5,
+                max_size=DB_POOL_MAX_SIZE,
                 max_inactive_connection_lifetime=300,  # recycle connections idle >5 min
             )
         except Exception as exc:
