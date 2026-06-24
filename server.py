@@ -323,6 +323,17 @@ async def chat(
             graph.ainvoke(
                 state,
                 config={"configurable": {"thread_id": req.session_id}},
+                # Persist one checkpoint at graph exit, not per super-step. Prod measured
+                # ~7.5 checkpoint + ~105 checkpoint_writes rows/turn (LangGraph default
+                # durability="async" writes per super-step), each a cross-region INSERT;
+                # exit collapses a turn to ~1 write. Cross-turn memory is preserved (exit
+                # checkpoint still written). Verified (test_durability_exit.py): a value
+                # set before a mid-graph crash is RETAINED under exit too — LangGraph still
+                # records the completed node's pending write — so clinical_flags are not
+                # dropped on a crashed turn. No mid-graph interrupts exist, so nothing to
+                # resume is lost. Residual: a true pod death mid-turn loses intra-turn
+                # state (same tiny window async has between a node finishing and its flush).
+                durability="exit",
             ),
             timeout=AINVOKE_TIMEOUT_SECONDS,
         )
