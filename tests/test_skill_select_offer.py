@@ -207,7 +207,7 @@ async def test_stale_unresolvable_offer_is_cleared_from_checkpoint(monkeypatch):
     re-renders forever."""
     monkeypatch.setattr(
         ss, "_semantic_match_with_runner_up",
-        lambda message_en, profile_context="": (None, 0.0, None),
+        lambda message_en, profile_context="", lang="en": (None, 0.0, None),
     )
     state = make_state(
         message_en="just thinking out loud today",
@@ -230,7 +230,7 @@ async def test_semantic_match_creates_offer(monkeypatch):
     # fully mocked semantic tier: no BGE load, no slow marker
     monkeypatch.setattr(
         ss, "_semantic_match_with_runner_up",
-        lambda message_en, profile_context="": ("worry_time", 0.51, ("cognitive_restructuring", 0.49)),
+        lambda message_en, profile_context="", lang="en": ("worry_time", 0.51, ("cognitive_restructuring", 0.49)),
     )
     state = make_state(message_en="everything spirals in my head at night and I cannot switch off")
     result = await skill_select_node(state)
