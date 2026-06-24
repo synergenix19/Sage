@@ -1,3 +1,5 @@
+> **APPROVALS RECORDED 2026-06-24** (relayed by product owner, `synergenix.global@gmail.com`, acting approver for PO + clinical sign-offs): **A1, A2, A3, C2, C3 approved**; operational sanctioned-merge path approved with the user as named approver; staging-smoke confirmed as a hard gate before promote. **C3 approved → cooldown flag flips to ON in production (logged).** D5/T5 stays **inert** this release: B1's flip condition is the EN/AR high-intensity regression (Task 6, runs on staging) which has not yet been produced, so D5 is not flipped now even though it is approved in principle. T4b offer copy (C1) is a separate canary, not in this branch. Release scope: **T1, T2, T3, T4a (cooldown live via C3), T5 (inert).**
+
 # Conversational-Style (D4 / D3 / D5) — Decisions & Sign-off Register
 **Date:** 2026-06-24 · **For:** product owner + clinical lead
 **Plan:** `docs/superpowers/plans/2026-06-24-conversational-style-d3-d4-d5.md` · **Spec:** `docs/superpowers/specs/2026-06-24-conversational-style-d3-d4-d5-design.md`
