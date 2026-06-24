@@ -1,4 +1,12 @@
-> **APPROVALS RECORDED 2026-06-24** (relayed by product owner, `synergenix.global@gmail.com`, acting approver for PO + clinical sign-offs): **A1, A2, A3, C2, C3 approved**; operational sanctioned-merge path approved with the user as named approver; staging-smoke confirmed as a hard gate before promote. **C3 approved → cooldown flag flips to ON in production (logged).** D5/T5 stays **inert** this release: B1's flip condition is the EN/AR high-intensity regression (Task 6, runs on staging) which has not yet been produced, so D5 is not flipped now even though it is approved in principle. T4b offer copy (C1) is a separate canary, not in this branch. Release scope: **T1, T2, T3, T4a (cooldown live via C3), T5 (inert).**
+> **DEPLOYED TO PRODUCTION 2026-06-24.** PR #60 admin-merged (logged bypass, sole-account) → `origin/master` `81e03ee`; manually deployed to prod (`railway up`, auto-deploy not wired) as deploy `255eab8d`, then `ef5c73f4` after the C3 flag flip. Tested merge tree = `24a623e`. Rollback pin = prod deploy `1c1fff96-641`. Prod smoke + live-UI functional test green (crisis EN/AR, D4 answer-first, must-fix reflect-preservation, banned-opener + one-question).
+>
+> **LIVE in prod:** T1 (Arabic `؟` discipline), T2 (fallback statement), T3 (D4 answer-first), **T4a cooldown (C3 flipped: `SAGE_SKILL_OFFER_COOLDOWN_ENABLED=true`)**.
+>
+> **APPROVED BUT NOT LIVE — signed ≠ live:** **D5/T5 is approved in principle but the flag is NOT flipped** (`SAGE_D5_ACUITY_GATE` unset in prod → inert). Its flip condition is **B1 + Task 6** (the EN/AR high-intensity regression), which has **not been run**. Do **not** read "all signatures in" as "D5 behaviour live." This is the one place signed and live legitimately diverge in this release. **T4b** offer copy (C1) is a separate canary, not in this branch.
+>
+> **APPROVALS RECORDED 2026-06-24** (relayed by product owner `synergenix.global@gmail.com`, acting approver for PO + clinical): **A1, A2, A3, C2, C3 approved**; sanctioned-merge path approved (user = named approver); staging-smoke run as a hard gate before promote. Release scope: **T1, T2, T3, T4a (cooldown live via C3); T5 shipped inert.**
+>
+> **Follow-up filed:** Arabic question-stacking (`؟ … ؟`) surfaced by the live test — `docs/superpowers/tickets/2026-06-24-arabic-question-stacking-translate-after-gate.md` (pre-existing translate-after-gate residual, not a regression; resolved by native-Arabic generation).
 
 # Conversational-Style (D4 / D3 / D5) — Decisions & Sign-off Register
 **Date:** 2026-06-24 · **For:** product owner + clinical lead
