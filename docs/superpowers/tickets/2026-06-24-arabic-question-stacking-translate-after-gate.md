@@ -2,6 +2,7 @@
 
 **Filed:** 2026-06-24 · **Source:** prod UI functional test of the D3/D4/D5 tone release (`chat.biosight.ai`)
 **Status:** open · **Type:** follow-up (guardrail-adjacent, not cosmetic) · **Not a regression**
+**Related but DISTINCT:** `2026-06-24-language-router-arabic-overtrigger.md` — same `؟`/EN↔AR surface, **different layer and different fix**. That one is the **language router** (which language to answer in) and is a small shippable fix now; **this one** is gate-ordering / translate-after-gate and is resolved only by **native-Arabic generation** (a roadmap item). Do not bundle them.
 
 ## Symptom
 On a normal Khaleeji-Arabic distress turn, Sage replied with **two** question marks in one message
