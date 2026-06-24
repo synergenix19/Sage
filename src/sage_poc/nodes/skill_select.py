@@ -281,6 +281,21 @@ def _rerank_route(
     return None, ranked[0][1], None  # ABSTAIN — below the reranker's confidence floor
 
 
+def _keyword_rerank_veto(candidates: list[str], message: str, lang: str) -> bool:
+    """True if the reranker would ABSTAIN on a keyword-Tier-1 route — i.e., NONE of the keyword-
+    matched skills clears the reranker's confidence floor for this message. Catches the Tier-1
+    bypass: a keyword false-match on a clinician-territory (id_oos) disclosure must not route past
+    the reranker's ABSTAIN gate (the wired re-gate measured 7 such id_oos over-routes, id_oos
+    90→76). A confident keyword in_scope match clears τ and is NOT vetoed."""
+    if not candidates:
+        return False
+    from sage_poc.nodes.skill_rerank_model import score_pairs
+    from sage_poc.skills.schema import load_skill
+    cands = candidates[:_RERANK_K]
+    scores = score_pairs([(message, load_skill(sid).semantic_description or sid) for sid in cands])
+    return bool(scores) and max(scores) < _rerank_tau(lang)
+
+
 def _route_decision(
     ranked: list[tuple[str, float]],
     lang: str,
@@ -651,6 +666,14 @@ async def skill_select_node(state: SageState) -> dict:
         ):
             candidates.remove("grounding_5_4_3_2_1")
             candidates.insert(0, "grounding_5_4_3_2_1")
+        # V2 (wired-re-gate fix): gate keyword routes through the reranker's ABSTAIN too. A keyword
+        # match the reranker won't endorse (clinician-territory false-match) must not bypass the
+        # safety gate — without this, Tier-1 over-routes id_oos before the reranker can veto (id_oos
+        # 90→76). Flag-off (reranker disabled): never runs -> keyword routing is byte-identical V1.
+        if _rerank_enabled() and _keyword_rerank_veto(candidates, state["message_en"], detected_language):
+            return {**stale_offer_clear, "active_skill_id": None, "active_step_id": None,
+                    "skill_match_method": None, "semantic_score": None,
+                    "path": state["path"] + ["skill_select", "keyword_rerank_veto"]}
         # resolve result must win the merge: offer results set offered_skill_ids themselves
         return {**stale_offer_clear,
                 **_resolve_entry(state, candidates, method="keyword", semantic_score=None)}
