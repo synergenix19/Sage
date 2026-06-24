@@ -120,3 +120,52 @@ async def test_crisis_state_is_never_rewritten(monkeypatch):
         gate_path=None, crisis_flags=["si_explicit"])
     assert res["_rewrite_calls"] == []
     assert "output_gate_opener_rewritten" not in res.get("path", [])
+
+
+# ---- #58 x #60 recompose: the rewrite and #60's question-discipline / directive_posture ---------
+# logic edit the SAME node and have never run together. These prove the merge is semantically clean.
+
+def _mock_node(monkeypatch):
+    monkeypatch.setattr(output_gate.rules_engine, "evaluate", lambda *a, **k: MagicMock(fired=[]))
+    monkeypatch.setattr(output_gate, "async_translate_to_arabic", AsyncMock(return_value="..."))
+    monkeypatch.setattr(output_gate, "write_session_audit", AsyncMock())
+
+
+@pytest.mark.asyncio
+async def test_rewrite_composes_with_question_discipline(monkeypatch):
+    """Rewrite runs BEFORE question-discipline, so a rewritten opener that still leaves two questions
+    is limited to one by #60's discipline (discipline sees the rewrite, not the pre-rewrite text)."""
+    async def _fake_rewrite(response_en, opener, user_message_en):
+        return "You're carrying a lot right now. What's been hardest? How are you sleeping?"
+    monkeypatch.setattr(output_gate, "_rewrite_opener", _fake_rewrite)
+    _mock_node(monkeypatch)
+
+    state = _base_state(
+        response_en="It sounds like you're overwhelmed. What's been hardest? How are you sleeping?")
+    res = await output_gate.output_gate_node(state)
+    resp = res["response"]
+
+    assert "output_gate_opener_rewritten" in res.get("path", [])
+    assert not output_gate._BANNED_OPENER_RE.match(resp.lstrip())     # opener fixed
+    assert resp.count("?") == 1, f"discipline must cap the rewritten reply at one question: {resp!r}"
+    assert "question_discipline_applied" in res.get("path", [])
+
+
+@pytest.mark.asyncio
+async def test_passthrough_flows_through_directive_posture(monkeypatch):
+    """When the rewrite fails and the original passes through, that original still flows through #60's
+    directive_posture trailing-question strip — the pass-through path is NOT short-circuited."""
+    async def _fail_rewrite(response_en, opener, user_message_en):
+        return ""  # pass-through
+    monkeypatch.setattr(output_gate, "_rewrite_opener", _fail_rewrite)
+    _mock_node(monkeypatch)
+
+    state = _base_state(
+        response_en="It sounds like you want steps. Try box breathing tonight. Does that help?",
+        directive_posture=True, offered_skill_ids=None)
+    res = await output_gate.output_gate_node(state)
+    resp = res["response"]
+
+    assert "output_gate_opener_passthrough" in res.get("path", [])
+    assert "Does that help?" not in resp, "directive_posture must strip the trailing question on pass-through"
+    assert "question_discipline_applied" in res.get("path", [])
