@@ -2,7 +2,7 @@
 >
 > **LIVE in prod:** T1 (Arabic `؟` discipline), T2 (fallback statement), T3 (D4 answer-first), **T4a cooldown (C3 flipped: `SAGE_SKILL_OFFER_COOLDOWN_ENABLED=true`)**.
 >
-> **APPROVED BUT NOT LIVE — signed ≠ live:** **D5/T5 is approved in principle but the flag is NOT flipped** (`SAGE_D5_ACUITY_GATE` unset in prod → inert). Its flip condition is **B1 + Task 6** (the EN/AR high-intensity regression), which has **not been run**. Do **not** read "all signatures in" as "D5 behaviour live." This is the one place signed and live legitimately diverge in this release. **T4b** offer copy (C1) is a separate canary, not in this branch.
+> **APPROVED BUT NOT LIVE — signed ≠ live:** **D5/T5 is approved in principle but the flag is NOT flipped** (`SAGE_D5_ACUITY_GATE` unset in prod → inert). **Task 6 evidence has now been produced** (`2026-06-24-d5-task6-evidence.md`) — but D5 is **still inert**, pending the clinician's **floor pin (7 vs 8) + B1 sign-off on that evidence**. Producing evidence ≠ flipping the gate. Do **not** read "all signatures in" or "Task 6 ran" as "D5 behaviour live." This is the one place signed and live legitimately diverge in this release. **T4b** offer copy (C1) is a separate canary, not in this branch.
 >
 > **APPROVALS RECORDED 2026-06-24** (relayed by product owner `synergenix.global@gmail.com`, acting approver for PO + clinical): **A1, A2, A3, C2, C3 approved**; sanctioned-merge path approved (user = named approver); staging-smoke run as a hard gate before promote. Release scope: **T1, T2, T3, T4a (cooldown live via C3); T5 shipped inert.**
 >
@@ -85,6 +85,7 @@ At high distress (`emotional_intensity ≥ floor`), Sage will **validate the fee
 1. **Behaviour text** above — approve or amend.
 2. **Pin `ACUITY_FLOOR`** — recommend **8** (`emotional_intensity > 7`, matching the existing `validate_only` floor, v7 §9.2 rule 1). Set **7** to cover the entire "high" band. *(At 8, intensity-7 turns keep the standard high guidance.)*
 3. **Release evidence** — a dedicated high-intensity regression in **English and Khaleeji Arabic** (planted distortion at/above floor → purely supportive + specific naming, no challenge, no cold filler) as the condition to flip the flag. *(Composition-level EN+AR tests already exist as the first half of this evidence; the live behavioural run is Task 6.)*
+   - **Task 6 evidence is now produced and ready for review: `docs/superpowers/governance/2026-06-24-d5-task6-evidence.md`** — three-cell floor 7-vs-8 comparison (EN + Khaleeji), non-endorsement held in every cell, crisis path re-verified unaffected. **Producing this evidence did NOT change D5's status: D5 remains approved-in-principle and INERT, pending your floor pin + sign-off ON this evidence.** "Task 6 ran" is not "D5 live."
 - **Recommendation:** approve the behaviour + `ACUITY_FLOOR = 8` + the EN/AR regression gate.
 - [ ] Approve (floor 8) · [ ] Approve (floor 7) · [ ] Approve with edits: ________ · [ ] Hold · Signer: ____________  Date: ______
 - **Interim:** until B1 is signed, the current "do not reflect back" wording stays live (functional, just blunt). [ ] Interim acceptable · [ ] Want a faster standalone wording correction
