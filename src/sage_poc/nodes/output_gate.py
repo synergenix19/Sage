@@ -9,7 +9,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sage_poc.state import SageState
 from sage_poc.language import async_translate_to_arabic
-from sage_poc.config import AUDIT_LOG_ENABLED, CRISIS_LINE_UAE
+from sage_poc.config import AUDIT_LOG_ENABLED, CRISIS_LINE_UAE, CLASSIFIER_MODEL
+from sage_poc.llm import get_classifier
 from sage_poc.rules import engine as rules_engine
 from sage_poc.prompts.summarizer import summarise_history
 from sage_poc.audit import write_session_audit, write_identity_substitution_audit
@@ -175,6 +176,49 @@ _BANNED_OPENER_CORRECTION = (
 # (5) treat as user-facing copy with measurable frequency, not a rare error message.
 # Review doc: docs/superpowers/reviews/FALLBACK_RESPONSE_REVIEW.md
 _VETTED_FALLBACK_RESPONSE = "I'm here with you, and what you've shared matters. Take a moment, I'm listening whenever you're ready."
+
+# #58 — opener rewrite (register-preserving fix). DRAFT copy pending clinical sign-off
+# (docs/superpowers/reviews/2026-06-24-banned-opener-rewrite-signoff.md). No em dashes.
+_OPENER_REWRITE_TIMEOUT = 4.0  # fail fast -> pass-through; never block the turn on a non-critical edit
+_OPENER_REWRITE_SYSTEM = (
+    "You are lightly editing one wellness-companion reply that you wrote. It began with a "
+    "reflective or sympathy cliche we avoid. Rewrite ONLY the opening so it names the specific "
+    "thing the person said, warm and present, one to one. Keep every following sentence exactly "
+    "as written. Do not add advice, do not add a question, do not change the length or the meaning. "
+    "Use plain prose, commas not dashes, no emojis. Return only the full revised reply."
+)
+
+
+def _opener_rewrite_user(user_message_en: str, response_en: str, opener: str) -> str:
+    return (
+        f"The person said: {user_message_en}\n\n"
+        f"Your reply (revise only the opening, keep the rest verbatim): {response_en}\n\n"
+        f"The banned opener you used and must replace: {opener}"
+    )
+
+
+async def _rewrite_opener(response_en: str, opener: str, user_message_en: str) -> str:
+    """Rewrite only the banned opening of an existing reply via the classifier model,
+    preserving the rest. Returns "" on timeout/failure (caller passes the original through).
+
+    Deliberately NOT wrapped in resilient_invoke: its fixed 30s x 2 timeout under the 55s graph
+    ceiling is a SERVER_ERROR vector on the ~27% of turns that fire. A slow rewrite must degrade
+    to pass-through, so this uses a short asyncio.wait_for with no retries -- pass-through is the
+    safe fallback. asyncio.TimeoutError is an Exception subclass; CancelledError is NOT and is
+    correctly not swallowed."""
+    if not response_en:
+        return ""
+    try:
+        msg = await asyncio.wait_for(
+            get_classifier().ainvoke([
+                {"role": "system", "content": _OPENER_REWRITE_SYSTEM},
+                {"role": "user", "content": _opener_rewrite_user(user_message_en, response_en, opener)},
+            ]),
+            timeout=_OPENER_REWRITE_TIMEOUT,
+        )
+        return msg if isinstance(msg, str) else (getattr(msg, "content", None) or "")
+    except Exception:
+        return ""
 
 # Re-surface resources if a MONITORING (post-crisis) turn would otherwise return blank.
 # A silent turn during crisis monitoring is the worst failure mode; commas only (no em dash).
