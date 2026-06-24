@@ -56,3 +56,21 @@ def test_guard_has_teeth_flag_on_threshold_seam_uses_the_table(monkeypatch):
     monkeypatch.setattr(ss, "_THRESHOLD_TABLE", ThresholdTable(
         per_route={("en", "box_breathing"): 0.99}, cluster={}, route_cluster={}, fallback=frozenset()))
     assert routing_threshold("en", "box_breathing") == 0.99  # distinguishing, not vacuous
+
+
+# --- behavior #2 wiring: explicit ABSTAIN. Flag-off must keep the below-threshold cluster
+# --- argmax floor (the exact path #2 changes under flag-on). ---
+
+def test_flag_off_cluster_argmax_still_routes_below_threshold(monkeypatch):
+    monkeypatch.setenv("SKILL_ROUTING_V2", "0")
+    monkeypatch.setattr(ss, "_skill_cluster", lambda sid: "C" if sid in ("a", "b") else None)
+    best, _, _ = ss._route_decision([("a", 0.43), ("b", 0.42)], "en", "msg")
+    assert best == "a"  # V1's 0.42 floor routes below threshold — unchanged when flag is off
+
+
+def test_guard_has_teeth_flag_on_below_threshold_cluster_argmax_abstains(monkeypatch):
+    monkeypatch.setenv("SKILL_ROUTING_V2", "1")
+    monkeypatch.setattr(ss, "_THRESHOLD_TABLE", None)
+    monkeypatch.setattr(ss, "_skill_cluster", lambda sid: "C" if sid in ("a", "b") else None)
+    best, _, ru = ss._route_decision([("a", 0.43), ("b", 0.42)], "en", "msg")
+    assert best is None and ru is None  # flag-on genuinely diverges — guard distinguishes

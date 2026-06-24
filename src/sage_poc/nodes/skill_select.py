@@ -145,6 +145,55 @@ def _skill_cluster(skill_id: str) -> str | None:
     return None
 
 
+def _route_decision(
+    ranked: list[tuple[str, float]],
+    lang: str,
+    message_en: str,
+) -> tuple[str | None, float, tuple[str, float] | None]:
+    """Map a ranked (skill_id, score) list to (best|None, best_score, runner_up): cluster-argmax
+    tiebreak, the per-route absolute gate, rerank, and ABSTAIN. Flag-off = V1 exactly. Flag-on
+    adds explicit ABSTAIN (behavior #2): the cluster-argmax floor no longer routes a winner that
+    clears no threshold — it fires only ABOVE the winner's τ (the id_oos over-route fix), while an
+    above-τ winner still gets the tiebreak (no in_scope collateral). ABSTAIN returns no runner-up."""
+    best_sid, best_score = ranked[0]
+
+    def _runner_up(best: str | None) -> tuple[str, float] | None:
+        if best is None:
+            return None
+        for sid, sc in ranked:
+            if sid != best and sc >= routing_threshold(lang, sid):
+                return (sid, sc)
+        return None
+
+    # Within-cluster argmax: when top-2 share a clinical cluster and the second exceeds the soft
+    # floor, trust relative ordering rather than absolute threshold gating.
+    if len(ranked) >= 2:
+        second_sid, second_score = ranked[1]
+        if second_score >= _CLUSTER_ARGMAX_FLOOR:
+            best_cluster = _skill_cluster(best_sid)
+            if best_cluster is not None and best_cluster == _skill_cluster(second_sid):
+                # V2 (behavior #2): the tiebreak fires only when the winner clears its own τ —
+                # ABOVE threshold, never below (kills the below-τ over-route) — and an above-τ
+                # winner still wins the tiebreak (preserves legit in_scope disambiguation).
+                # Flag-off: V1's 0.42 floor routes the winner regardless of threshold.
+                if not _v2_enabled() or best_score >= routing_threshold(lang, best_sid):
+                    return best_sid, best_score, _runner_up(best_sid)
+
+    # Absolute threshold gate — cross-cluster or single-cluster without argmax floor.
+    # Per-route: each candidate is gated by ITS OWN (lang, route) τ (global flag-off). No pooling.
+    above = [(sid, score) for sid, score in ranked if score >= routing_threshold(lang, sid)]
+    if len(above) == 1:
+        return above[0][0], above[0][1], _runner_up(above[0][0])
+    if len(above) >= 2:
+        if above[0][1] - above[1][1] < _RERANK_MARGIN:
+            from sage_poc.nodes.skill_rerank import rerank_candidates
+            best_sid_r, best_score_r = rerank_candidates(message_en, above[:_RERANK_TOP_K])
+            return best_sid_r, best_score_r, _runner_up(best_sid_r)
+        return above[0][0], above[0][1], _runner_up(above[0][0])
+
+    return None, best_score, None  # ABSTAIN — no skill, no runner-up offer (pure freeflow)
+
+
 def _semantic_match_with_runner_up(
     message_en: str,
     profile_context: str = "",
@@ -180,38 +229,7 @@ def _semantic_match_with_runner_up(
         return None, 0.0, None
 
     ranked = sorted(skill_scores.items(), key=lambda x: x[1], reverse=True)
-    best_sid, best_score = ranked[0]
-
-    def _runner_up(best: str | None) -> tuple[str, float] | None:
-        if best is None:
-            return None
-        for sid, sc in ranked:
-            if sid != best and sc >= routing_threshold(lang, sid):
-                return (sid, sc)
-        return None
-
-    # Within-cluster argmax: when top-2 share a clinical cluster and the second exceeds
-    # the soft floor, trust relative ordering rather than absolute threshold gating.
-    if len(ranked) >= 2:
-        second_sid, second_score = ranked[1]
-        if second_score >= _CLUSTER_ARGMAX_FLOOR:
-            best_cluster = _skill_cluster(best_sid)
-            if best_cluster is not None and best_cluster == _skill_cluster(second_sid):
-                return best_sid, best_score, _runner_up(best_sid)
-
-    # Absolute threshold gate — cross-cluster or single-cluster without argmax floor.
-    # Per-route: each candidate is gated by ITS OWN (lang, route) τ (global flag-off). No pooling.
-    above = [(sid, score) for sid, score in ranked if score >= routing_threshold(lang, sid)]
-    if len(above) == 1:
-        return above[0][0], above[0][1], _runner_up(above[0][0])
-    if len(above) >= 2:
-        if above[0][1] - above[1][1] < _RERANK_MARGIN:
-            from sage_poc.nodes.skill_rerank import rerank_candidates
-            best_sid_r, best_score_r = rerank_candidates(message_en, above[:_RERANK_TOP_K])
-            return best_sid_r, best_score_r, _runner_up(best_sid_r)
-        return above[0][0], above[0][1], _runner_up(above[0][0])
-
-    return None, best_score, None
+    return _route_decision(ranked, lang, message_en)
 
 
 def _semantic_match_sync(message_en: str, profile_context: str = "") -> tuple[str | None, float]:
