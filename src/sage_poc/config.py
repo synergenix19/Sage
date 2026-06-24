@@ -29,3 +29,10 @@ CRISIS_LINE_UAE = "800 46342"
 # 0.015 (just above single-list rank-2+ RRF noise with k=60); finalize via
 # scripts/calibrate_retrieval_threshold.py once a labeled query set exists.
 KNOWLEDGE_ABSTAIN_THRESHOLD = float(os.getenv("SAGE_KNOWLEDGE_ABSTAIN_THRESHOLD", "0.015"))
+
+# Skill-routing precision (feedback #6). A runner-up (second offer) must be strong AND close
+# to the primary, else only the primary is offered. The offer floor suppresses noise-band
+# single matches (0.46-0.49) into freeflow exploration. Defaults conservative; confirm with clinical.
+SKILL_RUNNER_UP_MIN = float(os.getenv("SAGE_SKILL_RUNNER_UP_MIN", "0.50"))
+SKILL_RUNNER_UP_MARGIN = float(os.getenv("SAGE_SKILL_RUNNER_UP_MARGIN", "0.05"))
+SKILL_OFFER_CONFIDENCE_FLOOR = float(os.getenv("SAGE_SKILL_OFFER_CONFIDENCE_FLOOR", "0.50"))
