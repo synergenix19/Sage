@@ -40,3 +40,13 @@ Rules:
 1. Before any `railway up`: `git fetch origin master` and build from `origin/master` (or a branch freshly based on it), not a local ref.
 2. Verify the deploy delta against **current prod**, computed from `origin/master`, not a stale local pointer.
 3. Reconcile prod to a known commit; treat "what's actually in prod" as a fact to verify (reflog/CI), never assume — `railway up` deploys leave no SHA to recover later.
+
+## SCHEDULED structural hardening — do at the next coast-clear window (no active concurrent session)
+**Why now (not "someday"):** the 2026-06-24 incident is the argument. A crisis-rule deploy silently rolled back a confirmed break-fix (#41), and recovering *what shipped* required `git reflog` timestamp forensics because the deploy tooling is SHA-blind. The written "fetch origin/master" invariant (above) is load-bearing human vigilance — the same kind that held explicit-pathspec for collisions #1–5; it works until the once it doesn't, and this was that once. The two fixes below make the invariant **unnecessary**, not remembered.
+
+**Trigger:** next coast-clear moment (no concurrent session), because the worktree install mutates the shared checkout (can't free an already-checked-out branch mid-session). Do not attempt while parallel sessions are active.
+
+1. **Worktree-per-session (install, not aspiration).** Every working session operates in its own `git worktree add ../sage-poc-<branch> <branch>`, never the shared main checkout. This removes the shared-ref hazard that produced the stale local `master`. Project already uses `.worktrees/` for some branches — make it the rule for all sessions, including the command session.
+2. **Deploy carries its source SHA (kill the SHA-blindness).** `railway up` records no commit, so prod's deployed SHA is unreadable after the fact. Fix: a thin deploy wrapper that stamps `git rev-parse HEAD` into a `BUILD_SHA` file (or build ARG) before `railway up`; the app reads it and exposes it (e.g. `/version` endpoint or an `x-sage-build` header). Then "what's in prod" is a one-line read, not reflog archaeology — and a stale-base deploy is visible immediately, not hours later.
+
+Owner: engineering. Status: **scheduled, next coast-clear window.** Until done, the "fetch origin/master before deploy" invariant (above) stands as the interim guard.
