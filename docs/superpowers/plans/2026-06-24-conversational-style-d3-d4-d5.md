@@ -4,7 +4,7 @@
 
 **Goal:** Make Sage answer-first when the user wants info/a decision (D4), drop the scripted-menu feel (D3), and validate feelings without co-signing distorted beliefs (D5) — reliably, via deterministic gates, reconciled to the production architecture.
 
-**Architecture:** Spec: `docs/superpowers/specs/2026-06-24-conversational-style-d3-d4-d5-design.md` (FINAL, source-verified). Gate *mechanics* stay Python node logic (decided carve-out, ticket #22 LOCK-QDISC-22); new clinical *values* go to data (`skill_matching` JSON, config). All gates run on the English `response_en`/`message_en` before translation (covers EN + translate-out AR; R1 makes them language-aware for Arabic `؟` and closes the already-Arabic gap).
+**Architecture:** Spec: `docs/superpowers/specs/2026-06-24-conversational-style-d3-d4-d5-design.md` (FINAL, source-verified). Gate *mechanics* stay Python node logic (decided carve-out, ticket #22 LOCK-QDISC-22); new clinical *values* go to data (`skill_matching` JSON, config). All gates run on the English `response_en`/`message_en` before translation (covers EN + translate-out AR). **R1 scope (corrected):** Task 1 makes only the *question-discipline* gate language-aware for Arabic `؟` and closes ITS already-Arabic gap; the *banned-opener* gate's already-Arabic bypass (`_response_en_is_arabic` at `output_gate.py:408`) is **out of scope here** — scoped to the native-Arabic track (R2) under the documented "English-source-only while translate-out is in force" guarantee (§16). Do not claim R1 closes the whole already-Arabic gap.
 
 **Tech Stack:** Python 3, pytest (`asyncio_mode = "auto"`), LangGraph. Run tests: `./.venv/bin/python -m pytest`.
 
@@ -102,7 +102,11 @@ async def test_vetted_fallback_survives_directive_posture():
     # the fallback must not collapse to a fragment when trailing-question stripping runs
     assert _strip_trailing_question(_VETTED_FALLBACK_RESPONSE) == _VETTED_FALLBACK_RESPONSE
     assert len(_VETTED_FALLBACK_RESPONSE.split()) >= 6
+    # it is emitted on a fallback path; it must not itself be a banned opener (second-order strip)
+    from sage_poc.nodes.output_gate import _BANNED_OPENER_RE
+    assert _BANNED_OPENER_RE.match(_VETTED_FALLBACK_RESPONSE.lstrip()) is None
 ```
+NOTE: the new fallback copy is strictly better than the live gutting bug, so merge now; route the final wording to **clinical confirmation post-merge** (it is user-facing copy on a measurable path).
 - [ ] **Step 2: Run — expect FAIL** (current fallback ends in a question → stripped).
 - [ ] **Step 3: Implement** — replace `output_gate.py:176`:
 ```python
@@ -135,29 +139,32 @@ git commit -m "fix(output_gate): make vetted fallback a statement so directive-p
 from sage_poc.nodes.directive_detect import detect_directive_request
 
 def test_info_request_intent_triggers_directive():
-    st = {"message_en": "what time is it", "conversation_history": []}
+    # a genuine factual/list request classifies as info_request -> answer-first
+    st = {"message_en": "can you give me a list of sleep tips?", "conversation_history": []}
     assert detect_directive_request(st, primary_intent="info_request") is True
 
-def test_user_question_triggers_directive():
-    st = {"message_en": "can you give me a list of sleep tips?", "conversation_history": []}
-    assert detect_directive_request(st) is True
+# MUST-FIX (clinical over-fire guard): a question mark does NOT trigger answer-first.
+# Emotional disclosure phrased as a question stays in Reflect mode so the earned open
+# question is not stripped (the §5 carve-out). These classify as disclosure intents, not info_request.
+def test_emotional_disclosure_question_does_not_trigger():
+    for q in ["am I broken?", "why do I always feel like this?", "what's wrong with me?", "is it my fault?"]:
+        st = {"message_en": q, "conversation_history": []}
+        assert detect_directive_request(st, primary_intent="new_skill") is False, q
 
 def test_plain_emotional_disclosure_does_not_trigger():
     st = {"message_en": "i feel so overwhelmed and exhausted lately", "conversation_history": []}
     assert detect_directive_request(st, primary_intent="new_skill") is False
 ```
-- [ ] **Step 2: Run — expect FAIL** (no `primary_intent` param; question not detected).
-- [ ] **Step 3: Implement**
-  - In `directive_detect.py`, change the signature to `def detect_directive_request(state, primary_intent=None):` and near the top of the body, after computing `text = (state.get("message_en") or "").lower()`, add:
+- [ ] **Step 2: Run — expect FAIL** (no `primary_intent` param yet).
+- [ ] **Step 3: Implement (intent-gated only — NO punctuation trigger)**
+  - In `directive_detect.py`, change the signature to `def detect_directive_request(state, primary_intent=None):` and near the top of the body, after `text = (state.get("message_en") or "").lower()`, add ONLY the intent-based trigger:
     ```python
     if primary_intent == "info_request":
         return True
-    # message is itself a direct question (info/decision signal), not an emotional disclosure
-    if text.rstrip().endswith(("?", "؟")):
-        return True
     ```
-  - Keep the existing `_DIRECTIVE_PHRASES` / `_REPAIR_PUSHBACK` logic below.
-  - In `intent_route.py:148`, change `"directive_posture": detect_directive_request(state),` to pass the just-parsed intent, e.g. `"directive_posture": detect_directive_request(state, primary_intent=data.get("primary_intent")),` (use the freshly-parsed classifier result `data`, NOT `state["primary_intent"]` which is the prior turn).
+    **Do NOT add a bare `text.endswith("?"/"؟")` trigger.** A question mark does not disambiguate an info request from an emotional disclosure ("am I broken?"); firing `directive_posture` there would let `_strip_trailing_question` remove the earned open question from a Reflect-mode reply (the exact §5 harm). Genuine factual/list questions already classify as `info_request`, so the intent trigger covers them without the false positive. Keep the existing `_DIRECTIVE_PHRASES` / `_REPAIR_PUSHBACK` (curt-reply-after-question) logic below unchanged.
+  - In `intent_route.py:148`, change `"directive_posture": detect_directive_request(state),` to `"directive_posture": detect_directive_request(state, primary_intent=data.get("primary_intent")),` (use the freshly-parsed classifier result `data`, NOT `state["primary_intent"]` which holds the prior turn).
+- [ ] **Step 3b: Audit marker (F3) for directive-set.** In `intent_route_node`, when the computed `directive_posture` is True, append `"directive_posture_set"` to the turn's `path` (the same `node_path` that `session_audit` records), so §9 replay can attribute firings to the new logic. Add a test asserting the marker appears on an info_request turn and is absent otherwise.
 - [ ] **Step 4: G1 guard** — in `output_gate.py` question-discipline block (`:461`), make directive stripping moot when an offer is live. Change:
   ```python
   if state.get("directive_posture"):
@@ -211,7 +218,7 @@ async def test_offer_suppressed_within_cooldown():
     assert "offer_cooldown_suppressed" in result["path"]
 ```
 - [ ] **Step 2: Run — expect FAIL** (no cooldown logic).
-- [ ] **Step 3: Implement** — in `skill_select_node`, before building any offer (after intent/auto-select guards, before the semantic offer path), add:
+- [ ] **Step 3: Implement** — PLACEMENT MATTERS (SF2/G2). Add the cooldown check in `skill_select_node` **immediately after the offer-accept promotion block** (after `skill_select.py:380`, where `stale_offer_clear` is defined and any accepted/pending offer has already returned) and **before** keyword/semantic matching:
   ```python
   _cooldown = _offer_cooldown_turns()  # reads skill_matching rule, falls back to config
   _last = state.get("last_offer_turn")
@@ -220,7 +227,9 @@ async def test_offer_suppressed_within_cooldown():
               "skill_match_method": None, "semantic_score": None,
               "path": state["path"] + ["skill_select", "offer_cooldown_suppressed"]}
   ```
-  Add `_offer_cooldown_turns()` reading the `default_offer` rule's `cooldown_turns` (fallback `config.SKILL_OFFER_COOLDOWN_TURNS`). When an offer is made (the `skill_offer_made` return), add `"last_offer_turn": state.get("turn_count", 0)` to the returned dict. Add `last_offer_turn` to `state.py` SageState.
+  - **G2 (verified safe):** at this placement `stale_offer_clear` is `{}` in the normal case (it is only `{"offered_skill_ids": None}` on a *stale-rename* accept, where clearing is correct), and the cooldown itself never touches `offered_skill_ids` — so it cannot void a pending offer the user already saw. A pending offer being *accepted* already returned at `:366-371` above this check.
+  - **SF3 (verified):** `turn_count` exists (`state.py:74`) and is incremented every turn in `output_gate` (`:557`, returned `:606`), so the cross-turn arithmetic is sound — no new counter needed.
+  - Add `_offer_cooldown_turns()` reading the `default_offer` rule's `cooldown_turns` (fallback `config.SKILL_OFFER_COOLDOWN_TURNS`). When an offer is made (the `skill_offer_made` return ~`:290`), add `"last_offer_turn": state.get("turn_count", 0)` to that returned dict. Add `last_offer_turn: int | None` to `state.py` SageState.
 - [ ] **Step 4: skill_offer.json** — remove the trailing "Ask which they would prefer, as one short question." sentence from the template content (keep the offer presentation; this is clinical copy → bump template version + leave `approved_by` as-is pending sign-off, consistent with its `draft-pending-review` status).
 - [ ] **Step 5: Run — expect PASS**; run `tests/test_skill_select.py tests/test_skill_select_offer_cooldown.py -q`.
 - [ ] **Step 6: Commit**
@@ -259,9 +268,16 @@ def test_d5_gate_off_by_default(monkeypatch):
     monkeypatch.setattr(config, "D5_ACUITY_GATE_ENABLED", False)
     g = _intensity_guidance(9)
     assert "do not challenge" not in g.lower()  # current behaviour unchanged when gate off
+
+def test_d5_floor_boundary(monkeypatch):
+    monkeypatch.setattr(config, "D5_ACUITY_GATE_ENABLED", True)
+    monkeypatch.setattr(config, "D5_ACUITY_FLOOR", 8)
+    assert "do not challenge" not in _intensity_guidance(7).lower()  # high band, below floor -> no D5
+    assert "do not challenge" in _intensity_guidance(8).lower()      # at floor -> D5 active
 ```
 - [ ] **Step 2: Run — expect FAIL**.
-- [ ] **Step 3: Implement** — in `composer.py`, in `_intensity_guidance(intensity)`, when `config.D5_ACUITY_GATE_ENABLED and intensity >= config.D5_ACUITY_FLOOR`, return a high-intensity string that (a) keeps "name the specific thing, no generic reflective opener, do not offer guidance yet" AND (b) adds "validate the feeling by naming it specifically; do not challenge or question a distorted belief here; stay purely supportive" (commas, no em dash, no L0 growth — this lives in the L2 intensity-guidance injection, not L0).
+- [ ] **Step 3: Implement (SF4 — function + band confirmed).** `_intensity_guidance(intensity)` exists at `composer.py:211` and is the real path; its **`high` band starts at intensity ≥ 7** (`<=3` low, `<=6` mid, else high). The D5 augmentation keys on its **own** `config.D5_ACUITY_FLOOR` (default 8 = `emotional_intensity > 7`, the executor `validate_only` floor), so: when `config.D5_ACUITY_GATE_ENABLED and intensity >= config.D5_ACUITY_FLOOR`, return a string that (a) keeps "name the specific thing, no generic reflective opener, do not offer guidance yet" AND (b) adds "validate the feeling by naming it specifically; do not challenge or question a distorted belief here; stay purely supportive" (commas, no em dash; lives in the L2 intensity-guidance injection, **not** L0 → zero L0 growth).
+  - **Floor/band gap (clinical decision, document it):** with floor=8, **intensity == 7 is in the `high` band but below the acuity floor** → it gets the standard high guidance, NOT the D5 challenge-suppress. This matches the `validate_only` floor (>7). If clinical prefers the D5 gate to cover all of `high`, set `D5_ACUITY_FLOOR=7`. Pin the value at the standalone sign-off (Step 7); default 8 until then.
 - [ ] **Step 4: High-intensity regression (EN + AR)** — `tests/test_d5_acuity_gate.py`: assert that with the gate ON, a high-intensity turn carrying a planted distortion does not co-sign it and is not cold (specific naming present). Provide both an EN and an AR (`؟`/Arabic) planted-distortion case. (Behavioural assertion via the composed prompt + a mocked responder; per spec §9 bind to eval R-2/R-7/P-2 in the live harness.)
 - [ ] **Step 5: Run — expect PASS** (gate-off path leaves current behaviour identical).
 - [ ] **Step 6: Commit (does NOT flip the flag)**
@@ -273,8 +289,20 @@ git commit -m "feat(D5): deterministic acuity gate behind flag (default off, pen
 
 ---
 
+### Task 6: Behavioral acceptance — §9 replay + Abby-parity (final gate before "done")
+Unit tests miss exactly the failure class the reviewer flagged (D4 over-fire on disclosure-questions). Add a behavioral gate, run on **staging** after Tasks 1–4 merge, before declaring the tranche done.
+
+**Files:** Test/harness: `tests/routing_eval/` or a staging replay script (reuse the feedback-replay harness pattern from `scratchpad/feedbacktest.py`). Bind assertions to the live eval instruments **R-2** (question count/type), **R-7** (response-shape), **P-2** (warmth register) — confirm exact IDs against the current test harness, not the 2026-05-20 v1.0 doc.
+
+- [ ] **Step 1:** Replay the feedback scenarios against staging: **D4** — ID24/46/57/58 (over-questioning) now answer-first on info; **and the over-fire guard** — a disclosure-question ("am I broken?", "why do I feel this way?") still gets a Reflect-mode reply that **keeps its one earned open question** (directive_posture False; question NOT stripped). **D3** — ID41/36/37/56 now one woven offer, no repeated menu within N turns.
+- [ ] **Step 2:** Abby-parity probes (the §3 four): emotional disclosure → validate + one open question; explicit "just give me a list" → answer-first; "that's a lot, one thing?" → one concrete step + one optional offer.
+- [ ] **Step 3:** Confirm `directive_posture_set` + `offer_cooldown_suppressed` markers appear in `session_audit.node_path` for the relevant turns (F3 traceability).
+- [ ] **Step 4:** Record results; only then mark the tranche done. (D5 high-intensity behavioral check is part of its separate sign-off regression, Task 5 Step 4, EN+AR.)
+
+---
+
 ## Self-Review
-- **Spec coverage:** D4 mode-switch (Task 3) ✓; D3 de-script/cooldown (Task 4) ✓; D5 deterministic acuity gate (Task 5, gated) ✓; R1 language-aware gates (Task 1) ✓; Bug A (Task 2) ✓; G1 guard (Task 3) ✓; governance preconditions + #22 + L0-budget escalation + divergence tickets (Task 0 / Global Constraints) ✓. D5 belief-detection stays prompt-led (no task — by design). G2 (offer-suppression × banned-opener retry) — covered by Task 4 using `last_offer_turn` (state, not clearing `offered_skill_ids` mid-retry), avoiding the desync; note for the implementer.
+- **Spec coverage:** D4 mode-switch (Task 3, intent-gated — no punctuation over-fire) ✓; D3 de-script/cooldown (Task 4) ✓; D5 deterministic acuity gate (Task 5, gated, floor/band reconciled) ✓; **R1 = question-discipline half only (Task 1)** — banned-opener-on-already-Arabic is **out of tranche → R2/native-Arabic track** under the English-source-only guarantee (do NOT mark R1 fully closed); Bug A (Task 2) ✓; G1 guard (Task 3) ✓; F3 audit markers — `directive_posture_set` (Task 3b) + `offer_cooldown_suppressed` (Task 4) ✓; behavioral acceptance (Task 6) ✓. Governance preconditions + #22 owner (Task 0) ✓; **L0-budget drift = filed/ticketed (Task 0 Step 4), NOT resolved** — the 4×-drift prompt-architecture review is out-of-tranche. D5 belief-detection stays prompt-led (by design). G2 (offer-suppression × banned-opener retry) — covered by Task 4 using `last_offer_turn` (never clears `offered_skill_ids`), placement verified after the accept block.
 - **Placeholder scan:** none — every code step shows the change.
 - **Type consistency:** `detect_directive_request(state, primary_intent=None)`, `last_offer_turn`, `_offer_cooldown_turns()`, `D5_ACUITY_GATE_ENABLED`/`D5_ACUITY_FLOOR`, `offer_cooldown_suppressed` used consistently across tasks.
 - **Sequencing:** Tasks 1, 2, 4 free now; Task 3 merge-gated on Task 0; Task 5 build-now/flip-gated on clinical sign-off. L0 budget review and native-Arabic port (R2) are out-of-tranche items.
