@@ -48,3 +48,75 @@ async def test_rewrite_opener_times_out_to_empty(monkeypatch):
 @pytest.mark.asyncio
 async def test_rewrite_opener_empty_input_returns_empty():
     assert await output_gate._rewrite_opener("", "It sounds like", "msg") == ""
+
+
+# ---- defense-in-depth: the rewrite must never touch scripted/crisis copy --------------
+from unittest.mock import AsyncMock, MagicMock
+
+
+def _base_state(**overrides) -> dict:
+    base = {
+        "raw_message": "I am exhausted by everything",
+        "message_en": "I am exhausted by everything",
+        "detected_language": "en",
+        "response_en": "It sounds like you're really overwhelmed. What's been hardest?",
+        "gate_path": None, "primary_intent": "general_chat", "secondary_intent": None,
+        "emotional_intensity": 8, "engagement": 4, "active_skill_id": None,
+        "executed_step_id": None, "step_instruction": None, "rule_fired": None,
+        "escalation_triggered": None, "clinical_flags": [], "crisis_flags": [],
+        "crisis_state": "none", "third_party_crisis": False, "code_switching": False,
+        "s7_result": None, "conversation_history": [], "conversation_summary": None,
+        "therapeutic_profile": None, "knowledge_passages": [], "knowledge_abstain": False,
+        "stale_skill_id": None, "cultural_output_violations": [],
+        "path": ["safety_check", "intent_route", "freeflow_respond"],
+        "turn_count": 1, "turn_number": 1, "session_id": None, "user_id": None,
+        "knowledge_source": "", "identity_substitution_rule_id": None,
+        "original_response_hash": None, "original_response_text": None,
+        "prompt_layers": ["persona", "intent"], "token_usage": {}, "resistance_score": None,
+        "resistance_history": [], "semantic_score": None, "skill_match_method": None,
+        "new_clinical_flags_turn": [], "active_step_id": None, "prev_step_id": None,
+        "re_escalation_within_monitoring": None, "engagement_trajectory": [],
+        "distress_trajectory": [], "banned_opener_retry_count": 0,
+    }
+    base.update(overrides)
+    return base
+
+
+async def _run_gate(monkeypatch, response_en, gate_path=None, crisis_flags=None):
+    calls = []
+
+    async def _spy_rewrite(response_en, opener, user_message_en):
+        calls.append(opener)
+        return "REWRITTEN should-not-be-used"
+
+    monkeypatch.setattr(output_gate, "_rewrite_opener", _spy_rewrite)
+    monkeypatch.setattr(output_gate.rules_engine, "evaluate", lambda *a, **k: MagicMock(fired=[]))
+    monkeypatch.setattr(output_gate, "async_translate_to_arabic", AsyncMock(return_value="..."))
+    monkeypatch.setattr(output_gate, "write_session_audit", AsyncMock())
+    state = _base_state(response_en=response_en, gate_path=gate_path)
+    if crisis_flags is not None:
+        state["crisis_flags"] = crisis_flags
+    res = await output_gate.output_gate_node(state)
+    res["_rewrite_calls"] = calls
+    return res
+
+
+@pytest.mark.asyncio
+async def test_scripted_safety_paths_are_never_rewritten(monkeypatch):
+    """scope_refusal / jailbreak copy must never reach the opener rewriter (allowlist)."""
+    for gp in ("scope_refusal", "jailbreak"):
+        res = await _run_gate(monkeypatch,
+            response_en="It sounds like you want a diagnosis, which I can't give.", gate_path=gp)
+        assert res["_rewrite_calls"] == []
+        assert "output_gate_opener_rewritten" not in res.get("path", [])
+
+
+@pytest.mark.asyncio
+async def test_crisis_state_is_never_rewritten(monkeypatch):
+    """Highest-stakes: a crisis-flagged turn (even at gate_path=None) never reaches the rewriter.
+    Defense-in-depth — does not rely on the upstream routing invariant alone."""
+    res = await _run_gate(monkeypatch,
+        response_en="It sounds like you're in real danger right now. Please call 999.",
+        gate_path=None, crisis_flags=["si_explicit"])
+    assert res["_rewrite_calls"] == []
+    assert "output_gate_opener_rewritten" not in res.get("path", [])

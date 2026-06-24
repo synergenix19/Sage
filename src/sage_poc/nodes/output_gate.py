@@ -450,48 +450,31 @@ async def output_gate_node(state: SageState) -> dict:
                 lambda t: _log.warning("[output_gate] empty-retry audit error: %s", t.exception())
                 if not t.cancelled() and t.exception() else None
             )
-    if gate_path not in ("scope_refusal", "jailbreak") and response_en and not _response_en_is_arabic:
+    # #58: register-preserving opener fix. ALLOWLIST (not blocklist) + in-node crisis guard, so the
+    # rewrite only ever touches ordinary freeflow replies. scope_refusal/jailbreak keep their
+    # clinician-authored copy; crisis never reaches output_gate (crisis_flags => is_safe=False =>
+    # crisis route => END, verified) -- the crisis_flags check is belt-and-suspenders.
+    opener_rewrite_audit = None
+    if gate_path in (None, "standard") and not state.get("crisis_flags") and response_en and not _response_en_is_arabic:
         banned_match = _BANNED_OPENER_RE.match(response_en.lstrip())
         if banned_match:
-            retry_count = _retry_count
-            if retry_count < 1:
-                _log.warning(
-                    "[output_gate] banned opener detected (%r) — routing back to freeflow_respond for retry",
-                    banned_match.group(0),
-                )
-                retry_path = path + ["output_gate_banned_opener_retry"]
-                return {
-                    "banned_opener_retry_count": retry_count + 1,
-                    "banned_opener_correction": _BANNED_OPENER_CORRECTION,
-                    "path": retry_path,
-                    # Preserve expected state keys so downstream tests and LangGraph
-                    # state merges don't encounter missing fields on this early exit.
-                    "cultural_output_violations": cultural_output_violations,
-                    "identity_substitution_rule_id": None,
-                    "original_response_hash": None,
-                    "original_response_text": None,
-                    "banned_opener_violation": False,
-                }
+            opener = banned_match.group(0)
+            _t0 = time.monotonic()
+            rewritten = await _rewrite_opener(response_en, opener, state.get("message_en", ""))
+            _rw_ms = int((time.monotonic() - _t0) * 1000)
+            # LOAD-BEARING deterministic re-check (ABSOLUTE RULE 1): the LLM proposes, _BANNED_OPENER_RE
+            # disposes, failure falls back to deterministic pass-through. Do NOT remove this re-check.
+            if rewritten and not _BANNED_OPENER_RE.match(rewritten.lstrip()):
+                response_en = rewritten
+                path = path + ["output_gate_opener_rewritten"]
+                opener_rewrite_audit = {"applied": True, "model": CLASSIFIER_MODEL, "opener": opener, "latency_ms": _rw_ms}
             else:
-                # Retry exhausted — substitute vetted fallback rather than passing the
-                # violating response to the user. Append marker to path so it surfaces in
-                # X-Sage-Node-Path and audit rows; reviewers can distinguish "fallback
-                # substituted" from "violation passed through."
-                response_en = _VETTED_FALLBACK_RESPONSE
+                # Pass the model's REAL reply through (a soft opener is the lesser evil) rather than a
+                # content-free placeholder. The canned fallback is reserved for empty generations.
+                path = path + ["output_gate_opener_passthrough"]
                 banned_opener_violation = True
-                banned_opener_fallback_used = True
-                path = path + ["output_gate_fallback_substituted"]
-                _log.warning(
-                    "[output_gate] banned opener persists after retry — substituting vetted fallback"
-                )
-                if session_id:
-                    _fallback_audit = asyncio.create_task(
-                        write_session_audit({**state, "path": path, "gate_path": gate_path or "standard"})
-                    )
-                    _fallback_audit.add_done_callback(
-                        lambda t: _log.warning("[output_gate] fallback audit error: %s", t.exception())
-                        if not t.cancelled() and t.exception() else None
-                    )
+                opener_rewrite_audit = {"applied": False, "model": CLASSIFIER_MODEL, "opener": opener, "latency_ms": _rw_ms}
+                _log.warning("[output_gate] opener rewrite unavailable; passing original reply through")
 
     # Question discipline (deterministic). Global on freeflow turns: collapse stacked
     # questions to one (MIND-SAFE: one question at a time). Directive turns additionally end
@@ -522,8 +505,13 @@ async def output_gate_node(state: SageState) -> dict:
     # An offer from an EARLIER turn (already seen by the user) is left alone;
     # re-rendering it next turn is correct there.
     _offer_voided = False
+    # #58: the invariant fires whenever a fallback hid an offer the user never saw. Pre-#58 the
+    # only such path was the retry-exhausted banned-opener substitution (banned_opener_fallback_used);
+    # that path was removed (banned openers are now rewritten / passed through, which PRESERVE the
+    # offer text). The surviving displacing path is the empty fail-safe, so the trigger is re-homed
+    # to it (banned_opener_fallback_used kept for any residual/legacy path; now ~always False).
     if (
-        banned_opener_fallback_used
+        ("output_gate_empty_fallback" in path or banned_opener_fallback_used)
         and state.get("offered_skill_ids")
         and "skill_offer_made" in state.get("path", [])
     ):
@@ -660,6 +648,7 @@ async def output_gate_node(state: SageState) -> dict:
         "banned_opener_correction": None,
         "banned_opener_violation": banned_opener_violation,
         "banned_opener_fallback_used": banned_opener_fallback_used,
+        "opener_rewrite": opener_rewrite_audit,  # #58 traceability; persisted via Step 3b migration
     }
     if _offer_voided:
         # Key included only when voiding so a normal turn's channel merge never

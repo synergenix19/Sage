@@ -938,10 +938,9 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     # User message always last
     user_parts.append(f"USER: {message_en}")
 
-    correction = state.get("banned_opener_correction")
-    if correction:
-        user_parts.append(f"[CORRECTION]: {correction}")
-        layers.append("banned_opener_correction")
+    # #58: the [CORRECTION] re-generation injection was removed. Banned openers are now fixed by an
+    # inline rewrite in output_gate (no route-back-to-freeflow), so banned_opener_correction is no
+    # longer set and this layer no longer exists.
 
     # ---- Token budget enforcement (overflow: shrink L1 first) --------------
     # v7 §5.6.3: shrink history first. The conversation_summary is the compact
