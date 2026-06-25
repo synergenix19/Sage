@@ -1,6 +1,7 @@
 import { cn } from '@cdai/ui'
 import type { ChatMessage } from '@cdai/types'
 import { FeedbackButtons } from './feedback-buttons'
+import { MarkdownContent } from './markdown-content'
 
 interface Props {
   message: ChatMessage
@@ -25,23 +26,15 @@ export function MessageBubble({ message, supabaseId, onFeedback }: Props) {
       <div
         dir={message.direction ?? 'auto'}
         className={cn(
-          // whitespace-pre-wrap: render the L4 line structure (numbered lists) instead of
-          // collapsing newlines to run-on text. Direction is authoritative from the backend
-          // (message.direction, derived from detected_language); dir="auto" is only the
-          // fallback when it is absent. Authoritative direction fixes the case where an
-          // Arabic answer opens on a Latin token, which dir="auto" alone resolves LTR.
-          // Both whitespace-pre-wrap and dir must stay on every branch (pinned by tests).
-          // text-[15px] on the base so user input and assistant output share one font size.
-          'whitespace-pre-wrap text-[15px] leading-relaxed',
+          'text-[15px] leading-relaxed',
           isUser
-            // User turns stay as green bubbles (the one bubbled speaker).
-            ? 'max-w-[78%] rounded-2xl rounded-ee-sm bg-[var(--color-primary-dark)] px-4 py-2.5 text-white'
-            // Assistant turns render as borderless typographic prose, regardless of length
-            // (Abby-style). No bubble for any AI message — short or long.
+            // User turns: literal text in the green bubble. whitespace-pre-wrap stays here.
+            ? 'max-w-[78%] whitespace-pre-wrap rounded-2xl rounded-ee-sm bg-[var(--color-primary-dark)] px-4 py-2.5 text-white'
+            // Assistant turns: borderless prose, rendered as Markdown (structure handled by the renderer).
             : 'max-w-[680px] leading-7 text-[var(--color-text-primary)]'
         )}
       >
-        {message.content}
+        {isUser ? message.content : <MarkdownContent content={message.content} />}
       </div>
       {!isUser && supabaseId && onFeedback && (
         <FeedbackButtons messageId={supabaseId} onFeedback={onFeedback} />
