@@ -185,3 +185,77 @@ async def test_passthrough_flows_through_directive_posture(monkeypatch):
     assert "output_gate_opener_passthrough" in res.get("path", [])
     assert "Does that help?" not in resp, "directive_posture must strip the trailing question on pass-through"
     assert "question_discipline_applied" in res.get("path", [])
+
+
+# ---- #58 x #65 INTERIM: suppress the rewrite on naturally-worded sensitive turns the keyword flag misses
+# (clinical-lead sign-off 2026-06-25). The clinical_flags guard fails open; this is the backstop. -------
+
+def test_rewrite_suppressed_reason_helper():
+    # naturalistic disclosures the CF keyword rules MISS (see behavioural smoke) still suppress here
+    assert output_gate._rewrite_suppressed_reason("i make myself throw up after meals", "ok", 4) == "sensitive_topic"
+    assert output_gate._rewrite_suppressed_reason("he grabs me when he's angry", "ok", 4) == "sensitive_topic"
+    assert output_gate._rewrite_suppressed_reason("a presence speaks to me at night", "ok", 4) == "sensitive_topic"
+    # elevated distress suppresses regardless of wording
+    assert output_gate._rewrite_suppressed_reason("just a normal day", "ok", 9) == "high_distress"
+    # ordinary low-distress non-sensitive turn is NOT suppressed (don't gut the rewrite)
+    assert output_gate._rewrite_suppressed_reason("work has been busy lately", "ok", 4) is None
+    # robust to non-int intensity
+    assert output_gate._rewrite_suppressed_reason("work has been busy", "ok", None) is None
+
+
+@pytest.mark.asyncio
+async def test_naturalistic_sensitive_message_suppresses_rewrite(monkeypatch):
+    """A trauma/DV/ED disclosure worded so the keyword clinical_flag does NOT fire (clinical_flags empty)
+    must still NOT reach the external rewriter — the interim lexicon catches it. This is the behaviour
+    the parametrized clinical_flag test cannot prove, because that test pre-sets the flag."""
+    calls = []
+
+    async def _spy_rewrite(response_en, opener, user_message_en):
+        calls.append(opener)
+        return "REWRITTEN should-not-be-used"
+
+    monkeypatch.setattr(output_gate, "_rewrite_opener", _spy_rewrite)
+    monkeypatch.setattr(output_gate.rules_engine, "evaluate", lambda *a, **k: MagicMock(fired=[]))
+    monkeypatch.setattr(output_gate, "async_translate_to_arabic", AsyncMock(return_value="..."))
+    monkeypatch.setattr(output_gate, "write_session_audit", AsyncMock())
+
+    state = _base_state(
+        raw_message="he grabs me when he loses his temper and i lock myself in the bathroom",
+        message_en="he grabs me when he loses his temper and i lock myself in the bathroom",
+        response_en="It sounds like home has been frightening lately. I'm here.",
+        clinical_flags=[],          # keyword DV flag did NOT fire (naturalistic phrasing)
+        emotional_intensity=5,      # below the distress ceiling -> lexicon must be what catches it
+    )
+    res = await output_gate.output_gate_node(state)
+
+    assert calls == [], "naturalistic sensitive disclosure must not reach the external rewriter"
+    assert "output_gate_opener_suppressed_sensitive" in res.get("path", [])
+    assert "output_gate_opener_rewritten" not in res.get("path", [])
+    assert res["opener_rewrite"]["suppressed"] == "sensitive_topic"
+    assert res["banned_opener_violation"] is True  # reply ships with soft opener -> audit accuracy
+
+
+@pytest.mark.asyncio
+async def test_severe_distress_suppresses_rewrite(monkeypatch):
+    calls = []
+
+    async def _spy_rewrite(response_en, opener, user_message_en):
+        calls.append(opener)
+        return "REWRITTEN should-not-be-used"
+
+    monkeypatch.setattr(output_gate, "_rewrite_opener", _spy_rewrite)
+    monkeypatch.setattr(output_gate.rules_engine, "evaluate", lambda *a, **k: MagicMock(fired=[]))
+    monkeypatch.setattr(output_gate, "async_translate_to_arabic", AsyncMock(return_value="..."))
+    monkeypatch.setattr(output_gate, "write_session_audit", AsyncMock())
+
+    state = _base_state(
+        raw_message="everything is too much",
+        message_en="everything is too much",
+        response_en="It sounds like you're at the end of your rope right now.",
+        clinical_flags=[],
+        emotional_intensity=9,  # severe distress -> wording-independent backstop
+    )
+    res = await output_gate.output_gate_node(state)
+
+    assert calls == [], "severe-distress turn must not reach the external rewriter"
+    assert res["opener_rewrite"]["suppressed"] == "high_distress"

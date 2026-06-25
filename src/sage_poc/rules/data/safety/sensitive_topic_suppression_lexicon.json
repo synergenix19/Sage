@@ -1,0 +1,41 @@
+{
+  "_meta": {
+    "status": "DRAFT — contents pending clinical-lead confirmation (raised at #58 sign-off 2026-06-25)",
+    "purpose": "INTERIM mitigation for the keyword-detection fails-open finding (issue #65). Used ONLY to suppress the #58 banned-opener rewrite (pass the reply through unchanged) when the turn looks sensitive but the keyword clinical-flag did not fire. It is deliberately broader than the CF-001..006 corpora and is allowed to over-match — a false match only costs a soft opener passing through, which Decision 2 established as the acceptable direction.",
+    "scope_guard": "This lexicon does NOT set clinical_flags, does NOT drive the 24h clinician-review escalation, and does NOT affect crisis routing. It gates the opener rewrite only. The real fix for detection/escalation is the semantic tier in #65; do not let this lexicon be mistaken for it.",
+    "authored_by": "engineering_draft",
+    "effective_date": "2026-06-25",
+    "match": "case-insensitive substring against the user message (English) plus the candidate reply"
+  },
+  "categories": {
+    "eating_concern": [
+      "make myself throw up", "makes me throw up", "throw up after", "throwing up after",
+      "vomit after", "made myself sick after", "skip eating", "skip meals", "skipping meals",
+      "stop eating", "won't eat", "can't eat anything", "haven't eaten in", "starve",
+      "count every calorie", "counting calories", "hate my body", "feel fat", "too fat to"
+    ],
+    "trauma_indicator": [
+      "did things to me", "did stuff to me", "touched me when", "forced me to",
+      "took advantage of me", "never told anyone", "happened to me when i was",
+      "flashbacks", "nightmares about", "when i was a kid he", "when i was a kid she",
+      "when i was young he", "when i was young she", "as a child he", "as a child she"
+    ],
+    "domestic_situation": [
+      "grabs me", "grab me", "grabbed me", "scared to go home", "afraid to go home",
+      "afraid of him", "afraid of her", "checks my phone", "won't let me leave",
+      "won't let me go out", "won't let me see", "lock myself in", "locks me",
+      "loses his temper", "loses her temper", "throws things at me", "threatens me",
+      "controls everything i", "controls who i"
+    ],
+    "substance_use": [
+      "pour myself", "few drinks to", "drink to cope", "drinking to cope", "drink to forget",
+      "drink to switch off", "drink to numb", "to take the edge off", "bottle every night",
+      "every night just to", "get high to", "smoke to cope", "high to cope", "to numb the pain"
+    ],
+    "psychotic_disclosure": [
+      "a presence", "watching me", "following me", "spying on me", "reading my thoughts",
+      "controlling my thoughts", "they're after me", "they are after me", "out to get me",
+      "talking to me at night", "speaks to me at night", "voices telling me", "voices in my head"
+    ]
+  }
+}

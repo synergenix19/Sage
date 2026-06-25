@@ -22,6 +22,39 @@ with _FLAG_CONFIG_PATH.open() as _f:
     _FLAG_LIFECYCLE_CONFIG: dict = json.load(_f)
 _CROSS_SESSION_FLAGS: dict[str, bool] = _FLAG_LIFECYCLE_CONFIG.get("cross_session_persistence", {})
 
+# #58 / #65 INTERIM: clinical-flag detection is keyword-only and fails open on naturalistic phrasing
+# (issue #65). Per clinical-lead sign-off 2026-06-25, the opener rewrite must NOT rely on the flag
+# firing: suppress (pass through) on a broader sensitive-topic lexicon OR on elevated distress. This is
+# mitigation, not resolution — the real fix is the semantic tier (#65). Lexicon contents are a DRAFT
+# pending clinical-lead confirmation; over-matching is acceptable (it only costs a soft opener, the
+# direction Decision 2 endorsed). This gate touches the rewrite ONLY — it does not set clinical_flags
+# or drive the 24h escalation.
+_SENSITIVE_LEXICON_PATH = Path(__file__).parent.parent / "rules" / "data" / "safety" / "sensitive_topic_suppression_lexicon.json"
+with _SENSITIVE_LEXICON_PATH.open() as _f:
+    _SENSITIVE_LEXICON_RAW: dict = json.load(_f)
+_SENSITIVE_TOPIC_PHRASES: tuple[str, ...] = tuple(
+    p.lower() for _cat in _SENSITIVE_LEXICON_RAW.get("categories", {}).values() for p in _cat
+)
+_OPENER_REWRITE_DISTRESS_CEILING = 9  # severe distress (9-10/10) -> suppress rewrite (pass through);
+# the lexicon is the primary sensitive-content gate, this is a wording-independent backstop for the top of the scale
+
+
+def _rewrite_suppressed_reason(message_en: str, response_en: str, emotional_intensity) -> str | None:
+    """Interim sensitive-content guard for the opener rewrite (#65). Returns a suppression reason
+    ('sensitive_topic' | 'high_distress') or None. Independent of, and in addition to, the
+    clinical_flags / crisis_flags guards — it catches naturally-worded disclosures the keyword
+    flags miss. Errs toward suppression by design."""
+    try:
+        intensity = int(emotional_intensity)
+    except (TypeError, ValueError):
+        intensity = 0
+    if intensity >= _OPENER_REWRITE_DISTRESS_CEILING:
+        return "high_distress"
+    haystack = f"{message_en or ''} {response_en or ''}".lower()
+    if any(phrase in haystack for phrase in _SENSITIVE_TOPIC_PHRASES):
+        return "sensitive_topic"
+    return None
+
 SCOPE_REFUSAL_RESPONSE = (
     "That's a question better answered by a medical professional or licensed therapist. "
     "I want to make sure you get accurate information. I can help you think through "
@@ -475,6 +508,21 @@ async def output_gate_node(state: SageState) -> dict:
         banned_match = _BANNED_OPENER_RE.match(response_en.lstrip())
         if banned_match:
             opener = banned_match.group(0)
+            # INTERIM #65 guard (clinical-lead sign-off 2026-06-25): the clinical_flags check above
+            # is keyword-only and fails open on naturalistic phrasing. Do not rely on it — also suppress
+            # the rewrite on a broader sensitive-topic lexicon or elevated distress, passing the real
+            # reply through unchanged. Mitigation, not resolution (#65 semantic tier is the real fix).
+            suppress_reason = _rewrite_suppressed_reason(
+                state.get("message_en", ""), response_en, state.get("emotional_intensity")
+            )
+            if suppress_reason:
+                path = path + ["output_gate_opener_suppressed_sensitive"]
+                opener_rewrite_audit = {"applied": False, "model": CLASSIFIER_MODEL, "opener": opener,
+                                        "latency_ms": 0, "suppressed": suppress_reason}
+                banned_opener_violation = True  # reply ships with the soft opener intact (audit accuracy)
+                _log.info("[output_gate] opener rewrite suppressed (%s); passing original reply through", suppress_reason)
+                banned_match = None  # fall through without rewrite
+        if banned_match:
             _t0 = time.monotonic()
             rewritten = await _rewrite_opener(response_en, opener, state.get("message_en", ""))
             _rw_ms = int((time.monotonic() - _t0) * 1000)
