@@ -20,6 +20,8 @@ describe('MarkdownContent', () => {
     const { container } = render(<MarkdownContent content={'1. a\n2. b'} />)
     // ps-5 (padding-inline-start), NOT pl-5 — flips correctly under dir="rtl"
     expect(container.querySelector('ol')?.className).toContain('ps-5')
+    // space-y-2 between items so substantive/wrapping items stay visually distinct
+    expect(container.querySelector('ol')?.className).toContain('space-y-2')
   })
 
   it('renders a [label](url) link as plain-text label with NO clickable anchor (deferred to Sub-project B)', () => {

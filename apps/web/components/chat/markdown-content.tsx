@@ -22,8 +22,8 @@ export function MarkdownContent({ content }: { content: string }) {
       components={{
         p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
         strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-        ul: ({ children }) => <ul className="mb-3 list-disc space-y-1 ps-5 last:mb-0">{children}</ul>,
-        ol: ({ children }) => <ol className="mb-3 list-decimal space-y-1 ps-5 last:mb-0">{children}</ol>,
+        ul: ({ children }) => <ul className="mb-3 list-disc space-y-2 ps-5 last:mb-0">{children}</ul>,
+        ol: ({ children }) => <ol className="mb-3 list-decimal space-y-2 ps-5 last:mb-0">{children}</ol>,
         li: ({ children }) => <li>{children}</li>,
         h3: ({ children }) => <h3 className="mb-2 mt-3 font-semibold first:mt-0">{children}</h3>,
         h4: ({ children }) => <h4 className="mb-2 mt-3 font-semibold first:mt-0">{children}</h4>,
