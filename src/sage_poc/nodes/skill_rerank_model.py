@@ -64,10 +64,18 @@ def score_pairs(pairs: list[tuple[str, str]]) -> list[float]:
         return []
     import torch
     tok, mdl = _load()
+    # BATCH-SIZE-1 / no cross-candidate padding -> each pair's logit is INDEPENDENT of what else is
+    # scored with it (batch-INVARIANT, deterministic). Batched scoring made int8 logits batch-DEPENDENT
+    # (the quantization×padding interaction: a pair scored -6.04 / -6.25 / -6.54 across batch contexts),
+    # which means routing depended on batch composition — unauditable for a clinical router. Per-pair
+    # scoring removes the padding entirely. Cost: k forward passes instead of 1 (latency, measured on
+    # Railway as the deterministic-batch-1 number, not an optimistic batched estimate).
+    out: list[float] = []
     with torch.no_grad():
-        inp = tok([q for q, _ in pairs], [d for _, d in pairs],
-                  padding=True, truncation=True, max_length=512, return_tensors="pt")
-        return mdl(**inp).logits.view(-1).float().tolist()
+        for q, d in pairs:
+            inp = tok([q], [d], truncation=True, max_length=512, return_tensors="pt")
+            out.append(float(mdl(**inp).logits.view(-1)[0]))
+    return out
 
 
 def head_loaded_ok() -> bool:
