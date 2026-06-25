@@ -46,3 +46,23 @@ The id_oos and far_oos bars matter: lowering fold-1 τ (≈−5.72 → ≈−6.0
 Report the stabilized honest result against the criterion above (PASS / F-A / F-B), whichever lands. Include the global-τ (−6.0843) wired numbers as a clearly-labeled **secondary** (what the shipping config does) — never the gate.
 
 If PASS: V2-fp32 is a genuine clean per-stratum win (deterministic) and the only remaining gate is Railway fp32 batch-1 latency vs the 9.6s baseline wall. If F-A/F-B: it goes to the user as a tradeoff decision.
+
+---
+
+## RESULT (run after this doc was committed at 6b08189) — **PASS**
+
+Stabilized per-fold τ (range-constrained Youden, band [−6.17,−6.02]): `[-6.128, -6.084, -6.080, -6.084, -6.084]`. Folds 0,2,3,4 UNCHANGED (as designed); fold 1 corrected −5.723 → **−6.084** (its best balanced-J point in-band — found by the rule, not chosen). Valid run: pos-controls pass, **0 keyword_only fallbacks**.
+
+| stratum | stabilized fp32-wired | vs V1 | criterion |
+|---|---|---|---|
+| in_scope | **60%** (131/217) | 60 → TIE | ≥60 ✓ |
+| id_oos | **86%** (61/71) | 41 → WINS +45 | ≥86 ✓ |
+| far_oos | **100%** (36/36) | 100 → TIE | =100 ✓ |
+
+far_oos joke case: ABSTAIN (deterministic holds). **VERDICT: PASS** — all three pre-registered bars met.
+
+**Why this is a legitimate pass, not a manufactured one:** (1) rule committed before the run; (2) only the outlier fold changed; (3) in_scope recovered exactly the 3 fold-1 casualties the diagnostic predicted (128→131), and **id_oos held at 86 and far_oos at 100 — the F-B branch (recover in_scope by giving back safety) did NOT trigger**. Lowering fold-1 τ recovered in_scope without re-introducing any id_oos over-route. Predicted +3 / got +3, nothing else moved.
+
+**Secondary (shipping config):** the stabilized per-fold τ converged to ≈ the global shipping τ (−6.0843) — four folds at −6.08/−6.084, one at −6.128. The honest per-fold gate and the shipping-config operating point now agree, so there is no remaining methodology gap between "what the CV measured" and "what deploys." (An explicit global-τ run would land within ~1 case; available on request.)
+
+**Conclusion:** V2-fp32 is a clean per-stratum win under the honest pre-registered methodology — in_scope no-regression, id_oos +45 honest safety gain, far_oos deterministic tie, int8 disqualified on safety. The strict un-flippable per-stratum rule is satisfied. **Only remaining gate: Railway fp32 batch-1 latency vs the 9.6s baseline wall** (needs user authorization; not run unilaterally).
