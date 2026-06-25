@@ -18,9 +18,10 @@ the test fold. Report all three cells, positive-control-gated. This is the **hon
 tiny int8/fp32 numeric delta). Do this offline before the deploy — if the honest wired number doesn't hold
 (in_scope ≥ V1, id_oos >> V1, far_oos ~100), fix offline, no deploy wasted.
 
-## Step B — Railway latency (int8 AND fp32) — NEEDS the deploy (the deferred precision fork)
+## Step B — Railway latency (fp32 ONLY — precision fork CLOSED on safety, see below)
 Only latency is hardware-specific and unmeasurable on the Apple-Silicon dev proxy (qnnpack int8 reads
-slower than Accelerate fp32 — artifact). On Railway x86 int8 uses FBGEMM (~2–4× faster than fp32).
+slower than Accelerate fp32 — artifact). int8 is **disqualified** (safety, below), so the deploy measures
+**fp32 batch-1 only** — the deployable number.
 
 Deploy procedure (use-railway skill; do NOT run unilaterally):
 1. Confirm Railway context — project `sage-api`, a NON-prod environment (staging). Verify no concurrent
@@ -28,20 +29,29 @@ Deploy procedure (use-railway skill; do NOT run unilaterally):
 2. Reranker model (~2.2GB bge-reranker-v2-m3) availability on Railway: either bake into the image or
    warm-download at startup (network). **Verify the head-loaded positive control passes on Railway**
    (the CrossEncoder-headless bug class — assert logit gap >3 at startup) before trusting any number.
-3. Deploy the branch with flags: `SKILL_ROUTING_V2=1 SKILL_RERANK_ENABLED=1`. Run the benchmark twice:
-   `SKILL_RERANK_PRECISION=int8` then `=fp32`.
-4. Measure the **V2-incremental** latency (the reranker forward-pass on routing turns specifically — k=5),
-   median + p95, on routing turns only (not crisis/info_request). Compare both precisions.
+3. Deploy the branch with flags: `SKILL_ROUTING_V2=1 SKILL_RERANK_ENABLED=1`. Precision defaults to fp32
+   now — no need to set `SKILL_RERANK_PRECISION`. (int8 remains selectable for a curiosity latency probe
+   only; it must NOT be shipped — see the safety disqualification.)
+4. Measure the **V2-incremental** latency — the reranker forward-pass on routing turns, **DETERMINISTIC
+   BATCH-1** (k=5 sequential forward passes, NOT a batched estimate; batch-1 is the shipping scorer and is
+   slower than batched — that slower number is the real cost), median + p95, on routing turns only.
 
-Read three ways:
-- int8 adds little (expected on FBGEMM x86) → ship int8.
-- int8 ≈ fp32 or worse for some reason → fp32 fallback (~1s proxy); reconsider.
+Read:
+- fp32 batch-1 adds little over the 9.6s baseline → ship fp32.
+- fp32 batch-1 adds materially → optimize the scorer (e.g. cache, smaller k) — but precision stays fp32.
 - Either way: the **9.6s baseline p95 is the real wall** — V2-incremental latency only sets V2's *addition*;
   the baseline gates V1 and V2 both and is a SEPARATE workstream that must land for anything to ship.
 
-## Precision fork — RESOLVED BY MEASUREMENT (not now)
-int8 and fp32 are the same m3 weights, identical quality (proven). The choice is purely Step-B latency.
-Default int8 (hypothesis: faster on x86); fp32 the configurable fallback. Record the choice once measured.
+## Precision fork — CLOSED ON SAFETY 2026-06-25 (commit b76ca28), NOT latency
+The hypothesis "int8 == fp32 quality, latency the only axis" was **FALSIFIED**. Under deterministic
+batch-1 scoring int8 and fp32 still route differently on 29/324 (9%) cases; the safety-relevance check on
+those flips found the asymmetric gate TRIPPED — **6/6 id_oos flips in the disqualifying direction**: int8
+ROUTES clinician-territory disclosures (disposition=ABSTAIN) that fp32 correctly ABSTAINS, 0 conservative.
+Confirmed at the production node (global τ=-6.0843): fp32 6/6 ABSTAIN vs int8 6/6 ROUTE (incl. dbt_tipp on
+an irritability disclosure, mindfulness_body_scan on body-image distress — the exact over-route class the
+reranker exists to close). int8's higher aggregate id_oos (90 vs 86) was that over-routing, not better
+routing. **Decision: fp32 required, regardless of latency. int8 disqualified — not a tradeoff.** Default
+flipped to fp32 (`active_precision()`), int8 selectable for probing only.
 
 ## Keyword-veto τ operating point — decided OFFLINE before deploy (see /tmp/keyword_tau_decide.py)
 The keyword-route veto reuses the semantic τ (-6.0843). DECIDED (sweep /tmp/keyword_tau_decide.py, 53
