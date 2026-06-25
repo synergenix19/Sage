@@ -41,4 +41,10 @@ describe('WCAG 2.1 AA contrast — chat UI colour pairings', () => {
   it('button hover: white text on primary >= 4.5:1', () => {
     expect(ratio(WHITE, c.primary)).toBeGreaterThanOrEqual(AA_NORMAL)
   })
+
+  // Composer mic icon stroke (currentColor = textSecondary) on the composer bar surface.
+  // A UI component graphic under WCAG 1.4.11 — 3:1 bar, not the 4.5:1 text bar.
+  it('composer mic icon (UI component): textSecondary on surface >= 3:1', () => {
+    expect(ratio(c.textSecondary, c.surface)).toBeGreaterThanOrEqual(3.0)
+  })
 })

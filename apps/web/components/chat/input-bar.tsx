@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useSyncExternalStore } from 'react'
 import { cn } from '@cdai/ui'
 import { useLocaleStore } from '@/lib/stores/locale-store'
 
@@ -8,9 +8,22 @@ interface InputBarProps {
   disabled?: boolean
 }
 
+// Voice is a Full Build feature; in browsers without the Web Speech API the mic must
+// not present a clickable affordance that dead-ends. Detected via useSyncExternalStore
+// so the value is SSR-safe (server snapshot assumes supported, avoiding a flash) without
+// a setState-in-effect or a hydration mismatch. Capability never changes mid-session, so
+// subscribe is a no-op.
+const noopSubscribe = () => () => {}
+function getVoiceSupported(): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const w = window as any
+  return Boolean(w.SpeechRecognition ?? w.webkitSpeechRecognition)
+}
+
 export function InputBar({ onSend, disabled }: InputBarProps) {
   const [value, setValue] = useState('')
   const [listening, setListening] = useState(false)
+  const supported = useSyncExternalStore(noopSubscribe, getVoiceSupported, () => true)
   const locale = useLocaleStore((s) => s.locale)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null)
@@ -50,22 +63,42 @@ export function InputBar({ onSend, disabled }: InputBarProps) {
       <div className="mx-auto flex w-full max-w-3xl items-end gap-2">
       <button
         onClick={startVoice}
+        disabled={!supported}
         aria-label={locale === 'ar' ? 'الإدخال الصوتي' : 'Voice input'}
+        title={
+          supported
+            ? (locale === 'ar' ? 'الإدخال الصوتي' : 'Voice input')
+            : (locale === 'ar' ? 'الإدخال الصوتي قريباً' : 'Voice input coming soon')
+        }
         aria-pressed={listening}
         className={cn(
           'flex h-11 w-11 items-center justify-center rounded-full transition-colors',
+          !supported && 'cursor-not-allowed opacity-40',
           listening
             ? 'bg-[var(--color-primary)] text-white'
             : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-tinted)]'
         )}
       >
-        🎙
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-5 w-5"
+        >
+          <rect x="9" y="2" width="6" height="11" rx="3" />
+          <path d="M5 10a7 7 0 0 0 14 0" />
+          <line x1="12" y1="19" x2="12" y2="22" />
+        </svg>
       </button>
       <textarea
         aria-label={locale === 'ar' ? 'اكتب رسالتك' : 'Message'}
         className="flex-1 resize-none rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring-color)] focus:ring-offset-[var(--focus-ring-offset)]"
         rows={1}
-        placeholder={locale === 'ar' ? 'رسالة...' : 'Message…'}
+        placeholder={locale === 'ar' ? 'وش في البال؟' : "What's on your mind?"}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {

@@ -58,3 +58,54 @@ describe('InputBar — Arabic locale', () => {
     expect(screen.getByRole('button', { name: 'إرسال' })).toBeInTheDocument()
   })
 })
+
+describe('InputBar — QW4 placeholder & mic icon', () => {
+  afterEach(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(useLocaleStore).mockImplementation((selector: any) => selector({ locale: 'en' }))
+  })
+
+  it('shows the warmer English placeholder', () => {
+    render(<InputBar onSend={vi.fn()} />)
+    expect(screen.getByPlaceholderText("What's on your mind?")).toBeInTheDocument()
+  })
+
+  it('shows the gender-neutral Khaleeji placeholder when locale is ar', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(useLocaleStore).mockImplementation((selector: any) => selector({ locale: 'ar' }))
+    render(<InputBar onSend={vi.fn()} />)
+    expect(screen.getByPlaceholderText('وش في البال؟')).toBeInTheDocument()
+  })
+
+  it('renders the voice button as an SVG icon, not the raw emoji', () => {
+    render(<InputBar onSend={vi.fn()} />)
+    const btn = screen.getByRole('button', { name: 'Voice input' })
+    expect(btn.querySelector('svg')).not.toBeNull()
+    expect(btn.textContent ?? '').not.toContain('🎙')
+  })
+})
+
+describe('InputBar — QW4 honest voice affordance', () => {
+  afterEach(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (window as any).SpeechRecognition
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (window as any).webkitSpeechRecognition
+  })
+
+  it('disables the voice button with a "coming soon" title when unsupported', async () => {
+    // jsdom has no SpeechRecognition by default
+    render(<InputBar onSend={vi.fn()} />)
+    const btn = screen.getByRole('button', { name: 'Voice input' })
+    await vi.waitFor(() => expect(btn).toBeDisabled())
+    expect(btn).toHaveAttribute('title', expect.stringMatching(/coming soon/i))
+  })
+
+  it('enables the voice button when SpeechRecognition is available', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(window as any).SpeechRecognition = vi.fn()
+    render(<InputBar onSend={vi.fn()} />)
+    const btn = screen.getByRole('button', { name: 'Voice input' })
+    await vi.waitFor(() => expect(btn).toBeEnabled())
+  })
+})
