@@ -300,8 +300,11 @@ export function ChatInterface({ initialSession, initialMessages = [], userName, 
         role="log"
         aria-live="polite"
         aria-label={locale === 'ar' ? 'المحادثة' : 'Conversation'}
-        className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4"
+        className="flex-1 overflow-y-auto px-4 py-4"
       >
+        {/* Centered reading column: keeps assistant prose and the user bubble within one
+            balanced column instead of pinning them to opposite viewport edges on wide screens. */}
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
         {messages.length === 0 && !isLoading ? (
           <EmptyState userName={userName} onChipClick={handleSend} />
         ) : (
@@ -341,6 +344,7 @@ export function ChatInterface({ initialSession, initialMessages = [], userName, 
           </div>
         )}
         <div ref={bottomRef} />
+        </div>
       </div>
 
       {pinnedCrisis !== null && (

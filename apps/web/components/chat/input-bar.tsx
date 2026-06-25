@@ -45,7 +45,9 @@ export function InputBar({ onSend, disabled }: InputBarProps) {
   }
 
   return (
-    <div className="flex items-end gap-2 border-t border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+    <div className="border-t border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+      {/* Center the composer controls to the same reading column as the messages. */}
+      <div className="mx-auto flex w-full max-w-3xl items-end gap-2">
       <button
         onClick={startVoice}
         aria-label={locale === 'ar' ? 'الإدخال الصوتي' : 'Voice input'}
@@ -61,7 +63,7 @@ export function InputBar({ onSend, disabled }: InputBarProps) {
       </button>
       <textarea
         aria-label={locale === 'ar' ? 'اكتب رسالتك' : 'Message'}
-        className="flex-1 resize-none rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring-color)] focus:ring-offset-[var(--focus-ring-offset)]"
+        className="flex-1 resize-none rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring-color)] focus:ring-offset-[var(--focus-ring-offset)]"
         rows={1}
         placeholder={locale === 'ar' ? 'رسالة...' : 'Message…'}
         value={value}
@@ -92,6 +94,7 @@ export function InputBar({ onSend, disabled }: InputBarProps) {
           <path d="M3 8h10M9 4l4 4-4 4" />
         </svg>
       </button>
+      </div>
     </div>
   )
 }
