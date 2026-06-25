@@ -21,10 +21,11 @@ from pydantic import BaseModel
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from sage_poc.graph import build_graph
-from sage_poc.config import RESPONDER_MODEL, DB_POOL_MAX_SIZE
+from sage_poc.config import RESPONDER_MODEL, DB_POOL_MAX_SIZE, CHECKPOINT_POOL_MAX_SIZE
 from sage_poc.language import text_direction
 from sage_poc.server_helpers import _build_state, _stale_skill_overrides, _void_unseen_offer
 from sage_poc.llm import get_classifier
+from sage_poc.observability import log_stage_latency
 from sage_poc.skills.conformance import SCHEMA_CONFORMANCE, get_conformance_report
 
 _log = logging.getLogger(__name__)
@@ -204,6 +205,11 @@ async def lifespan(app: FastAPI):
             saver_pool = AsyncConnectionPool(
                 conninfo=checkpoint_url,
                 open=False,
+                # max_size: psycopg defaults min=max=4. The checkpointer pool is hit on every
+                # turn (aget below + LangGraph's per-turn write), so 4 caps per-turn concurrency.
+                # Raise to match the asyncpg pool; see CHECKPOINT_POOL_MAX_SIZE for the
+                # Supavisor session-vs-transaction-mode sizing caveat.
+                max_size=CHECKPOINT_POOL_MAX_SIZE,
                 kwargs={"prepare_threshold": None},
             )
             await saver_pool.open()
@@ -293,6 +299,10 @@ async def chat(
     # one pool slot per turn under concurrent load and collapsing pool capacity.
     # aget is a single SELECT; it blocks at most until a pool slot is free, then
     # completes quickly and returns the connection cleanly.
+    # Latency baseline (log-only): time the pre-graph block (checkpoint read + profile load).
+    # This is the "outside-graph" span NOT covered by session_audit.latency_ms (which starts
+    # at turn_started_at below). server.py-level only — does not touch the safety path.
+    _pre_graph_start = time.monotonic()
     try:
         snap = await graph.checkpointer.aget(
             {"configurable": {"thread_id": req.session_id}}
@@ -313,6 +323,11 @@ async def chat(
             state["therapeutic_profile"] = await repo.get_therapeutic_profile(req.user_id)
         except Exception as exc:
             _log.warning("[sage/chat] therapeutic profile load failed: %s", exc)
+    log_stage_latency(
+        "pre_graph",
+        int((time.monotonic() - _pre_graph_start) * 1000),
+        session_id=req.session_id,
+    )
     _request_start = time.monotonic()  # consumed by Tasks 3+4 (latency audit)
     # Stamp the turn start into state so output_gate can compute latency_ms for session_audit.
     # The audit row is written INSIDE the graph (output_gate), before this handler resumes, so
@@ -361,6 +376,26 @@ async def chat(
             yield b"\n[[SERVER_ERROR]]"
 
         return StreamingResponse(_err(), media_type="text/plain; charset=utf-8")
+
+    # Latency baseline (log-only): ainvoke wall-clock vs the graph-internal latency_ms
+    # (which output_gate stamps as turn_started_at→output_gate, i.e. BEFORE the durability="exit"
+    # checkpoint write). The difference isolates the post-graph checkpoint-write span — the
+    # outside-graph cost ① (checkpointer pool) most affects. _request_start == turn_started_at.
+    _ainvoke_total_ms = int((time.monotonic() - _request_start) * 1000)
+    _graph_internal_ms = result.get("latency_ms")
+    log_stage_latency(
+        "ainvoke_total", _ainvoke_total_ms,
+        session_id=req.session_id,
+        turn=result.get("turn_count"),
+        lang=result.get("detected_language"),
+    )
+    if isinstance(_graph_internal_ms, int):
+        log_stage_latency(
+            "post_graph_write", max(0, _ainvoke_total_ms - _graph_internal_ms),
+            session_id=req.session_id,
+            turn=result.get("turn_count"),
+            lang=result.get("detected_language"),
+        )
 
     path: list[str] = result.get("path") or []
     is_safe: bool = result.get("is_safe", True)
