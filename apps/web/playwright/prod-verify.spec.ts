@@ -81,12 +81,13 @@ test('PROD: computed-style WCAG AA contrast clears 4.5:1 on shipping CSS', async
   await page.goto(`/chat?session=${enId}`)
   await page.waitForLoadState('networkidle')
 
-  // Neutral assistant bubble
-  const bubble = page.getByText('VERIFY-SHORT: sure, I can help.')
-  const b = await computed(bubble)
-  const bubbleRatio = ratioFromRgb(b.color, b.bg)
-  expect(b.bg).not.toBe('rgba(0, 0, 0, 0)')      // bubble actually has a fill
-  expect(bubbleRatio).toBeGreaterThanOrEqual(4.5)
+  // Short assistant turn renders as PROSE now (no bubble) — same as long-form.
+  const shortEl = page.getByText('VERIFY-SHORT: sure, I can help.')
+  const b = await computed(shortEl)
+  expect(b.bg).toBe('rgba(0, 0, 0, 0)')          // no fill
+  expect(b.radius).toBe('0px')                    // no bubble shape
+  const proseRatio = ratioFromRgb(b.color, 'rgb(255, 255, 255)') // text on white canvas
+  expect(proseRatio).toBeGreaterThanOrEqual(4.5)
 
   // Softened New conversation button (tinted bg, green text)
   const btn = page.locator('aside').getByRole('button', { name: /new conversation/i })
@@ -100,7 +101,7 @@ test('PROD: computed-style WCAG AA contrast clears 4.5:1 on shipping CSS', async
   expect(l.bg).toBe('rgba(0, 0, 0, 0)')
   expect(l.radius).toBe('0px')
 
-  console.log(`PROD contrast — bubble ${bubbleRatio.toFixed(2)}:1 (text ${b.color} on ${b.bg}); button ${btnRatio.toFixed(2)}:1 (text ${c.color} on ${c.bg})`)
+  console.log(`PROD — AI prose ${proseRatio.toFixed(2)}:1 (text ${b.color} on white); button ${btnRatio.toFixed(2)}:1 (text ${c.color} on ${c.bg})`)
 })
 
 test('PROD: Arabic RTL layout', async ({ page }) => {
@@ -127,9 +128,10 @@ test('PROD: mobile width (iPhone 390x844)', async ({ page }) => {
   await page.goto(`/chat?session=${enId}`)
   await page.waitForLoadState('networkidle')
   await expect(page.getByText(/VERIFY-LONG/)).toBeVisible()
-  // neutral bubble still clears AA at mobile width
-  const bubble = page.getByText('VERIFY-SHORT: sure, I can help.')
-  const b = await computed(bubble)
-  expect(ratioFromRgb(b.color, b.bg)).toBeGreaterThanOrEqual(4.5)
+  // assistant prose still clears AA at mobile width (text on white canvas)
+  const shortEl = page.getByText('VERIFY-SHORT: sure, I can help.')
+  const b = await computed(shortEl)
+  expect(b.bg).toBe('rgba(0, 0, 0, 0)') // prose, not a bubble
+  expect(ratioFromRgb(b.color, 'rgb(255, 255, 255)')).toBeGreaterThanOrEqual(4.5)
   await page.screenshot({ path: 'test-results/prod-mobile.png', fullPage: true })
 })

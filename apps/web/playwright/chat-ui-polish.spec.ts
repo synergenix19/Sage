@@ -88,16 +88,16 @@ test('#1 long-form AI answer renders as prose (no bubble), structure preserved',
   expect(text).toContain('3. Diaphragmatic')
 })
 
-test('#2 short AI turn uses the neutral bubble; user turn stays green', async ({ page }) => {
+test('#2 short AI turn renders as prose (no bubble); user turn stays green', async ({ page }) => {
   await page.goto(`/chat?session=${sessionId}`)
   await page.waitForLoadState('networkidle')
 
   const shortEl = page.getByText(/POLISH-SHORT/)
   await expect(shortEl).toBeVisible()
   const shortCls = (await shortEl.getAttribute('class')) ?? ''
-  expect(shortCls).toContain('bg-[var(--color-surface-muted)]')
-  expect(shortCls).not.toContain('surface-tinted')
-  expect(shortCls).toContain('rounded-2xl')
+  expect(shortCls).not.toContain('rounded-2xl')          // no bubble
+  expect(shortCls).not.toContain('color-surface')        // no fill
+  expect(shortCls).toContain('whitespace-pre-wrap')
 
   const userEl = page.getByText(/POLISH-USER: does deep breathing/)
   const userCls = (await userEl.getAttribute('class')) ?? ''
