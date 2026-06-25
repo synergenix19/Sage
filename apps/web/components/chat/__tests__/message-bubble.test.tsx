@@ -119,8 +119,9 @@ describe('MessageBubble — L4 structure & RTL rendering', () => {
   })
 })
 
-// Quick wins #1 (long-form prose, no bubble) and #2 (neutral short-AI bubble).
-describe('MessageBubble — speaker styling & long-form prose', () => {
+// Quick win #1: ALL assistant messages render as borderless prose (Abby-style),
+// regardless of length. Quick win #2 speaker separation is now prose-vs-green-bubble.
+describe('MessageBubble — speaker styling & prose', () => {
   it('renders a multi-line assistant answer without a bubble (typographic prose)', () => {
     const long = 'Here are several resources:\n1. first point\n2. second point'
     render(<MessageBubble message={{ ...base, role: 'ai', content: long }} />)
@@ -140,12 +141,23 @@ describe('MessageBubble — speaker styling & long-form prose', () => {
     expect(el.className).not.toContain('rounded-2xl')
   })
 
-  it('renders a short assistant turn in the neutral bubble, not the green tint', () => {
+  it('renders a SHORT single-paragraph assistant turn as prose too (no bubble)', () => {
+    // The representative everyday reply: one paragraph, <280 chars, no newline.
+    // Previously this kept a (recolored) bubble; now it must render as prose like Abby.
+    const short = "You've mentioned feeling stressed lately. What's been contributing to it, if you feel like sharing?"
+    render(<MessageBubble message={{ ...base, role: 'ai', content: short }} />)
+    const el = screen.getByText(/feeling stressed lately/)
+    expect(el.className).not.toContain('rounded-2xl')
+    expect(el.className).not.toContain('color-surface')
+    expect(el.className).not.toContain('color-border')
+    expect(el.className).toContain('whitespace-pre-wrap')
+  })
+
+  it('renders a one-line acknowledgement as prose (no bubble)', () => {
     render(<MessageBubble message={{ ...base, role: 'ai', content: 'Sure, I can help.' }} />)
     const el = screen.getByText('Sure, I can help.')
-    expect(el.className).toContain('bg-[var(--color-surface-muted)]')
-    expect(el.className).not.toContain('surface-tinted')
-    expect(el.className).toContain('rounded-2xl')
+    expect(el.className).not.toContain('rounded-2xl')
+    expect(el.className).not.toContain('bg-[var(--color-surface-muted)]')
   })
 
   it('keeps the user bubble green and bubbled', () => {
