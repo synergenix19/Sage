@@ -119,30 +119,32 @@ def test_freeflow_respond_node_returns_prompt_layers():
 
 
 def test_freeflow_respond_node_returns_token_usage():
-    """token_usage is returned as empty dict when resilient_invoke is used (string response)."""
+    """The string/resilient_invoke path carries no usage -> token_usage stays {}.
+    Deterministic: a state where Node 6 already ran suppresses knowledge_lookup, so with no
+    user_id there are no tools -> _invoke_with_tool_loop goes straight to resilient_invoke."""
     from unittest.mock import patch
+    state = {**_BASE_STATE, "path": ["safety_check", "intent_route", "skill_select", "knowledge_retrieve"]}
     with patch(
         "sage_poc.nodes.freeflow_respond.resilient_invoke",
         new_callable=AsyncMock,
         return_value="That sounds really difficult.",
     ):
-        result = asyncio.run(freeflow_respond_node(_BASE_STATE))
+        result = asyncio.run(freeflow_respond_node(state))
 
     assert "token_usage" in result
     assert result["token_usage"] == {}
 
 
 def test_freeflow_respond_node_handles_missing_usage_metadata():
-    """token_usage is returned as empty dict when resilient_invoke is used (string response)."""
-    from unittest.mock import patch
-    with patch(
-        "sage_poc.nodes.freeflow_respond.resilient_invoke",
-        new_callable=AsyncMock,
-        return_value="I hear you.",
-    ):
-        result = asyncio.run(freeflow_respond_node(_BASE_STATE))
+    """A generation with no usage_metadata must not crash and yields token_usage {}."""
+    mock_msg = MagicMock()
+    mock_msg.content = "I hear you."
+    mock_msg.usage_metadata = None   # provider/mocks may omit it
+    mock_msg.tool_calls = None
+    mock_bound = AsyncMock(); mock_bound.ainvoke = AsyncMock(return_value=mock_msg)
+    mock_llm = MagicMock(); mock_llm.bind_tools = MagicMock(return_value=mock_bound)
+    result = asyncio.run(freeflow_respond_node(_BASE_STATE, llm=mock_llm))
 
-    assert "token_usage" in result
     assert result["token_usage"] == {}
 
 
@@ -282,3 +284,39 @@ async def test_tool_loop_model_exception_falls_back_not_raises():
 
     assert result["response_en"], "user must receive a non-empty reply when the tool loop errors"
     assert "here with you" in result["response_en"].lower()
+
+
+# ── RC-3 knowledge_lookup gating + token-usage capture (perf PR) ──────────────────
+
+def test_knowledge_lookup_BOUND_when_node6_did_not_run():
+    """Evidence-grounding door stays OPEN: a turn that did NOT route through knowledge_retrieve
+    (e.g. a mid-conversation factual question in a skill/general_chat turn) must still bind
+    knowledge_lookup so the model can retrieve rather than answer from parametric memory."""
+    from sage_poc.nodes.freeflow_respond import _build_llm_tools
+    state = {"path": ["safety_check", "intent_route", "skill_select"], "detected_language": "en"}
+    tools = _build_llm_tools(state, user_id=None, session_id=None)
+    assert any(getattr(t, "name", "") == "knowledge_lookup" for t in tools), \
+        "knowledge_lookup must stay bound when Node 6 did not run this turn"
+
+
+def test_knowledge_lookup_SUPPRESSED_when_node6_already_ran():
+    """RC-3: when knowledge_retrieve (Node 6) already retrieved THIS turn, do not re-bind
+    knowledge_lookup (it would cause a redundant retrieval + extra LLM round-trip)."""
+    from sage_poc.nodes.freeflow_respond import _build_llm_tools
+    state = {"path": ["safety_check", "intent_route", "skill_select", "knowledge_retrieve"],
+             "detected_language": "en"}
+    tools = _build_llm_tools(state, user_id=None, session_id=None)
+    assert not any(getattr(t, "name", "") == "knowledge_lookup" for t in tools), \
+        "knowledge_lookup must be suppressed when Node 6 already retrieved this turn"
+
+
+def test_token_usage_populated_via_tool_loop():
+    """token_usage is now captured from the generation's usage_metadata (was hard-coded {})."""
+    mock_msg = MagicMock()
+    mock_msg.content = "Here is a gentle suggestion."
+    mock_msg.usage_metadata = {"input_tokens": 200, "output_tokens": 40, "total_tokens": 240}
+    mock_msg.tool_calls = None
+    mock_bound = AsyncMock(); mock_bound.ainvoke = AsyncMock(return_value=mock_msg)
+    mock_llm = MagicMock(); mock_llm.bind_tools = MagicMock(return_value=mock_bound)
+    result = asyncio.run(freeflow_respond_node(_BASE_STATE, llm=mock_llm))
+    assert result["token_usage"] == {"input": 200, "output": 40, "total": 240}
