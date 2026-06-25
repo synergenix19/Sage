@@ -4,7 +4,7 @@ import { sage } from '../configs/sage'
 describe('sage tenant config', () => {
   it('has all required brand colors', () => {
     const required = ['primary', 'primaryDark', 'secondary', 'surface',
-      'surfaceTinted', 'textPrimary', 'textSecondary', 'border', 'crisis']
+      'surfaceTinted', 'surfaceMuted', 'textPrimary', 'textSecondary', 'border', 'crisis']
     required.forEach(key => {
       expect(sage.brand.colors).toHaveProperty(key)
     })
