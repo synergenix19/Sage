@@ -9,7 +9,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sage_poc.state import SageState
 from sage_poc.language import async_translate_to_arabic
-from sage_poc.config import AUDIT_LOG_ENABLED, CRISIS_LINE_UAE
+from sage_poc.config import AUDIT_LOG_ENABLED, CRISIS_LINE_UAE, CLASSIFIER_MODEL
+from sage_poc.llm import get_classifier
 from sage_poc.rules import engine as rules_engine
 from sage_poc.prompts.summarizer import summarise_history
 from sage_poc.audit import write_session_audit, write_identity_substitution_audit
@@ -20,6 +21,49 @@ _FLAG_CONFIG_PATH = Path(__file__).parent.parent / "rules" / "data" / "flag_life
 with _FLAG_CONFIG_PATH.open() as _f:
     _FLAG_LIFECYCLE_CONFIG: dict = json.load(_f)
 _CROSS_SESSION_FLAGS: dict[str, bool] = _FLAG_LIFECYCLE_CONFIG.get("cross_session_persistence", {})
+
+# #58 / #65 INTERIM: clinical-flag detection is keyword-only and fails open on naturalistic phrasing
+# (issue #65). Per clinical-lead sign-off 2026-06-25, the opener rewrite must NOT rely on the flag
+# firing: suppress (pass through) on a broader sensitive-topic lexicon OR on elevated distress. This is
+# mitigation, not resolution — the real fix is the semantic tier (#65). Lexicon contents are a DRAFT
+# pending clinical-lead confirmation; over-matching is acceptable (it only costs a soft opener, the
+# direction Decision 2 endorsed). This gate touches the rewrite ONLY — it does not set clinical_flags
+# or drive the 24h escalation.
+_SENSITIVE_LEXICON_PATH = Path(__file__).parent.parent / "rules" / "data" / "safety" / "sensitive_topic_suppression_lexicon.json"
+with _SENSITIVE_LEXICON_PATH.open() as _f:
+    _SENSITIVE_LEXICON_RAW: dict = json.load(_f)
+_SENSITIVE_LEXICON_CATS: dict = _SENSITIVE_LEXICON_RAW.get("categories", {})
+# English phrases matched against the user message (English) + the candidate reply; Arabic phrases
+# matched against the original raw message (the bilingual gap lives in MT fidelity, so match AR directly).
+_SENSITIVE_TOPIC_PHRASES_EN: tuple[str, ...] = tuple(
+    p.lower() for _cat in _SENSITIVE_LEXICON_CATS.values() for p in _cat.get("en", [])
+)
+_SENSITIVE_TOPIC_PHRASES_AR: tuple[str, ...] = tuple(
+    p for _cat in _SENSITIVE_LEXICON_CATS.values() for p in _cat.get("ar", [])
+)
+_OPENER_REWRITE_DISTRESS_CEILING = 9  # severe distress (9-10/10) -> suppress rewrite (pass through);
+# the lexicon is the primary sensitive-content gate, this is a wording-independent backstop for the top of the scale
+
+
+def _rewrite_suppressed_reason(message_en: str, response_en: str, emotional_intensity,
+                               raw_message: str = "") -> str | None:
+    """Interim sensitive-content guard for the opener rewrite (#65). Returns a suppression reason
+    ('sensitive_topic' | 'high_distress') or None. Independent of, and in addition to, the
+    clinical_flags / crisis_flags guards — it catches naturally-worded disclosures the keyword
+    flags miss, in English (via message_en/response_en) and Khaleeji Arabic (via the raw message).
+    Errs toward suppression by design."""
+    try:
+        intensity = int(emotional_intensity)
+    except (TypeError, ValueError):
+        intensity = 0
+    if intensity >= _OPENER_REWRITE_DISTRESS_CEILING:
+        return "high_distress"
+    haystack_en = f"{message_en or ''} {response_en or ''}".lower()
+    if any(phrase in haystack_en for phrase in _SENSITIVE_TOPIC_PHRASES_EN):
+        return "sensitive_topic"
+    if raw_message and any(phrase in raw_message for phrase in _SENSITIVE_TOPIC_PHRASES_AR):
+        return "sensitive_topic"
+    return None
 
 SCOPE_REFUSAL_RESPONSE = (
     "That's a question better answered by a medical professional or licensed therapist. "
@@ -175,6 +219,55 @@ _BANNED_OPENER_CORRECTION = (
 # (5) treat as user-facing copy with measurable frequency, not a rare error message.
 # Review doc: docs/superpowers/reviews/FALLBACK_RESPONSE_REVIEW.md
 _VETTED_FALLBACK_RESPONSE = "I'm here with you, and what you've shared matters. Take a moment, I'm listening whenever you're ready."
+
+# #58 — opener rewrite (register-preserving fix). DRAFT copy pending clinical sign-off
+# (docs/superpowers/reviews/2026-06-24-banned-opener-rewrite-signoff.md). No em dashes.
+_OPENER_REWRITE_TIMEOUT = 4.0  # fail fast -> pass-through; never block the turn on a non-critical edit
+_OPENER_REWRITE_SYSTEM = (
+    "You are lightly editing one wellness-companion reply that you wrote. It began with a "
+    "reflective or sympathy cliche we avoid. Rewrite ONLY the opening so it names the specific "
+    "thing the person said, warm and present, one to one. "
+    # Register guardrails folded into the OPERATIVE instruction (clinical advisory 2026-06-24):
+    # the register standard is only enforced if it is in the prompt the model actually receives.
+    "Reflect only what the person actually expressed. Do not name or assign a strong emotion they "
+    "did not state, and keep any inference tentative. Do not restate distressing or graphic detail. "
+    "Keep the emotional intensity the same as the original, neither heavier nor lighter. "
+    "Keep every following sentence exactly as written. Do not add advice, do not add a question, "
+    "do not change the length or the meaning. Use plain prose, commas not dashes, no emojis. "
+    "Return only the full revised reply."
+)
+
+
+def _opener_rewrite_user(user_message_en: str, response_en: str, opener: str) -> str:
+    return (
+        f"The person said: {user_message_en}\n\n"
+        f"Your reply (revise only the opening, keep the rest verbatim): {response_en}\n\n"
+        f"The banned opener you used and must replace: {opener}"
+    )
+
+
+async def _rewrite_opener(response_en: str, opener: str, user_message_en: str) -> str:
+    """Rewrite only the banned opening of an existing reply via the classifier model,
+    preserving the rest. Returns "" on timeout/failure (caller passes the original through).
+
+    Deliberately NOT wrapped in resilient_invoke: its fixed 30s x 2 timeout under the 55s graph
+    ceiling is a SERVER_ERROR vector on the ~27% of turns that fire. A slow rewrite must degrade
+    to pass-through, so this uses a short asyncio.wait_for with no retries -- pass-through is the
+    safe fallback. asyncio.TimeoutError is an Exception subclass; CancelledError is NOT and is
+    correctly not swallowed."""
+    if not response_en:
+        return ""
+    try:
+        msg = await asyncio.wait_for(
+            get_classifier().ainvoke([
+                {"role": "system", "content": _OPENER_REWRITE_SYSTEM},
+                {"role": "user", "content": _opener_rewrite_user(user_message_en, response_en, opener)},
+            ]),
+            timeout=_OPENER_REWRITE_TIMEOUT,
+        )
+        return msg if isinstance(msg, str) else (getattr(msg, "content", None) or "")
+    except Exception:
+        return ""
 
 # Re-surface resources if a MONITORING (post-crisis) turn would otherwise return blank.
 # A silent turn during crisis monitoring is the worst failure mode; commas only (no em dash).
@@ -406,48 +499,57 @@ async def output_gate_node(state: SageState) -> dict:
                 lambda t: _log.warning("[output_gate] empty-retry audit error: %s", t.exception())
                 if not t.cancelled() and t.exception() else None
             )
-    if gate_path not in ("scope_refusal", "jailbreak") and response_en and not _response_en_is_arabic:
+    # #58: register-preserving opener fix. ALLOWLIST (not blocklist) so the rewrite only ever touches
+    # ordinary freeflow replies. scope_refusal/jailbreak keep their clinician-authored copy; crisis
+    # never reaches output_gate (crisis route => END) -- the crisis_flags check is belt-and-suspenders.
+    # SUPPRESS on clinical_flags (trauma_indicator, domestic_situation, substance_use, eating_concern,
+    # psychotic_disclosure, ...) -- clinical advisory 2026-06-24, Decision 1b (conservative default).
+    # The external model must not re-word the most delicate openers; flagged replies pass through
+    # unchanged (a soft opener is the lesser harm than an unsupervised rewrite that could mislabel
+    # affect or re-state trauma, which the deterministic re-check cannot catch). Revisitable per-flag
+    # once an LLM register evaluator + stratified human review over the flagged subset are live.
+    opener_rewrite_audit = None
+    if (
+        gate_path in (None, "standard")
+        and not state.get("crisis_flags")
+        and not state.get("clinical_flags")
+        and response_en and not _response_en_is_arabic
+    ):
         banned_match = _BANNED_OPENER_RE.match(response_en.lstrip())
         if banned_match:
-            retry_count = _retry_count
-            if retry_count < 1:
-                _log.warning(
-                    "[output_gate] banned opener detected (%r) — routing back to freeflow_respond for retry",
-                    banned_match.group(0),
-                )
-                retry_path = path + ["output_gate_banned_opener_retry"]
-                return {
-                    "banned_opener_retry_count": retry_count + 1,
-                    "banned_opener_correction": _BANNED_OPENER_CORRECTION,
-                    "path": retry_path,
-                    # Preserve expected state keys so downstream tests and LangGraph
-                    # state merges don't encounter missing fields on this early exit.
-                    "cultural_output_violations": cultural_output_violations,
-                    "identity_substitution_rule_id": None,
-                    "original_response_hash": None,
-                    "original_response_text": None,
-                    "banned_opener_violation": False,
-                }
+            opener = banned_match.group(0)
+            # INTERIM #65 guard (clinical-lead sign-off 2026-06-25): the clinical_flags check above
+            # is keyword-only and fails open on naturalistic phrasing. Do not rely on it — also suppress
+            # the rewrite on a broader sensitive-topic lexicon or elevated distress, passing the real
+            # reply through unchanged. Mitigation, not resolution (#65 semantic tier is the real fix).
+            suppress_reason = _rewrite_suppressed_reason(
+                state.get("message_en", ""), response_en, state.get("emotional_intensity"),
+                raw_message=state.get("raw_message", ""),
+            )
+            if suppress_reason:
+                path = path + ["output_gate_opener_suppressed_sensitive"]
+                opener_rewrite_audit = {"applied": False, "model": CLASSIFIER_MODEL, "opener": opener,
+                                        "latency_ms": 0, "suppressed": suppress_reason}
+                banned_opener_violation = True  # reply ships with the soft opener intact (audit accuracy)
+                _log.info("[output_gate] opener rewrite suppressed (%s); passing original reply through", suppress_reason)
+                banned_match = None  # fall through without rewrite
+        if banned_match:
+            _t0 = time.monotonic()
+            rewritten = await _rewrite_opener(response_en, opener, state.get("message_en", ""))
+            _rw_ms = int((time.monotonic() - _t0) * 1000)
+            # LOAD-BEARING deterministic re-check (ABSOLUTE RULE 1): the LLM proposes, _BANNED_OPENER_RE
+            # disposes, failure falls back to deterministic pass-through. Do NOT remove this re-check.
+            if rewritten and not _BANNED_OPENER_RE.match(rewritten.lstrip()):
+                response_en = rewritten
+                path = path + ["output_gate_opener_rewritten"]
+                opener_rewrite_audit = {"applied": True, "model": CLASSIFIER_MODEL, "opener": opener, "latency_ms": _rw_ms}
             else:
-                # Retry exhausted — substitute vetted fallback rather than passing the
-                # violating response to the user. Append marker to path so it surfaces in
-                # X-Sage-Node-Path and audit rows; reviewers can distinguish "fallback
-                # substituted" from "violation passed through."
-                response_en = _VETTED_FALLBACK_RESPONSE
+                # Pass the model's REAL reply through (a soft opener is the lesser evil) rather than a
+                # content-free placeholder. The canned fallback is reserved for empty generations.
+                path = path + ["output_gate_opener_passthrough"]
                 banned_opener_violation = True
-                banned_opener_fallback_used = True
-                path = path + ["output_gate_fallback_substituted"]
-                _log.warning(
-                    "[output_gate] banned opener persists after retry — substituting vetted fallback"
-                )
-                if session_id:
-                    _fallback_audit = asyncio.create_task(
-                        write_session_audit({**state, "path": path, "gate_path": gate_path or "standard"})
-                    )
-                    _fallback_audit.add_done_callback(
-                        lambda t: _log.warning("[output_gate] fallback audit error: %s", t.exception())
-                        if not t.cancelled() and t.exception() else None
-                    )
+                opener_rewrite_audit = {"applied": False, "model": CLASSIFIER_MODEL, "opener": opener, "latency_ms": _rw_ms}
+                _log.warning("[output_gate] opener rewrite unavailable; passing original reply through")
 
     # Question discipline (deterministic). Global on freeflow turns: collapse stacked
     # questions to one (MIND-SAFE: one question at a time). Directive turns additionally end
@@ -478,8 +580,13 @@ async def output_gate_node(state: SageState) -> dict:
     # An offer from an EARLIER turn (already seen by the user) is left alone;
     # re-rendering it next turn is correct there.
     _offer_voided = False
+    # #58: the invariant fires whenever a fallback hid an offer the user never saw. Pre-#58 the
+    # only such path was the retry-exhausted banned-opener substitution (banned_opener_fallback_used);
+    # that path was removed (banned openers are now rewritten / passed through, which PRESERVE the
+    # offer text). The surviving displacing path is the empty fail-safe, so the trigger is re-homed
+    # to it (banned_opener_fallback_used kept for any residual/legacy path; now ~always False).
     if (
-        banned_opener_fallback_used
+        ("output_gate_empty_fallback" in path or banned_opener_fallback_used)
         and state.get("offered_skill_ids")
         and "skill_offer_made" in state.get("path", [])
     ):
@@ -616,6 +723,7 @@ async def output_gate_node(state: SageState) -> dict:
         "banned_opener_correction": None,
         "banned_opener_violation": banned_opener_violation,
         "banned_opener_fallback_used": banned_opener_fallback_used,
+        "opener_rewrite": opener_rewrite_audit,  # #58 traceability; persisted via Step 3b migration
     }
     if _offer_voided:
         # Key included only when voiding so a normal turn's channel merge never

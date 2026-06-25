@@ -178,55 +178,36 @@ async def test_d3_crisis_state_template_response_not_flagged():
 
 @pytest.mark.asyncio
 async def test_d4_stale_skill_reentry_response_caught_by_gate():
-    """D-4: When stale_skill_id is set and the LLM references the prior skill
-    with a banned opener ('It sounds like you were working on...'), the gate
-    catches it like any other response. The gate runs on response_en regardless
-    of how the response was generated.
-    """
+    """D-4 (migrated): a banned opener in a stale-skill re-entry response is still caught by the gate
+    and fixed INLINE (the gate runs on response_en regardless of how it was generated). Detection is
+    unchanged; remediation is now an inline rewrite, not a correction/regen early return."""
+    from sage_poc.nodes import output_gate
     from sage_poc.nodes.output_gate import output_gate_node
 
     state = _base_state(
         response_en="It sounds like you were working on managing anxiety last time. Shall we continue?",
         stale_skill_id="skill-anxiety-management",
-        banned_opener_retry_count=0,
     )
 
-    with patch("sage_poc.nodes.output_gate.rules_engine.evaluate", return_value=MagicMock(fired=[])):
+    async def _fake_rewrite(response_en, opener, user_message_en):
+        return "Last time you were working on managing anxiety. Shall we continue?"
+
+    with patch.object(output_gate, "_rewrite_opener", _fake_rewrite), \
+         patch("sage_poc.nodes.output_gate.rules_engine.evaluate", return_value=MagicMock(fired=[])), \
+         patch("sage_poc.nodes.output_gate.async_translate_to_arabic", AsyncMock(return_value="...")), \
+         patch("sage_poc.nodes.output_gate.write_session_audit", AsyncMock()):
         result = await output_gate_node(state)
 
-    assert result.get("banned_opener_correction") is not None, (
-        "Banned opener in stale-skill re-entry response must be caught"
+    assert "output_gate_opener_rewritten" in result.get("path", []), (
+        "Banned opener in a stale-skill re-entry response must still be caught and fixed inline"
     )
-    assert result.get("banned_opener_retry_count") == 1
+    assert result.get("banned_opener_correction") is None
 
 
-# ---- D-5: Summarization at turn 10 does not run on early return path -------
-
-@pytest.mark.asyncio
-async def test_d5_summarization_not_called_on_early_return():
-    """D-5: The summarise_history call (triggered at turn_count % 10 == 0) runs
-    on the normal completion path only (lines 297-316). The early return exits
-    at lines 222-233, before those lines. Verify summarize is not called when
-    a banned opener triggers the early return at turn 9 → next_turn would be 10.
-    """
-    from sage_poc.nodes.output_gate import output_gate_node
-
-    state = _base_state(
-        response_en="It sounds like you're overwhelmed.",
-        banned_opener_retry_count=0,
-        turn_count=9,  # next_turn would be 10, triggering summarization on normal path
-    )
-
-    with patch("sage_poc.nodes.output_gate.rules_engine.evaluate", return_value=MagicMock(fired=[])):
-        with patch("sage_poc.nodes.output_gate.summarise_history") as mock_summarize:
-            result = await output_gate_node(state)
-
-    # Confirm early return happened
-    assert result.get("banned_opener_correction") is not None, (
-        "Early return must have fired (banned opener detected)"
-    )
-    # Summarization must NOT have run
-    mock_summarize.assert_not_called()
+# RETIRED in #58: test_d5_summarization_not_called_on_early_return guarded summarization against the
+# banned-opener EARLY RETURN. There is no early return now (the rewrite is inline and the turn always
+# completes), so a banned-opener turn runs the normal completion path and summarises at turn 10 like
+# any other turn. The "no early return" precondition the test asserted no longer exists.
 
 
 # ---- D-6: crisis_state active — _route_after_output_gate returns END --------

@@ -83,14 +83,20 @@ def _run_gate(state):
     return _call()
 
 
+# RETIRED in #58: test_fallback_substitution_voids_offer_created_this_turn tested voiding on the
+# retry-exhausted banned-opener substitution. That substitution no longer happens — a banned opener
+# is now rewritten or passed through, both of which PRESERVE the offer text, so the user still sees
+# the offer and there is nothing to void. The surviving displacing path (the empty fail-safe) is
+# covered by test_empty_response_voids_offer_created_this_turn below.
+
 @pytest.mark.asyncio
-async def test_fallback_substitution_voids_offer_created_this_turn():
-    """Retry-exhausted fallback substitution on an offer-creating turn must void
-    the offer (offered_skill_ids -> None) and append the audit marker
-    "offer_voided_fallback" so the path explains the divergence."""
+async def test_empty_response_voids_offer_created_this_turn():
+    """#58 (re-pointed to the surviving path): an EMPTY response on an offer-creating turn triggers
+    the empty fail-safe (generic text replaces the offer the user never saw), so the offer must be
+    voided (offered_skill_ids -> None) with the offer_voided_fallback marker. The voiding invariant
+    was re-homed from the removed banned-opener-fallback path to this empty fail-safe path."""
     state = _base_state(
-        response_en="That sounds really tough. I'm here for you.",
-        banned_opener_retry_count=1,
+        response_en="",
         offered_skill_ids=["worry_time"],
         path=["safety_check", "intent_route", "skill_select",
               "skill_offer_made", "freeflow_respond"],
@@ -98,73 +104,31 @@ async def test_fallback_substitution_voids_offer_created_this_turn():
 
     result = await _run_gate(state)
 
-    assert "offered_skill_ids" in result, (
-        "Fallback substitution on an offer-creating turn must include "
-        "offered_skill_ids in the state update to void the unseen offer"
+    assert "output_gate_empty_fallback" in result.get("path", []), "empty fail-safe must fire"
+    assert "offered_skill_ids" in result and result["offered_skill_ids"] is None, (
+        f"Unseen offer must be voided on the empty fail-safe. Got: {result.get('offered_skill_ids')!r}"
     )
-    assert result["offered_skill_ids"] is None, (
-        f"Unseen offer must be voided. Got: {result['offered_skill_ids']!r}"
-    )
-    assert "offer_voided_fallback" in result.get("path", []), (
-        "Audit trail must carry the offer_voided_fallback path marker"
-    )
-    # Sanity: fallback actually fired in this scenario
-    assert result.get("banned_opener_fallback_used") is True
+    assert "offer_voided_fallback" in result.get("path", [])
 
 
 @pytest.mark.asyncio
-async def test_fallback_substitution_preserves_offer_from_prior_turn():
-    """Offer created on an EARLIER turn (user already saw it; "skill_offer_made"
-    NOT in this turn's path) must NOT be touched when a later reply degrades —
-    re-rendering next turn is correct there."""
+async def test_empty_fallback_preserves_offer_from_prior_turn():
+    """#58 (re-pointed): an offer from an EARLIER turn ("skill_offer_made" NOT in this turn's path)
+    must NOT be voided when this turn degrades to the empty fail-safe — re-rendering next turn is
+    correct there. Protects the prior-turn-preservation half of the invariant on the surviving path."""
     state = _base_state(
-        response_en="That sounds really tough. I'm here for you.",
-        banned_opener_retry_count=1,
+        response_en="",
         offered_skill_ids=["worry_time"],
         path=["safety_check", "intent_route", "freeflow_respond"],
     )
 
     result = await _run_gate(state)
 
-    assert result.get("banned_opener_fallback_used") is True
+    assert "output_gate_empty_fallback" in result.get("path", []), "empty fail-safe must fire"
     assert "offered_skill_ids" not in result, (
-        "Prior-turn offer must survive a degraded reply — output_gate must not "
-        "include offered_skill_ids in the update"
+        "Prior-turn offer must survive a degraded reply — output_gate must not void it"
     )
     assert "offer_voided_fallback" not in result.get("path", [])
-
-
-@pytest.mark.asyncio
-async def test_empty_response_on_retry_voids_offer_created_this_turn():
-    """Empty response after a retry (response_en="") substitutes the vetted
-    fallback and must void an offer created THIS turn — the LLM rate-limit /
-    token-budget failure path (output_gate.py ~line 255).  This sub-path is
-    distinct from the banned-opener-exhausted branch: the response is empty
-    rather than violating, but the offer-voiding invariant is identical because
-    the user never saw the offer options in either case."""
-    state = _base_state(
-        response_en="",
-        banned_opener_retry_count=1,
-        offered_skill_ids=["worry_time"],
-        path=["safety_check", "intent_route", "skill_select",
-              "skill_offer_made", "freeflow_respond"],
-    )
-
-    result = await _run_gate(state)
-
-    assert result.get("banned_opener_fallback_used") is True, (
-        "Empty response on retry must set banned_opener_fallback_used=True"
-    )
-    assert "offered_skill_ids" in result, (
-        "Empty-response fallback on an offer-creating turn must include "
-        "offered_skill_ids in the state update to void the unseen offer"
-    )
-    assert result["offered_skill_ids"] is None, (
-        f"Unseen offer must be voided. Got: {result['offered_skill_ids']!r}"
-    )
-    assert "offer_voided_fallback" in result.get("path", []), (
-        "Audit trail must carry the offer_voided_fallback path marker"
-    )
 
 
 @pytest.mark.asyncio
