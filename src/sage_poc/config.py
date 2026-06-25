@@ -74,3 +74,11 @@ HTTP_MAX_KEEPALIVE = int(os.getenv("SAGE_HTTP_MAX_KEEPALIVE", "20"))
 # server connection, so total = (checkpoint + asyncpg) x replicas; size against the Supabase
 # tier's pool_size / connection cap and the Railway replica count before raising.
 CHECKPOINT_POOL_MAX_SIZE = int(os.getenv("SAGE_CHECKPOINT_POOL_MAX_SIZE", "20"))
+
+# EMBED-CACHE (arch §20.2): dedupe the BGE-M3 query encode of message_en shared by S3
+# (Layer 1 crisis) and skill_select Tier 2. The cache PRIMITIVE always exists (the
+# equivalence gate tests it directly); this flag gates only the WIRING into check_s3 /
+# skill_select, so EMBED-CACHE before/after is one build with a flag flip (same discipline
+# as the ① pool measurement). Default on — shipped only because the equivalence gate
+# (test_embed_cache_equivalence.py) asserts crisis output is byte-identical with the cache.
+EMBED_CACHE_ENABLED: bool = os.getenv("SAGE_EMBED_CACHE_ENABLED", "true").lower() == "true"

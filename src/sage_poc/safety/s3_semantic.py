@@ -73,6 +73,58 @@ def get_embedding(text: str) -> list[float]:
     return result.tolist() if hasattr(result, "tolist") else list(result)
 
 
+# ── EMBED-CACHE (arch §20.2) ──
+# Dedupe the BGE-M3 query encode of message_en shared by S3 (here) and skill_select Tier 2.
+# Keyed on sha256(text) — NOT raw text — so plaintext user messages are not held as cache
+# keys, and key(a)==key(b) ⇒ a==b ⇒ get_embedding(a)==get_embedding(b) (key-safety invariant
+# the gate asserts). Bounded LRU; thread-safe (called inside asyncio.to_thread from S3 and
+# skill_select). get_embedding is deterministic, so a hit returns a bit-identical vector.
+# PRODUCTION HARDENING (deferred): a per-turn / state-scoped cache holds zero cross-turn user
+# data; this process-global bounded form is the POC shape (hashed keys, capped). The PRIMITIVE
+# always exists; config.EMBED_CACHE_ENABLED gates only the check_s3 / skill_select wiring.
+import hashlib  # noqa: E402
+import threading  # noqa: E402
+from collections import OrderedDict  # noqa: E402
+
+_QUERY_EMBED_CACHE_MAX = 512
+_query_embedding_cache: "OrderedDict[str, list[float]]" = OrderedDict()
+_query_embedding_cache_lock = threading.Lock()
+
+
+def query_embedding_cache_key(text: str) -> str:
+    """Cache key = sha256 of the exact text. Exact-match semantics (no normalisation)."""
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def reset_query_embedding_cache() -> None:
+    with _query_embedding_cache_lock:
+        _query_embedding_cache.clear()
+
+
+def cached_get_embedding(text: str) -> list[float]:
+    """get_embedding with a bounded LRU; returns a vector bit-identical to get_embedding(text).
+    Encode runs OUTSIDE the lock so concurrent turns don't serialise on it."""
+    key = query_embedding_cache_key(text)
+    with _query_embedding_cache_lock:
+        hit = _query_embedding_cache.get(key)
+        if hit is not None:
+            _query_embedding_cache.move_to_end(key)
+            return hit
+    emb = get_embedding(text)
+    with _query_embedding_cache_lock:
+        _query_embedding_cache[key] = emb
+        _query_embedding_cache.move_to_end(key)
+        while len(_query_embedding_cache) > _QUERY_EMBED_CACHE_MAX:
+            _query_embedding_cache.popitem(last=False)
+    return emb
+
+
+def _query_embedding(text: str) -> list[float]:
+    """Flag-gated entry point used by the live S3 path."""
+    from sage_poc.config import EMBED_CACHE_ENABLED  # noqa: PLC0415
+    return cached_get_embedding(text) if EMBED_CACHE_ENABLED else get_embedding(text)
+
+
 def check_s3(text: str) -> float:
     """Return max cosine similarity between *text* and the crisis phrase index.
 
@@ -88,7 +140,7 @@ def check_s3(text: str) -> float:
     if not _ensure_s3_ready():
         return 0.0
     try:
-        query = np.array(get_embedding(text), dtype=np.float32)
+        query = np.array(_query_embedding(text), dtype=np.float32)
         norm = np.linalg.norm(query)
         if norm < 1e-9:
             return 0.0
