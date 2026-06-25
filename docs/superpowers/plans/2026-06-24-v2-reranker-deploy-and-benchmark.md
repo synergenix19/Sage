@@ -111,6 +111,15 @@ railway up --detach -m "V2 fp32 reranker — staging benchmark (reconcile/v2-ont
 
 Standing gates unaffected by this deploy: 9.6s baseline (own workstream), AR EN-only (τ=−inf, native review + the separate AR precision check the quantization finding flagged).
 
+## DEPLOY EXECUTED 2026-06-25 — staging, V2 live, benchmark PASS
+User-authorized. Re-verified latest master first (master had moved db8eb39→**`59b6d8e`** PR#75 #66; the 4 commits touch only L0/prompt templates, NOT routing — merged clean `54296d2`, routing code byte-identical to gated tree, gate transfers by determinism). Deployed `reconcile/v2-onto-db8eb39` `54296d2` to `sage-api/staging` (`railway up`, build `a404edbc` SUCCESS) with `SKILL_ROUTING_V2=1 SKILL_RERANK_ENABLED=1` (fp32 default).
+
+**HARD HEALTH GATE — PASSED:** `/health/ready` 200. Head-control: the success line is `_log.info` and the app logger has no `basicConfig` (defaults WARNING) → the "passed (warm)" STRING is never emitted (not retrievable, by logging config, not failure); the FAILURE path is `_log.error` and is ABSENT. Confirmed instead (stronger): (a) deductively — 200+flag-set is unreachable through the readiness-blocking `_warmup_reranker` unless `head_loaded_ok()` returned True; (b) functionally — live /chat probes show the V2 signature: id_oos "perfectionist" → path `[...skill_select, freeflow_respond...]` ABSTAIN (no `skill_offer_made`; V1 would offer self_compassion_break), in_scope "ruminating" → `skill_offer_made`. A headless reranker (~0 logits) can't produce that discrimination.
+
+**BENCHMARK — PASS:** 12 routing turns, warm, fp32 batch-1 k=5: median **6.02s**, p95 **7.01s** (min 5.16 / max 7.90). **Below the 9.6s baseline p95** → reranker increment small (LLM-dominated turn); the remaining latency wall is the pre-existing 9.6s workstream (gates V1 too), not V2. Caveat: TOTAL /chat latency (low-concurrency warm staging), not an isolated reranker microbenchmark or apples-to-apples with the baseline's heavier context; a V1-vs-V2 A/B on the same instance would isolate the increment precisely, but the total clearly fits budget.
+
+**FOLLOW-UPS (non-blocking):** (1) observability — the head-control success result should emit at a visible level or via a `/health` field so the runbook's log-line check is directly satisfiable next deploy (prod). (2) PROD deploy is a SEPARATE decision (now favorable: clean per-stratum quality + acceptable latency); staging stays V2. (3) standing gates unchanged: 9.6s baseline (own workstream), AR EN-only (native review + AR precision check).
+
 **Benchmark to run on Railway (the actual remaining question):**
 - Measure **fp32 batch-1 V2-incremental latency** specifically — NOT batched (batch-1 is the deterministic shipping scorer and is slower), NOT int8 (safety-disqualified, out of scope). The number = fp32-batch-1's added per-turn cost over baseline.
 - At **k=5** (the pipeline the gate validated) so latency corresponds to the quality-validated config.
