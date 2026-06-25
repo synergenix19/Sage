@@ -259,3 +259,10 @@ async def test_severe_distress_suppresses_rewrite(monkeypatch):
 
     assert calls == [], "severe-distress turn must not reach the external rewriter"
     assert res["opener_rewrite"]["suppressed"] == "high_distress"
+
+
+def test_rewrite_suppressed_reason_arabic_raw_message():
+    # Khaleeji disclosures matched directly against the raw (Arabic) message, not the MT translation
+    assert output_gate._rewrite_suppressed_reason("", "ok", 4, raw_message="زوجي يضربني لما يعصب") == "sensitive_topic"
+    assert output_gate._rewrite_suppressed_reason("", "ok", 4, raw_message="أستفرغ بعد الأكل") == "sensitive_topic"
+    assert output_gate._rewrite_suppressed_reason("", "ok", 4, raw_message="مرحبا كيف حالك") is None

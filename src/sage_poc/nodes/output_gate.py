@@ -32,26 +32,36 @@ _CROSS_SESSION_FLAGS: dict[str, bool] = _FLAG_LIFECYCLE_CONFIG.get("cross_sessio
 _SENSITIVE_LEXICON_PATH = Path(__file__).parent.parent / "rules" / "data" / "safety" / "sensitive_topic_suppression_lexicon.json"
 with _SENSITIVE_LEXICON_PATH.open() as _f:
     _SENSITIVE_LEXICON_RAW: dict = json.load(_f)
-_SENSITIVE_TOPIC_PHRASES: tuple[str, ...] = tuple(
-    p.lower() for _cat in _SENSITIVE_LEXICON_RAW.get("categories", {}).values() for p in _cat
+_SENSITIVE_LEXICON_CATS: dict = _SENSITIVE_LEXICON_RAW.get("categories", {})
+# English phrases matched against the user message (English) + the candidate reply; Arabic phrases
+# matched against the original raw message (the bilingual gap lives in MT fidelity, so match AR directly).
+_SENSITIVE_TOPIC_PHRASES_EN: tuple[str, ...] = tuple(
+    p.lower() for _cat in _SENSITIVE_LEXICON_CATS.values() for p in _cat.get("en", [])
+)
+_SENSITIVE_TOPIC_PHRASES_AR: tuple[str, ...] = tuple(
+    p for _cat in _SENSITIVE_LEXICON_CATS.values() for p in _cat.get("ar", [])
 )
 _OPENER_REWRITE_DISTRESS_CEILING = 9  # severe distress (9-10/10) -> suppress rewrite (pass through);
 # the lexicon is the primary sensitive-content gate, this is a wording-independent backstop for the top of the scale
 
 
-def _rewrite_suppressed_reason(message_en: str, response_en: str, emotional_intensity) -> str | None:
+def _rewrite_suppressed_reason(message_en: str, response_en: str, emotional_intensity,
+                               raw_message: str = "") -> str | None:
     """Interim sensitive-content guard for the opener rewrite (#65). Returns a suppression reason
     ('sensitive_topic' | 'high_distress') or None. Independent of, and in addition to, the
     clinical_flags / crisis_flags guards — it catches naturally-worded disclosures the keyword
-    flags miss. Errs toward suppression by design."""
+    flags miss, in English (via message_en/response_en) and Khaleeji Arabic (via the raw message).
+    Errs toward suppression by design."""
     try:
         intensity = int(emotional_intensity)
     except (TypeError, ValueError):
         intensity = 0
     if intensity >= _OPENER_REWRITE_DISTRESS_CEILING:
         return "high_distress"
-    haystack = f"{message_en or ''} {response_en or ''}".lower()
-    if any(phrase in haystack for phrase in _SENSITIVE_TOPIC_PHRASES):
+    haystack_en = f"{message_en or ''} {response_en or ''}".lower()
+    if any(phrase in haystack_en for phrase in _SENSITIVE_TOPIC_PHRASES_EN):
+        return "sensitive_topic"
+    if raw_message and any(phrase in raw_message for phrase in _SENSITIVE_TOPIC_PHRASES_AR):
         return "sensitive_topic"
     return None
 
@@ -513,7 +523,8 @@ async def output_gate_node(state: SageState) -> dict:
             # the rewrite on a broader sensitive-topic lexicon or elevated distress, passing the real
             # reply through unchanged. Mitigation, not resolution (#65 semantic tier is the real fix).
             suppress_reason = _rewrite_suppressed_reason(
-                state.get("message_en", ""), response_en, state.get("emotional_intensity")
+                state.get("message_en", ""), response_en, state.get("emotional_intensity"),
+                raw_message=state.get("raw_message", ""),
             )
             if suppress_reason:
                 path = path + ["output_gate_opener_suppressed_sensitive"]
