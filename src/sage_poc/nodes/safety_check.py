@@ -27,6 +27,7 @@ import asyncio
 import logging
 from sage_poc.state import SageState
 from sage_poc.language import detect_language, async_translate_to_english
+from sage_poc.observability import stage_timer
 from sage_poc.rules import engine as rules_engine
 from sage_poc.nodes.post_crisis_classifier import evaluate_s7
 from sage_poc.safety.s3_semantic import check_s3, check_s3_bilingual, S3_THRESHOLD
@@ -136,10 +137,18 @@ async def safety_check_node(state: SageState) -> dict:
     try:
         # check_s3_bilingual batches text_en + text_ar in one forward pass — avoids
         # two sequential encode() calls for Arabic (was the source of the latency regression).
-        s3_score = await asyncio.wait_for(
-            asyncio.to_thread(check_s3_bilingual, message_en, text_ar),
-            timeout=5.0,
-        )
+        # stage_timer is log-only and wraps the call UNCHANGED — it cannot perturb the S3
+        # encode or crisis verdict (asserted by test_embed_cache_equivalence's reference path).
+        with stage_timer(
+            "s3_encode",
+            session_id=state.get("session_id"),
+            turn=state.get("turn_count"),
+            lang=lang,
+        ):
+            s3_score = await asyncio.wait_for(
+                asyncio.to_thread(check_s3_bilingual, message_en, text_ar),
+                timeout=5.0,
+            )
         if s3_score >= S3_THRESHOLD:
             s3_suppressed = any(
                 a.get("type") == "crisis_suppress" for a in safety_result.actions
