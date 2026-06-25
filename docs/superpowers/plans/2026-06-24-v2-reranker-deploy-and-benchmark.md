@@ -89,6 +89,28 @@ end-to-end verdict gated on the baseline-latency and AR-data workstreams.
 
 **ALL THREE BLOCKERS CLEARED.** Deploy candidate = branch `reconcile/v2-onto-db8eb39` (tip `79ca973`). Remaining = user authorization for the `railway up` to staging.
 
+## DEPLOY RUNBOOK — STAGED, AWAITING EXPLICIT USER "DEPLOY" (do NOT run unilaterally)
+Pre-verified 2026-06-25 (read-only): on `reconcile/v2-onto-db8eb39`, **no CODE change since the measured `55a1fbe`** (docs only), working tree CLEAN, behind 0, linked `sage-api`/`staging`. This is a real **V1→V2 flip on staging** (the flags aren't set there today), which is what the benchmark needs.
+
+**Step 0 — pre-up guard (the "ship what I measured" check; we've been bitten by assumed state before):** confirm on `reconcile/v2-onto-db8eb39`, tip carries `55a1fbe` (code), `git status` clean, `railway status` = sage-api/staging. Stop if any differ.
+
+**Step 1 — set flags + deploy:**
+```
+railway variables --set SKILL_ROUTING_V2=1 --set SKILL_RERANK_ENABLED=1   # precision defaults fp32 (int8 safety-disqualified)
+railway up --detach -m "V2 fp32 reranker — staging benchmark (reconcile/v2-onto-db8eb39)"
+```
+
+**Step 2 — HARD HEALTH GATE (stop point — do NOT benchmark until BOTH pass):**
+- `/health/ready` → **200**, AND
+- deploy logs show **`reranker head-control passed (warm)`**.
+- **If 503 or the log line is absent: STOP and diagnose the model load.** A 503 here is NOT "deploy failed, retry" — it's blocker-2's readiness-blocking head-control doing its job: it caught a headless/failed reranker load and took the instance out of rotation. The log line is the proof the deployed reranker is the real head-bearing routing model, not a silently-headless one serving confident-wrong routes. **Benchmarking a headless instance yields latency for confident-wrong routing — worse than no number.** Both signals required before Step 3.
+
+**Step 3 — benchmark (only past the gate):** fp32 **batch-1**, **k=5** (the validated config), routing turns only (not crisis/info_request), median + p95. Reranker is warm (Step 2), so this is steady-state, not cold-load.
+
+**Step 4 — read vs the 9.6s baseline (the real wall, gates V1+V2 both):** the number is V2's *increment*; the read is the TOTAL and whether it fits the per-turn budget. Three outcomes: (a) increment small, total ≈9.6s → V2 acceptable, remaining gate is the pre-existing 9.6s workstream; (b) increment pushes total well past 9.6s → fp32-batch-1-k5 too slow, levers = k-pruning (quality cost) or baseline-latency workstream first — a real finding, not a failure; (c) number looks implausible → suspect the measurement first (confirm warm + batch-1 + fp32 via the head-control line and config), same discipline as every number in this chain.
+
+Standing gates unaffected by this deploy: 9.6s baseline (own workstream), AR EN-only (τ=−inf, native review + the separate AR precision check the quantization finding flagged).
+
 **Benchmark to run on Railway (the actual remaining question):**
 - Measure **fp32 batch-1 V2-incremental latency** specifically — NOT batched (batch-1 is the deterministic shipping scorer and is slower), NOT int8 (safety-disqualified, out of scope). The number = fp32-batch-1's added per-turn cost over baseline.
 - At **k=5** (the pipeline the gate validated) so latency corresponds to the quality-validated config.
