@@ -6,6 +6,7 @@ import hmac
 import os
 import pathlib
 import re
+import sys
 import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -29,6 +30,29 @@ from sage_poc.observability import log_stage_latency
 from sage_poc.skills.conformance import SCHEMA_CONFORMANCE, get_conformance_report
 
 _log = logging.getLogger(__name__)
+
+
+def _configure_instrumentation_logging() -> None:
+    """uvicorn configures only its own loggers, so app `logging.info()` is dropped on the
+    deployed image (falls through to the WARNING-level lastResort). The latency baseline reads
+    the stage_latency + llm_call lines, so attach a stdout handler to EXACTLY those two
+    instrumentation loggers at INFO — both content-free by construction (stage/ms/IDs; node/
+    model/latency). Deliberately NOT a global basicConfig(INFO): that would also surface the
+    output_gate audit (clinical-flag metadata), widening the log content boundary. Idempotent;
+    propagate=False so root config can't double-print or re-level these.
+    """
+    _handler = logging.StreamHandler(sys.stdout)
+    _handler.setFormatter(logging.Formatter("%(message)s"))
+    for _name in ("sage.latency", "sage_poc.resilience"):
+        _lg = logging.getLogger(_name)
+        if not any(isinstance(h, logging.StreamHandler) for h in _lg.handlers):
+            _lg.addHandler(_handler)
+        _lg.setLevel(logging.INFO)
+        _lg.propagate = False
+
+
+_configure_instrumentation_logging()
+
 CRISIS_SIGNAL = "[[CRISIS_DETECTED]]"
 AINVOKE_TIMEOUT_SECONDS: float = float(os.environ.get("AINVOKE_TIMEOUT_SECONDS", "30"))
 
