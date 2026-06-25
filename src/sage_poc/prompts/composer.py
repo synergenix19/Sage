@@ -547,6 +547,31 @@ def _anchor_turn(history: list[dict], recall_text: str) -> dict | None:
     return user_turns[-1]
 
 
+# --- absent-side A4 fix: empty-retrieval sentinel for the MEMORY path ---
+# Mirrors the knowledge path's "No relevant clinical evidence found" anchor. The original A4 fix
+# shipped the L0 *instruction* to admit but not the *signal* to admit against, so empty retrieval
+# was silence the model fabricates into (~15-25% of the time). This gives it the signal.
+_MEMORY_ABSENT_SENTINEL = (
+    "MEMORY CHECK: the person is asking you to recall something, but no earlier record of it was "
+    "found, not in this conversation and not in any prior-session context above. Do not invent, "
+    "infer, or guess what they said. Tell them you do not have a record of that and invite them to "
+    "share it again."
+)
+
+
+def memory_absent_sentinel(state: SageState, prior_context_present: bool) -> str | None:
+    """Return the sentinel ONLY when a recall is requested AND grounding is genuinely empty:
+    no prior-session context, and no user turns in this conversation. Keys off emptiness
+    (language-agnostic), NOT the keyword-anchor, so it carries no Arabic-parity dependency and
+    cannot assert absence over real disclosure (which would re-introduce the false-denial vector).
+    Returns None when any user history exists -> the back-door is closed by erring toward NOT firing."""
+    if not state.get("self_reference") or prior_context_present:
+        return None
+    if any(m.get("role") == "user" for m in state.get("conversation_history", [])):
+        return None
+    return _MEMORY_ABSENT_SENTINEL
+
+
 _CULTURAL_BUDGET_WORDS = 250
 _CULTURAL_OVERRIDE_BUDGET_WORDS = 200  # clinician-signed cap; forces concise complete overrides
 _TOTAL_WORD_BUDGET = 1100
@@ -938,9 +963,10 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     # User message always last
     user_parts.append(f"USER: {message_en}")
 
-    # #58: the [CORRECTION] re-generation injection was removed. Banned openers are now fixed by an
-    # inline rewrite in output_gate (no route-back-to-freeflow), so banned_opener_correction is no
-    # longer set and this layer no longer exists.
+    correction = state.get("banned_opener_correction")
+    if correction:
+        user_parts.append(f"[CORRECTION]: {correction}")
+        layers.append("banned_opener_correction")
 
     # ---- Token budget enforcement (overflow: shrink L1 first) --------------
     # v7 §5.6.3: shrink history first. The conversation_summary is the compact

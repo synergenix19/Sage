@@ -112,6 +112,15 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
     if prior_context:
         system_str = system_str + "\n\nPRIOR SESSION CONTEXT (share naturally, not verbatim):\n" + prior_context
         prompt_layers = list(prompt_layers) + ["prior_session_context"]
+    else:
+        # Absent-side A4 fix: empty retrieval carries no signal, so on a recall turn the model
+        # fabricates into the silence. Inject an explicit "no record found" anchor (mirrors the
+        # knowledge path). Fires only on self_reference + genuinely-empty grounding; see composer.
+        from sage_poc.prompts.composer import memory_absent_sentinel  # noqa: PLC0415
+        _sentinel = memory_absent_sentinel(state, prior_context_present=False)
+        if _sentinel:
+            system_str = system_str + "\n\n" + _sentinel
+            prompt_layers = list(prompt_layers) + ["memory_absent_sentinel"]
 
     messages = [
         {"role": "system", "content": system_str},
