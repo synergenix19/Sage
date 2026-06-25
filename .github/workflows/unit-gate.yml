@@ -68,6 +68,7 @@ jobs:
             tests/test_engagement_templates.py
             tests/test_composer_intensity.py
             tests/test_freeflow_guardrail.py
+            tests/test_p1_mid_freeflow_shape.py
             tests/test_declined_skills_signal.py
             tests/test_nodes.py
           "
