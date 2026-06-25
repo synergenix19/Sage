@@ -118,3 +118,55 @@ describe('MessageBubble — L4 structure & RTL rendering', () => {
     expect(el.textContent).toBe(messy)
   })
 })
+
+// Quick wins #1 (long-form prose, no bubble) and #2 (neutral short-AI bubble).
+describe('MessageBubble — speaker styling & long-form prose', () => {
+  it('renders a multi-line assistant answer without a bubble (typographic prose)', () => {
+    const long = 'Here are several resources:\n1. first point\n2. second point'
+    render(<MessageBubble message={{ ...base, role: 'ai', content: long }} />)
+    const el = screen.getByText(/Here are several resources/)
+    // no bubble: no rounded fill, no surface background
+    expect(el.className).not.toContain('rounded-2xl')
+    expect(el.className).not.toContain('color-surface')
+    // structure + direction still preserved
+    expect(el.className).toContain('whitespace-pre-wrap')
+    expect(el.textContent).toBe(long)
+  })
+
+  it('renders a long single-line assistant answer (>280 chars) without a bubble', () => {
+    const long = 'a'.repeat(300)
+    render(<MessageBubble message={{ ...base, role: 'ai', content: long }} />)
+    const el = screen.getByText(long)
+    expect(el.className).not.toContain('rounded-2xl')
+  })
+
+  it('renders a short assistant turn in the neutral bubble, not the green tint', () => {
+    render(<MessageBubble message={{ ...base, role: 'ai', content: 'Sure, I can help.' }} />)
+    const el = screen.getByText('Sure, I can help.')
+    expect(el.className).toContain('bg-[var(--color-surface-muted)]')
+    expect(el.className).not.toContain('surface-tinted')
+    expect(el.className).toContain('rounded-2xl')
+  })
+
+  it('keeps the user bubble green and bubbled', () => {
+    render(<MessageBubble message={{ ...base, role: 'user', content: 'Hi' }} />)
+    const el = screen.getByText('Hi')
+    expect(el.className).toContain('bg-[var(--color-primary-dark)]')
+    expect(el.className).toContain('rounded-2xl')
+  })
+
+  // RTL on the NEW long-form branch: the existing L4/RTL block only covers short,
+  // single-line fixtures. A long Arabic answer must still resolve right-to-left and
+  // keep its numbered-list line structure when rendered as borderless prose.
+  it('renders a long Arabic answer right-to-left with list lines preserved (no bubble)', () => {
+    const arLong = 'إليك بعض التقنيات:\n1. التنفس البطيء العميق\n2. تمرين التأريض الحسي'
+    render(
+      <MessageBubble message={{ ...base, role: 'ai', content: arLong, direction: 'rtl' }} />
+    )
+    const el = screen.getByText(/إليك بعض التقنيات/)
+    expect(el).toHaveAttribute('dir', 'rtl')
+    expect(el.className).toContain('whitespace-pre-wrap')
+    expect(el.className).not.toContain('rounded-2xl') // long-form: no bubble
+    expect(el.textContent).toBe(arLong)               // newlines intact
+  })
+})
