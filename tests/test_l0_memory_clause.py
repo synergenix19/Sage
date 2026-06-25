@@ -1,3 +1,6 @@
+# NOTE (2026-06-25): NON-AUTHORITATIVE. This gate calls the response path in ISOLATION and at
+# low N; it under-sampled and overstated A4 at 5/5 while prod confabulates ~12-28% on the absent
+# side. The authoritative A4 gate is tests/test_a4_gate_full_path.py (full stateful graph, adequate N).
 """Task 1 clinical gate (L0 v2.4.0 MEMORY clause): bidirectional + A4-preserving.
 
 PRESENT side kills the false-denial regression (vector 2). ABSENT side guards A4 at its REAL
