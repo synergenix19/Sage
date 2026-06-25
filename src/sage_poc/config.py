@@ -62,3 +62,15 @@ D5_ACUITY_FLOOR: int = int(os.getenv("SAGE_D5_ACUITY_FLOOR", "8"))
 DB_POOL_MAX_SIZE = int(os.getenv("SAGE_DB_POOL_MAX_SIZE", "20"))
 HTTP_MAX_CONNECTIONS = int(os.getenv("SAGE_HTTP_MAX_CONNECTIONS", "100"))
 HTTP_MAX_KEEPALIVE = int(os.getenv("SAGE_HTTP_MAX_KEEPALIVE", "20"))
+
+# Checkpointer (saver_pool) ceiling — SEPARATE from DB_POOL_MAX_SIZE above. The de3caab
+# "raise pools" change lifted the asyncpg memory pool but left the LangGraph checkpointer
+# pool at psycopg's default (min=max=4). That pool is touched on EVERY turn (checkpoint read
+# at server.py + LangGraph's per-turn write), so 4 is the real per-turn concurrency ceiling.
+# Raise to match the asyncpg pool. NOTE (Supabase/Supavisor): safe at 20 when the checkpointer
+# runs through the TRANSACTION-mode pooler (port 6543) via CHECKPOINT_DATABASE_URL — 20 client
+# slots then multiplex over Supavisor's smaller server pool (prepare_threshold=None in server.py
+# is already set for exactly this). In SESSION mode (port 5432) each slot holds a persistent
+# server connection, so total = (checkpoint + asyncpg) x replicas; size against the Supabase
+# tier's pool_size / connection cap and the Railway replica count before raising.
+CHECKPOINT_POOL_MAX_SIZE = int(os.getenv("SAGE_CHECKPOINT_POOL_MAX_SIZE", "20"))
