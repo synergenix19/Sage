@@ -7,6 +7,7 @@ export function buildCssVars(brand: TenantBrand): Record<string, string> {
     '--color-secondary':      brand.colors.secondary,
     '--color-surface':        brand.colors.surface,
     '--color-surface-tinted': brand.colors.surfaceTinted,
+    '--color-surface-muted':  brand.colors.surfaceMuted,
     '--color-text-primary':   brand.colors.textPrimary,
     '--color-text-secondary': brand.colors.textSecondary,
     '--color-border':         brand.colors.border,

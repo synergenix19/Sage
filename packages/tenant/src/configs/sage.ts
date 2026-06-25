@@ -9,6 +9,7 @@ export const sage: TenantConfig = {
       secondary:     '#2D6B6B',
       surface:       '#F9F8F6',
       surfaceTinted: '#EAF0EA',
+      surfaceMuted:  '#F3F2F0',
       textPrimary:   '#111827',
       textSecondary: '#6B7280',
       border:        '#E5E7EB',

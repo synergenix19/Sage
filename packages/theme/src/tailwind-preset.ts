@@ -9,6 +9,7 @@ export const tailwindPreset: Partial<Config> = {
         secondary:      'var(--color-secondary)',
         surface:        'var(--color-surface)',
         'surface-tinted':'var(--color-surface-tinted)',
+        'surface-muted': 'var(--color-surface-muted)',
         crisis:         'var(--color-crisis)',
       },
       fontFamily: {

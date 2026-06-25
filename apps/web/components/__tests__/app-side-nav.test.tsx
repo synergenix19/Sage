@@ -90,9 +90,19 @@ describe('AppSideNav — nav links', () => {
 
   it('marks the active route link', async () => {
     render(<AppSideNav />)
-    // usePathname returns '/chat', so Chat link should have active styling
+    // usePathname returns '/chat', so Chat link should have active (tinted) styling (#5)
     const chatLink = screen.getByRole('link', { name: 'Chat' })
-    expect(chatLink.className).toMatch(/bg-\[var\(--color-primary\)\]/)
+    expect(chatLink.className).toMatch(/bg-\[var\(--color-surface-tinted\)\]/)
+    expect(chatLink.className).not.toMatch(/bg-\[var\(--color-primary\)\]/)
+  })
+
+  // Quick win #5: the New conversation button is softened from solid-green to tinted.
+  it('renders the New conversation button with a tinted (not solid-primary) fill', async () => {
+    render(<AppSideNav />)
+    const btn = screen.getByRole('button', { name: 'New conversation' })
+    expect(btn.className).toContain('bg-[var(--color-surface-tinted)]')
+    // base fill must not be solid primary (hover:bg-[var(--color-primary)] is allowed)
+    expect(btn.className).not.toMatch(/(^|\s)bg-\[var\(--color-primary\)\]/)
   })
 })
 

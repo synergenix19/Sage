@@ -6,6 +6,7 @@ export interface TenantBrand {
     secondary: string
     surface: string
     surfaceTinted: string
+    surfaceMuted: string
     textPrimary: string
     textSecondary: string
     border: string
