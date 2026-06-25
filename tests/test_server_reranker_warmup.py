@@ -39,3 +39,45 @@ def test_warmup_reranker_skips_when_disabled(monkeypatch):
     monkeypatch.setattr("sage_poc.nodes.skill_rerank_model.head_loaded_ok", _should_not_run)
     server._warmup_reranker()  # must not raise
     assert called["probed"] is False, "head control must not run when reranker disabled"
+
+
+# ── Observability: the head-control result must be HUMAN-VERIFIABLE, not just enforced ──
+# Blocker-2 enforced readiness-blocking (503 on headless) but the success signal was an INFO log line
+# the app logger suppresses → the prod runbook's "logs show head-control passed" gate was unsatisfiable.
+# Fix: a structured status surfaced on /health/ready so the gate is a direct readable check.
+
+def test_warmup_reranker_sets_status_passed(monkeypatch):
+    import server
+    monkeypatch.setattr(server, "_reranker_status", "pending", raising=False)
+    monkeypatch.setenv("SKILL_RERANK_ENABLED", "1")
+    monkeypatch.setattr("sage_poc.nodes.skill_rerank_model.head_loaded_ok", lambda: True)
+    server._warmup_reranker()
+    assert server._reranker_status == "passed"
+
+
+def test_warmup_reranker_sets_status_failed(monkeypatch):
+    import server
+    monkeypatch.setattr(server, "_reranker_status", "pending", raising=False)
+    monkeypatch.setenv("SKILL_RERANK_ENABLED", "1")
+    monkeypatch.setattr("sage_poc.nodes.skill_rerank_model.head_loaded_ok", lambda: False)
+    with pytest.raises(RuntimeError):
+        server._warmup_reranker()
+    assert server._reranker_status == "failed", "a headless load must record 'failed' (queryable), not just raise"
+
+
+def test_warmup_reranker_sets_status_disabled(monkeypatch):
+    import server
+    monkeypatch.setattr(server, "_reranker_status", "pending", raising=False)
+    monkeypatch.delenv("SKILL_RERANK_ENABLED", raising=False)
+    server._warmup_reranker()
+    assert server._reranker_status == "disabled"
+
+
+def test_health_ready_surfaces_reranker_head_control(monkeypatch):
+    # The prod runbook's HARD GATE check, now directly satisfiable: /health/ready 200 body carries the
+    # head-control result as a structured field (no reliance on suppressed INFO logs / Railway log API).
+    import asyncio, server
+    monkeypatch.setattr(server, "_bge_ready", True, raising=False)
+    monkeypatch.setattr(server, "_reranker_status", "passed", raising=False)
+    body = asyncio.run(server.health_ready())
+    assert body.get("reranker_head_control") == "passed", "health/ready must surface the head-control result"

@@ -100,10 +100,11 @@ railway variables --set SKILL_ROUTING_V2=1 --set SKILL_RERANK_ENABLED=1   # prec
 railway up --detach -m "V2 fp32 reranker — staging benchmark (reconcile/v2-onto-db8eb39)"
 ```
 
-**Step 2 — HARD HEALTH GATE (stop point — do NOT benchmark until BOTH pass):**
-- `/health/ready` → **200**, AND
-- deploy logs show **`reranker head-control passed (warm)`**.
-- **If 503 or the log line is absent: STOP and diagnose the model load.** A 503 here is NOT "deploy failed, retry" — it's blocker-2's readiness-blocking head-control doing its job: it caught a headless/failed reranker load and took the instance out of rotation. The log line is the proof the deployed reranker is the real head-bearing routing model, not a silently-headless one serving confident-wrong routes. **Benchmarking a headless instance yields latency for confident-wrong routing — worse than no number.** Both signals required before Step 3.
+**Step 2 — HARD HEALTH GATE (stop point — do NOT benchmark until it passes):**
+- `curl -s $URL/health/ready` → **HTTP 200** AND JSON body **`"reranker_head_control": "passed"`** (or `"disabled"` if deploying with the reranker off). This is a DIRECT readable check — no reliance on logs.
+  - (Superseded 2026-06-25: the original gate said "logs show `reranker head-control passed (warm)`", but that success line is `_log.info` and the app logger defaults to WARNING, so the string is never emitted — the gate was structurally unsatisfiable. Fixed by surfacing the result as the `reranker_head_control` field on `/health/ready`. The functional probe below remains a valid secondary confirmation.)
+- **If 503, or the field is `failed`/`pending`/absent: STOP and diagnose the model load.** A 503/`failed` here is NOT "deploy failed, retry" — it's blocker-2's readiness-blocking head-control doing its job: it caught a headless/failed reranker load and took the instance out of rotation (a headless load never reaches 200). The field is the proof the deployed reranker is the real head-bearing routing model, not a silently-headless one serving confident-wrong routes. **Benchmarking a headless instance yields latency for confident-wrong routing — worse than no number.**
+- Optional secondary confirmation (functional): POST a known id_oos case (`"I am a perfectionist and it is making me miserable"`) → path has NO `skill_offer_made` (ABSTAIN); POST an in_scope case (`"I keep ruminating on worst-case scenarios I cannot control"`) → path has `skill_offer_made`. The ABSTAIN/offer contrast is the live V2 signature (impossible for a headless reranker).
 
 **Step 3 — benchmark (only past the gate):** fp32 **batch-1**, **k=5** (the validated config), routing turns only (not crisis/info_request), median + p95. Reranker is warm (Step 2), so this is steady-state, not cold-load.
 

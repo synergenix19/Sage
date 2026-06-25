@@ -35,6 +35,13 @@ AINVOKE_TIMEOUT_SECONDS: float = float(os.environ.get("AINVOKE_TIMEOUT_SECONDS",
 # /health/ready and /chat both check this; Railway healthcheck holds LB traffic until ready.
 _bge_ready: bool = False
 
+# V2 reranker head-control result, surfaced on /health/ready so the deploy HARD GATE is a direct
+# readable check — not a suppressed INFO log line (the app logger defaults to WARNING, so the success
+# string never reached stdout, making the runbook's "logs show head-control passed" check unsatisfiable).
+# Values: "pending" (warmup not finished), "disabled" (SKILL_RERANK_ENABLED!=1), "passed" (head loaded
+# and separating), "failed" (headless/no-separation — readiness is also withheld → 503).
+_reranker_status: str = "pending"
+
 
 async def require_api_key(x_sage_api_key: str | None = Header(default=None)) -> None:
     _expected_key = os.environ.get("SAGE_API_KEY", "")
@@ -92,14 +99,18 @@ def _warmup_reranker() -> None:
     Also pays the ~2.2GB model load here so the first real routing turn is warm (and the latency
     benchmark measures steady-state batch-1, not the cold load).
     """
+    global _reranker_status
     if os.environ.get("SKILL_RERANK_ENABLED") != "1":
+        _reranker_status = "disabled"
         return
     from sage_poc.nodes.skill_rerank_model import head_loaded_ok, active_precision
     if not head_loaded_ok():
+        _reranker_status = "failed"
         raise RuntimeError(
             f"reranker head-control FAILED (precision={active_precision()}): head not loaded or not "
             "separating — refusing readiness (headless-load guard, the CrossEncoder-headless bug class)"
         )
+    _reranker_status = "passed"
 
 
 async def _warmup_task() -> None:
@@ -569,7 +580,11 @@ async def health_ready():
             status_code=503,
             detail="Service warming up — BGE-M3 index not ready",
         )
-    return {"status": "ready"}
+    # reranker_head_control is the deploy HARD-GATE signal: on a 200, "passed" (or "disabled" when the
+    # reranker is off) confirms the deployed reranker is real head-bearing — not silently headless. A
+    # headless load never reaches 200 (readiness withheld), so 200 + "passed" is the directly-checkable
+    # success condition the prod runbook verifies (replacing the suppressed INFO log line).
+    return {"status": "ready", "reranker_head_control": _reranker_status}
 
 
 @app.get("/health/schema-conformance")
