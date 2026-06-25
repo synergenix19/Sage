@@ -240,6 +240,90 @@ async def resilient_invoke(
     return get_fallback_response(node, language)
 
 
+# ── resilient_message_invoke ──────────────────────────────────────────────────
+
+async def resilient_message_invoke(
+    llm: Any,
+    messages: list[dict],
+    *,
+    node: str,
+    max_retries: int = 1,
+) -> Any | None:
+    """Timeout + bounded-retry + circuit-breaker wrapper that PRESERVES the response
+    message object (unlike resilient_invoke, which collapses it to a `.content` string).
+
+    Exists for the freeflow tool loop, which must inspect `response.tool_calls` to dispatch
+    tools — a string return would break that. Returns the response message on success, or
+    `None` on breaker-open / non-retryable error / exhausted retries. The caller treats
+    `None` as its existing "empty generation" signal and substitutes a gate-traversing
+    fallback, so NO degraded content can bypass output_gate (Cardinal Rule 4).
+
+    Idempotency: retry wraps ONLY the generation call (the model returning tool_use
+    requests), never tool execution — so a retry cannot double-fire a write tool
+    (record_observation, flag_for_review). `max_retries` defaults to 1 (below
+    resilient_invoke's 2): the tool loop can issue up to MAX_ITERATIONS generations under
+    the single outer graph timeout (AINVOKE_TIMEOUT_SECONDS), so aggressive per-call retry
+    would risk that budget. Retries fire only on retryable errors, never on a healthy-slow
+    completion.
+    """
+    key = _circuit_key_from_model(
+        getattr(llm, "model_name", "unknown"),
+        getattr(llm, "openai_api_base", ""),
+    )
+    if _is_open(key):
+        logger.warning(
+            '{"event": "circuit_breaker_short_circuit", "node": "%s", '
+            '"circuit_breaker_state": "open", "wrapper": "message_invoke"}',
+            node,
+        )
+        return None
+    start = time.monotonic()
+    for attempt in range(max_retries + 1):
+        try:
+            response_msg = await asyncio.wait_for(
+                llm.ainvoke(messages), timeout=LLM_TIMEOUT_SECONDS
+            )
+            latency_ms = int((time.monotonic() - start) * 1000)
+            _record_success(key)
+            # Parity with resilient_invoke's llm_call log so the freeflow tool-loop
+            # generation (the single biggest LLM cost) is attributable in the latency baseline.
+            logger.info(
+                '{"event": "llm_call", "node": "%s", "model": "%s", "attempt": %d, '
+                '"latency_ms": %d, "status": "success", "wrapper": "message_invoke"}',
+                node,
+                getattr(llm, "model_name", "unknown"),
+                attempt + 1,
+                latency_ms,
+            )
+            return response_msg
+        except Exception as exc:
+            if not _is_retryable(exc):
+                logger.error(
+                    '{"event": "llm_message_invoke_failed", "node": "%s", "attempt": %d, '
+                    '"error_type": "non_retryable"}',
+                    node, attempt + 1,
+                )
+                return None
+            _record_failure(key)
+            if attempt < max_retries:
+                backoff = _backoff(attempt)
+                # Same event name as resilient_invoke so one grep counts retries across BOTH
+                # wrappers per run. A retried call reads as a slow call; in the ① baseline this
+                # makes rate-limit retries separable from genuine pool contention.
+                logger.warning(
+                    '{"event": "llm_call_retrying", "node": "%s", "attempt": %d, '
+                    '"backoff_s": %.2f, "wrapper": "message_invoke"}',
+                    node, attempt + 1, backoff,
+                )
+                await asyncio.sleep(backoff)
+    logger.error(
+        '{"event": "llm_message_invoke_failed", "node": "%s", "retry_count": %d, '
+        '"error_type": "exhausted"}',
+        node, max_retries,
+    )
+    return None
+
+
 # ── resilient_stream ──────────────────────────────────────────────────────────
 
 async def resilient_stream(
