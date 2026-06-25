@@ -112,6 +112,14 @@ railway up --detach -m "V2 fp32 reranker — staging benchmark (reconcile/v2-ont
 
 Standing gates unaffected by this deploy: 9.6s baseline (own workstream), AR EN-only (τ=−inf, native review + the separate AR precision check the quantization finding flagged).
 
+## ★ PRODUCTION DEPLOY 2026-06-25 — V2 LIVE, clean V1→V2 flip, zero-downtime ★
+User-authorized go. Pre-up guard passed (on `fdf6013`/code-frozen-at-`647f515`, behind master 0, clean tree, `railway.json`=600s, routing identical to gated tree). Linked production, set `SKILL_ROUTING_V2=1 SKILL_RERANK_ENABLED=1` (fp32), `railway up` (build `fd3e8e08`). RESULT:
+- **Zero-downtime CONFIRMED for real users:** prod public `/health/ready` stayed **200 the entire ~9.5min deploy — NO 503-window**. Old V1 container served continuously; Railway held DEPLOYING ~6min waiting for V2 readiness (600s healthcheck), then cut over. The staging-verified healthcheck behavior reproduced on prod.
+- **Hard gate PASSED:** `/health/ready` 200 + `{"reranker_head_control":"passed"}`.
+- **Functional confirmation (V2 live):** prod `/chat` — id_oos "perfectionist" → ABSTAIN (no `skill_offer_made`); in_scope "ruminating" → `skill_offer_made`. The live V2 60/86/100 signature on production.
+
+**V2 fp32 reranker is LIVE in production.** EN-first: the +45 id_oos safety win reaches EN users now; **AR remains V1/τ=−inf** (native review + AR precision check pending). ROLLBACK: set `SKILL_RERANK_ENABLED=0` (→ byte-identical V1, verified) or `railway redeploy` the prior deployment. Prod URL `sage-api-production-3328.up.railway.app`. Standing: 9.6s baseline (own workstream), AR path.
+
 ## DEPLOY EXECUTED 2026-06-25 — staging, V2 live, benchmark PASS
 User-authorized. Re-verified latest master first (master had moved db8eb39→**`59b6d8e`** PR#75 #66; the 4 commits touch only L0/prompt templates, NOT routing — merged clean `54296d2`, routing code byte-identical to gated tree, gate transfers by determinism). Deployed `reconcile/v2-onto-db8eb39` `54296d2` to `sage-api/staging` (`railway up`, build `a404edbc` SUCCESS) with `SKILL_ROUTING_V2=1 SKILL_RERANK_ENABLED=1` (fp32 default).
 
