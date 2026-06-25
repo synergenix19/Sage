@@ -24,7 +24,10 @@ import os
 import platform
 
 _RERANK_MODEL = "BAAI/bge-reranker-v2-m3"
-_REVISION = None  # pin once the deploy revision is recorded
+# PINNED 2026-06-25 to the exact snapshot every V2 gate result (60/86/100, the int8 safety
+# disqualification) was measured on — so the deploy ships the weights the gate validated, and the
+# Dockerfile bake of this revision lets prod load offline (local_files_only) with no runtime download.
+_REVISION = "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"
 
 _state: dict = {}  # lazy singletons: tokenizer, model
 
@@ -54,8 +57,15 @@ def _load():
         return _state["tokenizer"], _state["model"]
     import torch
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
-    tok = AutoTokenizer.from_pretrained(_RERANK_MODEL, revision=_REVISION)
-    mdl = AutoModelForSequenceClassification.from_pretrained(_RERANK_MODEL, revision=_REVISION).eval()
+    # Prefer the baked/cached pinned revision offline (prod: no runtime download, deterministic);
+    # fall back to download if absent (dev/first-run). Mirrors the BGE-M3 load pattern.
+    try:
+        tok = AutoTokenizer.from_pretrained(_RERANK_MODEL, revision=_REVISION, local_files_only=True)
+        mdl = AutoModelForSequenceClassification.from_pretrained(
+            _RERANK_MODEL, revision=_REVISION, local_files_only=True).eval()
+    except (OSError, EnvironmentError):
+        tok = AutoTokenizer.from_pretrained(_RERANK_MODEL, revision=_REVISION)
+        mdl = AutoModelForSequenceClassification.from_pretrained(_RERANK_MODEL, revision=_REVISION).eval()
     if active_precision() == "int8":
         eng = _quant_engine()
         if eng is not None:

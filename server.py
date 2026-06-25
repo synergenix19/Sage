@@ -77,6 +77,31 @@ def _warmup_bge_m3() -> None:
     _ensure_s3_ready()
 
 
+def _warmup_reranker() -> None:
+    """Warm the V2 cross-encoder reranker AND assert its head-loaded positive control.
+
+    READINESS-BLOCKING by design. The reranker is only active when SKILL_RERANK_ENABLED=1; when off
+    this is a no-op (V1 path unaffected). When on, head_loaded_ok() loads bge-reranker-v2-m3 and checks
+    that the reranker HEAD produces real logit separation (relevant >> off-topic). A silent headless
+    load (sentence_transformers.CrossEncoder bug class — no head → ~0 logits → confident-wrong routing
+    with NO error) is the exact failure the whole measurement discipline guards against, and it would
+    be invisible on the deploy target. So a failed control RAISES — the caller keeps _bge_ready=False
+    and /health/ready stays 503, taking the instance OUT of rotation rather than serving wrong routing.
+    This must BLOCK, never warn-and-continue (the warmup-silent-failure anti-pattern).
+
+    Also pays the ~2.2GB model load here so the first real routing turn is warm (and the latency
+    benchmark measures steady-state batch-1, not the cold load).
+    """
+    if os.environ.get("SKILL_RERANK_ENABLED") != "1":
+        return
+    from sage_poc.nodes.skill_rerank_model import head_loaded_ok, active_precision
+    if not head_loaded_ok():
+        raise RuntimeError(
+            f"reranker head-control FAILED (precision={active_precision()}): head not loaded or not "
+            "separating — refusing readiness (headless-load guard, the CrossEncoder-headless bug class)"
+        )
+
+
 async def _warmup_task() -> None:
     """Run BGE-M3 warmup in background so the HTTP server starts immediately.
 
@@ -104,6 +129,20 @@ async def _warmup_task() -> None:
         # Keep _bge_ready = False; /health/ready stays 503; /chat stays gated.
         _log.error(
             "[sage/startup] BGE-M3 warmup failed — service is NOT ready: %s", exc
+        )
+        return
+
+    # V2 reranker head-control — READINESS-BLOCKING (see _warmup_reranker). A headless load would
+    # route confident-wrong with no error, so it withholds readiness (keeps the instance out of
+    # rotation) rather than warn-and-continue. No-op when SKILL_RERANK_ENABLED != 1.
+    try:
+        await asyncio.to_thread(_warmup_reranker)
+        if os.environ.get("SKILL_RERANK_ENABLED") == "1":
+            _log.info("[sage/startup] reranker head-control passed (warm)")
+    except Exception as exc:
+        _log.error(
+            "[sage/startup] reranker head-control FAILED — service is NOT ready "
+            "(headless-load guard): %s", exc
         )
         return
 

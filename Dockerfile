@@ -21,7 +21,19 @@ from sentence_transformers import SentenceTransformer; \
 SentenceTransformer('BAAI/bge-m3', revision='5617a9f61b028005a4858fdac845db406aefb181'); \
 print('BGE-M3 baked in')"
 
-# Source code — busts cache on every change, but BGE-M3 layer above is preserved.
+# Bake the V2 cross-encoder reranker (bge-reranker-v2-m3, ~2.2GB) at the PINNED revision the gate
+# validated, so prod loads it offline (local_files_only in skill_rerank_model._load) with no runtime
+# HF download. Separate layer after BGE-M3 so each model layer caches independently. Canonical
+# AutoModelForSequenceClassification (the reranker HEAD) — NOT sentence_transformers.CrossEncoder
+# (headless-load bug); the startup head-control (_warmup_reranker) asserts the head separates.
+RUN uv run python -c "\
+from transformers import AutoModelForSequenceClassification, AutoTokenizer; \
+r='953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e'; \
+AutoTokenizer.from_pretrained('BAAI/bge-reranker-v2-m3', revision=r); \
+AutoModelForSequenceClassification.from_pretrained('BAAI/bge-reranker-v2-m3', revision=r); \
+print('bge-reranker-v2-m3 baked in @', r)"
+
+# Source code — busts cache on every change, but the model layers above are preserved.
 COPY . .
 
 EXPOSE 8000
