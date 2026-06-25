@@ -5,6 +5,7 @@ from sage_poc.llm import get_classifier, get_fallback_classifier
 from sage_poc.resilience import resilient_invoke
 from sage_poc.nodes.directive_detect import detect_directive_request
 from sage_poc.conversation_stall import detect_stall
+from sage_poc.nodes.self_reference_detect import detect_self_reference
 
 # SINGLE-POINT-OF-FAILURE WARNING: The general_chat classification below is the sole
 # gate preventing bare emotional words ("stressed", "depressed", "anxious", "I feel sad")
@@ -138,14 +139,18 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
         data = {}
 
     primary_intent = data.get("primary_intent", "general_chat")
+    _directive_posture = detect_directive_request(state, primary_intent=primary_intent)
+    _intent_route_path = state["path"] + ["intent_route"]
+    if _directive_posture:
+        _intent_route_path = _intent_route_path + ["directive_posture_set"]
     result = {
         "primary_intent": primary_intent,
         "secondary_intent": data.get("secondary_intent"),
         "intent_confidence": float(data.get("intent_confidence", 0.5)),
         "emotional_intensity": _safe_int(data.get("emotional_intensity"), 5),
         "engagement": _safe_int(data.get("engagement"), 5),
-        "path": state["path"] + ["intent_route"],
-        "directive_posture": detect_directive_request(state),
+        "path": _intent_route_path,
+        "directive_posture": _directive_posture,
         # Deterministic stall-guard signal (read by the composer to inject a
         # re-grounding change-of-tack). The decision is made here in code; the
         # LLM only renders the recovery turn, it never decides "is this a stall".
@@ -154,6 +159,8 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
              if m.get("role") == "user"]
             + [state.get("message_en", "")]
         ),
+        # Deterministic recall signal; sole consumer is the composer eviction-exemption.
+        "self_reference": detect_self_reference(state),
     }
     offered = state.get("offered_skill_ids") or []
     if offered:

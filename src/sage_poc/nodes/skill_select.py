@@ -15,7 +15,8 @@ from sage_poc.resilience import EMBEDDING_TIMEOUT_SECONDS
 from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP, SEMANTIC_EXCLUSION_WORDS
 from sage_poc.rules import engine as rules_engine
 from sage_poc.config import (
-    SKILL_RUNNER_UP_MIN, SKILL_RUNNER_UP_MARGIN,
+    SKILL_RUNNER_UP_MIN, SKILL_RUNNER_UP_MARGIN, SKILL_OFFER_COOLDOWN_TURNS,
+    SKILL_OFFER_COOLDOWN_ENABLED,
 )
 
 logger = logging.getLogger(__name__)
@@ -409,6 +410,28 @@ def _semantic_match_sync(message_en: str, profile_context: str = "") -> tuple[st
 _FALLBACK_OFFER_ACTION = {"type": "offer", "max_offered": 2, "declined_scope": "session"}
 
 
+def _offer_cooldown_turns() -> int:
+    """Return the cooldown window (in turns) after a skill offer is made.
+
+    Reads cooldown_turns from the default_offer skill_matching rule so the value
+    is clinician-ownable data. Falls back to config.SKILL_OFFER_COOLDOWN_TURNS
+    when the rule is absent or the key is missing.
+    """
+    try:
+        eval_result = rules_engine.evaluate("skill_matching", {
+            "matched_skill_id": "__cooldown_probe__",
+            "emotional_intensity": 5,
+        })
+        # default_offer (priority 99) fires for any unmatched skill_id; acute_direct_entry will
+        # not fire because "__cooldown_probe__" is not in its matched_skill_in list.
+        for fired in (eval_result.fired or []):
+            if fired.rule_id == "default_offer":
+                return int(fired.action.get("cooldown_turns", SKILL_OFFER_COOLDOWN_TURNS))
+    except Exception:
+        pass
+    return SKILL_OFFER_COOLDOWN_TURNS
+
+
 def _resolve_entry(
     state: SageState,
     candidates: list[str],
@@ -516,6 +539,7 @@ def _resolve_entry(
         "active_step_id": None,
         "offered_skill_ids": offerable,
         "offer_count": 1,
+        "last_offer_turn": state.get("turn_count", 0),
         "skill_match_method": f"{method}_offer",
         "semantic_score": semantic_score,
         "path": state["path"] + audit_markers + ["skill_offer_made"],
@@ -613,6 +637,10 @@ async def skill_select_node(state: SageState) -> dict:
     # skill, even one that would score above threshold. A flag with no declared disposition routes
     # as V1 (safe no-op). Does NOT detect crisis — acute crisis is Node 1's, intercepted upstream
     # (BC1). Flag-off: untouched.
+    # RECONCILE 2026-06-25: this clinical safety gate runs BEFORE the D3 cooldown block below, so a
+    # crisis-adjacent disclosure DEFERS for the clinical reason (path "clinical_flag_abstain") rather
+    # than being masked by a cooldown suppression. Both blocks are independent early-returns; order
+    # picked so the safety reason owns the audit trail when both could fire.
     if _v2_enabled():
         _disp = _flag_dispositions()
         if any(_disp.get(f) == "abstain" for f in (state.get("clinical_flags") or [])):
@@ -624,6 +652,23 @@ async def skill_select_node(state: SageState) -> dict:
                 "semantic_score": None,
                 "path": state["path"] + ["skill_select", "clinical_flag_abstain"],
             }
+
+    # D3: offer cooldown. Suppress a fresh offer when the user received one within the
+    # last cooldown_turns turns. Runs after the offer-accept promotion block so an
+    # accepted or pending offer is never blocked, and stale_offer_clear is {} here in
+    # the normal case (only populated on stale-rename, where clearing is correct).
+    # G2 safe: cooldown never touches offered_skill_ids; a pending offer that was accepted
+    # already returned above. The suppression routes to freeflow so the LLM can continue
+    # the conversation naturally without re-presenting the skill menu.
+    # GATED: behind SKILL_OFFER_COOLDOWN_ENABLED (default OFF). When off, behaviour is
+    # byte-identical to pre-cooldown (the block is skipped entirely). The flip to ON is a
+    # logged, signed decision gated on clinical sign-off C3 — not an auto-flip on merge.
+    _cooldown = _offer_cooldown_turns()
+    _last = state.get("last_offer_turn")
+    if SKILL_OFFER_COOLDOWN_ENABLED and _last is not None and (state.get("turn_count", 0) - _last) < _cooldown:
+        return {**stale_offer_clear, "active_skill_id": None, "active_step_id": None,
+                "skill_match_method": None, "semantic_score": None,
+                "path": state["path"] + ["skill_select", "offer_cooldown_suppressed"]}
 
     message_en = state["message_en"].lower()
     raw_message = (state.get("raw_message") or "").lower()

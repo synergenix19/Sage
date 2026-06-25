@@ -33,7 +33,7 @@
       "description": "Default consent gate: every other match is offered, never imposed. Up to max_offered options plus the always-present choice to keep talking. declined_scope session: a declined skill is not re-offered for the rest of the session; the 4h stale-gap reset clears the declined list.",
       "priority": 99,
       "condition": {},
-      "action": {"type": "offer", "max_offered": 2, "declined_scope": "session"}
+      "action": {"type": "offer", "max_offered": 2, "declined_scope": "session", "cooldown_turns": 2}
     }
   ]
 }

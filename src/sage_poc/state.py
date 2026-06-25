@@ -28,6 +28,7 @@ class SageState(TypedDict):
     conversation_summary: Optional[str]
     code_switching: bool
     directive_posture: bool   # deterministic flag: user explicitly delegated / is frustrated by questions and wants direct guidance (set in intent_route, NOT the LLM classifier)
+    self_reference: bool      # deterministic flag: user is asking to recall their own prior disclosure (set in intent_route); sole consumer is composer eviction-exemption
 
     primary_intent: Optional[Intent]
     secondary_intent: Optional[Intent]  # blended intent — e.g. "info_request" alongside "new_skill"
@@ -45,6 +46,7 @@ class SageState(TypedDict):
     skill_match_method: Optional[str]   # "keyword" | "semantic" | None
     semantic_score: Optional[float]     # cosine similarity if semantic match
     offered_skill_ids: Optional[list[str]]  # R1: 1-2 skills offered, pending accept/decline; persists via checkpoint; cleared on accept (skill_select), decline/ignore (intent_route), crisis (crisis_response), stale gap
+    last_offer_turn: Optional[int]           # D3: turn_count when the last skill offer was made; used by offer cooldown in skill_select
     offer_response: Optional[str]           # R1: "accept" | "decline" | "other"; per-turn, reset in _build_state
     offer_choice_skill_id: Optional[str]    # R1: skill chosen on accept; per-turn, reset in _build_state
     declined_skills: list[str]              # R1: skills declined this session; never re-offered (declined_scope "session" in skill_matching rules); persists via checkpoint; cleared at 4h stale gap

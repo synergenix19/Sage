@@ -7,6 +7,7 @@ from pathlib import Path
 from sage_poc.state import SageState
 from sage_poc.skills.schema import SkillStep, load_skill
 from sage_poc.rules import engine as rules_engine
+from sage_poc import config as _config
 from .loader import get_template, get_intent_template
 from .tokens import count_words, count_words_in_parts
 
@@ -91,6 +92,17 @@ _INTENSITY_GUIDANCE: dict[str, str] = {
     "mid": "The user is moderately engaged. Be present and attentive.",
     "high": "The user is significantly distressed. Name the specific thing they said, directly. Ask one focused question about it. Do NOT paraphrase or reflect back what they said. Do NOT begin with 'It sounds like', 'That sounds', or any reflective opener. Do NOT offer guidance yet.",
 }
+
+# D5 acuity guidance (GATED, default-off). Returned only when D5_ACUITY_GATE_ENABLED is True
+# AND emotional_intensity >= D5_ACUITY_FLOOR (default 8). Replaces the high-intensity string
+# at peak distress: validate by naming the specific thing said, stay purely supportive,
+# do NOT challenge or question a distorted belief. No em dashes (rule content mirrors into LLM output).
+_D5_ACUITY_GUIDANCE = (
+    "The user is at peak distress. Validate the feeling by naming the specific thing they said, "
+    "not a generic reflection. Stay purely supportive. Do not challenge or question a distorted "
+    "belief here. Do NOT begin with 'It sounds like', 'That sounds', or any reflective opener. "
+    "Do NOT offer guidance yet."
+)
 
 # Stall-guard recovery instruction (freeflow-only). Fires when the deterministic
 # detector flags a stall. It must RE-GROUND in established context, not merely
@@ -213,6 +225,12 @@ def _intensity_guidance(intensity: int) -> str:
         return _INTENSITY_GUIDANCE["low"]
     if intensity <= 6:
         return _INTENSITY_GUIDANCE["mid"]
+    # High band (intensity >= 7). D5 acuity gate fires only when explicitly enabled AND
+    # intensity reaches the acuity floor (default 8). Gate is OFF by default; when OFF the
+    # return value is byte-identical to pre-D5 production. Floor/band gap is documented in
+    # config.py: intensity == 7 is in the high band but below D5_ACUITY_FLOOR=8 by design.
+    if _config.D5_ACUITY_GATE_ENABLED and intensity >= _config.D5_ACUITY_FLOOR:
+        return _D5_ACUITY_GUIDANCE
     return _INTENSITY_GUIDANCE["high"]
 
 
@@ -448,13 +466,20 @@ def _build_l1_history_block(
     variant: str | None = None,
     word_budget: int | None = None,
     conversation_summary: str | None = None,
+    pin_turn: dict | None = None,
 ) -> str | None:
-    if not conversation_history and not conversation_summary:
+    if not conversation_history and not conversation_summary and pin_turn is None:
         return None
     tmpl = get_template("L1_history", variant=variant)
     window_size = tmpl.window_size or 8
     effective_budget = word_budget if word_budget is not None else (tmpl.word_budget or _L1_BASE_BUDGET)
-    window = conversation_history[-window_size:]
+    window = list(conversation_history[-window_size:])
+    # self_reference eviction-exemption: guarantee the recalled disclosure turn is in the
+    # window even if it falls outside it, so an overflow shrink cannot drop the very turn
+    # the user is asking about. pin_turn is None for every non-recall caller, so the loop
+    # below preserves its original behaviour byte-for-byte in that case.
+    if pin_turn is not None and pin_turn not in window:
+        window = [pin_turn] + window
     lines: list[str] = []
     word_total = 0
     for m in reversed(window):            # newest → oldest
@@ -465,9 +490,12 @@ def _build_l1_history_block(
         )
         line = f"{m['role'].upper()}: {content}"
         words = count_words(line)
-        if lines and word_total + words > effective_budget:
+        is_pinned = pin_turn is not None and m is pin_turn
+        if lines and not is_pinned and word_total + words > effective_budget:
             _log.debug("L1 history truncated at word budget %d", effective_budget)
-            break
+            if pin_turn is None:
+                break          # original behaviour: stop at first over-budget turn
+            continue           # recall turn: skip middle turns, keep scanning for the pinned disclosure
         lines.append(line)
         word_total += words
     lines.reverse()                       # restore chronological order for prompt
@@ -486,6 +514,62 @@ def _build_l1_history_block(
     content = tmpl.content.format(history_lines=history_text)
     _log.debug("L1_history@%s loaded", tmpl.version)
     return content
+
+
+# --- self_reference eviction-exemption: find the disclosure turn the recall refers to ---
+# Language split mirrors the detector: Arabic recall + Arabic history live in raw text, so an
+# English-token anchor would silently miss every Arabic recall and fall back to most-recent —
+# landing the weak path exactly where the diagnostic found eviction worst (Arabic/cultural turns).
+_ANCHOR_STOP = {
+    "what", "did", "just", "tell", "say", "said", "you", "your", "about", "the", "that", "this",
+    "have", "with", "mention", "remember", "told", "and", "for", "was", "were", "dont", "don",
+}
+
+
+def _recall_text(state: SageState) -> str:
+    return state.get("raw_message", "") if state.get("detected_language") == "ar" else state.get("message_en", "")
+
+
+def _salient_tokens(text: str) -> set[str]:
+    return {t for t in re.findall(r"\w+", (text or "").lower()) if len(t) >= 3 and t not in _ANCHOR_STOP}
+
+
+def _anchor_turn(history: list[dict], recall_text: str) -> dict | None:
+    """Most-recent user turn sharing a salient token with the recall; else most-recent user turn."""
+    user_turns = [m for m in history if m.get("role") == "user"]
+    if not user_turns:
+        return None
+    toks = _salient_tokens(recall_text)
+    if toks:
+        for m in reversed(user_turns):
+            if toks & _salient_tokens(m.get("content", "")):
+                return m
+    return user_turns[-1]
+
+
+# --- absent-side A4 fix: empty-retrieval sentinel for the MEMORY path ---
+# Mirrors the knowledge path's "No relevant clinical evidence found" anchor. The original A4 fix
+# shipped the L0 *instruction* to admit but not the *signal* to admit against, so empty retrieval
+# was silence the model fabricates into (~15-25% of the time). This gives it the signal.
+_MEMORY_ABSENT_SENTINEL = (
+    "MEMORY CHECK: the person is asking you to recall something, but no earlier record of it was "
+    "found, not in this conversation and not in any prior-session context above. Do not invent, "
+    "infer, or guess what they said. Tell them you do not have a record of that and invite them to "
+    "share it again."
+)
+
+
+def memory_absent_sentinel(state: SageState, prior_context_present: bool) -> str | None:
+    """Return the sentinel ONLY when a recall is requested AND grounding is genuinely empty:
+    no prior-session context, and no user turns in this conversation. Keys off emptiness
+    (language-agnostic), NOT the keyword-anchor, so it carries no Arabic-parity dependency and
+    cannot assert absence over real disclosure (which would re-introduce the false-denial vector).
+    Returns None when any user history exists -> the back-door is closed by erring toward NOT firing."""
+    if not state.get("self_reference") or prior_context_present:
+        return None
+    if any(m.get("role") == "user" for m in state.get("conversation_history", [])):
+        return None
+    return _MEMORY_ABSENT_SENTINEL
 
 
 _CULTURAL_BUDGET_WORDS = 250
@@ -696,10 +780,16 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
         offer_words=_offer_words,
         declined_words=_declined_words,
     )
+    # self_reference eviction-exemption: pin the recalled disclosure from the INITIAL build, not
+    # only inside the overflow branch. Otherwise the normal L1 budget can drop the disclosure here,
+    # which keeps total under budget, so the overflow branch (and its pin) never runs.
+    _pin_turn = (_anchor_turn(state.get("conversation_history", []), _recall_text(state))
+                 if state.get("self_reference") else None)
     l1_block = _build_l1_history_block(
         state.get("conversation_history", []),
         word_budget=l1_budget,
         conversation_summary=state.get("conversation_summary"),
+        pin_turn=_pin_turn,
     )
     if l1_block:
         user_parts.append(l1_block)
@@ -892,12 +982,16 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
         l1_tmpl = get_template("L1_history")
         half_window = max(1, (l1_tmpl.window_size or 8) // 2)
         non_l1_words = total_words - count_words(user_parts[0])
+        # On a recall turn, pin the disclosure the user is asking about so the shrink below
+        # cannot evict it (vector 1). Reuse the pin computed for the initial build above.
+        pin_turn = _pin_turn
         for raw_turns in range(half_window, -1, -1):
             recent = history[-raw_turns:] if raw_turns else []
             shrunk = _build_l1_history_block(
                 recent,
                 word_budget=300,    # conservative for overflow case
                 conversation_summary=summary,
+                pin_turn=pin_turn,
             ) or ""
             if non_l1_words + count_words(shrunk) <= _TOTAL_WORD_BUDGET or raw_turns == 0:
                 break
@@ -906,6 +1000,17 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
             "Token budget overflow: L1 raw window shrunk to %d turns (summary preserved)",
             raw_turns,
         )
+        # Recall turn where even the pinned disclosure + static layers exceed budget: keep the
+        # disclosure (never drop the thing being recalled), but make it OBSERVABLE rather than
+        # silently shipping over budget. Status sentinel is "status:"-prefixed so it is not read
+        # as a content layer. Deviation from v7 §5.6.3 shrink order is flagged in the sign-off.
+        # Structural resolution (trim L0) is the broader-bloat ticket, not this one.
+        if pin_turn is not None and non_l1_words + count_words(shrunk) > _TOTAL_WORD_BUDGET:
+            layers.append("status:prompt_over_budget")
+            _log.warning(
+                "self_reference recall over budget after pinning disclosure; kept disclosure, "
+                "prompt over budget (L0 bloat, broader-bloat ticket)"
+            )
 
     user_str = "\n\n".join(user_parts)
     return system_str, user_str, layers
