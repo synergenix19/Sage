@@ -17,6 +17,22 @@ from sage_poc.nodes.skill_rerank_model import score_pairs, head_loaded_ok, activ
 _REL_DESC = "Guided practice for writing down an automatic negative thought and examining the evidence for and against it."
 
 
+def test_default_precision_is_fp32_for_safety(monkeypatch):
+    # SAFETY-DRIVEN DEFAULT (2026-06-25): int8 is DISQUALIFIED. The safety-relevance check on the 29
+    # cross-precision flips found 6/6 id_oos flips in the disqualifying direction — int8 ROUTES
+    # clinician-territory disclosures (disposition=ABSTAIN) that fp32 correctly ABSTAINS, confirmed at
+    # the production node (fp32 6/6 ABSTAIN, int8 6/6 ROUTE incl. dbt_tipp + mindfulness_body_scan).
+    # int8 stays SELECTABLE (explicit env) for latency probing but must NEVER be the default in prod.
+    monkeypatch.delenv("SKILL_RERANK_PRECISION", raising=False)
+    assert active_precision() == "fp32", "default precision must be fp32 (int8 safety-disqualified)"
+
+
+def test_int8_still_selectable_explicitly(monkeypatch):
+    # The configurable parameter survives: int8 reachable for measurement, just not by default.
+    monkeypatch.setenv("SKILL_RERANK_PRECISION", "int8")
+    assert active_precision() == "int8"
+
+
 @pytest.mark.slow
 def test_reranker_head_is_loaded_and_separates():
     # The load-bearing control: head loaded AND logits separate by a real margin (>3), not ~0.

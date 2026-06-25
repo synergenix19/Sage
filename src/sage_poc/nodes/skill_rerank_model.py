@@ -1,12 +1,19 @@
 """Cross-encoder reranker model — bge-reranker-v2-m3, precision-configurable.
 
 The §4.3 selector (Falcon-3B in the spec) substituted by bge-reranker-v2-m3 (cost/fit, justified by
-the probe: +7.23 control gap, clean per-stratum win). Quality is settled and IDENTICAL across
-precisions (same m3 weights): int8 holds the win (62/90/100), promotion + confidence gap preserved.
-The ONLY axis distinguishing int8 from fp32 is latency-on-x86, which is structurally unmeasurable on
-the Apple-Silicon dev proxy (qnnpack int8 reads slower than Accelerate fp32 — an artifact). So
-precision is a CONFIGURABLE parameter (SKILL_RERANK_PRECISION=int8 default | fp32 fallback) and the
-choice is deferred to the Railway x86 latency measurement — not decided offline.
+the probe: +7.23 control gap, clean per-stratum win).
+
+PRECISION = fp32 (DEFAULT, REQUIRED for prod). int8 is SAFETY-DISQUALIFIED. The earlier claim that
+quality was "IDENTICAL across precisions, latency the only axis" was FALSIFIED on 2026-06-25: the
+safety-relevance check on the 29 deterministic (batch-1) cross-precision flips found 6/6 id_oos flips
+in the disqualifying direction — int8 ROUTES clinician-territory disclosures (disposition=ABSTAIN)
+that fp32 correctly ABSTAINS. Confirmed at the production node, global τ=-6.0843: fp32 6/6 ABSTAIN vs
+int8 6/6 ROUTE (incl. dbt_tipp on an irritability disclosure, mindfulness_body_scan on body-image
+distress) — the exact over-route class the reranker exists to close, re-admitted by quantization
+noise. int8's "slightly higher" aggregate id_oos was that over-routing, not better routing. So the
+precision fork was NEVER purely latency: fp32 is the accurate reference, int8 deviates on 29/324 (9%)
+incl. 6 safety-cell over-routes. int8 stays SELECTABLE (SKILL_RERANK_PRECISION=int8) for latency
+probing ONLY — never the prod default. Railway measures fp32 batch-1 latency (the deployable number).
 
 INVOCATION DISCIPLINE: AutoModelForSequenceClassification ONLY. sentence_transformers.CrossEncoder
 silently does NOT load the reranker head → ~0 logits → confident-wrong. Pinned by head_loaded_ok().
@@ -23,9 +30,11 @@ _state: dict = {}  # lazy singletons: tokenizer, model
 
 
 def active_precision() -> str:
-    """int8 (default) | fp32. Read dynamically so Railway can flip it without a rebuild."""
-    p = os.environ.get("SKILL_RERANK_PRECISION", "int8").lower()
-    return p if p in ("int8", "fp32") else "int8"
+    """fp32 (DEFAULT, required for prod) | int8 (safety-disqualified, selectable for latency probing
+    only). Read dynamically so Railway can flip it without a rebuild. See module docstring: int8
+    over-routes 6/6 id_oos safety-cell cases that fp32 ABSTAINS (2026-06-25 safety check)."""
+    p = os.environ.get("SKILL_RERANK_PRECISION", "fp32").lower()
+    return p if p in ("int8", "fp32") else "fp32"
 
 
 def _quant_engine() -> str | None:
@@ -52,7 +61,7 @@ def _load():
         if eng is not None:
             torch.backends.quantized.engine = eng
             mdl = torch.quantization.quantize_dynamic(mdl, {torch.nn.Linear}, dtype=torch.qint8)
-        # else: no int8 backend on this host -> stay fp32 (quality identical; latency the only cost)
+        # else: no int8 backend on this host -> stay fp32 (the safe + accurate default; see docstring)
     _state.update(tokenizer=tok, model=mdl)
     return tok, mdl
 
