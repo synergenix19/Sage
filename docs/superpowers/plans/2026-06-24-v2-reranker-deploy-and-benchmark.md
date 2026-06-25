@@ -72,3 +72,26 @@ effort), surfaced not taken. Deploy the current (semantic-τ) config.
 Record: chosen precision + its measured V2-incremental latency; the honest wired re-gate cells; the
 precision/global-τ/keyword-τ/bge-reranker-for-Falcon-3B deviations. Then the flip decision is a real
 end-to-end verdict gated on the baseline-latency and AR-data workstreams.
+
+---
+
+## READ-ONLY RAILWAY PREP — 2026-06-25 (commits nothing; blockers surfaced before deploy)
+
+**Railway context (resolved, no link):** project `sage-api` = `4f1811e7-cab2-4002-9107-a9f782f2f274`; service `sage-api` = `160e9f65-e3c8-409a-b647-fbe2339a265d`; environments `production` (`a227d912…`) and `staging` (`b890319d…`). CLI 4.44.0, authed `it@biosight.ai`. NOTE: staging reuses the same service instance and (per staging-env memory) shares prod Supabase — fine for a read-mostly latency probe, but do NOT run write-heavy load against it.
+
+**Three deploy blockers — ALL require work BEFORE `railway up`; none are mid-deploy-discoverable safely:**
+
+1. **STALE BASE (collision-#5 invariant).** Branch `feat/v2-calibrated-retrieval-core` tip `604c4f7` is **ahead 77 / behind 41** vs `origin/master` (tip `db8eb39`, merge-base `f5a56d30`). Master advanced 41 commits — the banned-opener #58 work that **shipped to prod 2026-06-25**. Deploying V2's tip would ship a base missing the live prod changes. → **Reconcile V2 onto `db8eb39` (rebase/merge), then RE-GATE** (the fp32 stabilized re-gate must hold on the reconciled tree — if the merge touches skill_select/routing, re-run it). Verify the exact ship commit carries 21a6994/b76ca28/6b08189/03fd086/604c4f7 (confirmed present on current tip) AND the master delta.
+
+2. **RERANKER NOT BAKED + NO STARTUP HEAD-CONTROL (load-bearing).** `server.py` `_warmup_task()` warms BGE-M3 and gates `/health/ready` on it, but the reranker is ABSENT from startup: (a) Dockerfile bakes BGE-M3 only (`HF_HOME`, pinned revision) — the reranker (`skill_rerank_model._load`, `from_pretrained` with **no `local_files_only`**, `_REVISION=None`) would **download ~2.2GB from HF at runtime** on first routing turn (cold-start + network dependency + non-determinism); (b) **`head_loaded_ok()` never runs at startup** → a silent headless-load on Railway routes confident-wrong with NO error (the CrossEncoder-headless bug class that "nearly killed this" twice). → **Before deploy:** bake bge-reranker-v2-m3 into the Dockerfile (pin `_REVISION` to the deploy SHA, load `local_files_only=True`), AND wire reranker warmup + `head_loaded_ok()` into `_warmup_task()` BEFORE `_bge_ready=True`, gated like BGE-M3 (FAIL readiness / stay 503 on headless load — **block, not warn-and-continue**; the warmup-silent-failure anti-pattern must NOT apply to a safety-critical control). Only fire it when `SKILL_RERANK_ENABLED=1`.
+
+3. **MEMORY HEADROOM (confirm on dashboard).** V2 holds TWO ~2.2GB models resident (BGE-M3 + bge-reranker-v2-m3) + app + httpx pools. Prod today runs BGE-M3 alone. → Confirm the staging instance RAM holds ~2× model footprint (~5–6GB+ working set) before `railway up`; a deploy that succeeds then OOMs at reranker-load is the failure read-only prep exists to pre-empt. (Could not pull the live RAM metric headless — GraphQL script needs a token the CLI doesn't expose; check via dashboard or `railway link`+`status`.)
+
+**Benchmark to run on Railway (the actual remaining question):**
+- Measure **fp32 batch-1 V2-incremental latency** specifically — NOT batched (batch-1 is the deterministic shipping scorer and is slower), NOT int8 (safety-disqualified, out of scope). The number = fp32-batch-1's added per-turn cost over baseline.
+- At **k=5** (the pipeline the gate validated) so latency corresponds to the quality-validated config.
+- On **routing turns only** (not crisis/info_request), median + p95.
+- Read against the **9.6s baseline p95** — V2-incremental is what V2 *adds*; the 9.6s is the pre-existing wall gating V1+V2 both and is its own (over-KPI) workstream. Do NOT let "V2 adds little" read as "latency fine" — the baseline is the real wall.
+- Reranker must be WARM (blocker-2 fix) so the benchmark measures steady-state batch-1, not the cold-load.
+
+**Deploy procedure (only after 1–3 resolved; do NOT run unilaterally — user-authorized):** reconcile→re-gate→bake+wire→confirm RAM → deploy reconciled tip to **staging** with `SKILL_ROUTING_V2=1 SKILL_RERANK_ENABLED=1` (precision defaults fp32) → verify `/health/ready` 200 AND startup head-control passed in logs → run the fp32-batch-1-k5 benchmark → read vs 9.6s baseline.
