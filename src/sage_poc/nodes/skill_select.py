@@ -132,7 +132,14 @@ def _semantic_match_with_runner_up(
         return None, 0.0, None
 
     query_text = f"{profile_context}\n{message_en}".strip() if profile_context else message_en
-    msg_emb = _embed_model.encode([query_text], normalize_embeddings=True)[0]
+    # EMBED-CACHE: reuse S3's query embedding when the same message_en was just encoded on the
+    # safety path. float32 cast matches the uncached encode bit-for-bit, so routing is unchanged.
+    from sage_poc.config import EMBED_CACHE_ENABLED  # noqa: PLC0415
+    if EMBED_CACHE_ENABLED:
+        from sage_poc.safety.s3_semantic import cached_get_embedding  # noqa: PLC0415
+        msg_emb = np.array(cached_get_embedding(query_text), dtype=np.float32)
+    else:
+        msg_emb = _embed_model.encode([query_text], normalize_embeddings=True)[0]
     raw_scores = np.dot(_anchor_embeddings, msg_emb)
 
     skill_scores: dict[str, float] = {}
