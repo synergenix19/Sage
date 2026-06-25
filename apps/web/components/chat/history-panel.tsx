@@ -39,7 +39,7 @@ export function HistoryPanel({ open, onClose }: { open: boolean; onClose: () => 
           router.push(`/chat?new=${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
           onClose()
         }}
-        className="mb-4 flex w-full min-h-[44px] items-center justify-center gap-2 rounded-full bg-[var(--color-primary)] px-4 text-sm font-medium text-white hover:bg-[var(--color-primary-dark)]"
+        className="mb-4 flex w-full min-h-[44px] items-center justify-center gap-2 rounded-full bg-[var(--color-surface-tinted)] px-4 text-sm font-medium text-[var(--color-primary-dark)] hover:bg-[var(--color-primary)] hover:text-white transition-colors"
       >
         {t.newConvo}
       </button>

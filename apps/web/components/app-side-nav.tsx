@@ -125,15 +125,15 @@ export function AppSideNav() {
         </span>
       </div>
 
-      {/* New conversation button */}
-      <div className="px-3 pb-2">
+      {/* New conversation button — softened from solid-green to tinted (#5) */}
+      <div className="px-3 pb-3 pt-1">
         <button
           onClick={handleNewChat}
           aria-label={locale === 'ar' ? 'محادثة جديدة' : 'New conversation'}
           className={cn(
             'flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl',
-            'bg-[var(--color-primary)] text-white text-sm font-medium',
-            'hover:bg-[var(--color-primary-dark)] transition-colors',
+            'bg-[var(--color-surface-tinted)] text-[var(--color-primary-dark)] text-sm font-medium',
+            'hover:bg-[var(--color-primary)] hover:text-white transition-colors',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring-color)]'
           )}
         >
@@ -159,7 +159,7 @@ export function AppSideNav() {
                 'flex min-h-[44px] items-center rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-150',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring-color)] focus-visible:ring-offset-2',
                 active
-                  ? 'bg-[var(--color-primary)] text-white'
+                  ? 'bg-[var(--color-surface-tinted)] text-[var(--color-primary-dark)] font-semibold'
                   : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-tinted)]'
               )}
             >
