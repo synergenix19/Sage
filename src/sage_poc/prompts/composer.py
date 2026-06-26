@@ -104,6 +104,43 @@ _D5_ACUITY_GUIDANCE = (
     "Do NOT offer guidance yet."
 )
 
+# P1(mid) response-shape floor (engineering, no clinical sign-off). Injected ONLY on
+# pure-freeflow general_chat turns at the MID band (intensity 4-6), appended to the
+# freeflow guardrail block at its existing discriminator (no step_instruction and no
+# offer), so it cannot reach the skill_offer or skill_executor surfaces and never fires
+# on the low band (light moments stay light) or the high/D5 acute band. Rationale: the
+# 2026-06-25 band-attribution run showed the cold-reply defect is pure-freeflow + mid +
+# no skill, and is a VARIANCE problem (5 samples of the same case ranged 19-38 words, all
+# under the P-2 validation band) caused by the underspecified mid string giving no shape
+# or length floor. This raises the floor and imposes R-7 shape (validation-first, one open
+# question) bounded by the P-2 validation band (40-80 words). Deliberately EXCLUDES the
+# P2 normalization sentence (parked for clinical sign-off) and the P3 menu/fork question
+# (gated on Arabic + crisis eval): one plain open question only. No em dashes (mirrors into
+# output). See docs/superpowers/audits 2026-06-25 band attribution.
+#
+# LOAD-BEARING COUPLING (do not remove without reading): this shape only clears the
+# length floor because it INVOKES an existing, clinician-signed L0 exception rather than
+# overriding L0's concision default. The plain "40-80 words" floor (v1) was overridden by
+# L0's signed cap "Keep replies concise, two to four sentences" and produced no effect.
+# The clause it rides, verbatim in L0_persona.json (template_id L0_persona), is:
+#   "...two to four sentences unless the person needs more; a heavy disclosure deserves a
+#    longer, more present reply even when it is brief..."
+# That clause is CLINICIAN-OWNED (L0 is signed). If a future L0 edit tightens the concision
+# cap or drops the "unless the person needs more / heavy disclosure deserves a longer reply"
+# exception, this shape silently reverts to cold with no engineering signal. The coupling is
+# guarded by tests/test_p1_mid_freeflow_shape.py::test_l0_longer_reply_exception_present,
+# which fails loudly if that clause leaves L0. Arabic note: AR turns generate in English
+# against this same L0 (see "ARABIC SESSION" below), so the exception is NOT language-split;
+# the Arabic risk is translation survival of the floor, not a missing AR exception.
+_MID_FREEFLOW_SHAPE = (
+    "RESPONSE SHAPE: This is a turn that needs more than a brief reply, so give fuller presence "
+    "rather than two short sentences. Begin by acknowledging the feeling the person named, in your "
+    "own words. Then ask one open question that follows directly from what they said. Write three "
+    "or four sentences, roughly forty to eighty words, enough to feel present and unhurried, never "
+    "so long it becomes advice. Ask only a single question, not several, and do not offer "
+    "suggestions or techniques here."
+)
+
 # Stall-guard recovery instruction (freeflow-only). Fires when the deterministic
 # detector flags a stall. It must RE-GROUND in established context, not merely
 # suppress the repeated question (which would degrade into a different generic
@@ -747,6 +784,14 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     _guardrail_words: int = 0
     if not state.get("step_instruction") and not _offer_ids:
         _guardrail_block = _build_freeflow_guardrail_block()
+        # P1(mid): on pure-freeflow validation turns at the MID band only, append the
+        # response-shape floor. Gated to 4 <= intensity <= 6 so the low band (light
+        # moments) and the high/D5 acute band are untouched. This branch is already
+        # inside the freeflow discriminator (no step_instruction, no offer), so the
+        # shape can never reach the skill-offer or skill-execution surfaces. Appended
+        # to the guardrail string so its words deduct from L1 in the same pass.
+        if 4 <= intensity <= 6:
+            _guardrail_block = _guardrail_block + "\n\n" + _MID_FREEFLOW_SHAPE
         _guardrail_words = count_words(_guardrail_block)
 
     # S2-7 B2: declined-skills signal (consent integrity). On freeflow turns
