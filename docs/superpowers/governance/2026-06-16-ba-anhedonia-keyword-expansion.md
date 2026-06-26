@@ -1,5 +1,10 @@
 # BA target_presentations expansion — activity-deficit / anhedonia
 
+> **See also (2026-06-25):** `2026-06-25-rt4-matcher-evidence-general-chat-gate-shield.md` —
+> live matcher evidence that this expansion does **not** cover affective "lonely" phrasing
+> (BA scores 0.3654, loses to PST/worry_time), and records flag #4's gate as an *accidental
+> matcher shield* with a pinned trip-wire test for when it is safe to revisit.
+
 Date: 2026-06-16
 Branch: `fix/ba-anhedonia-routing-2026-06-16`
 Author: engineering (work session)

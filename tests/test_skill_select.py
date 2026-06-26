@@ -862,3 +862,39 @@ async def test_sf1_catastrophizing_routes_to_cognitive_restructuring_gated():
     assert (result.get("offered_skill_ids") or [None])[0] == "cognitive_restructuring"
 
 
+@pytest.mark.asyncio
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "RT-4 trip-wire (governance/2026-06-25-rt4-matcher-evidence-general-chat-gate-shield.md). "
+        "Affective loneliness phrasing misroutes at the matcher: Tier-1 keyword collision on "
+        "'dont know what to do' -> problem_solving_therapy; if that did not fire, Tier-2 -> "
+        "worry_time at 0.4609 (threshold 0.4593). The clinically-correct skill "
+        "(behavioral_activation / self_compassion_break) is not selectable. This is EXPECTED to "
+        "fail today. When the matcher is fixed (BA 'lonely' coverage, PST collision, threshold "
+        "calibration) it will XPASS, and strict=True turns that XPASS into a hard failure -- the "
+        "loud signal that the general_chat gate is now a redundant shield and is safe to revisit. "
+        "Asserted at the skill_select layer, NOT end-to-end: end-to-end the gate routes this to "
+        "freeflow and would pass for the wrong reason, masking the matcher."
+    ),
+)
+async def test_loneliness_routes_to_connection_skill_not_problem_solving():
+    """Trip-wire for RT-4 matcher correctness on relational-loneliness disclosure.
+
+    Forces the message past the production general_chat gate (primary_intent='new_skill')
+    so the assertion tests the MATCHER, not the gate. Do not relax to xfail(strict=False):
+    a silent XPASS is exactly the missed signal this test exists to prevent.
+    """
+    msg = "I just feel lonely, I don't know what to do or how to cope"
+    state = _ss_state(
+        raw_message=msg,
+        message_en=msg,
+        primary_intent="new_skill",
+        emotional_intensity=6,
+    )
+    result = await skill_select_node(state)
+    routed = _routed_skill(result)
+    assert routed in {"behavioral_activation", "self_compassion_break"}
+    assert routed not in {"problem_solving_therapy", "worry_time"}
+
+
