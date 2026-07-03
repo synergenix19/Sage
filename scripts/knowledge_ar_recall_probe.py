@@ -48,7 +48,7 @@ async def cosine_distributions(rows, search_fn) -> dict:
     """search_fn(query, language) -> top_similarity float. Buckets by dialect_tag/variance_type."""
     buckets: dict = {}
     for row in rows:
-        lang = "ar" if row["dialect_tag"] in ("khaleeji", "msa") else "en"
+        lang = "en" if row["dialect_tag"] == "en" else "ar"
         sim = await search_fn(row["query"], lang)
         buckets.setdefault(f'{row["dialect_tag"]}/{row["variance_type"]}', []).append(sim)
     out = {}
