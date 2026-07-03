@@ -269,6 +269,23 @@ async def test_supportive_posture_injected_into_freeflow_system_prompt(monkeypat
 
 
 @pytest.mark.asyncio
+async def test_pr84_seam_t1_with_knowledge_rewriter_no_review_misfire(monkeypatch):
+    # Seam created by merging master's PR #84 (Arabic rewriter: knowledge_query trace in
+    # freeflow + output_gate) into the T1 path. A flag-ON T1 turn carrying the rewriter's
+    # knowledge_query fields must (a) still hit the T1 disposition (no high-severity crisis
+    # review) and (b) preserve the knowledge audit trace — the two are independent.
+    st = _og_state(t1_count=1, knowledge_query_raw="raw q", knowledge_query_searched="searched q")
+    calls = await _run_og_capturing_reviews(st, monkeypatch)
+    assert all((not c["crisis_flags"]) and c["severity_override"] != "high" for c in calls)
+    from sage_poc.audit import _build_session_audit_row
+    row = _build_session_audit_row({
+        "crisis_tier": "T1", "tier_rule_id": "s3_solo_en",
+        "knowledge_query_raw": "raw q", "knowledge_query_searched": "searched q",
+    })
+    assert row["crisis_tier"] == "T1" and row["knowledge_query_raw"] == "raw q"
+
+
+@pytest.mark.asyncio
 async def test_g1b_exactly_one_low_flag_on_second_t1(monkeypatch):
     first = await _run_og_capturing_reviews(_og_state(t1_count=1), monkeypatch)
     second = await _run_og_capturing_reviews(_og_state(t1_count=2), monkeypatch)
