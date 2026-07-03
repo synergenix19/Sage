@@ -69,7 +69,7 @@ class PostgresKnowledgeRepository(KnowledgeRepository):
     def __init__(self, pool):
         self._pool = pool
 
-    async def retrieve(
+    async def _search(
         self,
         query: str,
         language: str = "en",
