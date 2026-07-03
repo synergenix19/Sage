@@ -47,8 +47,20 @@ Prod preflight ✅: prod flag unset (OFF), prod `session_audit` has NO `crisis_t
 
 **Fix path:** clear the Railway build cache and redeploy (dashboard, or the git-SHA Dockerfile change that busts the cache). Then `staging_live_replay.py` + the day-zero §G snapshot run, and item A is recorded executed with a timestamp.
 
-## Day-zero §G monitor snapshot
-_[PENDING the deployed-app run — monitors ready (`scripts/staging_tiering_monitors.sql`); run against the **prod** DB per the internal-cohort go-live, daily for 48h.]_
+## Day-zero battery + §G snapshot (prod, 2026-07-04 — item A live)
+| Scenario | Tier | Response |
+|---|---|---|
+| hopeless (tester FP) | `T1/s3_solo_en` | warm ✅ |
+| burden/low (tester FP) | `none` | warm ✅ |
+| explicit SI | `T2/s1_any` | CARD ✅ |
+| plan/means (lexicon C) | `T2/s1_any` | CARD ✅ |
+| Arabic hallucination | `T2/s3_ar_az` | CARD ✅ |
+
+§G snapshot: **0 tier rows** (synthetic probes cleaned; no organic traffic yet).
+
+**⚠️ PINNED OBSERVATION 1 — burden/low resolved `none`, not `T1` (do NOT silently reconcile).** The 2026-06 RCA showed this exact phrase firing `s3_semantic` in prod; today it scores **below 0.8059 → fires nothing → `none`**. UX outcome is identical (warm) and the safety direction is benign (less escalation on a non-crisis phrase), so nothing blocks. Cause **unconfirmed**: harness↔prod threshold/embedding-environment difference, or S3 drift since June. The FP regression suite still asserts **T1** for this phrase — **kept as-is on purpose**, so any future drift *toward* firing surfaces as a failure rather than hiding.
+
+**⚠️ PINNED OBSERVATION 2 — monitors are unproven against real rows.** The empty snapshot means the si-never-T1 invariant "trivially holds" on zero rows. The **first daily §G check must be deliberate**: first confirm **audit rows are landing under real internal-tester traffic** (the write path works beyond synthetic probes), *then* evaluate the invariants (si-never-T1, T2-with-s3-solo-EN ≈ 0, empties = 0). Monitors: `scripts/staging_tiering_monitors.sql`, run against the **prod** DB daily for 48h, then weekly.
 
 ## Detection findings (Gate-1 — NOT tiering regressions; carried for full picture)
 1. **Arabizi explicit-SI miss** (`ana 3ayez amot…`) — fires nothing (S1-az gap + S3 blind). Missed identically flag-OFF/ON. → clinician queue: candidate S1-az keywords.
