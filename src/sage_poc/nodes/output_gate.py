@@ -41,6 +41,42 @@ _SENSITIVE_TOPIC_PHRASES_EN: tuple[str, ...] = tuple(
 _SENSITIVE_TOPIC_PHRASES_AR: tuple[str, ...] = tuple(
     p for _cat in _SENSITIVE_LEXICON_CATS.values() for p in _cat.get("ar", [])
 )
+
+# W4 — pinned AR mood-rating anchor. The numeric-anchor clause (واحد يعني صعب جدا وعشرة يعني ممتاز)
+# is emitted VERBATIM from mood_check_in.json, never through the translate step — that step is where
+# it corrupted into identical anchors ("1 means very good, 10 means very good"). This is the fallback
+# template for the deterministic score_mood guard below. One instrument; generalise when a second exists.
+_MOOD_SKILL_PATH = Path(__file__).parent.parent / "skills" / "mood_check_in.json"
+try:
+    with _MOOD_SKILL_PATH.open(encoding="utf-8") as _mf:
+        _MOOD_SKILL_RAW: dict = json.load(_mf)
+    _MOOD_STEPS = _MOOD_SKILL_RAW.get("steps") or next(
+        (v for v in _MOOD_SKILL_RAW.values() if isinstance(v, list)
+         and any(isinstance(x, dict) and x.get("step_id") == "score_mood" for x in v)), [])
+    _MOOD_PINNED_TEMPLATE_AR: str = next(
+        s["pinned_template_ar"] for s in _MOOD_STEPS if s.get("step_id") == "score_mood")
+except Exception:  # pragma: no cover — config error surfaces at import
+    _MOOD_PINNED_TEMPLATE_AR = ""
+
+# Each scale endpoint's descriptor: the phrase after يعني ("means"), up to " و <digit>" / punctuation.
+_MOOD_ANCHOR_RX = re.compile(r"يعني\s+(.+?)(?=\s+و\s+[\d٠-٩]|\s*[،,.؟?]|$)")
+
+
+def _has_identical_rating_anchors(text: str) -> bool:
+    """True when two scale endpoints "mean" the same phrase — the translate-step corruption."""
+    descs = [re.sub(r"\s+", " ", m.group(1)).strip() for m in _MOOD_ANCHOR_RX.finditer(text)]
+    return len(descs) >= 2 and len(descs) != len(set(descs))
+
+
+def _guard_mood_anchor(text: str, executed_step_id: str | None, lang: str) -> str:
+    """Deterministic Node-8 post-check (W4): on an AR score_mood turn, a rating scale with identical
+    low/high anchors falls back to the pinned template (verbatim anchor, never re-translated). No-op
+    for other steps, other languages, or a well-formed scale — matches Node 8's rules-first role."""
+    if executed_step_id != "score_mood" or lang != "ar" or not _MOOD_PINNED_TEMPLATE_AR:
+        return text
+    if _has_identical_rating_anchors(text):
+        return _MOOD_PINNED_TEMPLATE_AR
+    return text
 _OPENER_REWRITE_DISTRESS_CEILING = 9  # severe distress (9-10/10) -> suppress rewrite (pass through);
 # the lexicon is the primary sensitive-content gate, this is a wording-independent backstop for the top of the scale
 
@@ -628,6 +664,10 @@ async def output_gate_node(state: SageState) -> dict:
     else:
         final_response = response_en
     final_response = _strip_output_format(final_response)
+
+    # W4: pin the AR mood-rating anchor. If the translate step corrupted the scale into identical
+    # low/high anchors, fall back to the verbatim pinned template. AR score_mood turns only.
+    final_response = _guard_mood_anchor(final_response, state.get("executed_step_id"), lang)
 
     if AUDIT_LOG_ENABLED:
         audit = {
