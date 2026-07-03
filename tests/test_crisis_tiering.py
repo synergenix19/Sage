@@ -205,6 +205,40 @@ def _config_flag_with_env(env_overrides):
     return res.stdout.strip(), res.stderr
 
 
+def test_sagestate_declares_tier_channels():
+    # Bug #2 (2026-07-04): LangGraph silently DROPS any key a node returns that isn't a declared
+    # channel in the state TypedDict. crisis_tier et al. were computed by safety_check but never
+    # declared in SageState, so they never reached _route_after_safety / the audit (graph state=NULL).
+    # This guard makes the omission a red test, not a silent prod regression.
+    from sage_poc.state import SageState
+    required = {"crisis_tier", "tier_rule_id", "supportive_posture", "t1_count"}
+    missing = required - set(SageState.__annotations__)
+    assert not missing, f"SageState missing tier channels (LangGraph will drop them): {missing}"
+
+
+@pytest.mark.asyncio
+async def test_langgraph_propagates_crisis_tier_through_reducer():
+    # The mechanistic regression for bug #2: drive a compiled graph whose node returns the tier
+    # fields and assert they SURVIVE the reducer into the output state. Fails if SageState omits the
+    # channels. Every prior tiering test read safety_check's RETURN dict directly (pre-reducer), so
+    # none crossed this boundary — which is exactly how the drop shipped green.
+    from langgraph.graph import StateGraph, START, END
+    from sage_poc.state import SageState
+
+    async def _node(state):
+        return {"crisis_tier": "T1", "tier_rule_id": "s3_solo_en",
+                "supportive_posture": True, "t1_count": 1}
+
+    g = StateGraph(SageState)
+    g.add_node("n", _node)
+    g.add_edge(START, "n")
+    g.add_edge("n", END)
+    out = await g.compile().ainvoke({"raw_message": "x"})
+    assert out.get("crisis_tier") == "T1", "SageState dropped crisis_tier — not a declared channel"
+    assert out.get("tier_rule_id") == "s3_solo_en"
+    assert out.get("supportive_posture") is True
+
+
 def test_tiering_default_is_ON_when_env_unset():
     # 2026-07-03 default flip (product-owner directive; executes signed item A). Tiering is ON by
     # default so the Railway env-injection bug is irrelevant; SAGE_CRISIS_TIERING stays a kill-switch.

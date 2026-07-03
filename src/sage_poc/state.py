@@ -19,6 +19,15 @@ class SageState(TypedDict):
     third_party_crisis: bool    # user is concerned about someone else's safety, not their own
 
     crisis_state: str              # "none" | "active" | "monitoring" | "resolved"
+    # v7.1 crisis tiering (flag-gated). MUST be declared channels: LangGraph silently DROPS any key
+    # a node returns that is not in this TypedDict, so without these, safety_check's crisis_tier never
+    # reaches _route_after_safety or the audit (graph state = NULL) even though the node computed it.
+    # This absence was invisible to every unit/proof test because they read safety_check's RETURN dict
+    # directly, never the post-reducer graph state (bug #2, 2026-07-04).
+    crisis_tier: Optional[str]         # "T1" warm | "T2" acute | "none"; None/absent when flag OFF
+    tier_rule_id: Optional[str]        # tier_routing.json rule id that resolved the tier (audit trail)
+    supportive_posture: bool           # T1 warm-posture instruction injected into freeflow this turn
+    t1_count: int                      # G1b session counter: # of T1 turns (2nd triggers one flag_for_review)
     psychotic_referral_delivered: Optional[bool]   # True after psychotic_referral completes; prevents re-selection loop within session
     s7_result: Optional[str]       # "RECOVERING" | "STILL_DISTRESSED" | "UNCLEAR" | "NEW_CRISIS"
     s7_method: Optional[str]       # "keyword" | "llm"

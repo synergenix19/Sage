@@ -33,3 +33,9 @@ Same weight as the CI-cannot-enforce-required-checks item — both are safety/da
 **Impact:** you cannot trust `railway up ... SUCCESS` as proof that new code is serving. Verify with a **behavioural probe + boot log**, not the deploy status. This is why the crisis-tier flip could not be validated on staging from the CLI.
 
 **Combined pattern (3 findings, one rollout):** (1) migrations don't reach staging; (2) env vars not injected into containers; (3) deploys don't cut over. All three are **deployment-substrate reliability** gaps. Strong, concrete input for the **v7 Full-Build case to move the target env to Azure**, where deployment cutover and env application are contractually observable. Mitigation already shipped in-code: default-ON (independent of injection) + strict parse (immune to mangled values) + boot-observable flag log (turns "is new code serving?" into a log read).
+
+---
+
+# Note — /health/version deep-diagnostics must be gated before external exposure
+
+The deep `/health/version` (added during the 2026-07-04 bug-#2 hunt) executes the crisis-tier resolver and exposes module paths, `PYTHONPATH`, and the flag state on an **unauthenticated** endpoint. Acceptable for the internal POC; **before external exposure, gate or strip the deep fields** (keep only a minimal `{status}` or require the API key). Rides the existing external-exposure gate (dial-test + W7 commit-2 + L0 re-sign).
