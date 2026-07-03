@@ -461,6 +461,7 @@ async def chat(
             "X-Sage-Active-Step-Id":        result.get("active_step_id") or "",
             "X-Sage-Gate-Path":             result.get("gate_path") or "",
             "X-Sage-Crisis-Flags":          json.dumps(result.get("crisis_flags") or []),
+            "X-Sage-Crisis-Tier":           result.get("crisis_tier") or "",
             "X-Sage-Clinical-Flags":        json.dumps(result.get("clinical_flags") or []),
             "X-Sage-Emotional-Intensity":   str(result.get("emotional_intensity") or 0),
             "X-Sage-Crisis-State":          result.get("crisis_state") or "none",
