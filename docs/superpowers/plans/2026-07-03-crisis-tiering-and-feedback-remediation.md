@@ -265,6 +265,10 @@ Audit found two numbers in circulation: **`800 46342`** — the live `CRISIS_LIN
 3. **Collapse to a single source, configurable everywhere** (product directive): one config object — number + **label ("Mental Support Line", not misattributed)** + hours + the co-listed 999 — consumed by `graph.py`, `output_gate.py`, the `crisis_content` rules, **and** `L0_persona.json` (today the number is hardcoded inside the L0 prompt text). Nothing may embed the literal number/hours again. See the new **W7** for the centralization task.
 4. **L0 fast-track re-sign:** because the erroneous number lives inside signed-off **L0 v2.2.0**, correcting it **is a persona change** and needs a fast-track clinical re-sign, not just an eng edit. Add to G8 scope.
 5. **Regression test** pins the verified number **and its label**, and asserts no literal helpline digits appear outside the single config source.
+6. **Clinician-content scope (found during W7 commit-1).** The number is embedded in **clinician-authored JSON**, pinned to `config.CRISIS_LINE_UAE` by `test_corpus_integrity.py`. Per Cardinal Rule 4 these are content, not code, so their edits ride the **G8 fast-track re-sign** alongside L0. Affected files to enumerate in the G8 packet:
+   - `rules/data/crisis_content/en_uae.json`, `rules/data/crisis_content/ar_uae.json` (primary crisis card + the false "24/7")
+   - `skills/psychoed_depression.json`, `skills/psychotic_referral.json`, `skills/post_crisis_check_in.json` (escalation_matrix crisis line)
+   **Do NOT introduce placeholder templating into the skill JSONs** — that is schema scope creep beyond §K. `test_corpus_integrity.py` (which fails the moment the config value diverges from the JSONs) is the correct POC forcing function: flip the config value in commit-2 and it lists every JSON still on the old number.
 
 Value swap + centralization ship **together**, gated on 1 & 4. All `999` references are consistent and unaffected.
 
