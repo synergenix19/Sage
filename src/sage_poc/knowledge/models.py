@@ -21,3 +21,5 @@ class KnowledgePassage:
 class KnowledgeResult:
     passages: list[KnowledgePassage] = field(default_factory=list)
     abstain: bool = False
+    query_raw: str = ""       # query as submitted by the caller (pre-normalization)
+    query_searched: str = ""  # query actually sent to the backend (post-normalization)

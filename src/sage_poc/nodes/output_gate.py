@@ -643,6 +643,8 @@ async def output_gate_node(state: SageState) -> dict:
                 p.get("source_id") for p in (state.get("knowledge_passages") or [])
             ],
             "knowledge_abstain": state.get("knowledge_abstain", False),
+            "knowledge_query_raw": state.get("knowledge_query_raw", ""),
+            "knowledge_query_searched": state.get("knowledge_query_searched", ""),
             "identity_substitution": (
                 {"rule_id": _identity_sub_rule_id, "original_response_hash": _original_response_hash}
                 if _identity_sub_rule_id else None

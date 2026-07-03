@@ -66,6 +66,8 @@ class SageState(TypedDict):
     knowledge_passages: list[dict]  # [{text, source_id, citation, relevance_score}]
     knowledge_abstain: bool         # True when no relevant evidence found
     knowledge_source: str           # "node_6" | "tool_lookup" | "" (empty when no retrieval)
+    knowledge_query_raw: str        # query as submitted (pre-normalization)
+    knowledge_query_searched: str   # query actually searched (post-normalization)
 
     gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak", "crisis"]]
 
