@@ -550,6 +550,8 @@ Both paths use `PostgresKnowledgeRepository` and the same `knowledge_articles` p
 
 **`knowledge/rewriter.py`** provides `normalize_arabic_query()` (alef variants أإآ → ا, ta marbuta ة → ه, tatweel removal). It is now applied inside the `KnowledgeRepository.retrieve()` base-layer template (`knowledge/repository.py`), gated on Arabic-script presence in the query string (Unicode block `؀-ۿ`, 0600–06FF) rather than on the `language` flag. Because the normalization lives in the abstract base's `retrieve()` template method — not in the concrete `PostgresKnowledgeRepository` — both the node path (`knowledge_retrieve`) and the `knowledge_lookup` tool path inherit it automatically, and the future Azure AI Search swap preserves it (the new backend only implements `_search()`; it cannot silently drop the rewrite). It is orthographic-only (alef variants, ta-marbuta, tatweel); lexical Khaleeji→MSA translation remains a post-POC upgrade (CAMeL-Tools or equivalent). See `docs/superpowers/specs/2026-07-03-arabic-rewriter-wiring-design.md`.
 
+**Caveat (evidence pending):** because ingest is not normalized, this query-side-only rewrite can also desync a standard MSA query from an un-normalized corpus form it previously FTS-matched, dropping that pair from hybrid (FTS+vector) retrieval to vector-only; the net effect, Khaleeji orthographic lift versus possible MSA FTS loss, is PENDING confirmation by the deferred live AR-recall probe (no-MSA-regression is the documented pass condition — see Task 6 report).
+
 #### Named Decision: Arabic Orthographic Normalization — Query-Side Wired 2026-07-03, Ingest-Side Still Deferred
 
 *Decision date: 2026-06-01 (original deferral). Status updated 2026-07-03: query-side wired; ingest-side remains deferred.*
