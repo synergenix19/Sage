@@ -34,6 +34,18 @@ class CrisisContentRule(BaseModel):
     action: dict
 
 
+class TierRoutingRule(BaseModel):
+    """v7.1 crisis-tier routing rule (clinician-editable Rules-Service data). Maps a
+    detection outcome (which signals fired + language) to a tier. Schema-validated so a
+    malformed rule fails the build; the resolver reads the same file for the hot path."""
+    id: str
+    when: dict
+    tier: Literal["T1", "T2", "none"]
+    note: str = ""
+    active: bool = True
+    version: str = "1.0.0"
+
+
 class CulturalRule(BaseModel):
     rule_id: str
     version: str = "1.0.0"
