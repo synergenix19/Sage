@@ -19,5 +19,8 @@ The phrase fires nothing, so it is missed with or without tiering — non-inferi
 ## Remediation (normal clinician workflow — NOT patched inline)
 `3ayez amot`, `ma3ish 3ayiz a3ish`, and their variants go to the clinician team as **candidate S1-az lexicon entries** via the standard draft → review → approve rule workflow (Cardinal Rule 4: S1 lexicon is clinician-authored content, not an engineering edit). Owner: S1-az / Arabizi workstream ([[project_arabizi_support]]).
 
+## Second instance (2026-07-03, EN euphemism) — surfaced by the staging-replay prep
+`"i have pills and a plan to end it"` (explicit means + plan, plain English) → **fires nothing**: no S1 keyword ("end it" euphemism, not "kill myself"/"end my life"), and **S3 = 0.793, just under the 0.8059 threshold**. Missed. By contrast `"i have a plan to kill myself"` fires `si_explicit` (S3 0.906). Same Gate-1 class as the Arabizi miss: **indirect/euphemistic phrasing** — exactly the documented 37% CRADLE recall gap ([[project_safety_detection_baseline]]). Reinforces the pilot NO-GO: the gap includes *explicit-intent* SI when phrased euphemistically, not only indirect disclosure. Same owner (S1 lexicon + S2/MARBERT); same non-tiering disposition (missed identically flag-OFF/ON).
+
 ## Tracking mechanism
 Committed as an **xfail** test (`test_crisis_tiering.py::test_arabizi_explicit_si_fires_s1_XFAIL_gate1`) with `reason` referencing this finding. When the clinician-approved keywords land, the test flips to a hard pass automatically — the fix is then proven and the finding cannot evaporate.
