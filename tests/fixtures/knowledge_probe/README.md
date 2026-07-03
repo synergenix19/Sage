@@ -6,7 +6,7 @@ rules — engineering-authored, not clinical sign-off gated. Native-Khaleeji rev
 is the upgrade path toward true TD5.
 
 Schema per row: query, gold_article_ids[], relevance_judgment, dialect_tag
-(khaleeji|msa), variance_type (orthographic|lexical|baseline).
+(khaleeji|msa|en|ar), variance_type (orthographic|lexical|baseline|negative).
 
 variance_type classifies KHALEEJI queries by what the rewriter can reach; MSA rows
 are the regression baseline:
@@ -17,14 +17,22 @@ are the regression baseline:
   results are REPORTED, not gated.
 - baseline (msa): standard MSA phrasing, the no-regression control. Never tag MSA rows
   "orthographic" — it pollutes the split.
+- negative (en|ar): clearly off-domain queries with no relevant corpus answer.
+  `gold_article_ids: []` and `relevance_judgment: "none"` always. Correct retrieval
+  behaviour is abstain=True, not a recall/MRR score — these rows are first-class
+  TD5 negatives and partially unblock Item #2's negatives condition. Kept on
+  `dialect_tag: en|ar` (not khaleeji/msa) since off-domain intent, not dialect
+  variance, is what's being tested.
 
 Bucket-to-acceptance mapping: msa/baseline = no regression; khaleeji/orthographic =
-expected lift; khaleeji/lexical = reported only.
+expected lift; khaleeji/lexical = reported only; en/negative + ar/negative =
+abstain rate, evaluated via `scripts/negatives_smoke.py` and
+`cosine_distributions()`, not `recall_at_k`/`reciprocal_rank`.
 
 Khaleeji rows seeded from authored skill triggers where an info-request framing
 exists (see plan Task 6 Step 1); net-new phrasings authored only for uncovered needs.
 
-## Row count and provenance (this fixture: 28 rows / 14 info-needs)
+## Row count and provenance (this fixture: 40 rows / 14 info-needs + 12 negatives)
 
 14 info-needs, each present as one khaleeji row + one msa row, covering 14 of the
 21 articles in `data/knowledge_corpus/ar/`. Per-row provenance:
@@ -46,7 +54,9 @@ exists (see plan Task 6 Step 1); net-new phrasings authored only for uncovered n
 | values-001 | lexical | authored: `values_clarification.json` target_presentations |
 | wellbeing-001 | orthographic | net-new |
 
-9 lexical + 5 orthographic khaleeji rows + 14 msa/baseline rows = 28 total.
+9 lexical + 5 orthographic khaleeji rows + 14 msa/baseline rows = 28 recall rows,
+plus 12 negative rows (6 en/negative + 6 ar/negative, added Task 4 of the
+2026-07-03 abstain-cosine-gate plan) = 40 total.
 
 Most authored Gulf-dialect triggers in the skill JSONs (e.g. `شو`, `وش`, `ليش`,
 `شلون`) are lexical substitutions for MSA question words (`ما`, `ماذا`, `لماذا`,

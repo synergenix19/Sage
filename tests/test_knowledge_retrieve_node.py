@@ -127,3 +127,16 @@ async def test_node_writes_query_trace_to_state():
 
     assert result["knowledge_query_raw"] == "أنا قلقان"
     assert result["knowledge_query_searched"] == "انا قلقان"
+
+
+@pytest.mark.asyncio
+async def test_node_emits_top_similarity_to_state():
+    from sage_poc.knowledge.models import KnowledgeResult
+    from sage_poc.knowledge.postgres_repository import PostgresKnowledgeRepository
+    from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
+    async def fake_search(self, query, language="en", top_k=5):
+        return KnowledgeResult(passages=[], abstain=True, top_similarity=0.11)
+    with patch.object(PostgresKnowledgeRepository, "_search", fake_search):
+        with patch("sage_poc.nodes.knowledge_retrieve._get_pool", return_value=MagicMock()):
+            r = await knowledge_retrieve_node(_kr_state(detected_language="en"))
+    assert r["knowledge_top_similarity"] == 0.11

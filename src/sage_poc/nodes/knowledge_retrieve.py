@@ -47,5 +47,6 @@ async def knowledge_retrieve_node(state: SageState) -> dict:
         "knowledge_source": "node_6",
         "knowledge_query_raw": result.query_raw,
         "knowledge_query_searched": result.query_searched,
+        "knowledge_top_similarity": result.top_similarity,
         "path": path,
     }

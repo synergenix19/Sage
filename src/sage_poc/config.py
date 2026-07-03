@@ -38,11 +38,19 @@ CRISIS_LINE_UAE = CRISIS_CONFIG["number"]
 # (Check B provable). ON -> _route_after_safety routes on crisis_tier (T2 crisis / T1 warm).
 CRISIS_TIERING_ENABLED = os.getenv("SAGE_CRISIS_TIERING", "false").lower() == "true"
 
-# Knowledge retrieval abstain floor. POC shipped 0.0 (never abstain), which surfaced weak
-# RRF passages as authoritative (feedback #5 "Google is better"). Interim conservative default
-# 0.015 (just above single-list rank-2+ RRF noise with k=60); finalize via
-# scripts/calibrate_retrieval_threshold.py once a labeled query set exists.
+# Knowledge abstain gates. RRF is pure RANK fusion: its minimum meaningful score is
+# 1/(k+1) = 1/61 = 0.0164 (k=60), and the whole top-5 single-list range (1/61..1/65 =
+# 0.0164..0.0154) sits ABOVE 0.015, so KNOWLEDGE_ABSTAIN_THRESHOLD at 0.015 can NEVER
+# abstain (verified 2026-07-03: 0/12 off-domain queries abstained). It is retained as a
+# SECONDARY per-passage guard only; the AUTHORITATIVE abstain decision is the cosine gate
+# below. Proper fix = reranker (#45) + calibration at the corpus >100 gate.
 KNOWLEDGE_ABSTAIN_THRESHOLD = float(os.getenv("SAGE_KNOWLEDGE_ABSTAIN_THRESHOLD", "0.015"))
+
+# Authoritative abstain gate: cosine SIMILARITY (1 - pgvector distance) of the best passage
+# in the returned evidence pack. Abstain when best similarity < threshold. Default 0.0 is
+# FAIL-OPEN (never abstains = pre-fix behaviour); deploy sets SAGE_COSINE_ABSTAIN_THRESHOLD
+# to the calibrated value (spec 2026-07-03 Appendix A). Set to 0.0 to roll back instantly.
+COSINE_ABSTAIN_THRESHOLD = float(os.getenv("SAGE_COSINE_ABSTAIN_THRESHOLD", "0.0"))
 
 # Skill-routing precision (feedback #6). A runner-up (second offer) must be strong AND close
 # to the primary, else only the primary is offered. Defaults conservative; confirm with clinical.

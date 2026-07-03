@@ -23,3 +23,4 @@ class KnowledgeResult:
     abstain: bool = False
     query_raw: str = ""       # query as submitted by the caller (pre-normalization)
     query_searched: str = ""  # query actually sent to the backend (post-normalization)
+    top_similarity: float | None = None  # best cosine sim in the returned pack; drives abstain

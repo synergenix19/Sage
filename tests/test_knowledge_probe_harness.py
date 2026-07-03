@@ -50,3 +50,43 @@ async def test_score_probe_buckets_by_overall_and_dialect_variance():
     assert result["overall"]["n"] == 3
     assert result["overall"]["recall_at_5"] == pytest.approx(2 / 3)
     assert result["overall"]["mrr"] == pytest.approx((1.0 + 0.0 + 0.5) / 3)
+
+
+@pytest.mark.asyncio
+async def test_cosine_distributions_buckets_by_dialect_and_variance():
+    from scripts.knowledge_ar_recall_probe import cosine_distributions
+    rows = [
+        {"query": "a", "dialect_tag": "msa", "variance_type": "baseline"},
+        {"query": "b", "dialect_tag": "en", "variance_type": "negative"},
+    ]
+    async def search_fn(query, language):
+        return 0.8 if query == "a" else 0.1  # returns top_similarity
+    dist = await cosine_distributions(rows, search_fn)
+    assert dist["msa/baseline"]["max"] == 0.8
+    assert dist["en/negative"]["max"] == 0.1
+
+
+@pytest.mark.asyncio
+async def test_cosine_distributions_maps_all_arabic_dialect_tags_to_ar_language():
+    """An `ar`-tagged negative row (used for Arabic off-domain queries) must be
+    searched with language="ar" against the Arabic corpus, not "en". Only
+    dialect_tag == "en" should map to language="en", khaleeji/msa/ar all map
+    to "ar". Under the old buggy mapping (`"ar" if dialect_tag in
+    ("khaleeji", "msa") else "en"`), a dialect_tag of "ar" fell into the else
+    branch and was searched with language="en", corrupting the AR-negative
+    cosine bucket against the wrong-language corpus."""
+    from scripts.knowledge_ar_recall_probe import cosine_distributions
+    rows = [
+        {"query": "ar-negative", "dialect_tag": "ar", "variance_type": "negative"},
+        {"query": "en-negative", "dialect_tag": "en", "variance_type": "negative"},
+    ]
+    seen_languages = {}
+
+    async def search_fn(query, language):
+        seen_languages[query] = language
+        return 0.0
+
+    await cosine_distributions(rows, search_fn)
+
+    assert seen_languages["ar-negative"] == "ar"
+    assert seen_languages["en-negative"] == "en"

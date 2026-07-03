@@ -63,7 +63,7 @@ Add the top similarity that drove the abstain decision to the audit trail, along
 - `KnowledgeResult` gains `top_similarity: float | None`.
 - Node + tool propagate it; `SageState` gains `knowledge_top_similarity`.
 - `audit._build_session_audit_row` + `output_gate` log dict include it.
-- Migration `006_add_knowledge_top_similarity_to_session_audit.sql` (`ADD COLUMN IF NOT EXISTS knowledge_top_similarity double precision`) — fixed-column `session_audit`, so the column must exist before deploy (same ordering rule as migration 005).
+- Migration `007_add_knowledge_top_similarity_to_session_audit.sql` (`ADD COLUMN IF NOT EXISTS knowledge_top_similarity double precision`) — fixed-column `session_audit`, so the column must exist before deploy (same ordering rule as migration 005).
 
 ### 3.6 Abstain-path end-to-end verification (Constraint 3/4)
 The downstream ABSTAIN behaviour has **plausibly never fired in production** (the gate could not trigger). It must be verified, not assumed:
@@ -72,7 +72,14 @@ The downstream ABSTAIN behaviour has **plausibly never fired in production** (th
 - **Prod verification: one off-domain turn each in EN and AR**, showing the abstain response renders correctly end-to-end (Playwright on chat.biosight.ai, same discipline as the rewriter test).
 
 ### 3.7 Rollback lever — fail-open, zero-latency (deploy runbook)
-Because the threshold is env-configurable, **`SAGE_COSINE_ABSTAIN_THRESHOLD=0.0` restores exactly today's behaviour instantly, without a code deploy** (similarity is always ≥ 0, so nothing ever abstains on the cosine gate). Migration 006 is additive and inert under it. This is the **designated rollback** in the deploy runbook: if the gate miscalibrates and suppresses legitimate clinical answers in production, flip the env var to `0.0` — a config change, not an incident. Set the initial deployed value to the calibrated threshold; keep the rollback documented alongside the deploy step.
+Because the threshold is env-configurable, **`SAGE_COSINE_ABSTAIN_THRESHOLD=0.0` restores exactly today's behaviour instantly, without a code deploy** (similarity is always ≥ 0, so nothing ever abstains on the cosine gate). Migration 007 is additive and inert under it. This is the **designated rollback** in the deploy runbook: if the gate miscalibrates and suppresses legitimate clinical answers in production, flip the env var to `0.0` — a config change, not an incident. Set the initial deployed value to the calibrated threshold; keep the rollback documented alongside the deploy step.
+
+### 3.8 Post-deploy monitoring obligation (thin-margin watch)
+The margin between the chosen threshold (0.42) and the weakest observed positive (0.4283, khaleeji/lexical) is only **~0.008 of cosine similarity**. The calibration guarantees zero false abstention on the *measured* 28; production paraphrases of that weakest class (short-form assertive-communication questions) can plausibly land below 0.42. Because migration 007 now records `knowledge_top_similarity` on every turn, this is directly observable:
+- **Standing check (first week, daily):** query `session_audit` for **abstained** turns with `knowledge_top_similarity` in the **~0.40–0.44 band**. Any abstained *legitimate* query in that band is the early-warning signal.
+- **Response lever (documented, no code deploy):** nudge `SAGE_COSINE_ABSTAIN_THRESHOLD` down, or fail-open at `0.0` (§3.7). The env-configurable threshold is the whole reason this is a config flip, not an incident.
+
+State this residual-risk-and-detection pairing in the PR so they are on the record together.
 
 ## 4. Files touched
 - `src/sage_poc/knowledge/postgres_repository.py` — `_HYBRID_SQL` (+vec_distance), `_search` abstain logic + `top_similarity`.
@@ -80,7 +87,7 @@ Because the threshold is env-configurable, **`SAGE_COSINE_ABSTAIN_THRESHOLD=0.0`
 - `src/sage_poc/config.py` — add `COSINE_ABSTAIN_THRESHOLD`; **correct** the `KNOWLEDGE_ABSTAIN_THRESHOLD` comment.
 - `src/sage_poc/nodes/knowledge_retrieve.py`, `nodes/tools/knowledge_lookup.py`, `nodes/freeflow_respond.py` — propagate `top_similarity` to state/JSON.
 - `src/sage_poc/state.py`, `src/sage_poc/audit.py`, `src/sage_poc/nodes/output_gate.py` — audit field.
-- `migrations/006_add_knowledge_top_similarity_to_session_audit.sql` — new.
+- `migrations/007_add_knowledge_top_similarity_to_session_audit.sql` — new.
 - `tests/test_knowledge_repository.py` (+node/tool/audit tests) — abstain-on-low-cosine, retrieve-on-high-cosine, negatives abstain, positives retrieve, audit carries similarity.
 - `tests/fixtures/knowledge_probe/ar_recall_probe.jsonl` — fold in 12 negatives (`relevance_judgment: "none"`, `gold_article_ids: []`, `variance_type: "negative"`).
 - `scripts/negatives_smoke.py` — commit as durable safety-verification asset.
@@ -88,15 +95,40 @@ Because the threshold is env-configurable, **`SAGE_COSINE_ABSTAIN_THRESHOLD=0.0`
 
 ## 5. Acceptance criteria (Constraint 4)
 1. **Zero false abstention on the 28 positives, per dialect bucket** (msa / khaleeji-orthographic / khaleeji-lexical) — inviolable (§3.4 rule 1). This is the hard gate.
-2. **Negative abstention maximized subject to (1)**, with the residual (negatives still clearing the threshold) recorded in Appendix A as the measured protection gap the reranker closes. Target is 12/12 abstaining; if distributions overlap, the honestly-reported residual is acceptable — partial protection documented, not reported as full.
-3. **Prod-verified off-domain abstain turn in EN and AR** renders the abstain response end-to-end (empty pack → abstain message).
+2. **Negative abstention matches the calibrated reality (Appendix A): `10/12` negatives abstain, with the two named residuals leaking** — "how does photosynthesis work" (sim 0.4395) and "book a flight ticket / كيف أحجز تذكرة طيران؟" (0.4322). This residual is the measured protection gap the reranker (#45) closes at the >100 gate. **12/12 in prod is a DISCREPANCY to investigate, not a bonus** — the verification must confirm the calibration *transfers* to prod (same ~10/12 with the named leaks), not merely that abstention happens.
+3. **Prod-verified off-domain abstain turn in EN and AR** renders the abstain response end-to-end (empty pack → abstain message). Use one of the *abstaining* negatives (e.g. "how do I file my income taxes" EN, "ما هو سعر صرف الدولار اليوم؟" AR — both below 0.42), not one of the two residual-leak strings.
 4. `negatives_smoke.py` committed; 12 negatives folded into the TD5-forward fixture (`relevance_judgment: "none"`).
-5. `vec_distance`/`top_similarity` in the audit trace (migration 006 applied before deploy).
+5. `vec_distance`/`top_similarity` in the audit trace (migration 007 applied before deploy).
 6. `config.py` comment corrected.
 7. Chosen threshold justified by the recorded per-bucket distributions (§3.4 appendix).
 
 ## 6. Out of scope
 Reranker (#45), full calibration at scale, Azure AI Search migration. This is interim; the proper fix and this fix converge at the corpus >100 gate bundle ([[project_ar_recall_probe_2026_07_03]]).
 
-## Appendix A — calibration distributions (filled during implementation)
-_Per-bucket cosine similarity (min/median/max) for msa/baseline, khaleeji/orthographic, khaleeji/lexical, negatives; chosen threshold + margin rationale._
+## Appendix A — calibration distributions (2026-07-03)
+
+**Method:** 28 positives + 12 negatives from `tests/fixtures/knowledge_probe/ar_recall_probe.jsonl` run through `PostgresKnowledgeRepository.retrieve()` (the DEPLOYED normalization path, not `_search`) against the prod corpus, read-only; `top_similarity` captured per query.
+
+**Per-bucket cosine similarity:**
+
+| bucket | n | min | median | max |
+|---|---|---|---|---|
+| msa/baseline | 14 | 0.4339 | 0.6954 | 0.7823 |
+| khaleeji/orthographic | 5 | 0.6018 | 0.7181 | 0.7459 |
+| khaleeji/lexical | 9 | **0.4283** | 0.6172 | 0.7399 |
+| en/negative | 6 | 0.3274 | 0.3911 | **0.4395** |
+| ar/negative | 6 | 0.3062 | 0.3892 | 0.4322 |
+
+**Overlap (as Amendment-1 anticipated — no clean separation):** the weakest positive (`0.4283`, khaleeji/lexical "شو هو التواصل الحازم؟") sits *below* the strongest negatives (`0.4395` en "photosynthesis", `0.4322` ar "book a flight ticket"). Dense-embedding tail overlap, not a bug.
+
+**§3.4 decision rule applied:**
+1. Positives inviolable → threshold ≤ min positive similarity across buckets = **0.4283**.
+2. Maximize negative abstention subject to (1). The gap between the 3rd-strongest negative (0.4175) and the weakest positive (0.4283) contains no data, so any threshold in `(0.4175, 0.4283]` catches the same 10/12 negatives.
+
+**Chosen threshold: `COSINE_ABSTAIN_THRESHOLD = 0.42`** (deploy env `SAGE_COSINE_ABSTAIN_THRESHOLD=0.42`; committed default stays `0.0`/fail-open). Placed at 0.42 (not 0.4283) for a ~0.008 positive-safety margin below the weakest observed positive, per the margin principle, at no cost to negative coverage.
+
+**Verified at threshold 0.42:** false abstention on the 28 positives = **0/28** (per-bucket zero); negatives caught = **10/12 (83%)**.
+
+**Residual (measured protection gap the reranker #45 closes at the >100 gate):** 2/12 negatives still clear 0.42 — "how does photosynthesis work" (0.4395) and "كيف أحجز تذكرة طيران؟ / book a flight ticket" (0.4322). Both are genuinely off-domain but BGE-M3 assigns them moderate similarity, above the weakest legitimate (short-form assertive-communication) positive. Interim gate = partial protection (0→83%), honestly documented; not full protection.
+
+**Comparison direction:** gate is `abstain iff top_similarity < COSINE_ABSTAIN_THRESHOLD` (strict `<`). A positive exactly equal to the threshold is retrieved. 0.42 < all 28 positives, so all retrieve.

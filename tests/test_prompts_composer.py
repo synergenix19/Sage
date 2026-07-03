@@ -424,6 +424,27 @@ def test_l4_knowledge_block_abstain_returns_no_fabricate_instruction():
     assert "fabricate" in block.lower()
 
 
+def test_l4_knowledge_block_abstain_empty_pack_never_renders_passage_text():
+    """Spec 2026-07-03 abstain-cosine-gate §3.2: an abstain result carries EMPTY
+    passages through to the prompt composer -- the L4 block must contain the
+    anti-fabrication directive and must NEVER contain rendered passage text or the
+    passage citation-marker format ("[1] ... (Source: ...)").
+    """
+    block = _build_l4_knowledge_block([], abstain=True)
+    assert block is not None
+    assert "No relevant clinical evidence found for this query" in block
+    assert "Do not fabricate clinical facts" in block
+    assert "[1]" not in block
+    assert "(Source:" not in block
+
+    # Contrast: abstain=False with a real passage DOES render passage text and the
+    # citation marker -- proves the two branches differ.
+    passages = [{"text": "Anxiety is a feeling of worry or fear.", "source_id": "ax-001", "citation": "APA (2013)"}]
+    block_with_passage = _build_l4_knowledge_block(passages, abstain=False)
+    assert "Anxiety is a feeling of worry or fear." in block_with_passage
+    assert "[1]" in block_with_passage
+
+
 def test_l5_user_context_returns_none_when_no_relevant_flags():
     result = _build_l5_user_context_block(clinical_flags=[], intensity=5, engagement=5)
     assert result is None

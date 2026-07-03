@@ -105,6 +105,7 @@ def _knowledge_lookup_trace(messages: list) -> dict:
             return {
                 "knowledge_query_raw": data.get("query_raw", ""),
                 "knowledge_query_searched": data.get("query_searched", ""),
+                "knowledge_top_similarity": data.get("top_similarity"),
             }
     return {}
 
