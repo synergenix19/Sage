@@ -40,5 +40,24 @@ The safety-critical subtlety: a true-SI case that fires **`s3_semantic` alone in
 - **S2/MARBERT re-run obligation.** When S2 lands (raising detection recall), the non-inferiority regression MUST be re-run — S2 may change which cases are s1/s3-solo, so the "no true-SI case is s3-solo-EN" proof is not permanent; it is re-established on every detector change.
 - **Residual-risk framing preserved.** The clinician approved G3 with the residual-risk statement in the sign-off packet; that text is carried forward verbatim (do not silently drop it when the packet is regenerated).
 
+## is_safe ruling + reader-disposition table (2026-07-03) — DO NOT "simplify"
+**Ruling:** `is_safe` keeps its meaning — the truthful deterministic detector aggregate ("did any Layer-1 signal fire"). It is **never** falsified for routing (that would erase detection from the audit trail / PDPL record). Under `SAGE_CRISIS_TIERING=ON`, **routing authority moves to `crisis_tier`** (T2→crisis_response, T1→normal graph + `supportive_posture`, none→normal); `is_safe` stays exactly what the detectors said. Flag OFF: routing reads `is_safe` on the untouched code path (what makes B provable).
+
+Every reader of `is_safe`/`crisis_flags` outside the router, dispositioned for the T1 case (flag ON; `is_safe=False`, `crisis_flags=["s3_semantic"]`, `crisis_tier="T1"`):
+
+| Reader | Disposition (flag ON, T1) |
+|--------|---------------------------|
+| `graph.py:152` router — monitoring branch | **Unchanged.** T1 tiering does NOT apply in monitoring; any signal in monitoring re-escalates → crisis (conservative, correct). |
+| `graph.py:155` router — non-monitoring | **The edit.** flag ON ∧ `crisis_tier=="T1"` → `"safe"` (+ `supportive_posture`); else unchanged. |
+| `graph.py:94-96` `_notify_crisis_review` (inside `crisis_response`) | **Unaffected** — crisis-path only; a T1 turn never reaches `crisis_response`. |
+| `output_gate.py:301/356/694` clinician-review severity + safety_level + queue write (`if crisis_flags`) | **Changed under flag.** Because T2 bypasses output_gate, these branches are dead flag-OFF; flag-ON a T1 turn would wrongly file a **high-severity "crisis"** review every turn. Disposition: the review path keys on `crisis_tier != "T1"` (i.e. T1 is NOT a crisis-review), so T1 is governed instead by G1b (`t1_count==2` → one `flag_for_review(severity=low)`). |
+| `output_gate.py:514` opener-rewrite suppression (`not crisis_flags`) | **Unchanged, recorded.** T1 → `crisis_flags` non-empty → opener rewrite suppressed (reply passed through unchanged). Conservative and acceptable for a warm turn. |
+| `post_crisis_classifier.py:18`, `safety_check.py:210` | Comments, not readers — no action. |
+
+No reader silently changes behavior; each is a line here. A future change to `is_safe` handling must update this table.
+
+## Check B — definition (deterministic surfaces only)
+Freeflow output is LLM-generated and non-deterministic even on master, so a literal byte-identical corpus replay proves nothing. **B = with the flag OFF, byte-identical on all DETERMINISTIC surfaces:** routing decisions (`gate_path` / node path per corpus case), canned/crisis/monitoring copy, audit rows (minus timestamps), and state writes. Provable by driving the safety corpus through the graph with **generation stubbed** — no model run.
+
 ## Scope guards (unchanged from §H)
 Detection sensitivity untouched; T2 floor absolute; flag OFF until G8 clears + the recall regression is green + the staging tester-battery replay is attached to the clinician packet.
