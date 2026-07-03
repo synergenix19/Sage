@@ -1,7 +1,10 @@
+import logging
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
+
+_log = logging.getLogger(__name__)
 
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
@@ -40,7 +43,19 @@ CRISIS_LINE_UAE = CRISIS_CONFIG["number"]
 # to instantly revert to v7/master byte-identical behaviour (no redeploy/revert-PR on the crisis path).
 # Default flipped to bypass a Railway env-injection bug (configured var not reaching containers);
 # see docs/superpowers/governance/2026-07-03-clinician-signoff-packet.md.
-CRISIS_TIERING_ENABLED = os.getenv("SAGE_CRISIS_TIERING", "true").lower() == "true"
+# STRICT FAIL-SAFE kill-switch parse (2026-07-03): only a LITERAL "false" disables tiering. Unset /
+# empty / whitespace / garbage -> the signed default (ON). A Railway env-injection bug delivered an
+# EMPTY string to the container, which under a `== "true"` parse silently flipped the crisis path OFF
+# to a state nobody signed. This inverts that: disabling the crisis-tier routing now requires INTENT.
+_tiering_raw = os.getenv("SAGE_CRISIS_TIERING")
+CRISIS_TIERING_ENABLED = not (_tiering_raw is not None and _tiering_raw.strip().lower() == "false")
+if _tiering_raw is not None and _tiering_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_CRISIS_TIERING unexpected value %r — applying signed default (tiering ON); "
+        "only 'false' disables.", _tiering_raw,
+    )
+# Boot-observable log of the resolved state lives in server.py lifespan (guaranteed-visible after
+# logging is configured): "[sage/startup] CRISIS_TIERING_ENABLED=... raw_env=...".
 
 # Knowledge abstain gates. RRF is pure RANK fusion: its minimum meaningful score is
 # 1/(k+1) = 1/61 = 0.0164 (k=60), and the whole top-5 single-list range (1/61..1/65 =

@@ -22,7 +22,7 @@ from pydantic import BaseModel
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from sage_poc.graph import build_graph
-from sage_poc.config import RESPONDER_MODEL, DB_POOL_MAX_SIZE, CHECKPOINT_POOL_MAX_SIZE
+from sage_poc.config import RESPONDER_MODEL, DB_POOL_MAX_SIZE, CHECKPOINT_POOL_MAX_SIZE, CRISIS_TIERING_ENABLED
 from sage_poc.language import text_direction
 from sage_poc.server_helpers import _build_state, _stale_skill_overrides, _void_unseen_offer
 from sage_poc.llm import get_classifier
@@ -191,6 +191,13 @@ async def _corpus_sync_task(pool) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _bge_ready
+    # Boot-observable crisis-tier flag state (guaranteed-visible: logging is configured by now).
+    # repr distinguishes None / "" / "true" — the exact states the 2026-07-03 env-injection debugging
+    # kept inferring from black-box probes. "Is tiering ON in this container?" is now a log read.
+    _log.info(
+        "[sage/startup] CRISIS_TIERING_ENABLED=%s raw_env=%r",
+        CRISIS_TIERING_ENABLED, os.environ.get("SAGE_CRISIS_TIERING"),
+    )
     if os.environ.get("SAGE_WARMUP_BGE", "1") != "0":
         # Schedule warmup as a background task — server starts immediately.
         # /health/ready returns 503 until the task finishes and sets _bge_ready = True.
