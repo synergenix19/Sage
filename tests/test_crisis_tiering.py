@@ -187,6 +187,33 @@ async def test_flag_off_deterministic_surface_matches_master_fixture():
     assert got == expected, "flag-OFF surface diverged from the committed master fixture"
 
 
+def _config_flag_with_env(env_overrides):
+    import os, sys, subprocess
+    env = {k: v for k, v in os.environ.items() if k != "SAGE_CRISIS_TIERING"}
+    env.update(env_overrides)
+    res = subprocess.run(
+        [sys.executable, "-c",
+         "import sys; sys.path.insert(0, 'src'); "
+         "from sage_poc import config; print(config.CRISIS_TIERING_ENABLED)"],
+        capture_output=True, text=True, env=env, timeout=60,
+    )
+    return res.stdout.strip(), res.stderr
+
+
+def test_tiering_default_is_ON_when_env_unset():
+    # 2026-07-03 default flip (product-owner directive; executes signed item A). Tiering is ON by
+    # default so the Railway env-injection bug is irrelevant; SAGE_CRISIS_TIERING stays a kill-switch.
+    val, err = _config_flag_with_env({})  # env var UNSET
+    assert val == "True", f"default not ON with env unset: {val!r} / {err!r}"
+
+
+def test_tiering_kill_switch_false_disables():
+    # The kill-switch must still work: SAGE_CRISIS_TIERING=false -> flag OFF (proven-byte-identical
+    # to master by the anchor test). Instant rollback without a redeploy/revert-PR on the crisis path.
+    val, err = _config_flag_with_env({"SAGE_CRISIS_TIERING": "false"})
+    assert val == "False", f"kill-switch (=false) did not disable: {val!r} / {err!r}"
+
+
 @pytest.mark.asyncio
 async def test_plan_means_phrase_never_resolves_T1_drift_guard():
     # DRIFT GUARD (Finding 2, more serious than the Arabizi miss): "i have pills and a plan to
