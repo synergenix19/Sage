@@ -14,6 +14,14 @@ __all__ = ["compose_prompt", "PERSONA", "freeflow_respond_node", "_sanitize_assi
 # the vetted line: a fast vetted reply beats a slow second LLM round-trip.
 EMPTY_RETRY_TIMEOUT_SECONDS: float = 2.5
 
+# v7.1 G2 — the warm-tier (T1) posture frame. Injected on a T1 turn (supportive_posture=True):
+# validate first, at most one gentle question, offer-not-force. ~40 words, signed.
+_SUPPORTIVE_POSTURE_INSTRUCTION = (
+    "SUPPORTIVE POSTURE: they voiced distress, not active crisis. Validate what they feel, in "
+    "their own words, before anything else. Ask at most one gentle, open question. Do not alarm "
+    "or push. You may offer, once and without pressure, that a support line is there if it helps."
+)
+
 
 async def _bounded_empty_retry(llm, messages, *, node: str, language: str, fallback_llm) -> str:
     """One latency-bounded regeneration attempt after an empty primary response.
@@ -203,6 +211,12 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
         if _sentinel:
             system_str = system_str + "\n\n" + _sentinel
             prompt_layers = list(prompt_layers) + ["memory_absent_sentinel"]
+
+    # v7.1 T1 (warm concern) posture — G2. Set only when supportive_posture is True, which
+    # safety_check sets only for a T1 turn under the flag; flag OFF => never injected (byte-identical).
+    if state.get("supportive_posture"):
+        system_str = system_str + "\n\n" + _SUPPORTIVE_POSTURE_INSTRUCTION
+        prompt_layers = list(prompt_layers) + ["supportive_posture"]
 
     messages = [
         {"role": "system", "content": system_str},

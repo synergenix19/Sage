@@ -200,6 +200,26 @@ async def test_t1_turn_files_no_high_severity_crisis_review(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_supportive_posture_injected_into_freeflow_system_prompt(monkeypatch):
+    # G2: a T1 turn (supportive_posture=True) injects the warm-posture frame into the system
+    # prompt and marks the prompt_layer. supportive_posture is only set under the flag, so this
+    # is byte-identical when OFF.
+    import sage_poc.nodes.freeflow_respond as ff
+    captured = {}
+
+    async def _fake_tool_loop(llm, messages, tools, **kw):
+        captured["system"] = messages[0]["content"]
+        return "warm reply"
+
+    monkeypatch.setattr(ff, "_invoke_with_tool_loop", _fake_tool_loop)
+    monkeypatch.setattr(ff, "_get_prior_context", AsyncMock(return_value=""))
+    out = await ff.freeflow_respond_node(_og_state(supportive_posture=True, response_en=""))
+    assert "SUPPORTIVE POSTURE" in captured["system"]
+    assert "supportive_posture" in out["prompt_layers"]
+    assert 30 <= len(ff._SUPPORTIVE_POSTURE_INSTRUCTION.split()) <= 55
+
+
+@pytest.mark.asyncio
 async def test_g1b_exactly_one_low_flag_on_second_t1(monkeypatch):
     first = await _run_og_capturing_reviews(_og_state(t1_count=1), monkeypatch)
     second = await _run_og_capturing_reviews(_og_state(t1_count=2), monkeypatch)
