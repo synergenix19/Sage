@@ -98,5 +98,30 @@ Because the threshold is env-configurable, **`SAGE_COSINE_ABSTAIN_THRESHOLD=0.0`
 ## 6. Out of scope
 Reranker (#45), full calibration at scale, Azure AI Search migration. This is interim; the proper fix and this fix converge at the corpus >100 gate bundle ([[project_ar_recall_probe_2026_07_03]]).
 
-## Appendix A — calibration distributions (filled during implementation)
-_Per-bucket cosine similarity (min/median/max) for msa/baseline, khaleeji/orthographic, khaleeji/lexical, negatives; chosen threshold + margin rationale._
+## Appendix A — calibration distributions (2026-07-03)
+
+**Method:** 28 positives + 12 negatives from `tests/fixtures/knowledge_probe/ar_recall_probe.jsonl` run through `PostgresKnowledgeRepository.retrieve()` (the DEPLOYED normalization path, not `_search`) against the prod corpus, read-only; `top_similarity` captured per query.
+
+**Per-bucket cosine similarity:**
+
+| bucket | n | min | median | max |
+|---|---|---|---|---|
+| msa/baseline | 14 | 0.4339 | 0.6954 | 0.7823 |
+| khaleeji/orthographic | 5 | 0.6018 | 0.7181 | 0.7459 |
+| khaleeji/lexical | 9 | **0.4283** | 0.6172 | 0.7399 |
+| en/negative | 6 | 0.3274 | 0.3911 | **0.4395** |
+| ar/negative | 6 | 0.3062 | 0.3892 | 0.4322 |
+
+**Overlap (as Amendment-1 anticipated — no clean separation):** the weakest positive (`0.4283`, khaleeji/lexical "شو هو التواصل الحازم؟") sits *below* the strongest negatives (`0.4395` en "photosynthesis", `0.4322` ar "book a flight ticket"). Dense-embedding tail overlap, not a bug.
+
+**§3.4 decision rule applied:**
+1. Positives inviolable → threshold ≤ min positive similarity across buckets = **0.4283**.
+2. Maximize negative abstention subject to (1). The gap between the 3rd-strongest negative (0.4175) and the weakest positive (0.4283) contains no data, so any threshold in `(0.4175, 0.4283]` catches the same 10/12 negatives.
+
+**Chosen threshold: `COSINE_ABSTAIN_THRESHOLD = 0.42`** (deploy env `SAGE_COSINE_ABSTAIN_THRESHOLD=0.42`; committed default stays `0.0`/fail-open). Placed at 0.42 (not 0.4283) for a ~0.008 positive-safety margin below the weakest observed positive, per the margin principle, at no cost to negative coverage.
+
+**Verified at threshold 0.42:** false abstention on the 28 positives = **0/28** (per-bucket zero); negatives caught = **10/12 (83%)**.
+
+**Residual (measured protection gap the reranker #45 closes at the >100 gate):** 2/12 negatives still clear 0.42 — "how does photosynthesis work" (0.4395) and "كيف أحجز تذكرة طيران؟ / book a flight ticket" (0.4322). Both are genuinely off-domain but BGE-M3 assigns them moderate similarity, above the weakest legitimate (short-form assertive-communication) positive. Interim gate = partial protection (0→83%), honestly documented; not full protection.
+
+**Comparison direction:** gate is `abstain iff top_similarity < COSINE_ABSTAIN_THRESHOLD` (strict `<`). A positive exactly equal to the threshold is retrieved. 0.42 < all 28 positives, so all retrieve.
