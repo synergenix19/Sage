@@ -25,6 +25,9 @@ Input (Arabizi, explicit SI): **`"ana 3ayez amot ma3ish 3ayiz a3ish"`** ("I want
 ## Why this is Gate-1, not tiering
 The phrase fires nothing, so it is missed with or without tiering — non-inferiority holds (proof 2: regression set = 0). **Compounding factor, stated for the record:** the fail-closed language gate we shipped means Arabizi routing is *safe once a signal fires* (any Arabizi/mislabelled-EN fired signal → T2). **The entire exposure is in FIRING** — i.e. S1-az lexicon coverage and S2/MARBERT — not in routing.
 
+## Lesson for the S2/MARBERT workstream — Arabizi coverage is per-dialect, not transferable
+The original miss was **dialect-shaped**: SK-AZ-001 covered Levantine (`bidi amoot`) but not Egyptian (`3ayez amot`), so an Egyptian speaker's explicit SI fell through. **Arabizi lexicon (and any Arabizi eval set) must be enumerated per dialect — Egyptian, Levantine, Gulf, etc. — not assumed transferable across them.** S2/MARBERT dialectal coverage must be validated per-dialect for the same reason.
+
 ## Remediation (normal clinician workflow — NOT patched inline)
 `3ayez amot`, `ma3ish 3ayiz a3ish`, and their variants go to the clinician team as **candidate S1-az lexicon entries** via the standard draft → review → approve rule workflow (Cardinal Rule 4: S1 lexicon is clinician-authored content, not an engineering edit). Owner: S1-az / Arabizi workstream ([[project_arabizi_support]]).
 
