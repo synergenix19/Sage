@@ -11,6 +11,7 @@ from sage_poc.state import SageState
 from sage_poc.skill_ids import SKILL_REGISTRY
 from sage_poc.skills.schema import load_skill
 from sage_poc.resilience import EMBEDDING_TIMEOUT_SECONDS
+from sage_poc.observability import stage_timer
 from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP, SEMANTIC_EXCLUSION_WORDS
 from sage_poc.rules import engine as rules_engine
 from sage_poc.config import (
@@ -131,7 +132,14 @@ def _semantic_match_with_runner_up(
         return None, 0.0, None
 
     query_text = f"{profile_context}\n{message_en}".strip() if profile_context else message_en
-    msg_emb = _embed_model.encode([query_text], normalize_embeddings=True)[0]
+    # EMBED-CACHE: reuse S3's query embedding when the same message_en was just encoded on the
+    # safety path. float32 cast matches the uncached encode bit-for-bit, so routing is unchanged.
+    from sage_poc.config import EMBED_CACHE_ENABLED  # noqa: PLC0415
+    if EMBED_CACHE_ENABLED:
+        from sage_poc.safety.s3_semantic import cached_get_embedding  # noqa: PLC0415
+        msg_emb = np.array(cached_get_embedding(query_text), dtype=np.float32)
+    else:
+        msg_emb = _embed_model.encode([query_text], normalize_embeddings=True)[0]
     raw_scores = np.dot(_anchor_embeddings, msg_emb)
 
     skill_scores: dict[str, float] = {}
@@ -486,10 +494,17 @@ async def skill_select_node(state: SageState) -> dict:
         profile.get("summary", "") or "" if isinstance(profile, dict) else ""
     )
     try:
-        semantic_skill, score, runner_up = await asyncio.wait_for(
-            asyncio.to_thread(_semantic_match_with_runner_up, state["message_en"], profile_context),
-            timeout=EMBEDDING_TIMEOUT_SECONDS,
-        )
+        # stage_timer is log-only and wraps the encode UNCHANGED — no effect on match output.
+        with stage_timer(
+            "skill_embed",
+            session_id=state.get("session_id"),
+            turn=state.get("turn_count"),
+            lang=state.get("detected_language"),
+        ):
+            semantic_skill, score, runner_up = await asyncio.wait_for(
+                asyncio.to_thread(_semantic_match_with_runner_up, state["message_en"], profile_context),
+                timeout=EMBEDDING_TIMEOUT_SECONDS,
+            )
     except asyncio.TimeoutError:
         logger.warning(
             '{"event": "embedding_timeout", "skill_select_tier": "keyword_only", '

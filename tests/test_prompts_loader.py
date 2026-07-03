@@ -88,7 +88,7 @@ def test_load_l0_persona():
     # v2.3.0 false-denial regression while preserving A4); prior v2.3.0: 600->640 (memory-honesty
     # clause); v2.2.0: 590->600 (reply length keyed to weight not input length).
     # content starts with the FORMAT block.
-    assert tmpl.word_budget == 675
+    assert tmpl.word_budget == 684  # v2.5.0 (#66): 675->684 for the sensitive-disclosure no-frequency line
     assert tmpl.content.startswith("FORMAT")
 
 
@@ -321,7 +321,7 @@ def test_l0_persona_has_one_question_and_anti_over_affirmation():
     lowered = tmpl.content.lower()
     assert "one question" in lowered and ("never stack" in lowered or "not stack" in lowered)
     assert "over-affirm" in lowered or "uncritical" in lowered
-    assert tmpl.version == "2.4.0"
+    assert tmpl.version == "2.5.0"
 
 
 def test_l0_reply_length_keyed_to_weight_not_input_length():

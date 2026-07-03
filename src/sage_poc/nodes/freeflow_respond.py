@@ -75,6 +75,18 @@ def _knowledge_lookup_trace(messages: list) -> dict:
     return {}
 
 
+def _accumulate_usage(acc: dict, msg) -> None:
+    """Add an AI message's token usage into `acc` ({input,output,total}). Robust to a
+    missing/non-dict usage_metadata (e.g. mocks or providers that omit it) — then it's a no-op,
+    so token_usage stays {} rather than crashing (matches the missing-usage contract)."""
+    um = getattr(msg, "usage_metadata", None)
+    if not isinstance(um, dict):
+        return
+    acc["input"] = acc.get("input", 0) + int(um.get("input_tokens") or 0)
+    acc["output"] = acc.get("output", 0) + int(um.get("output_tokens") or 0)
+    acc["total"] = acc.get("total", 0) + int(um.get("total_tokens") or 0)
+
+
 async def _invoke_with_tool_loop(
     llm,
     messages: list[dict],
@@ -84,6 +96,7 @@ async def _invoke_with_tool_loop(
     language: str,
     fallback_llm,
     _tool_messages: list | None = None,
+    _usage: dict | None = None,
 ) -> str:
     """Invoke LLM, executing any tool calls until a plain text response is returned.
 
@@ -92,6 +105,8 @@ async def _invoke_with_tool_loop(
     calls will be appended to it so callers can inspect which tools fired, and the
     corresponding ToolMessage tool RESULTS are also appended so callers can inspect
     what the tools returned (e.g. to correlate a tool_call_id to its result content).
+    If _usage is provided, each generation's token usage is accumulated into it (the
+    string-fallback path below carries no usage, so token_usage stays {} on that path).
     """
     if not tools:
         return await resilient_invoke(
@@ -112,6 +127,8 @@ async def _invoke_with_tool_loop(
                 "[freeflow] tool-loop ainvoke failed (%s); returning empty to trigger fallback", exc
             )
             return ""  # caller substitutes a warm reply via resilient_invoke; never blank to user
+        if _usage is not None:
+            _accumulate_usage(_usage, ai_message)  # per generation (tool-loop calls accumulate)
         if not getattr(ai_message, "tool_calls", None):
             return ai_message.content or ""
         messages = list(messages) + [ai_message]
@@ -134,6 +151,44 @@ async def _invoke_with_tool_loop(
                 _tool_messages.append(tool_message)
     # Safety: exceeded iteration limit — return empty to trigger graceful fallback
     return ""
+
+
+def _build_llm_tools(state: SageState, user_id, session_id) -> list:
+    """Bind freeflow tools. knowledge_lookup is available EXCEPT when knowledge_retrieve
+    (Node 6) already retrieved for THIS turn — binding it then lets the model re-retrieve, a
+    redundant RAG + extra LLM round-trip (RC-3, measured on info_request).
+
+    The gate is the PER-TURN path ("knowledge_retrieve" in state["path"], which _build_state
+    resets each turn) — deliberately NOT the intent. A mid-conversation factual question that
+    did not route through Node 6 (e.g. a fact asked inside a skill or general_chat turn) still
+    binds knowledge_lookup, so the model can retrieve evidence instead of answering from
+    parametric memory (v7 §6.5.2). Narrowing it to intent would close that evidence-grounding
+    door and the failure mode would be hallucination (the <5% floor), not latency.
+    """
+    llm_tools: list = []
+    node6_already_retrieved = "knowledge_retrieve" in (state.get("path") or [])
+    if not node6_already_retrieved:
+        try:
+            from sage_poc.nodes.tools.knowledge_lookup import make_knowledge_lookup_tool  # noqa: PLC0415
+            llm_tools.append(make_knowledge_lookup_tool(language=state.get("detected_language", "en")))
+        except ImportError:
+            pass
+    if user_id and session_id:
+        try:
+            from server import app  # noqa: PLC0415
+            pool = getattr(app.state, "_db_pool", None)
+            if pool:
+                from sage_poc.nodes.tools.flag_for_review import make_flag_tool  # noqa: PLC0415
+                from sage_poc.nodes.tools.record_observation import make_record_tool  # noqa: PLC0415
+                llm_tools.extend([
+                    make_flag_tool(user_id=user_id, session_id=session_id),
+                    make_record_tool(user_id=user_id, pool=pool, session_id=session_id),
+                ])
+        except ImportError:
+            pass
+        except Exception as exc:
+            import logging; logging.getLogger(__name__).warning("[freeflow] tool setup failed: %s", exc)
+    return llm_tools
 
 
 async def freeflow_respond_node(state: SageState, llm=None) -> dict:
@@ -165,31 +220,10 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
         {"role": "user", "content": user_str},
     ]
 
-    # --- LLM tool binding: knowledge_lookup + flag_for_review + record_observation ---
-    llm_tools = []
-    # knowledge_lookup is always available — no user identity required (v7 §6.5.2)
-    try:
-        from sage_poc.nodes.tools.knowledge_lookup import make_knowledge_lookup_tool  # noqa: PLC0415
-        llm_tools.append(make_knowledge_lookup_tool(language=state.get("detected_language", "en")))
-    except ImportError:
-        pass
-    if user_id and session_id:
-        try:
-            from server import app  # noqa: PLC0415
-            pool = getattr(app.state, "_db_pool", None)
-            if pool:
-                from sage_poc.nodes.tools.flag_for_review import make_flag_tool  # noqa: PLC0415
-                from sage_poc.nodes.tools.record_observation import make_record_tool  # noqa: PLC0415
-                llm_tools.extend([
-                    make_flag_tool(user_id=user_id, session_id=session_id),
-                    make_record_tool(user_id=user_id, pool=pool, session_id=session_id),
-                ])
-        except ImportError:
-            pass
-        except Exception as exc:
-            import logging; logging.getLogger(__name__).warning("[freeflow] tool setup failed: %s", exc)
+    llm_tools = _build_llm_tools(state, user_id, session_id)
 
     tool_ai_messages: list = []
+    token_usage: dict = {}
     response = await _invoke_with_tool_loop(
         llm,
         messages,
@@ -198,6 +232,7 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
         language=state.get("detected_language", "en"),
         fallback_llm=fallback_llm,
         _tool_messages=tool_ai_messages,
+        _usage=token_usage,
     )
 
     if not response:
@@ -220,7 +255,7 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
     return {
         "response_en":              response,
         "prompt_layers":            prompt_layers,
-        "token_usage":              {},
+        "token_usage":              token_usage,
         "path":                     (state.get("path") or []) + ["freeflow_respond"],
         "stale_skill_id":           None,   # consumed by re-entry prompt; clear so it doesn't re-fire
         "banned_opener_correction": None,
