@@ -1,5 +1,6 @@
+import asyncio
 import json
-
+import logging
 from sage_poc.state import SageState
 from sage_poc.llm import get_responder, get_fallback_responder
 from sage_poc.prompts import compose_prompt, PERSONA  # re-exported for backward compat
@@ -7,6 +8,39 @@ from sage_poc.prompts.composer import _sanitize_assistant_turn  # re-exported fo
 from sage_poc.resilience import resilient_invoke
 
 __all__ = ["compose_prompt", "PERSONA", "freeflow_respond_node", "_sanitize_assistant_turn", "_knowledge_lookup_fired"]
+
+# W3: latency guard on the empty-result regeneration. resilient_invoke's own timeout is 30s
+# (LLM_TIMEOUT_SECONDS) — far past the <3s p95 target — so the one fallback attempt after an
+# empty primary response is bounded here. On breach we return "" and output_gate substitutes
+# the vetted line: a fast vetted reply beats a slow second LLM round-trip.
+EMPTY_RETRY_TIMEOUT_SECONDS: float = 2.5
+
+# v7.1 G2 — the warm-tier (T1) posture frame. Injected on a T1 turn (supportive_posture=True):
+# validate first, at most one gentle question, offer-not-force. ~40 words, signed.
+_SUPPORTIVE_POSTURE_INSTRUCTION = (
+    "SUPPORTIVE POSTURE: they voiced distress, not active crisis. Validate what they feel, in "
+    "their own words, before anything else. Ask at most one gentle, open question. Do not alarm "
+    "or push. You may offer, once and without pressure, that a support line is there if it helps."
+)
+
+
+async def _bounded_empty_retry(llm, messages, *, node: str, language: str, fallback_llm) -> str:
+    """One latency-bounded regeneration attempt after an empty primary response.
+
+    Returns the retry text, or "" on timeout so output_gate emits the vetted fallback
+    (never blank to the user). Bounded by EMPTY_RETRY_TIMEOUT_SECONDS, not the 30s default.
+    """
+    try:
+        return await asyncio.wait_for(
+            resilient_invoke(llm, messages, node=node, language=language, fallback_llm=fallback_llm),
+            timeout=EMPTY_RETRY_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError:
+        logging.getLogger(__name__).warning(
+            "[freeflow] empty-result retry exceeded %.1fs budget; deferring to vetted fallback",
+            EMPTY_RETRY_TIMEOUT_SECONDS,
+        )
+        return ""
 
 
 async def _get_prior_context(state: SageState) -> str:
@@ -215,6 +249,12 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
             system_str = system_str + "\n\n" + _sentinel
             prompt_layers = list(prompt_layers) + ["memory_absent_sentinel"]
 
+    # v7.1 T1 (warm concern) posture — G2. Set only when supportive_posture is True, which
+    # safety_check sets only for a T1 turn under the flag; flag OFF => never injected (byte-identical).
+    if state.get("supportive_posture"):
+        system_str = system_str + "\n\n" + _SUPPORTIVE_POSTURE_INSTRUCTION
+        prompt_layers = list(prompt_layers) + ["supportive_posture"]
+
     messages = [
         {"role": "system", "content": system_str},
         {"role": "user", "content": user_str},
@@ -236,10 +276,10 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
     )
 
     if not response:
-        # Tool loop exhausted MAX_ITERATIONS without producing text — fall back to
-        # resilient_invoke on the original 2-message prompt so the user always gets
-        # a response. A blank response to a user in distress is a clinical incident.
-        response = await resilient_invoke(
+        # Tool loop exhausted MAX_ITERATIONS without producing text — one latency-bounded
+        # regeneration on the original 2-message prompt (W3). If it breaches the budget or
+        # is itself empty, output_gate substitutes the vetted line — never blank to the user.
+        response = await _bounded_empty_retry(
             llm, messages,
             node="freeflow_respond",
             language=state.get("detected_language", "en"),

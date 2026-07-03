@@ -19,10 +19,24 @@ RESISTANCE_MODEL = os.getenv("SAGE_RESISTANCE_MODEL", CLASSIFIER_MODEL)
 # Default ON — crisis activations must leave an audit trail unless explicitly disabled.
 AUDIT_LOG_ENABLED = os.getenv("SAGE_AUDIT_LOG", "true").lower() == "true"
 
-# UAE crisis support line — MoHAP Mental Health Counselling Line (free, 24/7).
-# This is the single authoritative source. Update here after clinical lead verification;
-# the canonical-source test enforces all skill JSON occurrences match this value.
-CRISIS_LINE_UAE = "800 46342"
+# UAE crisis helpline — the SINGLE authoritative source for every crisis-copy site
+# (graph, output_gate, crisis_content rules, L0). Nothing may re-embed these literals.
+# ⚠️ VALUES PENDING G8: `number` is a likely transcription error (→ "800 4673" / 800-HOPE,
+# "Mental Support Line", hours "8am-8pm daily") and `hours` "24/7" is FALSE for that line.
+# The value/label/hours correction + rules-JSON + L0 edits ride the gated commit-2 (dial-test
+# + L0 fast-track re-sign). Commit-1 keeps CURRENT values so behaviour is unchanged.
+CRISIS_CONFIG = {
+    "number": "800 46342",
+    "label": "MoHAP Counselling Line",
+    "hours": "24/7",
+    "emergency": "999",
+}
+# Back-compat alias for existing importers during the migration.
+CRISIS_LINE_UAE = CRISIS_CONFIG["number"]
+
+# v7.1 crisis tiering (G1). Default OFF -> routing reads is_safe exactly as v7/master
+# (Check B provable). ON -> _route_after_safety routes on crisis_tier (T2 crisis / T1 warm).
+CRISIS_TIERING_ENABLED = os.getenv("SAGE_CRISIS_TIERING", "false").lower() == "true"
 
 # Knowledge retrieval abstain floor. POC shipped 0.0 (never abstain), which surfaced weak
 # RRF passages as authoritative (feedback #5 "Google is better"). Interim conservative default

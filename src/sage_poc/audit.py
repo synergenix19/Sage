@@ -97,7 +97,7 @@ async def write_identity_substitution_audit(
 
 
 def _build_session_audit_row(state: SageState) -> dict:
-    return {
+    row = {
         "session_id":             state.get("session_id", ""),
         "turn_number":            state.get("turn_number", 0),
         "node_path":              state.get("path") or [],
@@ -123,6 +123,14 @@ def _build_session_audit_row(state: SageState) -> dict:
         "user_id":                state.get("user_id") or None,
         "re_escalation_within_monitoring": state.get("re_escalation_within_monitoring"),
     }
+    # v7.1 tiering (F / schema-delta): the tier classification is auditable ONLY when the flag
+    # is ON (safety_check omits crisis_tier when OFF). Including it conditionally keeps a flag-OFF
+    # audit row byte-identical to master (Check B) and means migration 006 (crisis_tier/tier_rule_id
+    # columns) is required only before the flag is flipped ON — a deploy gate, not a merge gate.
+    if state.get("crisis_tier") is not None:
+        row["crisis_tier"] = state.get("crisis_tier")
+        row["tier_rule_id"] = state.get("tier_rule_id")
+    return row
 
 
 async def _write_session_audit_row(row: dict, prefer: str, label: str) -> None:
