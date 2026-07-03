@@ -90,6 +90,60 @@ def test_chat_crisis_message_has_signal(client, session_id):
     assert res.text.startswith("[[CRISIS_DETECTED]]")
 
 
+# ── E2E crisis-card disposition through the HTTP entrypoint (v7.1 tiering) ─────────────────────
+# The gap that let five green proof-sets coexist with flag-OFF deployed behaviour: NO test crossed
+# server.py's /chat response assembly. server.py read is_safe directly and rendered the RED card on
+# any is_safe=False — including a warm T1 turn (is_safe = len(crisis_flags)==0, so False whenever a
+# signal fired). These mock the graph result and assert the card follows crisis_tier, not is_safe.
+def _graph_result(**over):
+    base = {"is_safe": True, "response": "ok", "path": [], "crisis_flags": []}
+    base.update(over)
+    return base
+
+
+def test_chat_T1_warm_turn_emits_no_crisis_card(monkeypatch, client, session_id):
+    # THE BUG: a T1 warm turn has is_safe=False (s3_semantic fired) but crisis_tier="T1" — it must
+    # render the WARM reply, NOT the RED card. Reproduces the deployed prod behaviour at the HTTP layer.
+    import server
+    monkeypatch.setattr(server, "CRISIS_TIERING_ENABLED", True)
+
+    async def _mock(state):
+        return _graph_result(is_safe=False, crisis_tier="T1",
+                             crisis_flags=["s3_semantic"], response="That sounds really heavy. I'm here with you.")
+    _patch_graph(monkeypatch, _mock)
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "i am feeling hopeless"}], "session_id": session_id})
+    assert res.status_code == 200
+    assert not res.text.startswith("[[CRISIS_DETECTED]]"), \
+        "T1 warm turn wrongly rendered the RED crisis card (server.py is_safe reader bug)"
+
+
+def test_chat_T2_turn_emits_crisis_card(monkeypatch, client, session_id):
+    import server
+    monkeypatch.setattr(server, "CRISIS_TIERING_ENABLED", True)
+
+    async def _mock(state):
+        return _graph_result(is_safe=False, crisis_tier="T2", crisis_flags=["si_explicit"],
+                             path=["safety_check", "crisis_response"], response="Please reach out now.")
+    _patch_graph(monkeypatch, _mock)
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "i want to kill myself"}], "session_id": session_id})
+    assert res.text.startswith("[[CRISIS_DETECTED]]")
+
+
+def test_chat_flag_off_binary_card_on_unsafe(monkeypatch, client, session_id):
+    # Kill-switch / legacy path: tiering OFF -> card follows is_safe (crisis_tier not computed).
+    import server
+    monkeypatch.setattr(server, "CRISIS_TIERING_ENABLED", False)
+
+    async def _mock(state):
+        return _graph_result(is_safe=False, crisis_tier=None, crisis_flags=["si_explicit"], response="...")
+    _patch_graph(monkeypatch, _mock)
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "x"}], "session_id": session_id})
+    assert res.text.startswith("[[CRISIS_DETECTED]]")
+
+
 @pytest.mark.slow
 def test_chat_returns_text_for_valid_message(client, session_id):
     import httpx
