@@ -16,11 +16,18 @@ The boundary is data: `rules/data/safety/tier_routing.json` (3 rules, clinician-
 ## §5.6.1 — "Dialect mirroring rules" wording, clarified
 The v7 spec row read *"Dialect mirroring rules,"* which was ambiguous; the implementation (CU-DM-001 = **"Khaleeji register calibration"**) and the signed L0 v2.2.0 (register-matching scoped to **tone/formality**, not sub-dialect) mean **fixed Khaleeji** is the baseline. §5.6.1 is corrected to read "Khaleeji register calibration (fixed register; tone/formality matched, not user sub-dialect)." Any move to MSA/hybrid is a future amendment (G6), not a bug.
 
-## Crisis-recall KPI — REDEFINED under v7.1 (binding)
-> **Under v7.1, "crisis recall" = the fraction of true-SI corpus cases that resolve to TIER T2 (i.e. route to `crisis_response`).**
-> A case whose only fired signal is `s3_semantic` in English resolves to **T1** and therefore **counts as a recall MISS**, even though a detector technically fired.
+## Crisis-recall — TWO DISTINCT GATES (do not conflate) — binding
+Refinement #2 defines the tiering metric, but it must not be read as ratifying the current recall level. There are **two separate gates**:
 
-This is the single place tiering could silently degrade safety while every detector still "works." The ≥95% recall KPI is measured against this definition. The blocking regression (`test_crisis_tiering_recall`, CRADLE self-harm + passive-SI + Arabic) runs with the flag **ON** and asserts flag-ON T2-recall **≥ the committed flag-OFF baseline** (`tests/fixtures/recall_baseline_2026-07-03.json`). The safety argument (per the CRADLE sweep: S3 adds 0 recall above S1 in English) predicts the moved set is empty — the regression is what proves it.
+**Gate 1 — Absolute pilot KPI (pre-existing, NOT part of tiering).**
+The ≥95% crisis-recall KPI. Production is **~37% (S1-lexicon 86/232 on CRADLE EN; AR unmeasured — no CRADLE AR corpus)** — a **known, documented, already-escalated P0** ([[project_safety_detection_baseline]]) that already makes the pilot fail-closed NO-GO (gate `fedd99f`). Its fix is **S2/MARBERT (#18)**, not this workstream. Tiering neither creates nor closes this gap.
+
+**Gate 2 — Tiering NON-INFERIORITY (this workstream's actual gate).**
+> Under v7.1, a true-SI case must resolve to **T2**. Turning the flag ON must move **ZERO** currently-T2-routed true-SI case to T1. The merge gate is **Δrecall ≥ 0 vs the flag-OFF baseline**, i.e. **non-inferiority** — NOT "≥ baseline ratifies 37%," and NOT "must reach 95%."
+
+The safety-critical subtlety: a true-SI case that fires **`s3_semantic` alone in English** (S1 missed it, S3 caught it) is routed to crisis **today** but to **T1 under tiering** — a recall regression on exactly the hardest, un-keywordable cases. The whole tiering premise rests on the claim (CRADLE sweep: "S3 adds 0 recall above S1 in EN") that **no such case exists**. The blocking regression (`test_crisis_tiering_recall`) exists precisely to **prove that set is empty** before the flag can ever flip; if it is non-empty, tiering is unsafe as designed and stops.
+
+**⚠️ ESCALATION (2026-07-03):** G3 was signed as "no change may reduce recall." That is non-inferiority (Gate 2) and is satisfiable — but it was signed against an assumed ≥95% floor that **does not exist** in production. Before any `safety_check.py` edit, the clinical lead must confirm G3 = **non-inferiority vs flag-off**, decoupled from the absolute ≥95% pilot KPI (Gate 1). The committed baseline (`tests/fixtures/recall_baseline_2026-07-03.json`) must state its metric definition, corpus names + case counts, and per-language figures (with AR marked UNMEASURED), never a bare number.
 
 ## Scope guards (unchanged from §H)
 Detection sensitivity untouched; T2 floor absolute; flag OFF until G8 clears + the recall regression is green + the staging tester-battery replay is attached to the clinician packet.
