@@ -14,6 +14,8 @@
 
 **Residual risk (accepted, stated plainly):** internal testers are still people, and the RCA round itself produced genuinely distressed-sounding transcripts. **Bound on the risk:** `999` is co-listed and correct, and `800 46342` **connects to a real support service (IWRC) — mislabelled, not dead.** That is the risk being accepted.
 
+**Detection posture (cross-reference — not a new decision):** the internal-cohort acceptance also covers the known detection state that already makes the pilot NO-GO: **EN crisis recall ~37% (89/232 CRADLE)** and now **Arabizi = a CONFIRMED miss on explicit SI** ([[2026-07-03-arabizi-si-detection-finding]]). Tiering neither causes nor cures this (Gate 1, S2/MARBERT + S1-az). The product owner's acceptance of the internal phase covers this full detection picture.
+
 **Owner:** Product owner (synergenix). **Date:** 2026-07-03. **Review trigger:** first approaching external-exposure milestone.
 **Signature:** ______________________
 

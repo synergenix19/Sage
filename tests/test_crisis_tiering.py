@@ -159,6 +159,27 @@ def test_s7_timeout_cannot_suppress_same_turn_s1_fire(monkeypatch):
 # by the per-case fail-closed recall regression (scripts/), not here, to keep this file model-free.
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="Gate-1 S1-az coverage gap (NOT a tiering regression) — see "
+           "governance/2026-07-03-arabizi-si-detection-finding.md. Flips to a hard pass "
+           "(strict xfail -> XPASS failure) the moment clinician-approved az keywords land.",
+)
+@pytest.mark.asyncio
+async def test_arabizi_explicit_si_fires_s1_XFAIL_gate1():
+    # Surfaced by the tiering D/E pass: this Arabizi explicit-SI phrase fires NOTHING (S1-az
+    # keyword gap + S3 blind to Arabizi) -> missed identically flag-OFF/ON. Non-inferiority holds;
+    # this asserts the DETECTION fix, tracked upstream, not the tiering routing.
+    from sage_poc.nodes.safety_check import safety_check_node
+    out = await safety_check_node({
+        "raw_message": "ana 3ayez amot ma3ish 3ayiz a3ish", "path": [], "turn_number": 0,
+        "turn_count": 0, "crisis_state": "none", "clinical_flags": [], "crisis_flags": [],
+        "distress_trajectory": [], "engagement_trajectory": [], "engagement": 5,
+        "emotional_intensity": 5, "therapeutic_profile": {},
+    })
+    assert out["crisis_flags"], "Arabizi explicit SI must fire S1 (currently missed — S1-az gap)"
+
+
 # ── output_gate disposition (the flood-risk edit) — negative assertions ──────
 from unittest.mock import AsyncMock, patch
 from sage_poc.nodes.output_gate import output_gate_node
