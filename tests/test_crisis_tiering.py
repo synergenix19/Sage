@@ -159,6 +159,16 @@ def test_s7_timeout_cannot_suppress_same_turn_s1_fire(monkeypatch):
 # by the per-case fail-closed recall regression (scripts/), not here, to keep this file model-free.
 
 
+def test_audit_row_carries_tier_fields_only_when_present():
+    # F (DB-row level): the tier classification must reach the session_audit ROW when the flag
+    # is ON, and be ABSENT when OFF (so a flag-OFF row is byte-identical to master — Check B).
+    from sage_poc.audit import _build_session_audit_row
+    on = _build_session_audit_row({"crisis_tier": "T1", "tier_rule_id": "s3_solo_en"})
+    assert on.get("crisis_tier") == "T1" and on.get("tier_rule_id") == "s3_solo_en"
+    off = _build_session_audit_row({})  # flag OFF: safety_check never set crisis_tier
+    assert "crisis_tier" not in off and "tier_rule_id" not in off
+
+
 @pytest.mark.asyncio
 async def test_flag_off_deterministic_surface_matches_master_fixture():
     # Proof 1 permanent anchor (Check B): with the flag OFF, the deterministic routing surface
