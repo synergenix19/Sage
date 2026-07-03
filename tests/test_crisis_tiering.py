@@ -174,8 +174,13 @@ async def test_flag_off_deterministic_surface_matches_master_fixture():
     # Proof 1 permanent anchor (Check B): with the flag OFF, the deterministic routing surface
     # must equal the fixture generated from the actual master tree. Any future gate change that
     # perturbs flag-OFF routing/gate_path/canned-copy/tier-field-absence breaks this immediately.
+    #
+    # SEMANTICS SHIFT (2026-07-03 default flip): the code default is now ON, so "flag OFF" is
+    # reachable ONLY via the KILL-SWITCH `SAGE_CRISIS_TIERING=false` (set explicitly below). The
+    # assertion is unchanged (flag-OFF == master); its INVOCATION changed — OFF is no longer the
+    # default, it is the kill-switch position. This test now doubles as the kill-switch proof.
     import os, sys, subprocess, json, pathlib
-    env = {**os.environ, "SAGE_CRISIS_TIERING": "false"}
+    env = {**os.environ, "SAGE_CRISIS_TIERING": "false"}  # kill-switch (default is now ON)
     res = subprocess.run(
         [sys.executable, "scripts/gen_deterministic_surface.py"],
         capture_output=True, text=True, env=env, timeout=180,
@@ -185,6 +190,33 @@ async def test_flag_off_deterministic_surface_matches_master_fixture():
         pathlib.Path("tests/fixtures/deterministic_surface_master.json").read_text(encoding="utf-8")
     )
     assert got == expected, "flag-OFF surface diverged from the committed master fixture"
+
+
+def _config_flag_with_env(env_overrides):
+    import os, sys, subprocess
+    env = {k: v for k, v in os.environ.items() if k != "SAGE_CRISIS_TIERING"}
+    env.update(env_overrides)
+    res = subprocess.run(
+        [sys.executable, "-c",
+         "import sys; sys.path.insert(0, 'src'); "
+         "from sage_poc import config; print(config.CRISIS_TIERING_ENABLED)"],
+        capture_output=True, text=True, env=env, timeout=60,
+    )
+    return res.stdout.strip(), res.stderr
+
+
+def test_tiering_default_is_ON_when_env_unset():
+    # 2026-07-03 default flip (product-owner directive; executes signed item A). Tiering is ON by
+    # default so the Railway env-injection bug is irrelevant; SAGE_CRISIS_TIERING stays a kill-switch.
+    val, err = _config_flag_with_env({})  # env var UNSET
+    assert val == "True", f"default not ON with env unset: {val!r} / {err!r}"
+
+
+def test_tiering_kill_switch_false_disables():
+    # The kill-switch must still work: SAGE_CRISIS_TIERING=false -> flag OFF (proven-byte-identical
+    # to master by the anchor test). Instant rollback without a redeploy/revert-PR on the crisis path.
+    val, err = _config_flag_with_env({"SAGE_CRISIS_TIERING": "false"})
+    assert val == "False", f"kill-switch (=false) did not disable: {val!r} / {err!r}"
 
 
 @pytest.mark.asyncio

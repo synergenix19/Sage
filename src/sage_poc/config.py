@@ -34,9 +34,13 @@ CRISIS_CONFIG = {
 # Back-compat alias for existing importers during the migration.
 CRISIS_LINE_UAE = CRISIS_CONFIG["number"]
 
-# v7.1 crisis tiering (G1). Default OFF -> routing reads is_safe exactly as v7/master
-# (Check B provable). ON -> _route_after_safety routes on crisis_tier (T2 crisis / T1 warm).
-CRISIS_TIERING_ENABLED = os.getenv("SAGE_CRISIS_TIERING", "false").lower() == "true"
+# v7.1 crisis tiering (G1). Default ON as of 2026-07-03 (product-owner directive executing signed
+# item A; migration 006 must be applied in every target env first). ON -> _route_after_safety routes
+# on crisis_tier (T2 crisis / T1 warm). The env var is now a KILL-SWITCH: set SAGE_CRISIS_TIERING=false
+# to instantly revert to v7/master byte-identical behaviour (no redeploy/revert-PR on the crisis path).
+# Default flipped to bypass a Railway env-injection bug (configured var not reaching containers);
+# see docs/superpowers/governance/2026-07-03-clinician-signoff-packet.md.
+CRISIS_TIERING_ENABLED = os.getenv("SAGE_CRISIS_TIERING", "true").lower() == "true"
 
 # Knowledge abstain gates. RRF is pure RANK fusion: its minimum meaningful score is
 # 1/(k+1) = 1/61 = 0.0164 (k=60), and the whole top-5 single-list range (1/61..1/65 =
