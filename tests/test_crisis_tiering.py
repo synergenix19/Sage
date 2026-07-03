@@ -159,6 +159,24 @@ def test_s7_timeout_cannot_suppress_same_turn_s1_fire(monkeypatch):
 # by the per-case fail-closed recall regression (scripts/), not here, to keep this file model-free.
 
 
+@pytest.mark.asyncio
+async def test_flag_off_deterministic_surface_matches_master_fixture():
+    # Proof 1 permanent anchor (Check B): with the flag OFF, the deterministic routing surface
+    # must equal the fixture generated from the actual master tree. Any future gate change that
+    # perturbs flag-OFF routing/gate_path/canned-copy/tier-field-absence breaks this immediately.
+    import os, sys, subprocess, json, pathlib
+    env = {**os.environ, "SAGE_CRISIS_TIERING": "false"}
+    res = subprocess.run(
+        [sys.executable, "scripts/gen_deterministic_surface.py"],
+        capture_output=True, text=True, env=env, timeout=180,
+    )
+    got = json.loads(res.stdout)
+    expected = json.loads(
+        pathlib.Path("tests/fixtures/deterministic_surface_master.json").read_text(encoding="utf-8")
+    )
+    assert got == expected, "flag-OFF surface diverged from the committed master fixture"
+
+
 @pytest.mark.xfail(
     strict=True,
     reason="Gate-1 S1-az coverage gap (NOT a tiering regression) — see "
