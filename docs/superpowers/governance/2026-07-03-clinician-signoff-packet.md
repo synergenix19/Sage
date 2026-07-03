@@ -49,9 +49,15 @@ _[PENDING the deployed-app run above — the monitors are ready (`scripts/stagin
 
 **Both are pre-existing Gate-1 detection gaps (the documented ~37% recall / S2-MARBERT territory), reinforcing the pilot NO-GO. Tiering neither causes nor cures them.**
 
-## Two lexicon decisions — agenda items for THIS signature session (one meeting, three decisions)
-- **Arabizi SI keywords** → `si_az` lexicon (draft→review→approve).
-- **Plan/means EN keywords** → `si_explicit` lexicon (B9-class, urgent).
+## Clinician sign-off sheet — A–D (APPROVED 2026-07-03)
+| # | Decision | Recommendation | Status |
+|---|----------|----------------|--------|
+| **A** | Internal flip — `SAGE_CRISIS_TIERING=ON` in internal/staging, against the completed gate list | Approve (stepped/graded care; both proofs green; false-RED fixed; alarm-fatigue is a real harm) | ✅ **APPROVED 2026-07-03** |
+| **B** | Confirm G3 = non-inferiority (Δrecall ≥ 0 vs flag-off), decoupled from the ≥95% pilot KPI | Approve (recall is a detector property; tiering can't move it; proof 2 = 0 detected crises lost) | ✅ **RATIFIED 2026-07-03, recorded here** (formal record of the ruling already made + approved earlier this cycle — not a second decision) |
+| **C** | Plan/means → `si_explicit` keywords ("a plan to end it", "end it all", "end my life", "pills and a plan") — **URGENT, B9-class** | Approve urgently, independent of the flip | ✅ **APPROVED 2026-07-03** (exact patterns FP-checked + presented FYI-or-amend) |
+| **D** | Arabizi SI → `si_az` keywords (`3ayez amot`, variants) | Approve (fail-closed gate makes routing safe once fired; exposure is in firing) | ✅ **APPROVED 2026-07-03** (rides C's lexicon release) |
+
+**Signatures:** Product owner: ______________  Clinical lead: ______________  Date: 2026-07-03
 
 ## G8 risk-acceptance (helpline) — retained
 Internal phase keeps `800 46342` / "24/7"; residual risk accepted (IWRC, mislabelled-not-dead + correct co-listed 999). External-exposure gate (dial-test + W7 commit-2 + L0 re-sign) parked until the first external milestone.
