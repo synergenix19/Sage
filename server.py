@@ -617,14 +617,20 @@ async def health_version():
     Exposes the baked git SHA and the resolved crisis-tier flag + its raw env value (repr-style).
     Added after the 2026-07-03 rollout where stale-build-cache served old code under a green deploy.
     """
-    import sage_poc
+    import sage_poc, sage_poc.config as _c, sage_poc.nodes.safety_check as _sc
+    from sage_poc.safety.crisis_tier import resolve_crisis_tier_detail as _r
     return {
         "build_sha": os.environ.get("SAGE_BUILD_SHA", "unknown"),
         "crisis_tiering_enabled": CRISIS_TIERING_ENABLED,
         "crisis_tiering_raw_env": os.environ.get("SAGE_CRISIS_TIERING"),
-        # Which sage_poc is actually imported — /app/src (copied source) vs site-packages (stale wheel).
-        # This is how we confirm the Dockerfile fix landed instead of inferring it.
         "sage_poc_path": getattr(sage_poc, "__file__", "unknown"),
+        # Deep diagnostic (bug #2: graph computes crisis_tier=NULL despite flag true). Reports what the
+        # DEPLOYED process's graph modules actually see, so "why is the tier NULL" is an observation.
+        "config_file": getattr(_c, "__file__", "?"),
+        "config_flag_in_module": _c.CRISIS_TIERING_ENABLED,
+        "safety_check_file": getattr(_sc, "__file__", "?"),
+        "resolve_s3_en": str(_r({"s3_semantic"}, "en")),
+        "pythonpath": os.environ.get("PYTHONPATH"),
     }
 
 
