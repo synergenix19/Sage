@@ -66,5 +66,8 @@ Follows the established codebase convention of `D5_ACUITY_GATE_ENABLED` / `SKILL
 - **INTERNAL flip** (internal test cohort only) requires: G1–G4 signed (done) · A–H audit clean · per-case fail-closed regression green · deterministic B replay green · tester-battery replay diffs in the packet. **G8 is NOT on this list.**
 - **EXTERNAL exposure** (pilot, clinician-external testers, CDA demo — anything beyond the internal cohort) additionally requires: **G8 cleared** = dial-test of `800 4673` + W7 commit-2 (value/label/hours swap) + L0 fast-track re-sign + the 5 skill-JSON edits. This is a hard release gate.
 
+## S3 FP recalibration (signed W1 scope) — DISPOSITION: DEFERRED
+Signed W1 included "add the confirmed FP phrases to the S3 FP calibration set + re-run `calibrate_s3_threshold.py`." **Deferred — superseded in urgency by tiering.** Proof 2 measured **S3 firing on 0/232 true-SI EN cases** at threshold 0.8059: on English, S3 currently contributes **zero recall and ~100% of the false-RED harm**, and tiering now absorbs exactly those FPs into T1. Recalibration is therefore no longer safety-urgent; revisit when **S2/MARBERT** lands and S3's role is re-decided (the recall-floor re-run obligation already fires then). **Clinician-packet sentence:** *"S3 fired on 0 of 232 true-SI English cases — the strongest empirical evidence that grading English S3-solo signals to a warm tier removes false alarms without losing any detected crisis."*
+
 ## Scope guards (unchanged from §H)
 Detection sensitivity untouched; T2 floor absolute; flag OFF until G8 clears + the recall regression is green + the staging tester-battery replay is attached to the clinician packet.
