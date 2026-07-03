@@ -9,6 +9,7 @@ This file has two layers:
      command-hallucination resolves T2, and the three S7 Cardinal-Rule-4 invariants. Those are
      marked below with an explicit skip so this file never claims coverage it does not yet have.
 """
+import asyncio
 import pytest
 
 from sage_poc.safety.crisis_tier import resolve_crisis_tier
@@ -156,3 +157,54 @@ def test_s7_timeout_cannot_suppress_same_turn_s1_fire(monkeypatch):
 # Behavioral prod-FP ("i am feeling hopeless"/"burden...so low" -> T1) and the Arabic/Arabizi
 # command-hallucination -> T2 cases require real BGE-M3 S3 scoring; they are exercised end-to-end
 # by the per-case fail-closed recall regression (scripts/), not here, to keep this file model-free.
+
+
+# ── output_gate disposition (the flood-risk edit) — negative assertions ──────
+from unittest.mock import AsyncMock, patch
+from sage_poc.nodes.output_gate import output_gate_node
+
+
+def _og_state(**kw):
+    base = {
+        "gate_path": None, "path": [], "detected_language": "en", "message_en": "Same",
+        "response_en": "I hear you, that sounds heavy.", "is_safe": False,
+        "crisis_state": "none", "crisis_flags": ["s3_semantic"], "clinical_flags": [],
+        "conversation_history": [], "turn_count": 0, "conversation_summary": None,
+        "session_id": "s1", "user_id": "u1", "active_skill_id": None, "active_step_id": None,
+        "emotional_intensity": 5, "engagement": 5, "banned_opener_retry_count": 0,
+        "crisis_tier": "T1", "supportive_posture": True,
+    }
+    return {**base, **kw}
+
+
+async def _run_og_capturing_reviews(state, monkeypatch):
+    monkeypatch.setattr(_cfg, "CRISIS_TIERING_ENABLED", True)
+    calls = []
+
+    async def _capture(session_id, user_id, crisis_flags, clinical_flags, *,
+                       severity_override=None, reason_override=None):
+        calls.append({"crisis_flags": list(crisis_flags), "severity_override": severity_override})
+
+    with patch("sage_poc.nodes.output_gate._log_clinical_review", new=_capture):
+        await output_gate_node(state)
+        await asyncio.sleep(0.05)  # let fire-and-forget review tasks (create_task) run
+    return calls
+
+
+@pytest.mark.asyncio
+async def test_t1_turn_files_no_high_severity_crisis_review(monkeypatch):
+    calls = await _run_og_capturing_reviews(_og_state(t1_count=1), monkeypatch)
+    # T1 excluded from crisis review: no call carries crisis flags, and none is high-severity.
+    assert all(not c["crisis_flags"] for c in calls)
+    assert all(c["severity_override"] != "high" for c in calls)
+
+
+@pytest.mark.asyncio
+async def test_g1b_exactly_one_low_flag_on_second_t1(monkeypatch):
+    first = await _run_og_capturing_reviews(_og_state(t1_count=1), monkeypatch)
+    second = await _run_og_capturing_reviews(_og_state(t1_count=2), monkeypatch)
+    third = await _run_og_capturing_reviews(_og_state(t1_count=3), monkeypatch)
+    low = lambda cs: [c for c in cs if c["severity_override"] == "low"]
+    assert len(low(first)) == 0, "no G1b flag on the 1st T1"
+    assert len(low(second)) == 1, "exactly one low-severity G1b flag on the 2nd T1"
+    assert len(low(third)) == 0, "no G1b flag on the 3rd T1"

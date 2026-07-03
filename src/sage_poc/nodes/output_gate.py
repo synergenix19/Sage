@@ -287,10 +287,15 @@ async def _log_clinical_review(
     user_id: str,
     crisis_flags: list[str],
     clinical_flags: list[str],
+    *,
+    severity_override: str | None = None,
+    reason_override: str | None = None,
 ) -> None:
     """Deterministic clinician review log: fires when Layer 1 safety rules detected flags.
     source='layer1_safety' distinguishes this from the LLM tool path.
     severity='high' for crisis, 'medium' for clinical-only (DB constraint: low/medium/high).
+    severity_override/reason_override support the v7.1 G1b path (a T1 warm turn writes ONE
+    'low' cumulative-distress flag, never a 'high' crisis review).
     """
     try:
         from server import app  # noqa: PLC0415
@@ -298,7 +303,7 @@ async def _log_clinical_review(
         pool = getattr(app.state, "_db_pool", None)
         if not pool:
             return
-        severity = "high" if crisis_flags else "medium"
+        severity = severity_override or ("high" if crisis_flags else "medium")
         reason_parts = []
         if crisis_flags:
             reason_parts.append(f"crisis flags: {', '.join(crisis_flags)}")
@@ -308,7 +313,7 @@ async def _log_clinical_review(
         await notifier.notify_review_required(
             user_id=user_id,
             session_id=session_id,
-            reason="; ".join(reason_parts),
+            reason=reason_override or "; ".join(reason_parts),
             source="layer1_safety",
             payload={"flags": crisis_flags + clinical_flags},
             severity=severity,
@@ -389,6 +394,14 @@ async def output_gate_node(state: SageState) -> dict:
     if _turn_started_at is not None:
         state = {**state, "latency_ms": int((time.monotonic() - _turn_started_at) * 1000)}
     lang = state["detected_language"]
+
+    # v7.1 tiering disposition (reader table): a T1 (warm) turn carries crisis_flags=["s3_semantic"]
+    # but is NOT a crisis review — because T2 bypasses output_gate, these branches are dead flag-OFF,
+    # so excluding T1 here is what stops a T1 turn filing a HIGH-severity crisis review every turn.
+    # T1 is governed instead by G1b (one 'low' cumulative-distress flag on the 2nd T1 of a session).
+    import sage_poc.config as _cfg  # noqa: PLC0415
+    _is_t1_turn = bool(_cfg.CRISIS_TIERING_ENABLED and state.get("crisis_tier") == "T1")
+    _review_crisis_flags = [] if _is_t1_turn else (state.get("crisis_flags") or [])
     path = (state.get("path") or []) + ["output_gate"]
     session_id = state.get("session_id")
     user_id = state.get("user_id")
@@ -674,7 +687,7 @@ async def output_gate_node(state: SageState) -> dict:
             _task = asyncio.create_task(
                 _persist_session_summary(
                     session_id, user_id, new_summary,
-                    state.get("crisis_flags", []),
+                    _review_crisis_flags,  # T1 excluded: a warm turn is not a 'crisis' session
                     state.get("clinical_flags", []),
                     skills_used=(
                         [state["active_skill_id"]] if state.get("active_skill_id")
@@ -689,14 +702,29 @@ async def output_gate_node(state: SageState) -> dict:
                 if not t.cancelled() and t.exception() else None
             )
 
-    _crisis_flags = state.get("crisis_flags") or []
     _clinical_flags = state.get("clinical_flags") or []
-    if (_crisis_flags or _clinical_flags) and session_id and user_id:
+    # T1 is excluded from crisis review via _review_crisis_flags (disposition table).
+    if (_review_crisis_flags or _clinical_flags) and session_id and user_id:
         _review_task = asyncio.create_task(
-            _log_clinical_review(session_id, user_id, _crisis_flags, _clinical_flags)
+            _log_clinical_review(session_id, user_id, _review_crisis_flags, _clinical_flags)
         )
         _review_task.add_done_callback(
             lambda t: _log.warning("[output_gate] clinical review error: %s", t.exception())
+            if not t.cancelled() and t.exception() else None
+        )
+
+    # G1b (v7.1): exactly ONE low-severity cumulative-distress flag on the 2nd T1 turn of a
+    # session — not the 1st, not the 3rd, never high-severity. t1_count is set in safety_check.
+    if _is_t1_turn and state.get("t1_count") == 2 and session_id and user_id:
+        _g1b_task = asyncio.create_task(
+            _log_clinical_review(
+                session_id, user_id, [], [],
+                severity_override="low",
+                reason_override="cumulative warm-tier (T1) distress: 2nd of session",
+            )
+        )
+        _g1b_task.add_done_callback(
+            lambda t: _log.warning("[output_gate] G1b review error: %s", t.exception())
             if not t.cancelled() and t.exception() else None
         )
 

@@ -230,6 +230,8 @@ async def safety_check_node(state: SageState) -> dict:
             "crisis_tier": _tier,
             "tier_rule_id": _tier_rule,
             "supportive_posture": _tier == "T1",
+            # G1b session counter: incremented on each T1 turn (output_gate flags the 2nd).
+            "t1_count": state.get("t1_count", 0) + (1 if _tier == "T1" else 0),
         }
 
     return {
