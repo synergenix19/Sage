@@ -168,3 +168,68 @@ async def test_tool_json_includes_query_trace():
     data = json.loads(raw)
     assert data["query_raw"] == "أنا قلقان"
     assert data["query_searched"] == "انا قلقان"
+
+
+# ---------------------------------------------------------------------------
+# Task 4 fix: tool-path query trace must correlate knowledge_lookup tool_call
+# ids to their ToolMessage RESULT (not scan for a "knowledge_lookup"-named
+# message, which never exists — ToolMessages carry tool_call_id, not name).
+# ---------------------------------------------------------------------------
+
+def test_knowledge_lookup_trace_extracts_from_toolmessage():
+    """Unit: trace correlates the knowledge_lookup call id to its ToolMessage result."""
+    from langchain_core.messages import AIMessage, ToolMessage
+    from sage_poc.nodes.freeflow_respond import _knowledge_lookup_trace
+
+    ai = AIMessage(content="", tool_calls=[{"name": "knowledge_lookup", "args": {"query": "أنا قلقان"}, "id": "call_1"}])
+    tool = ToolMessage(content=json.dumps({"passages": [], "abstain": True, "query_raw": "أنا قلقان", "query_searched": "انا قلقان"}), tool_call_id="call_1")
+    trace = _knowledge_lookup_trace([ai, tool])
+    assert trace == {"knowledge_query_raw": "أنا قلقان", "knowledge_query_searched": "انا قلقان"}
+
+
+def test_knowledge_lookup_trace_empty_when_not_fired():
+    from sage_poc.nodes.freeflow_respond import _knowledge_lookup_trace
+    assert _knowledge_lookup_trace([]) == {}
+
+
+@pytest.mark.asyncio
+async def test_tool_loop_captures_toolmessage_for_trace():
+    """Integration: _invoke_with_tool_loop records the ToolMessage result so the
+    trace can be recovered after the loop (the seam the real freeflow uses)."""
+    from langchain_core.messages import AIMessage
+    from sage_poc.knowledge.models import KnowledgeResult
+    from sage_poc.knowledge.postgres_repository import PostgresKnowledgeRepository
+    from sage_poc.nodes.freeflow_respond import _invoke_with_tool_loop, _knowledge_lookup_trace
+    from sage_poc.nodes.tools.knowledge_lookup import make_knowledge_lookup_tool
+
+    tool = make_knowledge_lookup_tool(language="ar")
+
+    # Stub LLM: first call requests knowledge_lookup, second returns plain text.
+    class StubLLM:
+        def __init__(self):
+            self.calls = 0
+
+        def bind_tools(self, tools):
+            return self
+
+        async def ainvoke(self, messages):
+            self.calls += 1
+            if self.calls == 1:
+                return AIMessage(content="", tool_calls=[{"name": "knowledge_lookup", "args": {"query": "أنا قلقان"}, "id": "call_1"}])
+            return AIMessage(content="done")
+
+    async def fake_search(self, query, language="en", top_k=5):
+        return KnowledgeResult(passages=[], abstain=True)
+
+    captured: list = []
+    with patch.object(PostgresKnowledgeRepository, "_search", fake_search):
+        with patch("sage_poc.nodes.tools.knowledge_lookup._get_pool", return_value=MagicMock()):
+            await _invoke_with_tool_loop(
+                StubLLM(), [{"role": "user", "content": "..."}], [tool],
+                node="freeflow_respond", language="ar", fallback_llm=None,
+                _tool_messages=captured,
+            )
+
+    trace = _knowledge_lookup_trace(captured)
+    assert trace["knowledge_query_raw"] == "أنا قلقان"
+    assert trace["knowledge_query_searched"] == "انا قلقان"

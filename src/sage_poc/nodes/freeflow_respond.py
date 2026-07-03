@@ -45,19 +45,33 @@ def _knowledge_lookup_fired(messages: list) -> bool:
 
 
 def _knowledge_lookup_trace(messages: list) -> dict:
-    """Extract query_raw/query_searched from the last knowledge_lookup tool result."""
+    """Extract query_raw/query_searched from the knowledge_lookup tool RESULT.
+
+    The tool loop records both the AIMessage requests (which carry the tool
+    name in .tool_calls) and the ToolMessage results (which carry the JSON
+    content, keyed by tool_call_id). We map the knowledge_lookup call ids to
+    their result message and parse the last one.
+    """
+    kl_call_ids = set()
+    for msg in messages or []:
+        for tc in (getattr(msg, "tool_calls", None) or []):
+            if tc.get("name") == "knowledge_lookup":
+                cid = tc.get("id")
+                if cid:
+                    kl_call_ids.add(cid)
+    if not kl_call_ids:
+        return {}
     for msg in reversed(messages or []):
-        name = getattr(msg, "name", None) or (isinstance(msg, dict) and msg.get("name"))
-        if name == "knowledge_lookup":
-            content = getattr(msg, "content", None) or (isinstance(msg, dict) and msg.get("content"))
+        cid = getattr(msg, "tool_call_id", None)
+        if cid in kl_call_ids:
             try:
-                data = json.loads(content)
-                return {
-                    "knowledge_query_raw": data.get("query_raw", ""),
-                    "knowledge_query_searched": data.get("query_searched", ""),
-                }
+                data = json.loads(getattr(msg, "content", "") or "")
             except (TypeError, ValueError):
                 return {}
+            return {
+                "knowledge_query_raw": data.get("query_raw", ""),
+                "knowledge_query_searched": data.get("query_searched", ""),
+            }
     return {}
 
 
@@ -75,7 +89,9 @@ async def _invoke_with_tool_loop(
 
     When tools is empty, falls back to resilient_invoke (identical to prior behaviour).
     If _tool_messages is provided (a mutable list), all AI messages that contain tool
-    calls will be appended to it so callers can inspect which tools fired.
+    calls will be appended to it so callers can inspect which tools fired, and the
+    corresponding ToolMessage tool RESULTS are also appended so callers can inspect
+    what the tools returned (e.g. to correlate a tool_call_id to its result content).
     """
     if not tools:
         return await resilient_invoke(
@@ -112,7 +128,10 @@ async def _invoke_with_tool_loop(
             else:
                 result = "unknown tool"
             from langchain_core.messages import ToolMessage  # noqa: PLC0415
-            messages.append(ToolMessage(content=str(result), tool_call_id=tc["id"]))
+            tool_message = ToolMessage(content=str(result), tool_call_id=tc["id"])
+            messages.append(tool_message)
+            if _tool_messages is not None:
+                _tool_messages.append(tool_message)
     # Safety: exceeded iteration limit — return empty to trigger graceful fallback
     return ""
 
