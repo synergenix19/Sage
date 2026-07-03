@@ -45,6 +45,51 @@ def test_rewriter_passthrough_for_english():
 
 
 @pytest.mark.asyncio
+async def test_base_retrieve_normalizes_arabic_before_search():
+    """Interface contract: any KnowledgeRepository normalizes an Arabic query
+    BEFORE the backend _search sees it. Guarantees the rewrite survives a
+    repository swap (Postgres -> Azure)."""
+    from sage_poc.knowledge.repository import KnowledgeRepository
+    from sage_poc.knowledge.models import KnowledgeResult
+
+    seen = {}
+
+    class RecordingRepo(KnowledgeRepository):
+        async def _search(self, query, language="en", top_k=5):
+            seen["query"] = query
+            return KnowledgeResult(passages=[], abstain=True)
+
+    repo = RecordingRepo()
+    # 'أنا' contains an Alef-hamza that normalizes to 'انا'
+    await repo.retrieve("أنا قلقان", language="ar", top_k=5)
+    assert seen["query"] == "انا قلقان"
+
+
+@pytest.mark.asyncio
+async def test_base_retrieve_passes_english_through_untouched():
+    from sage_poc.knowledge.repository import KnowledgeRepository
+    from sage_poc.knowledge.models import KnowledgeResult
+
+    seen = {}
+
+    class RecordingRepo(KnowledgeRepository):
+        async def _search(self, query, language="en", top_k=5):
+            seen["query"] = query
+            return KnowledgeResult(passages=[], abstain=True)
+
+    repo = RecordingRepo()
+    await repo.retrieve("what is CBT?", language="en")
+    assert seen["query"] == "what is CBT?"
+
+
+def test_contains_arabic_detects_script():
+    from sage_poc.knowledge.repository import KnowledgeRepository
+    assert KnowledgeRepository._contains_arabic("ما هو") is True
+    assert KnowledgeRepository._contains_arabic("what is CBT") is False
+    assert KnowledgeRepository._contains_arabic("CBT ما هو") is True  # mixed Araglish
+
+
+@pytest.mark.asyncio
 async def test_postgres_repo_returns_passages_on_match():
     """Hybrid search returns KnowledgeResult with passages when rows are found."""
     from sage_poc.knowledge.postgres_repository import PostgresKnowledgeRepository
@@ -116,3 +161,17 @@ async def test_postgres_repo_filters_by_language():
     call_args = mock_conn.fetch.call_args
     # The SQL query or its arguments must include the language filter value "ar"
     assert any("ar" in str(a) for a in call_args.args + tuple(call_args.kwargs.values()))
+
+
+@pytest.mark.asyncio
+async def test_retrieve_stamps_raw_and_searched_query():
+    from sage_poc.knowledge.repository import KnowledgeRepository
+    from sage_poc.knowledge.models import KnowledgeResult
+
+    class RecordingRepo(KnowledgeRepository):
+        async def _search(self, query, language="en", top_k=5):
+            return KnowledgeResult(passages=[], abstain=True)
+
+    result = await RecordingRepo().retrieve("أنا قلقان", language="ar")
+    assert result.query_raw == "أنا قلقان"
+    assert result.query_searched == "انا قلقان"

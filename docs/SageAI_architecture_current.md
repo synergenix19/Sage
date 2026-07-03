@@ -493,13 +493,15 @@ If any phrase in `L1_EXIT_PHRASES` matches the message, `skill_executor` immedia
 | **Node path** | `info_request` intent + no active skill → `skill_select` early-return → `knowledge_retrieve` node | Before LLM call | `knowledge_passages`, `knowledge_abstain=False`, `knowledge_source="node_6"` |
 | **Tool path** | LLM inside `freeflow_respond` calls `knowledge_lookup` tool mid-generation | Inside LLM tool loop | Passages returned to LLM as tool output; `knowledge_source="tool_lookup"` set after loop |
 
-Both paths use `PostgresKnowledgeRepository` and the same `knowledge_articles` pgvector table.
+Both paths use `PostgresKnowledgeRepository` and the same `knowledge_articles` pgvector table. Both paths also call `KnowledgeRepository.retrieve()` (the abstract base's template method), which normalizes Arabic-script queries before delegating to the concrete backend's `_search()` — see §6.4 below.
 
 **Key difference:** The node path makes passages available to the LLM before it starts writing. The tool path lets the LLM retrieve mid-response when it decides it needs clinical backing — the LLM calls the tool, reads the JSON result, then continues generating. The tool path is triggered by LLM judgement ("the user asked a factual question I should support"); the node path is triggered by deterministic `info_request` routing.
 
+**Audit trace:** every `retrieve()` call now records `knowledge_query_raw` (the query as submitted) and `knowledge_query_searched` (the query after any normalization) onto the `KnowledgeResult`; both nodes (`knowledge_retrieve.py`, `freeflow_respond.py`) forward these into state, and `output_gate.py` persists them to the `session_audit` table (`knowledge_query_raw`, `knowledge_query_searched` columns, migration `005_add_knowledge_query_trace_to_session_audit.sql`). This keeps the raw-vs-searched transform visible to the audit trail on both the node and tool paths.
+
 ### 6.2 Hybrid Retrieval — Reciprocal Rank Fusion
 
-`knowledge/postgres_repository.PostgresKnowledgeRepository.retrieve(query, language="en", top_k=5)`:
+`knowledge/postgres_repository.PostgresKnowledgeRepository._search(query, language="en", top_k=5)` (invoked via the inherited `KnowledgeRepository.retrieve()` template, which normalizes the query first — see §6.4):
 
 1. **Vector search:** BGE-M3 embeds the query, cosine distance via pgvector (`<=>` operator), top `top_k × 4` candidates
 2. **Full-text search:** `ts_rank_cd(chunk_tsv, plainto_tsquery('english', query))`, top `top_k × 4` candidates
@@ -546,17 +548,19 @@ Both paths use `PostgresKnowledgeRepository` and the same `knowledge_articles` p
 
 **Language routing (post 091d103):** `knowledge_retrieve_node` reads `detected_language` from state and passes it to `PostgresKnowledgeRepository.retrieve()`. The repository branches on language: FTS uses `plainto_tsquery('simple', query)` for Arabic (whitespace-only tokenisation, language-agnostic) and `plainto_tsquery('english', query)` for English (stemming + stopwords). The `knowledge_lookup` tool uses a language-injected factory (`make_knowledge_lookup_tool(language=detected_language)`) wired in `freeflow_respond.py`.
 
-**`knowledge/rewriter.py`** provides `normalize_arabic_query()` (alef variants أإآ → ا, ta marbuta ة → ه, tatweel removal). It is **dead code by design** — not imported by any production path.
+**`knowledge/rewriter.py`** provides `normalize_arabic_query()` (alef variants أإآ → ا, ta marbuta ة → ه, tatweel removal). It is now applied inside the `KnowledgeRepository.retrieve()` base-layer template (`knowledge/repository.py`), gated on Arabic-script presence in the query string (Unicode block `؀-ۿ`, 0600–06FF) rather than on the `language` flag. Because the normalization lives in the abstract base's `retrieve()` template method — not in the concrete `PostgresKnowledgeRepository` — both the node path (`knowledge_retrieve`) and the `knowledge_lookup` tool path inherit it automatically, and the future Azure AI Search swap preserves it (the new backend only implements `_search()`; it cannot silently drop the rewrite). It is orthographic-only (alef variants, ta-marbuta, tatweel); lexical Khaleeji→MSA translation remains a post-POC upgrade (CAMeL-Tools or equivalent). See `docs/superpowers/specs/2026-07-03-arabic-rewriter-wiring-design.md`.
 
-#### Named Decision: Arabic Orthographic Normalization — Deferred for POC
+**Caveat (evidence pending):** because ingest is not normalized, this query-side-only rewrite can also desync a standard MSA query from an un-normalized corpus form it previously FTS-matched, dropping that pair from hybrid (FTS+vector) retrieval to vector-only; the net effect, Khaleeji orthographic lift versus possible MSA FTS loss, is PENDING confirmation by the deferred live AR-recall probe (no-MSA-regression is the documented pass condition — see Task 6 report).
 
-*Decision date: 2026-06-01. Status: Accepted POC risk.*
+#### Named Decision: Arabic Orthographic Normalization — Query-Side Wired 2026-07-03, Ingest-Side Still Deferred
 
-`normalize_arabic_query()` is deliberately not wired into either the ingest path (`ingestion.py`) or the query path (`postgres_repository.py`). The consequence: ~4–5% of Arabic word forms in the corpus use orthographic variants (e.g. ناسنإ stored vs ناسنا queried) that `plainto_tsquery('simple', ...)` does not normalise. Those forms silently degrade from hybrid (FTS+vector) to vector-only retrieval. BGE-M3 semantic embeddings handle the orthographic variation, so there is no silent failure — quality degrades, not correctness.
+*Decision date: 2026-06-01 (original deferral). Status updated 2026-07-03: query-side wired; ingest-side remains deferred.*
 
-**Why not wire query-only now:** Query-only normalization without ingest-side normalization shifts which forms break — it would regress currently-working exact matches (user types the hamza form, corpus stores the hamza form, normalization collapses to bare alef → miss). Symmetric normalization (both sides, atomic) is required for correctness. Running an atomic fix requires: (1) `chunk_tsv` regeneration for all AR rows inside the migration, (2) `normalize_arabic_query()` called on the query at `retrieve()` time, applied in one changeset.
+Originally, `normalize_arabic_query()` was wired into neither the ingest path (`ingestion.py`) nor the query path (then `postgres_repository.py`, now the `KnowledgeRepository.retrieve()` base). The consequence: ~4–5% of Arabic word forms in the corpus use orthographic variants (e.g. ناسنإ stored vs ناسنا queried) that `plainto_tsquery('simple', ...)` does not normalise. Those forms degrade from hybrid (FTS+vector) to vector-only retrieval; BGE-M3 semantic embeddings still handle the variation, so there is no silent failure — quality degrades, not correctness.
 
-**Pre-production fix:** Wire `normalize_arabic_query()` symmetrically — call it during ingest (on `chunk_text` before `to_tsvector('simple', ...)`) and during retrieval (on the query before `plainto_tsquery('simple', ...)`), with `chunk_tsv` regenerated for all existing AR rows. Both changes in one migration. Never the query side without the corpus side.
+**2026-07-03: query side now wired** (see §6.4 above and `docs/superpowers/specs/2026-07-03-arabic-rewriter-wiring-design.md`) — `normalize_arabic_query()` runs on the query before it reaches `_search`. The corpus (ingest) side is **not** normalized by this change, so exact-match FTS against un-normalized corpus forms is still possible on either side of a mismatch; BGE-M3 vector search remains the fallback for those cases, same as before.
+
+**Pre-production fix (still open):** Wire `normalize_arabic_query()` into the ingest path too — call it on `chunk_text` before `to_tsvector('simple', ...)` — with `chunk_tsv` regenerated for all existing AR rows, so ingest and query are symmetric.
 
 #### Named Decision: Arabizi (Latin-script Arabic) on Retrieval — Out of POC Scope
 
