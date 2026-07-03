@@ -44,6 +44,20 @@ async def score_probe(rows, retrieve_fn) -> dict:
     }
 
 
+async def cosine_distributions(rows, search_fn) -> dict:
+    """search_fn(query, language) -> top_similarity float. Buckets by dialect_tag/variance_type."""
+    buckets: dict = {}
+    for row in rows:
+        lang = "ar" if row["dialect_tag"] in ("khaleeji", "msa") else "en"
+        sim = await search_fn(row["query"], lang)
+        buckets.setdefault(f'{row["dialect_tag"]}/{row["variance_type"]}', []).append(sim)
+    out = {}
+    for k, sims in buckets.items():
+        s = sorted(sims)
+        out[k] = {"n": len(s), "min": s[0], "median": s[len(s)//2], "max": s[-1]}
+    return out
+
+
 async def _main():
     import os
     import asyncpg

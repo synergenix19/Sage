@@ -50,3 +50,17 @@ async def test_score_probe_buckets_by_overall_and_dialect_variance():
     assert result["overall"]["n"] == 3
     assert result["overall"]["recall_at_5"] == pytest.approx(2 / 3)
     assert result["overall"]["mrr"] == pytest.approx((1.0 + 0.0 + 0.5) / 3)
+
+
+@pytest.mark.asyncio
+async def test_cosine_distributions_buckets_by_dialect_and_variance():
+    from scripts.knowledge_ar_recall_probe import cosine_distributions
+    rows = [
+        {"query": "a", "dialect_tag": "msa", "variance_type": "baseline"},
+        {"query": "b", "dialect_tag": "en", "variance_type": "negative"},
+    ]
+    async def search_fn(query, language):
+        return 0.8 if query == "a" else 0.1  # returns top_similarity
+    dist = await cosine_distributions(rows, search_fn)
+    assert dist["msa/baseline"]["max"] == 0.8
+    assert dist["en/negative"]["max"] == 0.1
