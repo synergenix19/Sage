@@ -5,7 +5,7 @@ import re as _re
 from pathlib import Path
 from sage_poc.rules.schemas import (
     SafetyRule, CrisisContentRule, CulturalRule, PromptInjectionRule,
-    CulturalOutputRule, SkillMatchingRule,
+    CulturalOutputRule, SkillMatchingRule, TierRoutingRule,
 )
 
 _log = logging.getLogger(__name__)
@@ -50,6 +50,7 @@ _RULE_MODELS: dict[str, type] = {
     "prompt_injection": PromptInjectionRule,
     "cultural_output": CulturalOutputRule,
     "skill_matching": SkillMatchingRule,
+    "tier_routing": TierRoutingRule,
 }
 
 _DATA_DIR = Path(__file__).parent / "data"

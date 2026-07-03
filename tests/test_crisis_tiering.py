@@ -73,6 +73,31 @@ def test_arabizi_suspect_helper_flags_digit_letters():
     assert not _is_arabizi_suspect("i have 3 kids and 2 jobs")   # digits as numbers, not letters
 
 
+def test_resolver_fails_closed_when_rules_file_unloadable(monkeypatch):
+    # A missing/malformed tier_routing.json at runtime must resolve any fired signal to T2
+    # (never T0/T1, never an exception dropping the turn); no signal -> none.
+    import sage_poc.safety.crisis_tier as ct
+
+    def _boom():
+        raise FileNotFoundError("tier_routing.json missing")
+
+    monkeypatch.setattr(ct, "_load_tier_rules", _boom)
+    assert ct.resolve_crisis_tier({"s3_semantic"}, "en") == "T2"   # fired -> fail-closed acute
+    assert ct.resolve_crisis_tier({"si_explicit"}, "ar") == "T2"
+    assert ct.resolve_crisis_tier(set(), "en") == "none"           # nothing fired -> none
+
+
+def test_tier_routing_is_a_validated_rules_service_category():
+    # Not a loose config file: it loads + schema-validates through the rules engine like any
+    # other category, so a malformed rule fails the build (CI guard).
+    from sage_poc.rules.loader import load_rules
+    import json as _json
+    from sage_poc.safety.crisis_tier import _RULES_PATH
+    rules = load_rules("tier_routing")
+    assert [r.id for r in rules] == ["s1_any", "s3_solo_en", "s3_ar_az", "s3_failclosed"]
+    assert _json.loads(_RULES_PATH.read_text())["version"]  # file carries a version
+
+
 def test_resolver_reads_json_not_hardcoded_constants():
     # Audit C: the boundary lives in tier_routing.json, exactly 3 rules, no phrase lists.
     from sage_poc.safety.crisis_tier import _load_tier_rules

@@ -10,9 +10,12 @@ produced by the deterministic S1/S3 detectors unchanged; this resolver cannot su
 """
 from __future__ import annotations
 import json
+import logging
 import pathlib
 import re
 from typing import Iterable
+
+_log = logging.getLogger(__name__)
 
 # Own category dir (NOT rules/data/safety/, which the rules loader glob-validates against the
 # SafetyRule schema). The resolver reads this file directly by path; it is not a rules-engine rule.
@@ -90,9 +93,22 @@ def resolve_crisis_tier_detail(
     flags = set(fired_flags or ())
     s3_fired = _S3_FLAG in flags
     s1_fired = bool(flags - {_S3_FLAG})  # any keyword flag
+    any_signal = s1_fired or s3_fired
+    # FAIL-CLOSED on an unloadable/malformed rules file: a fired signal resolves T2 (acute),
+    # never T0/T1, and never an exception that drops the turn. Same posture as the unmapped-
+    # signal catch-all, applied to the file itself. No signal -> "none" (no crisis to escalate).
+    try:
+        rules = _load_tier_rules()
+        default_tier = _default_tier()
+    except Exception as exc:  # noqa: BLE001 - deliberately broad: any load failure fails closed
+        _log.error(
+            "[crisis_tier] tier_routing.json unloadable (%s); FAIL-CLOSED -> %s",
+            exc, "T2 (signal present)" if any_signal else "none (no signal)",
+        )
+        return ("T2", "failclosed_load_error") if any_signal else ("none", None)
     confident_lang = (lang == "en") and (not code_switching) and (not arabizi_suspect)
-    for rule in _load_tier_rules():
+    for rule in rules:
         if _matches(rule.get("when", {}), s1_fired=s1_fired, s3_fired=s3_fired,
                     lang=lang, confident_lang=confident_lang):
             return rule["tier"], rule["id"]
-    return _default_tier(), None
+    return default_tier, None
