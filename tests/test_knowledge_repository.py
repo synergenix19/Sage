@@ -175,3 +175,15 @@ async def test_retrieve_stamps_raw_and_searched_query():
     result = await RecordingRepo().retrieve("أنا قلقان", language="ar")
     assert result.query_raw == "أنا قلقان"
     assert result.query_searched == "انا قلقان"
+
+
+def test_cosine_threshold_config_defaults_fail_open():
+    import importlib, sage_poc.config as cfg
+    importlib.reload(cfg)
+    assert cfg.COSINE_ABSTAIN_THRESHOLD == 0.0  # fail-open until deploy sets the env var
+
+def test_knowledge_result_has_top_similarity():
+    from sage_poc.knowledge.models import KnowledgeResult
+    r = KnowledgeResult(passages=[], abstain=True, top_similarity=0.12)
+    assert r.top_similarity == 0.12
+    assert KnowledgeResult().top_similarity is None
