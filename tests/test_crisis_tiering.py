@@ -174,8 +174,13 @@ async def test_flag_off_deterministic_surface_matches_master_fixture():
     # Proof 1 permanent anchor (Check B): with the flag OFF, the deterministic routing surface
     # must equal the fixture generated from the actual master tree. Any future gate change that
     # perturbs flag-OFF routing/gate_path/canned-copy/tier-field-absence breaks this immediately.
+    #
+    # SEMANTICS SHIFT (2026-07-03 default flip): the code default is now ON, so "flag OFF" is
+    # reachable ONLY via the KILL-SWITCH `SAGE_CRISIS_TIERING=false` (set explicitly below). The
+    # assertion is unchanged (flag-OFF == master); its INVOCATION changed — OFF is no longer the
+    # default, it is the kill-switch position. This test now doubles as the kill-switch proof.
     import os, sys, subprocess, json, pathlib
-    env = {**os.environ, "SAGE_CRISIS_TIERING": "false"}
+    env = {**os.environ, "SAGE_CRISIS_TIERING": "false"}  # kill-switch (default is now ON)
     res = subprocess.run(
         [sys.executable, "scripts/gen_deterministic_surface.py"],
         capture_output=True, text=True, env=env, timeout=180,
