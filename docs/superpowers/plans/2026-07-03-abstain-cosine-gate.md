@@ -16,7 +16,7 @@
 - **Abstain = empty evidence pack**: `abstain=True` ⇒ `passages=[]` (node) and `passages: []` (tool JSON). Never "passages with an advisory flag."
 - Committed `COSINE_ABSTAIN_THRESHOLD` default = **`0.0` (fail-open)** — merging is inert; the calibrated value is set at deploy via `SAGE_COSINE_ABSTAIN_THRESHOLD`. `=0.0` is the designated zero-latency rollback.
 - pgvector `<=>` is cosine **distance** (0=identical); similarity = `1 - distance`. Vector CTE `LIMIT $3 = top_k*4 = 20` (deeper than top-5, so NULL vec_distance = not-near — verified).
-- Migration `006` (fixed-column `session_audit`) applies BEFORE the code deploy (same rule as 005).
+- Migration `007` (fixed-column `session_audit`) applies BEFORE the code deploy (same rule as 005).
 - Interim fix only; proper fix = reranker (#45) + calibration at the corpus >100 gate.
 - Spec: `docs/superpowers/specs/2026-07-03-abstain-cosine-gate-design.md`. Commit per task; TDD.
 
@@ -29,7 +29,7 @@
 - `src/sage_poc/knowledge/postgres_repository.py` — `_HYBRID_SQL` (+vec_distance), `_search` cosine gate + empty-pack abstain + `top_similarity`.
 - `src/sage_poc/nodes/knowledge_retrieve.py`, `nodes/tools/knowledge_lookup.py`, `nodes/freeflow_respond.py` — propagate `top_similarity`.
 - `src/sage_poc/state.py`, `src/sage_poc/audit.py`, `src/sage_poc/nodes/output_gate.py` — audit field.
-- `migrations/006_add_knowledge_top_similarity_to_session_audit.sql` — new.
+- `migrations/007_add_knowledge_top_similarity_to_session_audit.sql` — new.
 - `tests/test_knowledge_repository.py`, `tests/test_knowledge_retrieve_node.py`, `tests/test_knowledge_lookup.py`, `tests/test_knowledge_audit_trace.py` — behavior.
 - `tests/fixtures/knowledge_probe/ar_recall_probe.jsonl` — +12 negatives.
 - `scripts/negatives_smoke.py` — commit; `scripts/knowledge_ar_recall_probe.py` — per-bucket cosine capture.
@@ -278,12 +278,12 @@ git commit -m "feat(knowledge): cosine relevance gate for abstain (empty pack); 
 
 ---
 
-### Task 3: propagate top_similarity into state + audit trail + migration 006
+### Task 3: propagate top_similarity into state + audit trail + migration 007
 
 **Files:**
 - Modify: `src/sage_poc/nodes/knowledge_retrieve.py`, `src/sage_poc/nodes/tools/knowledge_lookup.py`, `src/sage_poc/nodes/freeflow_respond.py`
 - Modify: `src/sage_poc/state.py`, `src/sage_poc/audit.py` (`_build_session_audit_row`), `src/sage_poc/nodes/output_gate.py`
-- Create: `migrations/006_add_knowledge_top_similarity_to_session_audit.sql`
+- Create: `migrations/007_add_knowledge_top_similarity_to_session_audit.sql`
 - Test: `tests/test_knowledge_retrieve_node.py`, `tests/test_knowledge_lookup.py`, `tests/test_knowledge_audit_trace.py`
 
 **Interfaces:**
@@ -346,9 +346,9 @@ In `output_gate.py` knowledge audit log dict (after knowledge_query_searched) ad
             "knowledge_top_similarity": state.get("knowledge_top_similarity"),
 ```
 
-- [ ] **Step 6: Migration 006**
+- [ ] **Step 6: Migration 007**
 
-Create `migrations/006_add_knowledge_top_similarity_to_session_audit.sql`:
+Create `migrations/007_add_knowledge_top_similarity_to_session_audit.sql`:
 
 ```sql
 -- Add knowledge_top_similarity to session_audit: the best cosine similarity in the
@@ -366,8 +366,8 @@ Expected: PASS.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add src/sage_poc/nodes/knowledge_retrieve.py src/sage_poc/nodes/tools/knowledge_lookup.py src/sage_poc/nodes/freeflow_respond.py src/sage_poc/state.py src/sage_poc/audit.py src/sage_poc/nodes/output_gate.py migrations/006_add_knowledge_top_similarity_to_session_audit.sql tests/test_knowledge_retrieve_node.py tests/test_knowledge_lookup.py tests/test_knowledge_audit_trace.py
-git commit -m "feat(knowledge): record abstain-deciding cosine similarity into audit trail (migration 006)"
+git add src/sage_poc/nodes/knowledge_retrieve.py src/sage_poc/nodes/tools/knowledge_lookup.py src/sage_poc/nodes/freeflow_respond.py src/sage_poc/state.py src/sage_poc/audit.py src/sage_poc/nodes/output_gate.py migrations/007_add_knowledge_top_similarity_to_session_audit.sql tests/test_knowledge_retrieve_node.py tests/test_knowledge_lookup.py tests/test_knowledge_audit_trace.py
+git commit -m "feat(knowledge): record abstain-deciding cosine similarity into audit trail (migration 007)"
 ```
 
 ---
@@ -522,21 +522,21 @@ git commit -m "docs(spec): abstain-gate calibration distributions + chosen thres
 
 ### Task 6: Deploy + prod verification (RUNBOOK — prod mutation, gated on review)
 
-- [ ] **Step 1: Apply migration 006 to prod session_audit, verify column present**
+- [ ] **Step 1: Apply migration 007 to prod session_audit, verify column present**
 
 `railway run` an idempotent `ALTER TABLE session_audit ADD COLUMN IF NOT EXISTS knowledge_top_similarity double precision`, then re-query `information_schema.columns` to confirm. BEFORE code deploy.
 
 - [ ] **Step 2: Deploy with the calibrated threshold**
 
-Set `SAGE_COSINE_ABSTAIN_THRESHOLD=<Appendix-A value>` in the Railway prod service, then `railway up` master from a clean worktree.
+Set `SAGE_COSINE_ABSTAIN_THRESHOLD=0.42` (Appendix A) in the Railway prod service, then `railway up` master from a clean worktree.
 
-- [ ] **Step 3: Prod verification (acceptance criteria 1-3)**
+- [ ] **Step 3: Prod verification — calibration must TRANSFER (acceptance criteria 1-3)**
 
-Run `railway run uv run python -m scripts.negatives_smoke` → confirm negatives abstain (report residual). Run the positives probe → confirm zero false abstention per dialect bucket. Playwright on chat.biosight.ai: one off-domain turn in **EN** and one in **AR**; confirm the abstain response renders (empty pack → "I don't have specific info… want me to find out?") and that `session_audit` shows `knowledge_abstain=true` + a low `knowledge_top_similarity` for those turns.
+Run `railway run uv run python -m scripts.negatives_smoke` → **expect 10/12 abstaining**, with the two named residuals leaking ("how does photosynthesis work" 0.4395, "book a flight ticket" 0.4322). **12/12 is a discrepancy to investigate, not a bonus.** Run the positives probe → confirm **0/28 false abstention per dialect bucket**. Playwright on chat.biosight.ai: one off-domain turn in **EN** ("how do I file my income taxes") and one in **AR** ("ما هو سعر صرف الدولار اليوم؟") — both *abstaining* negatives, not the residual-leak strings — confirm the abstain response renders (empty pack → "I don't have specific info… want me to find out?") and `session_audit` shows `knowledge_abstain=true` + a low `knowledge_top_similarity`.
 
-- [ ] **Step 4: Record rollback lever**
+- [ ] **Step 4: Record rollback lever + monitoring obligation (§3.7, §3.8)**
 
-Document in the deploy note: `SAGE_COSINE_ABSTAIN_THRESHOLD=0.0` restores pre-fix behaviour instantly (no code deploy). Update memory: interim gate DEPLOYED + calibrated value + residual.
+Document in the deploy note: `SAGE_COSINE_ABSTAIN_THRESHOLD=0.0` restores pre-fix behaviour instantly (no code deploy). **Standing check (first week, daily):** query `session_audit` for abstained turns with `knowledge_top_similarity` in ~0.40–0.44 — any abstained legitimate query there is the thin-margin early-warning; lever = nudge the env var down or fail-open. Update memory: interim gate DEPLOYED + 0.42 + 10/12 + residual + the >100-gate reranker convergence.
 
 ---
 
