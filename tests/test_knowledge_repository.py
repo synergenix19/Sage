@@ -100,6 +100,7 @@ async def test_postgres_repo_returns_passages_on_match():
         "chunk_text": "CBT is an evidence-based therapy.",
         "citation_metadata": {"citation": "Beck (1979)"},
         "rrf_score": 0.042,
+        "vec_distance": 0.1,
     }
 
     mock_conn = AsyncMock()
@@ -187,3 +188,63 @@ def test_knowledge_result_has_top_similarity():
     r = KnowledgeResult(passages=[], abstain=True, top_similarity=0.12)
     assert r.top_similarity == 0.12
     assert KnowledgeResult().top_similarity is None
+
+
+def _mk_pool(rows):
+    mock_conn = AsyncMock()
+    mock_conn.fetch = AsyncMock(return_value=rows)
+    mock_pool = MagicMock()
+    mock_pool.acquire = MagicMock(return_value=AsyncMock(
+        __aenter__=AsyncMock(return_value=mock_conn), __aexit__=AsyncMock(return_value=None)))
+    return mock_pool
+
+@pytest.mark.asyncio
+async def test_search_abstains_when_top_cosine_below_threshold(monkeypatch):
+    """Off-domain: best cosine similarity low -> abstain with EMPTY pack."""
+    import sage_poc.knowledge.postgres_repository as pr
+    monkeypatch.setattr(pr, "COSINE_ABSTAIN_THRESHOLD", 0.30)
+    rows = [  # vec_distance 0.85 -> sim 0.15 < 0.30
+        {"article_id": "x", "chunk_text": "t", "citation_metadata": {}, "rrf_score": 0.0164, "vec_distance": 0.85},
+    ]
+    with patch.object(pr, "_get_embedding", return_value=[0.1] * 1024):
+        r = await pr.PostgresKnowledgeRepository(_mk_pool(rows))._search("recipe for cake", language="en")
+    assert r.abstain is True
+    assert r.passages == []            # empty pack, no L4 injection
+    assert round(r.top_similarity, 2) == 0.15
+
+@pytest.mark.asyncio
+async def test_search_retrieves_when_top_cosine_above_threshold(monkeypatch):
+    import sage_poc.knowledge.postgres_repository as pr
+    monkeypatch.setattr(pr, "COSINE_ABSTAIN_THRESHOLD", 0.30)
+    rows = [  # vec_distance 0.20 -> sim 0.80 >= 0.30
+        {"article_id": "cbt-001-en", "chunk_text": "CBT...", "citation_metadata": {"citation": "Beck"}, "rrf_score": 0.03, "vec_distance": 0.20},
+    ]
+    with patch.object(pr, "_get_embedding", return_value=[0.1] * 1024):
+        r = await pr.PostgresKnowledgeRepository(_mk_pool(rows))._search("what is CBT", language="en")
+    assert r.abstain is False
+    assert len(r.passages) == 1 and r.passages[0].source_id == "cbt-001-en"
+    assert round(r.top_similarity, 2) == 0.80
+
+@pytest.mark.asyncio
+async def test_search_fail_open_when_threshold_zero(monkeypatch):
+    """Threshold 0.0 (committed default / rollback) skips the gate even for NEGATIVE
+    similarity (distance > 1.0). Guarantees merging Tasks 1-4 is inert in prod."""
+    import sage_poc.knowledge.postgres_repository as pr
+    monkeypatch.setattr(pr, "COSINE_ABSTAIN_THRESHOLD", 0.0)
+    rows = [  # vec_distance 1.3 -> sim -0.30 (negative); rrf 0.0164 > 0.015 secondary guard
+        {"article_id": "x", "chunk_text": "t", "citation_metadata": {}, "rrf_score": 0.0164, "vec_distance": 1.3},
+    ]
+    with patch.object(pr, "_get_embedding", return_value=[0.1] * 1024):
+        r = await pr.PostgresKnowledgeRepository(_mk_pool(rows))._search("q", language="en")
+    assert r.abstain is False          # fail-open: cosine gate skipped
+    assert len(r.passages) == 1        # retrieved via retained RRF secondary guard
+
+@pytest.mark.asyncio
+async def test_search_null_vec_distance_counts_as_not_similar(monkeypatch):
+    """FTS-only rows (NULL vec_distance) don't create similarity -> abstain."""
+    import sage_poc.knowledge.postgres_repository as pr
+    monkeypatch.setattr(pr, "COSINE_ABSTAIN_THRESHOLD", 0.30)
+    rows = [{"article_id": "x", "chunk_text": "t", "citation_metadata": {}, "rrf_score": 0.0164, "vec_distance": None}]
+    with patch.object(pr, "_get_embedding", return_value=[0.1] * 1024):
+        r = await pr.PostgresKnowledgeRepository(_mk_pool(rows))._search("q", language="en")
+    assert r.abstain is True and r.passages == [] and r.top_similarity == 0.0
