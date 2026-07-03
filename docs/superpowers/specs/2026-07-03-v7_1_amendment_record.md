@@ -53,6 +53,7 @@ Every reader of `is_safe`/`crisis_flags` outside the router, dispositioned for t
 | `output_gate.py:301/356/694` clinician-review severity + safety_level + queue write (`if crisis_flags`) | **Changed under flag.** Because T2 bypasses output_gate, these branches are dead flag-OFF; flag-ON a T1 turn would wrongly file a **high-severity "crisis"** review every turn. Disposition: the review path keys on `crisis_tier != "T1"` (i.e. T1 is NOT a crisis-review), so T1 is governed instead by G1b (`t1_count==2` → one `flag_for_review(severity=low)`). |
 | `output_gate.py:514` opener-rewrite suppression (`not crisis_flags`) | **Unchanged, recorded.** T1 → `crisis_flags` non-empty → opener rewrite suppressed (reply passed through unchanged). Conservative and acceptable for a warm turn. |
 | `post_crisis_classifier.py:18`, `safety_check.py:210` | Comments, not readers — no action. |
+| **`server.py` `/chat` handler (the HTTP entrypoint)** | **MISSED in the original enumeration (bug #1, 2026-07-04).** It read `is_safe` directly to emit `[[CRISIS_DETECTED]]`, so a T1 warm turn (`is_safe=False`) wrongly rendered the RED card. **Enumeration scope was too narrow — package-only (`src/sage_poc/`), so the repo-root entrypoint was never inspected.** Dispositioned: tiering ON → card iff `crisis_tier=="T2"`; T1/none → warm; flag OFF → legacy `not is_safe`. Any future `is_safe` reader search MUST include the entrypoint and any repo-root module. |
 
 No reader silently changes behavior; each is a line here. A future change to `is_safe` handling must update this table.
 
@@ -75,3 +76,21 @@ Signed W1 included "add the confirmed FP phrases to the S3 FP calibration set + 
 
 ## Scope guards (unchanged from §H)
 Detection sensitivity untouched; T2 floor absolute; flag OFF until G8 clears + the recall regression is green + the staging tester-battery replay is attached to the clinician packet.
+
+## Bug #2 post-mortem (2026-07-04) — SageState dropped crisis_tier; audit-trail corrections
+
+**Root cause.** `crisis_tier`/`tier_rule_id`/`supportive_posture`/`t1_count` were computed by `safety_check` but **never declared as channels in `SageState`**. LangGraph silently drops any key a node returns that is not a declared channel, so the reducer discarded them: `_route_after_safety` and the audit read `crisis_tier=None` → every tiering turn fell through to `crisis_response`. Confirmed by deep `/health/version` on prod: `config_flag_in_module=true`, `resolve_s3_en=('T1','s3_solo_en')` — the node computed T1, the graph state carried NULL. Fixed by declaring the four channels; guarded by a compiled-graph reducer test (RED without the fix).
+
+**FAIL-CLOSED (clinically important).** With `crisis_tier=None`, `_route_after_safety` fell through to `crisis_response` — every affected turn rendered the **old RED crisis card**, never a missed crisis or silence. The bug cost the **UX improvement (warm T1), not safety**. The architecture's fail-closed posture held even while the feature was broken.
+
+**Why five green proof-sets coexisted with flag-OFF deployed behaviour.** Every test read `safety_check`'s **return dict** (pre-reducer) or **mocked** the graph; none drove `graph.compile().ainvoke` (post-reducer) or crossed the **HTTP entrypoint** (`server.py`, which additionally read `is_safe` not `crisis_tier` — bug #1). The verification pyramid stopped at the graph-node boundary.
+
+**Audit-trail corrections (honesty):**
+- **Check G ("specs match code") was WRONG.** The `sagestate_schema_delta` doc declared these `SageState` fields while the code omitted them — exactly the spec/code divergence Absolute Rule 1 exists to prevent. The check compared intent-to-intent, not doc-to-code. Now reconciled (code declares them).
+- **Check F's staging verification did not cross the reducer.** It wrote `session_audit` rows by calling `_build_session_audit_row` with a hand-built state containing `crisis_tier` — validating the audit *builder*, not the graph *propagation*. It proved migration 006 columns accept the write, not that a real turn produces the tier.
+
+**Two permanent guards now in place** (this class cannot recur silently on the crisis path):
+1. `test_sagestate_declares_tier_channels` + `test_langgraph_propagates_crisis_tier_through_reducer` (compiled-graph reducer).
+2. Real-graph HTTP E2E (`test_chat_T1_real_graph_hopeless_warm_no_card`, `test_chat_T2_real_graph_card_and_tier_header`) + `verify_tiering_recall.py` now drives the compiled graph (post-reducer) as its permanent mode.
+
+**The onion, fully peeled (each layer eliminated with evidence, each leaving a permanent instrument):** env injection → deploy cutover / stale build cache → module provenance (uv-sync-before-COPY) → **state channel drop**. Instruments: strict-parse kill-switch, boot log, `/health/version` (+sage_poc_path/config/resolver/PYTHONPATH), reducer + HTTP E2E guards.

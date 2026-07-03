@@ -32,6 +32,13 @@ turn 3 (flag-OFF)  : crisis_tier=NULL tier_rule_id=NULL         ✅
 Prod preflight ✅: prod flag unset (OFF), prod `session_audit` has NO `crisis_tier` column (006 not on prod — deploy gate holds).
 
 ## Deployed-app live replay + item-A execution status
+
+**Two deploy-surface bugs found + fixed (2026-07-04), both outside the graph proofs:**
+- **Bug #1** — `server.py` `/chat` entrypoint rendered the RED card on `is_safe` directly, so T1 warm turns wrongly showed the crisis card. Fixed to route on `crisis_tier`.
+- **Bug #2** — `SageState` omitted the tier channels, so LangGraph **dropped** `crisis_tier` from safety_check's return → graph state NULL → every turn fell to `crisis_response`. Fixed by declaring the channels.
+- **FAIL-CLOSED (clinical):** while broken, affected turns got the **old RED card**, never a missed crisis or silence — the bug cost the warm-T1 UX, not safety. Detection sensitivity was never touched.
+- **Proof-gap closed:** every prior proof read safety_check's return dict (pre-reducer) or mocked the graph; nothing crossed the reducer or the HTTP entrypoint. Now guarded permanently: compiled-graph reducer test + real-graph HTTP E2E, and `verify_tiering_recall.py` re-run through the compiled graph (**NON_INFERIOR, 0 regression, post-reducer**).
+
 **ITEM A: AUTHORIZED-PENDING, NOT EXECUTED (2026-07-03).** The flip is signed and directed, and the code is merged (default-ON, `#90`; strict fail-safe parse, `#91`), but it is **not live** on any env: a **Railway stale-build-cache bug** serves pre-#90 code under a green/active/SUCCESS deploy that *is* receiving traffic. Verified by deployment-scoped logs (deploy `b6bbf903` prod serves my probes but runs old code, no `[sage/startup]` boot log) — one root cause, not the three it first looked like. `hopeless → NULL` (flag-OFF) persists because the strict-parse code isn't the code running. **Item A executes only when the boot log shows `CRISIS_TIERING_ENABLED=True` AND `hopeless → T1` on the live app** (the gate held: it stopped a false "executed" on stale code).
 
 **Prod = status quo, zero breakage.** The stale code still serving on prod *is* current prod (`hopeless` → the same binary crisis card as before). No behavioural change, no live-user impact. Deploy attempted (`b6bbf903`), 006 present on prod.

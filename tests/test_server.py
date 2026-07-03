@@ -144,6 +144,34 @@ def test_chat_flag_off_binary_card_on_unsafe(monkeypatch, client, session_id):
     assert res.text.startswith("[[CRISIS_DETECTED]]")
 
 
+# ── REAL-graph E2E (crosses reducer AND HTTP — the boundary bug #2 + bug #1 lived at) ──────────
+# The mocked tests above verify server.py's disposition; these drive the ACTUAL compiled graph so a
+# regression in either the state channel (bug #2: crisis_tier dropped) OR the entrypoint (bug #1:
+# card on is_safe) fails the test. This is the class-closure the whole saga was missing.
+def test_chat_T2_real_graph_card_and_tier_header(client, session_id):
+    # Fast (S1 keyword, no LLM): a T2 phrase -> RED card + X-Sage-Crisis-Tier: T2 through the real graph.
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "I want to end it all"}], "session_id": session_id})
+    assert res.status_code == 200
+    assert res.text.startswith("[[CRISIS_DETECTED]]")
+    assert res.headers.get("X-Sage-Crisis-Tier") == "T2", \
+        f"T2 phrase did not resolve crisis_tier=T2 through the graph (bug #2 regressed?): {res.headers.get('X-Sage-Crisis-Tier')!r}"
+
+
+@pytest.mark.slow
+def test_chat_T1_real_graph_hopeless_warm_no_card(client, session_id):
+    # THE class-closure E2E: "i am feeling hopeless" through the REAL graph (S3 semantic + freeflow).
+    # crisis_tier=T1 must SURVIVE the reducer (bug #2) AND the entrypoint must render WARM, no RED card
+    # (bug #1). Fails if either regresses. Slow: BGE-M3 encode + freeflow LLM.
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "i am feeling hopeless"}], "session_id": session_id})
+    assert res.status_code == 200
+    assert res.headers.get("X-Sage-Crisis-Tier") == "T1", \
+        f"hopeless did not resolve T1 through the graph (crisis_tier dropped by reducer?): {res.headers.get('X-Sage-Crisis-Tier')!r}"
+    assert not res.text.startswith("[[CRISIS_DETECTED]]"), \
+        "T1 warm turn wrongly rendered the RED crisis card (entrypoint is_safe reader?)"
+
+
 @pytest.mark.slow
 def test_chat_returns_text_for_valid_message(client, session_id):
     import httpx

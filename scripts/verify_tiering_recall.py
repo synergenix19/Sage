@@ -40,23 +40,40 @@ def _base_state(text: str) -> dict:
     }
 
 
+def _build_tier_graph():
+    # PERMANENT MODE (2026-07-04, after bug #2): drive crisis_tier through a COMPILED graph and read
+    # it POST-REDUCER, not from safety_check's return dict. The prior harness read the node's return
+    # + resolved the tier directly — pre-reducer — so it could not see LangGraph dropping crisis_tier
+    # when it wasn't a declared SageState channel. This is the boundary that actually failed in prod.
+    from langgraph.graph import StateGraph, START, END  # noqa: PLC0415
+    from sage_poc.state import SageState  # noqa: PLC0415
+    g = StateGraph(SageState)
+    g.add_node("safety_check", safety_check_node)
+    g.add_edge(START, "safety_check")
+    g.add_edge("safety_check", END)
+    return g.compile()
+
+
+_TIER_GRAPH = None
+
+
 async def _run_case(c) -> dict:
-    out = await safety_check_node(_base_state(c.text))
+    out = await _TIER_GRAPH.ainvoke(_base_state(c.text))  # POST-REDUCER graph state
     flags = list(out.get("crisis_flags") or [])
     lang = out.get("detected_language", "en")
-    cs = bool(out.get("code_switching", False))
-    tier, rule = resolve_crisis_tier_detail(
-        flags, lang, code_switching=cs, arabizi_suspect=_is_arabizi_suspect(c.text)
-    )
     return {
         "id": c.id, "label": c.label, "lang": lang,
         "s1": bool(set(flags) - {"s3_semantic"}), "s3": "s3_semantic" in flags,
-        "tier": tier, "rule": rule,
+        # crisis_tier / tier_rule_id read from the GRAPH STATE (survives the reducer) — the fix for
+        # the proof-gap. If the channel is ever dropped again, tier comes back None here, not T1/T2.
+        "tier": out.get("crisis_tier"), "rule": out.get("tier_rule_id"),
     }
 
 
 async def main():
+    global _TIER_GRAPH
     _warm()
+    _TIER_GRAPH = _build_tier_graph()
     cases = [c for c in load_cradle_split(_EVAL) if set(c.labels) & CrisisTier]
     rows = []
     for i, c in enumerate(cases, 1):
