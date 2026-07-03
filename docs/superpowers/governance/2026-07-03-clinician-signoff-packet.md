@@ -31,17 +31,17 @@ turn 3 (flag-OFF)  : crisis_tier=NULL tier_rule_id=NULL         ✅
 ```
 Prod preflight ✅: prod flag unset (OFF), prod `session_audit` has NO `crisis_tier` column (006 not on prod — deploy gate holds).
 
-## Deployed-app live replay (staging, flag ON)
-**⛔ BLOCKED on a Railway deploy-activation issue — NOT a code/tiering defect.** Merged code was deployed to staging (`railway up`, build + healthcheck **succeeded**) and `SAGE_CRISIS_TIERING=true` is confirmed set on the correct service (`sage-api`/`160e9f65`, serving `sage-api-staging-a334`). But across **two** redeploys, the running app still behaves flag-OFF (`i am feeling hopeless` → `crisis_response`, `crisis_tier=NULL`) — the deployment carrying the flag is not becoming the active one. **Ruled out — flag name/value/scope (the most likely cause, checked):** code reads `os.getenv("SAGE_CRISIS_TIERING")`; staging has `SAGE_CRISIS_TIERING=true` on the **staging** scope; prod has it absent. Correct name, value (`true`), and scope — **not** a `SAGE_CRISIS_TIERING` vs `CRISIS_TIERING_ENABLED` mismatch (the latter is the derived boolean, not an env var).
+## Deployed-app live replay + item-A execution status
+**ITEM A: AUTHORIZED-PENDING, NOT EXECUTED (2026-07-03).** The flip is signed and directed, and the code is merged (default-ON, `#90`; strict fail-safe parse, `#91`), but it is **not live** on any env: a **Railway stale-build-cache bug** serves pre-#90 code under a green/active/SUCCESS deploy that *is* receiving traffic. Verified by deployment-scoped logs (deploy `b6bbf903` prod serves my probes but runs old code, no `[sage/startup]` boot log) — one root cause, not the three it first looked like. `hopeless → NULL` (flag-OFF) persists because the strict-parse code isn't the code running. **Item A executes only when the boot log shows `CRISIS_TIERING_ENABLED=True` AND `hopeless → T1` on the live app** (the gate held: it stopped a false "executed" on stale code).
 
-**Handoff (needs Railway dashboard):** project `4f1811e7`, service `sage-api` `160e9f65`, staging env; latest `railway up` deployment id `5a7378e1-4b11-4a37-973c-fee17aea6515`. Confirm that deployment is **Active/serving** (not a stuck newer build with the old one still live); promote/restart if needed. Then `hopeless → crisis_tier=T1` on the live app, and re-run `scripts/staging_live_replay.py` + the snapshot query.
+**Prod = status quo, zero breakage.** The stale code still serving on prod *is* current prod (`hopeless` → the same binary crisis card as before). No behavioural change, no live-user impact. Deploy attempted (`b6bbf903`), 006 present on prod.
 
-**What this does NOT block (already verified without the deployed app):**
-- Migration 006 + the audit-field write path — proven end-to-end against the **real staging DB** (the T1/T2/flag-OFF table above).
-- The tiering routing logic — proven by the local routing replay (2 FP→T1, all crisis→T2) and the per-case regression.
+**What IS live and verified (independent of the flip):** the **C+D lexicon fixes shipped and cut over on staging** — `i have pills and a plan to end it` → crisis card on the deployed staging app where it fired nothing pre-#89. A real, deployed safety improvement.
 
-## Day-zero §G monitor snapshot (staging)
-_[PENDING the deployed-app run above — the monitors are ready (`scripts/staging_tiering_monitors.sql`); the day-zero snapshot needs the flag-ON app producing live tier rows.]_
+**Fix path:** clear the Railway build cache and redeploy (dashboard, or the git-SHA Dockerfile change that busts the cache). Then `staging_live_replay.py` + the day-zero §G snapshot run, and item A is recorded executed with a timestamp.
+
+## Day-zero §G monitor snapshot
+_[PENDING the deployed-app run — monitors ready (`scripts/staging_tiering_monitors.sql`); run against the **prod** DB per the internal-cohort go-live, daily for 48h.]_
 
 ## Detection findings (Gate-1 — NOT tiering regressions; carried for full picture)
 1. **Arabizi explicit-SI miss** (`ana 3ayez amot…`) — fires nothing (S1-az gap + S3 blind). Missed identically flag-OFF/ON. → clinician queue: candidate S1-az keywords.

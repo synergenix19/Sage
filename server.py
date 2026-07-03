@@ -599,6 +599,19 @@ async def health_ready():
     return {"status": "ready"}
 
 
+@app.get("/health/version")
+async def health_version():
+    """Deployment provenance — 'which code is serving?' as a curl, never an inference chain.
+    Exposes the baked git SHA and the resolved crisis-tier flag + its raw env value (repr-style).
+    Added after the 2026-07-03 rollout where stale-build-cache served old code under a green deploy.
+    """
+    return {
+        "build_sha": os.environ.get("SAGE_BUILD_SHA", "unknown"),
+        "crisis_tiering_enabled": CRISIS_TIERING_ENABLED,
+        "crisis_tiering_raw_env": os.environ.get("SAGE_CRISIS_TIERING"),
+    }
+
+
 @app.get("/health/schema-conformance")
 async def health_schema_conformance():
     return get_conformance_report()
