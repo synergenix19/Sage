@@ -29,5 +29,16 @@ The safety-critical subtlety: a true-SI case that fires **`s3_semantic` alone in
 
 **⚠️ ESCALATION (2026-07-03):** G3 was signed as "no change may reduce recall." That is non-inferiority (Gate 2) and is satisfiable — but it was signed against an assumed ≥95% floor that **does not exist** in production. Before any `safety_check.py` edit, the clinical lead must confirm G3 = **non-inferiority vs flag-off**, decoupled from the absolute ≥95% pilot KPI (Gate 1). The committed baseline (`tests/fixtures/recall_baseline_2026-07-03.json`) must state its metric definition, corpus names + case counts, and per-language figures (with AR marked UNMEASURED), never a bare number.
 
+## Language gate + fail-closed routing (closure 2026-07-03)
+- **Conservative language gate.** The T1 (warm) route fires ONLY on confident English: `lang=='en'` AND not code-switched AND not Arabizi-suspect (`tier_routing.json` `require_confident_lang`). Language ID is weakest for Arabizi/code-switch, and a true-SI message mis-classified as English would otherwise drop to T1.
+- **AR/AZ-invariance is CONDITIONAL on this gate.** Tiering leaves Arabic/Arabizi routing unchanged *only because* any message that is not confidently English resolves to T2. The `s3_ar_az` rule plus the `s3_failclosed` catch-all guarantee it.
+- **Fail-closed default.** Any fired semantic signal that is not confidently-English (low-confidence EN, code-switch, Arabizi, or an unmapped language) routes **T2** via `s3_failclosed`. Only a turn with **no** fired signal reaches `default_tier: "none"`. A fired crisis signal never falls through to safe.
+- Interim Arabizi heuristic (`_is_arabizi_suspect`): letter-digit substitutions (3/5/7/2/6/9 adjacent to Latin letters). Full Arabizi language-ID is the pending arabizi project; this is the fail-closed interim.
+
+## Two obligations that ride to the clinician packet
+- **Flag-flip ≠ pilot unlock.** Turning `SAGE_CRISIS_TIERING` ON does not change the pilot gate: the pilot stays NO-GO on the absolute ≥95% recall KPI (Gate 1) until S2/MARBERT clears it. Tiering shipping and pilot go-live are separate events.
+- **S2/MARBERT re-run obligation.** When S2 lands (raising detection recall), the non-inferiority regression MUST be re-run — S2 may change which cases are s1/s3-solo, so the "no true-SI case is s3-solo-EN" proof is not permanent; it is re-established on every detector change.
+- **Residual-risk framing preserved.** The clinician approved G3 with the residual-risk statement in the sign-off packet; that text is carried forward verbatim (do not silently drop it when the packet is regenerated).
+
 ## Scope guards (unchanged from §H)
 Detection sensitivity untouched; T2 floor absolute; flag OFF until G8 clears + the recall regression is green + the staging tester-battery replay is attached to the clinician packet.
