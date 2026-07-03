@@ -20,7 +20,10 @@ class KnowledgeRepository(ABC):
     ) -> KnowledgeResult:
         """Template method: normalize the query, then delegate to the backend."""
         searched = self._preprocess_query(query)
-        return await self._search(searched, language, top_k)
+        result = await self._search(searched, language, top_k)
+        result.query_raw = query
+        result.query_searched = searched
+        return result
 
     @staticmethod
     def _contains_arabic(text: str) -> bool:

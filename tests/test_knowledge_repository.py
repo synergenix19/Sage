@@ -161,3 +161,17 @@ async def test_postgres_repo_filters_by_language():
     call_args = mock_conn.fetch.call_args
     # The SQL query or its arguments must include the language filter value "ar"
     assert any("ar" in str(a) for a in call_args.args + tuple(call_args.kwargs.values()))
+
+
+@pytest.mark.asyncio
+async def test_retrieve_stamps_raw_and_searched_query():
+    from sage_poc.knowledge.repository import KnowledgeRepository
+    from sage_poc.knowledge.models import KnowledgeResult
+
+    class RecordingRepo(KnowledgeRepository):
+        async def _search(self, query, language="en", top_k=5):
+            return KnowledgeResult(passages=[], abstain=True)
+
+    result = await RecordingRepo().retrieve("أنا قلقان", language="ar")
+    assert result.query_raw == "أنا قلقان"
+    assert result.query_searched == "انا قلقان"
