@@ -55,11 +55,16 @@ try:
          and any(isinstance(x, dict) and x.get("step_id") == "score_mood" for x in v)), [])
     _MOOD_PINNED_TEMPLATE_AR: str = next(
         s["pinned_template_ar"] for s in _MOOD_STEPS if s.get("step_id") == "score_mood")
+    _MOOD_PINNED_ANCHOR_AR: str = next(
+        s["pinned_anchor_ar"] for s in _MOOD_STEPS if s.get("step_id") == "score_mood")
 except Exception:  # pragma: no cover — config error surfaces at import
     _MOOD_PINNED_TEMPLATE_AR = ""
+    _MOOD_PINNED_ANCHOR_AR = ""
 
 # Each scale endpoint's descriptor: the phrase after يعني ("means"), up to " و <digit>" / punctuation.
 _MOOD_ANCHOR_RX = re.compile(r"يعني\s+(.+?)(?=\s+و\s+[\d٠-٩]|\s*[،,.؟?]|$)")
+# A 1-10 scale is being presented when the high endpoint (10 / ١٠) appears as a standalone number.
+_MOOD_SCALE_RX = re.compile(r"(?<![\d٠-٩])(?:10|١٠)(?![\d٠-٩])")
 
 
 def _has_identical_rating_anchors(text: str) -> bool:
@@ -68,14 +73,20 @@ def _has_identical_rating_anchors(text: str) -> bool:
     return len(descs) >= 2 and len(descs) != len(set(descs))
 
 
-def _guard_mood_anchor(text: str, executed_step_id: str | None, lang: str) -> str:
-    """Deterministic Node-8 post-check (W4): on an AR score_mood turn, a rating scale with identical
-    low/high anchors falls back to the pinned template (verbatim anchor, never re-translated). No-op
-    for other steps, other languages, or a well-formed scale — matches Node 8's rules-first role."""
+def _pin_mood_anchor(text: str, executed_step_id: str | None, lang: str) -> str:
+    """Node-8 post-check (W4, signed §K). On an AR score_mood turn, two mechanisms:
+      PRIMARY (always-emit) — the validated anchor clause is emitted VERBATIM from mood_check_in.json,
+        never via the LLM/translate. If the reply presents a 1-10 scale WITHOUT its anchor definitions
+        (the common case), the pinned clause is concatenated — a scale is never left un-anchored (B8).
+      DEFENSE (guard) — if the reply carries a scale whose low/high anchors are IDENTICAL (the
+        translate corruption '1=very good, 10=very good'), fall back to the pinned template.
+    No-op for other steps, other languages, or a well-formed distinct-anchor scale."""
     if executed_step_id != "score_mood" or lang != "ar" or not _MOOD_PINNED_TEMPLATE_AR:
         return text
-    if _has_identical_rating_anchors(text):
+    if _has_identical_rating_anchors(text):                       # defense: corrupt -> pinned template
         return _MOOD_PINNED_TEMPLATE_AR
+    if _MOOD_SCALE_RX.search(text) and not _MOOD_ANCHOR_RX.search(text):  # primary: scale but no anchor
+        return text.rstrip() + " " + _MOOD_PINNED_ANCHOR_AR
     return text
 _OPENER_REWRITE_DISTRESS_CEILING = 9  # severe distress (9-10/10) -> suppress rewrite (pass through);
 # the lexicon is the primary sensitive-content gate, this is a wording-independent backstop for the top of the scale
@@ -665,9 +676,10 @@ async def output_gate_node(state: SageState) -> dict:
         final_response = response_en
     final_response = _strip_output_format(final_response)
 
-    # W4: pin the AR mood-rating anchor. If the translate step corrupted the scale into identical
-    # low/high anchors, fall back to the verbatim pinned template. AR score_mood turns only.
-    final_response = _guard_mood_anchor(final_response, state.get("executed_step_id"), lang)
+    # W4 (signed §K): pin the AR mood-rating anchor. Primary — a presented scale without anchors gets
+    # the verbatim clause concatenated (never un-anchored). Defense — identical anchors (translate
+    # corruption) fall back to the pinned template. AR score_mood turns only.
+    final_response = _pin_mood_anchor(final_response, state.get("executed_step_id"), lang)
 
     if AUDIT_LOG_ENABLED:
         audit = {
