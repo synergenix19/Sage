@@ -432,8 +432,20 @@ async def chat(
     is_safe: bool = result.get("is_safe", True)
     response_text: str = result.get("response") or ""
 
+    # Crisis-card sentinel must follow the graph's ROUTING, not is_safe. Under v7.1 tiering, is_safe
+    # stays the truthful detector aggregate — False on a warm T1 turn too (is_safe = len(flags)==0) —
+    # so the legacy `if not is_safe` wrongly renders the RED card on a T1 warm turn. server.py is the
+    # entrypoint is_safe-reader that the reader-disposition enumeration missed (it lives at repo root,
+    # outside src/sage_poc/). Disposition: tiering ON -> card iff crisis_tier == "T2" (the acute floor);
+    # T1/none -> warm, no card. Flag OFF (or tier not computed) -> legacy binary `not is_safe`.
+    _crisis_tier = result.get("crisis_tier")
+    if CRISIS_TIERING_ENABLED and _crisis_tier is not None:
+        _emit_crisis_card = _crisis_tier == "T2"
+    else:
+        _emit_crisis_card = not is_safe
+
     async def _body() -> AsyncGenerator[bytes, None]:
-        if not is_safe:
+        if _emit_crisis_card:
             yield (CRISIS_SIGNAL + "\n").encode()
         for token in _stream_tokens(response_text):
             yield token.encode()
