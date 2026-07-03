@@ -500,7 +500,7 @@ git commit -m "test(knowledge): TD5 negatives fixture + negatives_smoke + per-bu
 
 - [ ] **Step 1: Capture per-bucket cosine distributions against prod**
 
-From a checkout of this branch: build the query set from the probe fixture (28 positives + 12 negatives), and for each run **`PostgresKnowledgeRepository(pool).retrieve(query, language, top_k=5)`** capturing `top_similarity`, then `cosine_distributions(rows, search_fn)` with `search_fn = lambda q, lang: repo.retrieve(q, lang, top_k=5).top_similarity`. Run read-only:
+From a checkout of this branch: build the query set from the probe fixture (28 positives + 12 negatives), and for each run **`PostgresKnowledgeRepository(pool).retrieve(query, language, top_k=5)`** capturing `top_similarity`, then `cosine_distributions(rows, search_fn)` with `async def search_fn(q, lang): return (await repo.retrieve(q, language=lang, top_k=5)).top_similarity`. Run read-only:
 `railway run uv run python -m scripts.knowledge_ar_recall_probe` (extend `_main` to print `cosine_distributions`), or a one-off script.
 
 > **CRITICAL — calibrate via `retrieve()`, NOT `_search()`.** `retrieve()` is the base-template path that applies PR#84 Arabic normalization before search; `_search()` receives the raw query. Calibrating on `_search()` would measure every khaleeji/orthographic positive on its UN-normalized query — systematically lower similarity than production sees — which under the §3.4 rule (threshold ≤ min positive similarity per bucket) would drag the chosen threshold below what the data supports, calibrated from a path that no longer exists in prod. `negatives_smoke.py` already uses `repo.retrieve()`; match it. Calibration measures the deployed path or it measures nothing.
