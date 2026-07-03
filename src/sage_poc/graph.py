@@ -148,9 +148,17 @@ async def _crisis_response_node(state: SageState) -> dict:
 
 def _route_after_safety(state: SageState) -> str:
     if state.get("crisis_state") == "monitoring":
-        # In monitoring: only re-escalate if S1-S6 fired directly or S7 classified a new crisis
+        # In monitoring: only re-escalate if S1-S6 fired directly or S7 classified a new crisis.
+        # Tiering does NOT apply here (per reader-disposition table): any signal re-escalates.
         if not state["is_safe"] or state.get("s7_result") == "NEW_CRISIS":
             return "crisis"
+        return "safe"
+    # v7.1 tiering (flag-gated). A confident-English semantic-only signal is T1 (warm): route to
+    # the normal graph with supportive posture, NOT crisis_response. is_safe stays False (truthful
+    # detector record); routing authority is crisis_tier here. Flag OFF => this branch is skipped
+    # and routing reads is_safe exactly as v7/master (Check B).
+    from sage_poc import config as _cfg  # noqa: PLC0415
+    if _cfg.CRISIS_TIERING_ENABLED and state.get("crisis_tier") == "T1":
         return "safe"
     return "safe" if state["is_safe"] else "crisis"
 

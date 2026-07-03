@@ -11,7 +11,7 @@
 - **T1 (warm):** an S3 semantic hit **alone** (no keyword corroboration) in `en`. → normal graph with `supportive_posture` (validate, gently explore, offer-not-force). NOT `crisis_response`.
 - **none:** no signal.
 
-The boundary is data: `rules/data/safety/tier_routing.json` (3 rules, clinician-editable). `safety_check` reads the resolved tier; it hardcodes no boundary. Gated by `SAGE_CRISIS_TIERING` (default **OFF** → behaviour identical to v7 / master).
+The boundary is data: `rules/data/tier_routing/tier_routing.json` (3 rules, clinician-editable). `safety_check` reads the resolved tier; it hardcodes no boundary. Gated by `SAGE_CRISIS_TIERING` (default **OFF** → behaviour identical to v7 / master).
 
 ## §5.6.1 — "Dialect mirroring rules" wording, clarified
 The v7 spec row read *"Dialect mirroring rules,"* which was ambiguous; the implementation (CU-DM-001 = **"Khaleeji register calibration"**) and the signed L0 v2.2.0 (register-matching scoped to **tone/formality**, not sub-dialect) mean **fixed Khaleeji** is the baseline. §5.6.1 is corrected to read "Khaleeji register calibration (fixed register; tone/formality matched, not user sub-dialect)." Any move to MSA/hybrid is a future amendment (G6), not a bug.

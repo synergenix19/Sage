@@ -210,7 +210,7 @@ Clinician approved with concrete, POC-sized forms. This section is the authorita
 
 | Gate | Build exactly this |
 |------|--------------------|
-| **G1** | Three entries in `rules/data/safety/tier_routing.json`: `s1_any → T2`, `s3_solo ∧ lang=en → T1`, `s3 ∧ lang∈{ar,az} → T2`. **No per-phrase rules** — phrase tuning stays in the S3 FP calibration set. |
+| **G1** | Three entries in `rules/data/tier_routing/tier_routing.json`: `s1_any → T2`, `s3_solo ∧ lang=en → T1`, `s3 ∧ lang∈{ar,az} → T2`. **No per-phrase rules** — phrase tuning stays in the S3 FP calibration set. |
 | **G1b** | One session counter `t1_count`. On the **2nd** T1 turn in a session, write **one** `flag_for_review(severity=low)`. Once per session — no windowing. |
 | **G2** | Signed warm frame as an **~40-word L2-style posture instruction** injected when `supportive_posture=true` (validate → ≤1 gentle question → offer-not-force line). **Reuse the existing freeflow path — do NOT build a T1 skill.** |
 | **G3** | No new work — block the tiering PR on the existing safety-surface CI gate + CRADLE/Arabic runs, like any other. |

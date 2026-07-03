@@ -14,7 +14,9 @@ import pathlib
 import re
 from typing import Iterable
 
-_RULES_PATH = pathlib.Path(__file__).parent.parent / "rules" / "data" / "safety" / "tier_routing.json"
+# Own category dir (NOT rules/data/safety/, which the rules loader glob-validates against the
+# SafetyRule schema). The resolver reads this file directly by path; it is not a rules-engine rule.
+_RULES_PATH = pathlib.Path(__file__).parent.parent / "rules" / "data" / "tier_routing" / "tier_routing.json"
 
 # s3_semantic is the only non-keyword (semantic) flag; everything else is an S1 keyword flag.
 _S3_FLAG = "s3_semantic"
@@ -71,6 +73,20 @@ def resolve_crisis_tier(
     drops to T1. First matching rule wins; only a turn with NO fired signal reaches the
     JSON default_tier ("none").
     """
+    return resolve_crisis_tier_detail(
+        fired_flags, lang, code_switching=code_switching, arabizi_suspect=arabizi_suspect
+    )[0]
+
+
+def resolve_crisis_tier_detail(
+    fired_flags: Iterable[str],
+    lang: str,
+    *,
+    code_switching: bool = False,
+    arabizi_suspect: bool = False,
+) -> tuple[str, str | None]:
+    """Like resolve_crisis_tier but also returns the rule id that resolved it (for the audit
+    trail — F). Returns (tier, rule_id); rule_id is None when the default_tier is used."""
     flags = set(fired_flags or ())
     s3_fired = _S3_FLAG in flags
     s1_fired = bool(flags - {_S3_FLAG})  # any keyword flag
@@ -78,5 +94,5 @@ def resolve_crisis_tier(
     for rule in _load_tier_rules():
         if _matches(rule.get("when", {}), s1_fired=s1_fired, s3_fired=s3_fired,
                     lang=lang, confident_lang=confident_lang):
-            return rule["tier"]
-    return _default_tier()
+            return rule["tier"], rule["id"]
+    return _default_tier(), None

@@ -211,7 +211,29 @@ async def safety_check_node(state: SageState) -> dict:
     # from this single deduped list.
     new_crisis_flags = list(dict.fromkeys(new_crisis_flags))
 
+    # v7.1 tiering (flag-gated). Fields are ABSENT when OFF, so a flag-off state write / audit
+    # row is byte-identical to master (Check B); populated only when ON (F). is_safe and
+    # crisis_flags below are UNCHANGED either way (is_safe stays the truthful detector aggregate);
+    # routing authority moves to crisis_tier in _route_after_safety only when the flag is ON.
+    tier_update: dict = {}
+    from sage_poc import config as _cfg  # noqa: PLC0415
+    if _cfg.CRISIS_TIERING_ENABLED:
+        from sage_poc.safety.crisis_tier import (  # noqa: PLC0415
+            resolve_crisis_tier_detail, _is_arabizi_suspect,
+        )
+        _tier, _tier_rule = resolve_crisis_tier_detail(
+            new_crisis_flags, lang,
+            code_switching=code_switching,
+            arabizi_suspect=_is_arabizi_suspect(raw),
+        )
+        tier_update = {
+            "crisis_tier": _tier,
+            "tier_rule_id": _tier_rule,
+            "supportive_posture": _tier == "T1",
+        }
+
     return {
+        **tier_update,
         "detected_language": lang,
         "message_en": message_en,
         "is_safe": len(new_crisis_flags) == 0,

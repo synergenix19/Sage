@@ -2,7 +2,7 @@
 
 This file has two layers:
   1. RESOLVER unit tests (this commit) — pure, fast, no model: the signal-set + language →
-     tier mapping, sourced entirely from rules/data/safety/tier_routing.json (no hardcoded
+     tier mapping, sourced entirely from rules/data/tier_routing/tier_routing.json (no hardcoded
      boundary in code). Covers audit checklist C and the tier semantics of E.
   2. BEHAVIORAL + S7 invariant tests (next commit, gate plumbing) — assert real routing through
      safety_check/graph with the flag ON: the two prod FP strings resolve T1, the Arabic
@@ -83,26 +83,51 @@ def test_resolver_reads_json_not_hardcoded_constants():
         assert "phrases" not in r and "keywords" not in r, "tier rules must carry no phrase lists (§K)"
 
 
-# ── Layer 2: behavioral + S7 invariants (pending gate plumbing — next commit) ──
-
-@pytest.mark.skip(reason="GREEN after W1 gate plumbing (safety_check tier + graph routing, flag ON)")
-def test_prod_fp_strings_resolve_T1_behaviorally():
-    """The two verified prod FP strings must route T1 (not the RED card) with the flag ON:
-    'i am feeling hopeless' and 'it feels like a burden and it is making me feel so low'."""
-
-
-@pytest.mark.skip(reason="GREEN after W1 gate plumbing")
-def test_arabic_command_hallucination_resolves_T2_behaviorally():
-    """The Arabic command-hallucination case must stay T2 (crisis) with the flag ON."""
+# ── Layer 2: routing authority + S7 Cardinal-Rule-4 invariants (real, not stubbed) ──
+# These drive the actual graph router _route_after_safety with the flag toggled. is_safe stays
+# the truthful detector aggregate; routing authority is crisis_tier under the flag.
+import sage_poc.config as _cfg
+from sage_poc.graph import _route_after_safety
 
 
-@pytest.mark.skip(reason="GREEN after W1 gate plumbing — language-gate behavioral coverage")
-def test_arabizi_and_codeswitched_si_resolve_T2_behaviorally():
-    """An Arabizi SI phrase and a code-switched EN/AR SI phrase must both route T2 end-to-end
-    (mis-classified-as-English must not drop to T1). If CRADLE-EN lacks Arabizi cases, add a
-    handful to the fixture so the per-case regression actually exercises this path."""
+def _st(**kw):
+    base = {"crisis_state": "none", "is_safe": True, "crisis_tier": "none", "s7_result": None}
+    return {**base, **kw}
 
 
-@pytest.mark.skip(reason="GREEN after W1 gate plumbing — S7 Cardinal-Rule-4 invariants")
-def test_s7_timeout_cannot_suppress_same_turn_s1_fire():
-    """Inject an S7 timeout AND a same-turn S1 keyword fire → must still route T2."""
+def test_flag_on_T1_routes_safe_not_crisis(monkeypatch):
+    # The whole point: a T1 turn (is_safe False because s3 fired) routes to the normal graph.
+    monkeypatch.setattr(_cfg, "CRISIS_TIERING_ENABLED", True)
+    assert _route_after_safety(_st(is_safe=False, crisis_tier="T1")) == "safe"
+
+
+def test_flag_on_T2_routes_crisis(monkeypatch):
+    monkeypatch.setattr(_cfg, "CRISIS_TIERING_ENABLED", True)
+    assert _route_after_safety(_st(is_safe=False, crisis_tier="T2")) == "crisis"
+
+
+def test_flag_off_ignores_crisis_tier_and_routes_on_is_safe(monkeypatch):
+    # Check B: with the flag OFF, a T1-tier state still routes on is_safe exactly like master.
+    monkeypatch.setattr(_cfg, "CRISIS_TIERING_ENABLED", False)
+    assert _route_after_safety(_st(is_safe=False, crisis_tier="T1")) == "crisis"
+    assert _route_after_safety(_st(is_safe=True, crisis_tier="none")) == "safe"
+
+
+def test_monitoring_reescalates_regardless_of_tier(monkeypatch):
+    # Disposition: tiering does NOT apply in monitoring; any fired signal re-escalates.
+    monkeypatch.setattr(_cfg, "CRISIS_TIERING_ENABLED", True)
+    assert _route_after_safety(_st(crisis_state="monitoring", is_safe=False, crisis_tier="T1")) == "crisis"
+
+
+def test_s7_timeout_cannot_suppress_same_turn_s1_fire(monkeypatch):
+    # S7 Cardinal-Rule-4: an S1 keyword fire resolves T2 and routes crisis even when S7
+    # produced nothing (timeout -> s7_result None). S7 failure never downgrades a deterministic fire.
+    monkeypatch.setattr(_cfg, "CRISIS_TIERING_ENABLED", True)
+    tier = resolve_crisis_tier({"si_explicit", "s3_semantic"}, "en")  # S1 fired
+    assert tier == "T2"
+    assert _route_after_safety(_st(is_safe=False, crisis_tier=tier, s7_result=None)) == "crisis"
+
+
+# Behavioral prod-FP ("i am feeling hopeless"/"burden...so low" -> T1) and the Arabic/Arabizi
+# command-hallucination -> T2 cases require real BGE-M3 S3 scoring; they are exercised end-to-end
+# by the per-case fail-closed recall regression (scripts/), not here, to keep this file model-free.
