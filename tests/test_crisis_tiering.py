@@ -215,17 +215,10 @@ async def test_plan_means_phrase_never_resolves_T1_drift_guard():
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Gate-1 S1-az coverage gap (NOT a tiering regression) — see "
-           "governance/2026-07-03-arabizi-si-detection-finding.md. Flips to a hard pass "
-           "(strict xfail -> XPASS failure) the moment clinician-approved az keywords land.",
-)
 @pytest.mark.asyncio
-async def test_arabizi_explicit_si_fires_s1_XFAIL_gate1():
-    # Surfaced by the tiering D/E pass: this Arabizi explicit-SI phrase fires NOTHING (S1-az
-    # keyword gap + S3 blind to Arabizi) -> missed identically flag-OFF/ON. Non-inferiority holds;
-    # this asserts the DETECTION fix, tracked upstream, not the tiering routing.
+async def test_arabizi_explicit_si_fires_s1():
+    # CLOSED 2026-07-03 by SK-AZ-003 (clinician-approved item D). Was a strict-xfail Gate-1 tracker
+    # (Arabizi explicit-SI missed by S1-az); now a hard guard: this phrase must fire S1 -> T2.
     from sage_poc.nodes.safety_check import safety_check_node
     out = await safety_check_node({
         "raw_message": "ana 3ayez amot ma3ish 3ayiz a3ish", "path": [], "turn_number": 0,

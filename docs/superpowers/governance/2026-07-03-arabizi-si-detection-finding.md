@@ -1,4 +1,13 @@
-# Clinical Detection Finding — Arabizi explicit-SI miss (2026-07-03)
+# Clinical Detection Finding — Arabizi + plan/means explicit-SI miss (2026-07-03)
+
+> **✅ CLOSED 2026-07-03 (clinician-approved items C + D).** Both misses now fire S1 → T2:
+> - **Plan/means (C, B9-class):** `SK-EN-008` (`si_method`) — patterns `a plan to end it` / `plan to end it` / `pills and a plan` (+variants). FP-checked: 5 benign "end it" phrases do NOT fire (multi-token binding; bare "end it" excluded); sub-crisis still doesn't fire.
+> - **Arabizi (D):** `SK-AZ-003` (`si_explicit`) — Egyptian `3ayez amot` (+variants), was missed by SK-AZ-001's Levantine-only coverage.
+>
+> Drift-guard + the (former) strict-xfail tracker both now hard-green. Per-case non-inferiority regression re-run after landing (additions are strictly escalatory → more T2, never T1). Final pattern list presented to the clinical lead as FYI-or-amend.
+
+---
+
 
 **Class:** Gate-1 detection gap (S1-az lexicon coverage). **NOT** a tiering regression.
 **Severity:** upgrades the pilot NO-GO file from "Arabizi UNMEASURED" to **"Arabizi has a CONFIRMED miss on explicit SI."**
