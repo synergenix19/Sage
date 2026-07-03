@@ -1,4 +1,13 @@
-# Clinical Detection Finding — Arabizi explicit-SI miss (2026-07-03)
+# Clinical Detection Finding — Arabizi + plan/means explicit-SI miss (2026-07-03)
+
+> **✅ CLOSED 2026-07-03 (clinician-approved items C + D).** Both misses now fire S1 → T2:
+> - **Plan/means (C, B9-class):** `SK-EN-008` (`si_method`) — patterns `a plan to end it` / `plan to end it` / `pills and a plan` (+variants). FP-checked: 5 benign "end it" phrases do NOT fire (multi-token binding; bare "end it" excluded); sub-crisis still doesn't fire.
+> - **Arabizi (D):** `SK-AZ-003` (`si_explicit`) — Egyptian `3ayez amot` (+variants), was missed by SK-AZ-001's Levantine-only coverage.
+>
+> Drift-guard + the (former) strict-xfail tracker both now hard-green. Per-case non-inferiority regression re-run after landing (additions are strictly escalatory → more T2, never T1). Final pattern list presented to the clinical lead as FYI-or-amend.
+
+---
+
 
 **Class:** Gate-1 detection gap (S1-az lexicon coverage). **NOT** a tiering regression.
 **Severity:** upgrades the pilot NO-GO file from "Arabizi UNMEASURED" to **"Arabizi has a CONFIRMED miss on explicit SI."**
@@ -15,6 +24,9 @@ Input (Arabizi, explicit SI): **`"ana 3ayez amot ma3ish 3ayiz a3ish"`** ("I want
 
 ## Why this is Gate-1, not tiering
 The phrase fires nothing, so it is missed with or without tiering — non-inferiority holds (proof 2: regression set = 0). **Compounding factor, stated for the record:** the fail-closed language gate we shipped means Arabizi routing is *safe once a signal fires* (any Arabizi/mislabelled-EN fired signal → T2). **The entire exposure is in FIRING** — i.e. S1-az lexicon coverage and S2/MARBERT — not in routing.
+
+## Lesson for the S2/MARBERT workstream — Arabizi coverage is per-dialect, not transferable
+The original miss was **dialect-shaped**: SK-AZ-001 covered Levantine (`bidi amoot`) but not Egyptian (`3ayez amot`), so an Egyptian speaker's explicit SI fell through. **Arabizi lexicon (and any Arabizi eval set) must be enumerated per dialect — Egyptian, Levantine, Gulf, etc. — not assumed transferable across them.** S2/MARBERT dialectal coverage must be validated per-dialect for the same reason.
 
 ## Remediation (normal clinician workflow — NOT patched inline)
 `3ayez amot`, `ma3ish 3ayiz a3ish`, and their variants go to the clinician team as **candidate S1-az lexicon entries** via the standard draft → review → approve rule workflow (Cardinal Rule 4: S1 lexicon is clinician-authored content, not an engineering edit). Owner: S1-az / Arabizi workstream ([[project_arabizi_support]]).
