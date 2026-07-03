@@ -7,6 +7,20 @@
 
 ---
 
+## PRODUCT-OWNER RISK ACCEPTANCE — G8 helpline deferral (2026-07-03)
+**Decision:** G8 reclassifies from "blocks all crisis-copy" to **"blocks external/pilot exposure."** The dial-test + W7 commit-2 + L0 re-sign are **not** required for the internal-testing phase; they become a **hard release gate for any exposure beyond the internal cohort** (pilot, clinician-external testers, CDA demo, live users).
+
+**What stays true during internal testing:** the app continues to emit `800 46342` labelled "MoHAP Counselling Line" with a "free, 24/7" claim.
+
+**Residual risk (accepted, stated plainly):** internal testers are still people, and the RCA round itself produced genuinely distressed-sounding transcripts. **Bound on the risk:** `999` is co-listed and correct, and `800 46342` **connects to a real support service (IWRC) — mislabelled, not dead.** That is the risk being accepted.
+
+**Owner:** Product owner (synergenix). **Date:** 2026-07-03. **Review trigger:** first approaching external-exposure milestone.
+**Signature:** ______________________
+
+**Unchanged by the deferral:** W7 commit-2 (value + label + hours + L0 re-sign + 5 skill JSONs) stays **fully staged on the branch, cherry-pick-ready** — the deferral moves *when* it lands, not *whether* the work is done.
+
+---
+
 ### G1 — The T1/T2 boundary  *(blocks W1)*
 **Decision:** Does bare hopelessness / low mood / "burden" — with **no** stated intent, plan, or means — belong in the new warm tier (T1) rather than the RED crisis tier (T2)?
 **Recommendation:** **Yes.** Route to **T1 (warm)**: "I feel hopeless / low / empty / worthless / like a burden," and English semantic-only (S3-solo) signals. Keep **T2 (RED)** for: any stated intent/plan/means, explicit self-harm, command hallucinations, and all S1 keyword hits (`si_explicit`/`si_passive`). Arabic/Arabizi semantic hits stay **T2** (keyword coverage is weaker there). *Rationale: matches the signed-off L0 line "ordinary sadness/overwhelmed is not a crisis and needs warmth, not a safety check"; production is currently violating it.*

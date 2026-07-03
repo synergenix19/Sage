@@ -34,6 +34,10 @@ CRISIS_CONFIG = {
 # Back-compat alias for existing importers during the migration.
 CRISIS_LINE_UAE = CRISIS_CONFIG["number"]
 
+# v7.1 crisis tiering (G1). Default OFF -> routing reads is_safe exactly as v7/master
+# (Check B provable). ON -> _route_after_safety routes on crisis_tier (T2 crisis / T1 warm).
+CRISIS_TIERING_ENABLED = os.getenv("SAGE_CRISIS_TIERING", "false").lower() == "true"
+
 # Knowledge retrieval abstain floor. POC shipped 0.0 (never abstain), which surfaced weak
 # RRF passages as authoritative (feedback #5 "Google is better"). Interim conservative default
 # 0.015 (just above single-list rank-2+ RRF noise with k=60); finalize via

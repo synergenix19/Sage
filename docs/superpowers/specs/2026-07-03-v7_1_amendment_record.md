@@ -59,5 +59,12 @@ No reader silently changes behavior; each is a line here. A future change to `is
 ## Check B — definition (deterministic surfaces only)
 Freeflow output is LLM-generated and non-deterministic even on master, so a literal byte-identical corpus replay proves nothing. **B = with the flag OFF, byte-identical on all DETERMINISTIC surfaces:** routing decisions (`gate_path` / node path per corpus case), canned/crisis/monitoring copy, audit rows (minus timestamps), and state writes. Provable by driving the safety corpus through the graph with **generation stubbed** — no model run.
 
+## Flag governance — `CRISIS_TIERING_ENABLED`
+Follows the established codebase convention of `D5_ACUITY_GATE_ENABLED` / `SKILL_OFFER_COOLDOWN_ENABLED`: **GATED, default OFF, merging the branch does NOT make it live, and the flip is an explicit, logged, signed decision** — not an auto-flip. Discoverable by convention, not just this conversation.
+
+**Two flip-gate lists (G8 re-sequenced 2026-07-03 — see sign-off packet risk acceptance):**
+- **INTERNAL flip** (internal test cohort only) requires: G1–G4 signed (done) · A–H audit clean · per-case fail-closed regression green · deterministic B replay green · tester-battery replay diffs in the packet. **G8 is NOT on this list.**
+- **EXTERNAL exposure** (pilot, clinician-external testers, CDA demo — anything beyond the internal cohort) additionally requires: **G8 cleared** = dial-test of `800 4673` + W7 commit-2 (value/label/hours swap) + L0 fast-track re-sign + the 5 skill-JSON edits. This is a hard release gate.
+
 ## Scope guards (unchanged from §H)
 Detection sensitivity untouched; T2 floor absolute; flag OFF until G8 clears + the recall regression is green + the staging tester-battery replay is attached to the clinician packet.
