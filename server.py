@@ -605,10 +605,14 @@ async def health_version():
     Exposes the baked git SHA and the resolved crisis-tier flag + its raw env value (repr-style).
     Added after the 2026-07-03 rollout where stale-build-cache served old code under a green deploy.
     """
+    import sage_poc
     return {
         "build_sha": os.environ.get("SAGE_BUILD_SHA", "unknown"),
         "crisis_tiering_enabled": CRISIS_TIERING_ENABLED,
         "crisis_tiering_raw_env": os.environ.get("SAGE_CRISIS_TIERING"),
+        # Which sage_poc is actually imported — /app/src (copied source) vs site-packages (stale wheel).
+        # This is how we confirm the Dockerfile fix landed instead of inferring it.
+        "sage_poc_path": getattr(sage_poc, "__file__", "unknown"),
     }
 
 
