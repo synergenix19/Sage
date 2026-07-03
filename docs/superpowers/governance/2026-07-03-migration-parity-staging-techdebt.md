@@ -23,3 +23,13 @@ Same weight as the CI-cannot-enforce-required-checks item — both are safety/da
 **Mitigations shipped (PR #90/#91):** (a) code default flipped ON so tiering no longer depends on injection; (b) strict fail-safe parse (only `"false"` disables — empty/garbage → signed default); (c) boot-observable log of the resolved flag + raw env. **Consequence going forward:** don't rely on Railway var injection for safety-critical toggles; assert runtime state from the boot log, not the config UI.
 
 **Pattern:** two infra findings from one rollout (migration parity + env injection) — worth a paragraph in the Full-Build infra review, and a mild argument for the **Azure target env** in v7 proper.
+
+---
+
+# Third infra finding (same rollout) — Railway deploy cutover unreliable
+
+**2026-07-03, staging `sage-api`.** New builds passed healthcheck and were reported **active/SUCCESS** (`4c3e6bb8`, `5a521a2c`, `78ea56da`), yet **traffic kept serving stale code**: the #89 lexicon fired (post-#89 serving) but the #90 default-ON + #91 strict-parse behaviour never took effect (`hopeless`→OFF with the var UNSET, which #91 makes impossible for live post-#91 code) and the #91 `[sage/startup]` boot log never appeared. i.e. the serving container was pinned post-#89/pre-#90 while the dashboard reported the newest deployment active. Reproduced across `railway up`×3, `railway variables --set`×2 + delete, `railway redeploy`/restart×2.
+
+**Impact:** you cannot trust `railway up ... SUCCESS` as proof that new code is serving. Verify with a **behavioural probe + boot log**, not the deploy status. This is why the crisis-tier flip could not be validated on staging from the CLI.
+
+**Combined pattern (3 findings, one rollout):** (1) migrations don't reach staging; (2) env vars not injected into containers; (3) deploys don't cut over. All three are **deployment-substrate reliability** gaps. Strong, concrete input for the **v7 Full-Build case to move the target env to Azure**, where deployment cutover and env application are contractually observable. Mitigation already shipped in-code: default-ON (independent of injection) + strict parse (immune to mangled values) + boot-observable flag log (turns "is new code serving?" into a log read).
