@@ -68,6 +68,7 @@ class SageState(TypedDict):
     knowledge_source: str           # "node_6" | "tool_lookup" | "" (empty when no retrieval)
     knowledge_query_raw: str        # query as submitted (pre-normalization)
     knowledge_query_searched: str   # query actually searched (post-normalization)
+    knowledge_top_similarity: float | None  # best cosine sim in the returned pack; drives abstain
 
     gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak", "crisis"]]
 

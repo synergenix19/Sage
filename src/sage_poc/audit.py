@@ -112,6 +112,7 @@ def _build_session_audit_row(state: SageState) -> dict:
         "knowledge_abstain":      bool(state.get("knowledge_abstain", False)),
         "knowledge_query_raw":      state.get("knowledge_query_raw") or None,
         "knowledge_query_searched": state.get("knowledge_query_searched") or None,
+        "knowledge_top_similarity": state.get("knowledge_top_similarity"),
         "crisis_state":           state.get("crisis_state"),
         "crisis_flags":           state.get("crisis_flags") or [],
         "s3_score":               state.get("s3_score"),  # advisory; see CRADLE sweep 2026-06-05

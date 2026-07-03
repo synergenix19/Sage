@@ -14,3 +14,8 @@ def test_audit_record_includes_raw_and_searched_query():
     record = _build_session_audit_row(state)
     assert record["knowledge_query_raw"] == "أنا قلقان"
     assert record["knowledge_query_searched"] == "انا قلقان"
+
+
+def test_audit_record_includes_top_similarity():
+    rec = _build_session_audit_row({"knowledge_source": "node_6", "knowledge_top_similarity": 0.11})
+    assert rec["knowledge_top_similarity"] == 0.11

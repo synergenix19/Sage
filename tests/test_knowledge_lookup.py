@@ -184,7 +184,11 @@ def test_knowledge_lookup_trace_extracts_from_toolmessage():
     ai = AIMessage(content="", tool_calls=[{"name": "knowledge_lookup", "args": {"query": "أنا قلقان"}, "id": "call_1"}])
     tool = ToolMessage(content=json.dumps({"passages": [], "abstain": True, "query_raw": "أنا قلقان", "query_searched": "انا قلقان"}), tool_call_id="call_1")
     trace = _knowledge_lookup_trace([ai, tool])
-    assert trace == {"knowledge_query_raw": "أنا قلقان", "knowledge_query_searched": "انا قلقان"}
+    assert trace == {
+        "knowledge_query_raw": "أنا قلقان",
+        "knowledge_query_searched": "انا قلقان",
+        "knowledge_top_similarity": None,
+    }
 
 
 def test_knowledge_lookup_trace_empty_when_not_fired():
