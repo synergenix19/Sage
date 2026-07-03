@@ -219,6 +219,30 @@ def test_tiering_kill_switch_false_disables():
     assert val == "False", f"kill-switch (=false) did not disable: {val!r} / {err!r}"
 
 
+# ── Strict fail-safe kill-switch parse (2026-07-03) — only a literal "false" disables ──────────
+# A Railway env-injection bug delivered an EMPTY value to the container; under a `== "true"` parse
+# that silently disabled tiering (""!="true"). The kill-switch must require INTENT: only "false"
+# kills it; unset / empty / whitespace / garbage -> the signed default (ON), + a WARNING for garbage.
+
+def test_strict_parse_empty_string_is_ON():
+    # THE BUG: injection delivered "" -> must NOT disable the crisis path. Empty -> signed default ON.
+    val, err = _config_flag_with_env({"SAGE_CRISIS_TIERING": ""})
+    assert val == "True", f'empty string disabled tiering (the injection-bug failure mode): {val!r} / {err!r}'
+
+
+def test_strict_parse_garbage_is_ON_with_warning():
+    # Unexpected value -> apply signed default (ON) AND warn (do not silently flip the crisis path).
+    val, err = _config_flag_with_env({"SAGE_CRISIS_TIERING": "yes-ish"})
+    assert val == "True", f"garbage value disabled tiering: {val!r} / {err!r}"
+    assert "SAGE_CRISIS_TIERING" in err and "unexpected" in err.lower(), f"no warning for garbage value: {err!r}"
+
+
+def test_strict_parse_false_whitespace_case_still_disables():
+    # The kill-switch must survive whitespace/case: "FALSE " (with space) -> OFF via strip().lower().
+    val, err = _config_flag_with_env({"SAGE_CRISIS_TIERING": "FALSE "})
+    assert val == "False", f'"FALSE " did not disable (strip/lower): {val!r} / {err!r}'
+
+
 @pytest.mark.asyncio
 async def test_plan_means_phrase_never_resolves_T1_drift_guard():
     # DRIFT GUARD (Finding 2, more serious than the Arabizi miss): "i have pills and a plan to
