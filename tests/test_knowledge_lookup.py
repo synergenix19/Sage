@@ -105,3 +105,66 @@ async def test_knowledge_lookup_falls_back_to_abstain_when_no_pool():
     data = json.loads(raw)
     assert data["abstain"] is True
     assert data["passages"] == []
+
+
+@pytest.mark.asyncio
+async def test_tool_arabic_query_normalized_before_search():
+    """Tool path: an Arabic tool query reaches _search normalized. Observed at
+    _search (non-vacuous)."""
+    from sage_poc.knowledge.models import KnowledgeResult
+    from sage_poc.knowledge.postgres_repository import PostgresKnowledgeRepository
+    from sage_poc.nodes.tools.knowledge_lookup import make_knowledge_lookup_tool
+
+    seen = {}
+
+    async def fake_search(self, query, language="en", top_k=5):
+        seen["query"] = query
+        return KnowledgeResult(passages=[], abstain=True)
+
+    tool = make_knowledge_lookup_tool(language="ar")
+    with patch.object(PostgresKnowledgeRepository, "_search", fake_search):
+        with patch("sage_poc.nodes.tools.knowledge_lookup._get_pool", return_value=MagicMock()):
+            await tool.ainvoke({"query": "أنا قلقان"})
+
+    assert seen["query"] == "انا قلقان"
+
+
+@pytest.mark.asyncio
+async def test_tool_english_query_in_arabic_conversation_not_normalized():
+    """Language flag is 'ar' but the LLM-authored query is English — script
+    gating means it is NOT normalized (reaches _search unchanged)."""
+    from sage_poc.knowledge.models import KnowledgeResult
+    from sage_poc.knowledge.postgres_repository import PostgresKnowledgeRepository
+    from sage_poc.nodes.tools.knowledge_lookup import make_knowledge_lookup_tool
+
+    seen = {}
+
+    async def fake_search(self, query, language="en", top_k=5):
+        seen["query"] = query
+        return KnowledgeResult(passages=[], abstain=True)
+
+    tool = make_knowledge_lookup_tool(language="ar")  # Arabic conversation
+    with patch.object(PostgresKnowledgeRepository, "_search", fake_search):
+        with patch("sage_poc.nodes.tools.knowledge_lookup._get_pool", return_value=MagicMock()):
+            await tool.ainvoke({"query": "what is CBT?"})   # English query
+
+    assert seen["query"] == "what is CBT?"   # untouched
+
+
+@pytest.mark.asyncio
+async def test_tool_json_includes_query_trace():
+    from sage_poc.knowledge.models import KnowledgeResult
+    from sage_poc.knowledge.postgres_repository import PostgresKnowledgeRepository
+    from sage_poc.nodes.tools.knowledge_lookup import make_knowledge_lookup_tool
+
+    async def fake_search(self, query, language="en", top_k=5):
+        return KnowledgeResult(passages=[], abstain=True)
+
+    tool = make_knowledge_lookup_tool(language="ar")
+    with patch.object(PostgresKnowledgeRepository, "_search", fake_search):
+        with patch("sage_poc.nodes.tools.knowledge_lookup._get_pool", return_value=MagicMock()):
+            raw = await tool.ainvoke({"query": "أنا قلقان"})
+
+    data = json.loads(raw)
+    assert data["query_raw"] == "أنا قلقان"
+    assert data["query_searched"] == "انا قلقان"

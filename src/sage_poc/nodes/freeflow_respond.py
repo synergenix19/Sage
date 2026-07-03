@@ -1,3 +1,5 @@
+import json
+
 from sage_poc.state import SageState
 from sage_poc.llm import get_responder, get_fallback_responder
 from sage_poc.prompts import compose_prompt, PERSONA  # re-exported for backward compat
@@ -40,6 +42,23 @@ def _knowledge_lookup_fired(messages: list) -> bool:
                 if tc.get("name") == "knowledge_lookup":
                     return True
     return False
+
+
+def _knowledge_lookup_trace(messages: list) -> dict:
+    """Extract query_raw/query_searched from the last knowledge_lookup tool result."""
+    for msg in reversed(messages or []):
+        name = getattr(msg, "name", None) or (isinstance(msg, dict) and msg.get("name"))
+        if name == "knowledge_lookup":
+            content = getattr(msg, "content", None) or (isinstance(msg, dict) and msg.get("content"))
+            try:
+                data = json.loads(content)
+                return {
+                    "knowledge_query_raw": data.get("query_raw", ""),
+                    "knowledge_query_searched": data.get("query_searched", ""),
+                }
+            except (TypeError, ValueError):
+                return {}
+    return {}
 
 
 async def _invoke_with_tool_loop(
@@ -177,6 +196,7 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
     knowledge_source_update = {}
     if _knowledge_lookup_fired(tool_ai_messages):
         knowledge_source_update = {"knowledge_source": "tool_lookup"}
+        knowledge_source_update.update(_knowledge_lookup_trace(tool_ai_messages))
 
     return {
         "response_en":              response,

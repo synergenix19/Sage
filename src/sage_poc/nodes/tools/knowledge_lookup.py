@@ -54,6 +54,8 @@ def make_knowledge_lookup_tool(language: str = "en"):
             return json.dumps({
                 "passages": [p.to_dict() for p in result.passages],
                 "abstain": result.abstain,
+                "query_raw": result.query_raw,
+                "query_searched": result.query_searched,
             })
         except Exception as exc:
             _log.warning("[knowledge_lookup] retrieval failed: %s", exc)
