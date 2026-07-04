@@ -4,6 +4,7 @@ from sage_poc.state import SageState
 from sage_poc.llm import get_classifier, get_fallback_classifier
 from sage_poc.resilience import resilient_invoke
 from sage_poc.nodes.directive_detect import detect_directive_request
+from sage_poc.skills.keyword_matcher import ranked_skill_matches
 from sage_poc.conversation_stall import detect_stall
 from sage_poc.nodes.self_reference_detect import detect_self_reference
 
@@ -162,6 +163,15 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
         # Deterministic recall signal; sole consumer is the composer eviction-exemption.
         "self_reference": detect_self_reference(state),
     }
+    # v7.2 Node-2 keyword pre-pass (rules-first, Cardinal Rule 5). Deterministic skill-trigger match
+    # emitting a routing HINT only — the classifier above still owns primary_intent + engagement/
+    # intensity. _route_after_intent redirects a would-be-freeflow general_chat turn to skill_select
+    # when this matched, so skill-worthy phrasings the classifier mislabels still reach Node 4.
+    _prepass = ranked_skill_matches(
+        state.get("message_en", ""), state.get("raw_message", ""), state.get("detected_language", "en"),
+    )
+    result["prepass_matched"] = _prepass
+    result["prepass_rule_id"] = "prepass_kw_v1" if _prepass else None
     offered = state.get("offered_skill_ids") or []
     if offered:
         offer_response = data.get("offer_response")

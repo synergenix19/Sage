@@ -10,6 +10,7 @@ import numpy as np
 from sage_poc.state import SageState
 from sage_poc.skill_ids import SKILL_REGISTRY
 from sage_poc.skills.schema import load_skill
+from sage_poc.skills.keyword_matcher import match_skill_keywords
 from sage_poc.resilience import EMBEDDING_TIMEOUT_SECONDS
 from sage_poc.observability import stage_timer
 from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP, SEMANTIC_EXCLUSION_WORDS
@@ -440,15 +441,9 @@ async def skill_select_node(state: SageState) -> dict:
     # ever being reached (stable sort preserves registry order on ties).
     # For Arabic sessions, also match against raw_message (Arabic-script keywords
     # cannot match a translated English string). Backlog R1: language-tagged rules.
-    kw_matches: dict[str, int] = {}   # skill_id -> longest matched keyword length
-    for skill_id, skill in _SKILLS.items():
-        if skill_id in KEYWORD_SEMANTIC_SKIP:
-            continue
-        for keyword in skill.target_presentations:
-            kw_lower = keyword.lower()
-            if kw_lower in message_en or (detected_language == "ar" and kw_lower in raw_message):
-                if len(kw_lower) > kw_matches.get(skill_id, 0):
-                    kw_matches[skill_id] = len(kw_lower)
+    # Shared matcher (v7.2): the SAME helper the Node-2 keyword pre-pass uses, so the two nodes can
+    # never diverge (single-sourced from skill JSON target_presentations). Identical logic to before.
+    kw_matches: dict[str, int] = match_skill_keywords(message_en, raw_message, detected_language)
 
     if kw_matches:
         ranked_kw = sorted(kw_matches.items(), key=lambda x: x[1], reverse=True)

@@ -698,6 +698,7 @@ async def output_gate_node(state: SageState) -> dict:
             "primary_intent": state.get("primary_intent"),
             "active_skill": state.get("active_skill_id") or state.get("completed_skill_id"),
             "skill_match_method": state.get("skill_match_method"),
+            "prepass_rule_id": state.get("prepass_rule_id"),  # v7.2 Node-2 keyword pre-pass provenance
             "semantic_score": state.get("semantic_score"),
             "executed_step": state.get("executed_step_id"),
             "next_step": state.get("active_step_id"),
