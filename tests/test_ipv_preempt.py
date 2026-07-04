@@ -11,7 +11,10 @@ import json
 from pathlib import Path
 
 import sage_poc.config as config
+from sage_poc.audit import _build_session_audit_row
+from sage_poc.graph import _route_after_safety
 from sage_poc.nodes.ipv_preempt import EXPANSION_PHRASES, apply_ipv_preempt
+from sage_poc.nodes.safety_check import safety_check_node
 from sage_poc.nodes.skill_select import skill_select_node
 
 _FIXTURE = Path("tests/fixtures/bot_behaviour/ipv_e7_recall.json")
@@ -140,3 +143,58 @@ def test_step3_referral_adaptation_fires_on_domestic_situation_path():
     assert "PI-CF-005" in {r.rule_id for r in result.fired}
     assert "safety" in system.lower()
     assert "800111" in system or "Ewaa" in system  # DFWAC / Ewaa referral resources present
+
+
+# ============================================================================
+# STEP 4 — integration precedence + two-turn persistence (hardening condition)
+# ============================================================================
+
+def _safety_state(message: str, **overrides) -> dict:
+    base = {
+        "raw_message": message, "message_en": message, "detected_language": "en",
+        "is_safe": True, "crisis_flags": [], "clinical_flags": [], "new_clinical_flags_turn": [],
+        "third_party_crisis": False, "crisis_state": "none", "s3_score": None,
+        "s7_result": None, "s7_method": None, "re_escalation_within_monitoring": None,
+        "monitoring_clear_turns": 0, "distress_trajectory": [], "engagement_trajectory": [],
+        "active_skill_id": None, "engagement": 7, "emotional_intensity": 5,
+        "therapeutic_profile": None, "turn_count": 0, "turn_number": 0, "path": [],
+        "session_id": "test-e7", "conversation_history": [],
+    }
+    base.update(overrides)
+    return base
+
+
+def test_step4_turn1_crisis_ipv_multihit_crisis_wins_ipv_audited(monkeypatch):
+    # B0 deferred-router proof: one message trips BOTH crisis and IPV. Crisis wins routing; IPV is
+    # NOT dropped — it rides fired_safety_routes AND the audit row (§4.5 never-dropped, end-to-end).
+    monkeypatch.setattr(config, "ROUTE_PRECEDENCE_ENABLED", True)
+    monkeypatch.setattr(config, "IPV_PREEMPTION_ENABLED", True)
+    st = _safety_state("I want to kill myself and I'm scared of them")
+    out = asyncio.run(safety_check_node(st))
+    merged = {**st, **out}
+    assert out["is_safe"] is False
+    assert _route_after_safety(merged) == "crisis"          # crisis wins the turn
+    assert out["precedence_winner"] == "crisis"
+    assert "ipv" in out["fired_safety_routes"]               # IPV recorded, not dropped
+    assert "domestic_situation" in out["clinical_flags"]
+    row = _build_session_audit_row(merged)
+    assert row["precedence_winner"] == "crisis"
+    assert "ipv" in row["fired_safety_routes"]               # ... and audited
+
+
+def test_step4_turn2_persisted_ipv_flag_still_suppresses_section6(monkeypatch):
+    # The two-turn persistence property a single-turn test misses: turn 2's message has NO IPV
+    # phrase, yet domestic_situation persists via safety_check cross-turn carry-forward (flag
+    # immutable within session), so the §6 skill is STILL suppressed on turn 2.
+    monkeypatch.setattr(config, "IPV_PREEMPTION_ENABLED", True)
+    st = _safety_state("how do I start setting boundaries",
+                       clinical_flags=["domestic_situation"], crisis_state="monitoring")
+    out = asyncio.run(safety_check_node(st))
+    assert "domestic_situation" in out["clinical_flags"]      # carried forward
+    # guard: this turn's text alone must NOT set the flag -> proves persistence, not re-detection
+    assert not apply_ipv_preempt(
+        {"message_en": "how do I start setting boundaries", "clinical_flags": []}
+    ).get("clinical_flags")
+    sel = _select("how do I start setting boundaries", clinical_flags=list(out["clinical_flags"]))
+    assert "assertive_communication" not in _picked(sel)
+    assert "ipv_preempt_suppressed" in sel["path"]
