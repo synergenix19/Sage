@@ -72,7 +72,43 @@ Every content type in the spec maps one-to-one onto a v7 ownership surface. "Cli
 **Inventory-doc staleness (finding).** `docs/SageAI_Skills_Knowledge_Base.md` lists 24 skills (SK-001–024) + 4 proposed, but `skills/*.json` has **27** — it omits `psychotic_referral`, `act_psychological_flexibility`, and `problem_solving_therapy` (the last listed as *proposed* SK-028 while its JSON ships). The inventory doc needs a refresh; destinations above are verified against the JSON dir (ground truth), not the doc.
 
 ## §3 — Reconcile register
-*pending (each item names its re-sign path: skill copy → clinical CMS re-approval; L0 → L0 re-sign)*
 
-## §4 — New content-skills + deferred enhancements
-*pending (each new skill carries an `evidence_base` obligation — schema-mandatory, clinician-sourced)*
+The subset from §2 where spec copy **adjusts already-signed behaviour**. Each names its **re-sign path — one of three**: **CMS** (clinical CMS content re-approval) · **L0** (L0/output_gate re-sign, same authority as the helpline payload) · **RECORD** (approval-record amendment, because it touches an extension-governed artifact). Split rows name both.
+
+| Item | What it adjusts | Re-sign path | Note |
+|---|---|---|---|
+| §1a–1c tier-specific validating statements | replace the generic openers in the acute-anxiety skills | **CMS** | tiering *mechanism* is E1/E2 (already in the record); only the copy reconciles |
+| §2b Life Compass domain menu | restructures `values_clarification` step content | **CMS** | domain-menu is skill-internal content |
+| §3a safety-question woven into preliminary | inserts a direct safety question into `behavioral_activation` intake | **CMS** (clinical) | safety-relevant placement — clinician-owned |
+| §5a micro-action BA variant | lower-bar variant of `behavioral_activation` | **CMS** | |
+| §6a coercive-control pre-empt | **SPLIT:** `coaching_confrontation` class + pre-emption behaviour = **RECORD (E7)**; referral wording = **CMS** | RECORD + CMS | mechanism vs copy |
+| S2a grief presence-mode | reframes `grief_loss` opening (companionship, not "fixing") | **CMS** | |
+| HR §HR protocol shape | **SPLIT:** distress-rating-first step + escalate-by-distress = **RECORD (E4)**; standardized message wording = **CMS** (conversion doc) | RECORD + CMS | mechanism vs copy |
+| §C behavioral guardrails (to-add) | adds "no categorical confidentiality claims" to crisis copy / persona | **L0** | cross-cutting rule (§1 row 5); not per-skill tone |
+| Check-in format (1–10 → three-button) | structured-response affordance, not copy | **RECORD/deferred** (§4 enhancement) | frontend + API; degrades to text today |
+
+## §4 — New content-skills, deferred enhancements & tracked fixes
+
+New skills each carry an **`evidence_base`** obligation — schema-mandatory, so "new skill" can never mean "unsourced skill." The inventory may *suggest* a citation candidate; it is marked **proposed** — the clinical lead sources/confirms. **POC-priority** reads each item against the ingestion plan's phases (Phase C = anxiety family) so the backlog isn't undifferentiated.
+
+**New skills:**
+| Skill | Serves | POC-priority | evidence_base (proposed — clinician confirms) |
+|---|---|---|---|
+| Worry Tree | §1d, §1e | **POC** (anxiety family / Phase C) | Butler & Hope (1995); GAD worry-tree literature — *proposed* |
+| Fact vs Opinion | §3b | POC-candidate (may fold into `cognitive_restructuring`✓) | Beck (1979); Burns (1980) — *proposed* |
+| Emotions Wheel | §4a | post-POC | Plutchik (1980); Feldman Barrett (2017) — *proposed* |
+| Wins-Log | §5b | post-POC | Fava well-being therapy; positive-psychology — *proposed* |
+| Draft/Role-Play | §6c | post-POC | assertiveness rehearsal literature — *proposed* |
+| Kind Self-Talk | S4a | post-POC | Neff (2011); Gilbert CFT — *proposed* |
+| Myths vs Facts (self-compassion) | S4b | post-POC | Neff (2011) self-compassion myths — *proposed* |
+| Handling Setbacks | S4c | post-POC | growth-mindset / CFT — *proposed* |
+| Life Compass domains | §2b | post-POC (or reconcile into `values_clarification`✓ — see §3) | Hayes ACT (1999) — *proposed* |
+
+**New psychoed content:** §4b Understanding Emotions (no `emotions-00x` KB article — new article/skill, post-POC); §6d Understanding Assertiveness (`KB:assertiveness-001` present; extend, post-POC); §7c How Do I Connect (`KB:relationships-001` present; extend, post-POC).
+
+**Deferred UX enhancements:** structured-UI check-in (three-button *Better/Same/Worse*) and selectable topic menus — both degrade to text via the offer/intent pattern today; post-POC, frontend + API.
+
+**Tracked governance fix (onward routing):** refresh `docs/SageAI_Skills_Knowledge_Base.md` from 24 → **27 skills** (add `psychotic_referral`, `act_psychological_flexibility`, `problem_solving_therapy`; correct SK-028 status). It is the project protocol's cited reference inventory, so its drift from `skills/*.json` is a **governance defect**, not cosmetic. Priority: **now** (cheap). *(The orphan signal — `mi_readiness_ruler` / `cbt_thought_record` unreferenced by the spec — is routed to the clinical lead via PR #114, being a deliberate-omission-vs-oversight question only they can answer.)*
+
+---
+*Inventory complete — §0–§4. Proves every content type has a tunable clinician-editable home (§1), accounts for all 35 categories against verified destinations (§2), isolates the signed-behaviour-touching subset with re-sign routes (§3), and tracks the new-content backlog against the plan with sourcing obligations (§4). Content population remains the iterative lane; this document is its map, not its transcript.*
