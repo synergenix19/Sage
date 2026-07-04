@@ -46,7 +46,7 @@ Precedence across these routes is a binding convention, not an extension — see
 | E4 mania / dissociation | ≥95% | **0% / 0%** — no triggers exist |
 | E7 IPV | ≥95% | **32%** (physical-abuse 100%, control 43%, **fear-of-reaction/threat 0%**); precision 100% |
 
-The E4 numbers are the measured keyword-only ceiling the Gap #65 decision needs (§5 of the plan); the E7 numbers quantify the §6a phrase-table expansion.
+The E4 numbers are the measured keyword-only ceiling the Gap #65 decision needs (§5 of the plan); the E7 numbers quantify the §6a phrase-table expansion. **Caveat (same class as the Arabic fixture debt):** these were measured on the POC compiled `safety_check` — the right instrument for POC gates, but **per-row results must be re-confirmed on the production detector configuration before any gate is declared production-satisfied.**
 
 ---
 

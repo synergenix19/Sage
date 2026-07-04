@@ -160,9 +160,11 @@ Each carries an **owner** and a **resolution form** — a dependency without bot
 *Owner:* engineering + clinical lead (joint). *Resolution form:* a choice among three outcomes, each with a mapped consequence for E4/E7 gate feasibility —
 | Outcome | Consequence |
 |---|---|
-| (a) keyword-only suffices for POC gates | E4/E7 ≥95% achievable on keyword fixtures; no semantic tier for POC |
+| ~~(a) keyword-only suffices for POC gates~~ **— ELIMINATED by measurement (2026-07-04)** | Baseline is psychosis 6.7% / mania 0% / dissociation 0% / E7 fear-threat 0%. Reaching ≥95% from a 0–6.7% base is a **category error, not a tuning gap** — keyword-only cannot get there. Struck from the live options. |
 | (b) semantic tier required | E4/E7 recall gates need a MARBERT/semantic tier before they can pass; added scope, mirrors crisis S1→S2 |
 | (c) hybrid — keyword for POC, semantic deferred to production | E4/E7 pass POC on keyword with a documented production-recall obligation (like the Arabic debt) |
+
+**Live options after measurement: (b) or (c) only.** The evidence narrows the field but does not make the call — the joint eng+clinical owners choose between semantic-tier-now (b) and hybrid-with-deferral (c), which is a scope/timeline decision the measurement informs but does not settle.
 *Must be answered before E4/E7 recall targets are treated as achievable-as-specified.* **Measured evidence now available (harness PR #115, 2026-07-04):** the keyword-only ceiling is E4 psychosis **6.7%** (1/15), mania **0%**, dissociation **0%**; E7 fear-of-reaction/threat **0%**. Keyword-only cannot approach ≥95% on these classes — the decision has evidence, not speculation, and points to outcome (b) semantic tier or (c) hybrid. This is a decision input, not a decision (the clinical+eng call still stands).
 
 **§5.3 — GL-0 crisis recall.**
