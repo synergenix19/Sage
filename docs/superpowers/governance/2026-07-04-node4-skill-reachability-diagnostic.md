@@ -20,3 +20,24 @@ v7 frames mood check-in as **optional per-session, PROM-like** → proactive off
 
 ## Cheap next diagnostic (deferred)
 Sample prod `node_path` + the classified intent for a set of known KB-trigger phrases ("I can't sleep", "I keep worrying") to measure how often natural pattern-2 phrasings reach `skill_select` vs freeflow — quantifies the calibration gap before deciding (a)-calibration vs §4.2-deviation.
+
+## W6 MEASURED PASS (2026-07-04) — non-determinism DISSOLVED; deterministic misclassification is the real gap
+**Temp-0 check:** `intent_route` classifier is ALREADY `temperature=0` (`_LLM_CONFIGS["classifier"]`). No decoding fix to grab.
+
+**Consistency battery (N=5/phrase, local, `scripts/w6_routing_diagnostic.py consistency`):** ALL phrases STABLE (5/5 identical). **The "LLM non-determinism" hypothesis is DISPROVEN** — the classifier is deterministic; my earlier prod "inconsistency" was pipeline/session-state confounds in the probes, not classifier variance. Corrects the CORRECTION above.
+
+**The real gaps are DETERMINISTIC misclassifications (intent_route / Node 2):**
+| Phrase | Classified (5/5) | Routes to | Should |
+|---|---|---|---|
+| "how are you tracking my mood today" (EN mood) | `info_request` | skill_select→**knowledge_retrieve** (info path) — mood offered but turn answers as info; score_mood never enters | `new_skill` |
+| "كيف مزاجي اليوم؟" (AR mood) | `general_chat` | freeflow | reach skill_select |
+| "i have no motivation to do anything" (BA) | `general_chat` | freeflow | `new_skill` (STABLE miss, not the 1/7 noise first assumed) |
+
+**Precision battery (intent_route→skill_select, local):** canonicals solid — overwhelm→dbt_tipp ✅, panic→grounding ✅, worry→worry_time ✅. Two anecdote "misses", both DEBATABLE: "relationship falling apart + worrying about money" → `financial_anxiety` (semantic_offer) over worry_time (genuine ambiguity — money IS mentioned); "partner cheated" → no skill (infidelity→mood_check_in is a questionable expectation; freeflow support may be correct — needs clinician view).
+
+## Ranked fixes (measured)
+1. **intent_route misclassifies skill-worthy phrasings** (EN mood→info_request; AR mood + BA→general_chat) — deterministic, reproducible. **This is now the evidence for the Cardinal-Rule-5 deterministic keyword PRE-PASS** (skill triggers matched BEFORE the LLM classifier can label them general_chat/info_request) — rules-before-LLM, audit-friendly, deterministic. Alternative: classifier prompt calibration. **ARCHITECTURE DECISION for the owner** (the keyword-pre-pass option, parked earlier as "reading (b) unsupported", is now evidence-backed — not as a graph-edge change but as a pre-classifier rules tier).
+2. **semantic precision** (relationship+money → financial_anxiety vs worry_time) — reranker/anchor tuning; debatable; lower priority; eng-side.
+3. **infidelity → mood_check_in expectation** — likely NOT a bug (freeflow support reasonable); one-line clinician view on whether infidelity should trigger a mood check-in.
+
+**No trigger-pattern rule-data changes warranted** (triggers already match once skill_select is reached — see CORRECTION). The fix lives at Node 2 (classification / pre-pass), not Node 4 (triggers).
