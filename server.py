@@ -613,8 +613,10 @@ async def health_ready():
 
 
 @app.get("/health/version")
-async def health_version():
+async def health_version(_: None = Depends(require_api_key)):
     """Deployment provenance — 'which code is serving?' as a curl, never an inference chain.
+    GL-5: API-key gated — the deep fields (module paths, PYTHONPATH, resolver) must not be exposed
+    unauthenticated once external users are on the app. Ops passes X-Sage-Api-Key to read it.
     Exposes the baked git SHA and the resolved crisis-tier flag + its raw env value (repr-style).
     Added after the 2026-07-03 rollout where stale-build-cache served old code under a green deploy.
     """
