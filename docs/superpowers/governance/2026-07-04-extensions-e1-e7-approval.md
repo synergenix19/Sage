@@ -32,7 +32,7 @@ This is the **citation anchor** for every architectural change required to inges
 | E1 | Cross-skill severity-tier supervisor (+ `care_pathway` state) | State channel + executor action (`switch_skill`) | No | ☐ pending |
 | E2 | Category / skill-group abstraction | Skill-schema field + routing | No | ☐ pending |
 | E3 | Medical red-flag guard (cardiac/stroke) | Safety route | **Yes — recall gate (§f)** | ☐ pending |
-| E4 | Deterministic high-risk route (psychosis/mania/dissociation) | Safety route (extends existing) | Extends E-existing | ☐ pending |
+| E4 | Deterministic high-risk route (psychosis/mania/dissociation) | Safety route (extends existing *routing*; new detection surface) | **Yes — recall gate (§f), all 3 trigger classes** | ☐ pending |
 | E7 | Coercive-control / relationship-safety pre-emption | Safety route (elevates `domestic_situation` flag) | **Yes — recall gate (§f)** | ☐ pending |
 
 Precedence across these routes is a binding convention, not an extension — see **§4.5**. Two candidates resolved as content/config — see **Appendix A**.
@@ -249,5 +249,58 @@ Kill-switch `SAGE_MEDICAL_REDFLAG` (strict fail-safe parse). Default OFF → byt
 
 ---
 
-- E4 — pending
+### E4 — Deterministic high-risk route (psychosis / mania / dissociation)
+
+**(a) v7 delta + Cardinal Rule(s) touched.**
+The routing *mechanism* exists but is **dormant**: a `psychotic_disclosure` clinical flag → `skill_select` auto-selects `psychotic_referral` (one-step referral). Two limits make this far from complete: **(i)** detection is **keyword-only and psychosis-only** — `clinical_flag_patterns.json` states "keyword-only detection; MARBERT/semantic tier deferred"; triggers are "hearing voices" / "someone is following me"; **no mania, no dissociation**; **(ii)** the layer is **gated OFF** — CF-006 `active: false`; activation is a separate three-part motion (skill sign-off + CF-006 patterns approved + full safety suite green, *together* — per the 2026-06-04 critical-fixes plan). E4 = (1) expand triggers to mania + dissociation (new detection surface), (2) implement the §HR protocol shape, (3) establish a recall gate across all three trigger classes.
+
+- **Cardinal Rule 4** (deterministic detection + recall) + **Rule 5** (rules-first) + **Rule 2** (lexicon + copy clinician-editable) + **Absolute Rule 1**.
+
+**Auditable correction to "extends existing / inherits its gate":** verification found **no existing measured recall gate for psychosis detection to inherit** — `test_psychotic_referral_skill.py` asserts skill behaviour only, there is no psychosis recall fixture, and CF-006 is inactive. Therefore (f) covers **all three trigger classes**; "extends existing" describes the routing object only, never a recall obligation.
+
+**§HR shape — mechanism vs content split (locked protocol).**
+- **Mechanism (this entry / `step_policy` structure):** the step order — distress-rating step FIRST → standardized-message step → referral step; the **no-branch lock** (no follow-up that probes the content of the experience); escalate-by-distress as a `step_policy` transition keyed on the distress signal.
+- **Content (conversion doc / clinician):** the standardized neutral message wording, the distress-score thresholds (which score → 999 vs "see someone soon"), and the exact trigger phrases.
+
+**(b) Options considered + recommendation.**
+- **Option A — deterministic trigger expansion + §HR step restructure (RECOMMENDED).** Expand `clinical_flag_patterns.json` (mania/dissociation); restructure `psychotic_referral` steps to the §HR shape; keyword tier now, MARBERT/semantic as the deferred recall-improvement (mirrors the crisis S1→S2 path).
+- **Option B — semantic/LLM HR classifier now.** *One real advantage: catches the naturalistic disclosures keyword misses (Gap #65).* Costs: non-deterministic safety route (Rule 4/5); and because dissociation/mania language overlaps heavily with low-mood/excitement (see negatives), an unvalidated semantic tier would over-fire. Defer semantic to a gated MARBERT step with its own eval, like crisis S2.
+- **Recommendation: Option A.**
+
+**(c) Dependencies + precedence.**
+- §4.5: E4 (HR) sits below crisis + medical, above IPV + tier.
+- **Dissociation → §C precedence (a note, not new machinery):** dissociation phrases ("I lose chunks of time") can co-occur with crisis language; §4.5 already resolves it (crisis > HR). No new mechanism — only the test obligation below.
+- **CF-006 activation dependency:** the route goes live only via the three-part gated motion. E4's mechanism can land dormant; activation is separate and gated.
+- Independent of E1/E2 (safety route; sequenced before them).
+
+**(d) Test obligations.**
+1. Mania triggers fire the HR route; dissociation triggers fire the HR route (new surface).
+2. §HR step shape: distress-rating step is FIRST; no content-probing branch exists; standardized message precedes referral.
+3. Escalate-by-distress: high distress / danger / mania-risk → crisis framing (999); low → professional-soon.
+4. **Dissociation + crisis co-fire → routes to §C (crisis); the HR flag is still written to state + audit** (precedence test).
+5. Negative fixtures do NOT fire (see f).
+6. CF-006 inactive → route dormant (no HR firing).
+7. Kill-switch OFF → v7 behaviour.
+
+**(e) Rollback posture.**
+Kill-switch `SAGE_HR_ROUTE` plus the existing CF-006 `active` gate. Default: mechanism lands dormant (CF-006 inactive) → byte-identical v7. Activation is the separate three-part motion, not a flag flip.
+
+**(f) Deterministic recall gate — all three trigger classes (no existing gate to inherit).**
+- **Target: ≥95% recall per class** (psychosis, mania, dissociation).
+- **Positive fixtures:** spec §HR trigger tables (psychosis / mania / dissociation phrase lists) + the existing psychosis keyword set (currently the only coverage).
+- **Negative fixtures (unusually load-bearing — drawn from neighbouring categories, as E3 drew from Mild-tier chest phrases):**
+  - *dissociation negatives* — §3a low-mood ("I feel numb," "nothing feels real"), §4a can't-name-the-feeling, anxiety derealisation-in-panic → must route to low-mood/anxiety, NOT HR;
+  - *mania negatives* — ordinary excitement/productivity in a positive-mood context ("I have so much energy today").
+  Over-firing HR harms in the *other* direction: routing a mildly-numb depressed user to a "see a professional soon" referral instead of the low-mood pathway is a bad miss. Precision measured against these negatives with clinician-set tolerance.
+- **Psychosis baseline is currently UNMEASURED** (keyword-only, no fixture, MARBERT deferred): E4 *establishes* it — not an inherited PASS.
+- **Arabic fixture debt (open obligation):** Khaleeji / MSA / Arabizi equivalents of all positive + negative sets required before production-satisfied (TD3/TD4-adjacent), as E3.
+
+**Sign-off (E4).**
+| Role | Name | Date |
+|---|---|---|
+| Product owner (mechanism: trigger expansion + §HR step shape + kill-switch) | ______ | ______ |
+| Clinical lead (trigger tables, distress thresholds, standardized message, ≥95% recall per class incl. negatives + Arabic + psychosis baseline) | ______ | ______ |
+
+---
+
 - E7 — pending
