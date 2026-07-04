@@ -1,43 +1,69 @@
 # BOT BEHAVIOUR Ingestion — Review-Cycle Package (2026-07-04)
 
-**Purpose.** One entry point for the clinician and the team to review and approve the BOT BEHAVIOUR ingestion work. Start here; it routes you to the three PRs, tells you who signs what, and lists every decision with what it unblocks. **A reviewer should be able to start from this page alone.**
+**Purpose.** One entry point for the clinician and the team to approve the BOT BEHAVIOUR ingestion work. **Design principle (per best practice):** the clinician wrote the spec, so most items below are **"confirm I read your spec correctly,"** not "decide from scratch." Each carries the spec citation, a recommended reading, and an **Approve / Reject / Edit** line. Only §B items are genuinely open.
 
-**What this cycle approves:** the *mechanism* to ingest the clinician BOT BEHAVIOUR spec (routing/skill architecture) and the *measurement instrument* (recall fixtures). **What it does NOT approve:** production content changes, external launch, or the deferred items in §6. The architecture holds the words; content is the iterative tune-lane after.
-
----
-
-## 1. The three PRs and who reviews each
-
-| PR | Contents | Primary reviewer | Nature |
-|---|---|---|---|
-| **#114 — Mechanism** | E1–E7 approval record, §C/§HR conversion map, ingestion plan, content inventory, measured baselines | **PO** (mechanism) + **Clinical lead** (safety gates + precedence) | Signature request |
-| **#115 — Fixtures + harness** | 4 recall-fixture sets (§C/E3/E4/E7), the measurement harness, the baseline artifact | **Clinical lead** (phrase selections) + **Eng** (runner) | Content review |
-| **#116 — Worry Tree draft + Fact-vs-Opinion analysis** | Worry Tree skill draft; §3b fold-vs-new recommendation | **Clinical lead** (CMS) | Draft review + one decision |
-
-None blocks another for *review* — all three can be reviewed in parallel.
+**Approves:** the *mechanism* to ingest the spec + the *measurement instrument* (fixtures). **Does NOT approve:** production content changes, external launch, or the §D deferrals.
 
 ---
 
-## 2. Sign-off matrix — who signs what
+## §A — Confirm my reading of your spec (the spec already answers these)
 
-**Product owner (mechanism):**
-- ☐ E1 supervisor + `care_pathway` (`switch_skill` action)
-- ☐ E2 category/skill-group metadata
-- ☐ E3 medical red-flag route (mechanism)
-- ☐ E4 high-risk route (mechanism)
-- ☐ E7 coercive-control pre-emption (mechanism)
-- ☐ §4.5 Node-1 precedence order
+Each: **the spec's own words → my reading → your call.** Rejecting sends it to §B.
 
-**Clinical lead:**
-- ☐ E3 recall gate (≥95%, fixtures) — **incl. the burnout enumeration below (§3 item 1)**
-- ☐ E4 recall gate (≥95% per class, fixtures)
-- ☐ E7 recall gate (≥95%, fixtures)
-- ☐ §4.5 precedence order (clinical ratification)
-- ☐ Worry Tree skill (CMS approval, #116)
-- ☐ Fact-vs-Opinion fold-vs-new decision (#116)
-- ☐ Fixture phrase review (#115 — verbatim canonical confirmed; `proposed_variants` promoted or rejected)
+### A1 — Node-1 route precedence
+- **Spec says:** crisis "overrides everything" and "Severity-tier logic never supersedes the crisis guard" (§C, §F); the medical red-flag "applies at every tier… regardless of which tier… don't let a 'mild' or 'moderate' classification suppress it" (§1); §HR "takes priority… the same way crisis category does."
+- **My reading:** all safety routes (crisis, medical red-flag, high-risk, IPV) beat tier/category — **this is your spec, not my invention.** The *only* piece the spec doesn't rank explicitly is the order *among* safety routes on a rare simultaneous hit; I propose **crisis > medical > HR > IPV**, with all fired flags still recorded.
+- ☐ Approve reading (all-safety-over-tier) + ☐ approve the inter-safety order `crisis>medical>HR>IPV` · ☐ Reject · ☐ Edit the order: ________________
 
-Complete when every box is checked. Entries are **independently signable** — sign what you've reviewed.
+### A2 — Burnout "physical health symptoms" (this dissolves my earlier "gate-blocking" flag)
+- **Spec says:** there is **one** medical red-flag set — the §1 cardiac/stroke descriptors — that "applies at every tier," and other categories invoke it "per the anxiety category's medical guard" (§ anticipatory / line 305). S5a says burnout "physical health symptoms → medical evaluation."
+- **My reading:** burnout **inherits the universal §1 red-flag set** (crushing/spreading chest pain, one-sided numbness, real breathlessness) rather than needing a separate symptom list. So E3's acute gate is the universal set (11 cardiac) + the sleep-specific S1b signs (snoring/gasping/choking) — **not an n=1 burnout list.** *I earlier mis-flagged this as gate-blocking; if you confirm the inheritance, that block is gone.*
+- ☐ Approve (burnout inherits the universal §1 red-flags; no separate list) · ☐ Reject · ☐ Edit — burnout also warrants these distinct symptoms: ________________
+
+### A3 — Fact vs Opinion: fold, not a new skill
+- **Spec says (§5b, verbatim):** "use the same fact-vs-opinion distinction **from 3b**" — the spec itself treats it as **one reusable technique** shared across §3b and §5b, not a per-category skill.
+- **My reading:** **fold** into the existing `cognitive_restructuring` (whose own design already blesses "a session that ends at step two is a success" = §3b's classify-not-reframe lighter touch). Output = a content adjustment to that skill (CMS re-approval), not a new skill. Full analysis in PR #116.
+- ☐ Approve fold · ☐ Reject (author a separate skill — note: must be keyword-gated out of the semantic pool to avoid matching-ambiguity with cognitive_restructuring) · ☐ Edit: ________________
+
+### A4 — The two "verify-first" facts (acknowledge, not decide)
+- Psychosis detection has **never had a measured recall gate** (keyword-only, CF-006 `active:false`); coercive-control detection likewise. The spec's §HR and §6 guards assume these fire; the measurement shows they largely don't (psychosis 6.7%, IPV fear/threat 0%). E4/E7 *establish* the gates these guards depend on.
+- ☐ Acknowledged — the gates are the fix · ☐ Discuss
+
+---
+
+## §B — Genuinely needs your input (spec is silent here)
+
+### B1 — Precision-negative classes (optional; recall is unaffected)
+The spec tables the safety *positives* richly but not the benign *look-alikes* for: E4 psychosis (social-anxiety phrasing), E4 mania (ordinary high-energy), E7 (workplace/peer "controlling"). These aren't spec requirements — they're extra rigor so the routes don't *over-fire* (which harms in the other direction: e.g. routing a numb depressed user to a psychosis referral). Recall gates fine without them.
+- ☐ Author the benign look-alikes (I'll supply the discriminators) · ☐ Accept recall-only gating for now, defer precision · ☐ Edit: ________________
+
+### B2 — Orphan signal (a question only you can answer)
+The spec's 35 categories never reference `mi_readiness_ruler` and only indirectly `cbt_thought_record`. Deliberate omission or oversight?
+- ☐ Deliberate (leave as-is) · ☐ Oversight (route a category to it) · ☐ Retire the skill · ☐ Edit: ________________
+
+---
+
+## §C — Team / engineering decisions (not clinical; listed for visibility)
+
+- **Gap #65 — detection tier.** Measurement **eliminated keyword-only** (psychosis 6.7% / mania 0% is a category error, not a tuning gap). Live options: semantic-tier-now vs hybrid-with-deferral. Joint eng+clinical call, but primarily an engineering/scope decision.
+- **Reference-inventory staleness** — `SageAI_Skills_Knowledge_Base.md` (24) vs code (27). Engineering governance fix, tracked.
+- **Kill-switch defaults, POC-vs-prod re-confirm** — engineering; every extension ships default-off; baselines re-run on prod before any gate is called production-satisfied.
+
+---
+
+## §D — Explicitly NOT approved in this cycle (deferrals — so they can't be lost)
+
+- **Helpline (GL-1)** — your deferral 2026-07-04; corrected copy staged, ships only on **your dial-test of 800 4673 + L0 re-sign**.
+- **External launch** — NO-GO on GL-0 crisis recall (~37% vs ≥95%); no signature here changes that.
+- **Naturalistic Arabic** — only deployed lexicon entries harvested; naturalistic Khaleeji/MSA/Arabizi is your TD3/TD6 content, in the debt column.
+- **Response content at scale** — validating statements / psychoeducation / check-in copy across ~30 categories = the iterative tune-lane (content inventory), not this cycle.
+
+---
+
+## §E — Sign-off matrix
+
+**Product owner (mechanism):** ☐ E1 ☐ E2 ☐ E3 ☐ E4 ☐ E7 ☐ §4.5 order (A1)
+**Clinical lead:** ☐ §A1 precedence ☐ §A2 burnout-inherits ☐ §A3 fold ☐ E3/E4/E7 recall gates ☐ Worry Tree CMS (#116) ☐ §B1 precision ☐ §B2 orphan ☐ fixture phrases (#115)
 
 | Role | Name | Date |
 |---|---|---|
@@ -46,74 +72,22 @@ Complete when every box is checked. Entries are **independently signable** — s
 
 ---
 
-## 3. Decision items requiring a clinician answer (typed by urgency)
+## §F — Current-detector baseline (current-vs-target; POC stack, re-confirm on prod)
 
-**⛔ Gate-blocking (1) — a gate cannot be measured until answered:**
-1. **Enumerate the S5a burnout physical red-flags.** E3's `burnout_physical` sub-class has n=1 (the spec says "significant physical health symptoms" but names none); a ≥95% gate over n=1 is not a measurement. Engineering did not invent symptoms — the spec gap is the author's. *(PR #115 / record §f.)*
-
-**✎ Non-blocking authoring (1) — recall gates fine; precision needs your negatives:**
-2. **Author the under-tabled precision-negative classes:** E4 psychosis (social-anxiety), E4 mania (ordinary high-energy), E7 (non-partner "controlling" / ordinary conflict). The spec tables no benign look-alikes; over-firing here is a harmful miss in the *other* direction. Discriminators are recorded in each fixture. *(PR #115.)*
-
-**◆ Decisions (3):**
-3. **§4.5 precedence order** — ratify `crisis > medical > HR > IPV > tier/category`. This is a clinical decision; it unlocks Phase-B routing-order finalization. *(PR #114.)*
-4. **Gap #65 — semantic-tier vs hybrid.** The measurement **eliminated keyword-only** (baseline psychosis 6.7% / mania 0% / dissociation 0% — a category error, not a tuning gap). Live options: (b) semantic tier now, or (c) hybrid with production deferral. Joint eng+clinical call. *(PR #114 plan §5.2.)*
-5. **Fact-vs-Opinion — fold or new skill.** Recommendation: **fold** into `cognitive_restructuring` (its own design already blesses "ending at step two is a success" = §3b's classify-not-reframe). Flips to NEW only if the high-shame population must be structurally prevented from reaching the reframe. *(PR #116.)*
-
-**ℹ Informing sign-off (3) — facts the gates exist to fix / governance:**
-6. **Psychosis detection has never had a measured recall gate** (keyword-only, CF-006 `active:false`). E4 establishes it.
-7. **Coercive-control detection likewise unmeasured** (keyword-only). E7 establishes it; §6 skills already declare the guard in prose, which E7 makes deterministic.
-8. **Orphan signal + reference-inventory staleness** — the spec never references `mi_readiness_ruler` (deliberate?); `SageAI_Skills_Knowledge_Base.md` lists 24 skills vs 27 in code (governance fix tracked).
-
----
-
-## 4. Current-detector baseline — what each gate's target sits against today
-
-Measured 2026-07-04 (harness PR #115) on the POC `safety_check`. **Caveat: re-confirm on the production detector config before any gate is declared production-satisfied.**
-
-| Gate | Target | Current (measured) | Note |
+| Gate | Target | Current | Note |
 |---|---|---|---|
-| §C / GL-0 | ≥95% | **75.8%** canonical table | Direct-SI/self-harm 100%; gap = subtle-passive rows (wanting-pain-to-stop 0/2, loss-of-self-trust 0/2). Naturalistic CRADLE ~37% is the harder floor. |
-| E3 medical | ≥95% | **0%** | Route unbuilt; negatives 100% clean. `burnout_physical` gate **held** (item 1). |
-| E4 psychosis | ≥95% | **6.7%** (1/15) | Keyword-only ceiling → Gap #65 evidence |
-| E4 mania / dissociation | ≥95% | **0% / 0%** | No triggers exist |
-| E7 IPV | ≥95% | **32%** | Physical-abuse 100%, **fear/threat 0%** (the §6a expansion); precision 100% |
-
-Deployed Arabic lexicon entries fire 100% (validates the path; naturalistic Arabic is TD3/TD6 debt, not covered).
+| §C / GL-0 | ≥95% | **75.8%** | direct/self-harm 100%; gap = subtle-passive rows; naturalistic CRADLE ~37% floor |
+| E3 medical (universal §1 + S1b) | ≥95% | **0%** | route unbuilt; negatives 100% clean (A2 removes the n=1 concern) |
+| E4 psychosis / mania / dissociation | ≥95% | **6.7% / 0% / 0%** | keyword-only ceiling → §C Gap #65 |
+| E7 IPV | ≥95% | **32%** | physical-abuse 100%, fear/threat 0% (the §6a expansion); precision 100% |
 
 ---
 
-## 5. What each approval unblocks (sequencing)
+## §G — The three PRs
+| PR | Contents | Reviewer |
+|---|---|---|
+| **#114** | E1–E7 record, §C/§HR conversion, plan, content inventory, baselines, **this package** | PO + clinical lead |
+| **#115** | 4 recall-fixture sets, harness, baseline artifact | clinical (phrases) + eng (runner) |
+| **#116** | Worry Tree draft + Fact-vs-Opinion analysis | clinical (CMS) |
 
-```
-Signatures + clinician answers
-  ├─ §4.5 ratified ─────────────→ Phase B routing order finalized
-  ├─ Gap #65 (b/c) decided ─────→ E4/E7 recall approach fixed
-  ├─ burnout enumerated ────────→ E3 burnout_physical gate becomes measurable
-  ├─ E3/E4/E7 gates signed ─────→ build the safety routes (kill-switched, default off)
-  ├─ E1/E2 signed ──────────────→ build the tier supervisor + category grouping
-  ├─ Worry Tree CMS-approved ───→ register + activate the skill
-  └─ Fact-vs-Opinion decided ───→ fold (cog_restructuring re-approval) OR new draft
-
-GL-0 crisis recall (S2/MARBERT, per-row work order in s2-marbert-build-plan §8)
-  └─ the pilot's TRUE critical path — no signature here waives it; gates external launch.
-```
-No build step is authorized until its extension entry is signed AND its preconditions clear (ingestion plan §0/§6).
-
----
-
-## 6. Explicitly NOT approved in this cycle (deferrals — tracked so they can't be lost)
-
-- **Helpline correction (GL-1)** — product-owner deferral 2026-07-04; corrected copy staged as commit-2, **ships only on your dial-test of 800 4673 + L0 re-sign**. Prod stays on `800 46342`/"24/7" (mislabelled-but-reachable, 999 co-listed) under the recorded risk acceptance.
-- **External launch** — NO-GO on GL-0 recall (~37% vs ≥95%). No signature here changes that.
-- **Naturalistic Arabic** — only deployed lexicon entries are harvested; naturalistic Khaleeji/MSA/Arabizi is TD3/TD6 clinician/native-speaker content, in the debt column.
-- **Production-config re-confirmation** — baselines are POC-stack; re-run on prod before any gate is production-satisfied.
-- **Response content at scale** — validating statements, psychoeducation, check-in copy across ~30 categories are the iterative tune-lane (content inventory), not this cycle.
-
----
-
-## 7. Index of artifacts
-
-**#114:** `extensions-e1-e7-approval.md` (the signable anchor) · `crisis-hr-protocol-conversion.md` · `bot-behaviour-ingestion-plan.md` · `bot-behaviour-content-inventory.md` · this package.
-**#115:** `tests/fixtures/bot_behaviour/{crisis_sc,medical_e3,hr_e4,ipv_e7}_recall.json` · `scripts/bot_behaviour_recall_baseline.py` · `recall_baseline_2026-07-04.json`.
-**#116:** `docs/cms-drafts/worry_tree.draft.json` + the Fact-vs-Opinion analysis (PR description).
-**GL-0 work order:** `s2-marbert-build-plan.md §8` (per-row targets).
+**GL-0 crisis recall** remains the true critical path (work order: `s2-marbert-build-plan §8`); no signature here waives it.
