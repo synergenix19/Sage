@@ -20,3 +20,16 @@ v7 frames mood check-in as **optional per-session, PROM-like** → proactive off
 
 ## Cheap next diagnostic (deferred)
 Sample prod `node_path` + the classified intent for a set of known KB-trigger phrases ("I can't sleep", "I keep worrying") to measure how often natural pattern-2 phrasings reach `skill_select` vs freeflow — quantifies the calibration gap before deciding (a)-calibration vs §4.2-deviation.
+
+## CORRECTION (2026-07-04) — mood fix is NOT trigger patterns
+Follow-up measurement overturns gap #1's framing. Running `skill_select_node` locally on "how are you
+tracking my mood today" returns **`offered:['mood_check_in'], keyword_offer`** — the triggers ALREADY
+match; `active_skill_id` is None only because it is an R1 OFFER pending accept (correct). So `score_mood`
+is reachable on EN via trigger → offer → **accept** → skill enters → score_mood. My single-turn probes
+stopped at the offer. On prod the same phrase behaved INCONSISTENTLY across runs (reached skill_select
+in one battery; no offer in the accept-flow run) — the signature of `intent_route` LLM-classifier
+non-determinism, not a missing keyword. **Therefore: adding trigger phrasings is the WRONG fix** (they
+already match). The real mood item is (i) `intent_route` classification consistency for skill/mood
+phrasings [EN variance + AR not-classified-new_skill], and (ii) the offer→accept flow — both belong in
+the **W6 measured pass** (multi-sample per phrase for the LLM variance), NOT a Node-4 trigger-pattern
+checkbox. No clinician trigger-pattern approval is warranted.
