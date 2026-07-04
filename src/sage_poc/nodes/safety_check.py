@@ -253,8 +253,31 @@ async def safety_check_node(state: SageState) -> dict:
             "t1_count": state.get("t1_count", 0) + (1 if _tier == "T1" else 0),
         }
 
+    # E7 §6a IPV pre-emption — detection expansion (flag-gated SAGE_IPV_PREEMPTION). Merges
+    # domestic_situation for the 19 §6a-guard phrases so the route reaches ≥95% recall and the
+    # precedence resolver/audit below see the IPV hit. OFF -> {} (byte-identical: only CF-005 fires).
+    # Runs BEFORE apply_precedence so domestic_situation is present when the resolver ranks routes.
+    from sage_poc.nodes.ipv_preempt import apply_ipv_preempt  # noqa: PLC0415
+    ipv_update = apply_ipv_preempt({
+        "message_en": message_en, "raw_message": raw, "clinical_flags": all_clinical,
+    })
+    if ipv_update:
+        all_clinical = ipv_update["clinical_flags"]
+
+    # B0 §4.5 precedence (flag-gated, same discipline as tier_update above). apply_precedence
+    # returns {} when SAGE_ROUTE_PRECEDENCE is OFF -> this write is byte-identical to master.
+    # When ON it emits precedence_winner + the full fired_safety_routes list (crisis/HR/IPV read
+    # off the flags just computed; medical reads an empty channel until E3/B1 lands). is_safe and
+    # crisis_flags are UNCHANGED either way — the resolver records, it does not yet re-route.
+    from sage_poc.nodes.safety_precedence import apply_precedence  # noqa: PLC0415
+    precedence_update = apply_precedence({
+        "is_safe": len(new_crisis_flags) == 0,
+        "clinical_flags": all_clinical,
+    })
+
     return {
         **tier_update,
+        **precedence_update,
         "detected_language": lang,
         "message_en": message_en,
         "is_safe": len(new_crisis_flags) == 0,

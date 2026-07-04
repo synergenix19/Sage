@@ -57,6 +57,41 @@ if _tiering_raw is not None and _tiering_raw.strip().lower() not in ("true", "fa
 # Boot-observable log of the resolved state lives in server.py lifespan (guaranteed-visible after
 # logging is configured): "[sage/startup] CRISIS_TIERING_ENABLED=... raw_env=...".
 
+# B0 — BOT BEHAVIOUR §4.5 deterministic safety-route precedence (crisis>medical>hr>ipv).
+# KILL-SWITCH, DEFAULT OFF. Unlike CRISIS_TIERING (signed, defaults ON), this is a NEW,
+# not-yet-ratified mechanism: OFF must be byte-identical v7/master. So the strict parse INVERTS
+# — only a LITERAL "true" enables; unset / empty / whitespace / garbage -> OFF (safe default).
+# That default also survives the Railway empty-string env-injection bug (empty -> OFF -> current
+# routing), the same class of failure that motivated the tiering strict parse above. Flipping ON
+# is the governed step gated on the §4.5 clinical-lead signature + each route's ≥95% recall gate;
+# the resolver and its wiring may land (OFF) before those clear.
+_precedence_raw = os.getenv("SAGE_ROUTE_PRECEDENCE")
+ROUTE_PRECEDENCE_ENABLED = (
+    _precedence_raw is not None and _precedence_raw.strip().lower() == "true"
+)
+if _precedence_raw is not None and _precedence_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_ROUTE_PRECEDENCE unexpected value %r — applying safe default (precedence OFF); "
+        "only 'true' enables.", _precedence_raw,
+    )
+
+# E7 — BOT BEHAVIOUR §6a coercive-control / relationship-safety pre-emption. KILL-SWITCH, DEFAULT
+# OFF, same inverted strict parse as ROUTE_PRECEDENCE: only a LITERAL "true" enables; unset / empty /
+# whitespace / garbage -> OFF. OFF is byte-identical v7 — only the approved CF-005 domestic_situation
+# lexicon fires (passive referral). ON -> the 19 §6a-guard expansion phrases also fire domestic_situation
+# and drive the active §6 (coaching_confrontation) pre-emption. Flip is governed: E7 recall >=95% on the
+# fixture set + clinician CMS approval (Rohan's CF-005 workflow is the precedent) before permanent ON,
+# at which point the expansion folds into CF-005 vNext and this flag-gated side-path retires.
+_ipv_preempt_raw = os.getenv("SAGE_IPV_PREEMPTION")
+IPV_PREEMPTION_ENABLED = (
+    _ipv_preempt_raw is not None and _ipv_preempt_raw.strip().lower() == "true"
+)
+if _ipv_preempt_raw is not None and _ipv_preempt_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_IPV_PREEMPTION unexpected value %r — applying safe default (pre-emption OFF); "
+        "only 'true' enables.", _ipv_preempt_raw,
+    )
+
 # Knowledge abstain gates. RRF is pure RANK fusion: its minimum meaningful score is
 # 1/(k+1) = 1/61 = 0.0164 (k=60), and the whole top-5 single-list range (1/61..1/65 =
 # 0.0164..0.0154) sits ABOVE 0.015, so KNOWLEDGE_ABSTAIN_THRESHOLD at 0.015 can NEVER

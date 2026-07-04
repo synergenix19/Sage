@@ -131,6 +131,14 @@ def _build_session_audit_row(state: SageState) -> dict:
     if state.get("crisis_tier") is not None:
         row["crisis_tier"] = state.get("crisis_tier")
         row["tier_rule_id"] = state.get("tier_rule_id")
+    # B0 §4.5 precedence (flag-gated, same discipline as tiering above): included ONLY when a
+    # safety route actually fired this turn (apply_precedence emits nothing when the flag is OFF,
+    # and an empty fired-list is dropped here). Keeps a flag-OFF / no-safety row byte-identical to
+    # master; the precedence columns' migration is a flag-flip deploy gate, not a merge gate.
+    # The full fired list is written even when precedence suppressed the lower routes (never dropped).
+    if state.get("fired_safety_routes"):
+        row["fired_safety_routes"] = state.get("fired_safety_routes")
+        row["precedence_winner"] = state.get("precedence_winner")
     return row
 
 
