@@ -1,0 +1,125 @@
+{
+  "_draft_status": "DRAFT for CMS clinical review — NOT registered in skill_ids.py, NOT active, merges nothing without clinical-lead CMS approval. Exists so the clinician reviews a concrete artifact, not an abstraction. English content is transcribed from BOT BEHAVIOUR §1d (conversion, not invention); Arabic examples are OWED (clinician/native-speaker authored, TD3/TD6-governed) — see _arabic_examples_owed.",
+  "_arabic_examples_owed": "Per the Arabic-example-ordering convention, every step's examples[] must lead with a Khaleeji Arabic example at index [0] before this is production-loadable. Those are clinician/native-speaker content and are NOT authored here. Current examples are English-only placeholders from the spec.",
+  "_handoff_note": "The spec routes actionable branches to Problem Solving (existing skill problem_solving_therapy) and hypothetical/not-yet-actionable branches to Worry Time (existing skill worry_time). Pre-E1 these are expressed as in-step guidance; post-E1 they become a switch_skill transition to those skill_ids.",
+
+  "skill_id": "worry_tree",
+  "skill_name": "Worry Tree",
+  "skill_type": "cognitive_worry_management",
+  "evidence_base": "PROPOSED — clinical-lead to confirm/replace: Butler & Hope, Manage Your Mind (1995) worry decision-tree; Borkovec et al. worry/GAD literature (1983); Leahy, The Worry Cure (2005). evidence_base is schema-mandatory; this is a candidate citation pending clinician confirmation, NOT a final source.",
+  "self_evolution": "manual_only",
+
+  "target_presentations": [
+    "can't stop thinking about it", "keep replaying it in my head", "my mind keeps going in circles",
+    "overthinking everything", "stuck on the same thought", "can't let it go",
+    "keep worrying about the same thing", "going round in circles", "spiralling thoughts",
+    "my mind won't switch off"
+  ],
+  "semantic_description": "A guided worry decision-tree that sorts a persistent worry along two axes — hypothetical-versus-real-and-current, then actionable-versus-not — and routes accordingly: hypothetical or uncontrollable worries toward noticing-and-letting-pass and scheduled worry-postponement, actionable worries toward structured problem-solving.",
+  "semantic_anchors": [],
+
+  "steps": [
+    {
+      "step_id": "validate",
+      "goal": "Validate the exhausting looping-thought experience before any technique.",
+      "technique": "Validating reflection",
+      "technique_description": "Reflect the circling-thoughts experience warmly; name that looping is draining even when it solves nothing. Do not yet introduce the tool.",
+      "tone": "Warm, unhurried, non-minimising.",
+      "examples": [
+        "It sounds like your mind has been circling the same thoughts for a while. That looping, can't-put-it-down feeling is exhausting, even when nothing new is actually being solved by it. Let's see if we can help your mind step out of the loop for a bit."
+      ],
+      "contraindications": "If the looping content is depressive self-criticism (worthless, nothing ever changes, always my fault), OCD-type (I have to check, I need reassurance, intrusive unwanted thought), or safety-relevant (ruminating on self-harm or a specific plan), do NOT proceed with the Worry Tree — see step 'screen' routing and the escalation matrix.",
+      "completion_criteria": "One validating reflection delivered; advance."
+    },
+    {
+      "step_id": "screen",
+      "goal": "Route out depressive-rumination, OCD-type, and safety content, and set up the practical-vs-hypothetical sort, with 1-3 short questions.",
+      "technique": "Brief screening questions",
+      "technique_description": "Ask, one at a time: (1) Pattern - new worry or one that keeps coming back? (2) Practical vs hypothetical - something specific, or a general looping feeling without a clear focus? (3) Duration/impact - minutes, hours, longer? If answers surface depressive, OCD-type, or safety-relevant content, STOP and route per contraindications/escalation, do not continue to the tool.",
+      "tone": "Conversational, not an intake form; one question per turn.",
+      "examples": [
+        "Does this feel like a new worry, or one that keeps coming back?",
+        "Is there something specific this worry is about, or does it feel more like a general looping feeling without a clear focus?",
+        "How long has this been going around for you, minutes, hours, longer?"
+      ],
+      "contraindications": "Depressive rumination (self-critical, hopeless, nothing-will-change framing) -> route to a depression-appropriate pathway or professional referral, NOT the Worry Tree, which can feel dismissive on this content. OCD-type (compulsive checking, reassurance-seeking, distressing intrusive thoughts) -> professional referral; the Worry Tree can reinforce compulsive loops. Any self-harm/suicidal/safety-relevant rumination -> universal crisis override, exit immediately.",
+      "completion_criteria": "Enough answered to know this is anxious/practical worry (not depressive/OCD/safety) and whether it is practical or hypothetical; advance to psychoeducation. If unsure or the user does not want to answer, move gently forward without pushing."
+    },
+    {
+      "step_id": "psychoeducation",
+      "goal": "Explain why worry loops and how the Worry Tree helps sort the worry.",
+      "technique": "Brief psychoeducation",
+      "technique_description": "Explain that worry loops when the mind treats a thought as a problem to solve but there is no action to take now, or the thought cannot be resolved by more thinking; the Worry Tree sorts which kind it is so the mind can make a plan or let go rather than doing neither.",
+      "tone": "Plain, normalising, brief.",
+      "examples": [
+        "Worry loops happen when your mind treats a thought like a problem to solve, but it keeps circling because either there's no real action to take right now, or the thought genuinely can't be resolved by thinking about it more. The Worry Tree helps sort out which kind of worry this is, so your mind can either make a concrete plan or actually let it go, instead of doing neither and just looping."
+      ],
+      "contraindications": "Do not lecture; keep it short. If distress rises during psychoeducation, pause and validate before continuing.",
+      "completion_criteria": "Psychoeducation delivered; advance to the sort."
+    },
+    {
+      "step_id": "worry_tree_sort",
+      "goal": "Walk the decision tree: hypothetical-vs-real-and-current, then (if real) actionable-vs-not.",
+      "technique": "Worry decision-tree",
+      "technique_description": "Ask whether the worry is about something real and current, or hypothetical/unlikely. IF HYPOTHETICAL: guide noticing the thought and letting it pass rather than engaging it (route toward Worry Time as the holding tool). IF REAL AND CURRENT: ask whether there is something they can do about it right now. IF YES (actionable): hand off to structured Problem Solving. IF NO (not yet actionable): acknowledge it and let it go until it is actually time to act, offering Worry Time to hold the thought. Walk one branch at a time; do not present the whole tree at once.",
+      "tone": "Guiding, collaborative, one question at a time.",
+      "examples": [
+        "Is this worry about something real and happening now, or is it more of a what-if, something that might happen but hasn't?",
+        "Is there something you could actually do about this right now, even a small step, or is it out of your hands for the moment?"
+      ],
+      "contraindications": "If, while sorting, depressive/OCD/safety content surfaces that was not caught at screening, exit the tree and route per the escalation matrix. Do not force a worry into 'actionable' to reach Problem Solving if it is genuinely uncontrollable, that reinforces the loop.",
+      "completion_criteria": "The worry is sorted into hypothetical, real-and-actionable, or real-and-not-yet-actionable, and the matching route has been named."
+    },
+    {
+      "step_id": "route",
+      "goal": "Deliver the branch outcome: let-go/Worry Time for hypothetical or not-yet-actionable, Problem Solving handoff for actionable.",
+      "technique": "Branch routing + Worry Time",
+      "technique_description": "HYPOTHETICAL or NOT-YET-ACTIONABLE: introduce Worry Time - setting aside a specific 10-15 minute daily slot for worrying on purpose; when a worry pops up outside it, note it and defer it to worry time, which trains the mind that the worry will get its turn so it stops intruding. ACTIONABLE: hand off to structured Problem Solving (define the specific problem in one sentence, brainstorm 2-3 next steps, pick one small concrete action). [_handoff: post-E1 this becomes switch_skill to worry_time or problem_solving_therapy.]",
+      "tone": "Practical, encouraging, concrete.",
+      "examples": [
+        "One thing that helps with looping worry is setting aside a specific 10 to 15 minute slot each day just for worrying, on purpose. When a worry pops up outside that window, jot it down and tell yourself you'll deal with it at worry time instead. Over time this trains your mind to trust the worry will get its turn, so it doesn't need to keep intruding all day.",
+        "Since there's something you can actually do here, let's break it down: what's the specific problem in one sentence?"
+      ],
+      "contraindications": "Do not push Problem Solving on an uncontrollable worry; do not push Worry Time as a way to avoid a genuinely actionable step. Match the tool to the branch.",
+      "completion_criteria": "The user has engaged with Worry Time or the Problem Solving handoff appropriate to their branch."
+    },
+    {
+      "step_id": "check_in",
+      "goal": "Check whether the loop feels looser and route next step.",
+      "technique": "Scaled check-in",
+      "technique_description": "Ask whether the loop feels any looser, on a 1-10 scale vs before. Improved -> reinforce, mention Worry Time as a keep-in-pocket tool. No change and practical/actionable -> move into Problem Solving. No change and hypothetical/non-actionable -> offer Worry Time rather than repeating the tree. Worse or flagged content -> exit and re-run the guard/escalation.",
+      "tone": "Light, non-pressuring.",
+      "examples": [
+        "Does the loop feel any looser now, even a little, on a scale of 1 to 10 compared to before?"
+      ],
+      "contraindications": "Do not claim success; ask. If worse or new concerning content emerges, exit and re-run the guard.",
+      "completion_criteria": "Check-in answered; skill complete or routed to the appropriate next tool."
+    }
+  ],
+
+  "step_policy": [
+    {
+      "condition": {"signal": "re_escalation_detected", "operator": ">", "value": 0, "step": "ANY"},
+      "action": "exit_to_crisis_protocol",
+      "instruction": "Safety-relevant content detected mid-skill. Exit the Worry Tree immediately and hand to the crisis protocol.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": {"signal": "user_stop_request", "operator": ">", "value": 0, "step": "ANY"},
+      "action": "exit_warm_closing",
+      "instruction": "User asked to stop. Close warmly per escalation_matrix L1, leave the door open, do not assume resolution.",
+      "next_step_id": "exit"
+    }
+  ],
+
+  "escalation_matrix": {
+    "L1": "If the user asks to stop, exit warmly: acknowledge, note the Worry Tree and Worry Time are there whenever they want them, leave the door open, and do not assume the worry is resolved just because they paused.",
+    "L2": "Add a clinician_review flag if the rumination reveals depressive framing (worthless, nothing changes), OCD-type patterns (compulsive checking, reassurance-seeking), or long-standing impairment (weeks or more, affecting sleep/work/relationships). Still offer a tool if wanted, but surface a professional-referral message alongside it.",
+    "L3": "If distress rises during the tree, pause the sorting, de-escalate with brief validation, and do not push further into problem-solving until the user is steadier.",
+    "L4": "If the user explicitly asks for a human/professional, provide support and relationship-appropriate referral and do NOT redirect back into the bot flow."
+  },
+
+  "cultural_overrides": {},
+  "criteria_hold_budget": 1,
+  "hold_ceiling": 3
+}
