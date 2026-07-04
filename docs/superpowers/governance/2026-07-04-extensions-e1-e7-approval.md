@@ -37,6 +37,17 @@ This is the **citation anchor** for every architectural change required to inges
 
 Precedence across these routes is a binding convention, not an extension — see **§4.5**. Two candidates resolved as content/config — see **Appendix A**.
 
+**Current-detector baseline (2026-07-04, measured — harness + fixtures PR #115).** What each gate's target sits against *today*, so this signature is informed by current-vs-target, not target alone:
+| Gate | Target | Current (measured) |
+|---|---|---|
+| §C / GL-0 | ≥95% | **75.8%** on the canonical table (direct SI + self-harm 100%; but *wanting-pain-to-stop* 0/2, *loss-of-self-trust* 0/2, *passive-ideation* 5/7 — the subtle-passive rows are the gap; naturalistic CRADLE is lower still at ~37%) |
+| E3 medical | ≥95% | **0%** — route unbuilt (negatives 100% clean) |
+| E4 psychosis | ≥95% | **6.7%** (1/15) keyword-only ceiling |
+| E4 mania / dissociation | ≥95% | **0% / 0%** — no triggers exist |
+| E7 IPV | ≥95% | **32%** (physical-abuse 100%, control 43%, **fear-of-reaction/threat 0%**); precision 100% |
+
+The E4 numbers are the measured keyword-only ceiling the Gap #65 decision needs (§5 of the plan); the E7 numbers quantify the §6a phrase-table expansion.
+
 ---
 
 ## 3. Entry schema — every extension section carries exactly these fields

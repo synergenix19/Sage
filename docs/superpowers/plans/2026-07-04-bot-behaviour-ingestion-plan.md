@@ -163,10 +163,10 @@ Each carries an **owner** and a **resolution form** — a dependency without bot
 | (a) keyword-only suffices for POC gates | E4/E7 ≥95% achievable on keyword fixtures; no semantic tier for POC |
 | (b) semantic tier required | E4/E7 recall gates need a MARBERT/semantic tier before they can pass; added scope, mirrors crisis S1→S2 |
 | (c) hybrid — keyword for POC, semantic deferred to production | E4/E7 pass POC on keyword with a documented production-recall obligation (like the Arabic debt) |
-*Must be answered before E4/E7 recall targets are treated as achievable-as-specified.*
+*Must be answered before E4/E7 recall targets are treated as achievable-as-specified.* **Measured evidence now available (harness PR #115, 2026-07-04):** the keyword-only ceiling is E4 psychosis **6.7%** (1/15), mania **0%**, dissociation **0%**; E7 fear-of-reaction/threat **0%**. Keyword-only cannot approach ≥95% on these classes — the decision has evidence, not speculation, and points to outcome (b) semantic tier or (c) hybrid. This is a decision input, not a decision (the clinical+eng call still stands).
 
 **§5.3 — GL-0 crisis recall.**
-*Owner:* safety/ML workstream (S2/MARBERT). *Current trajectory:* ~37% CRADLE / 18% self-harm / 88.9% S3 passive-SI vs ≥95%; needs S2/MARBERT + a validated bilingual eval. *Resolution form:* the recall harness demonstrates ≥95% on the §C fixtures. *Unlocks:* Phase A1 — and remains the pilot's true critical path.
+*Owner:* safety/ML workstream (S2/MARBERT). *Current trajectory:* ~37% CRADLE / 18% self-harm / 88.9% S3 passive-SI vs ≥95%; needs S2/MARBERT + a validated bilingual eval. *Resolution form:* the recall harness demonstrates ≥95% on the §C fixtures. *Unlocks:* Phase A1 — and remains the pilot's true critical path. **Per-row map now measured (harness PR #115, 2026-07-04):** on the canonical §C table, current recall is 75.8% — direct-SI and self-harm rows gate at 100%, but the **subtle-passive rows are the hole**: *wanting-pain-to-stop* 0/2, *loss-of-self-trust/fear* 0/2, *passive-ideation* 5/7, *can't-continue* 2/3, *hopelessness* 4/5. That localises where S2/MARBERT recall work must land (the naturalistic CRADLE ~37% is the harder floor beneath this canonical-table ceiling).
 
 **§5.4 — Helpline dial-test + L0 re-sign.**
 *Owner:* product owner (dial-test — physically confirm `800 4673` is live + correct) + clinical lead (L0 persona re-sign). *Resolution form:* dial-test confirmation recorded on the GL-1 governance entry + L0 version bump re-signed. *Unlocks:* Phase A2 (commit-2 ships).
