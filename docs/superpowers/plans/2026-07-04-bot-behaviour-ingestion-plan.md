@@ -150,7 +150,52 @@ The three routes are signature-independent but **contend for the same substrate*
 **Demonstrable:** within the anxiety category, box breathing is offered first and grounding second after a no-help check-in — never all six at once.
 
 ## §5 — External dependencies & open clinical decisions
-*pending*
+
+Each carries an **owner** and a **resolution form** — a dependency without both is a worry, not a tracked item.
+
+**§5.1 — §4.5 precedence-order ratification.**
+*Owner:* clinical lead. *Resolution form:* signature on the approval record's §4.5 line (already built into its sign-off table). *Unlocks:* Phase B0. Until signed, the three routes can be built, but the order they resolve multi-hits in is not frozen.
+
+**§5.2 — Gap #65 semantic-tier decision.**
+*Owner:* engineering + clinical lead (joint). *Resolution form:* a choice among three outcomes, each with a mapped consequence for E4/E7 gate feasibility —
+| Outcome | Consequence |
+|---|---|
+| (a) keyword-only suffices for POC gates | E4/E7 ≥95% achievable on keyword fixtures; no semantic tier for POC |
+| (b) semantic tier required | E4/E7 recall gates need a MARBERT/semantic tier before they can pass; added scope, mirrors crisis S1→S2 |
+| (c) hybrid — keyword for POC, semantic deferred to production | E4/E7 pass POC on keyword with a documented production-recall obligation (like the Arabic debt) |
+*Must be answered before E4/E7 recall targets are treated as achievable-as-specified.*
+
+**§5.3 — GL-0 crisis recall.**
+*Owner:* safety/ML workstream (S2/MARBERT). *Current trajectory:* ~37% CRADLE / 18% self-harm / 88.9% S3 passive-SI vs ≥95%; needs S2/MARBERT + a validated bilingual eval. *Resolution form:* the recall harness demonstrates ≥95% on the §C fixtures. *Unlocks:* Phase A1 — and remains the pilot's true critical path.
+
+**§5.4 — Helpline dial-test + L0 re-sign.**
+*Owner:* product owner (dial-test — physically confirm `800 4673` is live + correct) + clinical lead (L0 persona re-sign). *Resolution form:* dial-test confirmation recorded on the GL-1 governance entry + L0 version bump re-signed. *Unlocks:* Phase A2 (commit-2 ships).
+
+---
 
 ## §6 — Sign-off → unlock matrix
-*pending*
+
+**Closure property (maintenance rule):** this matrix is **closed over the plan** — every phase and sub-phase in §4, plus the non-blocked lane (§2) and the external decisions (§5), appears here **exactly once** with its full gate set; and no gate referenced here is undefined in §0/§5. This table is the plan's integrity check: **a future edit to §4 must update §6 in the same commit**, or the two drift out of reconciliation.
+
+| Item | 🔒 signature | ⛔ precondition(s) | Unlocks / status |
+|---|---|---|---|
+| §2.1 Appendix-A content/config | — | — | 🟢 authorized now |
+| §2.2 fixture-set authoring | — | — | 🟢 authorized now (feeds GL-0) |
+| §2.3 staged helpline payload | — | dial-test + L0 re-sign (§5.4) | prep 🟢; ship gated |
+| A1 — §C detection-recall | — | GL-0 ≥95% (§5.3) | crisis detection at gate |
+| A2 — §C content | — | dial-test + L0 re-sign (§5.4) | corrected tiered resources live |
+| B0 — precedence wiring | — | §4.5 ratification (§5.1) | deterministic multi-hit order; gates B1–B3 order-finalization |
+| B1 — E3 medical | E3 | E3 recall ≥95%; B0 | medical screen-up route |
+| B2a — E4 §HR shape | E4 | B0 | distress-first neutral referral (psychosis, live route) |
+| B2b — E4 mania/dissociation detection | E4 | E4 per-class recall ≥95%; Gap #65 (§5.2); CF-006 activation; B0 | full HR trigger coverage |
+| B3 — E7 IPV pre-emption | E7 | E7 recall ≥95%; B0 | scoped §6 pre-emption + referral |
+| C — E1 supervisor + `care_pathway` | E1 | Phase B exit (§F silent-divert testable) | mid-conversation tier step-up |
+| D — E2 category grouping | E2 | Phase C exit (`care_pathway` live) | offer-first/second ladder |
+| *ext* §5.1 precedence ratification | (clinical lead) | — | unlocks B0 |
+| *ext* §5.2 Gap #65 decision | (eng + clinical) | — | bounds B2b / B3 gate feasibility |
+
+**Change control.** This plan **cites** the approval record; it does not restate it. If a signer amends the record during the signature loop — most likely E4's per-class gates or the §4.5 precedence order, the two items flagged as clinical decisions to ratify — those amendments **propagate here**, and the affected §4 phases + §6 rows re-open. That is the accepted cost of drafting the plan in parallel with signing rather than after it, and it is cheap: a sequencing doc is far easier to revise than it is to have signatures land with no plan ready.
+
+---
+
+*Plan complete — §0–§6. Companion to the approval record (mechanism) and the conversion doc (§C/§HR content). Nothing herein authorizes a build step; the markers and §6 matrix do.*
