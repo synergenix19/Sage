@@ -113,8 +113,8 @@ v7 advances/holds/completes/exits *within a single skill only* — `skill_execut
 | `category` | str | active BOT BEHAVIOUR category (e.g. `"anxiety"`) |
 | `tier` | `mild`\|`moderate`\|`high`\|`null` | current severity tier |
 | `cleared_screens` | list[str] | e.g. `["medical_red_flag"]`; **carried forward, never re-run on step-up** |
-| `tried_skills` | list[str] | skills already offered/run in this pathway (no re-offer) |
-| `consecutive_no_improvement` | int | increments on a check-in showing no improvement at the current tier; **step-up trigger at 2** (spec §C) |
+| `tried_skills` | list[str] | skills already offered/run in this pathway (no re-offer). **Scope: per pathway-episode (this activation), NOT per session/user** — a user who benefited from Box Breathing this morning must not find it suppressed tonight; the longer horizon is the therapeutic profile's `effective_techniques`. |
+| `consecutive_no_improvement` | int | increments on a check-in showing no improvement at the current tier; **step-up trigger at 2** (spec §C). **Resets to 0 on (a) any improvement check-in and (b) any tier transition** — a stale Mild count must never fire a step-up at Moderate. |
 | `ceiling_reached` | bool | set when the highest tier's skill completed AND a check-in still shows no-improvement/worsening → offer human/professional support; do NOT cycle lower tiers or repeat (spec §E) |
 
 (This channel is also the home of the check-in-signal counters demoted from former E6 — Appendix A.)
