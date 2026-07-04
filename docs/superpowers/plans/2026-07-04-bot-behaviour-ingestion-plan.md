@@ -75,7 +75,7 @@ Pure test data, derived directly from tables the clinician has **already authore
 | Gate | Positive fixtures (must fire) | Negative fixtures (must NOT fire) |
 |---|---|---|
 | **§C crisis** (→ GL-0) | canonical trigger table, all 8 rows (direct SI, passive ideation, burden, can't-continue, hopelessness, wanting-pain-to-stop, self-harm, loss-of-self-trust) | existing false-positive exclusions; idiomatic non-crisis |
-| **E3 medical** | §1 universal red-flag descriptors (pressure/heaviness, crushing/stabbing/searing, spreading to arm/jaw/back, one-sided numbness/weakness) + cross-category medical-guard phrases | Mild/Moderate chest-and-breathing tables ("chest feels a little tight," anxious shallow breathing, panic racing heart) |
+| **E3 medical** | §1 universal red-flag descriptors (pressure/heaviness, crushing/stabbing/searing, spreading to arm/jaw/back, one-sided numbness/weakness) + cross-category medical-guard phrases **+ S1b sleep-disorder red-flags (snoring/gasping/choking) + S5a burnout physical-health red-flags** (full-spec review — E3 is a general acute-medical screen, not cardiac/stroke only) | Mild/Moderate chest-and-breathing tables ("chest feels a little tight," anxious shallow breathing, panic racing heart) |
 | **E4 HR** | §HR psychosis / mania / dissociation phrase lists | neighbouring §3a low-mood ("I feel numb," "nothing feels real"), §4a can't-name-the-feeling, positive-mood excitement ("so much energy today") |
 | **E7 IPV** | expanded coercive-control set (surveillance/monitoring, financial control, fear-of-reaction) + existing `domestic_situation` keywords | ordinary relationship conflict ("husband and I keep arguing," "mother-in-law criticizes everything"), workplace-"controlling" ("my boss is controlling") |
 

@@ -3,7 +3,7 @@
 **Status:** DRAFT FOR SIGN-OFF (definitions + overview complete; extension entries drafted one at a time).
 **Governance basis:** Absolute Rule 1 (deviations from v7 are flagged and approved, never silent; spec and code merge together).
 **Consumes:** the BOT BEHAVIOUR clinician spec (§1–§7 + §C + §HR). **Companion:** `2026-07-04-crisis-hr-protocol-conversion.md`.
-**Set size:** the §4–7 delta reduced the mechanism set from seven candidates to **five** — E1, E2, E3, E4, E7. The two dropped candidates (offload mode, diagnosis-refusal) were assessed and resolved as content/config; see **Appendix A**. Labels are kept stable (E7 stays E7) for citation continuity.
+**Set size — five extensions, verified across the FULL spec:** E1, E2, E3, E4, E7. Completeness was checked by name against every section — §1a–§7c, §4a, the S-series (S1 sleep, S2 grief ×3, S3 money, S4 self-criticism/compassion/setback ×3, S5 burnout), and §C/§HR (two bounded delta passes, 2026-07-04). Every category maps to an existing skill, a new *content* skill, or one of E1–E4 / E7 / the §4.5 precedence convention — **no category surfaced a sixth mechanism.** Two originally-considered candidates (offload mode, diagnosis-refusal) resolved as content/config (**Appendix A**). Labels kept stable (E7 stays E7) for citation continuity.
 
 ---
 
@@ -11,7 +11,7 @@
 
 This is the **citation anchor** for every architectural change required to ingest BOT BEHAVIOUR. Once signed, each implementation PR references the extension entry it advances ("implements E1 per approval record §E1"). **Unsigned entry = not approved = no build.** Entries may be signed independently.
 
-**Scope — what counts as an "extension":** an *architectural delta beyond v7* — a new SageState channel, graph node, `step_policy`/executor action type, safety route, or Skill-schema field. **Out of scope:** new skill JSONs, trigger/lexicon tables, and copy — those are **Cardinal Rule 4 clinician content**, signed separately (conversion doc + CMS). This split keeps mechanism approval (here) distinct from content approval (clinical). The demotion of the two former candidates in Appendix A is this test applied honestly.
+**Scope — what counts as an "extension":** an *architectural delta beyond v7* — a new SageState channel, graph node, `step_policy`/executor action type, safety route, or Skill-schema field. **Out of scope:** new skill JSONs, trigger/lexicon tables, and copy — those are **Cardinal Rule 4 clinician content**, tracked in the content-type→home map `BOT_BEHAVIOUR_CONTENT_INVENTORY.md` (Phase-1 artifact four) and signed separately (conversion doc + CMS). The architecture holds the words; it does not wait for them. This split keeps mechanism approval (here) distinct from content approval (clinical). The demotion of the two former candidates in Appendix A is this test applied honestly.
 
 ---
 
@@ -237,7 +237,7 @@ Kill-switch `SAGE_MEDICAL_REDFLAG` (strict fail-safe parse). Default OFF → byt
 
 **(f) Deterministic recall gate.**
 - **Target: ≥95% recall** on the positive fixtures (crisis-recall KPI convention).
-- **Positive fixtures:** spec §1 universal red-flag descriptors + the medical-emergency guard phrases recurring across categories (anxiety §6 guard, panic).
+- **Positive fixtures:** spec §1 universal red-flag descriptors + the medical-emergency guard phrases recurring across categories (anxiety §6 guard, panic). **Scope broadened by the full-spec review (2026-07-04):** the medical route is a *general acute-medical* screen, not cardiac/stroke only — it also serves **sleep-disorder red-flags (S1b: snoring/gasping/choking)** and **burnout physical-health red-flags (S5a)**. All route to the same "seek in-person evaluation" screen. Fixtures span all three sources.
 - **Negative fixtures (REQUIRED):** the Mild/Moderate-tier chest and breathing phrases that must NOT fire ("chest feels a little tight," anxious shallow breathing, panic racing heart). **A recall gate without negative fixtures is trivially satisfied by over-firing** — precision is measured here against a **clinician-set tolerance**, not hard-gated.
 - **Arabic fixture debt (explicit open obligation):** the POC gate runs English-first; it is NOT production-satisfied until Khaleeji / MSA / Arabizi equivalents of **both** fixture sets exist (TD3/TD4-adjacent). Recorded so it does not vanish.
 
