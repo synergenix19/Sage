@@ -25,7 +25,51 @@ Every content type in the spec maps one-to-one onto a v7 ownership surface. "Cli
 **Read of §1:** every type has a clinician-editable home on an existing v7 structure; none requires one of the five extensions to *hold* content (E1/E2 change how skills are *sequenced*, not where their copy lives). The two rows carrying real risk are **check-in format** (an enhancement, not copy) and **cross-cutting rules** (L0 re-sign-gated) — both surfaced in the reconcile register (§3).
 
 ## §2 — Per-category coverage checklist
-*pending — next turn (destinations verified against the 97-item Skills & Knowledge Base inventory; UNVERIFIED marked, not asserted)*
+
+**Legend.** Content types carried: **V** validating/framing · **P** preliminary Qs · **E** psychoeducation · **C** check-in · **T** category trigger words · **X** invokes a cross-cutting rule (§1 row 5). Disposition: **present** (populated existing home) · **add** (new content/skill) · **reconcile** (adjusts signed-off copy → §3). Destinations: `skill_id` **✓** = verified present in `src/sage_poc/skills/*.json`; `KB:<id>` = verified KB article; **NEW:** = not in inventory (→ §4); **UNVERIFIED** = claimed but not confirmable. Safety routes (crisis/medical/HR/IPV) are governed elsewhere (conversion doc + recall gates) — noted, not owned here.
+
+| Category | Destination(s) [verified] | Types | Disposition | Note |
+|---|---|---|---|---|
+| §1a–1c Anxiety (mild/mod/high) | box_breathing✓, grounding_5_4_3_2_1✓, stop_technique✓, progressive_muscle_relaxation✓, mindfulness_body_scan✓, dbt_tipp✓ | V P E C | **reconcile** | tier-specific validating/flow via E1/E2; existing skill copy is generic — reconcile per tier |
+| §1d Worry loops/rumination | **NEW:** Worry Tree, worry_time✓, problem_solving_therapy✓ | V P E C | add + present | Worry Tree new (§4) |
+| §1e Anticipatory anxiety | box_breathing✓ → **NEW:** Worry Tree → problem_solving_therapy✓ | V P E C | add + present | composite sequence (E2) |
+| §1f Understanding anxiety | **KB:anxiety-001/002/003**, psychoed_anxiety✓ | E (+menu) | present | **skill-vs-KB decision: menu → KB via knowledge_retrieve**; psychoed_anxiety for in-flow |
+| §2a Practical decision | problem_solving_therapy✓ | V P E C | present | ⚠ inventory doc lists SK-028 `problem_solving` as *proposed*, but `problem_solving_therapy.json` exists — doc stale |
+| §2b Values guidance | values_clarification✓ | V P E C | reconcile | spec "Life Compass" domain-menu structure vs current — reconcile |
+| §3a Low mood/withdrawal | behavioral_activation✓, grief_loss✓ (grief branch) | V P E C (+safety) | reconcile | safety-question-woven + grief-softening branch |
+| §3b Worthlessness/self-criticism | **NEW:** Fact vs Opinion (or cognitive_restructuring✓), self_compassion_break✓ | V P E C (+safety) | add + present | "better off without me" = mandatory crisis trigger |
+| §3c Understanding depression | **KB:depression-001/002/003**, psychoed_depression✓ | E (+menu) | present | KB menu; safety-check when personally framed |
+| §3d Just needs to offload | freeflow/L2 (no skill) | X | present + add | offload intent label + suppression rule = Appendix-A content |
+| §4a Can't name the feeling | **NEW:** Emotions Wheel, mood_check_in✓ | V P E C | add + present | dissociation-vs-alexithymia trigger → E4 |
+| §4b Understanding emotions | **NEW psychoed** (no emotions KB article exists) | E (+menu) | add | inventory has no `emotions-00x` — new KB article or psychoed skill |
+| §4c Wanting to tune in/process | mindfulness_body_scan✓ (+E5 hold-space) | V P E C | present | dissociation → grounding_5_4_3_2_1✓ |
+| §5a Quick lift | behavioral_activation✓ (micro variant), safe_place_visualization✓ | V P E C | reconcile | micro-action variant of BA |
+| §5b Build positives | **NEW:** Wins-Log, cognitive_restructuring✓ | V P E C | add + present | between-session follow-up |
+| §6a Saying no/people-pleasing | assertive_communication✓, interpersonal_effectiveness✓ | V P E C | reconcile | coercive-control pre-empt = E7 (coaching_confrontation class) |
+| §6b Boundary setting | interpersonal_effectiveness✓ (DEARMAN), assertive_communication✓ | V P E C | present | reuses §6a E7 guard |
+| §6c Rehearse/draft message | **NEW:** Draft/Role-Play, assertive_communication✓ | V P E C | add + present | reuses §6a guard |
+| §6d Understanding assertiveness | **KB:assertiveness-001**, **NEW psychoed** | E (+menu) | present + add | KB menu present |
+| §7a Wants company/being heard | freeflow/E5 (no skill) | V X | present | hold-space; loneliness-severity check |
+| §7b Isolation/withdrawal | behavioral_activation✓ | V P E C | present | reroute to §3a/§6b = E1/E2 |
+| §7c How do I connect | **KB:relationships-001**, **NEW psychoed** | E (+menu) | present + add | hand-off to §6c = E1 |
+| S1a Mind racing at night | box_breathing✓, progressive_muscle_relaxation✓, safe_place_visualization✓, worry_time✓ | V P E C | present | near-nightly → CBT-I flag (E1) |
+| S1b Sleep disruption | sleep_hygiene✓, **KB:sleep-001** | V P E C | present | sleep-disorder red-flags (snoring/gasping/choking) → E3 |
+| S2a Fresh/raw grief | grief_loss✓ (presence mode) | V (no-skill) | reconcile | presence mode; traumatic/suicide-loss guard content |
+| S2b Coping with loss | grief_loss✓ (continuing bonds) | V P E C | present | Islamic-practices content already in grief_loss |
+| S2c Understanding grief | grief_loss✓ psychoed, **KB:grief-001** | E (+menu) | present | KB menu |
+| S3a Acute money worries | box_breathing✓, financial_anxiety✓, problem_solving_therapy✓, worry_time✓ | V P E C | present | coercive-financial → E7; material-crisis guard content |
+| S4a Harsh self-criticism | self_compassion_break✓, act_psychological_flexibility✓, **NEW:** Kind Self-Talk | V P E C | present + add | escalate → §3b (E1) |
+| S4b Rejecting self-compassion | self_compassion_break✓, **NEW:** Myths vs Facts | V P E C | present + add | trauma/weaponized-kindness guard content |
+| S4c After a setback/failure | self_compassion_break✓, cognitive_restructuring✓, **NEW:** Handling Setbacks | V P E C | present + add | hopelessness → crisis route |
+| S5a Chronic stress & burnout | progressive_muscle_relaxation✓, behavioral_activation✓, problem_solving_therapy✓, assertive_communication✓/interpersonal_effectiveness✓, psychoed_stress✓, **KB:coping-002** | V P E C | present | burnout physical red-flags → E3; workplace-harassment scope-limit |
+| **C — Crisis** | `crisis_response` node (not a skill), post_crisis_check_in✓, **KB:crisis-001..004** | protocol | present | **safety route — governed by conversion doc + GL-0 gate**, not here |
+| **HR — High risk** | psychotic_referral✓ (+E4) | protocol | reconcile | **safety route — E4 + conversion doc**; §HR shape change |
+
+**Cardinality both ways.** Many categories resolve to multiple items (recorded above); and several items serve multiple categories — e.g. `box_breathing` (§1a-c, §1e, S1a, S3a), `grounding_5_4_3_2_1` (§1a-c, §4c), `self_compassion_break` (§3b, S4a/b/c), `problem_solving_therapy` (§1d/e, §2a, S3a, S5a). No item is single-use; the ladder/pathway reuse (E2) is what makes that safe.
+
+**Orphan signal (cheap reverse check, not a full audit).** Inventory skills the spec's 35 categories do **not** appear to reference: **`mi_readiness_ruler`** (SK-009, motivational-interviewing readiness) — no readiness/ambivalence category in the spec; and **`cbt_thought_record`** (SK-001) is only indirectly implicated (§3b routes to Fact-vs-Opinion / `cognitive_restructuring`, not the full thought record). Worth a clinician glance — a spec that silently drops an implemented skill is itself a finding. (Reverse KB-article orphans, e.g. `therapy-001`, `trauma-001`, `wellbeing-001`, not enumerated here.)
+
+**Inventory-doc staleness (finding).** `docs/SageAI_Skills_Knowledge_Base.md` lists 24 skills (SK-001–024) + 4 proposed, but `skills/*.json` has **27** — it omits `psychotic_referral`, `act_psychological_flexibility`, and `problem_solving_therapy` (the last listed as *proposed* SK-028 while its JSON ships). The inventory doc needs a refresh; destinations above are verified against the JSON dir (ground truth), not the doc.
 
 ## §3 — Reconcile register
 *pending (each item names its re-sign path: skill copy → clinical CMS re-approval; L0 → L0 re-sign)*
