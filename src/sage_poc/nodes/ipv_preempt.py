@@ -39,6 +39,34 @@ def _matches_expansion(text: str) -> bool:
     return any(phrase in normalized for phrase in _NORMALIZED)
 
 
+# §6 coaching_confrontation-class skills — deterministically contraindicated when domestic_situation
+# is set. Encouraging a boundary/assertiveness script in a genuinely unsafe dynamic can increase risk
+# (§6a guard). Scoped: ONLY these; grounding/offload/sleep stay available (don't punish disclosure).
+#
+# ⚠️ PRE-E2 BRIDGE — TRACKED OBLIGATION (same discipline as the CF-005 consolidation above; note in
+# the E7 PR). This literal set is a stopgap until E2's coaching_confrontation contraindication class
+# lands. When E2 ships, REPLACE this set with class membership so §6 skills added later — e.g. the
+# planned §6c Draft/Role-Play skill from the content inventory — inherit the guard AUTOMATICALLY
+# instead of requiring someone to remember to update a Python set here.
+COACHING_CONFRONTATION_SKILLS: frozenset[str] = frozenset({
+    "assertive_communication",
+    "interpersonal_effectiveness",
+})
+
+
+def ipv_preempt_active(state) -> bool:
+    """True when E7 §6 pre-emption is in force this turn: flag ON AND domestic_situation set.
+
+    domestic_situation is immutable within a session (flag_lifecycle_config), so once disclosed the
+    suppression persists across turns without any per-turn re-detection — the property step 4 proves.
+    """
+    from sage_poc import config  # noqa: PLC0415 — call-time read of the kill-switch
+
+    return config.IPV_PREEMPTION_ENABLED and "domestic_situation" in (
+        state.get("clinical_flags") or []
+    )
+
+
 def apply_ipv_preempt(state) -> dict:
     """Flag-gated state delta for safety_check_node to merge into its return.
 

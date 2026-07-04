@@ -380,6 +380,33 @@ async def skill_select_node(state: SageState) -> dict:
             "path": state["path"] + ["skill_select"],
         }
 
+    # E7 §6a IPV pre-emption (flag-gated SAGE_IPV_PREEMPTION). When domestic_situation is set, the §6
+    # coaching_confrontation skills (assertive_communication, interpersonal_effectiveness) are
+    # contraindicated — encouraging a boundary/assertiveness script in a genuinely unsafe dynamic can
+    # increase risk (§6a guard). They are suppressed from BOTH offer-accept promotion and fresh
+    # selection; the turn routes to freeflow, where the existing PI-CF-005 clinical adaptation surfaces
+    # the safety-first framing + DFWAC/Ewaa referral. Scoped: only these skills — grounding/offload/
+    # sleep stay available (don't punish disclosure). Senior to offer-accept + matching below,
+    # subordinate to the crisis + psychotic auto-selects above. When the flag is OFF or there is no
+    # domestic_situation, _ipv_active is False and every path below is byte-identical to v7.
+    from sage_poc.nodes.ipv_preempt import (  # noqa: PLC0415
+        COACHING_CONFRONTATION_SKILLS,
+        ipv_preempt_active,
+    )
+    _ipv_active = ipv_preempt_active(state)
+
+    def _ipv_suppressed_return(extra: dict | None = None) -> dict:
+        return {
+            **(extra or {}),
+            "active_skill_id": None,
+            "active_step_id": None,
+            "offered_skill_ids": None,
+            "offer_count": 0,
+            "skill_match_method": None,
+            "semantic_score": None,
+            "path": state["path"] + ["skill_select", "ipv_preempt_suppressed"],
+        }
+
     # R1: accepted offer promotion. Runs after all auto-select safety paths so
     # post-crisis and psychotic referral always take precedence over a stale offer.
     # stale_offer_clear is spread into every return downstream of the promotion
@@ -393,6 +420,11 @@ async def skill_select_node(state: SageState) -> dict:
         if chosen not in _SKILLS or chosen not in offered:
             chosen = next((sid for sid in offered if sid in _SKILLS), None)
         if chosen is not None:
+            # E7: a §6 offer accepted in the same turn the user discloses coercive control must NOT
+            # promote — the safety referral wins over the engagement-layer accept (mirrors the
+            # psychotic-referral-over-accept precedence). Route to freeflow + referral instead.
+            if _ipv_active and chosen in COACHING_CONFRONTATION_SKILLS:
+                return _ipv_suppressed_return(stale_offer_clear)
             skill = _SKILLS[chosen]
             return {
                 "active_skill_id": chosen,
@@ -448,6 +480,14 @@ async def skill_select_node(state: SageState) -> dict:
     if kw_matches:
         ranked_kw = sorted(kw_matches.items(), key=lambda x: x[1], reverse=True)
         candidates = [sid for sid, _ in ranked_kw]
+        # E7: drop §6 coaching_confrontation skills from the candidate set. If they were the ONLY
+        # matches (a §6-only request under an IPV disclosure), suppress -> freeflow + referral;
+        # otherwise a non-§6 match still leads and is offered as normal (carve-out preserved).
+        if _ipv_active:
+            _filtered = [c for c in candidates if c not in COACHING_CONFRONTATION_SKILLS]
+            if not _filtered:
+                return _ipv_suppressed_return(stale_offer_clear)
+            candidates = _filtered
         # C1 acute-overlap tiebreak (clinical sign-off 2026-06-13), ported into the R1 consent
         # model. When BOTH grounding_5_4_3_2_1 and dbt_tipp keyword-match, prefer grounding for
         # ambiguous overwhelm: contraindication-free, lower-activation, the lower-medical-risk
@@ -520,6 +560,13 @@ async def skill_select_node(state: SageState) -> dict:
         candidates = [semantic_skill]
         if runner_up is not None and runner_up[0] != semantic_skill:
             candidates.append(runner_up[0])
+        # E7: same §6 filter as the keyword tier — a semantic §6 match (with no non-§6 runner-up)
+        # under an IPV disclosure suppresses to freeflow + referral; a non-§6 runner-up survives.
+        if _ipv_active:
+            _filtered = [c for c in candidates if c not in COACHING_CONFRONTATION_SKILLS]
+            if not _filtered:
+                return _ipv_suppressed_return(stale_offer_clear)
+            candidates = _filtered
         # resolve result must win the merge: offer results set offered_skill_ids themselves
         return {**stale_offer_clear,
                 **_resolve_entry(state, candidates, method="semantic", semantic_score=round(score, 4))}
