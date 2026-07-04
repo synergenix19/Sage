@@ -197,6 +197,57 @@ Kill-switch `SAGE_CATEGORY_PATHWAYS` (E2 requires E1, so `SAGE_TIER_SUPERVISOR=o
 
 ---
 
-- E3 — pending
+### E3 — Medical red-flag guard (cardiac / stroke)
+
+**(a) v7 delta + Cardinal Rule(s) touched.**
+v7 `safety_check` detects self-harm/suicide crisis (S1/S3) only; there is no screen for acute medical-emergency descriptors. Anxiety and panic present with chest tightness, racing heart, breathlessness — v7 reads these as anxiety and routes to a breathing/grounding skill. E3 adds a **deterministic medical red-flag recognition layer** (new lexicon category in the safety rules) + a **new route to a brief medical-screen protocol**, firing at Node 1, positioned in §4.5 precedence **below crisis, above HR/IPV/tier**.
+
+- **Cardinal Rule 4** (deterministic detection, never softened; ≥95% recall) — E3 is a safety route; detection is deterministic lexicon (**Rule 5** rules-first), bound to the recall gate (f).
+- **Cardinal Rule 2** — the red-flag lexicon and screen copy are clinician-editable Rules Service content, not code constants.
+- **Absolute Rule 1** — new safety route → sign-off.
+
+**Detection & the (narrow) calibration boundary.** The clinician spec already draws most of the line:
+- **Positive (must fire) — universal red-flag table, §1 "screen rather than assume anxiety":** pressure/heaviness in chest, crushing/stabbing/searing pain, pain spreading to arm/jaw/back, one-sided numbness/weakness.
+- **Negative (must NOT fire) — Mild-tier benign phrases:** "my chest feels a little tight," anxious/shallow breathing, racing heart from panic.
+The lexicon boundary is therefore **clinician-drawn already**. The only residual calibration decision is where *unlisted, ambiguous* phrasings fall — and the spec's own rule sets the default: **ambiguity screens up.** The clinician owns only the placement of newly-observed ambiguous phrasings, with the default already fixed to screen.
+
+**Action — a screen, not a takeover (why recall is biased).** Unlike crisis, E3 does NOT end the conversation. It routes to a brief medical-screen protocol: acknowledge + one discriminating question ("this could be worth an in-person check — is this the same kind of feeling you've had with anxiety before, or does it feel new/different?"), then: *familiar-anxiety* → clear the screen, continue the pathway; *new / red-flag confirmed* → prompt in-person/emergency evaluation (999/ER). **False positive costs one gentle question; false negative risks a missed cardiac event.** That asymmetry is why recall binds hard while precision is a monitored tolerance (below).
+
+**(b) Options considered + recommendation.**
+- **Option A — deterministic lexicon + medical-screen route on the `f3-f4-tipp-clinical-gated` contract (RECOMMENDED).** Reuses the "deterministic contraindication detection" mechanism already in clinical sign-off for TIPP; the screen is entry-screen-style.
+- **Option B — semantic/LLM medical classifier.** *One real advantage: catches novel phrasings without lexicon upkeep.* Costs: non-deterministic (breaches Rule 4/5 for a safety route); unbounded recall behaviour; and the BGE-M3 distress/SI-bleed lesson shows embeddings can't be trusted for safety-critical separation. Rejected for detection (may inform monitoring only).
+- **Recommendation: Option A.**
+
+**(c) Dependencies + E1 interaction.**
+- §4.5 precedence: below crisis, above HR/IPV/tier. A co-firing crisis flag wins the route; E3's flag is still audited.
+- **E1 interaction (the coherence point):** a completed screen where the user confirms familiar-anxiety writes `medical_red_flag` to `care_pathway.cleared_screens` → **not re-run within the pathway-episode** (carry-forward). **Conversely, a cleared medical screen is the precondition for offering high-tier TIPP**, whose temperature step (cold-water dive reflex → bradycardia) carries genuine cardiac contraindications. The *same* deterministic-contraindication gate serves both the inbound medical screen and TIPP entry — which is exactly why `f3-f4-tipp-clinical-gated` is the right mechanism template.
+- Sequenced before E1/E2 (safety route first).
+
+**(d) Test obligations.**
+1. Positive descriptors fire the screen (crushing / spreading / one-sided numbness).
+2. Benign Mild-tier chest/breathing phrases do NOT fire.
+3. The screen routes to the medical-screen protocol, never a conversation-ending block.
+4. Familiar-anxiety confirmation writes `cleared_screens=["medical_red_flag"]`; not re-run within the episode.
+5. High-tier TIPP is not offered unless `medical_red_flag` is cleared.
+6. Crisis co-fire → crisis wins (§4.5); medical flag still written to audit.
+7. Kill-switch OFF → v7 behaviour (no medical screen).
+
+**(e) Rollback posture.**
+Kill-switch `SAGE_MEDICAL_REDFLAG` (strict fail-safe parse). Default OFF → byte-identical v7 (anxiety phrases route as today). Note: unlike E1/E2, OFF re-exposes the missed-cardiac risk — so the flag is a rollback lever, and **ON is the intended production state once the gate passes**, not a long-term optional.
+
+**(f) Deterministic recall gate.**
+- **Target: ≥95% recall** on the positive fixtures (crisis-recall KPI convention).
+- **Positive fixtures:** spec §1 universal red-flag descriptors + the medical-emergency guard phrases recurring across categories (anxiety §6 guard, panic).
+- **Negative fixtures (REQUIRED):** the Mild/Moderate-tier chest and breathing phrases that must NOT fire ("chest feels a little tight," anxious shallow breathing, panic racing heart). **A recall gate without negative fixtures is trivially satisfied by over-firing** — precision is measured here against a **clinician-set tolerance**, not hard-gated.
+- **Arabic fixture debt (explicit open obligation):** the POC gate runs English-first; it is NOT production-satisfied until Khaleeji / MSA / Arabizi equivalents of **both** fixture sets exist (TD3/TD4-adjacent). Recorded so it does not vanish.
+
+**Sign-off (E3).**
+| Role | Name | Date |
+|---|---|---|
+| Product owner (mechanism: lexicon category + medical-screen route + kill-switch) | ______ | ______ |
+| Clinical lead (red-flag lexicon boundary + ambiguity-screens-up default + screen copy + ≥95% recall gate incl. Arabic fixtures + precision tolerance) | ______ | ______ |
+
+---
+
 - E4 — pending
 - E7 — pending
