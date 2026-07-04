@@ -1,0 +1,142 @@
+{
+  "authored": "2026-07-04",
+  "note": "current-detector baseline; runner=code, fixtures=content",
+  "gates": {
+    "\u00a7C / GL-0": {
+      "detector": "S1 rules + S3 BGE-M3 (live)",
+      "positive_recall": {
+        "direct_suicidal": {
+          "fired": 5,
+          "total": 5
+        },
+        "passive_ideation": {
+          "fired": 5,
+          "total": 7
+        },
+        "burden_being_missed": {
+          "fired": 3,
+          "total": 3
+        },
+        "cant_continue": {
+          "fired": 2,
+          "total": 3
+        },
+        "hopelessness_trapped": {
+          "fired": 4,
+          "total": 5
+        },
+        "wanting_pain_to_stop": {
+          "fired": 0,
+          "total": 2
+        },
+        "self_harm": {
+          "fired": 6,
+          "total": 6
+        },
+        "loss_of_self_trust_fear": {
+          "fired": 0,
+          "total": 2
+        }
+      },
+      "negative_precision": {
+        "idiomatic_non_crisis": {
+          "not_fired": 4,
+          "total": 4
+        }
+      }
+    },
+    "E3 medical": {
+      "detector": "NONE \u2014 E3 route unbuilt (baseline expected ~0)",
+      "positive_recall": {
+        "cardiac_stroke": {
+          "fired": 0,
+          "total": 11
+        },
+        "sleep_disorder": {
+          "fired": 0,
+          "total": 3
+        },
+        "burnout_physical": {
+          "fired": 0,
+          "total": 1
+        }
+      },
+      "negative_precision": {
+        "anxiety_chest_breathing": {
+          "not_fired": 5,
+          "total": 5
+        },
+        "ordinary_poor_sleep": {
+          "not_fired": 12,
+          "total": 12
+        },
+        "ordinary_exhaustion": {
+          "not_fired": 11,
+          "total": 11
+        }
+      }
+    },
+    "E4 HR": {
+      "detector": "psychotic_disclosure clinical flag (keyword-only, psychosis; CF-006 gated in prod)",
+      "positive_recall": {
+        "psychosis": {
+          "fired": 1,
+          "total": 15
+        },
+        "mania": {
+          "fired": 0,
+          "total": 10
+        },
+        "dissociation": {
+          "fired": 0,
+          "total": 11
+        }
+      },
+      "negative_precision": {
+        "dissociation_confusion": {
+          "not_fired": 12,
+          "total": 12
+        }
+      }
+    },
+    "E7 IPV": {
+      "detector": "domestic_situation clinical flag (keyword-only lexicon)",
+      "positive_recall": {
+        "physical_abuse": {
+          "fired": 6,
+          "total": 6
+        },
+        "control_monitoring": {
+          "fired": 3,
+          "total": 7
+        },
+        "fear_of_reaction": {
+          "fired": 0,
+          "total": 3
+        },
+        "walking_on_eggshells": {
+          "fired": 0,
+          "total": 3
+        },
+        "consequences": {
+          "fired": 0,
+          "total": 3
+        },
+        "isolation": {
+          "fired": 0,
+          "total": 2
+        },
+        "threat": {
+          "fired": 0,
+          "total": 4
+        }
+      },
+      "negative_precision": {
+        "ordinary_people_pleasing": {
+          "not_fired": 14,
+          "total": 14
+        }
+      }
+    }
+  }
+}
