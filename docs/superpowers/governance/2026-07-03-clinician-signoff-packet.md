@@ -62,6 +62,19 @@ Prod preflight ✅: prod flag unset (OFF), prod `session_audit` has NO `crisis_t
 
 **⚠️ PINNED OBSERVATION 2 — monitors are unproven against real rows.** The empty snapshot means the si-never-T1 invariant "trivially holds" on zero rows. The **first daily §G check must be deliberate**: first confirm **audit rows are landing under real internal-tester traffic** (the write path works beyond synthetic probes), *then* evaluate the invariants (si-never-T1, T2-with-s3-solo-EN ≈ 0, empties = 0). Monitors: `scripts/staging_tiering_monitors.sql`, run against the **prod** DB daily for 48h, then weekly.
 
+## §G day-one monitor check (prod, 2026-07-04 — READ-ONLY, product-owner authorized)
+| Check | Result |
+|---|---|
+| Rows landing under REAL traffic (write path beyond synthetic probes) | ✅ **6 flag-ON tier rows dated 2026-07-03/04** (crisis_tier="none" on real non-crisis turns) — tier fields ARE persisting under organic traffic |
+| Traffic volume (48h item-A window) | ⚠️ **minimal: 13 rows / 6 sessions** — internal-tester usage is very low |
+| Real crisis-tier T1/T2 turns from organic traffic | **0** (my verification probes were cleaned up; no real crisis/distress turns yet) |
+| INVARIANT si-never-T1 | ✅ **0** |
+| INVARIANT T2-with-s3-solo-EN | ✅ **0** |
+| INVARIANT empties (empty-fallback turns) | ✅ **0** |
+| New-lexicon fires SK-EN-008 (si_method) / SK-AZ-003 | **0** (no plan/means or Arabizi crises in sample) |
+
+**Honest read:** the write path is verified under real traffic (6 flag-ON "none" rows), and all invariants hold — but **trivially**, because organic tester traffic is minimal (6 sessions/48h) and **no real crisis/distress (T1/T2) turns have occurred yet**. The invariants are not yet meaningfully exercised on live crisis traffic. **Re-check on the first real crisis/distress sessions.** The ~2-week flag-cleanup "after clean monitors" clock should count from meaningful crisis-traffic exposure, not from this trivially-clean baseline.
+
 ## Detection findings (Gate-1 — NOT tiering regressions; carried for full picture)
 1. **Arabizi explicit-SI miss** (`ana 3ayez amot…`) — fires nothing (S1-az gap + S3 blind). Missed identically flag-OFF/ON. → clinician queue: candidate S1-az keywords.
 2. **EN plan+means euphemism miss** (`i have pills and a plan to end it`, S3 0.793) — **HIGHER priority (B9 never-soften)**; directional hazard: if S3 ever fires it, lands T1 without severity info. → clinician queue: **`si_explicit` plan/means keywords** (urgent). Guarded by a hard drift test.
