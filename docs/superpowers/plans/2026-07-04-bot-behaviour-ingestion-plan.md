@@ -62,11 +62,47 @@ A step may carry more than one marker; it is unblocked only when **all** clear. 
 
 ---
 
-## §2 — The non-blocked lane
-*pending — next turn*
+## §2 — The non-blocked lane (start this week)
 
-## §3 — Shared recall-measurement harness
-*pending*
+Three workstreams need **no extension signature** and can proceed now. A plan that shows everything frozen understates what is legitimately startable.
+
+**§2.1 — Appendix-A content/config. 🟢**
+The two former-candidate items resolved as content (approval record Appendix A): the **offload intent-taxonomy label** and the **skill-suggestion-suppression rule** for §3d "just needs to offload." Both are Rules Service / content edits, no mechanism, no signature. (Diagnosis-refusal needs no work — already covered by L0 + `scope_refusal`.)
+
+**§2.2 — Fixture-set authoring. 🟢 — the single highest-value non-blocked item.**
+Pure test data, derived directly from tables the clinician has **already authored in the spec**, so it is genuinely startable now — and it feeds GL-0 directly (see §3). Sources named per gate so this is real work, not a placeholder:
+
+| Gate | Positive fixtures (must fire) | Negative fixtures (must NOT fire) |
+|---|---|---|
+| **§C crisis** (→ GL-0) | canonical trigger table, all 8 rows (direct SI, passive ideation, burden, can't-continue, hopelessness, wanting-pain-to-stop, self-harm, loss-of-self-trust) | existing false-positive exclusions; idiomatic non-crisis |
+| **E3 medical** | §1 universal red-flag descriptors (pressure/heaviness, crushing/stabbing/searing, spreading to arm/jaw/back, one-sided numbness/weakness) + cross-category medical-guard phrases | Mild/Moderate chest-and-breathing tables ("chest feels a little tight," anxious shallow breathing, panic racing heart) |
+| **E4 HR** | §HR psychosis / mania / dissociation phrase lists | neighbouring §3a low-mood ("I feel numb," "nothing feels real"), §4a can't-name-the-feeling, positive-mood excitement ("so much energy today") |
+| **E7 IPV** | expanded coercive-control set (surveillance/monitoring, financial control, fear-of-reaction) + existing `domestic_situation` keywords | ordinary relationship conflict ("husband and I keep arguing," "mother-in-law criticizes everything"), workplace-"controlling" ("my boss is controlling") |
+
+Each set is English-first now; the Arabic (Khaleeji / MSA / Arabizi) equivalents are the tracked debt (§5), authored in parallel and required before any gate is production-satisfied. **These files are the content input the §3 harness consumes — authoring them is NOT blocked on the harness being built** (they are version-controlled first; the runner reads them when it exists).
+
+**§2.3 — Staged helpline commit-2 payload. ⛔ dial-test + L0 re-sign (payload already authored).**
+The corrected copy (800-HOPE / 800 4673 / 8am–8pm + tiered 999/SAKINA/DHA/Sharjah + off-hours re-anchor) is already staged in the conversion doc. Preparing the full edit set (9 source files + ~15 test assertions) is authorable, but under the GL-1 product-owner deferral it **ships only on your dial-test + L0 re-sign** — it is in this lane because no *extension signature* gates it, not because it is unconditionally startable.
+
+---
+
+## §3 — Shared recall-measurement harness (one pipeline, four gates)
+
+**One runner, not four.** GL-0 and the three safety-route recall gates (E3/E4/E7) all measure the same kind of thing — deterministic recall on positive fixtures, precision against negatives, with an Arabic obligation. They share **one fixture-driven measurement runner** — the machinery already being built for GL-0 crisis recall (the CRADLE / S3 recall harness), extended to additional fixture sets — rather than four parallel recall efforts.
+
+**Consumers:**
+| Gate | Fixture set (from §2.2) | Bar |
+|---|---|---|
+| GL-0 | §C crisis positives/negatives | ≥95% recall (critical path) |
+| E3 | medical positives/negatives | ≥95% recall; precision at clinician tolerance |
+| E4 | HR positives/negatives (per class) | ≥95% recall per class |
+| E7 | IPV positives/negatives | ≥95% recall; precision at clinician tolerance |
+
+**Fixture→harness relationship (refinement #1, made explicit):** the harness *consumes* the §2.2 fixture files; it is not a precondition for authoring them. Fixtures land first as versioned data; the runner reads whatever is present. So fixture authoring proceeds this week even though the harness extension is a later step.
+
+**The one design constraint (drift-prevention).** **Fixture files are clinician-editable content** — same CMS-adjacent governance as the lexicons (Cardinal Rule 2/4 territory): a clinician can add or move a trigger phrase without an engineering change. **The harness *runner* is engineering-owned code.** The measurement pipeline must never become a place where trigger phrases get hardcoded into Python — the same drift-prevention the E1 entry made for tier thresholds. Phrases live in data; the runner lives in code; the two never merge.
+
+**Gating.** The harness runner itself is 🟢 (measurement infrastructure — engineering, no clinical signature). What a *passing* gate (≥95%) unblocks is the activation of the corresponding safety route (§4); building the runner and authoring fixtures are not themselves gated.
 
 ## §4 — Sequenced build phases
 *pending*
