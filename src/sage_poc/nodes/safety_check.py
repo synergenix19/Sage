@@ -45,6 +45,9 @@ _ENGAGEMENT_WINDOW = 4
 _ENGAGEMENT_LOW = 4
 _ENGAGEMENT_STREAK = 3
 
+# W2 / G4: consecutive S7-clear monitoring turns required to step down monitoring -> supportive.
+STEP_DOWN_CLEAR_TURNS = 2
+
 
 def _update_distress_trajectory(state: SageState) -> tuple[list[int], bool]:
     """Append current turn's intensity to trajectory; return (updated_trajectory, escalating).
@@ -211,6 +214,22 @@ async def safety_check_node(state: SageState) -> dict:
     # from this single deduped list.
     new_crisis_flags = list(dict.fromkeys(new_crisis_flags))
 
+    # W2 / G4 warm de-escalation: while monitoring, count CONSECUTIVE S7-clear turns and step down
+    # monitoring -> supportive after STEP_DOWN_CLEAR_TURNS. A "clear" turn is S7=RECOVERING AND no
+    # S1/S3 fire this turn (is_safe). Any non-clear turn (STILL_DISTRESSED / UNCLEAR / NEW_CRISIS, or
+    # a crisis fire) resets the streak — the safety floor is never softened by a broken streak. This
+    # is a STATE computation; it never touches _route_after_safety (supportive is not 'monitoring',
+    # so routing lets it fall through to the normal graph on its own). Never steps to 'none' in-session.
+    _this_turn_is_safe = len(new_crisis_flags) == 0
+    monitoring_clear_turns = state.get("monitoring_clear_turns", 0)
+    if crisis_state == "monitoring":
+        if _this_turn_is_safe and s7_result == "RECOVERING":
+            monitoring_clear_turns += 1
+        else:
+            monitoring_clear_turns = 0
+        if monitoring_clear_turns >= STEP_DOWN_CLEAR_TURNS:
+            crisis_state = "supportive"  # stepped down; supportive is the in-session floor, never 'none'
+
     # v7.1 tiering (flag-gated). Fields are ABSENT when OFF, so a flag-off state write / audit
     # row is byte-identical to master (Check B); populated only when ON (F). is_safe and
     # crisis_flags below are UNCHANGED either way (is_safe stays the truthful detector aggregate);
@@ -248,6 +267,7 @@ async def safety_check_node(state: SageState) -> dict:
         "engagement_trajectory": engagement_trajectory,
         "code_switching": code_switching,
         "crisis_state": crisis_state,
+        "monitoring_clear_turns": monitoring_clear_turns,
         "s7_result": s7_result,
         "s7_method": s7_method,
         "path": state["path"] + ["safety_check"],

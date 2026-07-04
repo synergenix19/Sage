@@ -32,6 +32,7 @@ class SageState(TypedDict):
     s7_result: Optional[str]       # "RECOVERING" | "STILL_DISTRESSED" | "UNCLEAR" | "NEW_CRISIS"
     s7_method: Optional[str]       # "keyword" | "llm"
     re_escalation_within_monitoring: Optional[bool]  # True when crisis fires while crisis_state was already "monitoring"
+    monitoring_clear_turns: int    # W2/G4: count of CONSECUTIVE S7-clear (RECOVERING + is_safe) monitoring turns; 2 -> step down monitoring->supportive. Declared channel (LangGraph drops undeclared keys).
     distress_trajectory: list[int]
     engagement_trajectory: list[int]
     conversation_summary: Optional[str]
