@@ -149,7 +149,54 @@ Kill-switch `SAGE_TIER_SUPERVISOR` (strict fail-safe parse like `SAGE_CRISIS_TIE
 
 ---
 
-- E2 — pending
+### E2 — Category / skill-group abstraction
+
+**(a) v7 delta + Cardinal Rule(s) touched.**
+v7: 1 skill = 1 routable unit; there is no notion of a *category* — a group of skills forming an offer-first/offer-second ladder with shared screening. The consent-offer mechanism offers ≤2 candidates but holds no persistent "we are in category X, cycle among its tools" concept. E2 adds **three metadata fields to the existing Skill schema** — `pathway_id`, `tier`, `offer_rank` — plus clinician-editable Rules Service routing rules that read them. **No new document type.**
+
+- **Cardinal Rule 2** (clinical logic stays clinician-editable, never code): the category ladder lives in skill metadata + Rules Service rules. A separate "category JSON" is explicitly **rejected** — it would be a second CMS authoring surface and a second thing to version against the skills it references. The one thing it buys (reading a whole category's ladder in one place) is met by a **CMS *view* projecting the ladder from metadata**, not by a new storage type.
+- **Cardinal Rule 4** (deterministic detection, never softened): category guards are deterministic contraindications, not LLM discretion.
+- **Absolute Rule 1**: schema-field addition = v7 deviation → sign-off.
+
+**Schema additions (existing `Skill` model; all nullable, additive):**
+| field | type | role |
+|---|---|---|
+| `pathway_id` | str\|null | groups skills into a category (e.g. `"anxiety_acute"`); **null = standalone skill = current v7 behaviour** |
+| `tier` | `mild`\|`moderate`\|`high`\|null | the tier this skill serves within its pathway (feeds E1's `care_pathway.tier`) |
+| `offer_rank` | int\|null | offer-first (`1`) / offer-second (`2`) ordering within a tier; feeds the consent-offer candidate ordering |
+
+**Where category-level guards live (spec §6 "do not present this pathway if…").**
+These apply to a *whole category*, not one skill. Mechanism: expressed as skill-level `contraindications` (existing field) **inherited by every skill sharing a `pathway_id`**, evaluated at `skill_select` via Rules Service. Crucially, the **safety-route guards (crisis / medical / HR / IPV) are handled UPSTREAM by §4.5 precedence and never reach this layer** — so category guards cover only the **residual, non-safety conditions**: e.g. "anxiety is more than mild / long-standing → professional referral," "user explicitly asks for a human → don't redirect into the bot flow," "dissociation / panic-with-derealisation → escalate to referral (grounding can intensify)." This split means each guard is authored once — never duplicated across the safety-route and category layers.
+
+**(b) Options considered + recommendation.**
+- **Option A — metadata fields + Rules Service routing (RECOMMENDED).** `pathway_id`/`tier`/`offer_rank` on the existing schema; clinician-editable rules read them; the consent-offer renders the ladder. No new artifact.
+- **Option B — separate "category JSON" document type.** *One real advantage: a single place to read a whole category's ladder.* Costs: a second authoring surface, a second versioned artifact, and drift risk between category-doc and the skill-docs it references. The advantage is fully served by a CMS view over metadata.
+- **Recommendation: Option A.**
+
+**(c) Dependencies.**
+- **Depends on E1.** The ladder and step-up/down operate over E1's `care_pathway` (current `tier`, `tried_skills`, `cleared_screens`); without E1's `switch_skill` + state, E2 metadata has nothing to drive transitions.
+- Feeds the consent-offer mechanism (candidate ordering by `offer_rank`, filtered by `care_pathway.tried_skills`).
+- Bound by §4.5: category guards are strictly downstream of safety-route precedence.
+
+**(d) Test obligations.**
+1. **Offer-second only after offer-first check-in** — a tier's `offer_rank=2` skill is not surfaced until the `offer_rank=1` skill's check-in shows no-help / user wants variety.
+2. **No re-offer of `tried_skills`** — a skill in `care_pathway.tried_skills` is filtered from candidates (per-pathway-episode scope, per E1).
+3. **Cognitive-load cap** — never present all of a tier's tools at once; ≤2 offered (existing `max_offered`), honouring "don't present all 6 at once — cognitive load itself increases anxiety."
+4. **Pathway-inherited guard** — a contraindication on the pathway suppresses the *whole category* at `skill_select`, not just one skill.
+5. **Residual-only category guards** — a crisis/medical/HR/IPV hit is resolved by §4.5 upstream and never reaches (or double-fires at) the category guard.
+6. **Backward-compat** — a skill with `pathway_id=null` routes exactly as v7 (standalone).
+
+**(e) Rollback posture.**
+Kill-switch `SAGE_CATEGORY_PATHWAYS` (E2 requires E1, so `SAGE_TIER_SUPERVISOR=off` also renders E2 inert). Default OFF → `pathway_id`/`tier`/`offer_rank` ignored; skills route as standalone v7 units. Fields are additive/nullable, so OFF is byte-identical.
+
+**Sign-off (E2).**
+| Role | Name | Date |
+|---|---|---|
+| Product owner (mechanism: 3 schema fields + Rules Service routing) | ______ | ______ |
+| Clinical lead (pathway groupings, offer-rank ladders, residual category guards) | ______ | ______ |
+
+---
+
 - E3 — pending
 - E4 — pending
 - E7 — pending
