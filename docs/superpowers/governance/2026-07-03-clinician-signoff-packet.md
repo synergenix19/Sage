@@ -78,6 +78,12 @@ Prod preflight ✅: prod flag unset (OFF), prod `session_audit` has NO `crisis_t
 
 **Signatures:** Product owner: ______________  Clinical lead: ______________  Date: 2026-07-03
 
+## Clinician sign-off sheet — later decisions
+| # | Decision | Recommendation | Status |
+|---|----------|----------------|--------|
+| **G5-b** | score_mood emission policy — Option C: every AR score_mood turn presents the pinned anchored 1-10 scale verbatim; LLM renders only the Khaleeji wrapper; corruption guard as defense | Approve (instrument administered by step per Cardinal Rule 3; B8/AlHadi: valid only as administered; prod showed 3/3 scale-less) | ✅ **APPROVED 2026-07-04** (clinician approval relayed via product owner; shipped PR #99/#100/#101). **NOTE: zero live exposure — score_mood is currently unreachable on prod (Node-4 diagnostic), so the signature and the reachability fix can land together.** |
+| **G4-b** | monitoring-turn conversational copy — the F2 "sticky canned card" complaint: monitoring turns should read as warm conversation, not a repeated crisis card | _PENDING — crisis-path copy, needs clinician wording sign-off (same pattern as G2)_ | ⏳ **NOT YET SHIPPED.** W2 PR #102 shipped only the step-down MECHANICS (signed G4 criteria); the conversational-copy half of G4 is outstanding. |
+
 ## G8 risk-acceptance (helpline) — retained
 Internal phase keeps `800 46342` / "24/7"; residual risk accepted (IWRC, mislabelled-not-dead + correct co-listed 999). External-exposure gate (dial-test + W7 commit-2 + L0 re-sign) parked until the first external milestone.
 
