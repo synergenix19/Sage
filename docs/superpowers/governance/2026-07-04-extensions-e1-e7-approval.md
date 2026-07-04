@@ -97,7 +97,58 @@ Held to §0's scope test, two former candidates are v7-covered and demoted:
 
 *Drafted one per review turn, Phase-2 discipline.*
 
-- **E1 —** _to be drafted next_
+### E1 — Cross-skill severity-tier supervisor + `care_pathway` state
+
+**(a) v7 delta + Cardinal Rule(s) touched.**
+v7 advances/holds/completes/exits *within a single skill only* — `skill_executor.py:733` sets `active_skill_id` to the same skill or `None`; the only cross-skill jump is `exit_to_crisis_protocol`. There is no mechanism to move a mid-conversation user from one skill to a *different* skill (e.g. Mild→Box Breathing stepping up to High→TIPP) while carrying context. E1 adds two mechanism pieces: (1) a checkpoint-persisted `care_pathway` SageState channel (schema below); (2) a `switch_skill` executor action that atomically sets `active_skill_id` to a different skill, resets `active_step_id` to that skill's entry step, and preserves `care_pathway` (cleared screens not re-run). A deterministic supervisor evaluates tier transitions on check-in results and emits `switch_skill`.
+
+- **Cardinal Rule 2** (clinical logic stays clinician-editable, never a code constant — cf. S15 Tier-1 priority): **the supervisor decides *which skill*, never *which step*.** Step sequencing stays in `step_policy` JSON; tier-transition thresholds (step-up at 2 no-improvement, tier→skill mapping) live in clinician-editable Rules Service / JSON, **not Python.** Stated explicitly to preempt the most likely drift — tier logic absorbing step logic into engineering-owned code.
+- **Cardinal Rule 5** (rules-first): tier classification and transition triggers are deterministic (self-report / `emotional_intensity` / `keyword_matcher`), never LLM-decided.
+- **Cardinal Rule 3** (LLM renders language only): the LLM renders the transition copy; it never decides the transition.
+- **Absolute Rule 1**: v7 deviation → this sign-off.
+
+**`care_pathway` state schema** (checkpoint-persisted):
+| field | type | role |
+|---|---|---|
+| `category` | str | active BOT BEHAVIOUR category (e.g. `"anxiety"`) |
+| `tier` | `mild`\|`moderate`\|`high`\|`null` | current severity tier |
+| `cleared_screens` | list[str] | e.g. `["medical_red_flag"]`; **carried forward, never re-run on step-up** |
+| `tried_skills` | list[str] | skills already offered/run in this pathway (no re-offer) |
+| `consecutive_no_improvement` | int | increments on a check-in showing no improvement at the current tier; **step-up trigger at 2** (spec §C) |
+| `ceiling_reached` | bool | set when the highest tier's skill completed AND a check-in still shows no-improvement/worsening → offer human/professional support; do NOT cycle lower tiers or repeat (spec §E) |
+
+(This channel is also the home of the check-in-signal counters demoted from former E6 — Appendix A.)
+
+**(b) Options considered + recommendation.**
+- **Option A — `switch_skill` supervisor over discrete skills (RECOMMENDED).** Each tier's tool stays an independent, separately-authorable/testable skill JSON; the supervisor emits `switch_skill` on transition. Reuses consent-offer + `step_policy` unchanged; mirrors the live `crisis_tier` precedent; clean implementation seam at `skill_executor.py:733`.
+- **Option B — mega-skill with internal tier-branches in `step_policy`.** *One real advantage: no new executor action type* — transitions expressed as `next_step_id` within one skill. Costs: bloats `step_policy` past the ~50–100-rule comfort zone; collapses discrete tools into one giant JSON; error-prone CMS editing; and directly entangles tier logic with step logic, breaching the Cardinal Rule 2 boundary above.
+- **Recommendation: Option A.** `switch_skill` is a small, auditable executor addition; the tier-branch alternative saves exactly one action type at the cost of the clinical-editability and modularity the architecture depends on.
+
+**(c) Dependencies.**
+- Sequenced AFTER §C/§HR conversion + E4 + E3/E7 — the safety routes must exist first, so anxiety §F ("silently divert to crisis protocol") and the medical/IPV pre-emptions are testable before tiering rides on top.
+- Feeds E2 (category grouping builds on `care_pathway`) and the tier carry-forward of cleared screens.
+- Bound by §4.5 precedence: `switch_skill` NEVER overrides a higher-precedence route — crisis/medical/HR/IPV win over any tier transition.
+
+**(d) Test obligations.**
+1. **Step-up is automatic + skips re-screening** — on a worsening / no-improvement check-in (or "isn't working"), the supervisor emits `switch_skill` to the next tier's offer-first skill WITHOUT re-running that tier's preliminary questions; a `cleared_screens` entry (e.g. medical red-flag already cleared) is not repeated.
+2. **Step-down is OFFERED and requires user assent — never automatic.** On improvement the supervisor offers the lower-tier tool as an option and does not switch until the user assents. **This asymmetry test is as important as the step-up test** (spec §D: recovering users must not feel pushed into more tasks).
+3. **`consecutive_no_improvement == 2` fires a step-up** (spec §C).
+4. **Ceiling** — highest-tier skill completed + no improvement → `ceiling_reached=True` → human-support offer; supervisor does NOT cycle to lower tiers or repeat the top skill (spec §E). Distinct from the crisis guard.
+5. **Precedence preemption** — at every tier/step, a fired crisis/medical/HR/IPV flag routes out per §4.5; `switch_skill` never suppresses it (spec §F universal override).
+6. **`switch_skill` invariant** — sets `active_skill_id` to the target skill (not `None`, not same), resets `active_step_id` to the target's entry, preserves `care_pathway` across the checkpoint; regression-guards `skill_executor.py:733`.
+7. **`care_pathway` persists** across turns via the LangGraph checkpoint.
+
+**(e) Rollback posture.**
+Kill-switch `SAGE_TIER_SUPERVISOR` (strict fail-safe parse like `SAGE_CRISIS_TIERING`: only a literal `false`/`true` toggles; garbage → signed default). **Default OFF → byte-identical v7**: no `switch_skill`, no `care_pathway` transitions, skills behave as single units. Instant revert, no redeploy.
+
+**Sign-off (E1).**
+| Role | Name | Date |
+|---|---|---|
+| Product owner (mechanism: `switch_skill` action + `care_pathway` channel) | ______ | ______ |
+| Clinical lead (tier-transition thresholds, step-up/down asymmetry, ceiling→human-support) | ______ | ______ |
+
+---
+
 - E2 — pending
 - E3 — pending
 - E4 — pending
