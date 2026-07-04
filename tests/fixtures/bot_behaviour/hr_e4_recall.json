@@ -13,28 +13,61 @@
     "psychosis": {
       "_source": "§HR psychosis table (verbatim)",
       "phrases": [
-        "People are following me", "Someone is watching me", "People are trying to hurt me",
-        "I don't think I can trust anyone", "I hear voices", "I hear people talking when no one is there",
-        "The voices won't stop", "I see things other people don't see", "I think people are reading my thoughts",
-        "I think someone is controlling my thoughts", "The TV is sending me messages", "Everything feels like a sign",
-        "I don't know what's real anymore", "I think everyone is against me", "I feel detached from reality"
+        "People are following me",
+        "Someone is watching me",
+        "People are trying to hurt me",
+        "I don't think I can trust anyone",
+        "I hear voices",
+        "I hear people talking when no one is there",
+        "The voices won't stop",
+        "I see things other people don't see",
+        "I think people are reading my thoughts",
+        "I think someone is controlling my thoughts",
+        "The TV is sending me messages",
+        "Everything feels like a sign",
+        "I don't know what's real anymore",
+        "I think everyone is against me",
+        "I feel detached from reality"
       ]
     },
     "mania": {
       "_source": "§HR mania table (verbatim)",
       "phrases": [
-        "I haven't slept for days but I feel amazing", "I don't need sleep", "My mind is going a million miles an hour",
-        "I have so much energy", "I feel unstoppable", "I feel invincible", "I'm taking huge risks",
-        "I've been spending loads of money", "I keep talking and can't stop", "My thoughts are racing all the time"
+        "I haven't slept for days but I feel amazing",
+        "I don't need sleep",
+        "My mind is going a million miles an hour",
+        "I have so much energy",
+        "I feel unstoppable",
+        "I feel invincible",
+        "I'm taking huge risks",
+        "I've been spending loads of money",
+        "I keep talking and can't stop",
+        "My thoughts are racing all the time"
       ]
     },
     "dissociation": {
       "_source": "§HR dissociation table (verbatim)",
       "phrases": [
-        "I don't feel real", "Nothing feels real", "I feel detached from myself", "I feel outside my body",
-        "I feel like I'm watching myself", "The world doesn't feel real", "Everything feels like a dream",
-        "I lose chunks of time", "I feel disconnected from reality", "I feel completely numb and absent",
+        "I don't feel real",
+        "Nothing feels real",
+        "I feel detached from myself",
+        "I feel outside my body",
+        "I feel like I'm watching myself",
+        "The world doesn't feel real",
+        "Everything feels like a dream",
+        "I lose chunks of time",
+        "I feel disconnected from reality",
+        "I feel completely numb and absent",
         "I don't know where I am sometimes"
+      ]
+    },
+    "psychosis_ar_lex_CF_006": {
+      "_source": "clinical_flag_patterns CF-006 (deployed, provenance=lexicon)",
+      "phrases": [
+        "أسمع أصوات",
+        "في أصوات تكلمني",
+        "أشوف أشياء ما أحد يشوفها",
+        "أحد يراقبني"
       ]
     }
   },
@@ -43,9 +76,18 @@
       "_source": "§4a can't-name-the-feeling table + §3a affective-flatness table (verbatim) — ordinary emotional confusion / depressive numbness, routes to §4a / §3a, NOT HR",
       "_boundary_note": "Fine line: §3a 'I feel disconnected from everything' (depression, NEGATIVE) vs §HR 'I feel disconnected from reality' (dissociation, POSITIVE). The 'reality/self/body' anchor is the discriminator.",
       "phrases": [
-        "I don't know what I'm feeling", "I can't put it into words", "I just feel off", "Something doesn't feel right",
-        "I feel weird", "Everything feels mixed up", "I feel overwhelmed but I don't know why",
-        "I feel flat", "I feel numb", "I feel empty", "I don't feel like myself", "I feel disconnected from everything"
+        "I don't know what I'm feeling",
+        "I can't put it into words",
+        "I just feel off",
+        "Something doesn't feel right",
+        "I feel weird",
+        "Everything feels mixed up",
+        "I feel overwhelmed but I don't know why",
+        "I feel flat",
+        "I feel numb",
+        "I feel empty",
+        "I don't feel like myself",
+        "I feel disconnected from everything"
       ]
     },
     "psychosis_confusion": {
@@ -59,7 +101,10 @@
   },
   "proposed_variants": {
     "_status": "CLINICIAN REVIEW REQUIRED — naturalistic variants + the psychosis/mania negative classes above. NOT canonical, NOT counted until promoted.",
-    "psychosis": [], "mania": [], "dissociation": [],
-    "psychosis_confusion_negatives": [], "mania_confusion_negatives": []
+    "psychosis": [],
+    "mania": [],
+    "dissociation": [],
+    "psychosis_confusion_negatives": [],
+    "mania_confusion_negatives": []
   }
 }

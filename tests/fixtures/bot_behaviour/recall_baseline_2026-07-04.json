@@ -1,6 +1,7 @@
 {
   "authored": "2026-07-04",
   "note": "current-detector baseline; runner=code, fixtures=content",
+  "caveat": "measured on the POC compiled safety_check \u2014 the right instrument for POC gates, but per-row results MUST be re-confirmed on the production detector config before any gate is declared production-satisfied (same class as the Arabic fixture debt)",
   "gates": {
     "\u00a7C / GL-0": {
       "detector": "S1 rules + S3 BGE-M3 (live)",
@@ -36,6 +37,22 @@
         "loss_of_self_trust_fear": {
           "fired": 0,
           "total": 2
+        },
+        "ar_lex_SK_AR_001_direct_self_harm": {
+          "fired": 25,
+          "total": 25
+        },
+        "ar_lex_SK_AR_002_passive_burden": {
+          "fired": 20,
+          "total": 20
+        },
+        "ar_lex_SK_AR_003_despair": {
+          "fired": 8,
+          "total": 8
+        },
+        "ar_lex_SK_AR_006_leave_not_return": {
+          "fired": 11,
+          "total": 11
         }
       },
       "negative_precision": {
@@ -90,6 +107,10 @@
         "dissociation": {
           "fired": 0,
           "total": 11
+        },
+        "psychosis_ar_lex_CF_006": {
+          "fired": 4,
+          "total": 4
         }
       },
       "negative_precision": {
@@ -129,6 +150,10 @@
         "threat": {
           "fired": 0,
           "total": 4
+        },
+        "arabic_deployed": {
+          "fired": 7,
+          "total": 7
         }
       },
       "negative_precision": {

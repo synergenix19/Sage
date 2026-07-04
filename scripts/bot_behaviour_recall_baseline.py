@@ -94,7 +94,10 @@ async def main():
     from sage_poc.safety.s3_semantic import _ensure_s3_ready; _ensure_s3_ready()
     graph = _build_graph()
 
-    report = {"authored": "2026-07-04", "note": "current-detector baseline; runner=code, fixtures=content", "gates": {}}
+    report = {"authored": "2026-07-04",
+              "note": "current-detector baseline; runner=code, fixtures=content",
+              "caveat": "measured on the POC compiled safety_check — the right instrument for POC gates, but per-row results MUST be re-confirmed on the production detector config before any gate is declared production-satisfied (same class as the Arabic fixture debt)",
+              "gates": {}}
     for fname, cfg in FIXTURES.items():
         data = json.loads((FIX_DIR / fname).read_text())
         print(f"\n=== {cfg['gate']}  ({fname}) — detector: {cfg['detector']} ===")
