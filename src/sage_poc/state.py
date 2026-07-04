@@ -33,6 +33,11 @@ class SageState(TypedDict):
     s7_method: Optional[str]       # "keyword" | "llm"
     re_escalation_within_monitoring: Optional[bool]  # True when crisis fires while crisis_state was already "monitoring"
     monitoring_clear_turns: int    # W2/G4: count of CONSECUTIVE S7-clear (RECOVERING + is_safe) monitoring turns; 2 -> step down monitoring->supportive. Declared channel (LangGraph drops undeclared keys).
+    # B0 (BOT BEHAVIOUR §4.5) deterministic safety-route precedence — flag-gated (SAGE_ROUTE_PRECEDENCE,
+    # default OFF). ABSENT when OFF (byte-identical master). Declared channels: LangGraph silently DROPS
+    # any key a node returns that is not in this TypedDict (same class as the crisis_tier bug #2 2026-07-04).
+    precedence_winner: Optional[str]     # highest-precedence safety route that fired this turn (crisis>medical>hr>ipv), or None
+    fired_safety_routes: list[str]       # ALL safety routes that fired this turn — recorded even when precedence suppressed the lower ones (§4.5 never-dropped); consumed by the audit row
     distress_trajectory: list[int]
     engagement_trajectory: list[int]
     conversation_summary: Optional[str]

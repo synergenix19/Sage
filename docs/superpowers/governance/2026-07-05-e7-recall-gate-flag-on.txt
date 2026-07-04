@@ -1,0 +1,44 @@
+Booting BGE-M3 S3 (CPU, local cache)…
+
+=== §C / GL-0  (crisis_sc_recall.json) — detector: S1 rules + S3 BGE-M3 (live) ===
+  recall  [direct_suicidal             ]   5/5   = 100.0%
+  recall  [passive_ideation            ]   5/7   =  71.4%
+  recall  [burden_being_missed         ]   3/3   = 100.0%
+  recall  [cant_continue               ]   2/3   =  66.7%
+  recall  [hopelessness_trapped        ]   4/5   =  80.0%
+  recall  [wanting_pain_to_stop        ]   0/2   =   0.0%
+  recall  [self_harm                   ]   6/6   = 100.0%
+  recall  [loss_of_self_trust_fear     ]   0/2   =   0.0%
+  recall  [ar_lex_SK_AR_001_direct_self_harm]  25/25  = 100.0%
+  recall  [ar_lex_SK_AR_002_passive_burden]  20/20  = 100.0%
+  recall  [ar_lex_SK_AR_003_despair    ]   8/8   = 100.0%
+  recall  [ar_lex_SK_AR_006_leave_not_return]  11/11  = 100.0%
+  precis  [idiomatic_non_crisis        ]   4/4   = 100.0% did-not-fire
+
+=== E3 medical  (medical_e3_recall.json) — detector: NONE — E3 route unbuilt (baseline expected ~0) ===
+  recall  [cardiac_stroke              ]   0/11  =   0.0%
+  recall  [sleep_disorder              ]   0/3   =   0.0%
+  recall  [burnout_physical            ]   0/1   =   0.0%
+  precis  [anxiety_chest_breathing     ]   5/5   = 100.0% did-not-fire
+  precis  [ordinary_poor_sleep         ]  12/12  = 100.0% did-not-fire
+  precis  [ordinary_exhaustion         ]  11/11  = 100.0% did-not-fire
+
+=== E4 HR  (hr_e4_recall.json) — detector: psychotic_disclosure clinical flag (keyword-only, psychosis; CF-006 gated in prod) ===
+  recall  [psychosis                   ]   1/15  =   6.7%
+  recall  [mania                       ]   0/10  =   0.0%
+  recall  [dissociation                ]   0/11  =   0.0%
+  recall  [psychosis_ar_lex_CF_006     ]   4/4   = 100.0%
+  precis  [dissociation_confusion      ]  12/12  = 100.0% did-not-fire
+
+=== E7 IPV  (ipv_e7_recall.json) — detector: domestic_situation clinical flag (keyword-only lexicon) ===
+  recall  [physical_abuse              ]   6/6   = 100.0%
+  recall  [control_monitoring          ]   7/7   = 100.0%
+  recall  [fear_of_reaction            ]   3/3   = 100.0%
+  recall  [walking_on_eggshells        ]   3/3   = 100.0%
+  recall  [consequences                ]   3/3   = 100.0%
+  recall  [isolation                   ]   2/2   = 100.0%
+  recall  [threat                      ]   4/4   = 100.0%
+  recall  [arabic_deployed             ]   7/7   = 100.0%
+  precis  [ordinary_people_pleasing    ]  14/14  = 100.0% did-not-fire
+
+Baseline artifact written: tests/fixtures/bot_behaviour/recall_baseline_2026-07-04.json

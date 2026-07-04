@@ -12,3 +12,4 @@ migration; keep it in ascending order.
 | 005 | 005_add_knowledge_query_trace_to_session_audit.sql | feat/arabic-rewriter-wiring (merged #84) | session_audit | applied prod 2026-07-03 |
 | 006 | 006_add_crisis_tier_to_session_audit.sql | feat/crisis-tiering | session_audit | claimed |
 | 007 | 007_add_knowledge_top_similarity_to_session_audit.sql | feat/abstain-cosine-gate | session_audit | claimed (renumbered from 006 to avoid collision) |
+| 008 | 008_add_precedence_to_session_audit.sql | feat/e-build-b0-precedence | session_audit | claimed — DEPLOY GATE for SAGE_ROUTE_PRECEDENCE flip |
