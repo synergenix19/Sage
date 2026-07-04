@@ -35,6 +35,8 @@ Production currently emits **`800 46342`** labelled **"24/7"**. Both are wrong:
 - **Requires:** (a) **dial-test** of `800 4673` (confirm it's live + correct), (b) **L0 fast-track re-sign** (persona artifact), (c) clinician confirmation of the copy.
 - For the **internal cohort** this was a product-owner risk acceptance (G8: mislabelled-not-dead, 999 co-listed). **For external users that acceptance does NOT hold** — a real at-risk user must get a correct, reachable line.
 
+> **⏸️ DEFERRED — product-owner risk acceptance (2026-07-04).** Owner directed: keep the current helpline `800 46342` / "24/7" **as-is for now, correct later.** This extends the existing G8 internal-cohort risk acceptance to remain in force. **Residuals explicitly accepted:** (a) `800 46342` is mislabelled (IWRC, reachable-but-not-the-ideal-line); (b) the "24/7" hours claim is FALSE for any UAE mental-support line — a user told 24/7 may find it unavailable off-hours; `999` emergency is co-listed and always correct. **Not changed unilaterally by engineering.** **Re-arm condition:** the correction (→ `800 4673` / "Mental Support Line" / "8am–8pm", W7 commit-2 across config + rules JSON + L0 re-sign + 5 skill JSONs) ships the moment `800 4673` is **dial-tested + confirmed** — the dial-test is the human action engineering cannot perform. This deferral does NOT lift GL-0.
+
 ☐ **Clinical lead:** helpline copy `800 4673` / "Mental Support Line" / "8am–8pm" approved, dial-test confirmed. Date: ______
 
 ---
