@@ -303,4 +303,49 @@ Kill-switch `SAGE_HR_ROUTE` plus the existing CF-006 `active` gate. Default: mec
 
 ---
 
-- E7 — pending
+### E7 — Coercive-control / relationship-safety pre-emption
+
+**(a) v7 delta + Cardinal Rule(s) touched.**
+v7 already carries: the `domestic_situation` flag (keyword, EN+AR — "hits me", "abusive relationship", "controlling relationship", "won't let me leave", + Arabic), session-immutable, with a safety-first response adaptation and a DFWAC/Ewaa referral. **And the §6 skills already declare the confrontation guard in prose** — `assertive_communication` and `interpersonal_effectiveness` contraindications say "if the other person's response to assertiveness carries a risk of escalation, threat, or control… do not proceed… assess safety," and an L2 "coercive control indicators override the assertiveness training protocol entirely." But that guard is **LLM-discretionary prose** — it relies on the model noticing mid-skill and self-halting (the Contraindication-Firing-Gap class: the RuntimeError gate does not enforce prose contraindications, and there is no behavioural firing test). **E7's mechanism delta = upgrade the consequence from passive/discretionary to a deterministic routing pre-emption:** when `domestic_situation` fires at Node 1, deterministically pre-empt the §6 skills *before* they activate + offer the referral protocol, instead of trusting the LLM to self-halt after entry.
+
+- **Cardinal Rule 4** (deterministic detection + recall — converting discretionary prose to a deterministic route) + **Rule 2** (lexicon + copy clinician-editable) + **Rule 5** (rules-first) + **Absolute Rule 1**.
+
+**Auditability (per E4 discipline):** `domestic_situation` detection has **no existing measured recall gate** (keyword-only, no fixture — verified). So (f) *establishes* the gate, it is not inherited. Unlike psychosis's CF-006, the flag is **live** (not `active:false`); only its consequence is passive today.
+
+**(b) Options considered + the scoped-pre-emption design choice.**
+- **Option A — SCOPED pre-emption (RECOMMENDED).** The flag fires globally at Node 1 (per §4.5), but its routing consequence is **targeted**: pre-emption applies only to skills declaring a `coaching_confrontation` contraindication class (the §6a–6d skills — the class *formalizes their existing prose contraindication*), plus the referral-protocol offer. Elsewhere the flag keeps the existing safety-first response adaptation. A user disclosing a controlling partner may still appropriately receive grounding, offloading, or sleep tools.
+- **Option B — global block (suppress all skill routing on the flag).** *One real advantage: simplicity — one rule, no per-skill class.* Cost: clinically wrong suppression — it denies a distressed discloser the calming/offloading tools they may most need, **punishing the disclosure**. Rejected.
+- **Recommendation: Option A (scoped).**
+
+**(c) Dependencies + content handoff.**
+- §4.5: E7 (IPV) sits below crisis/medical/HR, above tier/category.
+- **Flag persistence semantics (grounded in `flag_lifecycle_config.json`):** `domestic_situation` is `flag_immutable_within_session: true` — once fired, the §6 pre-emption **persists for the session; the user cannot "un-ring" the disclosure** by changing topic and asking for boundary-scripts two turns later. Clearing is a clinician-review action; `cross_session_persistence:false` means it does not silently carry to the next session, and there is **no automatic within-session decay**.
+- **Content-obligation handoff (named so it falls between neither document):** the referral-protocol copy must account for a **controlling partner reading the chat** — discretion in wording, **no persistent on-screen "we detected abuse" framing.** This is conversion-doc / clinical territory, not mechanism, but it is an E7-created obligation and is recorded here.
+- Independent of E1/E2 (safety route; sequenced before them).
+
+**(d) Test obligations.**
+1. `domestic_situation` fire → §6a–6d (`coaching_confrontation`) skills pre-empted BEFORE activation; referral protocol offered.
+2. Non-§6 skills (grounding, offload, sleep) **remain available** under the flag (scoped, not global).
+3. Persistence: flag fired turn N → §6 pre-emption still holds at turn N+k within the session (immutable; no un-ring).
+4. Negative fixtures do NOT fire (see f).
+5. Precedence: crisis/medical/HR co-fire wins (§4.5); IPV flag still written to audit.
+6. Kill-switch OFF → v7 behaviour (passive adaptation + LLM-discretionary §6 prose contraindication).
+
+**(e) Rollback posture.**
+Kill-switch `SAGE_IPV_PREEMPTION`. Default OFF → `domestic_situation` behaves as v7 (passive safety-first adaptation; §6 skills rely on the prose contraindication as today); no deterministic pre-emption. Note: OFF re-exposes the reliance on LLM self-halt (Contraindication-Firing-Gap), so **ON is the intended state once the gate passes.**
+
+**(f) Deterministic recall gate.**
+- **Target: ≥95% recall.**
+- **Positive fixtures:** spec §6 IPV / coercive-control guard phrases + the expanded `domestic_situation` table (surveillance/monitoring, financial control, fear-of-reaction) + the existing `domestic_situation` keywords.
+- **Negative fixtures (two adjacent zones; the §6 trigger tables are the richest source):**
+  - (a) **ordinary relationship conflict** that must route to §6 normally — "my husband and I keep arguing," "my mother-in-law criticizes everything" (precisely the population §6 serves);
+  - (b) **non-partner "controlling" language** where workplace/other assertiveness coaching is correct — "my boss is controlling," "he monitors everything I do" at work.
+  **Every §6 entry phrase must NOT fire IPV** — over-firing denies §6's own population its coaching.
+- **Baseline currently UNMEASURED** — E7 establishes it (not inherited), same finding as psychosis.
+- **Arabic fixture debt:** existing `domestic_situation` triggers already include Arabic, but the expanded coercive-control set + negatives need Khaleeji / MSA / Arabizi coverage before production-satisfied (TD3/TD4-adjacent).
+
+**Sign-off (E7).**
+| Role | Name | Date |
+|---|---|---|
+| Product owner (mechanism: `coaching_confrontation` class + deterministic pre-emption + kill-switch) | ______ | ______ |
+| Clinical lead (expanded lexicon + scoped-vs-global + referral-copy discretion obligation + ≥95% recall incl. negatives + Arabic) | ______ | ______ |
