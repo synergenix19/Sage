@@ -1,0 +1,14 @@
+{
+  "_comment": "W5 (G6): clinician-extendable therapy-term glossary. Injected into the Khaleeji translation prompt so CBT/ACT/DBT technique names render as clinically sensible Arabic instead of literal mistranslations (e.g. grounding -> 'للتواصل مع الأرض' = connecting-with-the-earth). Data only: edit here, no code change. Renderings are an eng-provided starter set, clinician-correctable.",
+  "terms": [
+    {"en": "grounding", "ar": "تمرين التأريض الحسي", "note": "NOT 'للتواصل مع الأرض' (connecting with the earth)"},
+    {"en": "5-4-3-2-1", "ar": "تمرين ٥-٤-٣-٢-١ للتهدئة الحسية", "note": "keep the numerals; it is the sensory grounding count"},
+    {"en": "grounding technique", "ar": "تقنية التأريض الحسي", "note": ""},
+    {"en": "TIPP", "ar": "تقنية TIPP لتهدئة الجسم", "note": "DBT acronym; keep TIPP, add the plain-language gloss"},
+    {"en": "cognitive defusion", "ar": "الفصل المعرفي عن الأفكار", "note": "ACT term"},
+    {"en": "defusion", "ar": "الفصل عن الأفكار", "note": ""},
+    {"en": "behavioral activation", "ar": "التنشيط السلوكي", "note": ""},
+    {"en": "box breathing", "ar": "تنفّس الصندوق (التنفّس المربّع)", "note": ""},
+    {"en": "worry time", "ar": "وقت القلق المخصّص", "note": "scheduled-worry technique, not literal 'time of worry'"}
+  ]
+}

@@ -69,6 +69,25 @@ def text_direction(language: str | None) -> str:
 
 
 _EXEMPLARS_PATH = Path(__file__).parent / "data" / "khaleeji_translation_exemplars.json"
+_GLOSSARY_PATH = Path(__file__).parent / "data" / "clinical_term_glossary.json"
+
+
+def _clinical_glossary() -> dict:
+    """W5 (G6): clinician-extendable therapy-term map anchoring CBT/ACT/DBT technique names to
+    clinically sensible Khaleeji Arabic (avoids literal errors like grounding->'للتواصل مع الأرض')."""
+    return json.loads(_GLOSSARY_PATH.read_text(encoding="utf-8"))
+
+
+def _glossary_lines_for(text: str) -> list[str]:
+    """Only the glossary entries whose EN term appears in this message (no prompt bloat)."""
+    low = (text or "").lower()
+    hits = [t for t in _clinical_glossary()["terms"] if t["en"].lower() in low]
+    if not hits:
+        return []
+    out = ["", "Clinical terms — render these EXACTLY as given, never translate them literally:"]
+    for t in hits:
+        out.append(f"  {t['en']} -> {t['ar']}")
+    return out
 
 
 @lru_cache(maxsize=1)
@@ -98,9 +117,11 @@ def _build_khaleeji_translation_prompt(text: str, *, strict: bool = False) -> st
             " The output must be entirely in Arabic script with no English words; "
             "translate or transliterate any names or terms." if strict else ""
         ),
-        "",
-        "Examples:",
     ]
+    # W5 (G6): inject the clinical-term glossary for any technique names present in this message,
+    # so CBT/ACT/DBT terms render as clinically sensible Arabic instead of literal mistranslations.
+    lines.extend(_glossary_lines_for(text))
+    lines += ["", "Examples:"]
     for ex in data["exemplars"]:
         lines.append(f"English: {ex['en']}")
         lines.append(f"Arabic: {ex['ar']}")
