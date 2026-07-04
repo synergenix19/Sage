@@ -12,8 +12,8 @@ Each: **the spec's own words → my reading → your call.** Rejecting sends it 
 
 ### A1 — Node-1 route precedence
 - **Spec says:** crisis "overrides everything" and "Severity-tier logic never supersedes the crisis guard" (§C, §F); the medical red-flag "applies at every tier… regardless of which tier… don't let a 'mild' or 'moderate' classification suppress it" (§1); §HR "takes priority… the same way crisis category does."
-- **My reading:** all safety routes (crisis, medical red-flag, high-risk, IPV) beat tier/category — **this is your spec, not my invention.** The *only* piece the spec doesn't rank explicitly is the order *among* safety routes on a rare simultaneous hit; I propose **crisis > medical > HR > IPV**, with all fired flags still recorded.
-- ☐ Approve reading (all-safety-over-tier) + ☐ approve the inter-safety order `crisis>medical>HR>IPV` · ☐ Reject · ☐ Edit the order: ________________
+- **My reading (provenance-corrected 2026-07-04, eng review):** all safety routes (crisis, medical red-flag, high-risk, IPV) beat tier/category — **this is your spec, not my invention.** Within the safety routes, **crisis-first is also spec-mandated, not proposed** — crisis "overrides everything" (§C/§F L81) and "Severity-tier logic never supersedes the crisis guard" (L83); dissociation defers to crisis (§HR L1866) and mania-with-danger escalates to 999 (§HR L1855). The **only** piece the spec does not rank is the sub-order *among the non-crisis safety routes* on a rare simultaneous hit; I propose **medical > HR > IPV**. Net order `crisis > medical > HR > IPV`, all fired flags still recorded. *(Earlier wording implied the whole inter-safety order was my proposal; corrected — only medical>HR>IPV is.)*
+- ☐ Approve reading (all-safety-over-tier; crisis-first per spec) + ☐ approve the proposed sub-order `medical>HR>IPV` · ☐ Reject · ☐ Edit the sub-order: ________________
 
 ### A2 — Burnout "physical health symptoms" (this dissolves my earlier "gate-blocking" flag)
 - **Spec says:** there is **one** medical red-flag set — the §1 cardiac/stroke descriptors — that "applies at every tier," and other categories invoke it "per the anxiety category's medical guard" (§ anticipatory / line 305). S5a says burnout "physical health symptoms → medical evaluation."
@@ -28,6 +28,26 @@ Each: **the spec's own words → my reading → your call.** Rejecting sends it 
 ### A4 — The two "verify-first" facts (acknowledge, not decide)
 - Psychosis detection has **never had a measured recall gate** (keyword-only, CF-006 `active:false`); coercive-control detection likewise. The spec's §HR and §6 guards assume these fire; the measurement shows they largely don't (psychosis 6.7%, IPV fear/threat 0%). E4/E7 *establish* the gates these guards depend on.
 - ☐ Acknowledged — the gates are the fix · ☐ Discuss
+
+---
+
+## §A-REV — Engineering-reviewer position (2026-07-04, pre-countersign)
+
+Per the agreed workflow (eng confirms the package faithfully reads the clinician's `BOT BEHAVIOUR.docx`, clinician countersigns), the full spec was re-extracted from `word/document.xml` (1777 lines — not the §3d-truncated python-docx read) and every recommendation checked by-name against the clinician's own words. **Verdict: APPROVE, with one provenance edit (A1, applied above).**
+
+| Item | Reviewer call | Spec basis (clinician's words) |
+|---|---|---|
+| A1 precedence | ✅ Approve **+ edit applied** | crisis "overrides everything" L81 / "never supersedes the crisis guard" L83; medical "applies at every tier… don't let mild/moderate suppress it" L10–11; §HR "takes priority… the same way crisis category does" L1867. Edit: crisis-first is spec-mandated; only medical>HR>IPV is proposed. |
+| A2 burnout inherits | ✅ Approve | S5a guard L1774 "physical health symptoms → needs medical evaluation" is a route-to-guard, **no separate list**; inherits universal §1 set L10–15. E3 gate = cardiac + S1b sleep. |
+| A3 fold Fact-vs-Opinion | ✅ Approve | §5b L892 verbatim "use the same fact-vs-opinion distinction **from 3b**"; §3b flow L564 + switch-on-pushback L570 match `cognitive_restructuring`. |
+| A4 verify-first gates | ✅ Acknowledge | Baseline confirms guards largely don't fire today (psychosis 6.7%, IPV fear/threat 0%); E4/E7 establish them. |
+| E3 medical | ✅ Approve (mechanism) | Universal red-flag L10–15 + sleep L1366; route unbuilt (0%) → recall gate is a completion criterion. |
+| E4 §HR | ✅ Approve | Trigger tables L1839–1844 (all 3 classes) + priority L1867. |
+| E7 IPV | ✅ Approve | §6a guard table L953–964 + override L965; §6-wide L979/1002/1026/1040. |
+| E1 tier supervisor | ✅ Approve | §1 A–F tiering + step-up/down L65–77, carry-forward L72, ceiling→human L79–81. |
+| E2 category | ✅ Approve | Offer-First/Second ladder + "hub category" S5a L1730. |
+
+**Boundary (unchanged by any signature):** approval unlocks *build* (behind default-OFF flags); **external launch stays NO-GO on GL-0 crisis recall** (75.8% canonical / ~37% naturalistic vs ≥95%), and E3/E4/E7 ≥95% per-class recall gates are **completion criteria each build must clear before its flag flips**, not waived. Helpline GL-1 remains the governed deferral (dial-test).
 
 ---
 
@@ -62,13 +82,17 @@ The spec's 35 categories never reference `mi_readiness_ruler` and only indirectl
 
 ## §E — Sign-off matrix
 
-**Product owner (mechanism):** ☐ E1 ☐ E2 ☐ E3 ☐ E4 ☐ E7 ☐ §4.5 order (A1)
-**Clinical lead:** ☐ §A1 precedence ☐ §A2 burnout-inherits ☐ §A3 fold ☐ E3/E4/E7 recall gates ☐ Worry Tree CMS (#116) ☐ §B1 precision ☐ §B2 orphan ☐ fixture phrases (#115)
+**Ratification status (2026-07-04).** The package (mechanism + §A readings incl. **§4.5 / A1 precedence**) is **APPROVED**. Clinical-lead approval recorded to **Rohan Sarda, 2026-07-04** (relayed by PO this session; ⚠️ relay-transcribed, not a hand-countersigned line — if Rohan's role here is PO rather than clinical lead, correct the row). The eng-reviewer position (§A-REV) confirms the package faithfully reads the docx, A1 provenance edit applied. §4.5 order `crisis > medical > HR > IPV` is **ratified** — `SAFETY_ROUTE_ORDER` in `safety_precedence.py` references this record.
+
+**This approval unlocks BUILD, not the flag flip.** Per this package's own boundary (§A-REV, §F) and the plan's build≠launch split, each route's flag flips ONLY when its ≥95% recall gate clears (+ audit-column migration applied). Approval ≠ gate-met: E7 recall is 32% today (fear-of-reaction 0%), route unbuilt — its flag stays OFF until measured ≥95%.
+
+**Product owner (mechanism):** ☑ E1 ☑ E2 ☑ E3 ☑ E4 ☑ E7 ☑ §4.5 order (A1) — per PO direction this session
+**Clinical lead:** ☑ §A1 precedence ☑ §A2 burnout-inherits ☑ §A3 fold ☑ E3/E4/E7 recall gates (mechanism; gate-MET is separate, per-route) ☑ fixture phrases (#115) — Rohan Sarda
 
 | Role | Name | Date |
 |---|---|---|
-| Product owner | ______________ | ______ |
-| Clinical lead | ______________ | ______ |
+| Product owner | (PO, this session — direction relayed) | 2026-07-04 |
+| Clinical lead | Rohan Sarda (relay-transcribed via PO) | 2026-07-04 |
 
 ---
 
