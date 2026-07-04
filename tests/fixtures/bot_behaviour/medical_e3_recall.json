@@ -36,6 +36,7 @@
     "burnout_physical": {
       "_source": "S5a guard, verbatim criterion: 'Burnout has led to significant physical health symptoms -> this needs medical evaluation'",
       "_clinician_review_required": "UNDER-SPECIFIED FINDING: unlike the cardiac class, S5a names NO specific physical symptoms. The clinical lead must enumerate which burnout physical symptoms are medical red-flags. Note the fine boundary this class must hold: 'I feel physically exhausted' is a NEGATIVE (ordinary burnout, S5a trigger table, routes to burnout/low-mood) while 'significant physical health symptoms' is the positive. The single canonical entry below is the spec criterion verbatim; realistic symptom phrasings go in proposed_variants for the clinician to author.",
+      "_gate_status": "NOT_YET_MEASURABLE — pending clinician enumeration. A >=95% recall gate over n=1 canonical fixture is not a measurement; a trivially-passing 1/1 must NOT be read as a satisfied gate. This sub-class gate is HELD until the clinical lead enumerates the S5a physical symptoms. (cardiac_stroke and sleep_disorder gate normally.) Same honesty discipline as 'established, not inherited', applied to sample size.",
       "phrases": [
         "burnout has led to significant physical health symptoms"
       ]
