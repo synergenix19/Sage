@@ -1,54 +1,59 @@
-"""W4 — Arabic mood-rating anchor pin + output_gate guard (signed §K).
+"""W4 — Arabic mood-rating anchor pin + output_gate emission policy (signed §K + G5-b Option C).
 
-Two signed mechanisms on an AR score_mood turn:
-  PRIMARY (always-emit) — the anchor clause (واحد يعني صعب جدا وعشرة يعني ممتاز) is emitted VERBATIM
-    from mood_check_in.json, never through the LLM/translate. A presented 1-10 scale is never left
-    un-anchored (B8: an unanchored scale is an un-administered instrument).
-  DEFENSE (guard) — a scale whose low/high anchors are IDENTICAL (the translate corruption
-    "1=very good, 10=very good") falls back to the pinned template.
+Option C: EVERY AR score_mood turn presents the canonical anchored 1-10 scale
+(من ١ إلى ١٠، واحد يعني صعب جدا وعشرة يعني ممتاز), emitted VERBATIM from mood_check_in.json — the
+instrument is administered by the step, not at the LLM's discretion (Cardinal Rule 3; B8: a rating
+scale is valid only as administered). The LLM renders the warm Khaleeji invitation; it cannot omit,
+reword, or paraphrase the scale clause. Corruption guard (identical anchors → pinned template) stays
+as defense-in-depth.
 """
 import pytest
 from unittest.mock import AsyncMock, patch
 
 from sage_poc.nodes.output_gate import (
-    output_gate_node, _pin_mood_anchor, _MOOD_PINNED_TEMPLATE_AR, _MOOD_PINNED_ANCHOR_AR,
+    output_gate_node, _pin_mood_anchor,
+    _MOOD_PINNED_TEMPLATE_AR, _MOOD_PINNED_ANCHOR_AR, _MOOD_PINNED_SCALE_AR,
 )
 
 _CORRUPT_AR = "كيف مزاجك؟ من ١ إلى ١٠، حيث ١ يعني وايد زين و ١٠ يعني وايد زين، وين تحط نفسك؟"
-_SCALE_NO_ANCHOR_AR = "تحب تقيم مزاجك اليوم من ١ إلى ١٠؟ شو الرقم اللي تعطيه لمزاجك الحين؟"  # probe-2 shape
-_EXPLORATORY_AR = "كيف توصف الأشياء اللي تأثر على مزاجك اليوم؟"  # no scale presented
+_PARAPHRASED_AR = "من ١ إلى ١٠، ١ يعني منخفض جدا و ١٠ يعني ممتاز جدا، وين تحط نفسك؟"  # distinct but not canonical
+_SCALELESS_AR = "وين تشوف مزاجك اليوم على السلم، وشو ممكن يكون مؤثر على شعورك؟"  # real prod probe shape (no number)
 _ANCHOR = "واحد يعني صعب جدا وعشرة يعني ممتاز"
 
 
 def test_pinned_constants_carry_verbatim_anchor():
     assert _ANCHOR == _MOOD_PINNED_ANCHOR_AR
+    assert _ANCHOR in _MOOD_PINNED_SCALE_AR
     assert _ANCHOR in _MOOD_PINNED_TEMPLATE_AR
 
 
-# ── PRIMARY: always-emit verbatim ─────────────────────────────────────────────────────────────
-def test_pin_appends_anchor_when_scale_presented_without_anchors():
-    # probe-2 case: "1 to 10" with NO anchor definitions -> the verbatim clause is concatenated.
-    out = _pin_mood_anchor(_SCALE_NO_ANCHOR_AR, executed_step_id="score_mood", lang="ar")
+# ── Option C: the canonical scale is present on EVERY AR score_mood turn ───────────────────────
+def test_scaleless_score_mood_turn_gets_canonical_clause_appended():
+    # The real prod case: warm invitation, no numeric scale -> canonical clause appended (instrument
+    # administered, not left to LLM discretion). LLM wrapper preserved.
+    out = _pin_mood_anchor(_SCALELESS_AR, executed_step_id="score_mood", lang="ar")
     assert _ANCHOR in out
-    assert out.startswith(_SCALE_NO_ANCHOR_AR.rstrip())  # LLM reply kept; clause appended after
+    assert out.startswith(_SCALELESS_AR.rstrip())
+    assert _MOOD_PINNED_SCALE_AR in out
 
 
-def test_pin_no_append_on_exploratory_turn_without_a_scale():
-    # A score_mood turn that presents no 1-10 scale must NOT get an anchor bolted on.
-    assert _pin_mood_anchor(_EXPLORATORY_AR, executed_step_id="score_mood", lang="ar") == _EXPLORATORY_AR
+def test_paraphrased_scale_replaced_with_canonical_template():
+    # LLM presented its own (distinct, non-canonical) scale = a paraphrase -> canonical template.
+    out = _pin_mood_anchor(_PARAPHRASED_AR, executed_step_id="score_mood", lang="ar")
+    assert out == _MOOD_PINNED_TEMPLATE_AR
+    assert _ANCHOR in out
 
 
-# ── DEFENSE: guard on corruption ──────────────────────────────────────────────────────────────
+def test_canonical_anchor_already_present_is_unchanged():
+    already = "خذ لحظة. " + _MOOD_PINNED_SCALE_AR + "، وين تحط نفسك؟"
+    assert _pin_mood_anchor(already, executed_step_id="score_mood", lang="ar") == already
+
+
+# ── Defense: corruption guard stays ───────────────────────────────────────────────────────────
 def test_guard_replaces_corrupt_identical_anchor_with_pinned():
     out = _pin_mood_anchor(_CORRUPT_AR, executed_step_id="score_mood", lang="ar")
     assert out == _MOOD_PINNED_TEMPLATE_AR
-    assert _ANCHOR in out
     assert "يعني وايد زين و ١٠ يعني وايد زين" not in out
-
-
-def test_pin_leaves_distinct_anchors_untouched():
-    good = "من ١ إلى ١٠، ١ يعني منخفض جدا و ١٠ يعني ممتاز جدا، وين تحط نفسك؟"
-    assert _pin_mood_anchor(good, executed_step_id="score_mood", lang="ar") == good
 
 
 # ── Scope guards ──────────────────────────────────────────────────────────────────────────────
@@ -58,7 +63,8 @@ def test_pin_no_op_for_english():
 
 
 def test_pin_no_op_for_other_steps():
-    assert _pin_mood_anchor(_CORRUPT_AR, executed_step_id="explore_mood", lang="ar") == _CORRUPT_AR
+    # explore_mood is a separate step; the anchor policy applies only to score_mood.
+    assert _pin_mood_anchor(_SCALELESS_AR, executed_step_id="explore_mood", lang="ar") == _SCALELESS_AR
 
 
 def _mood_state(**kw):
@@ -76,7 +82,7 @@ def _mood_state(**kw):
 
 # ── BOUNDARY-CROSSING E2E (the W1 lesson): drive output_gate_node through the translate step ────
 @pytest.mark.asyncio
-async def test_e2e_anchor_survives_when_translate_corrupts_scale():
+async def test_e2e_anchor_present_when_translate_corrupts_scale():
     async def corrupt_translate(text, *, strict=False):
         return _CORRUPT_AR
     with patch("sage_poc.nodes.output_gate.async_translate_to_arabic", side_effect=corrupt_translate), \
@@ -87,12 +93,12 @@ async def test_e2e_anchor_survives_when_translate_corrupts_scale():
 
 
 @pytest.mark.asyncio
-async def test_e2e_anchor_appended_when_translate_omits_it():
-    # The signed PRIMARY mechanism through the real boundary: translate emits a scale with NO anchor
-    # -> the final output still carries the verbatim clause (a scale is never left un-anchored).
-    async def scale_no_anchor_translate(text, *, strict=False):
-        return _SCALE_NO_ANCHOR_AR
-    with patch("sage_poc.nodes.output_gate.async_translate_to_arabic", side_effect=scale_no_anchor_translate), \
+async def test_e2e_anchor_present_when_translate_is_scaleless():
+    # Option C through the real boundary + the OBSERVED prod behaviour: translate emits a warm,
+    # scale-less invitation -> the canonical anchored scale must still be in the final output.
+    async def scaleless_translate(text, *, strict=False):
+        return _SCALELESS_AR
+    with patch("sage_poc.nodes.output_gate.async_translate_to_arabic", side_effect=scaleless_translate), \
          patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()):
         result = await output_gate_node(_mood_state())
-    assert _ANCHOR in result["response"], "pinned anchor clause not concatenated on an un-anchored scale"
+    assert _ANCHOR in result["response"], "every AR score_mood turn must present the anchored scale (Option C)"

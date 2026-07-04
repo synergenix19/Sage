@@ -45,7 +45,8 @@
       "contraindications": "Do NOT turn this into a clinical assessment. This is a check-in, not a diagnosis. Do NOT interpret the number for them, ask them what it means. Do NOT pressure them to give a number if they resist.",
       "completion_criteria": "User has given a mood rating (numerical or descriptive) or explicitly declined to rate.",
       "pinned_template_ar": "كيف مزاجك اليوم؟ لو تعطيه رقم من ١ إلى ١٠، واحد يعني صعب جدا وعشرة يعني ممتاز، وين تحط نفسك؟",
-      "pinned_anchor_ar": "واحد يعني صعب جدا وعشرة يعني ممتاز"
+      "pinned_anchor_ar": "واحد يعني صعب جدا وعشرة يعني ممتاز",
+      "pinned_scale_ar": "من ١ إلى ١٠، واحد يعني صعب جدا وعشرة يعني ممتاز"
     },
     {
       "step_id": "explore_mood",

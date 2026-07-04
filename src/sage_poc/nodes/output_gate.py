@@ -57,9 +57,12 @@ try:
         s["pinned_template_ar"] for s in _MOOD_STEPS if s.get("step_id") == "score_mood")
     _MOOD_PINNED_ANCHOR_AR: str = next(
         s["pinned_anchor_ar"] for s in _MOOD_STEPS if s.get("step_id") == "score_mood")
+    _MOOD_PINNED_SCALE_AR: str = next(
+        s["pinned_scale_ar"] for s in _MOOD_STEPS if s.get("step_id") == "score_mood")
 except Exception:  # pragma: no cover — config error surfaces at import
     _MOOD_PINNED_TEMPLATE_AR = ""
     _MOOD_PINNED_ANCHOR_AR = ""
+    _MOOD_PINNED_SCALE_AR = ""
 
 # Each scale endpoint's descriptor: the phrase after يعني ("means"), up to " و <digit>" / punctuation.
 _MOOD_ANCHOR_RX = re.compile(r"يعني\s+(.+?)(?=\s+و\s+[\d٠-٩]|\s*[،,.؟?]|$)")
@@ -74,20 +77,24 @@ def _has_identical_rating_anchors(text: str) -> bool:
 
 
 def _pin_mood_anchor(text: str, executed_step_id: str | None, lang: str) -> str:
-    """Node-8 post-check (W4, signed §K). On an AR score_mood turn, two mechanisms:
-      PRIMARY (always-emit) — the validated anchor clause is emitted VERBATIM from mood_check_in.json,
-        never via the LLM/translate. If the reply presents a 1-10 scale WITHOUT its anchor definitions
-        (the common case), the pinned clause is concatenated — a scale is never left un-anchored (B8).
-      DEFENSE (guard) — if the reply carries a scale whose low/high anchors are IDENTICAL (the
-        translate corruption '1=very good, 10=very good'), fall back to the pinned template.
-    No-op for other steps, other languages, or a well-formed distinct-anchor scale."""
+    """Node-8 post-check (W4, signed §K + G5-b Option C). On an AR score_mood turn the canonical
+    anchored 1-10 scale is ALWAYS present — the instrument is administered by the step, not at the
+    LLM's discretion (Cardinal Rule 3; B8/AlHadi: a scale is valid only as administered). The LLM
+    renders the warm Khaleeji invitation; the scale clause is verbatim, never reworded/paraphrased:
+      1. corrupt/non-monotonic anchors (translate corruption) -> full pinned template  [defense].
+      2. canonical anchors already present verbatim                 -> unchanged.
+      3. some other numeric scale present (LLM paraphrased it)      -> full pinned template.
+      4. warm wrapper with no scale (the common prod case)          -> append the canonical clause.
+    No-op for other steps and other languages."""
     if executed_step_id != "score_mood" or lang != "ar" or not _MOOD_PINNED_TEMPLATE_AR:
         return text
-    if _has_identical_rating_anchors(text):                       # defense: corrupt -> pinned template
+    if _has_identical_rating_anchors(text):        # 1. defense: corruption -> pinned template
         return _MOOD_PINNED_TEMPLATE_AR
-    if _MOOD_SCALE_RX.search(text) and not _MOOD_ANCHOR_RX.search(text):  # primary: scale but no anchor
-        return text.rstrip() + " " + _MOOD_PINNED_ANCHOR_AR
-    return text
+    if _MOOD_PINNED_ANCHOR_AR in text:             # 2. already carries the verbatim anchors
+        return text
+    if _MOOD_SCALE_RX.search(text):                # 3. LLM presented a non-canonical scale -> canonical
+        return _MOOD_PINNED_TEMPLATE_AR
+    return text.rstrip() + " " + _MOOD_PINNED_SCALE_AR  # 4. warm wrapper only -> append canonical scale
 _OPENER_REWRITE_DISTRESS_CEILING = 9  # severe distress (9-10/10) -> suppress rewrite (pass through);
 # the lexicon is the primary sensitive-content gate, this is a wording-independent backstop for the top of the scale
 
