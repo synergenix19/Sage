@@ -105,7 +105,49 @@ The corrected copy (800-HOPE / 800 4673 / 8am–8pm + tiered 999/SAKINA/DHA/Shar
 **Gating.** The harness runner itself is 🟢 (measurement infrastructure — engineering, no clinical signature). What a *passing* gate (≥95%) unblocks is the activation of the corresponding safety route (§4); building the runner and authoring fixtures are not themselves gated.
 
 ## §4 — Sequenced build phases
-*pending*
+
+> Reminder (per §0): no step below is authorized until its markers clear. Each phase lists **entry criteria** (what must be signed/true to start), **exit criteria** (what must be demonstrably true to be done — a phase-gated plan without exit criteria degrades into signature-checking), and a **demonstrable outcome** (what a stakeholder sees working — one of the POC demonstrables).
+
+### Phase A — §C crisis conversion (existing infra; no extension signature)
+
+§C rides existing `crisis_response` + `crisis_tier`, so Phase A carries **no 🔒** — only two *distinct* preconditions on two *distinct* halves:
+- **A1 — detection-recall half. ⛔ GL-0 ≥95%.** Convert the 8-row canonical trigger table into `crisis_keywords` / `passive_si_patterns` fixtures + recall (the §2.2 §C set); this is GL-0 itself, needing S2/MARBERT + bilingual eval. The hardest work; the critical path.
+- **A2 — content half. ⛔ dial-test + L0 re-sign.** The staged commit-2 payload: tiered resource set, 999-lead branching, behavioral guardrails. **Independent of A1** — it is blocked on the dial-test, *not* on the recall milestone, and must not be shown as waiting on GL-0.
+- (§HR conversion is realized in Phase B via E4 — not duplicated here.)
+
+**Exit:** S1/S3 fixtures pass ≥95% on the §C set (A1); crisis reply emits the corrected, correctly-labelled tiered resources with 999-lead branching (A2).
+**Demonstrable:** a crisis disclosure yields the right resources — 999-led when there's immediate-danger language, else the national line — with accurate hours.
+
+### Phase B — new safety routes (precedence-wired first)
+
+The three routes are signature-independent but **contend for the same substrate** (Node-1 evaluation + the §4.5 chain), so precedence is wired once, first:
+
+- **B0 — precedence wiring. ⛔ clinical ratification of the §4.5 order** (`crisis > medical > HR > IPV > tier/category`). One change establishing deterministic evaluation order with **all fired flags written to state + audit**. The three routes then land behind it **in any order** as their own gates clear — preventing three PRs from each independently touching route-ordering logic.
+- **B1 — E3 medical. 🔒 E3 · ⛔ E3 recall ≥95% (dual-fixture).** On the `f3-f4-tipp-clinical-gated` deterministic-contraindication contract.
+- **B2 — E4 HR (§HR). 🔒 E4**, then split like Phase A:
+  - *E4-shape (proceeds once E4 signed):* the §HR step shape (distress-rating-first, standardized message, escalate-by-distress) restructured on `psychotic_referral` — **psychosis rides the live route**, so this signed work moves immediately.
+  - *E4-detect (waits):* mania + dissociation detection — **⛔ per-class recall gates + the Gap #65 semantic-tier ceiling answer.** Gated work waits while signed shape-work lands.
+  - *E4-activation:* the CF-006 three-part motion (skill sign-off + CF-006 approval + safety suite green, together).
+- **B3 — E7 IPV. 🔒 E7 · ⛔ E7 recall ≥95%.** Formalize the `coaching_confrontation` contraindication class on the §6 skills; scoped pre-emption (grounding/offload/sleep stay available).
+
+**Exit:** precedence resolves multi-hit deterministically with all flags audited (B0); each route fires on positives, holds on its negatives at ≥95% recall, and defers correctly to higher-precedence routes; **anxiety §F "silently divert to crisis" is testable end-to-end** (this is also Phase C's entry condition).
+**Demonstrable:** "crushing pain spreading to my arm" screens up to medical referral, while "my chest feels a little tight" proceeds to box breathing — and a psychosis disclosure gets the one-question distress → neutral referral, never a coping skill.
+
+### Phase C — E1 supervisor + `care_pathway`
+
+- **Entry: 🔒 E1 · ⛔ Phase B exit.** Per E1's own dependency text, tiering rides *on top of* the safety routes — the universal overrides must be functioning (§F silent-divert live, precedence deterministic) before a tier transition can be trusted to defer to them. **Phase B exit = Phase C entry.**
+- Steps: the `care_pathway` state channel (tier, cleared_screens, tried_skills, loop counters) + the `switch_skill` executor action + the deterministic supervisor (tier classification, step-up/down, ceiling).
+
+**Exit:** a step-up switches to a different skill without re-running a cleared screen; step-down requires user assent; `consecutive_no_improvement=2` triggers step-up; ceiling routes to human support; a crisis/medical/HR/IPV hit still preempts any transition.
+**Demonstrable:** a user moving Mild→High mid-conversation gets TIPP offered directly, with the already-cleared medical screen carried forward (no re-screen).
+
+### Phase D — E2 category grouping
+
+- **Entry: 🔒 E2 · ⛔ Phase C exit.** E2's metadata drives transitions over E1's `care_pathway`; without it live, the ladder has nothing to run on.
+- Steps: `pathway_id` / `tier` / `offer_rank` on the skill schema + Rules Service routing + pathway-inherited residual (non-safety) guards.
+
+**Exit:** offer-second surfaces only after the offer-first check-in; `tried_skills` are not re-offered; ≤2 offered at once; a pathway contraindication suppresses the whole category; a `pathway_id=null` skill routes exactly as v7.
+**Demonstrable:** within the anxiety category, box breathing is offered first and grounding second after a no-help check-in — never all six at once.
 
 ## §5 — External dependencies & open clinical decisions
 *pending*
