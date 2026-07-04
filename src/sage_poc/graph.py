@@ -215,6 +215,16 @@ def _route_after_intent(state: SageState) -> str:
             and not state.get("active_skill_id")
             and state.get("emotional_intensity", 5) >= ACUTE_INTENSITY_FLOOR):
         return "skill_select"
+    # v7.2 Node-2 keyword pre-pass HINT: a general_chat turn the classifier would send to freeflow,
+    # but whose message deterministically matched a skill trigger (pre-pass), reaches skill_select so
+    # the skill can offer/enter per R1. Mirrors the Routing-SF-2 slot+guards exactly: after the
+    # safety/monitoring/psychotic redirects, before the confidence gate; guarded on active_skill_id
+    # (mid-skill turns fall through, preserving the checkpoint). Hint, not hijack — primary_intent is
+    # unchanged; info_request already reaches skill_select on its own, so this targets general_chat.
+    if (intent == "general_chat"
+            and not state.get("active_skill_id")
+            and (state.get("prepass_matched") or [])):
+        return "skill_select"
     if confidence < 0.6:
         return "low_confidence"
     if intent == "exit_skill":
