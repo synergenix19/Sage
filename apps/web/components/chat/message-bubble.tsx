@@ -2,7 +2,7 @@ import { cn } from '@cdai/ui'
 import type { ChatMessage } from '@cdai/types'
 import { FeedbackButtons } from './feedback-buttons'
 import { MarkdownContent } from './markdown-content'
-import { SourceCard } from './SourceCard'
+import { SourceCard } from './source-card'
 
 interface Props {
   message: ChatMessage

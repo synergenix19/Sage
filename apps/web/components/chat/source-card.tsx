@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import type { Source } from '@cdai/types'
-import { VideoEmbed } from './VideoEmbed'
+import { VideoEmbed } from './video-embed'
 
 interface Props {
   sources: Source[]
