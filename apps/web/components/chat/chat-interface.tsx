@@ -1,6 +1,6 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { mapSdkRole, type ChatSession, type MessageRole } from '@cdai/types'
+import { mapSdkRole, type ChatSession, type MessageRole, type Source } from '@cdai/types'
 import { FIRST_CHAT_EVENT } from '@/components/pwa/install-prompt'
 import { CRISIS_SIGNAL, SERVER_ERROR_SIGNAL } from '@/lib/constants'
 import { useLocaleStore } from '@/lib/stores/locale-store'
@@ -21,6 +21,7 @@ interface SdkMessage {
   supabaseId?: string  // Supabase UUID from X-Sage-Ai-Message-Id header
   isCrisis?: boolean
   direction?: 'ltr' | 'rtl'  // authoritative from X-Sage-Direction (detected_language)
+  sources?: Source[]  // KB sources from X-Sage-Sources (Task 6); absent when the header is absent or malformed
 }
 
 interface Props {
@@ -100,6 +101,20 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
         const aiDirection: 'ltr' | 'rtl' | undefined =
           aiDirectionRaw === 'rtl' || aiDirectionRaw === 'ltr' ? aiDirectionRaw : undefined
 
+        // KB source cards (X-Sage-Sources) — a raw, unvalidated JSON string forwarded
+        // verbatim from the backend by the route. A malformed header must never crash
+        // the render, so a parse failure silently falls back to "no sources" rather
+        // than surfacing an error to the user.
+        const sourcesHeaderRaw = res.headers.get('X-Sage-Sources')
+        let aiSources: Source[] | undefined
+        if (sourcesHeaderRaw) {
+          try {
+            aiSources = JSON.parse(sourcesHeaderRaw)
+          } catch {
+            aiSources = undefined
+          }
+        }
+
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
         let accumulated = ''
@@ -123,7 +138,9 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
             : accumulated
           setMessages((curr) =>
             curr.map((m) =>
-              m.id === assistantId ? { ...m, content: displayContent, isCrisis: isCrisisMsg, direction: aiDirection } : m
+              m.id === assistantId
+                ? { ...m, content: displayContent, isCrisis: isCrisisMsg, direction: aiDirection, sources: aiSources }
+                : m
             )
           )
         }
@@ -324,6 +341,7 @@ export function ChatInterface({ initialSession, initialMessages = [], userName, 
                   sessionId: initialSession?.id ?? '',
                   createdAt: '',
                   direction: m.direction,
+                  sources: m.sources,
                 }}
                 supabaseId={m.supabaseId}
                 onFeedback={handleFeedback}

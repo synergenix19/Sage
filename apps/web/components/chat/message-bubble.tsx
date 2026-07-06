@@ -2,6 +2,7 @@ import { cn } from '@cdai/ui'
 import type { ChatMessage } from '@cdai/types'
 import { FeedbackButtons } from './feedback-buttons'
 import { MarkdownContent } from './markdown-content'
+import { SourceCard } from './SourceCard'
 
 interface Props {
   message: ChatMessage
@@ -36,6 +37,9 @@ export function MessageBubble({ message, supabaseId, onFeedback }: Props) {
       >
         {isUser ? message.content : <MarkdownContent content={message.content} />}
       </div>
+      {!isUser && message.sources && message.sources.length > 0 && (
+        <SourceCard sources={message.sources} direction={message.direction} />
+      )}
       {!isUser && supabaseId && onFeedback && (
         <FeedbackButtons messageId={supabaseId} onFeedback={onFeedback} />
       )}
