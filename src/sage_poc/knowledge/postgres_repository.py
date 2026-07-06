@@ -12,6 +12,19 @@ def _passes_abstain(rrf_score: float) -> bool:
     """A passage clears the abstain floor when its RRF score exceeds the threshold."""
     return rrf_score > KNOWLEDGE_ABSTAIN_THRESHOLD
 
+
+def _row_to_passage(row) -> KnowledgePassage:
+    """Extract KnowledgePassage from database row, populating citation_metadata fields."""
+    raw_meta = row["citation_metadata"] or {}
+    meta = json.loads(raw_meta) if isinstance(raw_meta, str) else raw_meta
+    return KnowledgePassage(
+        text=row["chunk_text"], source_id=row["article_id"],
+        citation=meta.get("citation", row["article_id"]),
+        relevance_score=round(float(row["rrf_score"]), 4),
+        source_url=meta.get("source_url", ""), title=meta.get("title", ""),
+        video_url=meta.get("video_url", ""),
+    )
+
 # Reciprocal Rank Fusion constant (k=60 is standard literature default).
 _RRF_K = 60
 
@@ -116,14 +129,7 @@ class PostgresKnowledgeRepository(KnowledgeRepository):
         for row in rows:
             if not _passes_abstain(row["rrf_score"]):  # retained secondary RRF guard
                 continue
-            raw_meta = row["citation_metadata"] or {}
-            meta = json.loads(raw_meta) if isinstance(raw_meta, str) else raw_meta
-            passages.append(KnowledgePassage(
-                text=row["chunk_text"],
-                source_id=row["article_id"],
-                citation=meta.get("citation", row["article_id"]),
-                relevance_score=round(float(row["rrf_score"]), 4),
-            ))
+            passages.append(_row_to_passage(row))
 
         # POC substitute: Postgres hybrid RRF stands in for v7-mandated Azure AI Search (BM25+vector) + BGE-reranker-v2-m3 (UAE North). Migrate pre-prod. See §20.1 CKPT-REGION.
         # TODO: add BGE-reranker-v2-m3 reranking pass here (pre-production, corpus > 100 articles)
