@@ -8,8 +8,13 @@
 
 **Tech Stack:** Python 3.12 / FastAPI / pydantic-dataclasses (backend, repo `sage-poc`); Next.js / TypeScript / React (frontend, repo `cdai`); pytest (backend), vitest + Playwright (frontend).
 
+## Plan corrections (2026-07-06, post-topology-check)
+- **Package manager is `npm`, NOT `pnpm`.** `apps/web` uses npm (`package-lock.json`; `"test": "vitest run"`). Frontend test command: `cd /Users/knowledgebase/Documents/Sage/cdai-lane2-wt/apps/web && npm test -- <pattern>`. (The original plan said `pnpm --filter web` — wrong; do not resurrect in Item 2's plan.)
+- **One remote, dual-root.** `sage-poc` (backend) and `cdai` (frontend) share `github.com/synergenix19/Sage`, but `master` = backend and `main` = frontend. Backend branch `feat/lane2-source-cards` off `master` (PR #118 → master). Frontend branch **`cdai/feat/lane2-source-cards` off `main`** (per the `cdai/` prefix convention), PR → `main`.
+- **Frontend runs in an isolated worktree:** `/Users/knowledgebase/Documents/Sage/cdai-lane2-wt` (off `origin/main`), leaving `feat/chat-ui-polish` + its uncommitted files untouched. Overlap check: NONE of the Lane 2 files are dirty on `feat/chat-ui-polish`.
+
 ## Global Constraints
-- **Two separate git repos:** backend = `sage-poc` (branch `feat/lane2-source-cards`); frontend = `cdai` (branch `feat/lane2-source-cards`). Two coordinated PRs. Backend ships first (additive, inert without the frontend).
+- **One remote, dual-root (see corrections above):** backend on `master` (branch `feat/lane2-source-cards`, PR #118); frontend on `main` (branch `cdai/feat/lane2-source-cards`, worktree `cdai-lane2-wt`). Two coordinated PRs. Backend ships first (additive, inert without the frontend).
 - **Byte-identical when empty:** no KB passages → header absent → no card → identical to today. New model fields default `""`.
 - **Safety-path suppression is an ALLOWLIST, not a denylist.** `X-Sage-Sources` is emitted ONLY when `gate_path` is in an explicit allowlist of ordinary content paths. `== "crisis"` would fail *open* for every future safety route (medical/HR/IPV set their own `gate_path`); the allowlist fails *safe* on those and on any unknown value.
 - **Bilingual is a validation rule, not an edge case.** `_sources_header` uses `json.dumps(..., ensure_ascii=True)` (HTTP headers are latin-1; Arabic titles MUST be `\uXXXX`-escaped and round-trip through `JSON.parse`). Arabic-title round-trip + RTL card rendering are asserted, not assumed.
@@ -280,7 +285,7 @@ it('threads X-Sage-Sources onto the message', async () => {
 })
 ```
 
-- [ ] **Step 2: Run to verify it fails** — `cd cdai && pnpm --filter web test route.test` → FAIL (`msg.sources` undefined).
+- [ ] **Step 2: Run to verify it fails** — `cd /Users/knowledgebase/Documents/Sage/cdai-lane2-wt/apps/web && npm test -- route.test` → FAIL (`msg.sources` undefined).
 
 - [ ] **Step 3: Implement** — add `Source` interface + `sources?: Source[]` in `packages/types`; in `route.ts`:
 ```ts
@@ -324,7 +329,7 @@ it('renders no card when sources absent', () => {
 })
 ```
 
-- [ ] **Step 2: Run to verify they fail** — `cd cdai && pnpm --filter web test message-bubble` → FAIL.
+- [ ] **Step 2: Run to verify they fail** — `cd /Users/knowledgebase/Documents/Sage/cdai-lane2-wt/apps/web && npm test -- message-bubble` → FAIL.
 
 - [ ] **Step 3: Implement** — `VideoEmbed.tsx` detects provider from the canonical URL (provider-agnostic; swap-friendly):
 ```tsx
