@@ -139,6 +139,12 @@ export async function POST(req: Request) {
   const crisisFlags       = parseJsonHeader<string[] | null>(sageRes.headers.get('X-Sage-Crisis-Flags'), null)
   const sageClinicalFlags = parseJsonHeader<string[] | null>(sageRes.headers.get('X-Sage-Clinical-Flags'), null)
 
+  // KB source cards (X-Sage-Sources) — raw ASCII-escaped JSON string, forwarded
+  // verbatim to the browser below. Not parsed/re-stringified here: forwarding the
+  // original string byte-for-byte avoids a lossy decode/re-encode round trip, and
+  // the frontend (Task 6) does its own JSON.parse from the response header.
+  const sourcesHeader = sageRes.headers.get('X-Sage-Sources')
+
   const intensityStr       = sageRes.headers.get('X-Sage-Emotional-Intensity')
   const emotionalIntensity = intensityStr ? (parseInt(intensityStr, 10) || null) : null
 
@@ -287,6 +293,14 @@ export async function POST(req: Request) {
   // every assistant turn, not just info answers. Authoritative over the client's dir="auto".
   const directionHeader = sageRes.headers.get('X-Sage-Direction')
   if (directionHeader) responseHeaders['X-Sage-Direction'] = directionHeader
+
+  // KB source cards are always forwarded — functional (drives the Source Card / video
+  // embed render, Task 6), not diagnostic. It must NOT sit behind the
+  // SAGE_EXPOSE_DIAGNOSTIC_HEADERS whitelist below: that flag is explicitly
+  // production-disabled (see .env.example), which would silently suppress source
+  // cards for every real user. Absent on non-KB turns and on any safety gate_path
+  // (backend allowlist) — see _sources_header in sage-poc.
+  if (sourcesHeader) responseHeaders['X-Sage-Sources'] = sourcesHeader
 
   if (process.env.SAGE_EXPOSE_DIAGNOSTIC_HEADERS === 'true') {
     for (const header of SAGE_HEADERS_WHITELIST) {

@@ -220,6 +220,94 @@ describe('useStreamingChat — first-byte timeout', () => {
   })
 })
 
+// Task 6: the client reads X-Sage-Sources off res.headers directly (mirroring how it
+// already reads X-Sage-Crisis-State / X-Sage-Direction) and attaches the parsed array to
+// the assistant message so message-bubble.tsx can render <SourceCard>. The header is a
+// raw, unvalidated JSON string from the backend — a malformed value must never crash the
+// render; it must silently fall back to "no sources".
+describe('useStreamingChat — X-Sage-Sources header', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  function singleChunkStreamWithHeaders(headers: Record<string, string>) {
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('hello'))
+        controller.close()
+      },
+    })
+    return { ok: true, status: 200, body, headers: new Headers(headers) } as unknown as Response
+  }
+
+  it('attaches parsed sources from a well-formed X-Sage-Sources header', async () => {
+    const sources = [{ type: 'article', title: 'Understanding Anxiety', url: 'https://kb/a', citation: 'c' }]
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      singleChunkStreamWithHeaders({ 'X-Sage-Sources': JSON.stringify(sources) })
+    )
+
+    const { result } = renderHook(() => useStreamingChat('sess-sources-1', 'user-1', []))
+
+    await act(async () => {
+      result.current.append({ role: 'user', content: 'tell me about anxiety' })
+    })
+    await act(async () => {
+      await vi.runAllTimersAsync()
+    })
+
+    vi.useRealTimers()
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    const assistant = result.current.messages.find((m) => m.role === 'assistant')
+    expect(assistant?.sources).toEqual(sources)
+  })
+
+  it('does not crash and attaches no sources when X-Sage-Sources is malformed JSON', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      singleChunkStreamWithHeaders({ 'X-Sage-Sources': '{not valid json' })
+    )
+
+    const { result } = renderHook(() => useStreamingChat('sess-sources-2', 'user-1', []))
+
+    await act(async () => {
+      result.current.append({ role: 'user', content: 'hi' })
+    })
+    await act(async () => {
+      await vi.runAllTimersAsync()
+    })
+
+    vi.useRealTimers()
+    await waitFor(() => {
+      expect(result.current.error).toBeNull()
+      expect(result.current.isLoading).toBe(false)
+    })
+    const assistant = result.current.messages.find((m) => m.role === 'assistant')
+    expect(assistant?.content).toBe('hello')
+    expect(assistant?.sources).toBeUndefined()
+  })
+
+  it('attaches no sources when the header is absent', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(singleChunkStreamWithHeaders({}))
+
+    const { result } = renderHook(() => useStreamingChat('sess-sources-3', 'user-1', []))
+
+    await act(async () => {
+      result.current.append({ role: 'user', content: 'hi' })
+    })
+    await act(async () => {
+      await vi.runAllTimersAsync()
+    })
+
+    vi.useRealTimers()
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    const assistant = result.current.messages.find((m) => m.role === 'assistant')
+    expect(assistant?.sources).toBeUndefined()
+  })
+})
+
 describe('ChatInterface — ARIA live region', () => {
   it('renders the message container with role="log" and aria-live="polite"', () => {
     // jsdom does not implement scrollIntoView — stub it so the useEffect doesn't throw.

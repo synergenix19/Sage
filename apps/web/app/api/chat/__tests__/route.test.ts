@@ -238,6 +238,47 @@ describe('POST /api/chat', () => {
     expect(res.headers.get('X-Sage-Active-Step-Id')).toBeNull()
   })
 
+  // ── T5: X-Sage-Sources is a functional header (drives the frontend Source Card /
+  // video embed render, Task 6) — always forwarded, not gated behind the diagnostic
+  // whitelist (which is disabled in production per .env.example).
+  it('forwards X-Sage-Sources to the browser response', async () => {
+    // Real backend headers are ASCII-escaped (json.dumps(..., ensure_ascii=True) — see
+    // sage-poc _sources_header) because raw HTTP headers are ByteString/latin-1. Emulate
+    // that on the wire here; JSON.parse un-escapes \uXXXX back to the real characters.
+    const sources = [{ type: 'video', title: 'القلق', url: 'https://youtu.be/x', citation: 'c' }]
+    const asciiEscapedHeader = JSON.stringify(sources)
+      .split('')
+      .map((ch) => {
+        const code = ch.charCodeAt(0)
+        return code > 127 ? '\\u' + code.toString(16).padStart(4, '0') : ch
+      })
+      .join('')
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      makeSageResponse('hello', { 'X-Sage-Sources': asciiEscapedHeader })
+    )
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'tell me about anxiety' }],
+        sessionId: VALID_SESSION_UUID,
+      }),
+    })
+    const res = await POST(req)
+    expect(JSON.parse(res.headers.get('X-Sage-Sources')!)).toEqual(sources)
+  })
+
+  it('does not set X-Sage-Sources on the browser response when the backend omits it', async () => {
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'hi' }],
+        sessionId: VALID_SESSION_UUID,
+      }),
+    })
+    const res = await POST(req)
+    expect(res.headers.get('X-Sage-Sources')).toBeNull()
+  })
+
   it('does not forward X-Sage-Clinical-Flags and X-Sage-Distress-Trajectory to the browser', async () => {
     ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
       makeSageResponse('I hear you.', {

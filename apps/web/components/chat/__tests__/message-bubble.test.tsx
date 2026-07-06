@@ -171,3 +171,71 @@ describe('MessageBubble — speaker styling & prose', () => {
     expect(bubbleDiv.className).not.toContain('rounded-2xl')
   })
 })
+
+// Task 6: Sources card renders below the AI message when message.sources is present
+// (X-Sage-Sources, parsed client-side in chat-interface.tsx — see its own tests for the
+// malformed-header fallback). 'article' -> a link, 'video' -> an embedded player.
+describe('MessageBubble — Sources card', () => {
+  it('renders an article link', () => {
+    render(
+      <MessageBubble
+        message={{
+          ...base,
+          role: 'ai',
+          sources: [{ type: 'article', title: 'Understanding Anxiety', url: 'https://kb/a', citation: 'c' }],
+        }}
+      />
+    )
+    expect(screen.getByRole('link', { name: /Understanding Anxiety/ })).toHaveAttribute('href', 'https://kb/a')
+  })
+
+  it('embeds YouTube via youtube-nocookie', () => {
+    render(
+      <MessageBubble
+        message={{
+          ...base,
+          role: 'ai',
+          sources: [{ type: 'video', title: 'V', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', citation: 'c' }],
+        }}
+      />
+    )
+    expect(screen.getByTitle('V').getAttribute('src')).toContain('youtube-nocookie.com/embed/')
+  })
+
+  it('renders the Arabic sources card RTL', () => {
+    render(
+      <MessageBubble
+        message={{
+          ...base,
+          role: 'ai',
+          direction: 'rtl',
+          sources: [{ type: 'article', title: 'القلق', url: 'https://kb/a', citation: 'c' }],
+        }}
+      />
+    )
+    expect(screen.getByLabelText('Sources')).toHaveAttribute('dir', 'rtl')
+  })
+
+  it('renders no card when sources are absent', () => {
+    render(<MessageBubble message={{ ...base, role: 'ai' }} />)
+    expect(screen.queryByLabelText('Sources')).toBeNull()
+  })
+
+  it('renders no card for an empty sources array', () => {
+    render(<MessageBubble message={{ ...base, role: 'ai', sources: [] }} />)
+    expect(screen.queryByLabelText('Sources')).toBeNull()
+  })
+
+  it('does not render a card on user messages even if sources were somehow attached', () => {
+    render(
+      <MessageBubble
+        message={{
+          ...base,
+          role: 'user',
+          sources: [{ type: 'article', title: 'Understanding Anxiety', url: 'https://kb/a', citation: 'c' }],
+        }}
+      />
+    )
+    expect(screen.queryByLabelText('Sources')).toBeNull()
+  })
+})

@@ -26,6 +26,15 @@ export interface ChatSession {
   updatedAt: string
 }
 
+// Knowledge-base source surfaced alongside an AI reply (X-Sage-Sources response
+// header). 'article' renders as a link, 'video' as an embedded player.
+export interface Source {
+  type: 'article' | 'video'
+  title: string
+  url: string
+  citation: string
+}
+
 export interface ChatMessage {
   id: string
   sessionId: string
@@ -36,6 +45,9 @@ export interface ChatMessage {
   /** Authoritative text direction from the backend (X-Sage-Direction, derived from
    *  detected_language). When absent, the renderer falls back to dir="auto". */
   direction?: 'ltr' | 'rtl'
+  /** KB sources for this reply (X-Sage-Sources), present only on ordinary
+   *  content-gate turns with at least one usable source. Absent elsewhere. */
+  sources?: Source[]
 }
 
 export interface SessionInsight {
