@@ -22,3 +22,12 @@ def test_passage_carries_url_title_video_through_to_dict():
     assert d["source_url"] == "https://kb.sage/a"
     assert d["title"] == "Understanding Anxiety"
     assert d["video_url"] == "https://www.youtube.com/watch?v=abc123"
+
+
+def test_ingestion_citation_meta_includes_video_url():
+    from sage_poc.knowledge.ingestion import content_hash  # video_url must affect the hash
+    a = {"article_id": "v-001", "language": "en", "title": "T", "source_url": "https://kb/v",
+         "citation": "C", "content": "body", "is_crisis_content": False,
+         "video_url": "https://www.youtube.com/watch?v=abc"}
+    b = {**a, "video_url": ""}
+    assert content_hash(a) != content_hash(b)   # changing the video re-ingests

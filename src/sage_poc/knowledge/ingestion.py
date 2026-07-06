@@ -27,7 +27,7 @@ _log = logging.getLogger(__name__)
 _REQUIRED_FIELDS = {"article_id", "language", "title", "source_url", "citation", "content", "is_crisis_content"}
 
 # Fields whose change should trigger a re-ingest (re-embed). Stable order.
-_HASHED_FIELDS = ("article_id", "language", "title", "source_url", "citation",
+_HASHED_FIELDS = ("article_id", "language", "title", "source_url", "video_url", "citation",
                   "content", "is_crisis_content")
 
 
@@ -103,6 +103,7 @@ async def ingest_article(article: dict[str, Any], pool) -> int:
     citation_meta = {
         "title": article.get("title", ""),
         "source_url": article.get("source_url", ""),
+        "video_url": article.get("video_url", ""),
         "citation": article.get("citation", ""),
         "content_hash": content_hash(article),
     }
