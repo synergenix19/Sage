@@ -7,13 +7,15 @@ class KnowledgePassage:
     source_id: str
     citation: str
     relevance_score: float
+    source_url: str = ""    # article link from citation_metadata
+    title: str = ""         # article title from citation_metadata
+    video_url: str = ""     # canonical (provider-agnostic) video URL, "" when none
 
     def to_dict(self) -> dict:
         return {
-            "text": self.text,
-            "source_id": self.source_id,
-            "citation": self.citation,
+            "text": self.text, "source_id": self.source_id, "citation": self.citation,
             "relevance_score": self.relevance_score,
+            "source_url": self.source_url, "title": self.title, "video_url": self.video_url,
         }
 
 
