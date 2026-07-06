@@ -80,7 +80,7 @@ class SageState(TypedDict):
 
     cultural_output_violations: list[str]  # rule_ids fired in output_gate cultural check
 
-    knowledge_passages: list[dict]  # [{text, source_id, citation, relevance_score}]
+    knowledge_passages: list[dict]  # [{text, source_id, citation, relevance_score, source_url, title, video_url}]
     knowledge_abstain: bool         # True when no relevant evidence found
     knowledge_source: str           # "node_6" | "tool_lookup" | "" (empty when no retrieval)
     knowledge_query_raw: str        # query as submitted (pre-normalization)

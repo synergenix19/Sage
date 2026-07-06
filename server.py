@@ -92,6 +92,40 @@ def _stream_tokens(text: str) -> list[str]:
     return _STREAM_TOKEN_RE.findall(text)
 
 
+# ALLOWLIST, not a denylist: only these ordinary content gate_paths emit sources.
+# Any other value (crisis today; medical/hr/ipv/future safety routes; unknown/None)
+# fails SAFE and returns no sources. TODO Step 3a: drive one KB info_request turn on
+# staging and read X-Sage-Gate-Path to confirm it is "standard"; if it comes back
+# None instead, add None here explicitly — never widen this to a denylist.
+_SOURCE_ALLOWED_GATE_PATHS = frozenset({"standard"})
+
+
+def _sources_header(result: dict) -> str | None:
+    """Build the X-Sage-Sources header value: a JSON list of source cards, or None.
+
+    Sources are always a SUBSET of result["knowledge_passages"] — the exact list
+    audited in session_audit.knowledge_passage_ids — so every source card shown to
+    the user is audit-traceable back to that turn's retrieval.
+    """
+    if result.get("gate_path") not in _SOURCE_ALLOWED_GATE_PATHS:
+        return None
+    entries: list[dict] = []
+    seen: set[str] = set()
+    for p in (result.get("knowledge_passages") or []):
+        video, url = p.get("video_url", ""), p.get("source_url", "")
+        if not (video or url):
+            continue
+        key = url or video                          # dedupe by article-level URL
+        if key in seen:
+            continue
+        seen.add(key)
+        entries.append({"type": "video" if video else "article", "title": p.get("title", ""),
+                        "url": video or url, "citation": p.get("citation", "")})
+        if len(entries) >= 3:                        # cap = L4 max_passages evidence budget
+            break
+    return json.dumps(entries, ensure_ascii=True) if entries else None
+
+
 def _warmup_bge_m3() -> None:
     from sage_poc.nodes.skill_select import _ensure_semantic_ready
     _ensure_semantic_ready()
@@ -450,10 +484,13 @@ async def chat(
         for token in _stream_tokens(response_text):
             yield token.encode()
 
+    _sources = _sources_header(result)
+
     return StreamingResponse(
         _body(),
         media_type="text/plain; charset=utf-8",
         headers={
+            **({"X-Sage-Sources": _sources} if _sources else {}),
             "X-Sage-Node-Path":             json.dumps(path),
             "X-Sage-Model":                 RESPONDER_MODEL,
             "X-Sage-Skill-Id":              result.get("active_skill_id") or result.get("completed_skill_id") or "",
