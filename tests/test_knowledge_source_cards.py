@@ -31,3 +31,19 @@ def test_ingestion_citation_meta_includes_video_url():
          "video_url": "https://www.youtube.com/watch?v=abc"}
     b = {**a, "video_url": ""}
     assert content_hash(a) != content_hash(b)   # changing the video re-ingests
+
+
+def test_row_to_passage_reads_url_title_video_from_metadata():
+    from sage_poc.knowledge.postgres_repository import _row_to_passage
+    row = {"chunk_text": "x", "article_id": "anx-001-en-000", "rrf_score": 0.0123,
+           "citation_metadata": '{"title": "Understanding Anxiety", "source_url": "https://kb/a", '
+                                '"citation": "Anxiety 101", "video_url": "https://youtu.be/xyz"}'}
+    p = _row_to_passage(row)
+    assert p.title == "Understanding Anxiety" and p.source_url == "https://kb/a"
+    assert p.video_url == "https://youtu.be/xyz" and p.citation == "Anxiety 101"
+
+
+def test_row_to_passage_defaults_missing_metadata_fields():
+    from sage_poc.knowledge.postgres_repository import _row_to_passage
+    p = _row_to_passage({"chunk_text": "x", "article_id": "a-en", "rrf_score": 0.5, "citation_metadata": "{}"})
+    assert p.title == "" and p.source_url == "" and p.video_url == "" and p.citation == "a-en"
