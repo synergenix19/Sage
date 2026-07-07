@@ -207,12 +207,21 @@ The only latency figure presently written to `session_audit` is a single combine
 the full tool loop (not just generation), gate evaluation, and translate-out into one number,
 not just "freeflow gen + translate-out." Using the combined `latency_ms` as a stand-in would
 overstate the served-arm comparator and bias the latency delta in the shadow's favor.
-**Requirement:** before Phase-4 data collection produces the reported latency delta, either
-(a) two new stage timers (freeflow generation wall-clock, output_gate translate-out wall-clock)
-are added and threaded into the audit row, or (b) the report explicitly computes and states the
-gap between the combined `latency_ms` and the true two-stage figure, with the direction of the
-resulting bias named. Reporting the combined `latency_ms` as if it were the two-stage figure,
-uncaveated, is not acceptable.
+**DECISION (architect sign-off 2026-07-07) — HARD PHASE-4 PRECONDITION, not a deferred item:** the latency
+delta is one of the three numbers this pilot exists to produce; running the time-boxed flag window without
+being able to compute it is a wasted pilot. Therefore the **chosen method is (a): land two independent stage
+timers** — freeflow generation wall-clock and `output_gate` translate-out wall-clock — threaded into a
+per-turn queryable field (joinable to `shadow_register_eval` by `session_id`+`turn_number`), as a small
+pre-enablement commit on the branch **before the flag flips**. This is reclassified from "before the number
+is reported" to a **hard precondition that must land before the DPO/rubric sign-off round**, so the signed
+document matches what is actually measured.
+
+Option (b) — using the combined `latency_ms` as a stand-in with a stated bias — is retained ONLY as an
+explicitly **anti-conservative fallback** (it inflates the served comparator with routing/tool-loop/gate
+overhead, biasing the delta *toward* "native is faster," i.e. overstating the very result under test). Signers
+should reject the fallback in favour of the timers unless the timers prove infeasible, in which case the bias
+direction above must be reproduced verbatim in the results report. Reporting the combined `latency_ms` as if
+it were the two-stage figure, uncaveated, is not acceptable.
 
 **Reporting:** p50 and p95, measured on Railway (the deployed pilot environment, not local),
 for both arms, on the zero-tool primary set (§2). Tool-turn latency is reported separately
