@@ -49,12 +49,12 @@ export function SourceCard({ sources, direction }: Props) {
       aria-label={label ? undefined : 'Sources'}
       aria-labelledby={label ? headingId : undefined}
       dir={direction ?? 'auto'}
-      className="mt-2 flex w-full max-w-[680px] flex-col gap-2"
+      className="mt-6 flex w-full max-w-[680px] flex-col gap-2"
     >
       {label && (
         <h3
           id={headingId}
-          className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]"
+          className="mb-1 text-xs font-medium uppercase tracking-wider text-[var(--color-text-tertiary)]"
         >
           {label}
         </h3>
