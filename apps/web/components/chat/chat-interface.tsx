@@ -115,6 +115,19 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
           }
         }
 
+        // Skill-delivered media (X-Sage-Skill-Media) — a SEPARATE header from X-Sage-Sources
+        // (skill media is not a retrieved KB passage). Appended to the message's sources as a
+        // video entry so it renders through the same SourceCard/VideoEmbed. Malformed → skipped,
+        // never crashes the render (same discipline as X-Sage-Sources).
+        const skillMediaRaw = res.headers.get('X-Sage-Skill-Media')
+        if (skillMediaRaw) {
+          try {
+            const m = JSON.parse(skillMediaRaw)
+            const entry: Source = { type: m.type, title: m.title ?? '', url: m.url, citation: m.provider ?? '' }
+            aiSources = [...(aiSources ?? []), entry]
+          } catch { /* malformed → ignore */ }
+        }
+
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
         let accumulated = ''

@@ -144,6 +144,11 @@ export async function POST(req: Request) {
   // original string byte-for-byte avoids a lossy decode/re-encode round trip, and
   // the frontend (Task 6) does its own JSON.parse from the response header.
   const sourcesHeader = sageRes.headers.get('X-Sage-Sources')
+  // Skill-delivered media (X-Sage-Skill-Media) — a SEPARATE header from X-Sage-Sources
+  // (skill media is not a retrieved KB passage; see sage-poc _skill_media_header). Forwarded
+  // raw to the browser below and merged into the persisted sources so a reopened conversation
+  // shows it. Absent unless SAGE_SKILL_MEDIA_ENABLED + a media step, and on any safety gate_path.
+  const skillMediaHeader = sageRes.headers.get('X-Sage-Skill-Media')
 
   const intensityStr       = sageRes.headers.get('X-Sage-Emotional-Intensity')
   const emotionalIntensity = intensityStr ? (parseInt(intensityStr, 10) || null) : null
@@ -197,6 +202,16 @@ export async function POST(req: Request) {
       let parsedSources: unknown = null
       if (sourcesHeader) {
         try { parsedSources = JSON.parse(sourcesHeader) } catch { parsedSources = null }
+      }
+      // Merge skill-delivered media into the persisted sources as a video entry, so a reopened
+      // conversation renders it via the same SourceCard (Item 1.5). Crisis turns never carry it
+      // (backend allowlist); !isCrisis is belt-and-braces. Malformed → skip, keep KB sources.
+      if (skillMediaHeader && !isCrisis) {
+        try {
+          const m = JSON.parse(skillMediaHeader)
+          const entry = { type: m.type, title: m.title ?? '', url: m.url, citation: m.provider ?? '' }
+          parsedSources = [...(Array.isArray(parsedSources) ? parsedSources : []), entry]
+        } catch { /* malformed → skip */ }
       }
 
       // Single post-response write: user message + AI message in one batch.
@@ -313,6 +328,10 @@ export async function POST(req: Request) {
   // cards for every real user. Absent on non-KB turns and on any safety gate_path
   // (backend allowlist) — see _sources_header in sage-poc.
   if (sourcesHeader) responseHeaders['X-Sage-Sources'] = sourcesHeader
+  // Forwarded raw (already ascii-safe from the backend), same as X-Sage-Sources and for the
+  // same reason: the client parses it and renders via VideoEmbed. Not behind the diagnostic
+  // whitelist below (which is prod-disabled) — that would suppress skill videos for real users.
+  if (skillMediaHeader) responseHeaders['X-Sage-Skill-Media'] = skillMediaHeader
 
   if (process.env.SAGE_EXPOSE_DIAGNOSTIC_HEADERS === 'true') {
     for (const header of SAGE_HEADERS_WHITELIST) {
