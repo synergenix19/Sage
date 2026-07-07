@@ -6,6 +6,21 @@
 **Decision requested:** explicit **intended / not-intended** ruling on a **24-hour clock**, mirroring the L2 clinical-flag review discipline.
 **Severity:** clinical-safety governance (referral-escalation = escalation-matrix / L2–L3 behaviour), not housekeeping.
 
+---
+
+## ✅ RESOLUTION — 2026-07-07 (ruling: INTENDED; fix is documentation, not rollback)
+
+Product owner ruling, recorded by the active command session. The escalation surfaced a **true record gap**, not an unauthorized action; the fix is to make the record honest, not to roll back.
+
+- **Ruling: INTENDED.** Routing `mindfulness_meditation` to production was authorized.
+  - **Approval basis (approved_by):** the clinician's **#130-cycle approval** of the skill package ("approved it all", which merged #130). This is the clinical half.
+  - **Go-live basis:** **product-owner authorization** (Rohan) of registration + deploy under **zero-user mode** (no real users on the prod surface). This is the product half.
+- **24-hour rollback clock: CANCELLED.** The prepared de-registration rollback stays **prepared but UNARMED** — recoverable in one reviewed PR if the ruling ever reverses.
+- **NOT backfilled as fully-clinically-signed.** `approved_by` is deliberately **left absent/null in the JSON** — because the skill's **referral-escalation guard is genuinely still pending** (open PR #131) and the entry-screen disclosure→referral **example phrasing** is pending (open PR #144, clinician-gated). Recording a clean `clinical_lead` signature would be false. The record's value is that it is true: package-approved + PO-authorized-live, escalation-matrix rendering pending.
+- **Open items, held at ESCALATED priority (Lane 3 clinician clock):** (1) **#131** referral-escalation guard confirm; (2) **#144** referral-example phrasing confirm. Both are the escalation-matrix layer; until they land, MM runs live with the gate holding correctly on serious disclosures but the referral rendered softly (documented, acceptable interim under zero-user mode).
+
+Superseding note: the "24-hour clock" framing in the header is **closed** by this section. The header is retained unedited for provenance.
+
 ## What is live
 
 - `mindfulness_meditation` is present in the live `SKILL_REGISTRY` (`src/sage_poc/skill_ids.py:10`) → **registered and routable** in production.

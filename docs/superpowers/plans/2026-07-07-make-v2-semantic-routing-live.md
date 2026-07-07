@@ -20,6 +20,7 @@
 - **Arabic ABSTAIN is blocking for the bilingual pilot.** An uncalibrated AR-τ (`-inf`) routes top-1 with no ABSTAIN gate — do not declare the bilingual safety gate met until AR-τ is calibrated from native-reviewed cells.
 - **No secrets in the repo.** Railway env is set via CLI, never committed.
 - Master tip at planning time: `1209207` (PR #116). V2 branch: `reconcile/v2-onto-db8eb39` (94 ahead / 143 behind master).
+- **Reconcile target is CURRENT master, which now includes `mindfulness_meditation` (#139, registered + live 2026-07-07) — a 28th routing candidate.** The `routing_eval` gate and global-τ calibration on the V2 branch were measured on **27 skills without MM**; that calibration is **INVALID for go-live**. The gate MUST re-run on the reconciled tree with **28 candidates**, and τ re-derived, before any flag-flip. Do NOT flip `SKILL_RERANK_ENABLED` on a 27-skill τ — it would silently shift routing/ABSTAIN for the newly-registered skill (and every neighbour whose margin MM now sits inside). This re-gate happens **exactly once, on the real tree**, inside the existing reconcile task — not on the stale branch. (MM carries no `semantic_anchors`, consistent with the anchors-stay-empty constraint above; its v2-readiness is purely candidate-set + τ, nothing to author.)
 
 ---
 
