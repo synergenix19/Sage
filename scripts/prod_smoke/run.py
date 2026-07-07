@@ -12,7 +12,8 @@ Usage:
 Tiers:
     a  — safety invariants: crisis resources (EN/AR), GL-1 helpline XFAIL,
          MM entry-screen derealization hold, precedence audit proxy (Task 2)
-    b  — Playwright-driven feature checks (not built yet; no-ops, returns [])
+    b  — Playwright feature card-render checks (report-only; needs SAGE_SMOKE_STORAGE_STATE
+         auth; validated live vs prod 2026-07-07). See docs/runbooks/prod-smoke.md.
     c  — flag readback + response-header regression (Task 1 slice, wired)
 """
 import argparse
