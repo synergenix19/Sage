@@ -1,13 +1,14 @@
 """§5 gate runner — the V2-vs-V1 flip criteria (§8 gates 1–5), composed PER-STRATUM.
 
 `evaluate_flip` is the decision that gates the eventual live-path wiring: V2's flag flips on
-only when it beats the frozen V1 baseline **within every (lang × stratum) cell** AND the
-blocking checks pass. Per-stratum composition is load-bearing — a pooled "recall improves"
+only when it clears the PO-signed revised §5 criterion **within every (lang × stratum) cell**
+AND harm-0 AND path_checks. Per-stratum composition is load-bearing — a pooled "recall improves"
 must not flip when the Khaleeji ar/id_oos worst cell regresses (the F8 composition artifact,
-caught here at the flip layer as well as at the AUGRC layer). The per-stratum BC3 result is
-folded in directly, so an `insufficient_to_assert` cell blocks the flip rather than reading
-as a pass. Gate 5 (reranker latency) is a defined-negative: out of budget → reranker ships
-off, gates 1–4 (reranker-independent) still decide the flip.
+caught here at the flip layer as well as at the AUGRC layer). Under the revised criterion the
+gates are per-stratum-typed (in_scope: wrong-route-no-regress + recall-within-T; id_oos: abstain
+floor / AR parity; far_oos: parity), and the per-stratum BC3 result is REPORT-ONLY — it is
+surfaced on the verdict but does NOT gate the flip (see the signed deviation). Gate 5 (reranker
+latency) is a defined-negative: out of budget → reranker ships off, the cell gates still decide.
 """
 from __future__ import annotations
 
