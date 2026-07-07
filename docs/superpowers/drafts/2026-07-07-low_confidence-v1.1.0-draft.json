@@ -1,0 +1,17 @@
+{
+  "_draft_note": "DRAFT for clinical review (low_confidence content ratification, 2026-07-07). NOT loaded (docs/, not src/.../templates/). This draft ratifies as APPROVED CONTENT the behaviour-frozen text already merged as live low_confidence.json v1.0.0 via PR #124 (the composer-migration eng PR). It is NOT an engagement expansion: per the batch steer, low_confidence keeps its short clarifying contract because its single clarifying QUESTION is already the bridge — do NOT add a second bridge here. PROMOTE on sign-off: set approved_by + status='approved' on the LIVE src template (content is identical, so no code change; this closes the approved_by:null governance gap for this surface).",
+  "template_id": "L2_low_confidence",
+  "version": "1.1.0",
+  "status": "draft-pending-review",
+  "authored_by": "engineering-draft-for-clinical-review",
+  "approved_by": null,
+  "effective_date": null,
+  "layer": "L2",
+  "role": "user",
+  "always_include": true,
+  "word_budget": 50,
+  "content": "INTENT: The user's message was ambiguous and it is not clear what they need. Emotional intensity: {intensity}/10. Ask one gentle, open ended clarifying question to understand better. Be warm and non judgmental. Do not assume what they need. Keep your reply to at most two sentences.",
+  "variables": ["intensity"],
+  "intent": "low_confidence",
+  "_clinical_review_note": "SAFETY-COUPLED: the two-sentence cap is what keeps the suppressed freeflow guardrail benign on this path (a 2-sentence clarifying reply cannot deliver a structured protocol as prose; composer.py override-suppression). If clinical review wants to relax the cap, the freeflow guardrail must be re-enabled on the low_confidence override path in the same change. One gentle clarifying question only; it is the bridge. No affect-assumptive language. No em dashes."
+}

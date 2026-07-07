@@ -1,0 +1,17 @@
+{
+  "_draft_note": "DRAFT for clinical review/redline (new_skill engagement rewrite, 2026-07-07). NOT loaded (docs/, not src/.../templates/); prod + master + tests stay on new_skill v1.0.0. PROMOTE on sign-off as with the batch. Inherits rule (a*)'s conditional-invitation principle WHERE A BRIDGE APPLIES: the invitation here is to try/shape the approach, offered not assumed. Selection note: this template is used when primary_intent==new_skill AND a skill is active; the no-match case uses new_skill_unmatched (separate draft-pending template, not in this batch). word_budget 50->100 depends on the L2 per-intent budget amendment (deviation register item 1).",
+  "template_id": "L2_new_skill",
+  "version": "1.1.0",
+  "status": "draft-pending-review",
+  "authored_by": "engineering-draft-for-clinical-review",
+  "approved_by": null,
+  "effective_date": null,
+  "layer": "L2",
+  "role": "user",
+  "always_include": true,
+  "word_budget": 100,
+  "content": "INTENT: A structured support approach is being introduced. Emotional intensity: {intensity}/10. {intensity_guidance} Introduce the approach naturally, from where the person already is, without announcing it as a technique or naming a protocol. Do not assume how they feel about it. Offer it as something you can try together, and leave the door open for them to shape it or set it aside. Where a next step genuinely fits, close with one light, open invitation rather than a directive. Keep it warm and unhurried, and ask at most one question.",
+  "variables": ["intensity", "intensity_guidance"],
+  "intent": "new_skill",
+  "_clinical_review_note": "Same authoring standard as info_request v2.0.0: no affect-assumptive language, one light conditional invitation where a next step fits, consent-preserving ('shape it or set it aside') consistent with the R1 offer model. No em dashes."
+}

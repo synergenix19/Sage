@@ -1,0 +1,26 @@
+{
+  "_draft_note": "DRAFT for clinical review (PI-SI-001 blended-intent upgrade, 2026-07-07). NOT loaded (docs/, not src/.../rules/data/); prod + master keep PI-SI-001 v1.0.0. SEPARATE ARTIFACT CLASS from the L2 templates (Rules Service content, different schema, different test harness) but scheduled in the SAME clinical sign-off session. Fixes the finding that blended intent is LIVE-BUT-PARTIAL: the classifier emits secondary_intent, but rendering is (i) a cosmetic composer tag and (ii) THIS rule, which today injects a GENERIC symmetric DBT 'address both' frame — NOT the v7 §5.6.1 ORDERED validate-then-inform contract. This draft upgrades it to the ordered contract and makes it grounding-aware when the secondary is info_request. PROMOTE on sign-off: copy into src/sage_poc/rules/data/prompt_injection/secondary_intent.json, land the behavioral ordering test (below) in the same change. Interacts with, but does NOT replace, the L2 template batch: single-intent info_request has secondary=null and never fires this rule, so info_request v2.0.0 is still required.",
+  "category": "prompt_injection",
+  "rules": [
+    {
+      "rule_id": "PI-SI-001",
+      "version": "2.0.0",
+      "authored_by": "engineering-draft-for-clinical-review",
+      "approved_by": null,
+      "effective_date": null,
+      "active": false,
+      "description": "Ordered validate-then-inform framing when a secondary intent is present (v7 §5.6.1); grounding-aware when the secondary need is information",
+      "category": "prompt_injection",
+      "trigger_type": "secondary_intent_present",
+      "trigger_value": null,
+      "trigger_keywords": [],
+      "action": {
+        "type": "inject",
+        "target": "user",
+        "content": "SECONDARY NEED PRESENT: The person has more than one need in this turn. Respond in ORDER: validate or answer the primary need first, and only then turn to the secondary one. Do not lead with the secondary. When the secondary need is information, give the factual part briefly and plainly AFTER validating the primary; ground it in the knowledge passages when they are present, and if no passage supports it, say so honestly rather than guessing. Keep both in one natural reply, and do not stack questions."
+      }
+    }
+  ],
+  "_clinical_review_note": "Change from v1.0.0: (1) symmetric 'both are valid' DBT frame -> ORDERED primary-first-then-secondary (v7 §5.6.1). (2) adds an info_request-secondary sub-clause that respects grounding and the L4 ABSTAIN contract ('say so honestly rather than guessing'), so the blended path cannot fabricate. Fires for ANY secondary (trigger_value:null), so the ordering language is written generally with the info sub-clause conditional in prose. ALTERNATIVE for reviewers: split into two rules (PI-SI-001 general ordered + PI-SI-002 keyed on secondary=info_request) if you prefer explicit trigger separation over in-prose conditioning; that is a schema decision for eng once you pick the wording. No em dashes.",
+  "_promotion_test": "Behavioral ordering test to land WITH promotion (not in the L2 batch, not in PR #124): compose a turn with primary_intent in {new_skill, general_chat} + secondary_intent=info_request and assert the composed user prompt renders the ordered contract (validate-before-inform) AND, on a knowledge_abstain turn, that the honest-no-fabrication clause is present. Mirrors the L2 batch PromptFoo style. The current cosmetic composer tag ('(blended with: X)') should be removed or superseded by this rule when promoted."
+}

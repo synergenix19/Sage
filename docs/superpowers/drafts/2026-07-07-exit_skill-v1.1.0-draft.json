@@ -1,0 +1,17 @@
+{
+  "_draft_note": "DRAFT for clinical review/redline (exit_skill engagement rewrite, 2026-07-07). NOT loaded (docs/, not src/.../templates/); prod + master + tests stay on exit_skill v1.0.0. PROMOTE on sign-off as with the batch. Inherits rule (a*)'s conditional-invitation principle: the close is one light invitation to name what they want to focus on now, offered not assumed. Kept without an intensity_guidance variable (matches the live template's variable set; adding it would expand the arch-doc Effect-1 intent table and is out of scope for this batch). word_budget 50->80 depends on the L2 per-intent budget amendment (deviation register item 1).",
+  "template_id": "L2_exit_skill",
+  "version": "1.1.0",
+  "status": "draft-pending-review",
+  "authored_by": "engineering-draft-for-clinical-review",
+  "approved_by": null,
+  "effective_date": null,
+  "layer": "L2",
+  "role": "user",
+  "always_include": true,
+  "word_budget": 80,
+  "content": "INTENT: The user wants to leave the current structured approach. Emotional intensity: {intensity}/10. Transition warmly and without pressure. Acknowledge any work they did, briefly and without overstating it. Do not assume how they feel about stopping. Move into open conversation, and close with one light, open invitation to say what they would like to focus on now, offered and not assumed. Ask at most one question.",
+  "variables": ["intensity"],
+  "intent": "exit_skill",
+  "_clinical_review_note": "Preserves the warm, no-pressure transition of v1.0.0 and adds the same conditional-invitation close as the rest of the batch (offered not assumed), with no affect-assumptive language. No em dashes."
+}
