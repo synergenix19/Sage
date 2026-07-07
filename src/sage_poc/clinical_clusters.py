@@ -18,6 +18,7 @@ CLINICAL_CLUSTERS: dict[str, list[str]] = {
         "dbt_tipp",
         "progressive_muscle_relaxation",
         "mindfulness_body_scan",
+        "mindfulness_meditation",
     ],
     "sleep": ["sleep_hygiene"],
     # cognitive_restructuring is adjacent to cbt_thought_record by design.
@@ -35,7 +36,6 @@ CLINICAL_CLUSTERS: dict[str, list[str]] = {
     # and the pairing lacked clinical affirmation. Single-skill clusters disable
     # argmax for these two skills and fall back to the absolute threshold.
     # To re-pair: get explicit clinical rationale and restore the combined cluster.
-    "readiness_ambivalence": ["mi_readiness_ruler"],
     "impulse_pause": ["stop_technique"],
     "psychoeducation": [
         "psychoed_anxiety",

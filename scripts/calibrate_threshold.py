@@ -90,9 +90,9 @@ KNOWN_HITS = [
     # cycle of' → worry_time at Tier 1. Expected skill updated to reflect semantic truth.
     ("I am caught in a loop of anxious thinking and cannot break the cycle", "psychoed_anxiety", True),
 
-    # MI readiness ruler (vs. CBT / stop_technique)
-    ("part of me wants to change but another part of me is not sure I can or even want to", "mi_readiness_ruler", True),
-    ("I know what I should do but I do not know if I am ready to do it yet", "mi_readiness_ruler", True),
+    # Mindfulness meditation (vs. body scan / other somatic; deprecated mi_readiness_ruler removed)
+    ("I want to sit quietly and just observe my thoughts without fighting them", "mindfulness_meditation", True),
+    ("guide me through a sitting meditation, watching my breath and letting thoughts pass", "mindfulness_meditation", True),
 
     # STOP technique (vs. CBT / MI)
     ("I react before I think and then I always regret it, I wish I could slow down first", "stop_technique", True),

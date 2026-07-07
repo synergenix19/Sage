@@ -282,20 +282,8 @@ async def test_semantic_dbt_tipp_internal_volcano_phrase():
     assert result["skill_match_method"] == "semantic_offer"
 
 
-@pytest.mark.slow
-@pytest.mark.asyncio
-async def test_semantic_mi_readiness_half_wanting_phrase():
-    """MI readiness ruler semantic match: ambivalence described without readiness/change keywords."""
-    phrase = "I wish I could rate my own motivation and confidence to see where I actually stand"
-    assert _phrase_is_keyword_clean(phrase, "mi_readiness_ruler"), (
-        "Phrase accidentally matches a keyword — choose a different phrase."
-    )
-    state = _ss_state(message_en=phrase)
-    result = await skill_select_node(state)
-    assert result["offered_skill_ids"][0] == "mi_readiness_ruler", (
-        f"Expected mi_readiness_ruler offer, got: {result.get('offered_skill_ids')} "
-        f"(score: {result.get('semantic_score')})"
-    )
+# (test_semantic_mi_readiness_half_wanting_phrase removed — mi_readiness_ruler deprecated 2026-07-07,
+#  spec-absent + routing-margin collision; JSON retained, deregistered from SKILL_REGISTRY.)
 
 
 @pytest.mark.asyncio

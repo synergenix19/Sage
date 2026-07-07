@@ -66,6 +66,12 @@ _KNOWN_SUBSTRING_SHADOWS: frozenset[tuple[str, str, str, str]] = frozenset({
     # cbt_thought_record. Clinically acceptable — both skills address cognitive distortions.
     ("catastrophizing",             "cbt_thought_record",      "i keep catastrophizing",                      "cognitive_restructuring"),
     ("catastrophizing",             "cbt_thought_record",      "always catastrophizing",                      "cognitive_restructuring"),
+    # Pre-existing on trunk, surfaced 2026-07-07 during MM registration (no CI caught them — the
+    # deploy-pipeline gap's third form). Documented so the invariant holds; NOT introduced here.
+    # Flagged as a Lane 1 routing-baseline item to fix, not to accept forever.
+    ("setting limits",  "assertive_communication", "setting limits in",              "interpersonal_effectiveness"),
+    ("thought record",  "cbt_thought_record",      "thought records aren't helping", "act_psychological_flexibility"),
+    ("thought records", "cbt_thought_record",      "thought records aren't helping", "act_psychological_flexibility"),
 })
 
 
