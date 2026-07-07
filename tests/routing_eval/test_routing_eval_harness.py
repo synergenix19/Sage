@@ -8,7 +8,7 @@ from sage_poc.routing_eval.fixtures import crisis_intercepted, crisis_reaching_s
 from sage_poc.routing_eval.schema import ABSTAIN, STRATA, EvalRecord
 
 LOSS = LossWeights(misroute=1.0, override_misroute=4.0)
-CONFIG = HarnessConfig(loss=LOSS, delta=0.05, n_floor=2, tau=0.50)
+CONFIG = HarnessConfig(loss=LOSS, delta=0.05, n_floor=2, tau={"en": 0.50})
 
 
 def _clean_powered_set():
@@ -30,7 +30,7 @@ def _clean_powered_set():
 
 
 def test_config_hard_errors_on_unset_value():
-    bad = HarnessConfig(loss=LOSS, delta=None, n_floor=2, tau=0.50)
+    bad = HarnessConfig(loss=LOSS, delta=None, n_floor=2, tau={"en": 0.50})
     with pytest.raises(ValueError, match="delta"):
         run_baseline(_clean_powered_set(), bad)
 

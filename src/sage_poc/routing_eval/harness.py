@@ -10,6 +10,7 @@ at baseline time (§2.4).
 from __future__ import annotations
 
 import sys
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from sage_poc.routing_eval.augrc import CellAUGRC, LossWeights, per_cell_augrc
@@ -31,7 +32,11 @@ class HarnessConfig:
     loss: LossWeights
     delta: float
     n_floor: int
-    tau: float
+    # Per-language reranker operating point. An ABSENT lang key is not an error — it means that
+    # language's abstention is NOT asserted and the arm falls closed to V1 (mirrors the live
+    # per-language fail-closed in skill_select `_rerank_tau`). Only `en` is calibrated today; `ar`
+    # is deliberately absent (uncalibrated, native-review-gated).
+    tau: Mapping[str, float]
 
     def validate(self) -> None:
         for field_name in ("loss", "delta", "n_floor", "tau"):
@@ -63,7 +68,10 @@ def run_baseline(records: list[EvalRecord], config: HarnessConfig) -> BaselineRe
     bc3 = bc3_per_stratum_parity(augrc_table, delta=config.delta, n_floor=config.n_floor)
 
     ar_idoos = [r for r in records if r.lang == "ar" and r.stratum == "id_oos" and r.held_out]
-    bc4 = bc4_split_report(ar_idoos, tau=config.tau)
+    # Per-language lookup: AR tau absent → -inf → no abstain gate → abstention NOT asserted for AR
+    # (fail-closed to V1). BC4 is report-only, so this never gates the flip; it reports honestly that
+    # the AR operating point is uncalibrated rather than borrowing EN's tau.
+    bc4 = bc4_split_report(ar_idoos, tau=config.tau.get("ar", float("-inf")))
 
     passed = bc1.passed and bc2.passed and bc3.passed
     return BaselineResult(
