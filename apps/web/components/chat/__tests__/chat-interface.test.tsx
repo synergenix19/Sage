@@ -41,7 +41,6 @@ vi.mock('../input-bar', () => ({
   ),
 }))
 vi.mock('../crisis-card', () => ({ CrisisCard: () => null }))
-vi.mock('../typing-indicator', () => ({ TypingIndicator: () => null }))
 // Enhanced (Task 7): surfaces `reveal` via a data attribute so tests can assert on the
 // prop ChatInterface computed, while still rendering full `message.content` synchronously
 // like the original stub (no timers) — existing assertions that only check text are unaffected.
@@ -409,6 +408,42 @@ describe('ChatInterface — presence indicator + typewriter reveal (Task 7)', ()
 
     expect(await screen.findByTestId('presence-indicator')).toBeInTheDocument()
     expect(() => screen.getByTestId('typing-indicator')).toThrow()
+  })
+
+  // Finding 1 (whole-branch review): the reveal-edge effect must apply BEFORE paint
+  // (useLayoutEffect), not after (useEffect) — otherwise the commit where the assistant
+  // message first has full content paints with reveal=false (full MarkdownContent), and
+  // only on the NEXT tick does the effect flip reveal=true, producing a visible
+  // "flash & re-type" (full answer paints, then collapses back to word-1 typewriter).
+  // This pins the observable contract: once the turn completes, the just-finished
+  // assistant message is marked for reveal.
+  it('marks the just-finished assistant message for reveal on turn completion (Finding 1 — no flash)', async () => {
+    const singleChunkStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('a full reply'))
+        controller.close()
+      },
+    })
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      body: singleChunkStream,
+      headers: new Headers(),
+    } as unknown as Response)
+
+    const { container } = render(
+      <ChatInterface initialSession={null} initialMessages={[]} userName="Test" userId="user-1" />
+    )
+
+    fireEvent.click(screen.getByTestId('mock-send'))
+
+    await waitFor(() => {
+      const all = container.querySelectorAll('[data-testid^="msg-"]')
+      const lastMsgEl = all[all.length - 1]
+      expect(lastMsgEl).toBeDefined()
+      expect(lastMsgEl).toHaveTextContent('a full reply')
+      expect(lastMsgEl).toHaveAttribute('data-reveal', 'true')
+    })
   })
 
   it('does NOT typewriter-reveal historical messages on page load (Bug 2 — edge-only reveal)', () => {

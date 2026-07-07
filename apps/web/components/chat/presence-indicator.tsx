@@ -3,20 +3,9 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocaleStore } from '@/lib/stores/locale-store'
 import { PRESENCE_POOL, PRESENCE_SLOW, PRESENCE_DEGRADED, nextPresencePhraseIndex } from '@/lib/presence-phrases'
 import { PRESENCE_PHRASE_MS, PRESENCE_SLOW_MS, PRESENCE_DEGRADED_MS } from '@/lib/presence-constants'
+import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion'
 
 type Phase = 'dot' | 'phrase' | 'slow' | 'degraded'
-
-function usePrefersReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false)
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    setReduced(mq.matches)
-    const on = () => setReduced(mq.matches)
-    mq.addEventListener('change', on)
-    return () => mq.removeEventListener('change', on)
-  }, [])
-  return reduced
-}
 
 export function PresenceIndicator({ onPhrase }: { onPhrase?: (id: number) => void }) {
   const locale = useLocaleStore((s) => s.locale)

@@ -287,3 +287,41 @@ describe('MessageBubble reveal', () => {
     expect(node.textContent).toBe('one two three four five six seven eight')
   })
 })
+
+// Finding 2 (whole-branch review): useTypewriter is a JS setInterval — a CSS reduced-motion
+// media query cannot stop it, so reduced-motion users still got word-by-word reveal
+// (violates spec §3.5 and the shipped PRESENCE_QA_CHECKLIST.md). MessageBubble now reads
+// usePrefersReducedMotion() and disables the typewriter (enabled=false) whenever it's set,
+// so the full content renders via MarkdownContent immediately instead of animating.
+describe('MessageBubble reveal — prefers-reduced-motion (Finding 2)', () => {
+  const originalMatchMedia = window.matchMedia
+
+  afterEach(() => {
+    // Restore the global vitest.setup.ts matchMedia stub so this override never leaks
+    // into other test files (or later tests in this file) that assume matches:false.
+    window.matchMedia = originalMatchMedia
+  })
+
+  function aiMsg(content: string): ChatMessage {
+    return { ...base, role: 'ai', content, direction: 'ltr' }
+  }
+
+  it('renders the FULL content immediately with no progressive reveal when prefers-reduced-motion is set', () => {
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query === '(prefers-reduced-motion: reduce)',
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }))
+
+    const full = 'one two three four five six seven eight'
+    render(<MessageBubble message={aiMsg(full)} reveal />)
+    const node = screen.getByTestId('message-content')
+    // Full text present on the very first render — never a partial word-1 slice.
+    expect(node.textContent).toBe(full)
+  })
+})

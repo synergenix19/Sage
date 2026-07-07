@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { mapSdkRole, type ChatSession, type MessageRole, type Source } from '@cdai/types'
 import { FIRST_CHAT_EVENT } from '@/components/pwa/install-prompt'
 import { CRISIS_SIGNAL, SERVER_ERROR_SIGNAL } from '@/lib/constants'
@@ -312,7 +312,14 @@ export function ChatInterface({ initialSession, initialMessages = [], userName, 
   // historical message on every page load, Bug 2).
   const [revealId, setRevealId] = useState<string | null>(null)
   const prevLoadingRef = useRef(isLoading)
-  useEffect(() => {
+  // useLayoutEffect (not useEffect): runs synchronously BEFORE the browser paints, so
+  // reveal=true is applied in the same commit as the full-content message. useEffect runs
+  // AFTER paint, which let the full answer paint once (reveal=false) before flipping to
+  // reveal=true on the next tick — a visible "flash & re-type" (full answer, then it
+  // collapses back to word-1 typewriter). Same prevLoadingRef true->false edge-detection
+  // logic as before; Bug 2 (no reveal on history mount) is preserved because mount never
+  // produces that edge.
+  useLayoutEffect(() => {
     const was = prevLoadingRef.current
     prevLoadingRef.current = isLoading
     if (was && !isLoading) {

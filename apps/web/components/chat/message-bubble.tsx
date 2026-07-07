@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { cn } from '@cdai/ui'
 import type { ChatMessage } from '@cdai/types'
 import { useTypewriter } from '@/hooks/use-typewriter'
+import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion'
 import { FeedbackButtons } from './feedback-buttons'
 import { MarkdownContent } from './markdown-content'
 import { SourceCard } from './source-card'
@@ -22,7 +23,14 @@ export function MessageBubble({ message, supabaseId, onFeedback, reveal = false,
   // Hook must be called unconditionally (rules of hooks) regardless of role/branch below.
   // When reveal is false it resolves to the full text on the first render, so the
   // reveal=false path stays byte-identical to today.
-  const { displayed, done, complete } = useTypewriter(message.content, { enabled: reveal === true })
+  // prefers-reduced-motion (spec §3.5): the typewriter is a JS setInterval, which a CSS
+  // media query cannot stop. Disabling it here (enabled=false) makes useTypewriter resolve
+  // to the full text immediately (done=true), so the content renders via MarkdownContent
+  // instantly instead of animating word-by-word.
+  const reducedMotion = usePrefersReducedMotion()
+  const { displayed, done, complete } = useTypewriter(message.content, {
+    enabled: reveal === true && !reducedMotion,
+  })
 
   useEffect(() => {
     if (reveal && done) onRevealComplete?.()
