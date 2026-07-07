@@ -4,6 +4,17 @@
 **Prepared by:** engineering (drafts authored for clinical redline; `approved_by: null` throughout).
 **Companion docs:** deviation register `2026-07-07-l2-engagement-deviation-register.md` (READ FIRST — carries the budget amendment); PromptFoo cases `drafts/2026-07-07-l2-engagement-promptfoo.yaml`; RCA memory `project_info_request_engagement_gap.md`.
 
+## Session opener: what you are ratifying (four gap classes, one posture system)
+
+This work began as a single screenshot bug report (a KB answer reading as a dry, list-shaped dead-end). Tracing it to root closed **four distinct gap classes**, and you are ratifying the system that stops any of them silently recurring, not just four template rewrites:
+
+1. **Content gap** — `info_request` and its siblings never received the 2026-06-14 engagement rewrite (still on the pre-engagement "do not pad" template). Closed by the four template drafts.
+2. **Mechanism gap** — blended intent is live-but-partial: `PI-SI-001` injects a generic symmetric DBT frame, not the v7 §5.6.1 *ordered* validate-then-inform contract; single-intent turns bypass it entirely. Closed by the PI-SI-001 v2.0.0 draft (this session).
+3. **Architecture violation** — `low_confidence` bypassed `compose_prompt` (L0 never composed), a §5.6.3 breach. Remediated in PR #124; its content is ratified here.
+4. **Systemic process gap** — nothing forced an L2 surface to declare an engagement posture, which is *why* PR #4 rolled out partially. Closed by the engagement-posture manifest + enumeration guard (PR #127, merged).
+
+The **deviation register + the manifest** together mean none of these can silently recur. That systemic control is the substance of what you are signing, with the four template rewrites and the PI-SI-001 upgrade as its content.
+
 ## The one decision this packet asks you to make first: the bridge rule
 
 The reported bug: KB/"Ask" answers (`info_request`) read as dry, list-shaped dead-ends with no conversational continuation, because the `info_request` template never got the 2026-06-14 engagement rewrite and still says "answer briefly, do not pad with unsolicited support." The fix must decide HOW an info answer closes. This is a clinical-strategy call, so it is put to you explicitly rather than baked into the wording. Ratify the RULE, then the wording.
