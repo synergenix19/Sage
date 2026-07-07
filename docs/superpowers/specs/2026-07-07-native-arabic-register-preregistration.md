@@ -389,14 +389,16 @@ feeds:
 Rubric anchors (§3), the blinding mechanism and its rater-facing export (§4), and IRR (§4)
 must be **settled on the offline seed set before the flag is enabled on any live cohort.**
 
-**Status of the seed set, as of this pre-registration:** the plan's Task 8
+**Status of the seed set, as of this pre-registration (updated post-Task-8):** the plan's Task 8
 (`scripts/register_eval/seed_inputs.json`, sourced from IE findings C-1/C-3/C-4 —
-dialect-realism cases spanning `khaleeji`/`code_switch`/`arabizi` `lang_profile` tags) has
-**not yet been authored** — no `seed_inputs.json` exists in `scripts/register_eval/` as of this
-document, and no commit on this branch creates it. This is a genuine open precondition, not a
-formality: the calibration-first rule in this section cannot be executed until that file (and
-its Gulf-native augmentation, per the plan's Task 8 Step 2) exists. Recording this explicitly
-so the gap is visible from the pre-registration itself rather than discovered at Task 12.
+dialect-realism cases spanning `khaleeji`/`code_switch`/`arabizi` `lang_profile` tags) **now
+exists** (commit `954d710`): **15 real-extracted inputs** (IE `SageAI_Intelligence_Evaluation.md`
+§5 + Khaleeji/Arabizi E2E fixtures) **+ 10 `PLACEHOLDER_NATIVE_AUTHOR` entries** still requiring
+Gulf-native authoring. So the file is scaffolded but the seed is **not yet complete** — the
+calibration-first rule cannot be fully executed until the 10 placeholders are authored by a
+Gulf-native contributor and the everyday-distress register coverage is confirmed. (One IE item
+with death-wish-adjacent surface phrasing was deliberately excluded; crisis phrasing is not
+fabricated.) Remaining open precondition: complete the placeholders, not create the file.
 
 **Sequence required before Phase 4:**
 1. Task 8's seed set is authored (IE C-1/C-3/C-4 extraction + Gulf-native augmentation, 20–30
