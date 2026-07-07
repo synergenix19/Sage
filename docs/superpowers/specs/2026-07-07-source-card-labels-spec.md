@@ -11,7 +11,9 @@ Keyed on the set of `type` values in the parsed `X-Sage-Sources` list:
 |---|---|---|---|
 | all `article` | "Further reading" | — | `sources.label.reading` |
 | all `video` | "Watch" | — | `sources.label.watch` |
-| `article` + `video` | "More on this" | — | `sources.label.mixed` |
+| `article` + `video` | "Learn more" | — | `sources.label.mixed` |
+
+(Mixed = "Learn more" — type-agnostic for a read+watch mix; "Further reading" would be odd over a video, and the video card's play affordance already signals type. Registry makes this a one-line revision.)
 
 - Rendered as a real `<h3>` (or `role="heading"`) above the card list — not a styled `<div>` — so it is a semantic landmark for screen readers.
 - "Further reading," **never "Sources"** (clinical/citation register) and never "Recommended" (implies clinical endorsement). Endorsement-implication was flagged as a clinical-tone judgment — see Condition 2.
@@ -27,8 +29,8 @@ Order: reply prose → **triage question (primary next action)** → labelled ca
 
 ## 4. Arabic — HARD GATE, placeholder keys only (Condition 1)
 The EN strings ship; the **AR strings do NOT ship from this spec.** Arabic copy must be authored + reviewed by a **native Emirati speaker in a real RTL context** (v7 quality-checklist requirement) — the reversed/garbled AR in the original recommendation table is exactly the RTL-authoring artifact this guards against.
-- **Register decision (record explicitly, do not default):** per the UI language rules, Khaleeji = conversational UI, MSA = formal content. These labels are formal UI chrome → **recommend neutral/MSA-leaning**, but this is a one-line decision for the reviewer to ratify, not a default.
-- Spec ships `sources.label.*` **placeholder keys**; the AR values land only after native review + register ratification.
+- **Register decision — RATIFIED-PENDING-NATIVE-REVIEW (2026-07-07): neutral/MSA-leaning.** A section heading over resource cards is UI chrome, same register class as button labels and settings copy (Khaleeji = conversational surfaces, MSA = formal content, per the UI language rule); MSA-leaning also keeps the labels dialect-neutral for the broader GCC audience. The native Emirati reviewer **may overrule with rationale** (e.g. judging a warmer colloquial label better serves the therapeutic-rapport UI principle) — but they start from MSA-leaning as the recorded position, not an open question.
+- Spec ships `sources.label.*` **placeholder keys**; the AR values land only after native review, entered via the copy registry with the sign-off line.
 
 ## 5. Governance — proportionate, but traceable (Condition 2)
 Not the L2-template workflow. But this is user-facing copy in a clinical-adjacent product, and the "Recommended vs Further reading" endorsement question is a clinical-tone judgment. Requirement: a **lightweight copy registry** — versioned locale files with **one sign-off line per string set (reviewer name + date)**. UI copy gets the same traceability spine as everything else at a fraction of the ceremony. No approval-less hardcoded strings.

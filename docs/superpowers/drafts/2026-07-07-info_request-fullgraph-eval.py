@@ -56,6 +56,22 @@ def _q(t):
     return t.count("?") + t.count("؟")
 
 
+# C3 (source-card labels spec): generated prose on a KB turn must NEVER reference the card UI
+# (the label is deterministic frontend chrome; the model doesn't know the cards exist).
+_CARD_UI_REFERENCES = [
+    "articles below", "links below", "sources below", "resources below", "listed below",
+    "these resources", "these articles", "these links", "the resources", "see the sources",
+    "as shown below", "below you", "following articles", "following resources",
+    "here are some articles", "here are a few articles", "here are some resources",
+    "check the links", "further reading below",
+]
+
+
+def _references_card_ui(text):
+    low = (text or "").lower()
+    return [p for p in _CARD_UI_REFERENCES if p in low]
+
+
 async def main():
     print("=== info_request turn-aware full-graph eval (compose -> generate -> output_gate) ===")
     passed = 0
@@ -65,15 +81,16 @@ async def main():
         nq = _q(out)
         dash = ("—" in out) or ("–" in out)
         last = out.strip().splitlines()[-1] if out.strip() else ""
+        refs = _references_card_ui(out)  # C3: prose must not reference the card UI
         if is_repeat:
-            ok = (nq == 0) and (not dash)
-            expect = "REPEAT -> 0 questions (statement), no dash"
+            ok = (nq == 0) and (not dash) and (not refs)
+            expect = "REPEAT -> 0 questions (statement), no dash, no card-UI reference"
         else:
-            ok = (nq == 1) and last.rstrip().endswith(("?", "؟")) and (not dash)
-            expect = "FIRST -> exactly 1 question that SURVIVES the gate, no dash"
+            ok = (nq == 1) and last.rstrip().endswith(("?", "؟")) and (not dash) and (not refs)
+            expect = "FIRST -> 1 surviving question, no dash, no card-UI reference"
         passed += ok
         print(f"\n[{'PASS' if ok else 'FAIL'}] {name}  ({expect})")
-        print(f"   post-gate questions={nq} em_dash={dash}")
+        print(f"   post-gate questions={nq} em_dash={dash} card_ui_refs={refs}")
         print(f"   last line: {last[:140]}")
     print(f"\n=== {passed}/{len(SCENARIOS)} passed ===")
 

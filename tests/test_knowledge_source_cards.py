@@ -73,6 +73,17 @@ def test_allowlist_suppresses_crisis_medical_and_unknown():
         assert _sources_header({"gate_path": gp, "knowledge_passages": [_p()]}) is None
 
 
+def test_source_allowlist_value_is_pinned_to_standard_only():
+    # Source-card labels spec (2026-07-07) C5: pin the exact allowlist so a future edit
+    # cannot silently WIDEN it onto ANY path (even a new benign-looking one) and let
+    # "Further reading" cards render on a crisis-adjacent turn. Default-deny is the invariant.
+    from server import _SOURCE_ALLOWED_GATE_PATHS
+    assert _SOURCE_ALLOWED_GATE_PATHS == frozenset({"standard"}), (
+        f"sources allowlist widened beyond 'standard': {_SOURCE_ALLOWED_GATE_PATHS}. "
+        "Widening the sources channel onto a non-standard (safety) gate_path violates crisis-UX."
+    )
+
+
 def test_allowlist_emits_on_standard():
     hdr = _sources_header({"gate_path": "standard", "knowledge_passages": [_p()]})
     assert json.loads(hdr) == [{"type": "article", "title": "T", "url": "https://kb/a", "citation": "c"}]
