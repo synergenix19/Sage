@@ -24,9 +24,15 @@ So: on a pure symptom-list turn, gpt-4o went straight into the list under a meta
 
 ## Decision for the review session (not pre-patched)
 
-Two legitimate resolutions, left to the reviewers rather than silently changed to force green:
+The lead-with-prose instruction is **L4 content** — it lives in `light_structure_directive`, which fires only when knowledge passages are present. Per v7 §5.6.2 an instruction has a single owning layer; duplicating it into L2 is prohibited ("repeating instructions wastes tokens without improving compliance") and blurs the single-ownership that made this whole bug traceable. A future editor tuning list behaviour must have exactly one place to look. So the resolution is between exactly two options:
 
-1. **Reinforce** — add one clause to `info_request` v2.0.0: "When you use a list, lead with a one-sentence plain answer before the list." This duplicates the L4 directive at L2 for reliability. Low risk, aligns with rule (a\*).
-2. **Accept** — decide a brief meta lead-in ("Here are some common symptoms:") before a symptom list is acceptable, and relax the test's lead-with-prose clause.
+1. **Accept** — a symptom list may arrive without a one-sentence prose lead-in. Lowest cost. The clinically load-bearing invariants (bridge present, zero assumed affect, ABSTAIN recovery, no fabrication) ALL passed on this same case; this is a formatting preference, not an engagement or safety failure.
+2. **Reinforce in L4** — strengthen the wording of `light_structure_directive` itself. This is a separate one-line change to the **L4 template**, with its own version bump and manifest-adjacent traceability, landing in this same batch. The `info_request` v2.0.0 **L2 draft stays untouched.**
 
-Either is a wording/clinical call. The eval did its job: it surfaced a real, specific adherence gap on the exact failure mode (list-compat) the cases were designed to probe. Re-run after the reviewers choose (1) or (2) to confirm 5/5.
+**Not an option: reinforce in L2.** Duplicating the L4 directive into the info_request template violates §5.6.2 single-ownership.
+
+### Two notes for the session
+- **Model-transfer caveat (applies with force here).** List-formatting adherence is among the most model-specific behaviours there are, so tuning L4 wording to GPT-4o's adherence profile has limited transfer to Falcon-34B. If option 2 is chosen, the Falcon re-run follow-up must cover THIS list-compat case specifically.
+- **Do not move this to the output gate.** The gate enforces safety and cultural rules; loading it with a cosmetic lead-with-prose check dilutes its audit purpose. A formatting preference stays in the L4 prompt directive, never the gate.
+
+Re-run after the reviewers choose (1) or (2) to confirm 5/5.
