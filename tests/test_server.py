@@ -603,3 +603,50 @@ def test_chat_ainvoke_timeout_fires_within_window(monkeypatch, client):
     # 3s bound accounts for ASGI/thread-pool dispatch overhead on slow CI; validates
     # only that we don't wait for the full 999s sleep.
     assert elapsed < 3.0
+
+
+# ── Native-Arabic shadow containment: API-layer assertion (Task 7 merge gate item (a)) ─────────
+# The node-level sentinel test (tests/test_shadow_never_served.py) proves the shadow text never
+# enters the node's return dict. This test crosses the HTTP boundary too: it drives an Arabic turn
+# with NATIVE_ARABIC_SHADOW_ENABLED=True and a monkeypatched shadow generator returning a
+# distinctive sentinel, through a mock graph that actually calls the real freeflow_respond_node
+# (not a hand-built stand-in dict, so the wiring itself is exercised) — then asserts the sentinel
+# is absent from the streamed HTTP body AND from every response header.
+def test_chat_arabic_shadow_sentinel_never_in_http_payload(monkeypatch, client, session_id):
+    import sage_poc.nodes.freeflow_respond as fr
+    from unittest.mock import patch, AsyncMock
+    from server import app
+    from tests.test_freeflow_respond import fr_stub_llm
+
+    _SENTINEL = "ZZZ_SHADOW_SENTINEL_ﷺ_NEVER_SERVE"
+    shadow_payload = {
+        "text": _SENTINEL, "prompt_hash": "x" * 16, "exemplar_version": "0.1",
+        "generation_language": "ar_native", "gen_latency_ms": 3,
+    }
+    monkeypatch.setattr(fr, "NATIVE_ARABIC_SHADOW_ENABLED", True)
+    monkeypatch.setattr(fr, "_SHADOW_TIMEOUT_S", 0.05)
+
+    async def _mock(state):
+        with patch.object(fr, "generate_shadow_arabic", new=AsyncMock(return_value=shadow_payload)), \
+             patch.object(fr, "write_shadow_eval_row", new=AsyncMock()):
+            node_out = await fr.freeflow_respond_node(
+                {**state, "detected_language": "ar", "raw_message": "تعبت", "message_en": "tired",
+                 "path": [], "user_id": None, "session_id": session_id, "turn_number": 1},
+                llm=fr_stub_llm(),
+            )
+        return {**_graph_result(), "response": node_out["response_en"], "path": node_out["path"],
+                "detected_language": "ar"}
+
+    class _MockGraph:
+        async def ainvoke(self, state, config=None, **kwargs):
+            return await _mock(state)
+
+    monkeypatch.setattr(app.state, "_graph", _MockGraph())
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "تعبت"}],
+        "session_id": session_id,
+    })
+    assert res.status_code == 200
+    assert _SENTINEL not in res.text, "shadow sentinel leaked into the served HTTP body"
+    for name, value in res.headers.items():
+        assert _SENTINEL not in value, f"shadow sentinel leaked into response header {name!r}"

@@ -98,6 +98,8 @@ class SageState(TypedDict):
     turn_number: int   # incremented by safety_check_node on every message; used for session_audit
     turn_started_at: float   # time.monotonic() stamped before ainvoke (server.py); output_gate uses it to compute latency_ms
     latency_ms: int          # per-turn graph latency, computed in output_gate from turn_started_at; written to session_audit
+    freeflow_gen_ms: Optional[int]   # served English-arm generation time (_invoke_with_tool_loop), ms; set unconditionally by freeflow_respond_node (all languages, shadow flag on/off); written to session_audit
+    translate_out_ms: Optional[int]  # served translate-out time (async_translate_to_arabic + strict retry), ms; set by output_gate_node, None when translate-out doesn't run; written to session_audit
     conversation_history: list[dict]
     stall_detected: Optional[bool]       # deterministic stall-guard signal (per-turn); set in intent_route, read by composer
     therapeutic_profile: Optional[dict]  # loaded at turn start; injected into L5

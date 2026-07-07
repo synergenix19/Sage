@@ -59,3 +59,20 @@ def reload_all() -> None:
         _declined_instruction.cache_clear()
     except Exception:
         pass
+
+
+import json as _json
+from pathlib import Path as _Path
+from functools import lru_cache as _lru_cache
+
+_KHALEEJI_EXEMPLARS_PATH = _Path(__file__).parent / "khaleeji_shadow_exemplars.json"
+
+
+@_lru_cache(maxsize=1)
+def load_khaleeji_shadow_exemplars() -> tuple[str, str]:
+    data = _json.loads(_KHALEEJI_EXEMPLARS_PATH.read_text(encoding="utf-8"))
+    lines = ["KHALEEJI EXEMPLARS (style reference, do not quote verbatim):"]
+    for ex in data.get("exemplars", []):
+        ar = ex.get("ar", "")
+        lines.append(f"- {ex['en']}\n  → {ar}" if ar and ar != "TODO_NATIVE_AUTHOR" else f"- {ex['en']}")
+    return data.get("version", "unknown"), "\n".join(lines)

@@ -1,0 +1,8 @@
+{
+  "version": "0.1.0-draft",
+  "note": "ar fields require Gulf-native authoring AND clinician review before Phase 4 deploy (Cardinal Rule 2); bump version on every content change.",
+  "exemplars": [
+    {"en": "That sounds really heavy, and it makes sense you're tired. You don't have to sort it all out tonight.", "ar": "TODO_NATIVE_AUTHOR"},
+    {"en": "I'm here with you. Take it one breath at a time — what feels like the hardest part right now?", "ar": "TODO_NATIVE_AUTHOR"}
+  ]
+}
