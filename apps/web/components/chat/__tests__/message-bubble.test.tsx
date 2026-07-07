@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, act, fireEvent } from '@testing-library/react'
 import { MessageBubble } from '../message-bubble'
 import type { ChatMessage } from '@cdai/types'
 
@@ -237,5 +237,53 @@ describe('MessageBubble — Sources card', () => {
       />
     )
     expect(screen.queryByLabelText('Sources')).toBeNull()
+  })
+})
+
+// Task 6: opt-in typewriter reveal (spec §3). reveal is undefined/false by default, so every
+// test above must keep passing unchanged — these cases only cover the new opt-in path.
+// Note: MessageRole is 'user' | 'ai' | 'system' | 'crisis' (no 'assistant' literal), so the
+// fixture below uses 'ai' to match @cdai/types, not the brief's illustrative 'assistant'.
+describe('MessageBubble reveal', () => {
+  beforeEach(() => { vi.useFakeTimers() })
+  afterEach(() => { vi.useRealTimers() })
+
+  function aiMsg(content: string): ChatMessage {
+    return { ...base, role: 'ai', content, direction: 'ltr' }
+  }
+
+  it('reveal=false renders full content immediately (back-compat)', () => {
+    render(<MessageBubble message={aiMsg('hello there friend')} />)
+    expect(screen.getByText('hello there friend')).toBeInTheDocument()
+  })
+
+  it('reveal=true reveals progressively then completes, keeping dir + whitespace-pre-wrap while typing', () => {
+    render(<MessageBubble message={aiMsg('one two three four five six')} reveal />)
+    const node = screen.getByTestId('message-content')
+    expect(node).toHaveAttribute('dir', 'ltr')
+    expect(node.className).toContain('whitespace-pre-wrap')
+    act(() => { vi.advanceTimersByTime(3_000) })
+    expect(node.textContent).toBe('one two three four five six')
+  })
+
+  it('calls onRevealComplete exactly once when the reveal finishes', () => {
+    const onRevealComplete = vi.fn()
+    render(<MessageBubble message={aiMsg('a b c')} reveal onRevealComplete={onRevealComplete} />)
+    act(() => { vi.advanceTimersByTime(3_000) })
+    expect(onRevealComplete).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not call onRevealComplete when reveal is false', () => {
+    const onRevealComplete = vi.fn()
+    render(<MessageBubble message={aiMsg('a b c')} onRevealComplete={onRevealComplete} />)
+    act(() => { vi.advanceTimersByTime(3_000) })
+    expect(onRevealComplete).not.toHaveBeenCalled()
+  })
+
+  it('tap-to-skip: clicking the content node while typing completes the reveal immediately', () => {
+    render(<MessageBubble message={aiMsg('one two three four five six seven eight')} reveal />)
+    const node = screen.getByTestId('message-content')
+    fireEvent.click(node)
+    expect(node.textContent).toBe('one two three four five six seven eight')
   })
 })
