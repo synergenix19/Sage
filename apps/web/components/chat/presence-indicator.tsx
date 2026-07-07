@@ -22,26 +22,29 @@ export function PresenceIndicator({ onPhrase }: { onPhrase?: (id: number) => voi
   const locale = useLocaleStore((s) => s.locale)
   const reduced = usePrefersReducedMotion()
   const [phase, setPhase] = useState<Phase>('dot')
-  const phraseIdx = useRef<number>(-1)
+  const [phraseIdx, setPhraseIdx] = useState<number>(-1)
+  const onPhraseRef = useRef(onPhrase)
+  onPhraseRef.current = onPhrase
 
   useEffect(() => {
     const t1 = setTimeout(() => {
       // Draw from the module singleton so the phrase never repeats the PREVIOUS turn's
       // phrase, even though this component unmounted between turns (spec §2.2, Bug 1).
-      phraseIdx.current = nextPresencePhraseIndex()
-      onPhrase?.(phraseIdx.current) // client-only analytics; never persisted (spec §5)
+      const idx = nextPresencePhraseIndex()
+      setPhraseIdx(idx)
+      onPhraseRef.current?.(idx) // client-only analytics; never persisted (spec §5)
       setPhase('phrase')
     }, PRESENCE_PHRASE_MS)
     const t2 = setTimeout(() => setPhase('slow'), PRESENCE_SLOW_MS)
     const t3 = setTimeout(() => setPhase('degraded'), PRESENCE_DEGRADED_MS)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
-  }, [onPhrase])
+  }, [])
 
   const label =
     phase === 'dot' ? '' :
     phase === 'slow' ? PRESENCE_SLOW[locale] :
     phase === 'degraded' ? PRESENCE_DEGRADED[locale] :
-    PRESENCE_POOL[locale][phraseIdx.current] ?? ''
+    PRESENCE_POOL[locale][phraseIdx] ?? ''
 
   return (
     <div

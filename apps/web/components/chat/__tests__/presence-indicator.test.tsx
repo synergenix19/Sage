@@ -9,7 +9,7 @@ vi.mock('@/lib/stores/locale-store', () => ({
 
 describe('PresenceIndicator', () => {
   beforeEach(() => { vi.useFakeTimers(); seedPresenceBag(() => 0) }) // deterministic first index = 0
-  afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
+  afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
   it('shows the breathing dot with no phrase before 600ms', () => {
     render(<PresenceIndicator />)
@@ -51,5 +51,27 @@ describe('PresenceIndicator', () => {
 
     expect(seen).toHaveLength(2)
     expect(seen[1]).not.toBe(seen[0])
+  })
+
+  it('respects prefers-reduced-motion: static dot, phrase still shown', () => {
+    const matchMediaMock = vi.fn((query: string) => ({
+      matches: query === '(prefers-reduced-motion: reduce)',
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }))
+    vi.stubGlobal('matchMedia', matchMediaMock)
+
+    const { container } = render(<PresenceIndicator />)
+    act(() => { vi.advanceTimersByTime(650) })
+
+    expect(screen.getByText(PRESENCE_POOL.en[0])).toBeInTheDocument()
+    const dot = container.querySelector('[data-testid="presence-indicator"] > span')
+    expect(dot).not.toBeNull()
+    expect(dot?.className).not.toMatch(/animate-\[breathe/)
   })
 })
