@@ -55,23 +55,37 @@ import sys
 from pathlib import Path
 from typing import Callable, Iterable
 
-# Flags-OFF is a hard precondition. skill_select reads the module constant SKILL_ROUTING_V2
-# at import time to decide the anchor surface (include_exemplars), so pin the env BEFORE the
-# import below. A caller that set them to "1" wants V2 — out of scope for this increment.
-_V2 = os.environ.get("SKILL_ROUTING_V2", "0")
-_RERANK = os.environ.get("SKILL_RERANK_ENABLED", "0")
-if _V2 == "1" or _RERANK == "1":
-    raise SystemExit(
-        "real_model_driver is Increment 1 (flags-OFF/V1) only. "
-        f"Got SKILL_ROUTING_V2={_V2!r} SKILL_RERANK_ENABLED={_RERANK!r}. "
-        "Run with both = 0."
-    )
+# MODE is pinned from the env BEFORE importing skill_select, because skill_select reads the
+# module constant SKILL_ROUTING_V2 at import time to decide the Tier-2 anchor surface
+# (include_exemplars) — a V2 run MUST embed target_presentations as exemplars, so the env has to
+# be set at process start (a flags-off-built index must never be reused for a V2 run; run each
+# mode as its own process). Increment 1 = flags-OFF/V1; Increment 2 = flags-ON/V2.
+#   V1: SKILL_ROUTING_V2=0 SKILL_RERANK_ENABLED=0
+#   V2: SKILL_ROUTING_V2=1 SKILL_RERANK_ENABLED=1 SKILL_RERANK_PRECISION=fp32
 os.environ.setdefault("SKILL_ROUTING_V2", "0")
 os.environ.setdefault("SKILL_RERANK_ENABLED", "0")
+_V2 = os.environ["SKILL_ROUTING_V2"] == "1"
+_RERANK = os.environ["SKILL_RERANK_ENABLED"] == "1"
+MODE = "V2" if _V2 else "V1"
+if _V2 != _RERANK:
+    raise SystemExit(
+        "V1 needs BOTH flags off; V2 needs BOTH on (routing-V2 exemplar set + reranker selector). "
+        f"Got SKILL_ROUTING_V2={os.environ['SKILL_ROUTING_V2']!r} "
+        f"SKILL_RERANK_ENABLED={os.environ['SKILL_RERANK_ENABLED']!r}."
+    )
+if _V2:
+    # fp32 ONLY. int8 is SAFETY-DISQUALIFIED (over-routes 6/6 id_oos clinician-territory cases
+    # fp32 ABSTAINS — skill_rerank_model.py docstring). Refuse to produce a V2 number under int8.
+    _prec = os.environ.setdefault("SKILL_RERANK_PRECISION", "fp32").lower()
+    if _prec != "fp32":
+        raise SystemExit(
+            f"V2 gate is fp32 only; int8 is safety-disqualified. Got SKILL_RERANK_PRECISION={_prec!r}."
+        )
 
 from sage_poc.routing_eval.gate_runner import RoutingMetrics, compute_metrics_by_stratum
 from sage_poc.routing_eval.schema import ABSTAIN, EvalRecord
 from sage_poc.skills.keyword_matcher import match_skill_keywords
+from sage_poc.nodes.ocd_compulsion import is_ocd_compulsion as ss_is_ocd_compulsion
 import sage_poc.nodes.skill_select as ss
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -134,13 +148,16 @@ def load_en_bulk_records(
 
 # ------------------------------------------------------------------- candidate surface
 def _prepare_candidate_surface(exclude_skills: frozenset[str]) -> None:
-    """Load the live V1 anchor index, then remove `exclude_skills` from the Tier-2
-    candidate surface by filtering the module-level anchor arrays in place. This is the
-    §3 exclusion applied at CANDIDATE CONSTRUCTION only — registration files are untouched.
-    max-over-anchors is per-skill, so dropping one skill's anchors leaves every other
-    skill's score bit-identical; it only removes the excluded skill as a candidate.
+    """Load the live anchor index FOR THE CURRENT MODE, then remove `exclude_skills` from the
+    Tier-2 candidate surface by filtering the module-level anchor arrays in place. Under V1 the
+    index is description+anchors (include_exemplars=False); under V2 it also embeds
+    target_presentations as exemplars and excludes the referral pathways (build_anchor_pairs reads
+    the module constant SKILL_ROUTING_V2, which is True here because the env was set at process
+    start). This is the §3 exclusion applied at CANDIDATE CONSTRUCTION only — registration files
+    are untouched. max-over-anchors is per-skill, so dropping one skill's anchors leaves every
+    other skill's score bit-identical; it only removes the excluded skill as a candidate.
     Idempotent."""
-    ss._ensure_semantic_ready()  # V1 surface: build_anchor_pairs(include_exemplars=False)
+    ss._ensure_semantic_ready()  # builds for the current mode (include_exemplars=SKILL_ROUTING_V2)
     if not exclude_skills:
         return
     keep_idx = [i for i, sid in enumerate(ss._anchor_skill_ids) if sid not in exclude_skills]
@@ -158,7 +175,13 @@ def make_routed_of(exclude_skills: frozenset[str] = DEFAULT_EXCLUDE_SKILLS) -> C
     def routed_of(r: EvalRecord) -> str:
         utterance = r.utterance
 
-        # Tier 1 — live keyword tier (skill_select.py:728-767), flags-off branch.
+        # OCD-compulsion iatrogenic veto (skill_select.py, arm-independent, before both tiers).
+        # A disclosed compulsion/ritual ABSTAINS (never routes to a self-help skill). Deterministic,
+        # runs identically in V1 and V2. Mirrors the live node's is_ocd_compulsion(message_en) check.
+        if ss_is_ocd_compulsion(utterance):
+            return ABSTAIN
+
+        # Tier 1 — live keyword tier (skill_select.py:728-767).
         kw = match_skill_keywords(utterance, "", "en")
         kw = {sid: n for sid, n in kw.items() if sid not in exclude_skills}
         if kw:
@@ -171,6 +194,11 @@ def make_routed_of(exclude_skills: frozenset[str] = DEFAULT_EXCLUDE_SKILLS) -> C
             ):
                 candidates.remove("grounding_5_4_3_2_1")
                 candidates.insert(0, "grounding_5_4_3_2_1")
+            # V2: keyword routes are also gated by the reranker's ABSTAIN floor
+            # (skill_select.py:761 -> _keyword_rerank_veto). A keyword false-match on
+            # clinician-territory must not bypass the reranker. Flag-off: never runs (byte-identical V1).
+            if ss._rerank_enabled() and ss._keyword_rerank_veto(candidates, utterance, "en"):
+                return ABSTAIN
             return candidates[0]  # primary keyword route (enter/offer is consent-flow, not routing)
 
         # Pre-Tier-2 exclusion guard (skill_select.py:774).
@@ -205,23 +233,59 @@ def _cell_denoms(records: list[EvalRecord]) -> dict[tuple[str, str], tuple[int, 
     return out
 
 
+# Frozen V1 baseline (accepted 2026-07-07 @ fixtures 5e6b86e; committed corpus 192/64/32,
+# mm-excluded, mi_readiness_ruler-cases dropped). V2 acceptance = beats-per-stratum vs THIS.
+V1_BASELINE = {
+    "en/in_scope": {"metric": "recall", "num": 109, "denom": 192, "pct": 56.8},
+    "en/id_oos":   {"metric": "abstain", "num": 23,  "denom": 64,  "pct": 35.9},
+    "en/far_oos":  {"metric": "abstain", "num": 32,  "denom": 32,  "pct": 100.0},
+}
+
+
+def positive_control() -> dict | None:
+    """CRITICAL pre-trust check for V2: the fp32 cross-encoder head must be loaded (logit
+    separation > 3). A headless CrossEncoder load yields ~0 logits = confident-wrong routing with
+    NO error. Returns None in V1 (reranker unused). In V2, returns {ok, separation}."""
+    if MODE != "V2":
+        return None
+    from sage_poc.nodes import skill_rerank_model as rr
+    rel, off = rr.score_pairs([
+        ("I want to write down and challenge my negative thoughts",
+         "Guided practice for writing down an automatic negative thought and examining the evidence."),
+        ("what time does the grocery store close today",
+         "Guided practice for writing down an automatic negative thought and examining the evidence."),
+    ])
+    return {"ok": rr.head_loaded_ok(), "separation": round(rel - off, 4),
+            "precision": rr.active_precision(), "tau_en": ss._rerank_tau("en")}
+
+
 def run_gate(
     exclude_skills: frozenset[str] = DEFAULT_EXCLUDE_SKILLS,
     exclude_expected: frozenset[str] = DEFAULT_EXCLUDE_EXPECTED,
 ) -> dict:
+    pc = positive_control()
+    if MODE == "V2" and not (pc and pc["ok"]):
+        raise SystemExit(
+            f"POSITIVE CONTROL FAILED — reranker head not loaded (separation={pc and pc['separation']}). "
+            "A headless CrossEncoder yields ~0 logits = confident-wrong routing. Refusing to report V2 numbers."
+        )
+
     records, dropped = load_en_bulk_records(exclude_expected=exclude_expected)
     routed_of = make_routed_of(exclude_skills)
     by_stratum = compute_metrics_by_stratum(records, routed_of=routed_of)  # THE scorer
     denoms = _cell_denoms(records)
 
     report: dict = {
+        "mode": MODE,
+        "positive_control": pc,
         "exclude_skills": sorted(exclude_skills),
         "exclude_expected": sorted(exclude_expected),
         "dropped_cases_by_stratum": dropped,
         "flags": {"SKILL_ROUTING_V2": os.environ["SKILL_ROUTING_V2"],
-                  "SKILL_RERANK_ENABLED": os.environ["SKILL_RERANK_ENABLED"]},
+                  "SKILL_RERANK_ENABLED": os.environ["SKILL_RERANK_ENABLED"],
+                  "SKILL_RERANK_PRECISION": os.environ.get("SKILL_RERANK_PRECISION", "fp32")},
         "cells": {},
-        "prior_comparator": {"in_scope": "144/217", "id_oos": "25/71", "far_oos": "36/36"},
+        "v1_baseline": V1_BASELINE,
         "fixture_files": list(_EN_BULK_FILES),
     }
     order = [("en", "in_scope"), ("en", "id_oos"), ("en", "far_oos")]
@@ -236,33 +300,43 @@ def run_gate(
         else:
             denom, rate = abstain_exp, m.abstain_correctness
         num = round(rate * denom)
-        report["cells"][f"{key[0]}/{key[1]}"] = {
+        cell = f"{key[0]}/{key[1]}"
+        entry = {
             "metric": kind, "num": num, "denom": denom,
             "pct": round(100 * rate, 1), "cell_n": m.n,
             "misroute_rate": round(m.misroute_rate, 4),
         }
+        base = V1_BASELINE.get(cell)
+        if base is not None:
+            delta = round(entry["pct"] - base["pct"], 1)
+            entry["vs_v1"] = "BEATS" if delta > 0 else ("TIES" if delta == 0 else "BELOW")
+            entry["delta_pct"] = delta
+        report["cells"][cell] = entry
     return report
 
 
 def _print_report(report: dict) -> None:
-    print("=" * 74)
-    print("REAL-MODEL ROUTING DRIVER — acceptance gate (flags-OFF / V1)")
-    print("=" * 74)
+    print("=" * 84)
+    print(f"REAL-MODEL ROUTING DRIVER — {report['mode']} run")
+    print("=" * 84)
     print(f"flags: {report['flags']}")
+    if report.get("positive_control") is not None:
+        print(f"positive_control (reranker head): {report['positive_control']}")
     print(f"exclude_skills (spec §3): {report['exclude_skills']}")
     print(f"exclude_expected (eval-set case drop): {report['exclude_expected']}")
     print(f"dropped cases by stratum: {report['dropped_cases_by_stratum']}")
     print(f"fixtures: {report['fixture_files']}")
-    print("-" * 74)
-    print(f"{'cell':<16}{'metric':<10}{'got':<14}{'pct':<9}{'prior 6/24'}")
-    tgt = report["prior_comparator"]
+    print("-" * 84)
+    print(f"{'cell':<15}{'metric':<9}{'V1 (frozen)':<15}{report['mode']+' (this)':<15}{'delta':<9}{'vs V1'}")
+    base = report["v1_baseline"]
     for cell, c in report["cells"].items():
-        stratum = cell.split("/")[-1]
-        t = tgt.get(stratum, "")
-        got = "{}/{}".format(c["num"], c["denom"])
-        pct = "{}%".format(c["pct"])
-        print(f"{cell:<16}{c['metric']:<10}{got:<14}{pct:<9}{t}")
-    print("-" * 74)
+        b = base.get(cell, {})
+        v1 = "{}/{} {}%".format(b.get("num", "?"), b.get("denom", "?"), b.get("pct", "?"))
+        v2 = "{}/{} {}%".format(c["num"], c["denom"], c["pct"])
+        delta = c.get("delta_pct", "")
+        verdict = c.get("vs_v1", "")
+        print(f"{cell:<15}{c['metric']:<9}{v1:<15}{v2:<15}{str(delta):<9}{verdict}")
+    print("-" * 84)
 
 
 def main(argv: list[str] | None = None) -> int:
