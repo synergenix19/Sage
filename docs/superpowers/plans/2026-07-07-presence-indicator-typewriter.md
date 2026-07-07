@@ -121,6 +121,8 @@ git commit -m "feat(chat): presence + typewriter timing constants (spec §6)"
   - `PRESENCE_POOL: { en: string[]; ar: string[] }` — the held first-phrase pool.
   - `PRESENCE_SLOW: { en: string; ar: string }`, `PRESENCE_DEGRADED: { en: string; ar: string }`.
   - `createShuffleBag(size: number, rng?: () => number): { next: () => number }` — returns indices, never the same index twice in a row.
+  - **`nextPresencePhraseIndex(): number`** — draws from a **module-level singleton** bag so the no-repeat property survives component unmount/remount (i.e. across turns, spec §2.2). This is the API `PresenceIndicator` calls — NOT a per-mount bag.
+  - **`seedPresenceBag(rng: () => number): void`** — test/e2e only; re-creates the singleton with a deterministic rng (resets its no-repeat memory). Used by unit tests and by the e2e indistinguishability harness (Task 9).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -167,7 +169,21 @@ describe('createShuffleBag', () => {
     expect([a.next(), a.next(), a.next()]).toEqual([b.next(), b.next(), b.next()])
   })
 })
+
+describe('singleton presence bag (no-repeat survives across turns)', () => {
+  it('nextPresencePhraseIndex does not repeat even across separate calls (module state persists)', () => {
+    // rng always 0 would repeat index 0 every draw WITHOUT cross-call memory;
+    // the singleton remembers `prev`, so the second draw is forced to differ.
+    seedPresenceBag(() => 0)
+    const first = nextPresencePhraseIndex()
+    const second = nextPresencePhraseIndex()
+    expect(second).not.toBe(first)
+  })
+})
 ```
+
+> Import line for this file becomes:
+> `import { PRESENCE_POOL, PRESENCE_SLOW, PRESENCE_DEGRADED, createShuffleBag, nextPresencePhraseIndex, seedPresenceBag } from '@/lib/presence-phrases'`
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -230,6 +246,18 @@ export function createShuffleBag(size: number, rng: () => number = Math.random):
     },
   }
 }
+
+// Module-level singleton — its `prev` persists across component unmount/remount, so the
+// no-repeat property holds ACROSS TURNS, not just within one mount (spec §2.2). This is what
+// PresenceIndicator draws from. Do NOT create a per-mount bag in the component.
+let _phraseBag = createShuffleBag(PRESENCE_POOL.en.length)
+export function nextPresencePhraseIndex(): number {
+  return _phraseBag.next()
+}
+// Test/e2e only: reseed the singleton with a deterministic rng (resets no-repeat memory).
+export function seedPresenceBag(rng: () => number): void {
+  _phraseBag = createShuffleBag(PRESENCE_POOL.en.length, rng)
+}
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
@@ -241,7 +269,7 @@ Expected: PASS (5 tests).
 
 ```bash
 git add apps/web/lib/presence-phrases.ts apps/web/lib/__tests__/presence-phrases.test.ts
-git commit -m "feat(chat): presence copy pool + no-repeat shuffle bag (spec §2.2, PROPOSED/pending sign-off)"
+git commit -m "feat(chat): presence copy pool + module-singleton no-repeat bag (spec §2.2, PROPOSED/pending sign-off)"
 ```
 
 ---
@@ -494,8 +522,8 @@ git commit -m "feat(chat): useTypewriter reveal hook (word-level, capped, skippa
 - Test: `apps/web/components/chat/__tests__/presence-indicator.test.tsx`
 
 **Interfaces:**
-- Consumes: `PRESENCE_POOL`, `PRESENCE_SLOW`, `PRESENCE_DEGRADED`, `createShuffleBag` (Task 2); `PRESENCE_PHRASE_MS`, `PRESENCE_SLOW_MS`, `PRESENCE_DEGRADED_MS` (Task 1); `useLocaleStore`.
-- Produces: `PresenceIndicator({ rng, onPhrase }: { rng?: () => number; onPhrase?: (id: number) => void })`. `rng` is injectable so the screenshot test seeds it deterministically (spec §7). `onPhrase` fires the client-only analytics hook with the shown phrase index (spec §5) — never persisted to the audit trail.
+- Consumes: `PRESENCE_POOL`, `PRESENCE_SLOW`, `PRESENCE_DEGRADED`, `nextPresencePhraseIndex`, `seedPresenceBag` (Task 2); `PRESENCE_PHRASE_MS`, `PRESENCE_SLOW_MS`, `PRESENCE_DEGRADED_MS` (Task 1); `useLocaleStore`.
+- Produces: `PresenceIndicator({ onPhrase }: { onPhrase?: (id: number) => void })`. It draws its held phrase from the **module singleton** `nextPresencePhraseIndex()` — no `rng` prop (determinism for tests/e2e comes from `seedPresenceBag`, so the no-repeat property genuinely spans turns). `onPhrase` fires the client-only analytics hook with the shown phrase index (spec §5) — never persisted to the audit trail.
 - Behavior: mount = turn start. 0–`PRESENCE_PHRASE_MS`: breathing dot only. `PRESENCE_PHRASE_MS`: pick one pool phrase (held, no in-turn rotation). `PRESENCE_SLOW_MS`: cross-fade to slow phrase. `PRESENCE_DEGRADED_MS`: cross-fade to degraded phrase. `prefers-reduced-motion`: static dot (no pulse), phrase still shown. Phrase announced once via the ancestor `aria-live="polite"` log; the component itself keeps `role="status"`.
 
 - [ ] **Step 1: Write the failing test**
@@ -505,24 +533,24 @@ git commit -m "feat(chat): useTypewriter reveal hook (word-level, capped, skippa
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, act } from '@testing-library/react'
 import { PresenceIndicator } from '@/components/chat/presence-indicator'
-import { PRESENCE_POOL, PRESENCE_SLOW, PRESENCE_DEGRADED } from '@/lib/presence-phrases'
+import { PRESENCE_POOL, PRESENCE_SLOW, PRESENCE_DEGRADED, seedPresenceBag } from '@/lib/presence-phrases'
 
 vi.mock('@/lib/stores/locale-store', () => ({
   useLocaleStore: vi.fn((selector: any) => selector({ locale: 'en' })),
 }))
 
 describe('PresenceIndicator', () => {
-  beforeEach(() => { vi.useFakeTimers() })
+  beforeEach(() => { vi.useFakeTimers(); seedPresenceBag(() => 0) }) // deterministic first index = 0
   afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
 
   it('shows the breathing dot with no phrase before 600ms', () => {
-    render(<PresenceIndicator rng={() => 0} />)
+    render(<PresenceIndicator />)
     expect(screen.getByRole('status')).toBeInTheDocument()
     for (const p of PRESENCE_POOL.en) expect(screen.queryByText(p)).toBeNull()
   })
 
   it('holds one pool phrase after 600ms, swaps to slow at 9s, degraded at 25s', () => {
-    render(<PresenceIndicator rng={() => 0} />)
+    render(<PresenceIndicator />)
     act(() => { vi.advanceTimersByTime(650) })
     expect(screen.getByText(PRESENCE_POOL.en[0])).toBeInTheDocument()
     act(() => { vi.advanceTimersByTime(9_000) })
@@ -533,9 +561,28 @@ describe('PresenceIndicator', () => {
 
   it('fires onPhrase once with the chosen index (client-only analytics)', () => {
     const onPhrase = vi.fn()
-    render(<PresenceIndicator rng={() => 0} onPhrase={onPhrase} />)
+    render(<PresenceIndicator onPhrase={onPhrase} />)
     act(() => { vi.advanceTimersByTime(650) })
     expect(onPhrase).toHaveBeenCalledWith(0)
+  })
+
+  it('does NOT repeat the phrase across sequential turns (Bug 1 — no-repeat spans unmount)', () => {
+    // rng always 0 would repeat index 0 on the second mount if the bag were per-mount.
+    // With the module singleton, the second turn's phrase must differ.
+    seedPresenceBag(() => 0)
+    const seen: number[] = []
+    const capture = (id: number) => seen.push(id)
+
+    const t1 = render(<PresenceIndicator onPhrase={capture} />)
+    act(() => { vi.advanceTimersByTime(650) })
+    t1.unmount()
+
+    const t2 = render(<PresenceIndicator onPhrase={capture} />)
+    act(() => { vi.advanceTimersByTime(650) })
+    t2.unmount()
+
+    expect(seen).toHaveLength(2)
+    expect(seen[1]).not.toBe(seen[0])
   })
 })
 ```
@@ -550,9 +597,9 @@ Expected: FAIL — cannot resolve `@/components/chat/presence-indicator`.
 ```tsx
 // apps/web/components/chat/presence-indicator.tsx
 'use client'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocaleStore } from '@/lib/stores/locale-store'
-import { PRESENCE_POOL, PRESENCE_SLOW, PRESENCE_DEGRADED, createShuffleBag } from '@/lib/presence-phrases'
+import { PRESENCE_POOL, PRESENCE_SLOW, PRESENCE_DEGRADED, nextPresencePhraseIndex } from '@/lib/presence-phrases'
 import { PRESENCE_PHRASE_MS, PRESENCE_SLOW_MS, PRESENCE_DEGRADED_MS } from '@/lib/presence-constants'
 
 type Phase = 'dot' | 'phrase' | 'slow' | 'degraded'
@@ -569,24 +616,24 @@ function usePrefersReducedMotion(): boolean {
   return reduced
 }
 
-export function PresenceIndicator({ rng, onPhrase }: { rng?: () => number; onPhrase?: (id: number) => void }) {
+export function PresenceIndicator({ onPhrase }: { onPhrase?: (id: number) => void }) {
   const locale = useLocaleStore((s) => s.locale)
   const reduced = usePrefersReducedMotion()
   const [phase, setPhase] = useState<Phase>('dot')
-  // Pick the held phrase index ONCE, at mount, from the no-repeat bag (spec §2.2).
-  const bag = useMemo(() => createShuffleBag(PRESENCE_POOL.en.length, rng), [rng])
   const phraseIdx = useRef<number>(-1)
 
   useEffect(() => {
     const t1 = setTimeout(() => {
-      phraseIdx.current = bag.next()
+      // Draw from the module singleton so the phrase never repeats the PREVIOUS turn's
+      // phrase, even though this component unmounted between turns (spec §2.2, Bug 1).
+      phraseIdx.current = nextPresencePhraseIndex()
       onPhrase?.(phraseIdx.current) // client-only analytics; never persisted (spec §5)
       setPhase('phrase')
     }, PRESENCE_PHRASE_MS)
     const t2 = setTimeout(() => setPhase('slow'), PRESENCE_SLOW_MS)
     const t3 = setTimeout(() => setPhase('degraded'), PRESENCE_DEGRADED_MS)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
-  }, [bag, onPhrase])
+  }, [onPhrase])
 
   const label =
     phase === 'dot' ? '' :
@@ -625,7 +672,7 @@ export function PresenceIndicator({ rng, onPhrase }: { rng?: () => number; onPhr
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run components/chat/__tests__/presence-indicator.test.tsx`
-Expected: PASS (3 tests). (matchMedia is mocked to `matches:false` globally in `vitest.setup.ts`, so the non-reduced path runs.)
+Expected: PASS (4 tests, incl. the cross-turn no-repeat). (matchMedia is mocked to `matches:false` globally in `vitest.setup.ts`, so the non-reduced path runs.)
 
 - [ ] **Step 5: Commit**
 
@@ -750,9 +797,24 @@ it('renders PresenceIndicator (not the old dots) while awaiting first byte', asy
   expect(await findByTestId('presence-indicator')).toBeInTheDocument()
   expect(() => getByTestId('typing-indicator')).toThrow()
 })
+
+it('does NOT typewriter-reveal historical messages on page load (Bug 2 — edge-only reveal)', () => {
+  // Render with pre-existing history and isLoading already false. The last assistant
+  // message must render its FULL content immediately — reveal only fires on a
+  // genuine true->false loading transition, which never happened here.
+  const history = [
+    { id: 'u1', role: 'user' as const, content: 'hi' },
+    { id: 'a1', role: 'assistant' as const, content: 'a full historical reply that must not animate' },
+  ]
+  const { getByText } = render(
+    <ChatInterface initialSession={{ id: 's1' } as any} initialMessages={history as any} userName="X" userId="u" />
+  )
+  // Full text present synchronously (no fake-timer advance) => not revealed progressively.
+  expect(getByText('a full historical reply that must not animate')).toBeInTheDocument()
+})
 ```
 
-> Use the file's existing render/send helpers and mock shape (this file already mocks fetch and drives `append`). Mirror its established setup rather than introducing a new harness.
+> Use the file's existing render/send helpers and mock shape (this file already mocks fetch and drives `append`). Mirror its established setup rather than introducing a new harness. The history test uses the real `ChatInterface` (initialMessages path); import it as the test file already does.
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -768,11 +830,14 @@ import { PresenceIndicator } from './presence-indicator'
 
 // add reveal tracking state in ChatInterface:
 const [revealId, setRevealId] = useState<string | null>(null)
-// when a stream completes, mark that message for reveal. Simplest hook point:
-// after `append`/stream settles, the last assistant message id is the reveal target.
-// Track it off isLoading transition true->false with a non-empty last assistant msg:
+// Bug 2: mark a message for reveal ONLY on a genuine isLoading true->false EDGE — never on
+// initial mount with loaded history (that path has isLoading already false and would wrongly
+// animate the last historical message on every page load). Track the previous value in a ref.
+const prevLoadingRef = useRef(isLoading)
 useEffect(() => {
-  if (!isLoading) {
+  const was = prevLoadingRef.current
+  prevLoadingRef.current = isLoading
+  if (was && !isLoading) { // edge: a turn just finished
     const last = messages[messages.length - 1]
     if (last?.role === 'assistant' && last.content) setRevealId(last.id)
   }
@@ -780,7 +845,7 @@ useEffect(() => {
 
 // waiting-state render site (was TypingIndicator):
 {isLoading && messages[messages.length - 1]?.content === '' && (
-  <PresenceIndicator onPhrase={(id) => { /* client-only UX analytics; never audit (spec §5) */ }} />
+  <PresenceIndicator onPhrase={(_id) => { /* client-only UX analytics; never audit (spec §5) */ }} />
 )}
 
 // in the messages.map, pass reveal to the assistant bubble:
@@ -790,12 +855,22 @@ useEffect(() => {
   onRevealComplete={() => setRevealId(null)}
 />
 
-// skip-on-type: pass a completion signal down. Simplest: when InputBar gains focus,
-// clear revealId so the reveal finalizes to full text.
-<InputBar onSend={handleSend} disabled={isLoading} onFocus={() => setRevealId(null)} />
+// skip-on-type (Minor 1): clearing revealId finalizes the reveal to full text. Focus ALONE
+// misses the case where the input already holds focus when the reveal begins — so wire the
+// clear to BOTH focus and the first keystroke/change.
+const finishReveal = () => setRevealId(null)
+<InputBar onSend={handleSend} disabled={isLoading} onInteract={finishReveal} />
 ```
 
-> `InputBar` needs to accept and forward an optional `onFocus` to its `<input>`/`<textarea>`. If it doesn't already, add `onFocus?: () => void` to its props and spread it onto the field. Setting `revealId` to `null` makes the bubble render full `content` (reveal disabled) — an instant, safe completion of the skip.
+> `InputBar` must accept an optional `onInteract?: () => void` and attach it to the field's `onFocus` AND `onKeyDown` (or `onChange`) so a keystroke on an already-focused input still skips. Setting `revealId` to `null` makes the bubble render full `content` (reveal disabled) — an instant, safe completion of the skip. Add these lines to `InputBar`'s props and field:
+> ```tsx
+> // props: { onSend: (t: string) => void; disabled?: boolean; onInteract?: () => void }
+> <textarea /* or input */
+>   onFocus={onInteract}
+>   onKeyDown={(e) => { onInteract?.(); /* ...existing keydown (Enter-to-send) below... */ }}
+>   /* ...existing props... */
+> />
+> ```
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -869,7 +944,7 @@ git commit -m "test(chat): pin resend-supersede invariant — one turn per utter
 - Create: `apps/web/playwright/waiting-state-indistinguishability.spec.ts`
 
 **Interfaces:**
-- Consumes: `PresenceIndicator`'s injectable `rng` — the test builds the app with a deterministically-seeded bag so both turns render the identical phrase, then diffs the full waiting-state frame (spec §7 chose deterministic-seed over region-masking).
+- Consumes: `seedPresenceBag` (Task 2), seeded on load under the `NEXT_PUBLIC_E2E` flag, so both turns render the identical phrase; the diff then covers the FULL frame including the phrase region (spec §7 chose deterministic-seed over region-masking).
 
 - [ ] **Step 1: Write the test (screenshot diff)**
 
@@ -877,28 +952,39 @@ git commit -m "test(chat): pin resend-supersede invariant — one turn per utter
 // apps/web/playwright/waiting-state-indistinguishability.spec.ts
 import { test, expect } from '@playwright/test'
 
-// Both turns must show a byte-identical waiting state — the presence indicator must
-// never leak that a turn is going down the crisis path (spec §2.4). The shuffle-bag
-// is seeded deterministically via a test hook so the diff is not defeated by phrase
-// variance; the diff therefore covers the FULL frame including the phrase region.
+// WHAT THIS REALLY GUARDS: pre-first-byte, the CLIENT cannot know the turn's path —
+// crisis detection is entirely server-side and no bytes have arrived. So today this
+// diff is "trivially" equal. Its value is as a REGRESSION GUARD: if anyone later
+// introduces client-side, path-dependent waiting behavior (e.g. peeking at the typed
+// text to pre-warn), this test fails. Do not delete it as trivially-true (spec §2.4).
+//
+// Flake control: the breathing dot is a 4s CSS animation and the phrase appears at
+// 600ms — a naive byte-diff races both. We (a) emulate reduced-motion so the dot is
+// static, (b) seed the phrase bag deterministically on load (both turns => same phrase),
+// (c) wait for the phrase to be visible before BOTH captures, then byte-compare;
+// pixelmatch with a tiny threshold is the documented fallback if AA differs.
 test('waiting state is identical for a normal vs a crisis-bound turn', async ({ page }) => {
-  // Route /api/chat to a normal turn, capture the waiting frame before first byte.
-  await page.route('**/api/chat', (route) => new Promise(() => { void route })) // hang → stay in waiting
-  await page.goto('/chat?e2e_seed=1') // e2e_seed pins createShuffleBag rng (wire in app under NEXT_PUBLIC_E2E only)
-  await page.getByRole('textbox').fill('I feel a bit low today')
-  await page.getByRole('button', { name: /send/i }).click()
-  const normal = await page.getByTestId('presence-indicator').screenshot()
+  await page.emulateMedia({ reducedMotion: 'reduce' }) // (a) static dot — byte-stable
+  await page.route('**/api/chat', () => { /* never fulfill → stay in the waiting state */ })
 
-  await page.reload()
-  await page.getByRole('textbox').fill('I want to end my life') // crisis-bound utterance
-  await page.getByRole('button', { name: /send/i }).click()
-  const crisis = await page.getByTestId('presence-indicator').screenshot()
+  const capture = async (utterance: string) => {
+    await page.goto('/chat')                 // reload resets module state; seed re-applies on load
+    await page.getByRole('textbox').fill(utterance)
+    await page.getByRole('button', { name: /send/i }).click()
+    // (c) wait deterministically for the phrase (past the 600ms boundary) before capturing
+    await expect(page.getByTestId('presence-indicator')).toContainText(/\S/, { timeout: 5_000 })
+    return page.getByTestId('presence-indicator').screenshot()
+  }
+
+  const normal = await capture('I feel a bit low today')
+  const crisis = await capture('I want to end my life') // crisis-BOUND, but path unknown client-side pre-byte
 
   expect(Buffer.compare(normal, crisis)).toBe(0)
+  // Fallback if AA noise appears: use pixelmatch(normal, crisis, null, w, h, { threshold: 0.1 }) === 0.
 })
 ```
 
-> Wiring note: expose the deterministic seed only under a test flag. In `chat-interface.tsx`, pass `rng` to `PresenceIndicator` as `process.env.NEXT_PUBLIC_E2E ? seededRng() : undefined`, where `seededRng` is a tiny LCG. This keeps prod behavior random while making the e2e diff deterministic. Add the eval-scenario note (spec §5) to the QA checklist: "waiting-state screenshot review after a crisis-path turn — must equal a normal turn."
+> Wiring note: expose the deterministic seed only under a test flag. In `presence-phrases.ts`'s consumer path — e.g. a `useEffect` in `chat-interface.tsx` — call `if (process.env.NEXT_PUBLIC_E2E === 'true') seedPresenceBag(makeLcg(1))` once on mount (a tiny LCG defined in the same file). `page.goto('/chat')` reloads the module, so each capture re-seeds → both turns draw the same first index; prod behavior stays random (flag unset). Add the eval-scenario note (spec §5) to the QA checklist: "waiting-state screenshot review after a crisis-path turn — must equal a normal turn."
 
 - [ ] **Step 2: Run it**
 

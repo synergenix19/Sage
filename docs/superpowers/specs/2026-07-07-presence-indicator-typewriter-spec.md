@@ -120,7 +120,7 @@ Fixes "displays everything at once." Once the gated answer arrives complete, it 
 ### 4.1 Phase 0a — none
 The entire visible experience (Presence Indicator + Typewriter) is 100% frontend. `render_mode` is derived from today's `CRISIS_SIGNAL` + `X-Sage-Crisis-Tier`. No `server.py` change ships in 0a.
 
-The only thing 0a gives up is **early-dead detection**: with no backend signal, the frontend cannot distinguish "slow but alive" from "dead" before its local `PRESENCE_DEGRADED_MS` timer. This is acceptable for a first ship; the 12s→p95 fallback still fires on the local timer.
+The only thing 0a gives up is **early-dead detection**: with no backend signal, the frontend cannot distinguish "slow but alive" from "dead" before its local `PRESENCE_DEGRADED_MS` timer. This is acceptable for a first ship; the `PRESENCE_DEGRADED_MS` (25s ≈ total p99) fallback still fires on the local timer.
 
 ### 4.2 Phase 0b — content-free liveness heartbeat + metadata-to-body frame (COMMITTED fast-follow)
 At ~17s turns, users will wonder if it's broken; a content-free heartbeat is the only honest "still alive" signal. 0b is committed, not optional. It also seeds the Tier 2 streaming architecture (two-birds).
