@@ -804,7 +804,7 @@ def gate_fire_summary(rows: list[dict]) -> dict:
 - Task 2 exemplar `ar` fields **native-authored AND clinician-reviewed** (Amendment #5); `version` bumped from `-draft`.
 - Migration `009` (table) **and** migration `010` (RLS) applied to the **prod** DB. **Migration 010 posture (architect sign-off 2026-07-07): `ALTER TABLE shadow_register_eval ENABLE ROW LEVEL SECURITY; ALTER TABLE ... FORCE ROW LEVEL SECURITY; REVOKE ALL ON shadow_register_eval FROM anon, authenticated;`** — service-role-only, owner-exemption removed, grants revoked so no future policy can silently re-open client access. **Hard precondition: RLS verified ON the prod DB before the flag flips.**
 - `session_audit` RLS/grant posture verified (forced adjacent audit) — if it was exposed, its remediation migration is applied to prod (this is independent of Phase 4 and higher priority, since it already takes prod writes).
-- `tests/test_shadow_never_served.py` green on the deploy SHA — **specifically the behavioral sentinel + API-payload assertion** (architect sign-off 2026-07-07: re-verified at the only point the flag ever turns on, not just at Task 7 merge).
+- **Compiled-graph e2e sentinel green on the deploy SHA** (architect sign-off Checkpoint 2, Minor 2): the strengthened test — real compiled-LangGraph invocation, flag ON, sentinel asserted absent from the actual `/chat` response — NOT the Task-7 hand-assembled mocked-graph test. The one moment the flag flips on real traffic is the moment the proof must be end-to-end real. (If that test proves infeasible on Railway's deployment shape, document precisely why + the substitute — see final-review requirement below.)
 
 - [ ] **Step 1:** `SAGE_NATIVE_ARABIC_SHADOW=true` on the pilot service only (Railway; deploys are manual — `railway up`).
 - [ ] **Step 2:** Verify one Arabic turn writes a `shadow_register_eval` row (with `message_en`, `tool_loop_iterations`, `shadow_timed_out`) AND that the served `response` is unchanged translate-out; grep the client payload for the sentinel to confirm containment in prod.
@@ -821,10 +821,16 @@ def gate_fire_summary(rows: list[dict]) -> dict:
 - **#4 (non-blocking) served-latency honesty:** Global Constraints corrected to max(English, shadow) bounded +8s; accepted-impact + flag-off date in pre-registration (Task 11).
 - **#5 (non-blocking) exemplar governance:** clinician review added to Phase 4 preconditions; CMS-migration note flagged for the Tier 1 brief (Tasks 2, 12).
 
+**Concurrency decision — `asyncio.gather` vs `create_task` (architect sign-off, Checkpoint 2):** the shadow arm runs under `asyncio.gather` (served latency ≈ max(English, shadow), bounded +8s — the Amendment #4 accepted, time-boxed, flag-gated cost). A `create_task` fire-and-forget was **considered and REJECTED**: request/graph teardown can cancel a detached task and silently drop the eval write, which reintroduces exactly the optimistic-censoring bias Amendment #2 exists to prevent (a measurement that drops its slowest observations is broken). **Reliable capture over latency, for a bounded window.** Do not "optimize" this to `create_task` without solving guaranteed-flush first — this is a decision, not an oversight.
+
 **Wiring-checkpoint verification items (relocated side-effect of the by-construction fix — reviewer MUST confirm all three at the Task 7 review pause):**
 - **V1 write fail-open + bounded:** the direct DB write from inside the graph node is wrapped in `asyncio.wait_for(_SHADOW_WRITE_TIMEOUT_S)` + swallowed; a Supabase timeout/error never delays or breaks the served turn (Task 6 writer + Task 7 wiring + `test_eval_write_failure_does_not_break_served_turn`).
 - **V2 pairing key across table split:** the rating harness pairs shadow (`shadow_register_eval`) to served Arabic (messages store) explicitly on `(session_id, turn_number)` via `pair_by_turn`, not single-row columns (Task 9 + `test_pairs_joined_by_session_and_turn`).
 - **V3 retention parity:** the DPO ack names `shadow_register_eval` as the restricted-text location, not `session_audit` (Task 11).
+
+**Final whole-branch review — required additions (architect sign-off Checkpoint 2):**
+- **Compiled-graph e2e sentinel (Minor 2):** add a test that invokes the REAL compiled LangGraph (not a hand-assembled `/chat` shape) with the flag ON and asserts the sentinel is absent from the actual response — OR document precisely why Railway's deployment shape makes that infeasible and what substitutes for it. The Task-7 mocked-graph test is confirmation-of-shape only; the load-bearing containment control remains the static channel-absence guard.
+- **Empty/None content (Minor 1):** confirm `generate_shadow_arabic` returns `None` for content that is empty, whitespace-only, OR `None`/absent (no repr ever stored) — landed in the Task 7 commit set.
 
 ## Self-Review
 
