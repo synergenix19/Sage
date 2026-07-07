@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
-import { renderHook, act, waitFor, render, screen } from '@testing-library/react'
+import { renderHook, act, waitFor, render, screen, fireEvent } from '@testing-library/react'
 import { useStreamingChat, ChatInterface } from '../chat-interface'
 
 vi.mock('@/lib/stores/locale-store', () => ({
@@ -11,12 +11,37 @@ vi.mock('@/components/pwa/install-prompt', () => ({
 }))
 vi.mock('../chat-header', () => ({ ChatHeader: () => null }))
 vi.mock('../empty-state', () => ({ EmptyState: () => null }))
-vi.mock('../input-bar', () => ({ InputBar: () => null }))
+// Enhanced (Task 7) beyond a bare stub: exposes a send button and a focus/keydown-able
+// field so integration tests can drive `append()` and `onInteract` through the component
+// tree — mirrors what the file's other tests do for useStreamingChat, but at the
+// ChatInterface level where there previously was no send affordance to hook into.
+vi.mock('../input-bar', () => ({
+  InputBar: ({
+    onSend,
+    onInteract,
+  }: {
+    onSend: (text: string) => void
+    disabled?: boolean
+    onInteract?: () => void
+  }) => (
+    <div>
+      <button data-testid="mock-send" onClick={() => onSend('hello')}>
+        send
+      </button>
+      <input data-testid="mock-field" onFocus={onInteract} onKeyDown={onInteract} />
+    </div>
+  ),
+}))
 vi.mock('../crisis-card', () => ({ CrisisCard: () => null }))
 vi.mock('../typing-indicator', () => ({ TypingIndicator: () => null }))
+// Enhanced (Task 7): surfaces `reveal` via a data attribute so tests can assert on the
+// prop ChatInterface computed, while still rendering full `message.content` synchronously
+// like the original stub (no timers) — existing assertions that only check text are unaffected.
 vi.mock('../message-bubble', () => ({
-  MessageBubble: ({ message }: { message: { content: string } }) => (
-    <div>{message.content}</div>
+  MessageBubble: ({ message, reveal }: { message: { id: string; content: string }; reveal?: boolean }) => (
+    <div data-testid={`msg-${message.id}`} data-reveal={reveal ? 'true' : 'false'}>
+      {message.content}
+    </div>
   ),
 }))
 
@@ -325,5 +350,50 @@ describe('ChatInterface — ARIA live region', () => {
     expect(log).toBeInTheDocument()
     expect(log).toHaveAttribute('aria-live', 'polite')
     expect(log).toHaveAttribute('aria-label', 'Conversation')
+  })
+})
+
+// Task 7: PresenceIndicator replaces TypingIndicator at the waiting-state render site, and
+// the just-completed assistant message reveals via a `revealId` edge (never on mount with
+// pre-loaded history — Bug 2).
+describe('ChatInterface — presence indicator + typewriter reveal (Task 7)', () => {
+  beforeEach(() => {
+    window.HTMLElement.prototype.scrollIntoView = vi.fn()
+  })
+
+  it('renders PresenceIndicator (not the old dots) while awaiting first byte', async () => {
+    vi.spyOn(globalThis, 'fetch').mockReturnValue(new Promise(() => {}))
+
+    render(
+      <ChatInterface initialSession={null} initialMessages={[]} userName="Test" userId="user-1" />
+    )
+
+    fireEvent.click(screen.getByTestId('mock-send'))
+
+    expect(await screen.findByTestId('presence-indicator')).toBeInTheDocument()
+    expect(() => screen.getByTestId('typing-indicator')).toThrow()
+  })
+
+  it('does NOT typewriter-reveal historical messages on page load (Bug 2 — edge-only reveal)', () => {
+    const history = [
+      { id: 'u1', role: 'user' as const, content: 'hi' },
+      { id: 'a1', role: 'assistant' as const, content: 'a full historical reply that must not animate' },
+    ]
+
+    render(
+      <ChatInterface
+        initialSession={null}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        initialMessages={history as any}
+        userName="X"
+        userId="u"
+      />
+    )
+
+    // Full text present synchronously (no fake-timer advance) => not revealed progressively.
+    expect(screen.getByText('a full historical reply that must not animate')).toBeInTheDocument()
+    // The mocked MessageBubble surfaces the `reveal` prop ChatInterface computed — it must
+    // be false because isLoading was never true->false on this render (no edge occurred).
+    expect(screen.getByTestId('msg-a1')).toHaveAttribute('data-reveal', 'false')
   })
 })

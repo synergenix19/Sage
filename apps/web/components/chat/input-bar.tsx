@@ -6,6 +6,9 @@ import { useLocaleStore } from '@/lib/stores/locale-store'
 interface InputBarProps {
   onSend: (text: string) => void
   disabled?: boolean
+  /** Skip-on-type (spec §3, Minor 1): fired on focus AND on the first keystroke of an
+   *  already-focused field, so the caller can finalize an in-progress typewriter reveal. */
+  onInteract?: () => void
 }
 
 // Voice is a Full Build feature; in browsers without the Web Speech API the mic must
@@ -20,7 +23,7 @@ function getVoiceSupported(): boolean {
   return Boolean(w.SpeechRecognition ?? w.webkitSpeechRecognition)
 }
 
-export function InputBar({ onSend, disabled }: InputBarProps) {
+export function InputBar({ onSend, disabled, onInteract }: InputBarProps) {
   const [value, setValue] = useState('')
   const [listening, setListening] = useState(false)
   const supported = useSyncExternalStore(noopSubscribe, getVoiceSupported, () => true)
@@ -101,7 +104,11 @@ export function InputBar({ onSend, disabled }: InputBarProps) {
         placeholder={locale === 'ar' ? 'وش في البال؟' : "What's on your mind?"}
         value={value}
         onChange={(e) => setValue(e.target.value)}
+        onFocus={onInteract}
         onKeyDown={(e) => {
+          // Fires on every keystroke, including the first one on an already-focused
+          // field (onFocus alone would miss that case).
+          onInteract?.()
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault()
             send()

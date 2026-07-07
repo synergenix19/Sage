@@ -7,7 +7,7 @@ import { useLocaleStore } from '@/lib/stores/locale-store'
 import { ChatHeader } from './chat-header'
 import { MessageBubble } from './message-bubble'
 import { CrisisCard } from './crisis-card'
-import { TypingIndicator } from './typing-indicator'
+import { PresenceIndicator } from './presence-indicator'
 import { EmptyState } from './empty-state'
 import { InputBar } from './input-bar'
 
@@ -292,6 +292,29 @@ export function ChatInterface({ initialSession, initialMessages = [], userName, 
       ? (messages.find((m) => m.isCrisis)?.content ?? null)
       : null
 
+  // Typewriter reveal (spec §3): the id of the assistant message currently mid-reveal.
+  // Set ONLY on a genuine isLoading true->false EDGE (never on initial mount with loaded
+  // history — that path starts with isLoading already false and must not animate the last
+  // historical message on every page load, Bug 2).
+  const [revealId, setRevealId] = useState<string | null>(null)
+  const prevLoadingRef = useRef(isLoading)
+  useEffect(() => {
+    const was = prevLoadingRef.current
+    prevLoadingRef.current = isLoading
+    if (was && !isLoading) {
+      const last = messages[messages.length - 1]
+      if (last?.role === 'assistant' && last.content) setRevealId(last.id)
+    }
+  }, [isLoading, messages])
+
+  // Stable callbacks — both are re-render triggers for the reveal effects downstream
+  // (useTypewriter completion effect, PresenceIndicator's phrase timer) so they must not
+  // be recreated on every render.
+  const finishReveal = useCallback(() => setRevealId(null), [])
+  const handlePresencePhrase = useCallback((_id: number) => {
+    // client-only UX analytics; never persisted/audited (spec §5)
+  }, [])
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: isLoading ? 'instant' : 'smooth' })
   }, [messages, isLoading])
@@ -358,12 +381,16 @@ export function ChatInterface({ initialSession, initialMessages = [], userName, 
                 }}
                 supabaseId={m.supabaseId}
                 onFeedback={handleFeedback}
+                reveal={m.role === 'assistant' && m.id === revealId}
+                onRevealComplete={finishReveal}
               />
             )
           })
         )}
         {isLoading &&
-          messages[messages.length - 1]?.content === '' && <TypingIndicator />}
+          messages[messages.length - 1]?.content === '' && (
+            <PresenceIndicator onPhrase={handlePresencePhrase} />
+          )}
         {error && (
           <div className="text-center text-xs text-[var(--color-text-secondary)]">
             {(error as Error & { httpStatus?: number }).httpStatus === 503
@@ -384,7 +411,7 @@ export function ChatInterface({ initialSession, initialMessages = [], userName, 
         </div>
       )}
 
-      <InputBar onSend={handleSend} disabled={isLoading} />
+      <InputBar onSend={handleSend} disabled={isLoading} onInteract={finishReveal} />
     </div>
   )
 }
