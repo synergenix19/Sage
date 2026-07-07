@@ -46,3 +46,8 @@ Choose the **direction** now, decouple the **eval** as the shared gate. Recommen
 |---|---|---|---|---|
 | Clinical lead | | | | |
 | Engineering | | | | |
+
+---
+
+## Additional evidence (attached 2026-07-07): routing baseline at the threshold margin
+Surfaced during a Lane 2 skill-registration attempt; independent of Lane 2. The semantic matcher (Tier 2, BGE-M3, `SEMANTIC_THRESHOLD=0.4593`) mis-routes **~11 phrases** on `test_wrong_skill_routing`, **all in the 0.45–0.48 band** — exactly where a "semantic-tier vs threshold-tuning" question lives. This is the S-4 rule-sensitivity limitation now visible as red tests on trunk: direct empirical evidence of how fragile the marginal band is. Full failing-phrase list + skill-vs-spec evaluation: `docs/superpowers/governance/2026-07-07-routing-baseline-11-failures.md`. (Notable: `mi_readiness_ruler` — owner of 2 failing cases and in the margin band — is NOT in the BOT BEHAVIOUR spec.)
