@@ -778,10 +778,11 @@ def gate_fire_summary(rows: list[dict]) -> dict:
 ### Task 12: Enable on pilot cohort after sign-off
 
 **Preconditions (ALL true):**
-- Task 5 containment guard (incl. behavioral sentinel + serializer/checkpointer confirmation) merged **before** the Task 6 migration was applied.
-- Task 11 pre-registration merged; rubric/blinding/KPI signed; DPO ack recorded; flag-off date committed.
+- Task 5 static containment guards + the Task 7 behavioral sentinel/API-payload assertion merged and green.
+- Task 11 pre-registration merged; rubric/blinding/KPI signed; DPO ack recorded (names `shadow_register_eval` with the RLS posture below); flag-off date committed.
 - Task 2 exemplar `ar` fields **native-authored AND clinician-reviewed** (Amendment #5); `version` bumped from `-draft`.
-- Migration 008 applied to the pilot DB.
+- Migration `009` (table) **and** migration `010` (RLS) applied to the **prod** DB. **Migration 010 posture (architect sign-off 2026-07-07): `ALTER TABLE shadow_register_eval ENABLE ROW LEVEL SECURITY; ALTER TABLE ... FORCE ROW LEVEL SECURITY; REVOKE ALL ON shadow_register_eval FROM anon, authenticated;`** — service-role-only, owner-exemption removed, grants revoked so no future policy can silently re-open client access. **Hard precondition: RLS verified ON the prod DB before the flag flips.**
+- `session_audit` RLS/grant posture verified (forced adjacent audit) — if it was exposed, its remediation migration is applied to prod (this is independent of Phase 4 and higher priority, since it already takes prod writes).
 - `tests/test_shadow_never_served.py` green on the deploy SHA — **specifically the behavioral sentinel + API-payload assertion** (architect sign-off 2026-07-07: re-verified at the only point the flag ever turns on, not just at Task 7 merge).
 
 - [ ] **Step 1:** `SAGE_NATIVE_ARABIC_SHADOW=true` on the pilot service only (Railway; deploys are manual — `railway up`).
