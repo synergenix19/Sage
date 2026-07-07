@@ -10,7 +10,8 @@ Usage:
     SAGE_API_KEY=... python scripts/prod_smoke/run.py [--tier a|b|c|all] [--base-url URL]
 
 Tiers:
-    a  — safety regression checks (not built yet; no-ops, returns [])
+    a  — safety invariants: crisis resources (EN/AR), GL-1 helpline XFAIL,
+         MM entry-screen derealization hold, precedence audit proxy (Task 2)
     b  — Playwright-driven feature checks (not built yet; no-ops, returns [])
     c  — flag readback + response-header regression (Task 1 slice, wired)
 """
@@ -32,7 +33,7 @@ DEFAULT_BASE_URL = "https://sage-api-production-3328.up.railway.app"
 # Referenced by name (not captured into a local) so tests can monkeypatch this
 # dict to stub tiers without touching the network.
 TIER_FUNCS = {
-    "a": tier_a_safety.run_all,
+    "a": tier_a_safety.run,
     "b": tier_b_features.run_all,
     "c": tier_c_regression.flag_readback,
 }
