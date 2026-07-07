@@ -190,6 +190,15 @@ export async function POST(req: Request) {
         ? accumulated.slice(CRISIS_SIGNAL.length).trimStart()
         : accumulated
 
+      // Lane 2 Item 1.5: persist EXACTLY the parsed, already-deduped/capped/typed
+      // sourcesHeader list (stored == rendered) — never the raw passage set. Parsed
+      // here (not re-derived) so the persisted artifact is byte-identical to what the
+      // live turn rendered from the same header string.
+      let parsedSources: unknown = null
+      if (sourcesHeader) {
+        try { parsedSources = JSON.parse(sourcesHeader) } catch { parsedSources = null }
+      }
+
       // Single post-response write: user message + AI message in one batch.
       // Intent is authoritative from sage-poc (X-Sage-Intent / X-Sage-Secondary-Intent).
       // Both rows carry the same intent values for query convenience (no join needed to
@@ -235,6 +244,9 @@ export async function POST(req: Request) {
           prompt_layers:                   promptLayers,
           token_usage:                     tokenUsage,
           turn_number:                     turnNumber,
+          // Safety invariant (b): crisis turns never carry sources — backend already
+          // suppresses X-Sage-Sources on any safety gate_path, this is belt-and-braces.
+          sources:                         isCrisis ? null : parsedSources,
           clinical_flags_detail:           sageClinicalFlags?.length
             ? Object.fromEntries(
                 sageClinicalFlags.map(flag => [
