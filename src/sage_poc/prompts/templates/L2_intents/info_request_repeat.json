@@ -1,0 +1,16 @@
+{
+  "template_id": "L2_info_request_repeat",
+  "version": "1.0.0",
+  "status": "approved",
+  "authored_by": "engineering",
+  "approved_by": "clinical ruling 2026-07-07 (signer display string PENDING confirmation — see 2026-07-07-info_request-d4-amendment-turn-aware.md)",
+  "effective_date": "2026-07-07",
+  "layer": "L2",
+  "role": "user",
+  "always_include": true,
+  "word_budget": 160,
+  "content": "INTENT: The user is asking for information, and this is a consecutive information request in the same thread (lookup mode). Emotional intensity: {intensity}/10. {intensity_guidance} Answer the question directly and clearly, in plain, warm language, grounded in the knowledge passages when provided; if none cover it, say so plainly and do not invent clinical facts. Do not assume the person is struggling. Because they are in a run of factual questions, do not re-ask a clarifying question this turn. End with one short, warm line that leaves the door open, phrased as a statement and never a question, for example letting them know you are here if they want to go further. Keep the reply free of closing questions, and concise.",
+  "variables": ["intensity", "intensity_guidance"],
+  "intent": "info_request",
+  "_signed_off": "Clinical ruling 2026-07-07: REPEAT-turn variant (retained Option i, the statement bridge). Selected by the composer when prev_primary_intent == info_request (immediately-consecutive info_request = lookup mode) so a user in lookup mode is not re-triaged every turn. Statement close (no question) survives regardless of any strip. Content is the superseded v2.1.0 statement package, now repurposed as the fallback per the both/and ruling. No em dashes. See 2026-07-07-info_request-d4-amendment-turn-aware.md."
+}
