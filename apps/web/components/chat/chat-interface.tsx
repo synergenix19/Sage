@@ -4,12 +4,26 @@ import { mapSdkRole, type ChatSession, type MessageRole, type Source } from '@cd
 import { FIRST_CHAT_EVENT } from '@/components/pwa/install-prompt'
 import { CRISIS_SIGNAL, SERVER_ERROR_SIGNAL } from '@/lib/constants'
 import { useLocaleStore } from '@/lib/stores/locale-store'
+import { seedPresenceBag } from '@/lib/presence-phrases'
 import { ChatHeader } from './chat-header'
 import { MessageBubble } from './message-bubble'
 import { CrisisCard } from './crisis-card'
 import { PresenceIndicator } from './presence-indicator'
 import { EmptyState } from './empty-state'
 import { InputBar } from './input-bar'
+
+// Tiny linear-congruential rng — deterministic, dependency-free. Its ONLY use is seeding the
+// E2E presence-phrase bag below (Task 9 / spec §2.4 waiting-state indistinguishability test)
+// so a normal turn and a crisis-bound turn draw the identical phrase and can be byte-diffed.
+// Not cryptographic; not used anywhere in the production render path.
+// Exported for testability only — not part of the public component API.
+export function makeLcg(seed: number): () => number {
+  let state = seed >>> 0
+  return () => {
+    state = (state * 1103515245 + 12345) & 0x7fffffff
+    return state / 0x7fffffff
+  }
+}
 
 // SDK-shaped messages: roles are 'user' | 'assistant' | 'system' (what the route consumes
 // and what the AI SDK normally yields). Internal roles ('ai', 'crisis') are derived for render.
@@ -313,6 +327,17 @@ export function ChatInterface({ initialSession, initialMessages = [], userName, 
   const finishReveal = useCallback(() => setRevealId(null), [])
   const handlePresencePhrase = useCallback((_id: number) => {
     // client-only UX analytics; never persisted/audited (spec §5)
+  }, [])
+
+  // E2E-ONLY (Task 9 / spec §2.4/§7): reseed the module-singleton presence-phrase bag with a
+  // deterministic rng so a normal turn and a crisis-bound turn draw the SAME phrase, letting
+  // playwright/waiting-state-indistinguishability.spec.ts byte-diff the full captured frame
+  // instead of masking the phrase region. Gated on NEXT_PUBLIC_E2E (unset in prod) — this
+  // branch is DEAD CODE in production; prod phrase selection stays genuinely Math.random.
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_E2E === 'true') {
+      seedPresenceBag(makeLcg(1))
+    }
   }, [])
 
   useEffect(() => {

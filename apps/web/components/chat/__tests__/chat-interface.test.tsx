@@ -1,11 +1,19 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { renderHook, act, waitFor, render, screen, fireEvent } from '@testing-library/react'
-import { useStreamingChat, ChatInterface } from '../chat-interface'
+import { useStreamingChat, ChatInterface, makeLcg } from '../chat-interface'
+import { seedPresenceBag } from '@/lib/presence-phrases'
 
 vi.mock('@/lib/stores/locale-store', () => ({
   useLocaleStore: (selector: (s: { locale: string }) => unknown) =>
     selector({ locale: 'en' }),
 }))
+// Wrap the real module so PresenceIndicator (rendered un-mocked elsewhere in this file)
+// keeps its actual PRESENCE_POOL / nextPresencePhraseIndex behavior — only seedPresenceBag
+// is replaced with a spy so the Task 9 E2E-seeding effect can be asserted on.
+vi.mock('@/lib/presence-phrases', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/presence-phrases')>()
+  return { ...actual, seedPresenceBag: vi.fn(actual.seedPresenceBag) }
+})
 vi.mock('@/components/pwa/install-prompt', () => ({
   FIRST_CHAT_EVENT: '__test_first_chat__',
 }))
@@ -469,5 +477,66 @@ describe('ChatInterface — presence indicator + typewriter reveal (Task 7)', ()
     await waitFor(() => {
       expect(lastMsgEl()).toHaveAttribute('data-reveal', 'false')
     })
+  })
+})
+
+// Task 9 / spec §2.4/§7: the deterministic presence-phrase seed that makes the
+// waiting-state-indistinguishability Playwright screenshot diff possible (both a normal and
+// a crisis-bound turn must draw the same phrase). This is the ONLY piece of that test that
+// can run in this environment (the Playwright suite itself needs a live dev server +
+// authenticated storage state) — it proves the E2E branch fires under the flag and is
+// provably absent otherwise, i.e. dead in production.
+describe('ChatInterface — E2E deterministic presence-phrase seeding (Task 9)', () => {
+  const ORIGINAL_E2E = process.env.NEXT_PUBLIC_E2E
+
+  beforeEach(() => {
+    window.HTMLElement.prototype.scrollIntoView = vi.fn()
+    vi.mocked(seedPresenceBag).mockClear()
+  })
+
+  afterEach(() => {
+    if (ORIGINAL_E2E === undefined) delete process.env.NEXT_PUBLIC_E2E
+    else process.env.NEXT_PUBLIC_E2E = ORIGINAL_E2E
+  })
+
+  it('calls seedPresenceBag(makeLcg(1)) on mount when NEXT_PUBLIC_E2E==="true"', () => {
+    process.env.NEXT_PUBLIC_E2E = 'true'
+
+    render(
+      <ChatInterface initialSession={null} initialMessages={[]} userName="Test" userId="user-1" />
+    )
+
+    expect(seedPresenceBag).toHaveBeenCalledTimes(1)
+    expect(seedPresenceBag).toHaveBeenCalledWith(expect.any(Function))
+
+    // The seeded rng behaves exactly like a fresh makeLcg(1) — same deterministic sequence —
+    // confirming the effect passed an equivalent generator, not just "some function".
+    const passedRng = vi.mocked(seedPresenceBag).mock.calls[0][0]
+    const referenceRng = makeLcg(1)
+    expect([passedRng(), passedRng(), passedRng()]).toEqual([
+      referenceRng(),
+      referenceRng(),
+      referenceRng(),
+    ])
+  })
+
+  it('does NOT call seedPresenceBag when NEXT_PUBLIC_E2E is unset (prod default)', () => {
+    delete process.env.NEXT_PUBLIC_E2E
+
+    render(
+      <ChatInterface initialSession={null} initialMessages={[]} userName="Test" userId="user-1" />
+    )
+
+    expect(seedPresenceBag).not.toHaveBeenCalled()
+  })
+
+  it('does NOT call seedPresenceBag for any other value of NEXT_PUBLIC_E2E', () => {
+    process.env.NEXT_PUBLIC_E2E = 'false'
+
+    render(
+      <ChatInterface initialSession={null} initialMessages={[]} userName="Test" userId="user-1" />
+    )
+
+    expect(seedPresenceBag).not.toHaveBeenCalled()
   })
 })
