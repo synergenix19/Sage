@@ -35,4 +35,9 @@ The lead-with-prose instruction is **L4 content** — it lives in `light_structu
 - **Model-transfer caveat (applies with force here).** List-formatting adherence is among the most model-specific behaviours there are, so tuning L4 wording to GPT-4o's adherence profile has limited transfer to Falcon-34B. If option 2 is chosen, the Falcon re-run follow-up must cover THIS list-compat case specifically.
 - **Do not move this to the output gate.** The gate enforces safety and cultural rules; loading it with a cosmetic lead-with-prose check dilutes its audit purpose. A formatting preference stays in the L4 prompt directive, never the gate.
 
-Re-run after the reviewers choose (1) or (2) to confirm 5/5.
+### Test disposition by decision (the suite must neither lie nor lose coverage)
+
+The session's choice maps to a defined disposition for the list-compat case — it is not left red or silently deleted:
+
+- **If reinforce-in-L4 (option 2):** apply the one-line `light_structure_directive` change, then **re-run the eval to confirm the case reaches 5/5.** (And, per the model-transfer note, the Falcon-34B re-run must cover this list-compat case specifically.)
+- **If accept (option 1):** **rewrite the list-compat case** to encode the accepted behaviour — a symptom list without a prose lead-in is a PASS, while still asserting the bridge is present and affect-neutral. Not left failing (the suite would lie), not deleted (list-compat coverage would be lost). The case keeps testing the load-bearing invariants; only the lead-with-prose sub-assertion is dropped to match the ratified behaviour.
