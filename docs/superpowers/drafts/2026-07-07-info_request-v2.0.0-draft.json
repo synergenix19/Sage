@@ -1,0 +1,17 @@
+{
+  "_draft_note": "DRAFT for clinical review/redline (info_request engagement rewrite, 2026-07-07). NOT loaded (docs/, not src/.../templates/); prod + master + tests stay on info_request v1.0.0. PROMOTE on sign-off: set approved_by + status='approved' + effective_date, copy content into src/sage_poc/prompts/templates/L2_intents/info_request.json, run the composer/format regression + the PromptFoo cases before any deploy. RULE UNDER REVIEW = (a*): always close a single-intent info_request with exactly ONE light, conditionally-phrased bridge (invitation, not assumption), affect-neutral by construction, no runtime affect detection. See the review packet's bridge-rule decision point (a/a*/b/c) — reviewers ratify the RULE, not just the wording. word_budget here is the TEMPLATE INSTRUCTION budget (prompt cost), 50->160, which requires the L2 per-intent budget amendment (deviation register item 1, APPROVAL-PENDING); do not approve wording without also ratifying that budget. Separately, R-1 psychoeducation 80-150 words is the desired OUTPUT length (what the model produces) — reviewers may choose to state that range explicitly in the wording; it is NOT the same number as the instruction budget.",
+  "template_id": "L2_info_request",
+  "version": "2.0.0",
+  "status": "draft-pending-review",
+  "authored_by": "engineering-draft-for-clinical-review",
+  "approved_by": null,
+  "effective_date": null,
+  "layer": "L2",
+  "role": "user",
+  "always_include": true,
+  "word_budget": 160,
+  "content": "INTENT: The user is asking for information. Emotional intensity: {intensity}/10. {intensity_guidance} Answer the question directly and clearly, in plain, warm language, not a clinical brief. When knowledge passages are provided, ground the answer in them and weave them in naturally; if none of them cover the question, or the evidence is thin, say so plainly and do not invent clinical facts. Do not assume the person is struggling, and do not add sympathy or reassurance they did not ask for; a factual question deserves a real answer, not a therapy response. Close with exactly one short, open invitation, offered and never assumed: invite them to share what is behind the question, or what would help next. If you did not have the information, that same invitation is the recovery: name the gap honestly and ask what is prompting the question. Keep the reply concise and ask at most one question.",
+  "variables": ["intensity", "intensity_guidance"],
+  "intent": "info_request",
+  "_clinical_review_note": "Preserves the v1.0.0 clause's legitimate core (no affect-assumptive language, no unsolicited sympathy on a factual turn) and deletes only its engagement-killing scope ('answer briefly, do not pad'). The single bridge is affect-NEUTRAL by construction ('what is behind the question / what would help next'): it lands for a distressed user and reads as a harmless offer to a curious one, so no runtime affect detection is needed (Cardinal Rule 3: the LLM is not choosing therapeutic strategy per-turn; the deterministic rule + conditional phrasing carry the targeting). ABSTAIN is treated as the turn that MOST needs the bridge (a terse 'I don't have that' is the reported dead-end); grounding/no-fabrication rules are unchanged and independent. List compatibility: 'plain, warm language' constrains VOICE not STRUCTURE, so it coexists with the L4 light_structure_directive (lead with a one-sentence prose answer, optional short list); the bridge is the closing line after any list. No em dashes (mirrors into output)."
+}

@@ -1,0 +1,131 @@
+# PromptFoo cases — L2 engagement batch (info_request v2.0.0 rule a*)
+# =============================================================================
+# STATUS: review artifact. PromptFoo is NOT yet wired in this repo (no
+# promptfooconfig at root, no CI job). Wiring it is a SEPARATE small eng task
+# (a shim that turns compose_prompt(state) into a prompt string + a provider
+# pointing at the prod responder model). These cases are authored now so the
+# clinical review session sees CONTENT + TESTS together and can ratify the
+# rule's failure-mode coverage, not just the wording.
+#
+# Each test's `vars.state` is the SageState the composer would receive; the
+# wiring shim must call compose_prompt(state) and join system+user into the
+# prompt. Assertions encode rule (a*)'s failure modes + the standing constraints.
+# =============================================================================
+
+description: "info_request v2.0.0 (rule a*) — deterministic single conditional bridge, no affect assumption, ABSTAIN-as-recovery"
+
+prompts:
+  - id: compose-info-request
+    # WIRING (eng task): resolve to `compose_prompt(state, )` joined system+user.
+    label: "composed info_request prompt"
+
+providers:
+  # WIRING (eng task): set to the prod responder (gpt-4o class) with temp as prod.
+  - id: "REPLACE_WITH_PROD_RESPONDER"
+
+defaultTest:
+  assert:
+    # Standing constraint: no em dashes (mirrors into output; house rule).
+    - type: not-icontains
+      value: "—"
+    # Standing constraint: no affect-assumptive phrasing on a factual turn.
+    - type: llm-rubric
+      value: >
+        The reply does NOT assume the user is distressed, struggling, or going
+        through something hard. It contains no sympathy the user did not ask for
+        (e.g. "that must be difficult", "I'm sorry you're going through this",
+        "that sounds really hard"). A conditional INVITATION ("if this touches
+        something you're going through...") is allowed and is NOT an assumption.
+    # Rule a*: exactly ONE light bridge, phrased as an offer not an assumption.
+    - type: llm-rubric
+      value: >
+        The reply ends with exactly ONE short, open invitation offered as an
+        option (invite the user to share what's behind the question or what would
+        help next). Not two questions, not a directive, not a therapy probe.
+
+tests:
+  - description: "Pure factual query, grounded — bridge present, zero assumed distress"
+    vars:
+      state:
+        message_en: "what is anxiety"
+        primary_intent: "info_request"
+        secondary_intent: null
+        emotional_intensity: 2
+        knowledge_passages: ["Anxiety is the body's response to perceived threat; it becomes a concern when persistent and interfering."]
+        knowledge_abstain: false
+    assert:
+      - type: llm-rubric
+        value: "Directly and clearly answers what anxiety is, grounded in the passage, in warm plain language (a short list is acceptable)."
+      - type: javascript
+        # R-1 psychoeducation word range 80-150 (answer body; generous upper bound for safety).
+        value: "output.split(/\\s+/).length >= 40 && output.split(/\\s+/).length <= 220"
+
+  - description: "Affect-laden query that SLIPPED classification as single-intent — conditional bridge still lands, still no assumed distress"
+    vars:
+      state:
+        message_en: "what is anxiety, my chest is tight all day"
+        primary_intent: "info_request"
+        secondary_intent: null
+        emotional_intensity: 5
+        knowledge_passages: ["Anxiety can present with physical symptoms including chest tightness, racing heart, and shallow breathing."]
+        knowledge_abstain: false
+    assert:
+      - type: llm-rubric
+        value: >
+          Answers the factual question. The closing conditional invitation lands
+          naturally for someone who may be struggling ("if this is something
+          you're feeling right now, I'm here to talk it through") WITHOUT the
+          reply itself asserting that the user is distressed.
+
+  - description: "ABSTAIN turn — bridge as recovery, grounding intact, no fabrication"
+    vars:
+      state:
+        message_en: "what's the success rate of EMDR for childhood trauma"
+        primary_intent: "info_request"
+        secondary_intent: null
+        emotional_intensity: 3
+        knowledge_passages: []
+        knowledge_abstain: true
+    assert:
+      - type: llm-rubric
+        value: >
+          Honestly acknowledges it does not have specific information on that,
+          does NOT invent statistics or clinical facts, and uses the closing
+          invitation as the RECOVERY (invites what's prompting the question or
+          offers to help find a professional resource). It is NOT a terse
+          dead-end.
+      - type: not-icontains
+        value: "%"   # crude guard: no fabricated success-rate percentages
+
+  - description: "Negative — factual turn must not open with affect-assumptive sympathy"
+    vars:
+      state:
+        message_en: "what is cognitive behavioral therapy"
+        primary_intent: "info_request"
+        secondary_intent: null
+        emotional_intensity: 2
+        knowledge_passages: ["CBT is a structured, evidence-based approach that targets the links between thoughts, feelings, and behaviours."]
+        knowledge_abstain: false
+    assert:
+      - type: llm-rubric
+        value: >
+          Opens by engaging the QUESTION (what CBT is), not with sympathy or an
+          assumption about the user's state. No "that must be hard", no "I'm sorry
+          you're dealing with this".
+
+  - description: "List-directive compatibility — a short list may be used AND the single bridge still closes it"
+    vars:
+      state:
+        message_en: "what are the symptoms of anxiety"
+        primary_intent: "info_request"
+        secondary_intent: null
+        emotional_intensity: 2
+        knowledge_passages: ["Common anxiety symptoms: racing thoughts, restlessness, rapid heartbeat, trouble sleeping, muscle tension."]
+        knowledge_abstain: false
+    assert:
+      - type: llm-rubric
+        value: >
+          If a short list is used it leads with a one-sentence plain answer and
+          keeps the warm Sage voice (no bold, no headings, no dashes). Regardless
+          of structure, the reply still ends with the single conditional
+          invitation. List structure and the bridge coexist.
