@@ -6,8 +6,18 @@ from sage_poc.llm import get_responder, get_fallback_responder
 from sage_poc.prompts import compose_prompt, PERSONA  # re-exported for backward compat
 from sage_poc.prompts.composer import _sanitize_assistant_turn  # re-exported for backward compat
 from sage_poc.resilience import resilient_invoke
+from sage_poc.config import NATIVE_ARABIC_SHADOW_ENABLED
+from sage_poc.shadow_arabic import generate_shadow_arabic
+from sage_poc.shadow_eval import write_shadow_eval_row
 
 __all__ = ["compose_prompt", "PERSONA", "freeflow_respond_node", "_sanitize_assistant_turn", "_knowledge_lookup_fired"]
+
+_log = logging.getLogger(__name__)
+
+# Native-Khaleeji shadow measurement (2026-07-07 plan): bounds on the concurrent shadow-generation
+# arm and on the eval-row write. Both fail-open — neither can delay or break the served turn.
+_SHADOW_TIMEOUT_S: float = 8.0        # bound on the shadow generation arm
+_SHADOW_WRITE_TIMEOUT_S: float = 2.0  # bound on the eval-row DB write (Verification #1)
 
 # W3: latency guard on the empty-result regeneration. resilient_invoke's own timeout is 30s
 # (LLM_TIMEOUT_SECONDS) — far past the <3s p95 target — so the one fallback attempt after an
@@ -265,16 +275,51 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
 
     tool_ai_messages: list = []
     token_usage: dict = {}
-    response = await _invoke_with_tool_loop(
-        llm,
-        messages,
-        llm_tools,
-        node="freeflow_respond",
-        language=state.get("detected_language", "en"),
-        fallback_llm=fallback_llm,
-        _tool_messages=tool_ai_messages,
-        _usage=token_usage,
-    )
+
+    async def _english_arm():
+        return await _invoke_with_tool_loop(
+            llm, messages, llm_tools, node="freeflow_respond",
+            language=state.get("detected_language", "en"), fallback_llm=fallback_llm,
+            _tool_messages=tool_ai_messages, _usage=token_usage,
+        )
+
+    if NATIVE_ARABIC_SHADOW_ENABLED and state.get("detected_language") == "ar":
+        _timed_out = False
+        async def _shadow_arm():
+            nonlocal _timed_out
+            try:
+                return await asyncio.wait_for(generate_shadow_arabic(state, llm), timeout=_SHADOW_TIMEOUT_S)
+            except asyncio.TimeoutError:
+                _timed_out = True
+                return None
+            except Exception:
+                return None
+        response, shadow_payload = await asyncio.gather(_english_arm(), _shadow_arm())
+        # tool_loop_iterations proxy = number of tool round-trips the English arm took;
+        # the pre-registered PRIMARY comparison uses tool_loop_iterations == 0 turns only (Blocking #2).
+        #
+        # Write policy (Amendment #2 / Checkpoint-2 clarification #1):
+        #   TIMEOUT  → write a CENSORED row (shadow_timed_out=True) — a right-censored observation;
+        #              dropping it would bias the latency delta optimistic by discarding the slowest gens.
+        #   SUCCESS  → write the row with the payload.
+        #   GENERATION FAILURE (payload None, NOT timed out — e.g. LLM error, empty content) → write NOTHING;
+        #              it is not a valid measurement and must not pollute the register/latency sample.
+        if _timed_out or shadow_payload is not None:
+            # Verification #1: the eval write is fail-open AND bounded — a Supabase timeout/error
+            # must never delay or break the served turn. Bounded + swallowed = "logged, discarded".
+            try:
+                await asyncio.wait_for(
+                    write_shadow_eval_row(
+                        state, shadow_payload,
+                        tool_loop_iterations=len(tool_ai_messages),
+                        timed_out=_timed_out,
+                    ),
+                    timeout=_SHADOW_WRITE_TIMEOUT_S,
+                )
+            except Exception:
+                _log.warning("[freeflow] shadow eval write failed/timed out (discarded)")
+    else:
+        response = await _english_arm()
 
     if not response:
         # Tool loop exhausted MAX_ITERATIONS without producing text — one latency-bounded

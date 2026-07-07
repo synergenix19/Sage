@@ -22,3 +22,11 @@ def test_payload_for_arabic():
 
 def test_fail_open():
     assert asyncio.run(generate_shadow_arabic(_ar(), _FakeLLM(raises=True))) is None
+
+def test_empty_content_is_treated_as_failed_generation():
+    # empty string content = failed generation → None (never a stored empty row / repr)
+    out = asyncio.run(generate_shadow_arabic(_ar(), _FakeLLM("")))
+    assert out is None
+
+def test_whitespace_only_content_is_failed_generation():
+    assert asyncio.run(generate_shadow_arabic(_ar(), _FakeLLM("   \n "))) is None

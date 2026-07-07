@@ -29,6 +29,23 @@ _BASE_STATE = {
 }
 
 
+def fr_stub_llm(content: str = "That sounds really difficult."):
+    """Shared stub LLM for freeflow_respond tests: bind_tools().ainvoke() returns a plain-text
+    message (no tool_calls), so the English arm of the tool loop completes in one round-trip.
+    Reused by tests/test_freeflow_shadow_wiring.py and tests/test_shadow_never_served.py so the
+    shadow-wiring tests don't need to duplicate this mock shape.
+    """
+    mock_msg = MagicMock()
+    mock_msg.content = content
+    mock_msg.usage_metadata = {"input_tokens": 10, "output_tokens": 5, "total_tokens": 15}
+    mock_msg.tool_calls = None
+    mock_bound_llm = AsyncMock()
+    mock_bound_llm.ainvoke = AsyncMock(return_value=mock_msg)
+    mock_llm = MagicMock()
+    mock_llm.bind_tools = MagicMock(return_value=mock_bound_llm)
+    return mock_llm
+
+
 def test_compose_prompt_returns_layers():
     with patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules()):
         _, _, layers = compose_prompt(_BASE_STATE)

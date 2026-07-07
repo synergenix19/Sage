@@ -21,8 +21,14 @@ async def generate_shadow_arabic(state: dict, llm=None) -> dict | None:
         t0 = time.monotonic()
         resp = await llm.ainvoke(messages)
         gen_latency_ms = int((time.monotonic() - t0) * 1000)
+        text = getattr(resp, "content", None)
+        if text is None:
+            text = str(resp)
+        if not text.strip():
+            _log.warning("[shadow_arabic] empty generation content; treating as failed (None)")
+            return None
         return {
-            "text": getattr(resp, "content", None) or str(resp),
+            "text": text,
             "prompt_hash": prompt_hash,
             "exemplar_version": exemplar_version,
             "generation_language": "ar_native",
