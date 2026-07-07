@@ -676,6 +676,19 @@ async def name_session(
     return {"status": "ok", "name": name}
 
 
+def compute_routing_mode() -> str:
+    """Truthful routing mode for /health/ready. Returns 'v2' ONLY if the reranker selector path is
+    present in THIS build AND enabled — so a set env flag can never advertise a reranker the running
+    code does not contain (fixes the inert-flag misreporting where prod ran V1 with V2 flags set,
+    2026-07-07). On a V1/master build the import fails and the mode is 'v1' regardless of the flag.
+    """
+    try:
+        from sage_poc.nodes.skill_select import _rerank_enabled
+    except ImportError:
+        return "v1"
+    return "v2" if _rerank_enabled() else "v1"
+
+
 @app.get("/health/ready")
 async def health_ready():
     """Railway healthcheck target. Returns 503 until BGE-M3 warmup completes.
@@ -686,7 +699,7 @@ async def health_ready():
             status_code=503,
             detail="Service warming up — BGE-M3 index not ready",
         )
-    return {"status": "ready"}
+    return {"status": "ready", "routing_mode": compute_routing_mode()}
 
 
 @app.get("/health/version")
