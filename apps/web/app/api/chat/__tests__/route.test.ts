@@ -1,5 +1,6 @@
 // apps/web/app/api/chat/__tests__/route.test.ts
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { CRISIS_SIGNAL } from '@/lib/constants'
 
 const VALID_SESSION_UUID = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
 
@@ -174,6 +175,63 @@ describe('POST /api/chat', () => {
       token_usage: { input: 200, output: 45, total: 245 },
       turn_number: 1,
     })
+  })
+
+  // ── Lane 2 Item 1.5 (a): stored == rendered ────────────────────────────
+  // Persist EXACTLY the parsed X-Sage-Sources list (deduped/capped/typed), not raw
+  // passages, onto the AI message row so a reopened conversation shows the same card.
+  it('persists the parsed sources list on the AI message row', async () => {
+    const sources = [{ type: 'article', title: 'What is anxiety?', url: 'https://kb/a', citation: 'c' }]
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      makeSageResponse('hello', { 'X-Sage-Sources': JSON.stringify(sources) })
+    )
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'tell me about anxiety' }],
+        sessionId: VALID_SESSION_UUID,
+      }),
+    })
+    await POST(req)
+    await new Promise((r) => setImmediate(r))
+    await new Promise((r) => setImmediate(r))
+
+    const calls = mockInsert.mock.calls
+    const batchCall = calls.find((c) => Array.isArray(c[0]))
+    expect(batchCall).toBeDefined()
+    const rows = batchCall![0] as Array<Record<string, unknown>>
+    const aiRow = rows.find((r) => r.role === 'ai')
+    expect(aiRow).toBeDefined()
+    expect(aiRow!.sources).toEqual(sources)
+  })
+
+  // ── Lane 2 Item 1.5 (b): safety invariant ──────────────────────────────
+  // Crisis turns never carry X-Sage-Sources from the backend (allowlist suppression is
+  // upstream in sage-poc). Persist defensively as isCrisis ? null : parsedSources —
+  // belt-and-braces even if a sources header were somehow present on a crisis turn.
+  it('persists sources = null on a crisis-turn row (safety invariant)', async () => {
+    const sources = [{ type: 'article', title: 'Should never render', url: 'https://kb/a', citation: 'c' }]
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      makeSageResponse(`${CRISIS_SIGNAL}I hear you.`, { 'X-Sage-Sources': JSON.stringify(sources) })
+    )
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'I want to end it all' }],
+        sessionId: VALID_SESSION_UUID,
+      }),
+    })
+    await POST(req)
+    await new Promise((r) => setImmediate(r))
+    await new Promise((r) => setImmediate(r))
+
+    const calls = mockInsert.mock.calls
+    const batchCall = calls.find((c) => Array.isArray(c[0]))
+    expect(batchCall).toBeDefined()
+    const rows = batchCall![0] as Array<Record<string, unknown>>
+    const crisisRow = rows.find((r) => r.role === 'crisis')
+    expect(crisisRow).toBeDefined()
+    expect(crisisRow!.sources).toBeNull()
   })
 
   // ── INT-C1: sage-poc request body — checkpoint-based state (no ferry fields) ─
