@@ -133,17 +133,25 @@ class StratumGates:
 class FlipVerdict:
     flip: bool
     per_stratum: dict[tuple[str, str], StratumGates]
-    bc3_passed: bool         # per-stratum AUGRC parity incl. insufficient_to_assert → not pass
+    bc3_passed: bool | None  # per-stratum AUGRC parity; report-only under revised criterion (None if not computed)
     path_checks_pass: bool   # BC1 crisis-path-invariance + BC2 referral-exclusion
     harm_gate_pass: bool     # no critical/iatrogenic case absorbed by a skill (severity veto)
     reranker_shipped: bool   # gate 5 defined-negative: ships only if in budget
+
+
+# --- Revised §5 flip criterion — PO-signed Absolute-Rule-1 deviation ------------------------
+# Source of authority: docs/superpowers/governance/2026-07-07-v2-recall-criterion-signed-deviation.md
+# (signed 2026-07-08, Rohan / PO). Replaces the strict `v2.recall >= v1.recall` conjunct, which is
+# incoherent with a reject-option router (Chow): abstention inherently trades coverage for risk.
+ID_OOS_ABSTAIN_FLOOR = 0.906   # signed: id_oos abstain "no regression below V2's measured band (~90.6%)" (EN-calibrated)
+RECALL_TOLERANCE_T = 0.05      # signed: in_scope raw recall within T=5pp → v2.recall >= v1.recall - T
 
 
 def evaluate_flip(
     v1_by_stratum: dict[tuple[str, str], RoutingMetrics],
     v2_by_stratum: dict[tuple[str, str], RoutingMetrics],
     *,
-    bc3_result: BC3Result,
+    bc3_result: BC3Result | None = None,
     path_checks_pass: bool,
     harm_gate_pass: bool,
     reranker_in_budget: bool,
@@ -157,22 +165,42 @@ def evaluate_flip(
             per[key] = StratumGates(False, False, False, False, False)
             all_cells_pass = False
             continue
-        g_mis = v2.misroute_rate <= v1.misroute_rate
+        # REVISED CRITERION (signed). Gates depend on the stratum type; override==0 is a universal
+        # data-invariant. in_scope = wrong-route-no-regress AND recall-within-T; id_oos = abstain
+        # floor (EN band; AR fails closed to V1 → parity); far_oos = abstain parity.
+        lang, stratum = key
         g_ovr = v2.override_misroute_count == 0
-        g_rec = v2.recall >= v1.recall
-        g_abs = v2.abstain_correctness >= v1.abstain_correctness
-        cell_pass = g_mis and g_ovr and g_rec and g_abs
+        if stratum == "in_scope":
+            g_mis = v2.misroute_rate <= v1.misroute_rate                     # (3-i) wrong-route no-regress
+            g_rec = v2.recall >= v1.recall - RECALL_TOLERANCE_T              # (3-ii) recall within T=5pp
+            g_abs = True                                                     # not an abstain cell
+            cell_pass = g_ovr and g_mis and g_rec
+        elif stratum == "id_oos":
+            g_mis = True
+            g_rec = True
+            floor = ID_OOS_ABSTAIN_FLOOR if lang == "en" else v1.abstain_correctness  # (2) EN band; AR parity
+            g_abs = v2.abstain_correctness >= floor
+            cell_pass = g_ovr and g_abs
+        else:  # far_oos
+            g_mis = True
+            g_rec = True
+            g_abs = v2.abstain_correctness >= v1.abstain_correctness         # (4) far_oos parity
+            cell_pass = g_ovr and g_abs
         per[key] = StratumGates(g_mis, g_ovr, g_rec, g_abs, cell_pass)
         if not cell_pass:
             all_cells_pass = False
 
     # bc3_result.passed is True only if EVERY stratum is "pass" (a "fail" OR
     # "insufficient_to_assert" cell already makes it False — so underpowered blocks).
-    flip = all_cells_pass and bc3_result.passed and path_checks_pass and harm_gate_pass
+    # Revised criterion: flip = the signed cell conjuncts + harm hard-0 + path_checks (crisis/referral
+    # invariance, a non-negotiable clinical-safety precondition). BC3 (AR-vs-EN AUGRC parity) is NOT a
+    # flip conjunct under the revised signed criterion — it is reported, not gating (the fail-closed AR
+    # arm produces no distinct AUGRC to parity-check). bc3_result may be None when not computed.
+    flip = all_cells_pass and harm_gate_pass and path_checks_pass
     return FlipVerdict(
         flip=flip,
         per_stratum=per,
-        bc3_passed=bc3_result.passed,
+        bc3_passed=(bc3_result.passed if bc3_result is not None else None),
         path_checks_pass=path_checks_pass,
         harm_gate_pass=harm_gate_pass,
         reranker_shipped=reranker_in_budget,

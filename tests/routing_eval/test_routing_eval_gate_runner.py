@@ -3,8 +3,9 @@
 The flip verdict is the function that will authorize flipping V2 on for real users, so every
 gate is tested to BLOCK, not just to pass: each veto test holds the other gates green and
 flips one red, asserting don't-flip — five independent vetoes — plus the composition test
-that proves a strong English result cannot mask a weak Khaleeji ar/id_oos cell, plus that an
-underpowered (insufficient_to_assert) cell blocks rather than passes.
+that proves a strong English result cannot mask a weak Khaleeji ar/id_oos cell. Under the
+revised signed criterion (2026-07-07-v2-recall-criterion-signed-deviation) BC3 is REPORT-ONLY,
+not a flip conjunct, so an insufficient_to_assert cell is reported, not gating.
 """
 from sage_poc.routing_eval.augrc import CellAUGRC
 from sage_poc.routing_eval.blocking_checks import bc3_per_stratum_parity
@@ -50,9 +51,10 @@ def test_flip_when_all_strata_pass_bc3_pass_path_pass():
 # --- five independent per-stratum vetoes -------------------------------------
 
 def test_veto_misroute():
-    v2 = {EN: _m(0.10, 0.70, 0.85), AR: _m(0.30, 0.62, 0.82)}      # ar misroute 0.30 > 0.25
-    fv = evaluate_flip(_v1(), v2, bc3_result=_bc3(), path_checks_pass=True, harm_gate_pass=True, reranker_in_budget=True)
-    assert fv.flip is False and fv.per_stratum[AR].gate_misroute is False
+    # REVISED: wrong-route (misroute) no-regress is an in_scope conjunct. Worse EN in_scope misroute blocks.
+    v2 = {EN: _m(0.30, 0.70, 0.85), AR: _m(0.15, 0.62, 0.82)}      # en in_scope misroute 0.30 > 0.20
+    fv = evaluate_flip(_v1(), v2, path_checks_pass=True, harm_gate_pass=True, reranker_in_budget=True)
+    assert fv.flip is False and fv.per_stratum[EN].gate_misroute is False
 
 
 def test_veto_override():
@@ -62,9 +64,11 @@ def test_veto_override():
 
 
 def test_veto_recall():
-    v2 = {EN: _m(0.10, 0.70, 0.85), AR: _m(0.15, 0.50, 0.82)}      # ar recall 0.50 < 0.55
-    fv = evaluate_flip(_v1(), v2, bc3_result=_bc3(), path_checks_pass=True, harm_gate_pass=True, reranker_in_budget=True)
-    assert fv.flip is False and fv.per_stratum[AR].gate_recall is False
+    # REVISED: in_scope recall must be within T=5pp. Drop BEYOND T (0.54 < 0.60-0.05) blocks; within-T passes
+    # (boundary cases in test_evaluate_flip_revised_criterion.py).
+    v2 = {EN: _m(0.10, 0.54, 0.85), AR: _m(0.15, 0.62, 0.82)}
+    fv = evaluate_flip(_v1(), v2, path_checks_pass=True, harm_gate_pass=True, reranker_in_budget=True)
+    assert fv.flip is False and fv.per_stratum[EN].gate_recall is False
 
 
 def test_veto_abstain():
@@ -81,18 +85,20 @@ def test_veto_blocking_checks():
 # --- composition: strong EN must not mask weak Khaleeji ----------------------
 
 def test_strong_english_does_not_mask_weak_khaleeji():
-    v2 = {EN: _m(0.02, 0.95, 0.97), AR: _m(0.30, 0.50, 0.78)}      # EN excellent, AR regresses
-    fv = evaluate_flip(_v1(), v2, bc3_result=_bc3(), path_checks_pass=True, harm_gate_pass=True, reranker_in_budget=True)
-    assert fv.flip is False, "pooled improvement must not flip when the worst cell regresses"
+    # REVISED: the weak AR id_oos cell fails its applicable gate (abstain-parity), not misroute/recall.
+    v2 = {EN: _m(0.02, 0.95, 0.97), AR: _m(0.15, 0.62, 0.70)}      # EN excellent; AR id_oos abstain 0.70 < v1 0.78
+    fv = evaluate_flip(_v1(), v2, path_checks_pass=True, harm_gate_pass=True, reranker_in_budget=True)
+    assert fv.flip is False, "excellent EN must not mask a weak Khaleeji ar/id_oos cell"
     assert fv.per_stratum[EN].passed is True
     assert fv.per_stratum[AR].passed is False
 
 
-def test_insufficient_to_assert_cell_blocks_flip():
-    # Underpowered Khaleeji cell → BC3 not 'pass' → must block, not silently read as ✓.
+def test_bc3_insufficient_is_reported_not_gating():
+    # REVISED (signed deviation): BC3 is REPORT-ONLY, not a flip conjunct. An insufficient_to_assert
+    # cell is reported (bc3_passed False) but does NOT block the flip.
     fv = evaluate_flip(_v1(), _v2(), bc3_result=_bc3(ar_n=3), path_checks_pass=True, harm_gate_pass=True, reranker_in_budget=True)
-    assert fv.bc3_passed is False
-    assert fv.flip is False
+    assert fv.bc3_passed is False   # reported
+    assert fv.flip is True          # but not gating
 
 
 # --- gate 5 defined-negative -------------------------------------------------
