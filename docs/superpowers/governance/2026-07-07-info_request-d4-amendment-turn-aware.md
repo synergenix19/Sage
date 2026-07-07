@@ -21,5 +21,10 @@ The earlier **unpromoted** v2.1.0 statement-bridge package (branch `246b88e`) wa
 - Manifest: both classified `engagement_bridge`; `classified_against_version` set to the new versions (#127 guard green).
 - Tests: `test_info_request_turn_aware.py` (detector amendment + variant selection + reset) and the retained `test_info_request_bridge_survives_gate.py` (strip-scope pinned question-only, EN + `؟` — the strip still exists for genuinely-directive turns of other intents). Two existing directive tests rewritten to the amendment (rewrite-not-delete). Full suite green on touched surfaces (243 passed), `build_graph()` OK.
 
-## Open — blocks PROMOTION, not the build
-**Signer display string.** Templates carry `approved_by: "clinical ruling 2026-07-07 (signer display string PENDING confirmation)"`. The signer self-identified ("i am the signer", product-owner account `synergenix.global@gmail.com`), distinct from the `Rohan Sarda (clinical lead)` identity the earlier v2.0.0 artifacts were stamped with by precedent-inference. Per `feedback_primary_record_over_inference`, the exact name + role must come from the signer verbatim before promotion — and it also resolves the standing register attribution correction (whether the v2.0.0 stamp needs correcting depends on this answer).
+## Signer — RESOLVED 2026-07-07
+Signer confirmed **verbatim from the primary record**: **Rohan Sarda (clinical lead)** (stated directly by the product owner, not inferred). Templates now stamped `approved_by: "Rohan Sarda (clinical lead)"`. This also confirms the earlier v2.0.0 stamp was *accidentally correct* — right name, but populated by inference at the time (the process error `feedback_primary_record_over_inference` records). The register attribution correction is therefore a **provenance confirmation, not a name change** (see the sign-off register's Corrections appendix).
+
+## Remaining before promotion (per the standing evidence gate)
+1. **PromptFoo rubric rewrite** — base cases assert the question-form close; add repeat-variant statement cases.
+2. **Full-graph LLM eval** (compose → live generation → output_gate): first-turn one open clarifying question survives the gate (EN + `؟`); repeat-turn statement, zero questions; no em dashes. Attach honestly with the GPT-4o→Falcon transfer caveat.
+3. **Behavioral closure** — post-deploy prod smoke transcript (fresh "what is anxiety" = surviving question-close; consecutive = statement fallback).
