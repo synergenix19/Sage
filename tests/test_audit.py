@@ -245,6 +245,22 @@ async def test_write_proceeds_when_user_exists_in_auth(monkeypatch):
     assert post_calls[0]["user_id"] == real_uid
 
 
+def test_build_session_audit_row_carries_served_latency_stages():
+    """freeflow_gen_ms/translate_out_ms must ride the existing session_audit row
+    (no second network write) — present when set on state, None when absent."""
+    from sage_poc.audit import _build_session_audit_row
+
+    row_present = _build_session_audit_row(make_audit_state(
+        freeflow_gen_ms=812, translate_out_ms=143,
+    ))
+    assert row_present["freeflow_gen_ms"] == 812
+    assert row_present["translate_out_ms"] == 143
+
+    row_absent = _build_session_audit_row(make_audit_state())
+    assert row_absent["freeflow_gen_ms"] is None
+    assert row_absent["translate_out_ms"] is None
+
+
 @pytest.mark.asyncio
 async def test_crisis_response_schedules_audit_write(monkeypatch):
     """crisis_response must schedule a write_session_audit task on crisis paths."""

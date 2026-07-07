@@ -140,6 +140,8 @@ def _build_session_audit_row(state: SageState) -> dict:
         "emotional_intensity":    state.get("emotional_intensity"),
         "model_version":          state.get("model_version"),
         "latency_ms":             state.get("latency_ms"),
+        "freeflow_gen_ms":        state.get("freeflow_gen_ms"),
+        "translate_out_ms":       state.get("translate_out_ms"),
         "user_id":                state.get("user_id") or None,
         "re_escalation_within_monitoring": state.get("re_escalation_within_monitoring"),
     }

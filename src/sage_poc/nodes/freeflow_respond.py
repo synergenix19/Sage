@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import time
 from sage_poc.state import SageState
 from sage_poc.llm import get_responder, get_fallback_responder
 from sage_poc.prompts import compose_prompt, PERSONA  # re-exported for backward compat
@@ -276,12 +277,22 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
     tool_ai_messages: list = []
     token_usage: dict = {}
 
+    # §5 served-arm latency timer: the served English arm's own generation call, bracketed
+    # with time.monotonic() (same idiom as latency_ms). Set inside _english_arm (via nonlocal)
+    # so it is captured on BOTH the concurrent (shadow flag on + Arabic) and flag-off paths --
+    # _english_arm always runs, so this is unconditional across languages/flag state.
+    freeflow_gen_ms: int | None = None
+
     async def _english_arm():
-        return await _invoke_with_tool_loop(
+        nonlocal freeflow_gen_ms
+        _gen_t0 = time.monotonic()
+        result = await _invoke_with_tool_loop(
             llm, messages, llm_tools, node="freeflow_respond",
             language=state.get("detected_language", "en"), fallback_llm=fallback_llm,
             _tool_messages=tool_ai_messages, _usage=token_usage,
         )
+        freeflow_gen_ms = int((time.monotonic() - _gen_t0) * 1000)
+        return result
 
     if NATIVE_ARABIC_SHADOW_ENABLED and state.get("detected_language") == "ar":
         _timed_out = False
@@ -345,5 +356,6 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
         "path":                     (state.get("path") or []) + ["freeflow_respond"],
         "stale_skill_id":           None,   # consumed by re-entry prompt; clear so it doesn't re-fire
         "banned_opener_correction": None,
+        "freeflow_gen_ms":          freeflow_gen_ms,
         **knowledge_source_update,
     }

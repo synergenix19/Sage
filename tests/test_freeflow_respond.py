@@ -337,3 +337,38 @@ def test_token_usage_populated_via_tool_loop():
     mock_llm = MagicMock(); mock_llm.bind_tools = MagicMock(return_value=mock_bound)
     result = asyncio.run(freeflow_respond_node(_BASE_STATE, llm=mock_llm))
     assert result["token_usage"] == {"input": 200, "output": 40, "total": 240}
+
+
+def test_freeflow_gen_ms_captured_flag_off():
+    """freeflow_gen_ms times the served English arm's _invoke_with_tool_loop call and is
+    captured unconditionally (flag off, English turn — the common served path)."""
+    mock_msg = MagicMock()
+    mock_msg.content = "That sounds really difficult."
+    mock_msg.usage_metadata = {"input_tokens": 10, "output_tokens": 5, "total_tokens": 15}
+    mock_msg.tool_calls = None
+    mock_bound = AsyncMock(); mock_bound.ainvoke = AsyncMock(return_value=mock_msg)
+    mock_llm = MagicMock(); mock_llm.bind_tools = MagicMock(return_value=mock_bound)
+
+    result = asyncio.run(freeflow_respond_node(_BASE_STATE, llm=mock_llm))
+
+    assert "freeflow_gen_ms" in result
+    assert isinstance(result["freeflow_gen_ms"], int)
+    assert result["freeflow_gen_ms"] >= 0
+
+
+def test_freeflow_gen_ms_captured_flag_on_arabic_concurrent_path():
+    """freeflow_gen_ms must also be set on the concurrent (shadow flag ON, Arabic) path —
+    the English arm still runs and must still be timed."""
+    from unittest.mock import patch
+    import sage_poc.nodes.freeflow_respond as fr_mod
+
+    state = {**_BASE_STATE, "detected_language": "ar", "raw_message": "تعبت"}
+    payload = {"text": "مرحبا", "prompt_hash": "a" * 16, "exemplar_version": "0.1",
+               "generation_language": "ar_native", "gen_latency_ms": 4}
+    with patch.object(fr_mod, "NATIVE_ARABIC_SHADOW_ENABLED", True), \
+         patch.object(fr_mod, "generate_shadow_arabic", new=AsyncMock(return_value=payload)), \
+         patch.object(fr_mod, "write_shadow_eval_row", new=AsyncMock()):
+        result = asyncio.run(freeflow_respond_node(state, llm=fr_stub_llm()))
+
+    assert isinstance(result["freeflow_gen_ms"], int)
+    assert result["freeflow_gen_ms"] >= 0
