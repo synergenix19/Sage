@@ -23,15 +23,14 @@ The incoming `mindfulness_meditation` skill (spec-required) lands in exactly thi
 ## 5. The honest counterweight
 **MI readiness work is a legitimate, evidence-based technique.** Its absence from the spec may be the **spec's gap**, not the skill's obsolescence. "Deprecate" is not the assumed answer — the clinician decides whether the spec should gain a readiness/ambivalence category (keep + spec-amend), the skill should be narrowed (rescope), or it should be retired (deprecate). Engineering's role here is only to surface the spec-absence + the routing cost.
 
-## 6. Decision + mechanics
-- [ ] **Deprecate** — remove `mi_readiness_ruler` from `SKILL_REGISTRY` (JSON stays in the repo; **cheap and fully reversible**). Removes 2 routing failures + clears the largest MM-collision zone.
-- [ ] **Keep + justify** — the skill stays; the spec should gain a readiness/ambivalence category (routes to a spec amendment); routing de-collision handled another way.
-- [ ] **Rescope** — narrow the skill (e.g. `semantic_description` / target_presentations) to a tighter indication.
+## 6. Decision + mechanics — ✅ EXECUTED 2026-07-07 (DEPRECATE)
+- [x] **Deprecate** — removed `mi_readiness_ruler` from `SKILL_REGISTRY` + its clinical cluster + its offer description. **Mechanic:** the JSON is **retained** on disk (reversibility + it serves as executor test fixtures), with a documented exemption in `test_corpus_integrity.py::DEPRECATED_RETAINED` so the no-orphan-JSON invariant still holds explicitly. Reversible = drop it from that exemption set + re-add to `SKILL_REGISTRY`. Freed slot taken by `mindfulness_meditation`; routing verified (0 new failures, calibration gap 0.0526 clean, `SEMANTIC_THRESHOLD` unchanged).
+- [ ] Keep + justify · [ ] Rescope — not chosen.
 
-| Role | Decision | Rationale / spec-amend note | Name | Date |
+| Role | Decision | Rationale | Name | Date |
 |---|---|---|---|---|
-| Clinical lead | | | | |
-| Product | | | | |
+| Product | **Deprecate** | product half of the call, made to unblock MM registration | Rohan (PO) | 2026-07-07 |
+| Clinical lead | **Deprecate (via spec)** | NOT a wet signature — the clinical half is the spec's own silence: BOT BEHAVIOUR has no readiness/ambivalence category, i.e. the clinician's own document. This one-pager is routed to the clinical lead as a **notification with a confirm-or-object window**, not a blocking ask. If the clinician objects, deprecation is reverted (git-reversible). | notification (confirm-or-object) | 2026-07-07 |
 
 ## Secondary observation (NOT part of this ask)
 `interpersonal_effectiveness` is **spec-covered-by-another-skill** (function lives in `assertive_communication` / "Boundary Setting"), i.e. a **redundancy** question, not an orphan — and it carries the **E7 `coaching_confrontation` guard**, so touching it has safety entanglement. Deliberately excluded from this single-question ask; raise separately if worth pursuing.

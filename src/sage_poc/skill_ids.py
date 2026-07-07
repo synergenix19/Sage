@@ -7,7 +7,7 @@ SKILL_REGISTRY = [
     "mood_check_in",
     "behavioral_activation",
     "worry_time",
-    "mi_readiness_ruler",
+    "mindfulness_meditation",
     "stop_technique",
     "progressive_muscle_relaxation",
     "safe_place_visualization",

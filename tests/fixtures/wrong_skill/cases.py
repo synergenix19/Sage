@@ -161,15 +161,6 @@ WRONG_SKILL_CASES: list[tuple[str, str]] = [
     ("interpersonal_effectiveness", "I want to communicate what I need to my partner without it turning into a fight"),
     ("interpersonal_effectiveness", "I'm losing close relationships because I can't express what I need from people"),
 
-    # ── mi_readiness_ruler ───────────────────────────────────────────────────
-    # Keywords: "want to change", "trying to change", "know I should change",
-    # "should stop drinking", "should stop smoking", "ready to change".
-    ("mi_readiness_ruler", "I know I should change this but I don't know if I actually want to"),
-    ("mi_readiness_ruler", "Part of me wants to get better and part of me doesn't see the point"),
-    ("mi_readiness_ruler", "I'm not sure how motivated I really am to do what I know I need to do"),
-    ("mi_readiness_ruler", "I keep going back and forth about whether I'm actually ready for this"),
-    ("mi_readiness_ruler", "I have really mixed feelings about getting help, I don't know where I stand"),
-
     # ── mindfulness_body_scan ────────────────────────────────────────────────
     # Keywords: "body scan", "mindfulness body scan", "feel my body",
     # "feel grounded", "body awareness".
@@ -178,6 +169,14 @@ WRONG_SKILL_CASES: list[tuple[str, str]] = [
     ("mindfulness_body_scan", "I want something slow and gentle that helps me notice my body"),
     ("mindfulness_body_scan", "I need to get out of my head and feel where I'm holding tension"),
     ("mindfulness_body_scan", "I want to do something present-focused that connects me to my body"),
+
+    # ── mindfulness_meditation ───────────────────────────
+    # Sitting meditation, observing thoughts/feelings without fixing or fighting (not body scan).
+    ("mindfulness_meditation", "I want to sit with these feelings without trying to fix or fight them"),
+    ("mindfulness_meditation", "can you guide me through a sitting meditation"),
+    ("mindfulness_meditation", "I want to just observe my thoughts and let them pass"),
+    ("mindfulness_meditation", "help me practice mindfulness meditation, just watching my breath"),
+    ("mindfulness_meditation", "I need to stop wrestling with how I feel and just be with it"),
 
     # ── mood_check_in ────────────────────────────────────────────────────────
     # Keywords: "check in", "mood check", "how am I doing", "track my mood",

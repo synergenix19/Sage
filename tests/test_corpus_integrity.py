@@ -121,13 +121,23 @@ def test_every_registry_skill_has_json():
     assert not missing, f"SKILL_REGISTRY IDs with no JSON file: {missing}"
 
 
+# Skills DEPRECATED (removed from SKILL_REGISTRY) but retained on disk — for reversibility
+# and as executor test fixtures. Each entry MUST have a governance record. Re-registering a
+# skill (or deleting its JSON) removes it from here.
+DEPRECATED_RETAINED = frozenset({
+    # deprecated 2026-07-07 (spec-absent per BOT BEHAVIOUR; product+notification decision):
+    # docs/superpowers/governance/2026-07-07-mi-readiness-ruler-deprecation-request.md
+    "mi_readiness_ruler",
+})
+
+
 def test_no_orphan_skill_jsons():
     from sage_poc.skill_ids import SKILL_REGISTRY
     orphans = [
         f.stem for f in SKILLS_DIR.glob("*.json")
-        if f.stem not in SKILL_REGISTRY
+        if f.stem not in SKILL_REGISTRY and f.stem not in DEPRECATED_RETAINED
     ]
-    assert not orphans, f"Skill JSON files not in SKILL_REGISTRY: {orphans}"
+    assert not orphans, f"Skill JSON files not in SKILL_REGISTRY (and not documented-deprecated): {orphans}"
 
 
 # ── Per-skill parametrised tests ───────────────────────────────────────────
