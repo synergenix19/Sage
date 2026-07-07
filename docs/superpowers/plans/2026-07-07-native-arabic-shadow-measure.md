@@ -461,6 +461,19 @@ def test_no_shadow_when_flag_off(monkeypatch):
         asyncio.run(fr.freeflow_respond_node(_ar(), llm=fr_stub_llm()))
     writer.assert_not_called()
 
+def test_generation_failure_writes_nothing(monkeypatch):
+    # Clarification #1: non-timeout generation failure (shadow returns None, not timed out)
+    # must NOT write a row — an invalid measurement must not pollute the sample. Distinct from
+    # timeout (which DOES write a censored row per test_timeout_writes_censored_row).
+    monkeypatch.setattr(fr, "NATIVE_ARABIC_SHADOW_ENABLED", True)
+    monkeypatch.setattr(fr, "_SHADOW_TIMEOUT_S", 5.0)  # not a timeout; generator just returns None
+    writer = AsyncMock()
+    with patch.object(fr, "generate_shadow_arabic", new=AsyncMock(return_value=None)), \
+         patch.object(fr, "write_shadow_eval_row", new=writer):
+        out = asyncio.run(fr.freeflow_respond_node(_ar(), llm=fr_stub_llm()))
+    writer.assert_not_called()          # generation failure → no row
+    assert "response_en" in out          # served turn unaffected
+
 def test_eval_write_failure_does_not_break_served_turn(monkeypatch):
     # Verification #1: a write raising/timing out must be swallowed; served turn intact.
     monkeypatch.setattr(fr, "NATIVE_ARABIC_SHADOW_ENABLED", True)
@@ -558,19 +571,27 @@ _SHADOW_WRITE_TIMEOUT_S = 2.0  # bound on the eval-row DB write (Verification #1
         response, shadow_payload = await asyncio.gather(_english_arm(), _shadow_arm())
         # tool_loop_iterations proxy = number of tool round-trips the English arm took;
         # the pre-registered PRIMARY comparison uses tool_loop_iterations == 0 turns only (Blocking #2).
-        # Verification #1: the eval write is fail-open AND bounded — a Supabase timeout/error
-        # must never delay or break the served turn. Bounded + swallowed = "logged, discarded".
-        try:
-            await asyncio.wait_for(
-                write_shadow_eval_row(
-                    state, shadow_payload,
-                    tool_loop_iterations=len(tool_ai_messages),
-                    timed_out=_timed_out,
-                ),
-                timeout=_SHADOW_WRITE_TIMEOUT_S,
-            )
-        except Exception:
-            _log.warning("[freeflow] shadow eval write failed/timed out (discarded)")
+        #
+        # Write policy (Amendment #2 / Checkpoint-2 clarification #1):
+        #   TIMEOUT  → write a CENSORED row (shadow_timed_out=True) — a right-censored observation;
+        #              dropping it would bias the latency delta optimistic by discarding the slowest gens.
+        #   SUCCESS  → write the row with the payload.
+        #   GENERATION FAILURE (payload None, NOT timed out — e.g. LLM error, empty content) → write NOTHING;
+        #              it is not a valid measurement and must not pollute the register/latency sample.
+        if _timed_out or shadow_payload is not None:
+            # Verification #1: the eval write is fail-open AND bounded — a Supabase timeout/error
+            # must never delay or break the served turn. Bounded + swallowed = "logged, discarded".
+            try:
+                await asyncio.wait_for(
+                    write_shadow_eval_row(
+                        state, shadow_payload,
+                        tool_loop_iterations=len(tool_ai_messages),
+                        timed_out=_timed_out,
+                    ),
+                    timeout=_SHADOW_WRITE_TIMEOUT_S,
+                )
+            except Exception:
+                _log.warning("[freeflow] shadow eval write failed/timed out (discarded)")
     else:
         response = await _english_arm()
 ```
