@@ -4,11 +4,12 @@
   "authored_by": "sage_clinics",
   "approved_by": null,
   "effective_date": "2026-05-22",
+  "_migration_note": "2026-07-07 mechanism-only migration: low_confidence_respond_node now composes L0 + this L2 template via compose_prompt(l2_intent_override='low_confidence') instead of a hardcoded _SYSTEM string (v7 §5.6.3). Content here is FROZEN to the prior live behaviour of that hardcoded prompt (one gentle clarifying question, max two sentences) so regressions attribute to the mechanism change, not a content redesign. The real engagement rewrite of this template is a separate, clinically-reviewed batch item and MUST set approved_by before ship.",
   "layer": "L2",
   "role": "user",
   "always_include": true,
   "word_budget": 50,
-  "content": "INTENT: The user's intent is unclear. Emotional intensity: {intensity}/10. Respond warmly and check in gently. Do not assume what the user needs. Invite them to say more.",
+  "content": "INTENT: The user's message was ambiguous and it is not clear what they need. Emotional intensity: {intensity}/10. Ask one gentle, open ended clarifying question to understand better. Be warm and non judgmental. Do not assume what they need. Keep your reply to at most two sentences.",
   "variables": ["intensity"],
   "intent": "low_confidence"
 }
