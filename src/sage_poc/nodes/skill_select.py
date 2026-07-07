@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import re
 import threading
 
@@ -68,6 +69,68 @@ _anchor_skill_ids: list[str] = []    # one entry per anchor (description or sema
 _anchor_embeddings: np.ndarray | None = None  # shape (n_anchors, 1024)
 _init_lock = threading.Lock()
 
+# Retrieval-core flag (spec rev4). Default OFF — production routing is unchanged until
+# the POC demonstrates the delta and we flip it deliberately.
+SKILL_ROUTING_V2: bool = os.environ.get("SKILL_ROUTING_V2", "0") == "1"
+
+
+def _v2_enabled() -> bool:
+    """The retrieval-core flag, read DYNAMICALLY. Every calibrated-V2 behavior gates on this
+    (not the import-time SKILL_ROUTING_V2 constant) so the byte-identical guard can toggle the
+    flag per-test and a flip needs no module reload. The module constant is retained only for
+    the warmup anchor build (read once at startup — the prod path)."""
+    return os.environ.get("SKILL_ROUTING_V2", "0") == "1"
+
+
+# Calibrated per-route/per-language threshold table (V2 behavior #1). None until a table fit by
+# the §2 offline calibration on real held_out=False scores is loaded at warmup. While None (and
+# always when the flag is off) the router uses the global SEMANTIC_THRESHOLD, so flag-on without
+# a calibrated table is byte-identical to V1 too.
+_THRESHOLD_TABLE = None
+
+
+def routing_threshold(lang: str, route: str) -> float:
+    """The operating threshold for one candidate route. Flag-off OR no calibrated table → the
+    global SEMANTIC_THRESHOLD (byte-identical to V1). Flag-on with a table → the route's own
+    (lang, route) τ; a route the calibration never saw falls back to global (the safe direction
+    given the over-firing failure mode). Per-(lang, route) by construction — no stratum pooling."""
+    if not _v2_enabled() or _THRESHOLD_TABLE is None:
+        return SEMANTIC_THRESHOLD
+    try:
+        return _THRESHOLD_TABLE.threshold(lang, route)
+    except KeyError:
+        return SEMANTIC_THRESHOLD
+
+# Referral/after-care pathways excluded as skill_select targets under v2, per the FROZEN
+# A1 boundary (2026-06-23): reached via deterministic/clinical-state paths, not semantic match.
+EXCLUDED_REFERRALS = ("psychotic_referral", "post_crisis_check_in")
+
+
+def build_anchor_pairs(skills, *, include_exemplars: bool) -> list[tuple[str, str]]:
+    """Build (skill_id, text) anchor pairs for the BGE-M3 semantic index.
+
+    v1 (include_exemplars=False, current prod): each skill contributes its
+    semantic_description + semantic_anchors. Behavior is unchanged.
+
+    SKILL_ROUTING_V2 (include_exemplars=True): ALSO embed target_presentations as exemplar
+    anchors (spec §6.1, "the change that does the real work"), and EXCLUDE the referral
+    pathways from the index (frozen A1 boundary). max-over-anchors pooling is unchanged.
+    """
+    pairs: list[tuple[str, str]] = []
+    for sid, skill in skills.items():
+        if sid in KEYWORD_SEMANTIC_SKIP:
+            continue
+        if include_exemplars and sid in EXCLUDED_REFERRALS:
+            continue
+        if skill.semantic_description:
+            pairs.append((sid, skill.semantic_description))
+        for anchor in skill.semantic_anchors:
+            pairs.append((sid, anchor))
+        if include_exemplars:
+            for tp in skill.target_presentations:
+                pairs.append((sid, tp))
+    return pairs
+
 
 def _ensure_semantic_ready() -> None:
     """Load BGE-M3 and embed all skill descriptions + semantic_anchors. No-op when ready."""
@@ -89,14 +152,7 @@ def _ensure_semantic_ready() -> None:
             except (OSError, EnvironmentError):
                 model = SentenceTransformer("BAAI/bge-m3", revision=_BGE_M3_REVISION)
 
-        pairs: list[tuple[str, str]] = []
-        for sid, skill in _SKILLS.items():
-            if sid in KEYWORD_SEMANTIC_SKIP:
-                continue
-            if skill.semantic_description:
-                pairs.append((sid, skill.semantic_description))
-            for anchor in skill.semantic_anchors:
-                pairs.append((sid, anchor))
+        pairs = build_anchor_pairs(_SKILLS, include_exemplars=SKILL_ROUTING_V2)
 
         _anchor_skill_ids = [sid for sid, _ in pairs]
         anchor_texts = [text for _, text in pairs]
@@ -112,9 +168,200 @@ def _skill_cluster(skill_id: str) -> str | None:
     return None
 
 
+# Anchor-count debias strength (behavior #3, §6.1). Conservative + PRECAUTIONARY: shipped on the
+# §3.4 pre-commit (anchor_count/FP correlation is insufficient_power at N=27), NOT validated to
+# remove the bias at this scale. Mechanism = reweight (not cap); chosen here, spec left it open.
+_ANCHOR_DEBIAS_LAMBDA: float = 0.01
+
+
+_FLAG_DISPOSITIONS_CACHE: dict[str, str] | None = None
+
+
+def _flag_dispositions() -> dict[str, str]:
+    """flag_id -> declared skill_select_disposition, read BY REFERENCE from the canonical flag
+    definitions (rules/data/safety/clinical_flag_patterns.json). The POLICY — which flags carry
+    disposition "abstain" — is OWNED by the safety lane / crisis sprint, which declares it on the
+    flag definitions; skill_select is a pure CONSUMER. A flag with no declared disposition is
+    absent from this map and routes as V1 (the safe default). Cached after first load."""
+    global _FLAG_DISPOSITIONS_CACHE
+    if _FLAG_DISPOSITIONS_CACHE is None:
+        import json
+        import pathlib
+        path = pathlib.Path(__file__).resolve().parent.parent / "rules/data/safety/clinical_flag_patterns.json"
+        data = json.loads(path.read_text(encoding="utf-8"))
+        out: dict[str, str] = {}
+        for rule in data.get("rules", []):
+            action = rule.get("action", {})
+            fid, disp = action.get("flag_id"), action.get("skill_select_disposition")
+            if fid and disp:
+                out[fid] = disp
+        _FLAG_DISPOSITIONS_CACHE = out
+    return _FLAG_DISPOSITIONS_CACHE
+
+
+def _anchor_counts() -> dict[str, int]:
+    """How many index anchors each skill contributes (description + semantic_anchors [+ exemplars
+    under v2]). The count that drives the max-over-anchors bias."""
+    counts: dict[str, int] = {}
+    for sid in _anchor_skill_ids:
+        counts[sid] = counts.get(sid, 0) + 1
+    return counts
+
+
+def _apply_anchor_debias(
+    skill_scores: dict[str, float],
+    anchor_counts: dict[str, int],
+) -> dict[str, float]:
+    """Counter the max-over-anchors count bias (anchor-rich skills get more shots at a spurious
+    high max). Subtract a small penalty monotonic in anchor count, normalized to the MINIMUM count
+    so the least-anchored skill is unpenalized and only the RELATIVE advantage is removed. Equal
+    counts → exact identity (no relative bias to remove). Called only under flag-on."""
+    if not anchor_counts:
+        return skill_scores
+    min_n = min(anchor_counts.values())
+    return {
+        sid: score - _ANCHOR_DEBIAS_LAMBDA * float(np.log1p(anchor_counts.get(sid, min_n) - min_n))
+        for sid, score in skill_scores.items()
+    }
+
+
+_RERANK_K: int = 5                         # top-k bi-encoder candidates fed to the cross-encoder (offline-measured config)
+_RERANK_TAU: dict | None = None            # {lang: global reranker-τ}, lazy-loaded from rerank_calibration.json
+
+
+def _rerank_enabled() -> bool:
+    """The §4.3 cross-encoder SELECTOR flag, read dynamically. Default OFF — gates the reranker
+    pipeline so flag-off routing is byte-identical V1. Expects SKILL_ROUTING_V2 too (the exemplar
+    +debias bi-encoder candidate set the offline gate measured)."""
+    return os.environ.get("SKILL_RERANK_ENABLED", "0") == "1"
+
+
+def _load_rerank_calibration() -> dict:
+    """{lang: global reranker-τ} from rerank_calibration.json. The τ is the balanced operating point
+    on RERANKER LOGITS (not bi-encoder), GLOBAL (not per-route — uniform cross-encoder confidence),
+    full-data fit. A missing file/key → {} → every lang resolves to -inf (route top-1, inert)."""
+    import json
+    import pathlib
+    try:
+        data = json.loads((pathlib.Path(__file__).parent / "rerank_calibration.json").read_text())
+        return {lang: float(tau) for lang, tau in data["rerank_tau"].items()}
+    except (FileNotFoundError, KeyError, ValueError):
+        return {}
+
+
+def _rerank_tau(lang: str) -> float:
+    """The GLOBAL reranker-τ operating point for `lang`, lazy-loaded into the slot the live path
+    reads. A lang with no calibrated τ (e.g. AR pending native review) → -inf → routes top-1 (no
+    ABSTAIN), so an uncalibrated language never gets a mis-scaled gate."""
+    global _RERANK_TAU
+    if _RERANK_TAU is None:
+        _RERANK_TAU = _load_rerank_calibration()
+    return _RERANK_TAU.get(lang, float("-inf"))
+
+
+def _rerank_route(
+    ranked: list[tuple[str, float]],
+    lang: str,
+    message_en: str,
+    runner_up,
+) -> tuple[str | None, float, tuple[str, float] | None]:
+    """V2 selector pipeline, faithful to the offline-measured shape (62/90/100): bi-encoder top-k →
+    cross-encoder re-score the k → GLOBAL reranker-τ → route-or-ABSTAIN. Supersedes the per-route /
+    cluster-argmax decision (#1/#2) when the reranker is on. Runner-up via the same closure → master's
+    _select_runner_up stays live."""
+    topk = ranked[:_RERANK_K]
+    if not topk:
+        return None, 0.0, None
+    from sage_poc.nodes.skill_rerank_model import score_pairs
+    from sage_poc.skills.schema import load_skill
+    bi_score = dict(ranked)
+    pairs = [(message_en, load_skill(sid).semantic_description or sid) for sid, _ in topk]
+    rr_scores = score_pairs(pairs)
+    reranked = sorted(((sid, rr) for (sid, _), rr in zip(topk, rr_scores)), key=lambda x: -x[1])
+    top_sid, top_rr = reranked[0]
+    if top_rr >= _rerank_tau(lang):
+        return top_sid, bi_score.get(top_sid, 0.0), runner_up(top_sid)
+    return None, ranked[0][1], None  # ABSTAIN — below the reranker's confidence floor
+
+
+def _keyword_rerank_veto(candidates: list[str], message: str, lang: str) -> bool:
+    """True if the reranker would ABSTAIN on a keyword-Tier-1 route — i.e., NONE of the keyword-
+    matched skills clears the reranker's confidence floor for this message. Catches the Tier-1
+    bypass: a keyword false-match on a clinician-territory (id_oos) disclosure must not route past
+    the reranker's ABSTAIN gate (the wired re-gate measured 7 such id_oos over-routes, id_oos
+    90→76). A confident keyword in_scope match clears τ and is NOT vetoed."""
+    if not candidates:
+        return False
+    from sage_poc.nodes.skill_rerank_model import score_pairs
+    from sage_poc.skills.schema import load_skill
+    cands = candidates[:_RERANK_K]
+    scores = score_pairs([(message, load_skill(sid).semantic_description or sid) for sid in cands])
+    return bool(scores) and max(scores) < _rerank_tau(lang)
+
+
+def _route_decision(
+    ranked: list[tuple[str, float]],
+    lang: str,
+    message_en: str,
+) -> tuple[str | None, float, tuple[str, float] | None]:
+    """Map a ranked (skill_id, score) list to (best|None, best_score, runner_up): cluster-argmax
+    tiebreak, the per-route absolute gate, rerank, and ABSTAIN. Flag-off = V1 exactly. Flag-on
+    adds explicit ABSTAIN (behavior #2): the cluster-argmax floor no longer routes a winner that
+    clears no threshold — it fires only ABOVE the winner's τ (the id_oos over-route fix), while an
+    above-τ winner still gets the tiebreak (no in_scope collateral). ABSTAIN returns no runner-up."""
+    best_sid, best_score = ranked[0]
+
+    def _runner_up(best: str | None) -> tuple[str, float] | None:
+        # RECONCILE: master's runner-up fix (offer-confidence floor: strong AND close to primary,
+        # feedback #6) is the runner-up mechanism in BOTH flag states — it superseded behavior-#1's
+        # per-route runner-up loop, which was minor (per-route τ still gates the PRIMARY route).
+        # Keeping this call is what makes master's fix LIVE, not dead code (the reverse-direction
+        # check the runner-up-blind stash-control can't see).
+        if best is None:
+            return None
+        return _select_runner_up(ranked, best, best_score)
+
+    # V2 SELECTOR (commit 2): when the cross-encoder reranker is enabled, it re-scores the top-k
+    # bi-encoder candidates and a GLOBAL reranker-τ gates route-or-ABSTAIN — the §4.3 selector,
+    # the exact pipeline the offline gate measured (62/90/100). It supersedes the per-route /
+    # cluster-argmax decision (#1/#2) below. Flag-off (default): this branch is never taken, so the
+    # decision is byte-identical V1.
+    if _rerank_enabled():
+        return _rerank_route(ranked, lang, message_en, _runner_up)
+
+    # Within-cluster argmax: when top-2 share a clinical cluster and the second exceeds the soft
+    # floor, trust relative ordering rather than absolute threshold gating.
+    if len(ranked) >= 2:
+        second_sid, second_score = ranked[1]
+        if second_score >= _CLUSTER_ARGMAX_FLOOR:
+            best_cluster = _skill_cluster(best_sid)
+            if best_cluster is not None and best_cluster == _skill_cluster(second_sid):
+                # V2 (behavior #2): the tiebreak fires only when the winner clears its own τ —
+                # ABOVE threshold, never below (kills the below-τ over-route) — and an above-τ
+                # winner still wins the tiebreak (preserves legit in_scope disambiguation).
+                # Flag-off: V1's 0.42 floor routes the winner regardless of threshold.
+                if not _v2_enabled() or best_score >= routing_threshold(lang, best_sid):
+                    return best_sid, best_score, _runner_up(best_sid)
+
+    # Absolute threshold gate — cross-cluster or single-cluster without argmax floor.
+    # Per-route: each candidate is gated by ITS OWN (lang, route) τ (global flag-off). No pooling.
+    above = [(sid, score) for sid, score in ranked if score >= routing_threshold(lang, sid)]
+    if len(above) == 1:
+        return above[0][0], above[0][1], _runner_up(above[0][0])
+    if len(above) >= 2:
+        if above[0][1] - above[1][1] < _RERANK_MARGIN:
+            from sage_poc.nodes.skill_rerank import rerank_candidates
+            best_sid_r, best_score_r = rerank_candidates(message_en, above[:_RERANK_TOP_K])
+            return best_sid_r, best_score_r, _runner_up(best_sid_r)
+        return above[0][0], above[0][1], _runner_up(above[0][0])
+
+    return None, best_score, None  # ABSTAIN — no skill, no runner-up offer (pure freeflow)
+
+
 def _semantic_match_with_runner_up(
     message_en: str,
     profile_context: str = "",
+    lang: str = "en",
 ) -> tuple[str | None, float, tuple[str, float] | None]:
     """Max-over-anchors matching with cluster argmax, state-in-query, and rerank margin guard.
 
@@ -152,35 +399,15 @@ def _semantic_match_with_runner_up(
     if not skill_scores:
         return None, 0.0, None
 
+    # V2 behavior #3: anchor-count debias before ranking. Flag-off skips entirely (byte-identical).
+    if _v2_enabled():
+        skill_scores = _apply_anchor_debias(skill_scores, _anchor_counts())
+
     ranked = sorted(skill_scores.items(), key=lambda x: x[1], reverse=True)
-    best_sid, best_score = ranked[0]
-
-    def _runner_up(best: str | None) -> tuple[str, float] | None:
-        if best is None:
-            return None
-        return _select_runner_up(ranked, best, best_score)
-
-    # Within-cluster argmax: when top-2 share a clinical cluster and the second exceeds
-    # the soft floor, trust relative ordering rather than absolute threshold gating.
-    if len(ranked) >= 2:
-        second_sid, second_score = ranked[1]
-        if second_score >= _CLUSTER_ARGMAX_FLOOR:
-            best_cluster = _skill_cluster(best_sid)
-            if best_cluster is not None and best_cluster == _skill_cluster(second_sid):
-                return best_sid, best_score, _runner_up(best_sid)
-
-    # Absolute threshold gate — cross-cluster or single-cluster without argmax floor
-    above = [(sid, score) for sid, score in ranked if score >= SEMANTIC_THRESHOLD]
-    if len(above) == 1:
-        return above[0][0], above[0][1], _runner_up(above[0][0])
-    if len(above) >= 2:
-        if above[0][1] - above[1][1] < _RERANK_MARGIN:
-            from sage_poc.nodes.skill_rerank import rerank_candidates
-            best_sid_r, best_score_r = rerank_candidates(message_en, above[:_RERANK_TOP_K])
-            return best_sid_r, best_score_r, _runner_up(best_sid_r)
-        return above[0][0], above[0][1], _runner_up(above[0][0])
-
-    return None, best_score, None
+    # RECONCILE (master ↔ V2): _route_decision is the superset — flag-off reproduces master's
+    # primary routing exactly, flag-on adds the four V2 behaviors. Master's runner-up fix
+    # (_select_runner_up, offer-confidence floor) is kept LIVE inside _route_decision's _runner_up.
+    return _route_decision(ranked, lang, message_en)
 
 
 def _semantic_match_sync(message_en: str, profile_context: str = "") -> tuple[str | None, float]:
@@ -444,6 +671,29 @@ async def skill_select_node(state: SageState) -> dict:
         )
         stale_offer_clear = {"offered_skill_ids": None}
 
+    # V2 behavior #4: enforce the frozen ABSTAIN dispositions DECLARED on the flag definitions.
+    # Pure consumer — the safety lane owns which flags carry skill_select_disposition "abstain"
+    # (declared on clinical_flag_patterns.json by the crisis sprint); skill_select reads the field
+    # and DEFERS (no skill) so a flagged crisis-adjacent disclosure is not routed to a self-help
+    # skill, even one that would score above threshold. A flag with no declared disposition routes
+    # as V1 (safe no-op). Does NOT detect crisis — acute crisis is Node 1's, intercepted upstream
+    # (BC1). Flag-off: untouched.
+    # RECONCILE 2026-06-25: this clinical safety gate runs BEFORE the D3 cooldown block below, so a
+    # crisis-adjacent disclosure DEFERS for the clinical reason (path "clinical_flag_abstain") rather
+    # than being masked by a cooldown suppression. Both blocks are independent early-returns; order
+    # picked so the safety reason owns the audit trail when both could fire.
+    if _v2_enabled():
+        _disp = _flag_dispositions()
+        if any(_disp.get(f) == "abstain" for f in (state.get("clinical_flags") or [])):
+            return {
+                **stale_offer_clear,
+                "active_skill_id": None,
+                "active_step_id": None,
+                "skill_match_method": None,
+                "semantic_score": None,
+                "path": state["path"] + ["skill_select", "clinical_flag_abstain"],
+            }
+
     # D3: offer cooldown. Suppress a fresh offer when the user received one within the
     # last cooldown_turns turns. Runs after the offer-accept promotion block so an
     # accepted or pending offer is never blocked, and stale_offer_clear is {} here in
@@ -504,6 +754,14 @@ async def skill_select_node(state: SageState) -> dict:
         ):
             candidates.remove("grounding_5_4_3_2_1")
             candidates.insert(0, "grounding_5_4_3_2_1")
+        # V2 (wired-re-gate fix): gate keyword routes through the reranker's ABSTAIN too. A keyword
+        # match the reranker won't endorse (clinician-territory false-match) must not bypass the
+        # safety gate — without this, Tier-1 over-routes id_oos before the reranker can veto (id_oos
+        # 90→76). Flag-off (reranker disabled): never runs -> keyword routing is byte-identical V1.
+        if _rerank_enabled() and _keyword_rerank_veto(candidates, state["message_en"], detected_language):
+            return {**stale_offer_clear, "active_skill_id": None, "active_step_id": None,
+                    "skill_match_method": None, "semantic_score": None,
+                    "path": state["path"] + ["skill_select", "keyword_rerank_veto"]}
         # resolve result must win the merge: offer results set offered_skill_ids themselves
         return {**stale_offer_clear,
                 **_resolve_entry(state, candidates, method="keyword", semantic_score=None)}
@@ -529,7 +787,9 @@ async def skill_select_node(state: SageState) -> dict:
         profile.get("summary", "") or "" if isinstance(profile, dict) else ""
     )
     try:
-        # stage_timer is log-only and wraps the encode UNCHANGED — no effect on match output.
+        # RECONCILE 2026-06-25: master's log-only stage_timer (PR#77 latency instrumentation) wraps the
+        # encode UNCHANGED (no effect on match output) AND V2's _semantic_match_with_runner_up takes the
+        # detected_language 3rd arg (per-lang routing). Keep BOTH.
         with stage_timer(
             "skill_embed",
             session_id=state.get("session_id"),
@@ -537,7 +797,7 @@ async def skill_select_node(state: SageState) -> dict:
             lang=state.get("detected_language"),
         ):
             semantic_skill, score, runner_up = await asyncio.wait_for(
-                asyncio.to_thread(_semantic_match_with_runner_up, state["message_en"], profile_context),
+                asyncio.to_thread(_semantic_match_with_runner_up, state["message_en"], profile_context, detected_language),
                 timeout=EMBEDDING_TIMEOUT_SECONDS,
             )
     except asyncio.TimeoutError:

@@ -61,6 +61,13 @@ AINVOKE_TIMEOUT_SECONDS: float = float(os.environ.get("AINVOKE_TIMEOUT_SECONDS",
 # /health/ready and /chat both check this; Railway healthcheck holds LB traffic until ready.
 _bge_ready: bool = False
 
+# V2 reranker head-control result, surfaced on /health/ready so the deploy HARD GATE is a direct
+# readable check — not a suppressed INFO log line (the app logger defaults to WARNING, so the success
+# string never reached stdout, making the runbook's "logs show head-control passed" check unsatisfiable).
+# Values: "pending" (warmup not finished), "disabled" (SKILL_RERANK_ENABLED!=1), "passed" (head loaded
+# and separating), "failed" (headless/no-separation — readiness is also withheld → 503).
+_reranker_status: str = "pending"
+
 
 async def require_api_key(x_sage_api_key: str | None = Header(default=None)) -> None:
     _expected_key = os.environ.get("SAGE_API_KEY", "")
@@ -174,6 +181,35 @@ def _warmup_bge_m3() -> None:
     _ensure_s3_ready()
 
 
+def _warmup_reranker() -> None:
+    """Warm the V2 cross-encoder reranker AND assert its head-loaded positive control.
+
+    READINESS-BLOCKING by design. The reranker is only active when SKILL_RERANK_ENABLED=1; when off
+    this is a no-op (V1 path unaffected). When on, head_loaded_ok() loads bge-reranker-v2-m3 and checks
+    that the reranker HEAD produces real logit separation (relevant >> off-topic). A silent headless
+    load (sentence_transformers.CrossEncoder bug class — no head → ~0 logits → confident-wrong routing
+    with NO error) is the exact failure the whole measurement discipline guards against, and it would
+    be invisible on the deploy target. So a failed control RAISES — the caller keeps _bge_ready=False
+    and /health/ready stays 503, taking the instance OUT of rotation rather than serving wrong routing.
+    This must BLOCK, never warn-and-continue (the warmup-silent-failure anti-pattern).
+
+    Also pays the ~2.2GB model load here so the first real routing turn is warm (and the latency
+    benchmark measures steady-state batch-1, not the cold load).
+    """
+    global _reranker_status
+    if os.environ.get("SKILL_RERANK_ENABLED") != "1":
+        _reranker_status = "disabled"
+        return
+    from sage_poc.nodes.skill_rerank_model import head_loaded_ok, active_precision
+    if not head_loaded_ok():
+        _reranker_status = "failed"
+        raise RuntimeError(
+            f"reranker head-control FAILED (precision={active_precision()}): head not loaded or not "
+            "separating — refusing readiness (headless-load guard, the CrossEncoder-headless bug class)"
+        )
+    _reranker_status = "passed"
+
+
 async def _warmup_task() -> None:
     """Run BGE-M3 warmup in background so the HTTP server starts immediately.
 
@@ -201,6 +237,20 @@ async def _warmup_task() -> None:
         # Keep _bge_ready = False; /health/ready stays 503; /chat stays gated.
         _log.error(
             "[sage/startup] BGE-M3 warmup failed — service is NOT ready: %s", exc
+        )
+        return
+
+    # V2 reranker head-control — READINESS-BLOCKING (see _warmup_reranker). A headless load would
+    # route confident-wrong with no error, so it withholds readiness (keeps the instance out of
+    # rotation) rather than warn-and-continue. No-op when SKILL_RERANK_ENABLED != 1.
+    try:
+        await asyncio.to_thread(_warmup_reranker)
+        if os.environ.get("SKILL_RERANK_ENABLED") == "1":
+            _log.info("[sage/startup] reranker head-control passed (warm)")
+    except Exception as exc:
+        _log.error(
+            "[sage/startup] reranker head-control FAILED — service is NOT ready "
+            "(headless-load guard): %s", exc
         )
         return
 
@@ -699,7 +749,16 @@ async def health_ready():
             status_code=503,
             detail="Service warming up — BGE-M3 index not ready",
         )
-    return {"status": "ready", "routing_mode": compute_routing_mode()}
+    # Two deploy-gate signals on one 200 (Task 10 two-endpoint gate):
+    #  - routing_mode (master #138): truthful V1/V2 label so a set flag never advertises an absent reranker.
+    #  - reranker_head_control (V2): "passed" (or "disabled" when off) confirms the deployed reranker is
+    #    real head-bearing, not silently headless — a headless load never reaches 200 (readiness withheld),
+    #    so 200 + "passed" is the directly-checkable success condition the prod runbook verifies.
+    return {
+        "status": "ready",
+        "routing_mode": compute_routing_mode(),
+        "reranker_head_control": _reranker_status,
+    }
 
 
 @app.get("/health/version")

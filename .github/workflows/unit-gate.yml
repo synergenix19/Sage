@@ -61,6 +61,11 @@ jobs:
             tests/test_skill_select.py
             tests/test_skill_select_offer.py
             tests/test_skill_select_psychotic.py
+            tests/test_v2_flag_off_byte_identical.py
+            tests/test_v2_per_route_thresholds.py
+            tests/test_v2_abstain.py
+            tests/test_v2_anchor_debias.py
+            tests/test_v2_crisis_guardrail.py
             tests/test_skill_matching_rules.py
             tests/test_skill_executor.py
             tests/test_schema_conformance.py
