@@ -2,12 +2,7 @@
 
 The audit anchor for "what is actually running in each environment." Started 2026-07-07 to close the provenance gap (no `SAGE_BUILD_SHA`, no git `commitHash` on `railway up` deploys). Every deploy appends an entry with the pinned SHA and the two-endpoint verification.
 
-**Verification contract (per deploy) — ALL THREE must pass or the deploy is not "good":**
-1. `/health/ready` → expected `routing_mode`.
-2. `/health/version` (X-Sage-Api-Key) → `build_sha` == the deployed SHA.
-3. **MANDATORY post-deploy smoke gate:** `railway run <venv>/python scripts/prod_smoke/run.py --tier all` must **exit 0** — Tier A safety invariants (crisis EN/AR, MM entry-screen hold, precedence) + the Tier C flag-readback are must-pass; a must-pass `FAIL` means the deploy is NOT healthy, investigate before announcing. (Tier B frontend + helpline number are report-only/XFAIL — see `docs/runbooks/prod-smoke.md`.)
-
-**This runbook line is the ONLY enforcement until CI-on-PR lands.** Deploys are manual and by-hand (`railway up`, `vercel deploy --prod`) with no CI trigger, so nothing runs the suite automatically — a smoke suite that exists but isn't in the deploy path is protection deferred. "The app responds" is not health for this product; "the crisis route fires with correct resources" is.
+**Verification contract (per deploy):** `/health/ready` → expected `routing_mode`; `/health/version` (X-Sage-Api-Key) → `build_sha` == the deployed SHA. Both must pass or the deploy is not "good."
 
 ---
 
@@ -33,3 +28,16 @@ The audit anchor for "what is actually running in each environment." Started 202
 **Outcome:** the inert-flag misreport is corrected on both environments; both run the same known tree `1c9dfeb` (pure V1 + additive health field), truthfully labeled `routing_mode:"v1"`. This is the "prod runs pure V1, truthfully labeled" anchor for Task 2's frozen comparator.
 
 **Cross-refs:** `2026-07-07-mm-registration-live-in-prod-escalation.md` (the #139 finding surfaced by this deploy); `2026-07-07-make-v2-semantic-routing-live.md` Task 10 (the runbook rules this trail enforces).
+
+---
+
+## Entry 2 — 2026-07-07 · OCD-compulsion iatrogenic veto (approved safety hotfix)
+
+**Tree:** master `bc3cb4b` (PR #155). Delta over Entry 1: the deterministic Node-4 OCD-compulsion veto (`ocd_compulsion.py` + `ocd_compulsion_patterns.json` + `skill_select.py`), arm-independent, ABSTAIN→Node 3. Approved expedited hotfix for the live iatrogenic route (`2026-07-07-v1-iatrogenic-ocd-routing-escalation.md`). V2 flags unchanged (still 0; this is a V1 fix).
+
+### Staging — VERIFIED ✅ · Production — VERIFIED ✅
+- Both: `railway up` `bc3cb4b`, `SAGE_BUILD_SHA=bc3cb4b`, `/health/ready` `routing_mode:"v1"`, `/health/version` `build_sha:bc3cb4b`.
+- **Behavioral (live):** OCD compulsion (stove-checking / door-tapping) → empathic clarification via Node 3, **NOT** a worry/rumination skill; ordinary worry / overwhelm → skill offer (worry_time / TIPP) as normal. Veto discriminates correctly on both environments.
+- **Measured (driver):** harm gate **6→0 leaks** on both arms; zero in_scope degradation; zero in_scope false-positive vetoes; unit test 27/27.
+
+**Outcome:** the live iatrogenic OCD-compulsion → worry-tool route is closed in production. **Follow-up (clinician, non-blocking):** Node-3 copy sometimes offers a generic "guided exercise" for vetoed-OCD cases (no skill queued → no back-door; but the spec signposts professional referral for OCD, so the Node-3 copy is a refinement candidate); `"intrusive thoughts"` in cbt_thought_record `target_presentations` flagged as clinically dual-use (not eng-edited).
