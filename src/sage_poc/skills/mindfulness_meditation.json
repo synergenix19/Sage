@@ -1,0 +1,202 @@
+{
+  "skill_id": "mindfulness_meditation",
+  "skill_name": "Mindfulness Meditation",
+  "skill_type": "structured",
+  "evidence_base": "Kabat-Zinn (1990) Full Catastrophe Living; Kabat-Zinn (2003) Mindfulness-Based Interventions in Context; Segal, Williams and Teasdale (2013) Mindfulness-Based Cognitive Therapy for Depression, 2nd ed.; Roemer and Orsillo (2009) acceptance-based behavioral therapy for generalized anxiety; MBSR and MBCT sitting-practice protocols. PROPOSED lineage, pending clinician confirmation.",
+  "self_evolution": "manual_only",
+  "target_presentations": [
+    "mindfulness meditation",
+    "guided meditation",
+    "meditate",
+    "sitting meditation",
+    "sit with it",
+    "sit with my feelings",
+    "just be with it",
+    "stop fighting my thoughts",
+    "let my thoughts pass",
+    "observe my thoughts",
+    "watch my breath",
+    "be present",
+    "let me just be with how i feel",
+    "تأمل",
+    "أبي أتأمل",
+    "تأمل موجه",
+    "أجلس مع مشاعري",
+    "أراقب أفكاري",
+    "أتقبل اللي أحس فيه",
+    "أبي أكون حاضر",
+    "خلي أفكاري تمر",
+    "أراقب نفسي",
+    "أجلس مع نفسي"
+  ],
+  "semantic_description": "Mindfulness meditation protocol. Seated awareness practice anchored on the breath. Sitting meditation. MBSR sitting practice. Focused-attention and open-monitoring meditation. Anchoring attention on the breath and returning to it each time the mind wanders. Non-judgmental noticing of thoughts and sensations as passing events rather than facts. Allowing present-moment experience to be as it is without changing or reacting to it. Noting practice. Watching the breath. Returning attention to the anchor. Choiceless awareness. Mindfulness of breath. Mindfulness of thoughts. Letting thoughts arise and pass. Acceptance-based sitting practice. Working with what is present rather than resisting it. Guided sitting meditation. Present-moment attention training. Observing without fixing. Vipassana-style noticing. Kabat-Zinn sitting meditation. MBCT sitting with the breath.",
+  "steps": [
+    {
+      "step_id": "entry_screen",
+      "goal": "Brief opener before beginning a sitting meditation. Understand whether the user is in a state where extended, unstructured attention to inner experience could intensify distress. If a relevant concern is disclosed, redirect to a more anchored alternative. If nothing concerning is disclosed, advance to settle_and_anchor.",
+      "technique": "Entry safety screen: acute-state and readiness check for open sitting practice",
+      "technique_description": "One brief question. A sitting meditation involves prolonged, lightly-structured attention to the breath, thoughts, and feelings, which can amplify distress rather than ease it for someone in acute panic, in a trauma flashback, dissociating, or caught in intense rumination. Relevant disclosures: a panic attack happening right now, feeling detached or that things are unreal, a trauma memory surfacing, or thoughts spiralling so fast that sitting still with them feels unbearable. Do not suggest what to disclose; invite the user to mention anything relevant. If disclosed: redirect to a more anchored, externally-focused technique (5-4-3-2-1 grounding or box breathing) rather than open sitting.",
+      "tone": "warm, gentle, brief",
+      "examples": [
+        "قبل ما نبدأ، في شي حاب تذكره؟ بعض الناس، لو كانوا في نوبة قلق قوية أو أفكارهم سارحة بسرعة، الجلسة الهادئة تصير أصعب عليهم بدل ما تريحهم.",
+        "Before we begin, anything worth mentioning? For some people, if a panic wave is happening right now or thoughts are racing very fast, sitting quietly can feel harder rather than easier, and we would start somewhere more anchored instead.",
+        "We can start a short sitting practice together. First, just so I pace this right for you: is there anything happening right now, like a panic wave or feeling detached from things, that I should know about before we settle in?"
+      ],
+      "contraindications": "Do NOT proceed with sitting meditation if the user discloses a panic attack in progress, derealization or depersonalization, an active trauma flashback, or rumination so intense that sitting with it feels unbearable. Acknowledge the disclosure warmly. Offer a more anchored alternative: 5-4-3-2-1 sensory grounding (external senses) or box breathing (a clear, counted anchor). Explain that open sitting works better once there is a steadier footing, and the alternative reaches the same calm more gently. Do NOT begin this technique if the user's message contained action-seeking language ('what can I do', 'how do I fix this', 'give me a strategy'). When action-seeking language is present, acknowledge the feeling and ask what kind of support they are looking for before proceeding.",
+      "completion_criteria": "User has not disclosed an in-progress panic attack, derealization or depersonalization, an active trauma flashback, or overwhelming rumination. Safe to advance to the settle_and_anchor step. IMPORTANT: Feeling anxious, low, stressed, or tired does NOT indicate a contraindication, these are the primary target presentations for this practice. Only hold when the user specifically describes an acute panic state, feeling unreal or detached, a surfacing trauma memory, or thoughts moving too fast to sit with."
+    },
+    {
+      "step_id": "settle_and_anchor",
+      "goal": "Help the user settle into a comfortable, upright position and find the breath as a home base for attention. Offer the practice, either as a short guided video or guided here in text, and let them choose. Establish the breath as the anchor they will return to.",
+      "technique": "Settling posture and establishing the breath as an attentional anchor",
+      "technique_description": "Guide the user to a position that is upright but not rigid, and invite them to let the eyes close or rest softly downward. Then bring attention to the breath, wherever it is most easily felt: the nostrils, the chest, or the belly. The breath is not to be controlled or deepened, only noticed as it already is. This is the anchor. Name it plainly as the place attention will keep coming back to. Offer a choice of delivery: a short guided meditation to follow along with, or being guided step by step in the conversation. The breath anchor is what makes the later steps possible, so give it a moment to land before moving on.",
+      "tone": "slow, quiet, unhurried, settling",
+      "media": {
+        "en": {
+          "type": "video",
+          "url": "https://www.youtube.com/watch?v=XInJoYvy_ew",
+          "title": "Meditation for Working with Difficulties",
+          "provider": "UCLA Health"
+        }
+      },
+      "contraindications": "Do NOT instruct the user to breathe deeply, slowly, or in any particular pattern. This practice notices the breath, it does not change it, that distinction matters and separates it from box breathing. Do NOT insist on eyes closed if the user prefers them open. Do NOT rush past settling, a rushed anchor undermines the whole sit. If the user reports dizziness, detachment, or rising panic at any point, stop and orient them to the room.",
+      "completion_criteria": "User has settled into a position and located the breath somewhere in the body as an anchor. They have indicated readiness to continue, or chosen the guided video. Even a simple 'okay, I can feel my breath in my chest' is sufficient.",
+      "examples": [
+        "خذ وضعية مريحة، ظهرك معتدل بدون تصلب. لو تحب سكّر عيونك، أو خل نظرك ينزل بهدوء. وبعدين لاحظ نفسك، وين تحسه أوضح، في أنفك أو صدرك أو بطنك. ما نغير النفس، بس نلاحظه كيف هو. هذا مكان نرجع له. تحب أعطيك تأمل قصير موجه تتابعه، ولا أمشي معك هنا خطوة خطوة؟",
+        "Find a position that is comfortable and upright, without holding yourself stiff. If it feels okay, let your eyes close, or let your gaze rest softly downward. Now bring your attention to your breath, wherever you notice it most easily, the nose, the chest, or the belly. We are not changing it, just noticing it as it already is. This is your anchor, the place we keep coming back to. Would you like a short guided meditation to follow, or shall I guide you here?",
+        "Let us settle first. Sit in a way that feels steady but relaxed. Let the breath be exactly as it is, you do not need to make it deeper. Just find where you feel it most clearly and rest your attention there lightly. That spot is home base. When you are ready, we will begin.",
+        "خل نفسك يكون على طبيعته، ما نحتاج نعمقه. بس دور المكان اللي تحس فيه النفس أوضح، وحط انتباهك هناك بهدوء. هذا هو الأساس اللي نرجع له كل ما شرد الذهن."
+      ]
+    },
+    {
+      "step_id": "observe_and_return",
+      "goal": "Introduce the core movement of the practice: the mind will wander, and each time it does, the user notices where it went and gently brings attention back to the breath. Establish that wandering is not failure, the returning is the practice.",
+      "technique": "Noticing mind-wandering and returning attention to the anchor, without judgment",
+      "technique_description": "This is the mechanism of the whole meditation. Explain, simply, that the mind will drift, into thoughts, plans, memories, sounds, and that this is completely normal and not a mistake. The skill is not to keep the mind blank; it is to notice, the moment they realise attention has drifted, where it went, and then to escort it back to the breath, gently and without self-criticism. Emphasise that the noticing-and-returning is itself the exercise, repeated as many times as needed. The tone must remove any sense of a pass or fail. A mind that wanders a hundred times and returns a hundred times has done the practice perfectly. Let there be silence between prompts so the user is actually doing it, not just being talked at.",
+      "tone": "reassuring, patient, non-judgmental",
+      "contraindications": "Do NOT imply the goal is an empty or quiet mind. Do NOT let the user treat wandering as failure, correct that framing warmly if it appears. Do NOT fill every moment with instruction, the practice needs quiet gaps. If the user becomes frustrated with themselves, normalize it rather than pushing them to try harder. If distress rises sharply, move to the guard rather than continuing.",
+      "completion_criteria": "User understands that wandering is expected and that the practice is noticing and returning. They have had at least one experience of their attention drifting and coming back, or reported one. A simple 'my mind kept going to my to-do list and I brought it back' is exactly the point and sufficient.",
+      "examples": [
+        "بعد شوي بتلاحظ ذهنك سرح، لفكرة أو صوت أو ذكرى. هذا طبيعي تماماً، مو غلط. أول ما تنتبه إنه سرح، بس لاحظ وين راح، وبعدين رجّع انتباهك للنفس بهدوء وبدون ما تعاتب نفسك. الرجعة نفسها هي التمرين، حتى لو تكررت مية مرة.",
+        "In a little while you will notice your mind has wandered off, to a thought, a sound, a memory. That is completely normal, not a mistake. The moment you realise it drifted, just notice where it went, and then gently walk your attention back to the breath, without giving yourself a hard time. That returning is the practice, even if it happens a hundred times.",
+        "Here is the whole thing: your attention rests on the breath, it drifts, you notice it drifted, you bring it back. Over and over. You are not trying to empty your mind, that is not the goal and not really possible. A mind that wanders and comes back, again and again, is doing this exactly right. Let us sit with that for a moment.",
+        "ما نحاول نفضّي الذهن، هذا مو الهدف. خل الأفكار تجي وتروح، وكل ما انتبهت إنك سرحت، ارجع للنفس بلطف. ما في رسوب هنا، الرجعة هي كل شي.",
+        "Let us try it now. Rest your attention on the breath. When you notice it has slipped away, and it will, just note it, maybe say 'thinking' quietly to yourself, and come back. No frustration needed. I will be quiet for a moment while you do it."
+      ]
+    },
+    {
+      "step_id": "allow_and_accept",
+      "goal": "Introduce the acceptance move that distinguishes this practice: rather than pushing feelings away or trying to fix them, the user lets whatever is present be present, and observes it with a little space around it. This is sitting with a feeling without fighting it.",
+      "technique": "Allowing present experience without resistance, observing feelings as passing events",
+      "technique_description": "This is the heart of the practice for anxious or uncomfortable states, and the piece that separates it from a pure concentration exercise. Invite the user, if a feeling is present, to stop trying to make it go away and instead to turn toward it with mild curiosity: where is it in the body, what is its texture, is it moving or still. The stance is allowing, not liking. They are not being asked to enjoy the feeling or agree with it, only to stop wrestling it, because the wrestling is often what keeps it loud. Offer the reframe that a feeling is weather passing through, not a fact about them and not permanent. Keep returning to the breath as the steady ground underneath whatever is passing. This step can, for some people, briefly turn the volume up before it settles; watch for that and soften if needed (the guard covers it).",
+      "tone": "gentle, spacious, accepting, steady",
+      "contraindications": "Do NOT ask the user to like, want, or agree with a difficult feeling, allowing is not endorsing. Do NOT push someone to 'go into' a feeling that is escalating, allowing has a ceiling and the breath anchor is always available as a retreat. Do NOT treat a strong reaction as the user doing it wrong. If sitting with the feeling clearly amplifies distress rather than easing it, stop opening and return to the anchor or to grounding, and consider a professional-support note if the pattern is significant.",
+      "completion_criteria": "User has made some attempt to let a present feeling be there without fighting it, or has noticed the difference between resisting and allowing. Even 'it is still there but I stopped trying to shove it down' is the practice working. If nothing difficult is present, simply resting with the breath and open awareness is a complete version of this step.",
+      "examples": [
+        "لو في إحساس موجود الحين، جرب لا تحاربه ولا تطرده. بس التفت له بفضول بسيط: وين تحسه في جسمك؟ وش نوعه؟ ثابت ولا يتحرك؟ ما نطلب منك تحبه، بس توقف عن مصارعته، لأن المصارعة نفسها غالباً هي اللي تخليه أقوى. خله يمر مثل الجو، ورجع للنفس كأرضية ثابتة تحته.",
+        "If there is a feeling here right now, try not to push it away or fix it. Instead, turn toward it with a little curiosity: where do you feel it in the body, what is its texture, is it moving or still? You are not being asked to like it, only to stop wrestling with it, because the wrestling is often what keeps it loud. Let it be there, like weather passing through, while the breath stays as steady ground underneath.",
+        "So much of what makes a hard feeling worse is the effort to get rid of it. Just for now, let us try the opposite: let it be here. Notice it, give it a bit of room, and keep the breath as your anchor. The feeling is something passing through you, not a fact about who you are, and not forever. If it eases even slightly, notice that too.",
+        "الإحساس الصعب غالباً يكبر لما نحاول نتخلص منه. جرب العكس: خله موجود، أعطه مساحة صغيرة، وخل النفس مرساتك. الشعور شي يمر فيك، مو حقيقة عنك، ولا دائم.",
+        "You do not have to dive into anything that feels too big. Allowing has an edge, and the breath is always here to come back to. Turn toward the feeling only as much as feels workable, and lean back on the anchor whenever you need. There is no prize for pushing."
+      ]
+    },
+    {
+      "step_id": "widen_and_close",
+      "goal": "Widen from the breath to a more open awareness of the whole moment, then bring the practice to a gentle close and return the user to the room. Check in on how they feel now compared to when they started.",
+      "technique": "Widening to open awareness, gentle close, and return with a check-in",
+      "technique_description": "Guide the user to loosen the narrow focus on the breath and let awareness open out to include the whole of the present moment: sounds, the body as a whole, the sense of sitting where they are. Nothing to do here but rest in that wider space for a breath or two. Then close: invite the eyes to open if they were closed, feel the contact of the body with the seat, notice the room. The close should be warm and unhurried, never abrupt. Finish with a check-in that serves both the user and routing: how do they feel now compared to when you began? This surfaces whether the practice settled them, did nothing, or stirred something up. If they report feeling worse, more detached, or more distressed, respond warmly and flag for clinical follow-up rather than simply moving on.",
+      "tone": "very slow, warm, integrative, closing",
+      "contraindications": "Do NOT end abruptly, the widening and the return to the room are part of the protocol. Do NOT skip the closing check-in. If the user reports dizziness, feeling unreal, or distress at this stage, ground them immediately: eyes open, feet on the floor, name a few things they can see and hear. Do NOT restart the meditation after a distressing or dissociative response, shift to grounding and support instead.",
+      "completion_criteria": "User has widened attention beyond the breath, been returned gently to the room, and offered a brief check-in on how they feel now. The skill is complete once the check-in has been made, whatever the user's answer.",
+      "examples": [
+        "الحين، بلطف، وسّع انتباهك أبعد من النفس، خله يشمل اللحظة كلها: الأصوات حولك، جسمك ككل، إحساسك إنك جالس هنا. ما في شي تسويه، بس ارتاح في هالمساحة الأوسع نفسين. وبعدين، لو عيونك مسكرة، خلها تنفتح بهدوء. حس بجسمك على الكرسي، لاحظ الغرفة. كيف تحس الحين مقارنة بأول ما بدينا؟",
+        "Now, gently, let your attention widen out beyond the breath to include the whole moment: the sounds around you, your body as a whole, the simple sense of sitting here. Nothing to do, just rest in that wider space for a breath or two. And then, if your eyes were closed, let them open slowly. Feel your body on the seat, notice the room. How do you feel now compared to when we started?",
+        "Let us begin to close. Loosen the focus on the breath and let your awareness hold everything at once, the room, the sounds, your whole self sitting here. Stay with that for a moment. Then come back gently: eyes open, feet on the floor, here again. Take your time. When you are ready, tell me what you notice now, compared to before we began.",
+        "خل انتباهك يتوسع ويحضن كل شي مرة وحدة، الغرفة، الأصوات، نفسك وأنت جالس هنا. خذ لحظة. وبعدين ارجع بهدوء: عيونك تنفتح، قدمك على الأرض، رجعت للغرفة. لا تستعجل.",
+        "That is the practice. Before we finish, just check in with yourself for a second: what is different now, if anything, compared to when we sat down? There is no right answer, calmer, the same, or stirred up are all useful to know."
+      ]
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
+      "action": "validate_only",
+      "instruction": "User is in acute distress. Do not begin or continue a sitting meditation when someone is at crisis-level intensity, open sitting can amplify it. Slow down, validate that you are here with them, and gently ground them in the room first before considering whether the practice is right for this moment.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 8,
+        "for_turns": 1,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "The user has shown strong resistance to this practice in a single turn. Do not continue the current step. Acknowledge that sitting quietly may not feel right at all right now, and ask what kind of support would feel more useful to them.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "for_turns": 3,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance to the meditation. Some people find sitting still with their thoughts uncomfortable, especially when the mind is loud. Offer to stop and simply talk, or to try something more active or anchored like grounding or breathing. Do not pressure the user to continue.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "for_turns": 3,
+        "step": "ANY"
+      },
+      "action": "check_in_micro",
+      "instruction": "User is disengaged. Gently check in: is this kind of quiet sitting feeling helpful, or would something else suit them better right now? Do not assume disengagement means refusal, the pacing or the framing may need to shift.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop. Exit immediately with warmth. No persuasion. Acknowledge that they gave the practice a try, even briefly, and that sitting with the mind takes practice for everyone.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 5,
+        "step": "allow_and_accept"
+      },
+      "action": "validate_only",
+      "instruction": "At the acceptance step, turning toward a feeling instead of pushing it away can briefly turn the volume up for some people before it settles. If intensity is rising here, do not push further into the feeling. Normalize that this can happen, return attention to the breath as steady ground, and offer to shift to grounding if sitting with it is not easing. If the amplification is strong or persistent, flag for clinical follow-up.",
+      "next_step_id": "current"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit skill gracefully if user requests to stop. No pressure to continue. Acknowledge whatever attention they brought to the practice, even briefly.",
+    "L2": "Add clinician_review flag if the user reports that sitting meditation consistently increases distress, rumination, or detachment rather than easing it across multiple sessions. Open-monitoring practice is not indicated for everyone, and a persistent pattern may point to trauma-related or ruminative difficulties that need clinical tailoring.",
+    "L3": "Exit immediately to crisis protocol if any crisis signal is detected during the practice.",
+    "L4": "Trigger human handoff if 3 or more crises detected in the last 30 days, or if the user explicitly requests a human clinician."
+  },
+  "cultural_overrides": {
+    "religious_compatibility": "Mindfulness meditation here is secular attention training, noticing the breath and returning to it. It involves no beliefs, mantras, or worship, and is compatible with Islamic practice. For a user who prefers a familiar frame, it can be related to muraqaba (watchful presence), without requiring any religious content.",
+    "framing_around_prayer": "The practice can be done at any time and does not compete with salah. It can be offered as a brief settling before or after prayer if the user finds that natural, but never presented as a substitute for it.",
+    "practicality_and_privacy": "No lying down, movement, or special posture is needed. It can be done seated quietly in a shared or family space, eyes open or softly lowered, in a few minutes."
+  }
+}
