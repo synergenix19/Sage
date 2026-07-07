@@ -120,7 +120,7 @@ tests:
           assumption about the user's state. No "that must be hard", no "I'm sorry
           you're dealing with this".
 
-  - description: "List-directive compatibility — a short list may be used AND the single bridge still closes it"
+  - description: "List-directive compatibility (ACCEPT ratified 2026-07-07: a list may open without a prose lead-in) — bridge + affect-neutrality still hold"
     vars:
       state:
         message_en: "what are the symptoms of anxiety"
@@ -132,7 +132,11 @@ tests:
     assert:
       - type: llm-rubric
         value: >
-          If a short list is used it leads with a one-sentence plain answer and
-          keeps the warm Sage voice (no bold, no headings, no dashes). Regardless
-          of structure, the reply still ends with the single conditional
-          invitation. List structure and the bridge coexist.
+          A short list is acceptable and MAY open directly (e.g. under a brief
+          lead-in like "Here are some common symptoms:") WITHOUT a full
+          one-sentence prose answer first — this is the ratified ACCEPT decision
+          (2026-07-07). Required regardless of structure: the reply keeps the warm
+          Sage voice (no bold, no headings, no dashes), stays affect-neutral (does
+          not assume the user is distressed), and ends with the single conditional
+          invitation. The lead-with-prose formatting preference is an L4 concern
+          DEFERRED to the Falcon-34B re-run and is intentionally NOT asserted here.

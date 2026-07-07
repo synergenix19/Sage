@@ -3,11 +3,12 @@
   "rules": [
     {
       "rule_id": "PI-SI-001",
-      "version": "1.0.0",
-      "authored_by": "sage_clinics",
-      "effective_date": "2026-05-21",
+      "version": "2.0.0",
+      "authored_by": "engineering",
+      "approved_by": "Rohan Sarda (clinical lead)",
+      "effective_date": "2026-07-07",
       "active": true,
-      "description": "DBT dialectical framing when any secondary intent is present",
+      "description": "Ordered validate-then-inform framing when a secondary intent is present (v7 §5.6.1); grounding-aware when the secondary need is information",
       "category": "prompt_injection",
       "trigger_type": "secondary_intent_present",
       "trigger_value": null,
@@ -15,8 +16,9 @@
       "action": {
         "type": "inject",
         "target": "user",
-        "content": "SECONDARY INTENT PRESENT: Use DBT dialectical framing, two things can be true at once. Address BOTH the primary and secondary emotion/need explicitly in your response. Example framing: 'It makes sense that you feel [primary emotion] AND that you also [secondary need]. Both are real and valid.'"
-      }
+        "content": "SECONDARY NEED PRESENT: The person has more than one need in this turn. Respond in ORDER: validate or answer the primary need first, and only then turn to the secondary one. Do not lead with the secondary. When the secondary need is information, give the factual part briefly and plainly AFTER validating the primary; ground it in the knowledge passages when they are present, and if no passage supports it, say so honestly rather than guessing. Keep both in one natural reply, and do not stack questions."
+      },
+      "_signed_off": "Clinical lead (Rohan Sarda) approved 2026-07-07, L2 engagement batch. Upgrades v1.0.0's generic symmetric DBT 'address both' frame to the v7 §5.6.1 ORDERED validate-then-inform contract, grounding/ABSTAIN-aware when the secondary need is info_request. Single-rule form ratified (the two-rule split was offered and declined). Behavioral ordering test lands with this promotion. Draft: docs/superpowers/drafts/2026-07-07-PI-SI-001-v2.0.0-ordered-contract-draft.json."
     }
   ]
 }

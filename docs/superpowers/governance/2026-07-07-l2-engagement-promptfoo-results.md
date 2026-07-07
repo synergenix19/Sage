@@ -4,6 +4,8 @@
 
 **Result: 4 / 5 passed (80%).** 12,183 tokens, 14s. Not gamed to green — the one failure is reported as-is because it is real, minor, and informative.
 
+**RATIFIED 2026-07-07 (clinical lead): ACCEPT.** The list-compat case is rewritten to encode the accepted behaviour (a symptom list may open without a one-sentence prose lead-in; the bridge and affect-neutrality are still asserted). This is **not "issue closed":** the lead-with-prose concern (an L4 `light_structure_directive` matter) is **DEFERRED to the Falcon-34B re-run** as a named case, because list-formatting adherence is highly model-specific and the eval ran on GPT-4o while production renders on Falcon-34B+LoRA. If Falcon also skips the prose lead-in, reinforce `light_structure_directive` then — with evidence from the actual production model, its own L4 version bump, and the manifest guard. Reinforce-in-L4 is Option 2 deferred to the moment it is meaningful, not rejected.
+
 ## Per-case verdicts
 
 | # | Case | Verdict | Model output (opening) |

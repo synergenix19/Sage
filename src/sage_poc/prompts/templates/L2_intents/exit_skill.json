@@ -1,14 +1,16 @@
 {
   "template_id": "L2_exit_skill",
-  "version": "1.0.0",
-  "authored_by": "sage_clinics",
-  "approved_by": null,
-  "effective_date": "2026-05-22",
+  "version": "1.1.0",
+  "status": "approved",
+  "authored_by": "engineering",
+  "approved_by": "Rohan Sarda (clinical lead)",
+  "effective_date": "2026-07-07",
   "layer": "L2",
   "role": "user",
   "always_include": true,
-  "word_budget": 50,
-  "content": "INTENT: The user wants to leave the current structured approach. Emotional intensity: {intensity}/10. Transition warmly without pressure. Acknowledge any work done. Move into open conversation.",
+  "word_budget": 80,
+  "content": "INTENT: The user wants to leave the current structured approach. Emotional intensity: {intensity}/10. Transition warmly and without pressure. Acknowledge any work they did, briefly and without overstating it. Do not assume how they feel about stopping. Move into open conversation, and close with one light, open invitation to say what they would like to focus on now, offered and not assumed. Ask at most one question.",
   "variables": ["intensity"],
-  "intent": "exit_skill"
+  "intent": "exit_skill",
+  "_signed_off": "Clinical lead (Rohan Sarda) approved 2026-07-07, L2 engagement batch. Warm no-pressure transition + one conditional invitation, no affect assumption. word_budget 50->80 rides the ratified budget amendment. Draft: docs/superpowers/drafts/2026-07-07-exit_skill-v1.1.0-draft.json."
 }

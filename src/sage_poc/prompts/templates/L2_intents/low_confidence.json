@@ -1,14 +1,16 @@
 {
   "template_id": "L2_low_confidence",
-  "version": "1.0.0",
-  "authored_by": "sage_clinics",
-  "approved_by": null,
-  "effective_date": "2026-05-22",
+  "version": "1.1.0",
+  "status": "approved",
+  "authored_by": "engineering",
+  "approved_by": "Rohan Sarda (clinical lead)",
+  "effective_date": "2026-07-07",
   "layer": "L2",
   "role": "user",
   "always_include": true,
   "word_budget": 50,
-  "content": "INTENT: The user's intent is unclear. Emotional intensity: {intensity}/10. Respond warmly and check in gently. Do not assume what the user needs. Invite them to say more.",
+  "content": "INTENT: The user's message was ambiguous and it is not clear what they need. Emotional intensity: {intensity}/10. Ask one gentle, open ended clarifying question to understand better. Be warm and non judgmental. Do not assume what they need. Keep your reply to at most two sentences.",
   "variables": ["intensity"],
-  "intent": "low_confidence"
+  "intent": "low_confidence",
+  "_signed_off": "Clinical lead (Rohan Sarda) approved 2026-07-07, L2 engagement batch. CONTENT RATIFICATION only: this is the behaviour-frozen text from PR #124 (the low_confidence composer migration), not an engagement expansion. Its single clarifying question IS the bridge; no second bridge. SAFETY-COUPLED: the two-sentence cap keeps the (suppressed) freeflow guardrail benign on this path; relaxing the cap requires re-enabling that guardrail in the same change. MERGE NOTE: content is byte-identical to PR #124's low_confidence.json, so merge #124 (mechanism) before this batch for a clean version-only diff."
 }
