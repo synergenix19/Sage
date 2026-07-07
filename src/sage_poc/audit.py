@@ -96,6 +96,25 @@ async def write_identity_substitution_audit(
         logger.error("identity_substitution_audit write failed: %s", exc)
 
 
+async def _supabase_insert(table: str, row: dict) -> None:
+    """Minimal reusable POST to a Supabase REST table. Raises on failure — callers
+    that need fail-open behaviour (e.g. shadow_eval) must catch around this call.
+
+    Mirrors the base URL / service key / headers used by
+    write_identity_substitution_audit and _write_session_audit_row, but is not
+    tied to a specific table's row shape.
+    """
+    if not _URL or not _KEY:
+        raise RuntimeError("Supabase URL/service key not configured")
+    r = await _get_audit_client().post(
+        f"{_URL}/rest/v1/{table}",
+        headers=_HEADERS,
+        json=row,
+        timeout=5.0,
+    )
+    r.raise_for_status()
+
+
 def _build_session_audit_row(state: SageState) -> dict:
     row = {
         "session_id":             state.get("session_id", ""),
