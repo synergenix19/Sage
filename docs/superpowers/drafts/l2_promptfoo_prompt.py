@@ -50,6 +50,12 @@ def compose_messages(state_in: dict) -> list:
     Importable directly so the wiring can be verified without an LLM call."""
     from sage_poc.prompts import composer
     state = {**_STATE_DEFAULTS, **(state_in or {})}
+    # Coerce readable string passages from the YAML into the dict shape the L4
+    # builder expects ({text, citation}); pass dicts through untouched.
+    state["knowledge_passages"] = [
+        {"text": p, "citation": "kb"} if isinstance(p, str) else p
+        for p in (state.get("knowledge_passages") or [])
+    ]
     orig = composer.get_intent_template
     composer.get_intent_template = lambda intent, variant=None: (
         _draft_template(intent) if intent in _DRAFT_BY_INTENT else orig(intent, variant=variant)
