@@ -20,7 +20,6 @@
 - **Arabic ABSTAIN is blocking for the bilingual pilot.** An uncalibrated AR-τ (`-inf`) routes top-1 with no ABSTAIN gate — do not declare the bilingual safety gate met until AR-τ is calibrated from native-reviewed cells.
 - **No secrets in the repo.** Railway env is set via CLI, never committed.
 - Master tip at planning time: `1209207` (PR #116). V2 branch: `reconcile/v2-onto-db8eb39` (94 ahead / 143 behind master).
-- **Reconcile target is CURRENT master, which now includes `mindfulness_meditation` (#139, registered + live 2026-07-07) — a 28th routing candidate.** The `routing_eval` gate and global-τ calibration on the V2 branch were measured on **27 skills without MM**; that calibration is **INVALID for go-live**. The gate MUST re-run on the reconciled tree with **28 candidates**, and τ re-derived, before any flag-flip. Do NOT flip `SKILL_RERANK_ENABLED` on a 27-skill τ — it would silently shift routing/ABSTAIN for the newly-registered skill (and every neighbour whose margin MM now sits inside). This re-gate happens **exactly once, on the real tree**, inside the existing reconcile task — not on the stale branch. (MM carries no `semantic_anchors`, consistent with the anchors-stay-empty constraint above; its v2-readiness is purely candidate-set + τ, nothing to author.)
 
 ---
 
@@ -475,7 +474,8 @@ The runbook states, verbatim:
 1. **Prod deploys pin to a named, audited SHA — never a branch tip.** `railway up` from a checkout at that SHA; record it.
 2. **Two-endpoint hard gate before declaring a deploy good:** `/health/version` `build_sha` == the intended SHA, AND `/health/ready` `routing_mode` == the intended mode (and, once V2 ships, `reranker_fired: true`). The anti-revert check cannot half-pass — both endpoints, named explicitly.
 3. **Clinically-unsigned skill content ships inert** (unregistered or flag-gated) until sign-off. "Merged to master" ≠ "routable in prod." Cite the 2026-07-07 mm incident.
-4. Include the exact `railway up` command, the env-var sets, and the curl gate.
+4. **Any number that gates a deploy MUST cite a committed fixture SHA — the corpus is part of the artifact.** A measurement whose inputs aren't in the repo is an anecdote, not a gate. (Earned 2026-07-07: the 66/35/100 comparator corpus was unrecoverable at any revision — see `2026-07-07-v1-comparator-correction.md`. Second lost-provenance finding of the week alongside the null prod SHA.)
+5. Include the exact `railway up` command, the env-var sets, and the curl gate.
 
 - [ ] **Step 3: Verify + commit**
 
