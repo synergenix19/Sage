@@ -2,10 +2,12 @@ import { ChatFadeIn } from '@/components/chat/chat-fade-in'
 import { ChatInterface } from '@/components/chat/chat-interface'
 import { createClient } from '@/lib/supabase/server'
 import { CRISIS_SIGNAL } from '@/lib/constants'
+import { hydrateSources } from '@/lib/sources'
+import type { Source } from '@cdai/types'
 import { redirect } from 'next/navigation'
 
 type SdkRole = 'user' | 'assistant' | 'system'
-interface InitialMessage { id: string; role: SdkRole; content: string }
+interface InitialMessage { id: string; role: SdkRole; content: string; sources?: Source[] }
 
 export default async function ChatPage({
   searchParams,
@@ -62,7 +64,7 @@ export default async function ChatPage({
   // turn_number=NULL so they always sort before the AI row in the same turn.
   const { data: msgRows } = await supabase
     .from('messages')
-    .select('id, role, content')
+    .select('id, role, content, sources')
     .eq('session_id', activeSession.id)
     .order('created_at', { ascending: true })
     .order('turn_number', { ascending: true, nullsFirst: true })
@@ -71,6 +73,8 @@ export default async function ChatPage({
     id: row.id as string,
     role: (row.role === 'ai' || row.role === 'crisis' ? 'assistant' : row.role) as SdkRole,
     content: row.role === 'crisis' ? `${CRISIS_SIGNAL}${row.content as string}` : row.content as string,
+    // Lane 2 Item 1.5 (c): malformed/old-schema jsonb degrades to no card, never a crash.
+    sources: hydrateSources(row.sources),
   }))
 
   const { data: profile } = await supabase
