@@ -30,3 +30,11 @@ def test_empty_content_is_treated_as_failed_generation():
 
 def test_whitespace_only_content_is_failed_generation():
     assert asyncio.run(generate_shadow_arabic(_ar(), _FakeLLM("   \n "))) is None
+
+def test_none_content_is_failed_generation():
+    class _NoneResp:
+        content = None
+    class _NoneLLM:
+        async def ainvoke(self, messages):
+            return _NoneResp()
+    assert asyncio.run(generate_shadow_arabic(_ar(), _NoneLLM())) is None
