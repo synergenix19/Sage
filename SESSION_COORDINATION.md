@@ -7,6 +7,7 @@
 1. **At session start:** add/update your row in *Active sessions* below — your working branch(es) and what you're touching.
 2. **Before authoring an escalation or a plan:** read *Open governance items* first. If your concern is already ruled on here, amend the existing record — do not open a parallel one.
 3. **Memory writes** still follow `CLAUDE.md`: only the active command session writes the `~/.claude/.../memory/` dir. This file is the repo-side complement (branches + governance state), not a memory substitute.
+4. **Governance-doc edits rebase onto current master before merge; conflicting edits RECONCILE, never overwrite.** The ledger (rules 1–3) stops *authoring-time* races but not *merge-time* ones: a branch cut before another's merge can silently overwrite the other's edit to the same governance doc. This has now happened twice on the #139 escalation (contradicting records, then a git-layer overwrite of #145 by #146). So: before merging any edit to a `docs/superpowers/governance/` file, rebase onto current master; if another session has touched the same doc, merge the *true parts of both* into one superseding section that cites both PRs — never let last-writer-wins silently erase a ruling.
 
 ## Active sessions / branches (2026-07-07)
 
@@ -19,9 +20,10 @@
 
 ## Open governance items
 
-- **MM live-while-unsigned escalation — RESOLVED 2026-07-07: INTENDED.** Ruling in `docs/superpowers/governance/2026-07-07-mm-registration-live-in-prod-escalation.md` (RESOLUTION section). Rollback prepared-but-UNARMED. `approved_by` deliberately left null (not fully-signed — the record's value is that it's true).
-- **#131** (MM referral-escalation guard, spec line 144) — clinician confirm pending. Escalated priority.
-- **#144** (MM entry-screen referral *example* phrasing) — clinician confirm pending; bundle into #131 review. Escalated priority.
+- **MM live-while-unsigned escalation — RESOLVED 2026-07-07: INTENDED (reconciled).** The reconciled RESOLUTION in `docs/superpowers/governance/2026-07-07-mm-registration-live-in-prod-escalation.md` supersedes BOTH #145 and #146 (cites both, erases neither). Rollback prepared-but-UNARMED. `approved_by` deliberately null (honest).
+- **#131 — LANDED (`8ab2169`) + deployed; code-complete, NOT a pending PR.** (Earlier "pending #131" records were stale — corrected.) The entry-screen holds live; referral renders softly pending #144.
+- **Operative remaining gate = CMS/clinician sign-off of the referral PHRASING** (the deployed #131 text + the #144 example). **#144** (referral-example phrasing) is clinician-gated, DO NOT MERGE. Escalated priority, Lane 3.
+- **Prod smoke suite** — Tasks 1–2 landed on `feat/prod-smoke-suite` (runner+gate, Tier C, Tier A safety; 10 unit tests). Tasks 3–4 + live-prod fill resume in a fresh session off that worktree. **Dependency: Tier C flag-readback CONSUMES `/health/ready` flag exposure, delivered by make-v2-live Task 1 — do not duplicate; do not flip the readback to must-pass until that endpoint field ships.**
 - **V2 go-live re-gate** — the `routing_eval` gate + global-τ on the V2 branch were measured on 27 skills WITHOUT MM. Current master has 28. Re-gate on the reconciled tree with 28 candidates before any flag-flip. Binding line added to make-v2-live plan Global Constraints. Owner: make-v2-live effort.
 
 ## Standing board (non-v2)
