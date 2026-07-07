@@ -2,7 +2,12 @@
 
 The audit anchor for "what is actually running in each environment." Started 2026-07-07 to close the provenance gap (no `SAGE_BUILD_SHA`, no git `commitHash` on `railway up` deploys). Every deploy appends an entry with the pinned SHA and the two-endpoint verification.
 
-**Verification contract (per deploy):** `/health/ready` → expected `routing_mode`; `/health/version` (X-Sage-Api-Key) → `build_sha` == the deployed SHA. Both must pass or the deploy is not "good."
+**Verification contract (per deploy) — ALL THREE must pass or the deploy is not "good":**
+1. `/health/ready` → expected `routing_mode`.
+2. `/health/version` (X-Sage-Api-Key) → `build_sha` == the deployed SHA.
+3. **MANDATORY post-deploy smoke gate:** `railway run <venv>/python scripts/prod_smoke/run.py --tier all` must **exit 0** — Tier A safety invariants (crisis EN/AR, MM entry-screen hold, precedence) + the Tier C flag-readback are must-pass; a must-pass `FAIL` means the deploy is NOT healthy, investigate before announcing. (Tier B frontend + helpline number are report-only/XFAIL — see `docs/runbooks/prod-smoke.md`.)
+
+**This runbook line is the ONLY enforcement until CI-on-PR lands.** Deploys are manual and by-hand (`railway up`, `vercel deploy --prod`) with no CI trigger, so nothing runs the suite automatically — a smoke suite that exists but isn't in the deploy path is protection deferred. "The app responds" is not health for this product; "the crisis route fires with correct resources" is.
 
 ---
 
