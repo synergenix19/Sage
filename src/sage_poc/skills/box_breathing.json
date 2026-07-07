@@ -42,6 +42,14 @@
       "technique": "Paced breathing instruction, 4-count nasal inhale followed immediately by 4-count breath retention",
       "technique_description": "Deliver both phases in one message so the user can complete them without a chat interruption breaking the cycle. The inhale-to-hold transition is physiologically continuous — splitting it across turns destroys the timing and requires the user to re-inhale. Pace the diaphragmatic inhale over 4 counts to initiate vagal tone shift, then sustain with breath retention to deepen parasympathetic activation.",
       "tone": "calm, slow, gently directive, model the pace through language",
+      "media": {
+        "en": {
+          "type": "video",
+          "url": "https://www.youtube.com/watch?v=G25IR0c-Hj8",
+          "title": "Box Breathing for Stress",
+          "provider": "CHI Health"
+        }
+      },
       "examples": [
         "Let's start together. Breathe in slowly through your nose: 1... 2... 3... 4. Now hold gently, no strain: 1... 2... 3... 4. Let me know when you've done that.",
         "We're going to breathe together. In through your nose, nice and slow: one, two, three, four. Then just pause and hold: one, two, three, four. No rush.",

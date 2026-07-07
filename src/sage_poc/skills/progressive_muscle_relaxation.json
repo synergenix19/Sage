@@ -62,6 +62,14 @@
       "goal": "Help the user settle their breathing and become aware of where tension is held before starting muscle work",
       "technique": "Body scan awareness, preparatory breathing",
       "tone": "slow, calm, guiding the user to settle without rushing",
+      "media": {
+        "en": {
+          "type": "video",
+          "url": "https://www.youtube.com/watch?v=SNqYG95j_UQ",
+          "title": "Progressive Muscle Relaxation: An Essential Anxiety Skill #27",
+          "provider": "Therapy in a Nutshell"
+        }
+      },
       "examples": [
         "Before we start, let us take a moment to breathe and settle. Close your eyes if that feels comfortable, or just soften your gaze. Take a slow breath in, and as you breathe out, notice where in your body you feel tension right now.",
         "Let your body be still for a moment. Where are you holding the most tension? Shoulders, jaw, neck, stomach? Just notice it without trying to change it yet.",

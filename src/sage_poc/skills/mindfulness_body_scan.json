@@ -50,6 +50,14 @@
       "technique": "Anchored attention to lower body, non-directive sensation noticing",
       "technique_description": "Guide the user to bring their full attention to their feet and legs, beginning the bottom-up sweep. The instruction is always to notice, not to feel a particular sensation. The aim is to gently land attention in the body without agenda. Use language that acknowledges variation: some people notice warmth, some notice pressure, some notice nothing at all, and all of these are fine. The point is to look, not to find something specific. If the user is sitting, invite them to notice the contact of their feet with the floor. If lying down, the contact of their heels with the surface. Do not rush. Give the noticing space.",
       "tone": "slow, quiet, unhurried, non-directive",
+      "media": {
+        "en": {
+          "type": "video",
+          "url": "https://www.youtube.com/watch?v=K06KxR-w4HU",
+          "title": "A Body Scan with Diana Winston",
+          "provider": "Mindful.org"
+        }
+      },
       "contraindications": "Do NOT tell the user what they should be feeling. Do NOT interpret sensations for them before they report anything. Do NOT skip the lower body, even if the user seems impatient. The sequential sweep is the technique. If the user reports dissociation, dizziness, or distressing detachment at any point, stop the scan immediately and orient them to the room.",
       "completion_criteria": "User has brought attention to the lower body and reported something, even if only 'I don't notice anything' or 'just heaviness'. Any honest noticing, however brief, is sufficient to move on.",
       "examples": [
