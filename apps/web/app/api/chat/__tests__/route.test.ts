@@ -234,6 +234,49 @@ describe('POST /api/chat', () => {
     expect(crisisRow!.sources).toBeNull()
   })
 
+  // ── Lane 2 Item 3: X-Sage-Skill-Media (skill-delivered video) ──────────────
+  // Separate header from X-Sage-Sources (skill media is not a retrieved KB passage).
+  // Forwarded raw to the client and merged into the persisted sources as a video entry
+  // (provider → citation). Crisis turns never carry it (backend allowlist).
+  const SKILL_MEDIA = { type: 'video', url: 'https://youtu.be/box', title: 'Box Breathing for Stress', provider: 'CHI Health' }
+  const SKILL_MEDIA_AS_SOURCE = { type: 'video', title: 'Box Breathing for Stress', url: 'https://youtu.be/box', citation: 'CHI Health' }
+
+  async function runPost(text: string, headers: Record<string, string>, userMsg = 'help me relax') {
+    ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(makeSageResponse(text, headers))
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({ messages: [{ role: 'user', content: userMsg }], sessionId: VALID_SESSION_UUID }),
+    })
+    const res = await POST(req)
+    await new Promise((r) => setImmediate(r)); await new Promise((r) => setImmediate(r))
+    return res
+  }
+  function persistedRow(role: string) {
+    const batchCall = mockInsert.mock.calls.find((c) => Array.isArray(c[0]))
+    return (batchCall![0] as Array<Record<string, unknown>>).find((r) => r.role === role)!
+  }
+
+  it('forwards X-Sage-Skill-Media to the browser response', async () => {
+    const res = await runPost('hello', { 'X-Sage-Skill-Media': JSON.stringify(SKILL_MEDIA) })
+    expect(JSON.parse(res.headers.get('X-Sage-Skill-Media')!)).toEqual(SKILL_MEDIA)
+  })
+
+  it('persists skill media merged into sources as a video entry (provider→citation)', async () => {
+    await runPost('hello', { 'X-Sage-Skill-Media': JSON.stringify(SKILL_MEDIA) })
+    expect(persistedRow('ai').sources).toEqual([SKILL_MEDIA_AS_SOURCE])
+  })
+
+  it('appends skill media AFTER KB sources when both headers are present', async () => {
+    const kb = [{ type: 'article', title: 'What is anxiety?', url: 'https://kb/a', citation: 'c' }]
+    await runPost('hello', { 'X-Sage-Sources': JSON.stringify(kb), 'X-Sage-Skill-Media': JSON.stringify(SKILL_MEDIA) })
+    expect(persistedRow('ai').sources).toEqual([...kb, SKILL_MEDIA_AS_SOURCE])
+  })
+
+  it('does NOT persist skill media on a crisis turn (safety invariant)', async () => {
+    await runPost(`${CRISIS_SIGNAL}I hear you.`, { 'X-Sage-Skill-Media': JSON.stringify(SKILL_MEDIA) }, 'I want to end it all')
+    expect(persistedRow('crisis').sources).toBeNull()
+  })
+
   // ── INT-C1: sage-poc request body — checkpoint-based state (no ferry fields) ─
   it('sends messages, session_id, and user_id to sage-poc (no ferry fields)', async () => {
     const req = new Request('http://localhost/api/chat', {
