@@ -8,8 +8,7 @@ WITH the artifact (third recorded control on lost provenance — after prod SHA 
 corpus): the authority derives from the signature below, and the corpus/method for each value is
 in-line so a reader never has to reconstruct it.
 
-SIGNED-BY: synergenix (Product Owner / G6)      DATE: 2026-07-08      ROLE: PO / G6
-  (exact signatory name to be confirmed by the PO on review; authority is the PO's explicit sign-off.)
+SIGNED-BY: Rohan (Product Owner / G6)      DATE: 2026-07-08      ROLE: PO / G6
 """
 from __future__ import annotations
 
