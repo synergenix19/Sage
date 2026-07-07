@@ -1,9 +1,11 @@
 # Sample media manifest (source cards) — 2026-07-07
 
-Record of which KB articles carry **placeholder** sample `video_url` media, pending clinician-curated replacement. The media now lives **in the corpus article JSON (content-as-code)** and is carried into `citation_metadata` by the ingestion sync — it is durable across deploys, not out-of-band DB state. Purpose: when clinician-curated, per-topic links/videos replace these, the change is a **diff against this known list**, not an audit of the whole corpus.
+> **⛔ SUPERSEDED / RESOLVED 2026-07-07 — the article videos below were PULLED.** They were off-spec: the BOT BEHAVIOUR `Format: Video` attaches to **skill delivery** (Item 3), not KB info-request articles, and the content was wrong (an explainer is not a technique video; 5-4-3-2-1 is `Visual + guided conversation`, not Video). `video_url` was removed from all four corpus JSONs; the articles keep their accurate **article-link** cards. The real, correct video curation is the skill-video set → **`docs/kb/2026-07-07-skill-video-curation.md`**. Table below kept for provenance only.
 
-## Sample media set (content-as-code, `data/knowledge_corpus/en/*.json`, EN)
-All four are the **relaxation / self-regulation cluster**, carrying ONE verified-working video (a breathing/regulation clip) — plausibly on-topic for each, and guaranteed to render (an unverified per-topic ID risks "video unavailable", which reads worse to testers than a consistent working relaxation video).
+Historical record of the placeholder `video_url` that briefly lived in the corpus article JSON (content-as-code). Now removed.
+
+## Sample media set (REMOVED — historical)
+All four were the relaxation cluster, carrying ONE placeholder video (Wim Hof breathing clip) — chosen for guaranteed-render, not topic accuracy. This is exactly the mismatch that surfaced the correction. All now removed.
 
 | article_id | file | media | value |
 |---|---|---|---|
