@@ -99,6 +99,7 @@ _LLM_CRITERIA_SKILLS: frozenset[str] = frozenset({
     "dbt_tipp",
     "progressive_muscle_relaxation",
     "mindfulness_body_scan",
+    "mindfulness_meditation",
     "safe_place_visualization",
     # ACT: passive-SI / giving-up-orientation gate (distinct from somatic safety above).
     "act_psychological_flexibility",
