@@ -243,6 +243,35 @@ describe('useStreamingChat — first-byte timeout', () => {
     })
     expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
+
+  // Task 8 / spec §2.3 / review Change 3: a retry must never run two concurrent server-side
+  // turns for one utterance — a second concurrent turn would also write a second
+  // session_audit row for what the user experiences as a single message. This variant stubs
+  // fetch itself as never-resolving (rather than a resolved response with a hung body, as
+  // above) so the guard is pinned at the point reload() is invoked before fetch's promise
+  // has settled at all — the other resend-supersede shape covered by the "no-op" test.
+  it('retry supersedes an in-flight request — never two concurrent turns per utterance', async () => {
+    const fetchMock = vi.fn(() => new Promise(() => {})) // stays in flight, never resolves
+    vi.spyOn(globalThis, 'fetch').mockImplementation(fetchMock as unknown as typeof fetch)
+
+    const { result } = renderHook(() => useStreamingChat('sess-supersede-1', 'user-1', []))
+
+    act(() => {
+      result.current.append({ role: 'user', content: 'hi' })
+    })
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    const callsAfterFirst = fetchMock.mock.calls.length
+    expect(callsAfterFirst).toBe(1)
+
+    act(() => {
+      result.current.reload() // re-tap while still in flight
+    })
+
+    expect(fetchMock.mock.calls.length).toBe(callsAfterFirst) // reload() no-ops while inFlight
+  })
 })
 
 // Task 6: the client reads X-Sage-Sources off res.headers directly (mirroring how it
@@ -395,5 +424,50 @@ describe('ChatInterface — presence indicator + typewriter reveal (Task 7)', ()
     // The mocked MessageBubble surfaces the `reveal` prop ChatInterface computed — it must
     // be false because isLoading was never true->false on this render (no edge occurred).
     expect(screen.getByTestId('msg-a1')).toHaveAttribute('data-reveal', 'false')
+  })
+
+  // Task 8 (closes the Task 7 review Minor): end-to-end skip-on-type. Drives a full turn to
+  // completion so the last assistant message is genuinely revealing (data-reveal="true"),
+  // then fires a keydown on the InputBar's field (mock exposes it as onKeyDown={onInteract})
+  // and asserts the reveal is finalized (data-reveal flips to "false") — proving the wiring
+  // from InputBar's onInteract through to ChatInterface's finishReveal actually fires in a
+  // real render tree, not just as an isolated unit assertion.
+  it('firing keydown on the input field finalizes an in-progress reveal (skip-on-type)', async () => {
+    const singleChunkStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('a reply'))
+        controller.close()
+      },
+    })
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      body: singleChunkStream,
+      headers: new Headers(),
+    } as unknown as Response)
+
+    const { container } = render(
+      <ChatInterface initialSession={null} initialMessages={[]} userName="Test" userId="user-1" />
+    )
+
+    fireEvent.click(screen.getByTestId('mock-send'))
+
+    // Turn completes (isLoading true->false edge) => the assistant message starts revealing.
+    // Two message divs render (user + assistant); the assistant one is the last — the user
+    // message's `reveal` is always false, so it must not be the node under assertion.
+    const lastMsgEl = () => {
+      const all = container.querySelectorAll('[data-testid^="msg-"]')
+      return all[all.length - 1]
+    }
+    await waitFor(() => {
+      expect(lastMsgEl()).toBeDefined()
+      expect(lastMsgEl()).toHaveAttribute('data-reveal', 'true')
+    })
+
+    fireEvent.keyDown(screen.getByTestId('mock-field'), { key: 'a' })
+
+    await waitFor(() => {
+      expect(lastMsgEl()).toHaveAttribute('data-reveal', 'false')
+    })
   })
 })
