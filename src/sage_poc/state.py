@@ -60,6 +60,7 @@ class SageState(TypedDict):
     step_instruction: Optional[str]
     rule_fired: Optional[bool]         # True when a step_policy rule override replaced the default step instruction; reset each turn
     prev_step_id: Optional[str]        # step executed on the PREVIOUS turn; persists via LangGraph checkpoint for continuation detection
+    prev_primary_intent: Optional[Intent]  # primary_intent of the PREVIOUS turn; persists via checkpoint (absent from _build_state, not reset). Used to detect a CONSECUTIVE info_request ("lookup mode") so the composer switches info_request from the question-close base to the statement-bridge repeat variant. An intervening non-info_request turn resets it, restoring the question-close (re-triage after a context switch).
     skill_match_method: Optional[str]   # "keyword" | "semantic" | None
     semantic_score: Optional[float]     # cosine similarity if semantic match
     offered_skill_ids: Optional[list[str]]  # R1: 1-2 skills offered, pending accept/decline; persists via checkpoint; cleared on accept (skill_select), decline/ignore (intent_route), crisis (crisis_response), stale gap

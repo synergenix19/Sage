@@ -881,6 +881,15 @@ def compose_prompt(state: SageState, l2_intent_override: str | None = None) -> t
         # re-probe, no closing question). Falls back to base general_chat automatically if the
         # variant file is missing (get_intent_template returns the base on unknown variant).
         _l2_variant = "directive" if (state.get("directive_posture") and _l2_intent == "general_chat") else None
+        # Repeat-info_request dampening (D4 amendment 2026-07-07). A single-intent info_request
+        # closes with one open clarifying QUESTION (base template, Abby-style triage). On an
+        # IMMEDIATELY-CONSECUTIVE info_request (prev turn also info_request = "lookup mode"),
+        # switch to the statement-bridge "repeat" variant so a user in lookup mode is not
+        # re-triaged every turn. "repeat" is strictly immediately-consecutive: any intervening
+        # non-info_request turn resets prev_primary_intent and restores the question-close.
+        # Falls back to the base template automatically if the variant file is absent.
+        if _l2_intent == "info_request" and state.get("prev_primary_intent") == "info_request":
+            _l2_variant = "repeat"
     l2_block = _build_l2_intent_block(
         _l2_intent, intensity, secondary_intent, variant=_l2_variant, extra_variables=_l2_extra
     )

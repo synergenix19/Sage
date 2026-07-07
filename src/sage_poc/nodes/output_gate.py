@@ -803,6 +803,10 @@ async def output_gate_node(state: SageState) -> dict:
         "gate_path": gate_path or "standard",
         "path": path,
         "turn_count": next_turn,
+        # Persist THIS turn's intent as next turn's prev, for consecutive-info_request
+        # ("lookup mode") detection in the composer. Mirrors prev_step_id: lives in
+        # SageState, absent from _build_state, so it survives via the checkpoint.
+        "prev_primary_intent": state.get("primary_intent"),
         "conversation_history": new_history,
         "conversation_summary": new_summary,
         "cultural_output_violations": cultural_output_violations,
