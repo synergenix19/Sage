@@ -185,10 +185,11 @@ git -C ../sage-poc-v2live commit -am "fix(reconcile): restore flag-off==V1 byte-
 
 ### Task 5: Re-gate EN on the reconciled tree
 
-- [ ] **Step 1: Run the §5 flip gate (V2-vs-V1, per-stratum) on the reconciled tree**
+**⚠️ PREREQUISITE (instrument gap, confirmed 2026-07-07):** `gate_runner`/`cross_validation` are **abstract over routing** — they take an injected `routed_of` callable and do NOT run models. There is **no committed turnkey driver** that supplies a *real-model* `routed_of` over the bulk fixtures (the `--lang en` CLI below does not exist), and the `routing_eval` fixtures carry synthetic scores (`fixtures.py:9`). Before this task can run, **build/locate the real-model routing driver** (route each bulk-fixture utterance via `_semantic_match_sync`, flags-off for V1 and flags-on for V2, feed the ranked candidates to `gate_runner`). This is Option B's live-routing driver, scoped here (not at Task 2). See `2026-07-07-v1-comparator-frozen.md`.
 
-Run: `SKILL_ROUTING_V2=1 SKILL_RERANK_ENABLED=1 uv run python -m sage_poc.routing_eval.gate_runner --lang en`
-Expected: clean per-stratum win, no cell below V1 — in_scope ≈60 (TIE), id_oos ≈86 (WIN, +45pp), far_oos 100 (TIE). Any cell below V1 is a STOP.
+- [ ] **Step 1: Run the §5 flip gate (V2-vs-V1, per-stratum) on the reconciled tree** (via the real-model driver above)
+
+Expected: clean per-stratum win vs the **frozen comparator** (66/35/100) — in_scope ≈60 (TIE), id_oos ≈86 (WIN, +45pp), far_oos 100 (TIE). Any cell below the frozen V1 is a STOP.
 
 - [ ] **Step 2: Record the re-gate result**
 
@@ -519,10 +520,11 @@ Gate: prod `/health/ready` shows `routing_mode=v2`, `reranker_fired=true`, match
 
 ### Task 12: Measure V1→V2 in production against the frozen comparator
 
-- [ ] **Step 1: Run the prod routing measurement** (the same fixture set as Task 2's frozen V1 baseline) against prod now on V2.
+**⚠️ PREREQUISITE (instrument gap, confirmed 2026-07-07):** no `gate_runner --target prod` live path exists — "prove it end-to-end in production" is **not yet an instrument**. It requires a live-routing driver that sends each fixture utterance through the **deployed prod endpoint** (or a prod-parity local run of the deployed tree) and scores per-stratum against the frozen comparator. `scripts/functional_multiturn_prod.py` may be a starting point (unverified). Build this before Task 12 can execute.
 
-Run: `uv run python -m sage_poc.routing_eval.gate_runner --target prod --lang en`
-Expected: id_oos over-route rate drops to the ~86 level measured offline; in_scope/far_oos not below the frozen V1 comparator.
+- [ ] **Step 1: Run the prod routing measurement** (same fixtures as the frozen comparator) against prod now on V2, via the live-prod driver above.
+
+Expected: id_oos over-route rate drops to the ~86 level measured offline; in_scope/far_oos not below the **frozen V1 comparator** (`2026-07-07-v1-comparator-frozen.md`). **If #139 stayed in prod ("intended" ruling), first run the bounded delta-check** (guard tree with `mindfulness_meditation` registered) so the comparator is treated as exact, not approximate.
 
 - [ ] **Step 2: Record the realized V1→V2 prod delta** in `2026-07-07-v2-live-regate.md`. This is the artifact that closes "measure the baseline difference between V1 and V2" (English). Commit.
 
