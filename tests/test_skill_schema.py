@@ -258,3 +258,19 @@ def test_skill_schema_semantic_anchors_defaults_to_empty():
     }
     skill = Skill.model_validate(data)
     assert skill.semantic_anchors == []
+
+
+def test_skill_step_media_parses_per_language():
+    """Item 3: SkillStep.media is an optional per-language dict of media items."""
+    skill = load_skill("mindfulness_meditation")
+    step = next(s for s in skill.steps if s.step_id == "settle_and_anchor")
+    assert step.media is not None
+    assert step.media["en"].type == "video"
+    assert step.media["en"].url == "https://www.youtube.com/watch?v=XInJoYvy_ew"
+    assert step.media["en"].provider == "UCLA Health"
+
+
+def test_skill_step_media_defaults_none():
+    """Steps without media parse with media=None — byte-identical to pre-Item-3 behaviour."""
+    skill = load_skill("cbt_thought_record")
+    assert all(s.media is None for s in skill.steps)

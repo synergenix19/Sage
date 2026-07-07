@@ -33,6 +33,15 @@ class StepPolicyRule(BaseModel):
         return self
 
 
+class SkillMediaItem(BaseModel):
+    # Item 3 (SkillStep.media): a single media resource for one language.
+    # Provider-agnostic full URL (never a bare id), same contract as Source.url.
+    type: Literal["video"] = "video"
+    url: str
+    title: str = ""
+    provider: str = ""                # attribution, e.g. "UCLA Health"
+
+
 class SkillStep(BaseModel):
     step_id: str
     goal: str
@@ -42,6 +51,9 @@ class SkillStep(BaseModel):
     examples: list[str]
     contraindications: str = ""
     completion_criteria: str = ""
+    # Item 3: optional per-language media, keyed by language ("en", "ar"), mirroring
+    # the bilingual `examples` pattern. null = no media (byte-identical pre-Item-3).
+    media: dict[str, SkillMediaItem] | None = None
 
 
 class Skill(BaseModel):
