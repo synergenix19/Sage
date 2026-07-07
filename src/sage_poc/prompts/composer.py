@@ -486,12 +486,13 @@ def _build_freeflow_guardrail_block(variant: str | None = None) -> str:
     protocol via the L3 step instruction. Draft-pending clinical review.
 
     Coverage boundary: this guardrail reaches only the compose_prompt freeflow
-    path. low_confidence_respond_node uses a hardcoded _SYSTEM prompt and
-    bypasses compose_prompt entirely, so the guardrail does not reach it. This
-    is benign today because low_confidence_respond caps its output at 2
-    sentences, making free-prose protocol delivery practically impossible. If
-    that 2-sentence cap is ever removed, the guardrail must be added to
-    low_confidence_respond_node's _SYSTEM prompt as well.
+    path. low_confidence_respond_node now composes via compose_prompt (§5.6.3)
+    but passes l2_intent_override="low_confidence", which suppresses this
+    guardrail (and the MID shape) — low_confidence is its own short-clarifying
+    contract, not a freeflow turn. This remains benign because that template
+    caps output at 2 sentences, making free-prose protocol delivery practically
+    impossible. If that 2-sentence cap is ever removed from the low_confidence
+    template, drop the override-suppression so the guardrail reaches it.
     """
     tmpl = get_template("freeflow_guardrail", variant=variant)
     _log.debug("freeflow_guardrail@%s loaded", tmpl.version)
@@ -633,7 +634,7 @@ def build_cultural_override_block(skill) -> str | None:
     return None
 
 
-def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
+def compose_prompt(state: SageState, l2_intent_override: str | None = None) -> tuple[str, str, list[str]]:
     """Return (system_str, user_str, prompt_layers) for role-separated LLM invocation.
 
     Implements v7 §5.6 6-layer progressive disclosure. Rules Service injections
@@ -782,7 +783,13 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     # exclusive per turn, matching the budget docstring.
     _guardrail_block: str | None = None
     _guardrail_words: int = 0
-    if not state.get("step_instruction") and not _offer_ids:
+    # l2_intent_override (e.g. low_confidence) is NOT a freeflow turn: it carries
+    # its own response contract (a short clarifying question), so the freeflow-only
+    # guardrail + MID shape must not fire here — the MID shape would contradict that
+    # contract's brevity cap. Protocol-as-prose is impossible in a 2-sentence reply,
+    # so suppressing the guardrail here is safe (same rationale as the pre-migration
+    # bypass, now explicit).
+    if not state.get("step_instruction") and not _offer_ids and not l2_intent_override:
         _guardrail_block = _build_freeflow_guardrail_block()
         # P1(mid): on pure-freeflow validation turns at the MID band only, append the
         # response-shape floor. Gated to 4 <= intensity <= 6 so the low band (light
@@ -808,7 +815,7 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     # excludes declined skills in skill_select; this note only protects the
     # freeflow prose path, and declined_words simply adds to the same proactive
     # L1 deduction alongside offer_words when both apply.
-    _is_freeflow = not state.get("step_instruction")
+    _is_freeflow = not state.get("step_instruction") and not l2_intent_override
     _declined_ids = state.get("declined_skills") or []
     _declined_note = ""
     _declined_words = 0
@@ -847,7 +854,14 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     # Rule 1 approval — template is draft-pending-review.
     # Offer override: _offer_ids / _offer_block_str were precomputed above the
     # L1 budget call so the block is built exactly once per turn.
-    if _offer_ids:
+    if l2_intent_override:
+        # Explicit L2 selection (e.g. the low_confidence node, whose routing is a
+        # confidence outcome, not a primary_intent). Bypasses intent/offer-based
+        # selection. Every other caller passes None => byte-identical behaviour.
+        _l2_intent = l2_intent_override
+        _l2_extra = None
+        _l2_variant = None
+    elif _offer_ids:
         _l2_intent = "skill_offer"
         _l2_extra = {"offer_options_block": _offer_block_str}
         # Repeat-offer variant: on the 2nd+ consecutive render of the same offer
