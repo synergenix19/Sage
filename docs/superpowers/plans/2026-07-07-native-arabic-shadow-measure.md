@@ -299,33 +299,13 @@ def test_freeflow_return_excludes_shadow_keys():
     # the node writes shadow to the eval table, never returns it
     assert "\"shadow_arabic\"" not in src and "'shadow_arabic'" not in src
 ```
-- [ ] **Step 2: Behavioral sentinel test (MANDATORY — Blocking #1a)** — drive an Arabic turn with the flag ON and a monkeypatched shadow generator returning a distinctive sentinel; assert the sentinel appears in NEITHER the served `response` NOR the serialized API payload.
-```python
-# tests/test_shadow_never_served.py (continued)
-import asyncio
-from unittest.mock import patch, AsyncMock
+> **Architect sign-off 2026-07-07 (Checkpoint 1):** the **behavioral sentinel test + API-payload assertion are RELOCATED to Task 7** (they require the freeflow wiring to exist) and are a **hard merge gate there** — Task 7 does not merge with that test absent, skipped, or red. Task 5 lands the three static, by-construction invariants that provide the containment guarantee *before* persistence: `output_gate` source-absence, `SageState` channel-absence, `freeflow` return-shape. Keep all three together.
 
-_SENTINEL = "ZZZ_SHADOW_SENTINEL_ﷺ_NEVER_SERVE"
-
-def test_sentinel_never_in_served_response(monkeypatch):
-    monkeypatch.setattr(fr, "NATIVE_ARABIC_SHADOW_ENABLED", True)
-    payload = {"text": _SENTINEL, "prompt_hash": "x"*16, "exemplar_version": "0.1",
-               "generation_language": "ar_native", "gen_latency_ms": 3}
-    with patch.object(fr, "generate_shadow_arabic", new=AsyncMock(return_value=payload)), \
-         patch.object(fr, "write_shadow_eval_row", new=AsyncMock()):
-        out = asyncio.run(fr.freeflow_respond_node(
-            {"detected_language": "ar", "raw_message": "تعبت", "message_en": "tired",
-             "path": [], "user_id": None, "session_id": "s1", "turn_number": 1},
-            llm=fr_stub_llm()))
-    assert _SENTINEL not in str(out)          # not in node result / state
-    assert out.get("response_en") and _SENTINEL not in out["response_en"]
-```
-> `fr_stub_llm()` reuses the fake LLM in `tests/test_freeflow_respond.py`. Also add an API-layer assertion in the existing end-to-end server test (`tests/test_server.py` or `tests/test_e2e_*`): run one Arabic turn flag-ON with the sentinel monkeypatch and assert `_SENTINEL not in response.text` of the HTTP payload.
-- [ ] **Step 3: Serializer + checkpointer confirmation audit (Blocking #1b)** — grep the API/response layer and checkpointer for full-state passthrough; document that no code returns raw `SageState` to the client (the response DTO whitelists fields). Record findings in a one-paragraph note at the top of Task 11's pre-registration doc. Since shadow never enters state, this is a confirmation, not a patch — but if the audit finds any raw-state dump to client or logs, add an explicit exclusion and a test.
+- [ ] **Step 2: Serializer + checkpointer confirmation audit (Blocking #1b)** — grep the API/response layer and checkpointer for full-state passthrough; document that no code returns raw `SageState` to the client (the response DTO whitelists fields). Record findings in a one-paragraph note at the top of Task 11's pre-registration doc. Since shadow never enters state, this is a confirmation, not a patch — but if the audit finds any raw-state dump to client or logs, add an explicit exclusion and a test.
 
 Run: `cd /Users/knowledgebase/Documents/Sage/sage-poc && grep -rnE "\.dict\(\)|model_dump|jsonify\(state|return .*state\b" src/sage_poc/server.py src/sage_poc/**/*.py | grep -iv test`
-- [ ] **Step 4: Verify** — `cd sage-poc && uv run pytest tests/test_shadow_never_served.py -v` → PASS (guards green; will fail loudly if anyone ever routes shadow into state/serving)
-- [ ] **Step 5: Commit** — `git add tests/test_shadow_never_served.py && git commit -m "test(shadow): containment guard — never served, never a state channel, sentinel-in-payload check"`
+- [ ] **Step 3: Verify** — `cd sage-poc && uv run pytest tests/test_shadow_never_served.py -v` → PASS (three static guards green; will fail loudly if anyone ever routes shadow into state/serving)
+- [ ] **Step 4: Commit** — `git add tests/test_shadow_never_served.py && git commit -m "test(shadow): containment static guards — never a state channel, output_gate/freeflow return-shape absence"`
 
 ---
 
@@ -429,9 +409,14 @@ async def write_shadow_eval_row(state: dict, payload: dict | None, *, tool_loop_
 
 ### Task 7: Wire concurrent shadow into `freeflow_respond` (writes eval row, returns nothing shadow)
 
-**Files:** Modify `src/sage_poc/nodes/freeflow_respond.py:264-297`; Test `tests/test_freeflow_shadow_wiring.py`
+**Files:** Modify `src/sage_poc/nodes/freeflow_respond.py:264-297`; Modify `src/sage_poc/shadow_arabic.py` (empty-content fix, below); Test `tests/test_freeflow_shadow_wiring.py`; Test `tests/test_shadow_never_served.py` (add relocated sentinel + API-payload assertion)
 
 **Interfaces:** Consumes `NATIVE_ARABIC_SHADOW_ENABLED`, `generate_shadow_arabic`, `write_shadow_eval_row`. Produces: node result dict is **unchanged** (no shadow keys); side-effect is one `shadow_register_eval` row on Arabic turns when flag on.
+
+> **MERGE GATE (architect sign-off 2026-07-07, Checkpoint 1) — Task 7 does NOT merge unless all hold:**
+> - **(a) Behavioral sentinel test present, green, not skipped** (relocated from Task 5): drive an Arabic turn flag-ON with a monkeypatched shadow generator returning a distinctive sentinel; assert the sentinel appears in NEITHER the served `response`/node result NOR the serialized API payload. Both the node-level test AND the API-layer assertion (in the e2e server test) are required.
+> - **(b) Empty-content semantics fixed** in `generate_shadow_arabic` (carried Minor): an empty-string LLM `content` is a FAILED generation → return `None` (fail-open, logged) — never a stored empty row, never the object repr. A repr entering `shadow_register_eval` silently poisons the register sample with non-responses. Required test: empty content → `None`.
+> - **(c) The V1/V2/V3 verification items** (write fail-open+bounded, pairing key, retention parity) tracked in the Amendment Map — V1 lands here (write is bounded + swallowed; `test_eval_write_failure_does_not_break_served_turn`).
 
 - [ ] **Step 1: Failing tests**
 ```python
@@ -489,6 +474,54 @@ def test_eval_write_failure_does_not_break_served_turn(monkeypatch):
         out = asyncio.run(fr.freeflow_respond_node(_ar(), llm=fr_stub_llm()))
     assert "response_en" in out  # served turn completed despite write failure
 ```
+
+- [ ] **Step 1b: Merge-gate tests (architect sign-off) — empty-content + relocated sentinel**
+
+Empty-content → None, in `tests/test_shadow_arabic.py` (fixes the carried Minor at the semantic level):
+```python
+def test_empty_content_is_treated_as_failed_generation():
+    # empty string content = failed generation → None (never a stored empty row / repr)
+    import asyncio as _a
+    out = _a.run(generate_shadow_arabic(_ar(), _FakeLLM("")))
+    assert out is None
+def test_whitespace_only_content_is_failed_generation():
+    import asyncio as _a
+    assert _a.run(generate_shadow_arabic(_ar(), _FakeLLM("   \n "))) is None
+```
+Relocated behavioral sentinel + API-payload assertion, in `tests/test_shadow_never_served.py`:
+```python
+import asyncio
+from unittest.mock import patch, AsyncMock
+import sage_poc.nodes.freeflow_respond as fr
+_SENTINEL = "ZZZ_SHADOW_SENTINEL_ﷺ_NEVER_SERVE"
+
+def test_sentinel_never_in_served_response(monkeypatch):
+    monkeypatch.setattr(fr, "NATIVE_ARABIC_SHADOW_ENABLED", True)
+    monkeypatch.setattr(fr, "_SHADOW_TIMEOUT_S", 0.05)
+    payload = {"text": _SENTINEL, "prompt_hash": "x"*16, "exemplar_version": "0.1",
+               "generation_language": "ar_native", "gen_latency_ms": 3}
+    with patch.object(fr, "generate_shadow_arabic", new=AsyncMock(return_value=payload)), \
+         patch.object(fr, "write_shadow_eval_row", new=AsyncMock()):
+        out = asyncio.run(fr.freeflow_respond_node(
+            {"detected_language": "ar", "raw_message": "تعبت", "message_en": "tired",
+             "path": [], "user_id": None, "session_id": "s1", "turn_number": 1},
+            llm=fr_stub_llm()))
+    assert _SENTINEL not in str(out)                         # not in node result / state
+    assert out.get("response_en") and _SENTINEL not in out["response_en"]
+```
+> Plus the API-layer assertion in the e2e server test (`tests/test_server.py` / `tests/test_e2e_*`): one Arabic turn flag-ON with the sentinel monkeypatch → assert `_SENTINEL not in <http payload text>`. `fr_stub_llm()` reuses the fake LLM in `tests/test_freeflow_respond.py`.
+
+- [ ] **Step 1c: Apply the empty-content fix** in `src/sage_poc/shadow_arabic.py` — after computing `text`, treat empty/whitespace as failure:
+```python
+        text = getattr(resp, "content", None)
+        if text is None:
+            text = str(resp)
+        if not text.strip():
+            _log.warning("[shadow_arabic] empty generation content; treating as failed (None)")
+            return None
+```
+(replaces the `text = getattr(resp, "content", None) or str(resp)` line; preserves fail-open and never returns a repr/empty as `text`.)
+
 - [ ] **Step 2: Verify fail** — FAIL (missing symbols)
 - [ ] **Step 3: Imports + constants** (top of `freeflow_respond.py`; ensure `import asyncio` and a module `_log` are present)
 ```python
@@ -749,7 +782,7 @@ def gate_fire_summary(rows: list[dict]) -> dict:
 - Task 11 pre-registration merged; rubric/blinding/KPI signed; DPO ack recorded; flag-off date committed.
 - Task 2 exemplar `ar` fields **native-authored AND clinician-reviewed** (Amendment #5); `version` bumped from `-draft`.
 - Migration 008 applied to the pilot DB.
-- `tests/test_shadow_never_served.py` green on the deploy SHA.
+- `tests/test_shadow_never_served.py` green on the deploy SHA — **specifically the behavioral sentinel + API-payload assertion** (architect sign-off 2026-07-07: re-verified at the only point the flag ever turns on, not just at Task 7 merge).
 
 - [ ] **Step 1:** `SAGE_NATIVE_ARABIC_SHADOW=true` on the pilot service only (Railway; deploys are manual — `railway up`).
 - [ ] **Step 2:** Verify one Arabic turn writes a `shadow_register_eval` row (with `message_en`, `tool_loop_iterations`, `shadow_timed_out`) AND that the served `response` is unchanged translate-out; grep the client payload for the sentinel to confirm containment in prod.
