@@ -14,16 +14,23 @@
 
 description: "info_request v2.0.0 (rule a*) — deterministic single conditional bridge, no affect assumption, ABSTAIN-as-recovery"
 
+# Composes the DRAFT L2 templates (docs/, not loaded) into system+user messages.
 prompts:
-  - id: compose-info-request
-    # WIRING (eng task): resolve to `compose_prompt(state, )` joined system+user.
-    label: "composed info_request prompt"
+  - file://l2_promptfoo_prompt.py:compose
 
 providers:
-  # WIRING (eng task): set to the prod responder (gpt-4o class) with temp as prod.
-  - id: "REPLACE_WITH_PROD_RESPONDER"
+  # Matches the prod responder (config.py RESPONDER_MODEL = openai/gpt-4o, temp 0.7)
+  # via OpenRouter. REQUIRES OPENROUTER_API_KEY in env
+  # (railway variables -s sage-api -e production | grep OPENROUTER).
+  - id: openrouter:openai/gpt-4o
+    config:
+      temperature: 0.7
+      max_tokens: 1024
 
 defaultTest:
+  # llm-rubric assertions are model-graded; grade with the same provider.
+  options:
+    provider: openrouter:openai/gpt-4o
   assert:
     # Standing constraint: no em dashes (mirrors into output; house rule).
     - type: not-icontains

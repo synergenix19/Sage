@@ -30,6 +30,13 @@ CLEARS (clinical content gate): ratify the bridge rule; set `approved_by` + `sta
 
 DOES NOT CLEAR: PR #124 engineering review (separate, done); the L2-enumeration regression test (separate small eng PR); the overflow/L1-budget accounting defect #125 (eng, coupled to the budget amendment); the PromptFoo harness wiring (eng); and merge/deploy authority (product owner triggers; deploys are manual).
 
+## Test evidence status (read before the session)
+
+Evidence is split into what can be verified without a live model and what needs one:
+
+- **Deterministic layer — GREEN NOW (attached).** `tests/test_l2_engagement_drafts_composition.py` (7 tests) proves the drafts encode rule (a\*): single conditional bridge, no affect-assumptive phrasing, ABSTAIN-as-recovery, grounding, single-question, no em dashes, list-directive compatibility. Plus `test_l2_engagement_manifest.py` (the enumeration guard) and the composer shim verified to compose the draft bridge + L0 + L4 for every scenario without an LLM.
+- **LLM-output layer — WIRED, NOT YET RUN (needs the key).** The five PromptFoo cases (`2026-07-07-l2-engagement-promptfoo.yaml`) are fully wired to a shim (`l2_promptfoo_prompt.py`) that composes the DRAFT templates, pointed at the prod responder (`openrouter:openai/gpt-4o`). Running them requires `OPENROUTER_API_KEY` (Railway), which is not present in the dev environment, so model-output results are **not fabricated here**. Owner or a CI job with the secret runs `npx promptfoo eval -c .../2026-07-07-l2-engagement-promptfoo.yaml` and attaches results. **The session date depends on this run.**
+
 ## Standing constraints verified in every draft
 
 No em dashes (mirrors into output). No affect-assumptive language on factual/single-intent turns. Grounding/ABSTAIN rules unchanged and independent of the engagement change. List-directive compatibility: the bridge is a closing line that coexists with the L4 light-structure numbered-list output. PromptFoo cases encode each failure mode (pure factual → bridge, zero assumed distress; affect-laden-slipped-single-intent → conditional bridge lands; ABSTAIN → bridge as recovery, no fabrication; negative → no affect-assumptive phrasing; list-compat).
