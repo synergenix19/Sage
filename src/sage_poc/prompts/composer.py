@@ -634,7 +634,7 @@ def build_cultural_override_block(skill) -> str | None:
     return None
 
 
-def compose_prompt(state: SageState, l2_intent_override: str | None = None) -> tuple[str, str, list[str]]:
+def compose_prompt(state: SageState, l2_intent_override: str | None = None, *, shadow_arabic: bool = False) -> tuple[str, str, list[str]]:
     """Return (system_str, user_str, prompt_layers) for role-separated LLM invocation.
 
     Implements v7 §5.6 6-layer progressive disclosure. Rules Service injections
@@ -660,13 +660,24 @@ def compose_prompt(state: SageState, l2_intent_override: str | None = None) -> t
     # rules so the LLM sees the translation architecture before register calibration.
     # CU-DM-001 v1.2 must not restate this (register calibration only after this fix).
     if language == "ar":
-        system_parts.append(
-            "ARABIC SESSION: This user writes in Arabic. Your response will be "
-            "translated to Khaleeji Arabic by the delivery layer. Generate in English "
-            "with warmth and conversational rhythm that translates naturally to Gulf "
-            "Arabic, not clinical or formal phrasing. Do not write in Arabic."
-        )
-        layers.append("arabic_register")
+        if shadow_arabic:
+            from sage_poc.prompts.loader import load_khaleeji_shadow_exemplars  # noqa: PLC0415
+            _ex_version, _ex_block = load_khaleeji_shadow_exemplars()
+            system_parts.append(
+                "ARABIC SESSION (native generation): This user writes in Arabic. "
+                "Generate your reply directly in warm, informal Gulf Arabic (Khaleeji "
+                "dialect), not Modern Standard Arabic and not clinical or formal "
+                "phrasing. Mirror the user's dialect and level of formality.\n" + _ex_block
+            )
+            layers.append("arabic_native_shadow")
+        else:
+            system_parts.append(
+                "ARABIC SESSION: This user writes in Arabic. Your response will be "
+                "translated to Khaleeji Arabic by the delivery layer. Generate in English "
+                "with warmth and conversational rhythm that translates naturally to Gulf "
+                "Arabic, not clinical or formal phrasing. Do not write in Arabic."
+            )
+            layers.append("arabic_register")
 
     # Cultural injections from Rules Service (unchanged from original)
     code_switch = state.get("code_switching", False)
