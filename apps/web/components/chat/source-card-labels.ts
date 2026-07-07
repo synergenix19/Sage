@@ -35,3 +35,13 @@ export function sourceLabel(sources: Source[], locale: 'en' | 'ar'): string | nu
   const key = sourceLabelKey(sources)
   return (LABELS[locale] ?? LABELS.en)[key] ?? null
 }
+
+/** Human-readable source domain for attribution (e.g. "nimh.nih.gov"), or '' if unparseable.
+ *  Gives each card a meaningful source line (what ChatGPT/Abby show) from data we already have. */
+export function sourceDomain(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return ''
+  }
+}
