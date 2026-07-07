@@ -28,6 +28,7 @@ from sage_poc.server_helpers import _build_state, _stale_skill_overrides, _void_
 from sage_poc.llm import get_classifier
 from sage_poc.observability import log_stage_latency
 from sage_poc.skills.conformance import SCHEMA_CONFORMANCE, get_conformance_report
+from sage_poc.skills.schema import load_skill
 
 _log = logging.getLogger(__name__)
 
@@ -124,6 +125,43 @@ def _sources_header(result: dict) -> str | None:
         if len(entries) >= 3:                        # cap = L4 max_passages evidence budget
             break
     return json.dumps(entries, ensure_ascii=True) if entries else None
+
+
+def _skill_media_entry(item) -> str:
+    """One skill-media item as JSON, HTTP-header-safe (ensure_ascii for Arabic titles)."""
+    return json.dumps(
+        {"type": item.type, "url": item.url, "title": item.title, "provider": item.provider},
+        ensure_ascii=True,
+    )
+
+
+def _skill_media_header(result: dict) -> str | None:
+    """Build the X-Sage-Skill-Media header: the just-delivered step's approved media for the
+    turn's language, or None.
+
+    SEPARATE from X-Sage-Sources by design (Item 3): skill media is NOT a retrieved
+    knowledge_passage, so it must not ride the sources channel — that channel's invariant is
+    sources ⊆ session_audit.knowledge_passage_ids. Skill media audits instead to
+    active_skill_id (already recorded) + the approved skill curation list. It inherits the same
+    allowlist gate and ensure_ascii. Behind a default-OFF kill-switch (SAGE_SKILL_MEDIA_ENABLED).
+    """
+    if os.environ.get("SAGE_SKILL_MEDIA_ENABLED", "").strip().lower() not in ("1", "true", "yes", "on"):
+        return None
+    if result.get("gate_path") not in _SOURCE_ALLOWED_GATE_PATHS:
+        return None
+    skill_id = result.get("active_skill_id") or result.get("completed_skill_id")
+    step_id = result.get("executed_step_id")
+    if not skill_id or not step_id:
+        return None
+    try:
+        skill = load_skill(skill_id)
+    except Exception:
+        return None
+    step = next((s for s in skill.steps if s.step_id == step_id), None)
+    if not step or not step.media:
+        return None
+    item = step.media.get(result.get("detected_language") or "en")
+    return _skill_media_entry(item) if item else None
 
 
 def _warmup_bge_m3() -> None:
@@ -485,12 +523,14 @@ async def chat(
             yield token.encode()
 
     _sources = _sources_header(result)
+    _skill_media = _skill_media_header(result)
 
     return StreamingResponse(
         _body(),
         media_type="text/plain; charset=utf-8",
         headers={
             **({"X-Sage-Sources": _sources} if _sources else {}),
+            **({"X-Sage-Skill-Media": _skill_media} if _skill_media else {}),
             "X-Sage-Node-Path":             json.dumps(path),
             "X-Sage-Model":                 RESPONDER_MODEL,
             "X-Sage-Skill-Id":              result.get("active_skill_id") or result.get("completed_skill_id") or "",
