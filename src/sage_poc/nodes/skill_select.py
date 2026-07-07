@@ -671,6 +671,26 @@ async def skill_select_node(state: SageState) -> dict:
         )
         stale_offer_clear = {"offered_skill_ids": None}
 
+    # OCD-compulsion iatrogenic veto (deterministic, ARM-INDEPENDENT safety control; approved
+    # expedited hotfix, escalation 2026-07-07-v1-iatrogenic-ocd-routing-escalation.md). A disclosed
+    # compulsion or ritual (checking, counting/magic/undoing, scrupulosity, rereading/redoing,
+    # contamination/reassurance/symmetry) must NOT route to a self-help skill: worry, rumination,
+    # thought-record and grounding tools REINFORCE compulsions, so any such route is iatrogenic.
+    # ABSTAIN to Node 3 (low_confidence_respond) instead, the correct terminal for these cases.
+    # Runs BEFORE both routing tiers (keyword Tier 1 + semantic Tier 2) and is NOT gated on
+    # SKILL_ROUTING_V2, so V1 (the prod hotfix surface) and V2 behave identically. Subordinate to the
+    # crisis + psychotic auto-selects above (a crisis still escalates). Carries no user-facing text.
+    from sage_poc.nodes.ocd_compulsion import is_ocd_compulsion  # noqa: PLC0415
+    if is_ocd_compulsion(state.get("message_en")):
+        return {
+            **stale_offer_clear,
+            "active_skill_id": None,
+            "active_step_id": None,
+            "skill_match_method": None,
+            "semantic_score": None,
+            "path": state["path"] + ["skill_select", "ocd_compulsion_veto"],
+        }
+
     # V2 behavior #4: enforce the frozen ABSTAIN dispositions DECLARED on the flag definitions.
     # Pure consumer — the safety lane owns which flags carry skill_select_disposition "abstain"
     # (declared on clinical_flag_patterns.json by the crisis sprint); skill_select reads the field
