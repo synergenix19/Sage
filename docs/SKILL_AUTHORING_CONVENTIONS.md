@@ -342,3 +342,9 @@ Complete the English grief/financial re-author and clear the SF1 gate before sta
 ### Post-merge gate
 
 After any anchor merge, `scripts/validate_grief_sf1_boundary.py` is run as a mandatory pre-commit gate. Non-waivable. `SEMANTIC_THRESHOLD = 0.4593` is fixed — do not raise it to paper over bleed.
+
+## Proactive-escalation guards need a demonstrating example (not just contraindication text)
+
+A guard whose correct behaviour is to **proactively say something** — escalate to a referral, hand off to another pathway — is different from one that merely **withholds** a tool. Withholding is enforced by the completion-criteria gate (the step holds). But the *proactive utterance* is rendered by the LLM, and the LLM renders from what it is shown: contraindication text sets the **boundary**, few-shot `examples` teach the **rendering** (Cardinal Rule 3). With the boundary text but no example, the LLM reliably *holds* but *softens* the escalation into a generic support question — the referral never lands.
+
+**Rule:** any entry-screen / guard step whose escalation is an LLM utterance (referral, professional-support handoff) MUST carry a disclosure→escalation demonstrating example, and it must sit inside the language-filtered top-`n` that `_select_examples` returns (n=2 today) — for BOTH languages (Arabic at [0] per the ordering rule). Verified live in the MM entry-screen: gate held on derealization, but the referral was soft until the example was added. Pairs with the entry-screen `_LLM_CRITERIA_SKILLS` registration lesson above — both are "the guard is only as good as what the LLM is given."
