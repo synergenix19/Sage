@@ -73,5 +73,18 @@ describe('PresenceIndicator', () => {
     const dot = container.querySelector('[data-testid="presence-indicator"] > span')
     expect(dot).not.toBeNull()
     expect(dot?.className).not.toMatch(/animate-\[breathe/)
+    // Reduced motion: the row-level heartbeat is suppressed too (static).
+    expect(screen.getByTestId('presence-indicator').className).not.toMatch(/animate-\[heartbeat/)
+  })
+
+  it('pulses the whole row (dot + phrase) with one heartbeat when motion is allowed', () => {
+    // Default matchMedia mock returns matches:false (motion allowed).
+    render(<PresenceIndicator />)
+    act(() => { vi.advanceTimersByTime(650) })
+    const row = screen.getByTestId('presence-indicator')
+    // The opacity heartbeat lives on the CONTAINER so the dot and the phrase pulse in unison.
+    expect(row.className).toMatch(/animate-\[heartbeat/)
+    // and the phrase is a child of that pulsing row (so it breathes with the dot).
+    expect(row.textContent).toContain(PRESENCE_POOL.en[0])
   })
 })

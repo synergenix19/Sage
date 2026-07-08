@@ -41,7 +41,11 @@ export function PresenceIndicator({ onPhrase }: { onPhrase?: (id: number) => voi
     <div
       role="status"
       aria-label={locale === 'ar' ? 'Sage معك' : 'Sage is with you'}
-      className="flex items-center justify-start gap-2"
+      className={
+        'flex items-center justify-start gap-2 ' +
+        // The whole row (dot + phrase) breathes opacity together — one heartbeat.
+        (reduced ? '' : 'motion-safe:animate-[heartbeat_4s_ease-in-out_infinite]')
+      }
       data-testid="presence-indicator"
     >
       <span
