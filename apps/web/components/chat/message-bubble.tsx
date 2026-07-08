@@ -43,13 +43,19 @@ export function MessageBubble({ message, supabaseId, onFeedback, reveal = false,
   // (enabled=false → useTypewriter resolves to full text immediately) and take the fade path.
   const reducedMotion = usePrefersReducedMotion()
   const formatted = hasBlockMarkdown(message.content)
+  const typewriterEnabled = reveal === true && !reducedMotion && !formatted
   const { displayed, done, complete } = useTypewriter(message.content, {
-    enabled: reveal === true && !reducedMotion && !formatted,
+    enabled: typewriterEnabled,
   })
 
+  // Signal completion ONLY for the typewriter path. On the fade/instant path,
+  // useTypewriter reports done=true on the first render (enabled=false), so firing
+  // onRevealComplete here would clear revealId before the 300ms fade could play — the fade
+  // was measured lasting ~12ms in prod, i.e. invisible. Leaving reveal set lets the fade run
+  // to completion; revealId is superseded on the next turn (harmless to leave it set).
   useEffect(() => {
-    if (reveal && done) onRevealComplete?.()
-  }, [reveal, done, onRevealComplete])
+    if (typewriterEnabled && done) onRevealComplete?.()
+  }, [typewriterEnabled, done, onRevealComplete])
 
   if (message.role === 'crisis') return null
   if (message.role === 'system') {
