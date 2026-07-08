@@ -103,14 +103,17 @@ Fixes "displays everything at once." Once the gated answer arrives complete, it 
 - Tap anywhere on the message → full text instantly.
 - User starts typing in the input → reveal completes immediately.
 
-### 3.4 Crisis exception — `render_mode`
-- Crisis-path responses render in a **single frame** (no typewriter), helpline card present from **first paint**.
-- Driven by a single `render_mode` flag: `'instant'` for crisis, `'typewriter'` otherwise.
-- **Phase 0a source of truth:** derive `render_mode` from signals already present today — the `CRISIS_SIGNAL` body prefix and `X-Sage-Crisis-Tier` header. No new backend needed.
-- **Phase 0b source of truth:** `render_mode` becomes an explicit field on the terminal metadata frame (§4.2).
+### 3.4 Render mode — three-valued (as shipped 2026-07-08)
+- Render mode is **three-valued**: **instant** | **fade** | **typewriter**.
+  - **instant** — crisis-path responses render in a **single frame** (no typewriter), helpline card present from **first paint** (structurally: crisis content renders in `CrisisCard`, never the reveal path).
+  - **fade** — replies containing **block-level Markdown** (lists/headings/blockquotes/bold, via `hasBlockMarkdown`) **or** under `prefers-reduced-motion` skip the typewriter and render as one **calm ~300ms fade** (no raw→snap seam). ~6% of prod replies are block-Markdown.
+  - **typewriter** — plain prose (motion allowed) reveals word-by-word.
+- **Phase 0a source of truth:** crisis derived from the `CRISIS_SIGNAL` body prefix + `X-Sage-Crisis-Tier` header; fade-vs-typewriter decided client-side from `hasBlockMarkdown(content)` + `prefers-reduced-motion`. No new backend needed.
+- **Phase 0b source of truth:** the crisis signal becomes an explicit field on the terminal metadata frame (§4.2).
+- **Implementation note (2026-07-08):** the fade path must NOT fire `onRevealComplete` — doing so clears the reveal and strips the fade class before the 300ms animation plays (measured ~12ms → invisible). Completion fires only on the typewriter path.
 
 ### 3.5 Accessibility
-- `prefers-reduced-motion` → whole-message **fade-in** (~300ms), no per-word timing. Build this fade path regardless (~20 lines) — it doubles as both the reduced-motion fallback and the crisis-adjacent calm-render option.
+- `prefers-reduced-motion` → the **fade** render mode (§3.4); `motion-safe:` gating means reduced-motion users get an instant, animation-free appearance while motion-allowed users get the ~300ms fade.
 - Screen readers: the **full** text is announced once on arrival, not incrementally (announcing each word would flood the live region).
 
 ---
