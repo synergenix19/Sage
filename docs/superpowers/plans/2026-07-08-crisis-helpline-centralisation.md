@@ -1,8 +1,14 @@
 # Work item — crisis helpline: centralise + settle the one final number (SAFETY-CRITICAL)
 
-**Status:** OPEN, **BLOCKED on the final signed number** (PO to provide). **No value changes until then** — `config.py` values stay as-is (deliberate: keeps behaviour unchanged, per the existing G8 note). No crisis-copy edits without dial-test + clinical sign-off.
-**Labels:** safety-critical · GL-1 / G8 (config "VALUES PENDING G8") · crisis-UX
+**Status:** PLAN APPROVED (PO, 2026-07-08). **NUMBER APPROVED: `800 46342`** (PO, 2026-07-08) — resolves the G8 *number* question; it stays as-is (no transcription change to `800 4673`). **One item still open before the centralisation edit: `hours` = "24/7"** — the G8 note flags this as FALSE (real hours ~8am–8pm). Centralising propagates the whole entry, so the hours must be confirmed/corrected first; telling a user "free, 24/7" on a crisis line that closes at 8pm is a safety-copy defect. `label` = "MoHAP Counselling Line" assumed unchanged (confirm alongside hours).
+**Labels:** safety-critical · GL-1 / G8 · crisis-UX
 **Raised:** 2026-07-08, during the Item-3 live browser test (crisis card showed `800 46342`; onboarding shows a *different* number).
+
+## Approval record
+- **Number:** `800 46342` — **APPROVED** by PO, 2026-07-08 (this session). G8 "likely transcription error → 800 4673" is **overruled**: the served number is correct.
+- **Hours `"24/7"`:** ⏳ **PENDING PO confirmation** — keep-as-is (`24/7`) or correct (e.g. `8am–8pm daily`)? Blocks the centralisation edit.
+- **Onboarding LifeLine `4673`:** ⏳ reconcile — intentional second resource, or align to the crisis number?
+- **Centralisation mechanism** (choose): (a) **read-from-source** — resolve `config.CRISIS_CONFIG` into crisis_content/skills/L0 at load + frontend build-time inject, delete all literals (true one-place edit; needs a leak-guard so a placeholder can never render raw in a crisis message); or (b) **config-canonical + conformance test** — literals stay but a CI test fails if any of the 11 sites ≠ config (no runtime-templating risk; edit is still N-place but drift is impossible to merge). Recommendation: (a) with the leak-guard, since the goal is the one-place edit; (b) is the safe fallback.
 
 ## The three problems
 1. **Not centralised — declared, not enforced.** `config.py:CRISIS_CONFIG` says it is "the SINGLE authoritative source … Nothing may re-embed these literals," and ships a `CRISIS_LINE_UAE` back-compat alias "during the migration." The migration was **never finished**: the literal `800 46342` is re-embedded in **11 files / 37 lines**, including a **fully independent hardcode in the frontend card** that does not read the backend. Changing the number today means editing 11 files across both repos; any one drifting diverges silently.
