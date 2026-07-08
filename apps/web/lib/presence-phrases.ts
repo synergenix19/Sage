@@ -1,9 +1,9 @@
 // PROPOSED copy — pending clinician + native-Khaleeji sign-off (spec §5).
 // Register: therapist-present, not machinery. Banned: process/promise/whimsy words.
-// Arabic is self-reference-neutral; the gendered "موجود/موجودة" pair is held out
-// until the persona-gender review resolves (spec §2.2). Pool should reach ~8–12
-// items after sign-off. Every phrase must read right after a crisis disclosure,
-// a casual greeting, AND a long trauma story.
+// Arabic self-reference is ALWAYS gender-neutral (standing rule 2026-07-08): the gendered
+// "موجود/موجودة" phrasing is never used; "Here with you" ships as the neutral "هنا معك"
+// (persona-gender decision, spec §2.2). Pool should reach ~8–12 items. Every phrase must
+// read right after a crisis disclosure, a casual greeting, AND a long trauma story.
 export const PRESENCE_POOL: { en: string[]; ar: string[] } = {
   en: [
     'Listening…',
@@ -12,6 +12,7 @@ export const PRESENCE_POOL: { en: string[]; ar: string[] } = {
     'One moment…',
     'Thinking about what you said…',
     'Giving this a moment…',
+    'Here with you…',
   ],
   ar: [
     'أسمعك…',
@@ -20,6 +21,7 @@ export const PRESENCE_POOL: { en: string[]; ar: string[] } = {
     'لحظة…',
     'أفكر في اللي قلته…',
     'أعطي هذا وقته…',
+    'هنا معك…',
   ],
 }
 
@@ -29,10 +31,12 @@ export const PRESENCE_SLOW: { en: string; ar: string } = {
   ar: 'معك، بس أحتاج شوي وقت…',
 }
 
-// Phase 3 (degraded / honesty valve) — acknowledge the wait once, warmly.
+// Phase 3 (degraded / honesty valve) — acknowledge the wait once, warmly. Reframed 2026-07-08
+// to DROP "try sending again": the input stays disabled until the 58s ceiling, so inviting a
+// resend at 25s would point at an action the user can't take yet.
 export const PRESENCE_DEGRADED: { en: string; ar: string } = {
-  en: 'This is taking longer than it should. Give me one more moment, or try sending again.',
-  ar: 'هذا ياخذ وقت أطول من المتوقع. لحظة وحدة بعد، أو جرّب ترسل مرة ثانية.',
+  en: 'This is taking longer than usual. Hang with me a moment…',
+  ar: 'هذا ياخذ وقت أطول من المعتاد. اصبر معي شوي…',
 }
 
 // Random-without-repeat index generator (a "shuffle bag" degenerate to no-immediate-repeat).

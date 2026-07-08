@@ -325,3 +325,49 @@ describe('MessageBubble reveal — prefers-reduced-motion (Finding 2)', () => {
     expect(node.textContent).toBe(full)
   })
 })
+
+// Item D (2026-07-08): replies containing block-level Markdown (lists/headings/bold) skip the
+// typewriter and take the fade path — a calm single paint of the rendered Markdown, no raw→snap
+// reflow seam. Plain prose still types. Render mode is three-valued: instant | fade | typewriter.
+describe('MessageBubble reveal — block-Markdown fade path (Item D)', () => {
+  beforeEach(() => { vi.useFakeTimers() })
+  afterEach(() => { vi.useRealTimers() })
+
+  function aiMsg(content: string): ChatMessage {
+    return { ...base, role: 'ai', content, direction: 'ltr' }
+  }
+
+  it('a formatted reply (list) skips the typewriter and fades in the full content in one paint', () => {
+    const list = '- alpha item\n- beta item\n- gamma item'
+    render(<MessageBubble message={aiMsg(list)} reveal />)
+    const node = screen.getByTestId('message-content')
+    // Full content from the first render — no partial word-1 slice, no raw→snap.
+    expect(node.textContent).toContain('alpha item')
+    expect(node.textContent).toContain('gamma item')
+    // Fade path (motion-safe), NOT the typewriter path (no raw whitespace-pre-wrap phase).
+    expect(node.className).toContain('motion-safe:animate-[fadeIn')
+    expect(node.className).not.toContain('whitespace-pre-wrap')
+    // Advancing time starts no progressive reveal — content is stable.
+    act(() => { vi.advanceTimersByTime(3_000) })
+    expect(node.textContent).toContain('gamma item')
+  })
+
+  it('plain prose still types (no fade class while typing)', () => {
+    render(<MessageBubble message={aiMsg('one two three four five six')} reveal />)
+    const node = screen.getByTestId('message-content')
+    expect(node.className).not.toContain('animate-[fadeIn')
+    expect(node.className).toContain('whitespace-pre-wrap') // the typewriter (typing) path
+  })
+
+  it.each([
+    ['`)`-delimited ordered list', '1) alpha item\n2) beta item\n3) gamma item', 'gamma item'],
+    ['blockquote', '> a quoted reflection\nand more', 'quoted reflection'],
+  ])('routes %s to the fade path, not the typewriter', (_label, content, needle) => {
+    render(<MessageBubble message={aiMsg(content)} reveal />)
+    const node = screen.getByTestId('message-content')
+    expect(node.className).toContain('motion-safe:animate-[fadeIn')
+    expect(node.className).not.toContain('whitespace-pre-wrap')
+    act(() => { vi.advanceTimersByTime(3_000) })
+    expect(node.textContent).toContain(needle)
+  })
+})
