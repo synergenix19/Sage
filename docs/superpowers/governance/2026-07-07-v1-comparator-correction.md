@@ -53,3 +53,13 @@ One bounded ask to the 2026-06-24 measurement author/machine for the original 32
 ## GOVERNANCE RULE (earned by this incident)
 
 **Any number that gates a deploy MUST cite a committed fixture SHA, and the corpus is part of the artifact. A measurement whose inputs aren't in the repo is an anecdote, not a gate.** (Second lost-provenance finding in one week.) This sentence also goes into the Task 10 deploy runbook.
+
+## Supersession — "V1 of record" is now V1+veto (2026-07-08)
+
+The baseline in this document (in_scope 109/192 = 56.8%, id_oos 23/64 = 35.9%, far_oos 32/32 = 100%) is the **pre-veto** V1. The chain since:
+
+1. **Pre-veto baseline** — this document (id_oos 35.9%), measured before the OCD-compulsion veto existed.
+2. **Veto hotfix** — the deterministic OCD-compulsion veto shipped to prod (`bc3cb4b`, arm-independent) and was folded into the driver's `routed_of` (`8abdaa8`). It ABSTAINS disclosed compulsions that used to misroute.
+3. **Post-veto V1 of record** — flags-off on the committed driver now measures **id_oos 30/64 = 46.9%** (in_scope 56.8% and far_oos 100% are veto-invariant). This is what production runs and what the V2 re-verdict compared against (`2026-07-08-v2-reverdict-FLIP.md`).
+
+The pre-veto 35.9% is **superseded, not competing** — same discipline as the Task-2 corpus correction. **Task 12's prod measurement compares V2 against the post-veto V1 numbers (id_oos 46.9%, in_scope 56.8%, far_oos 100%)** — stated explicitly here so nobody re-derives the delta against the stale 35.9% and reads a wrong id_oos gain.

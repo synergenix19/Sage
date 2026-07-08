@@ -41,3 +41,16 @@ The audit anchor for "what is actually running in each environment." Started 202
 - **Measured (driver):** harm gate **6→0 leaks** on both arms; zero in_scope degradation; zero in_scope false-positive vetoes; unit test 27/27.
 
 **Outcome:** the live iatrogenic OCD-compulsion → worry-tool route is closed in production. **Follow-up (clinician, non-blocking):** Node-3 copy sometimes offers a generic "guided exercise" for vetoed-OCD cases (no skill queued → no back-door; but the spec signposts professional referral for OCD, so the Node-3 copy is a refinement candidate); `"intrusive thoughts"` in cbt_thought_record `target_presentations` flagged as clinically dual-use (not eng-edited).
+
+---
+
+## RUNBOOK RULE — in_scope recall tripwire (V2 flip, earned 2026-07-08)
+
+The V2 re-verdict (`2026-07-08-v2-reverdict-FLIP.md`) cleared the signed in_scope recall conjunct by **0.31pp** (V2 52.08% vs the 51.77% floor = V1 56.77% − T=5pp). A thin pass under a signed criterion is a pass — re-litigating it would be engineering overriding the signature from the cautious side. The correct response is monitoring, not hesitation:
+
+- **Task 12's prod measurement asserts the in_scope recall conjunct EXPLICITLY** (V2 recall ≥ V1+veto recall − 5pp), against the post-veto comparator.
+- **Any future re-measurement of in_scope recall below 51.77% AUTOMATICALLY reopens the criterion conversation with PO + clinician.** Nobody absorbs a sub-floor number as drift; named and tripwired, the thin edge is just an honest number. The danger is only silent erosion.
+
+## RUNBOOK RULE — deploy numbers cite a committed fixture SHA (from the comparator-correction incident)
+
+Any number that gates a deploy MUST cite a committed fixture SHA; the corpus is part of the artifact. A measurement whose inputs aren't in the repo is an anecdote, not a gate.
