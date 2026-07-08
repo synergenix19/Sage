@@ -370,4 +370,18 @@ describe('MessageBubble reveal — block-Markdown fade path (Item D)', () => {
     act(() => { vi.advanceTimersByTime(3_000) })
     expect(node.textContent).toContain(needle)
   })
+
+  // Prod bug (measured: fade class lived ~12ms then was removed -> invisible): the fade path
+  // must NOT fire onRevealComplete, because that clears revealId and strips the fade class
+  // before the 300ms animation can play. The fade class must persist and completion must not fire.
+  it('does NOT clear the reveal on the fade path (fade must survive its animation)', () => {
+    const onRevealComplete = vi.fn()
+    render(<MessageBubble message={aiMsg('1) alpha\n2) beta\n3) gamma')} reveal onRevealComplete={onRevealComplete} />)
+    const node = screen.getByTestId('message-content')
+    expect(node.className).toContain('motion-safe:animate-[fadeIn')
+    act(() => { vi.advanceTimersByTime(1_000) })
+    // onRevealComplete never fires for the fade path, so the fade class is still present.
+    expect(onRevealComplete).not.toHaveBeenCalled()
+    expect(screen.getByTestId('message-content').className).toContain('motion-safe:animate-[fadeIn')
+  })
 })
