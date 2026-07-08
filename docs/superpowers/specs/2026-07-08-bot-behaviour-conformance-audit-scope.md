@@ -51,7 +51,7 @@ Not a routing re-verification (the flip is verified, twice). Not load testing (l
 ## Preconditions to EXECUTE — BOTH CLEAR (2026-07-08)
 1. **✅ Oracle pinned:** `docs/superpowers/specs/bot-behaviour-oracle/bot-behaviour-spec-source-2026-07-08.md`, **spec_version_sha = `56fde86`**. Fixtures cite `{spec_id (§/S/E category), prescribed_disposition, spec_version_sha=56fde86}`; NEVER line numbers.
 2. **✅ Command approval given** (2026-07-08) to run the Layer-1 sweep.
-3. **✅ Live surface:** prod `7ed83cf` — now includes BOTH vetoes (V2 reranker + OCD + harm-intrusive), the surface that matters.
+3. **✅ Live surface:** prod advanced past `7ed83cf` → **`e34e97f`** (current master, 2026-07-08: adds crisis-number templating [**byte-identical, behavior-preserving**] + item3; the V2 / OCD / harm-intrusive vetoes are unchanged). The audited behavior is identical, so the sweep's conclusions carry; SHA updated so this precondition doesn't point at a superseded tree (deploy-provenance hygiene). Note: `e34e97f` was **cache-bust-verified** (byte-identical → no behavioral probe), not behaviorally-verified — see the deploy-control doc.
 **→ The Layer-1 sweep is CLEARED to run.**
 
 
