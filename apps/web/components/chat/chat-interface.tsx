@@ -1,15 +1,29 @@
 'use client'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { mapSdkRole, type ChatSession, type MessageRole, type Source } from '@cdai/types'
 import { FIRST_CHAT_EVENT } from '@/components/pwa/install-prompt'
 import { CRISIS_SIGNAL, SERVER_ERROR_SIGNAL } from '@/lib/constants'
 import { useLocaleStore } from '@/lib/stores/locale-store'
+import { seedPresenceBag } from '@/lib/presence-phrases'
 import { ChatHeader } from './chat-header'
 import { MessageBubble } from './message-bubble'
 import { CrisisCard } from './crisis-card'
-import { TypingIndicator } from './typing-indicator'
+import { PresenceIndicator } from './presence-indicator'
 import { EmptyState } from './empty-state'
 import { InputBar } from './input-bar'
+
+// Tiny linear-congruential rng — deterministic, dependency-free. Its ONLY use is seeding the
+// E2E presence-phrase bag below (Task 9 / spec §2.4 waiting-state indistinguishability test)
+// so a normal turn and a crisis-bound turn draw the identical phrase and can be byte-diffed.
+// Not cryptographic; not used anywhere in the production render path.
+// Exported for testability only — not part of the public component API.
+export function makeLcg(seed: number): () => number {
+  let state = seed >>> 0
+  return () => {
+    state = (state * 1103515245 + 12345) & 0x7fffffff
+    return state / 0x7fffffff
+  }
+}
 
 // SDK-shaped messages: roles are 'user' | 'assistant' | 'system' (what the route consumes
 // and what the AI SDK normally yields). Internal roles ('ai', 'crisis') are derived for render.
@@ -292,6 +306,47 @@ export function ChatInterface({ initialSession, initialMessages = [], userName, 
       ? (messages.find((m) => m.isCrisis)?.content ?? null)
       : null
 
+  // Typewriter reveal (spec §3): the id of the assistant message currently mid-reveal.
+  // Set ONLY on a genuine isLoading true->false EDGE (never on initial mount with loaded
+  // history — that path starts with isLoading already false and must not animate the last
+  // historical message on every page load, Bug 2).
+  const [revealId, setRevealId] = useState<string | null>(null)
+  const prevLoadingRef = useRef(isLoading)
+  // useLayoutEffect (not useEffect): runs synchronously BEFORE the browser paints, so
+  // reveal=true is applied in the same commit as the full-content message. useEffect runs
+  // AFTER paint, which let the full answer paint once (reveal=false) before flipping to
+  // reveal=true on the next tick — a visible "flash & re-type" (full answer, then it
+  // collapses back to word-1 typewriter). Same prevLoadingRef true->false edge-detection
+  // logic as before; Bug 2 (no reveal on history mount) is preserved because mount never
+  // produces that edge.
+  useLayoutEffect(() => {
+    const was = prevLoadingRef.current
+    prevLoadingRef.current = isLoading
+    if (was && !isLoading) {
+      const last = messages[messages.length - 1]
+      if (last?.role === 'assistant' && last.content) setRevealId(last.id)
+    }
+  }, [isLoading, messages])
+
+  // Stable callbacks — both are re-render triggers for the reveal effects downstream
+  // (useTypewriter completion effect, PresenceIndicator's phrase timer) so they must not
+  // be recreated on every render.
+  const finishReveal = useCallback(() => setRevealId(null), [])
+  const handlePresencePhrase = useCallback((_id: number) => {
+    // client-only UX analytics; never persisted/audited (spec §5)
+  }, [])
+
+  // E2E-ONLY (Task 9 / spec §2.4/§7): reseed the module-singleton presence-phrase bag with a
+  // deterministic rng so a normal turn and a crisis-bound turn draw the SAME phrase, letting
+  // playwright/waiting-state-indistinguishability.spec.ts byte-diff the full captured frame
+  // instead of masking the phrase region. Gated on NEXT_PUBLIC_E2E (unset in prod) — this
+  // branch is DEAD CODE in production; prod phrase selection stays genuinely Math.random.
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_E2E === 'true') {
+      seedPresenceBag(makeLcg(1))
+    }
+  }, [])
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: isLoading ? 'instant' : 'smooth' })
   }, [messages, isLoading])
@@ -358,12 +413,16 @@ export function ChatInterface({ initialSession, initialMessages = [], userName, 
                 }}
                 supabaseId={m.supabaseId}
                 onFeedback={handleFeedback}
+                reveal={m.role === 'assistant' && m.id === revealId}
+                onRevealComplete={finishReveal}
               />
             )
           })
         )}
         {isLoading &&
-          messages[messages.length - 1]?.content === '' && <TypingIndicator />}
+          messages[messages.length - 1]?.content === '' && (
+            <PresenceIndicator onPhrase={handlePresencePhrase} />
+          )}
         {error && (
           <div className="text-center text-xs text-[var(--color-text-secondary)]">
             {(error as Error & { httpStatus?: number }).httpStatus === 503
@@ -384,7 +443,7 @@ export function ChatInterface({ initialSession, initialMessages = [], userName, 
         </div>
       )}
 
-      <InputBar onSend={handleSend} disabled={isLoading} />
+      <InputBar onSend={handleSend} disabled={isLoading} onInteract={finishReveal} />
     </div>
   )
 }

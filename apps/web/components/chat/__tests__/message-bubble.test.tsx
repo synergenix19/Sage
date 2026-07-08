@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, act, fireEvent } from '@testing-library/react'
 import { MessageBubble } from '../message-bubble'
 import type { ChatMessage } from '@cdai/types'
 
@@ -237,5 +237,137 @@ describe('MessageBubble — Sources card', () => {
       />
     )
     expect(screen.queryByLabelText('Sources')).toBeNull()
+  })
+})
+
+// Task 6: opt-in typewriter reveal (spec §3). reveal is undefined/false by default, so every
+// test above must keep passing unchanged — these cases only cover the new opt-in path.
+// Note: MessageRole is 'user' | 'ai' | 'system' | 'crisis' (no 'assistant' literal), so the
+// fixture below uses 'ai' to match @cdai/types, not the brief's illustrative 'assistant'.
+describe('MessageBubble reveal', () => {
+  beforeEach(() => { vi.useFakeTimers() })
+  afterEach(() => { vi.useRealTimers() })
+
+  function aiMsg(content: string): ChatMessage {
+    return { ...base, role: 'ai', content, direction: 'ltr' }
+  }
+
+  it('reveal=false renders full content immediately (back-compat)', () => {
+    render(<MessageBubble message={aiMsg('hello there friend')} />)
+    expect(screen.getByText('hello there friend')).toBeInTheDocument()
+  })
+
+  it('reveal=true reveals progressively then completes, keeping dir + whitespace-pre-wrap while typing', () => {
+    render(<MessageBubble message={aiMsg('one two three four five six')} reveal />)
+    const node = screen.getByTestId('message-content')
+    expect(node).toHaveAttribute('dir', 'ltr')
+    expect(node.className).toContain('whitespace-pre-wrap')
+    act(() => { vi.advanceTimersByTime(3_000) })
+    expect(node.textContent).toBe('one two three four five six')
+  })
+
+  it('calls onRevealComplete exactly once when the reveal finishes', () => {
+    const onRevealComplete = vi.fn()
+    render(<MessageBubble message={aiMsg('a b c')} reveal onRevealComplete={onRevealComplete} />)
+    act(() => { vi.advanceTimersByTime(3_000) })
+    expect(onRevealComplete).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not call onRevealComplete when reveal is false', () => {
+    const onRevealComplete = vi.fn()
+    render(<MessageBubble message={aiMsg('a b c')} onRevealComplete={onRevealComplete} />)
+    act(() => { vi.advanceTimersByTime(3_000) })
+    expect(onRevealComplete).not.toHaveBeenCalled()
+  })
+
+  it('tap-to-skip: clicking the content node while typing completes the reveal immediately', () => {
+    render(<MessageBubble message={aiMsg('one two three four five six seven eight')} reveal />)
+    const node = screen.getByTestId('message-content')
+    fireEvent.click(node)
+    expect(node.textContent).toBe('one two three four five six seven eight')
+  })
+})
+
+// Finding 2 (whole-branch review): useTypewriter is a JS setInterval — a CSS reduced-motion
+// media query cannot stop it, so reduced-motion users still got word-by-word reveal
+// (violates spec §3.5 and the shipped PRESENCE_QA_CHECKLIST.md). MessageBubble now reads
+// usePrefersReducedMotion() and disables the typewriter (enabled=false) whenever it's set,
+// so the full content renders via MarkdownContent immediately instead of animating.
+describe('MessageBubble reveal — prefers-reduced-motion (Finding 2)', () => {
+  const originalMatchMedia = window.matchMedia
+
+  afterEach(() => {
+    // Restore the global vitest.setup.ts matchMedia stub so this override never leaks
+    // into other test files (or later tests in this file) that assume matches:false.
+    window.matchMedia = originalMatchMedia
+  })
+
+  function aiMsg(content: string): ChatMessage {
+    return { ...base, role: 'ai', content, direction: 'ltr' }
+  }
+
+  it('renders the FULL content immediately with no progressive reveal when prefers-reduced-motion is set', () => {
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query === '(prefers-reduced-motion: reduce)',
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }))
+
+    const full = 'one two three four five six seven eight'
+    render(<MessageBubble message={aiMsg(full)} reveal />)
+    const node = screen.getByTestId('message-content')
+    // Full text present on the very first render — never a partial word-1 slice.
+    expect(node.textContent).toBe(full)
+  })
+})
+
+// Item D (2026-07-08): replies containing block-level Markdown (lists/headings/bold) skip the
+// typewriter and take the fade path — a calm single paint of the rendered Markdown, no raw→snap
+// reflow seam. Plain prose still types. Render mode is three-valued: instant | fade | typewriter.
+describe('MessageBubble reveal — block-Markdown fade path (Item D)', () => {
+  beforeEach(() => { vi.useFakeTimers() })
+  afterEach(() => { vi.useRealTimers() })
+
+  function aiMsg(content: string): ChatMessage {
+    return { ...base, role: 'ai', content, direction: 'ltr' }
+  }
+
+  it('a formatted reply (list) skips the typewriter and fades in the full content in one paint', () => {
+    const list = '- alpha item\n- beta item\n- gamma item'
+    render(<MessageBubble message={aiMsg(list)} reveal />)
+    const node = screen.getByTestId('message-content')
+    // Full content from the first render — no partial word-1 slice, no raw→snap.
+    expect(node.textContent).toContain('alpha item')
+    expect(node.textContent).toContain('gamma item')
+    // Fade path (motion-safe), NOT the typewriter path (no raw whitespace-pre-wrap phase).
+    expect(node.className).toContain('motion-safe:animate-[fadeIn')
+    expect(node.className).not.toContain('whitespace-pre-wrap')
+    // Advancing time starts no progressive reveal — content is stable.
+    act(() => { vi.advanceTimersByTime(3_000) })
+    expect(node.textContent).toContain('gamma item')
+  })
+
+  it('plain prose still types (no fade class while typing)', () => {
+    render(<MessageBubble message={aiMsg('one two three four five six')} reveal />)
+    const node = screen.getByTestId('message-content')
+    expect(node.className).not.toContain('animate-[fadeIn')
+    expect(node.className).toContain('whitespace-pre-wrap') // the typewriter (typing) path
+  })
+
+  it.each([
+    ['`)`-delimited ordered list', '1) alpha item\n2) beta item\n3) gamma item', 'gamma item'],
+    ['blockquote', '> a quoted reflection\nand more', 'quoted reflection'],
+  ])('routes %s to the fade path, not the typewriter', (_label, content, needle) => {
+    render(<MessageBubble message={aiMsg(content)} reveal />)
+    const node = screen.getByTestId('message-content')
+    expect(node.className).toContain('motion-safe:animate-[fadeIn')
+    expect(node.className).not.toContain('whitespace-pre-wrap')
+    act(() => { vi.advanceTimersByTime(3_000) })
+    expect(node.textContent).toContain(needle)
   })
 })
