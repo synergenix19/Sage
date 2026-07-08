@@ -54,3 +54,27 @@ The V2 re-verdict (`2026-07-08-v2-reverdict-FLIP.md`) cleared the signed in_scop
 ## RUNBOOK RULE — deploy numbers cite a committed fixture SHA (from the comparator-correction incident)
 
 Any number that gates a deploy MUST cite a committed fixture SHA; the corpus is part of the artifact. A measurement whose inputs aren't in the repo is an anecdote, not a gate.
+
+---
+
+## Entry 3 — 2026-07-08 · V2 semantic routing STAGING flip (EN-first) + ABSTAIN→Node 3 fix
+
+**Tree:** staging `944939b` (PR #165 V2-live merge `202aff5` → flip → PR #171 abstain-Node3 fix). Flags `SKILL_ROUTING_V2=1 SKILL_RERANK_ENABLED=1 SKILL_RERANK_PRECISION=fp32`, `SAGE_BUILD_SHA=944939b`. **PRODUCTION NOT FLIPPED — held for command go.**
+
+### Staging hard gates — PASS
+`/health/ready` `routing_mode:"v2"` + `reranker_head_control:"passed"` (fp32 head loaded; headless→503, so 200 is the real check), `/health/version` `build_sha:944939b`, ancestry-contains-veto (`bc3cb4b` ∈ `944939b`) ✓.
+
+### The live probe caught what every offline gate was blind to
+Offline gates measured routing *decisions* (skill vs abstain), never graph *destinations*. The first staging probe showed a V2 reranker ABSTAIN landing in `freeflow_respond`, **violating binding condition #1** (ABSTAIN→Node 3, Cardinal Rule 5) — on which the clinician's signed −4.7pp recall acceptance and soft-abstain-recovery monitoring rest. Fixed by the wiring (PR #171, `fc671bb`), **not** by amending the condition. Re-probe on `944939b` confirms it live: `skill_select → keyword_rerank_veto → low_confidence_respond → output_gate`.
+
+### Latency (Finding 2) — attribution answered, NOT a V2 regression
+Full-turn tail 10–16s exceeds the signed 9.6s bound, BUT: the reranker-heavy abstain probe is **8.5s (< bound)**, and **prod V1 hit 11.68s on the identical in_scope turn** — the tail is **pre-existing LLM-generation cost present in V1**, not V2 overhead. Disposition: 9.6s bound recorded **met for reranker overhead, missed for full-turn tail**; the tail filed as a pre-existing generation-latency item against the north-star **<3s p95 KPI** (a real POC-wide gap, not this deploy's regression).
+
+### CONDITIONS-SATISFIED TABLE (STANDING PRACTICE — earned by Finding 1)
+Prod-go authorization requires this table: each signed condition → implementing commit → **live-probe evidence**. A signed condition rode through verdict/merge/gates unimplemented because nothing traced conditions to commits; the offline gate was structurally blind (routing decisions, never destinations). Three rows make this class of gap impossible to ride through silently again.
+
+| Signed condition | Implementing commit | Live-probe evidence (staging `944939b`) |
+|---|---|---|
+| **#1** V2 ABSTAIN → Node 3, not freeflow (Cardinal Rule 5) | `fc671bb` (PR #171) | `keyword_rerank_veto → low_confidence_respond` observed in `X-Sage-Node-Path` ✓ |
+| **#2** Per-language fail-closed (AR τ absent → V1, no reranker abstain) | Task 6b (in V2 reconcile `202aff5`) | AR turn → `rtl`, `arabic_offer_excluded → skill_executor` (routed via V1 tiers, reranker not applied) ✓ |
+| **#3** `semantic_anchors` empty (passive-SI bleed held) | (anchors-empty guard test, `test_skill_schema`) | guard test green on the deploy SHA ✓ |
