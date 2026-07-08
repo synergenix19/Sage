@@ -1,6 +1,6 @@
 # Harm-Intrusive Veto — Clinician Sign-Off Packet (expedited)
 
-**Date:** 2026-07-08 · **Channel:** same expedited path as the OCD-compulsion veto sign-off · **Branch:** `feat/harm-intrusive-veto` @ `5852ea1` (PR-ready, not merged, not deployed) · **Asking for:** clinician sign-off on the pattern lexicon (below), plus a dated ruling on the safeguarding interim (§4).
+**Date:** 2026-07-08 · **STATUS: APPROVED by clinical lead 2026-07-08** (broad lexicon approved as written; safeguarding endorsed as #1 production family; see Sign-off Record + Clinical boundaries below) · **Channel:** same expedited path as the OCD-compulsion veto sign-off · **Branch:** `feat/harm-intrusive-veto` @ `5852ea1` (PR-ready, not merged, not deployed) · **Asking for:** clinician sign-off on the pattern lexicon (below), plus a dated ruling on the safeguarding interim (§4).
 
 ## What this is
 A deterministic Stage-1 veto (mirrors the OCD-compulsion veto exactly) that stops postpartum/parental harm-intrusive disclosures being routed to a self-help skill (worry_time / imagery) — the iatrogenic routing found live in prod, which is also a **documented BOT BEHAVIOUR spec deviation** (spec: OCD/intrusive content → professional referral, "Worry Tree can reinforce compulsive patterns"). Destination for now = today's bare abstain → Node 3 (empathic clarification). No schema change.
@@ -48,3 +48,11 @@ On sign-off: command merges → deploy behind the standing gates (ancestry-conta
 ## The ask
 1. Sign the lexicon (or rule broad-now vs tightened per §2).
 2. Confirm safeguarding as the #1 production family + rule its tier (recommend L3-adjacent). No interim.
+
+
+## Clinical boundary — the ego-syntonic / psychosis line (clinician-added)
+Intrusive thoughts are **ego-DYSTONIC** — the person is aware of and distressed by them; this distinguishes them from the delusional thoughts of **psychosis** (a medical emergency). **Inversion that matters:** "it scares me so much" is a **reassuring feature** — the distress marks the thought ego-dystonic (no infant risk). The danger signal is the OPPOSITE: **absence of distress about the harm thought, ego-syntonic framing, or command-hallucination language** → this is a **crisis-path signal, NOT a containment continuation.** Split: first-person ego-dystonic intrusion → containment/referral; third-party or behavioural-indication report → safeguarding. Sage **screens and escalates; it never adjudicates** (professional-assessment territory — reinforces no-autonomous-clearance).
+
+## Sign-off Record
+- **2026-07-08 — Clinical lead: APPROVED.** (1) Broad 40-pattern lexicon approved as written — epidemiology-backed (harm-intrusive thoughts occur in ~half of parents of infants; disclosure is hard-won; the response determines re-disclosure; asymmetry favours broad). Permanent-Tier-1-guardrail framing approved. (2) Safeguarding endorsed as #1 production family; tier = **referral-with-urgency + mandatory L2-style clinician review, distinct from the suicide-crisis protocol** (clinician rules exact placement; L3-adjacent). **Priority carries a target date on the record** (below). (3) Ego-syntonic/psychosis boundary added (above) — one deterministic branch in the Stage-2 template. (4) Phasing approved; psychoeducation is itself therapeutic (parents appreciating these thoughts are common → they diminish).
+- **Safeguarding family TARGET DATE (on the record):** **2026-07-31** — the first family delivered by the containment pathway; PO to confirm. (Dated per the project's dated-ruling discipline — a #1 priority without a date becomes a #4.)
