@@ -68,3 +68,7 @@ SKILL_ROUTING_V2=1 SKILL_RERANK_ENABLED=1 SKILL_RERANK_PRECISION=fp32 uv run pyt
 SKILL_ROUTING_V2=0 SKILL_RERANK_ENABLED=0 uv run python scripts/routing_eval/reverdict_cells.py   # V1+veto
 # harm both arms: reverdict_harm.py (same flag pattern)
 ```
+
+
+## Annotation — Phase 1 harm-intrusive veto (2026-07-08, expanded corpus)
+Committed harm fixtures expanded (`9642846`) with the failing worry-framed postpartum phrasing + paraphrases + terse control. Both arms re-measured on the expanded corpus: harm-domain skill-absorptions **4 → 0** (V1 and V2) after the deterministic harm-intrusive veto (`7ed83cf`, arm-independent). The reverdict driver's `routed_of` was mirrored to include the veto (harness-mirror rule). Prod-verified behaviorally (leak closed; 8/8 feature regression).
