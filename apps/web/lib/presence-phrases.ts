@@ -1,9 +1,12 @@
 // PROPOSED copy — pending clinician + native-Khaleeji sign-off (spec §5).
 // Register: therapist-present, not machinery. Banned: process/promise/whimsy words.
 // Arabic self-reference is ALWAYS gender-neutral (standing rule 2026-07-08): the gendered
-// "موجود/موجودة" phrasing is never used; "Here with you" ships as the neutral "هنا معك"
-// (persona-gender decision, spec §2.2). Pool should reach ~8–12 items. Every phrase must
-// read right after a crisis disclosure, a casual greeting, AND a long trauma story.
+// "موجود/موجودة" phrasing is never used. Pool is 6 DISTINCT phrases — a smaller pool of
+// distinct phrases beats a larger one with near-collisions (the ~8–12 target is a post-
+// sign-off aspiration). "Here with you / هنا معك" was cut because it read one filler word
+// off "معك" (#2), which on consecutive turns looks like a glitchy template, not presence.
+// Every phrase must read right after a crisis disclosure, a casual greeting, AND a long
+// trauma story.
 export const PRESENCE_POOL: { en: string[]; ar: string[] } = {
   en: [
     'Listening…',
@@ -12,7 +15,6 @@ export const PRESENCE_POOL: { en: string[]; ar: string[] } = {
     'One moment…',
     'Thinking about what you said…',
     'Giving this a moment…',
-    'Here with you…',
   ],
   ar: [
     'أسمعك…',
@@ -21,7 +23,6 @@ export const PRESENCE_POOL: { en: string[]; ar: string[] } = {
     'لحظة…',
     'أفكر في اللي قلته…',
     'أعطي هذا وقته…',
-    'هنا معك…',
   ],
 }
 
@@ -31,12 +32,15 @@ export const PRESENCE_SLOW: { en: string; ar: string } = {
   ar: 'معك، بس أحتاج شوي وقت…',
 }
 
-// Phase 3 (degraded / honesty valve) — acknowledge the wait once, warmly. Reframed 2026-07-08
-// to DROP "try sending again": the input stays disabled until the 58s ceiling, so inviting a
-// resend at 25s would point at an action the user can't take yet.
+// Phase 3 (degraded / honesty valve, ~25s p99 tail) — acknowledge the wait once, warmly.
+// FIRST-PERSON COMMITMENT ONLY (2026-07-08): Sage carries the wait; NO user-directed
+// imperative ("be patient / bear with me / اصبر"), which would place the burden on an
+// already-anxious user at the exact moment the SYSTEM is underperforming. Also drops the
+// earlier "try sending again" (input is disabled until the 58s ceiling). Honest about the
+// delay without over-promising imminence.
 export const PRESENCE_DEGRADED: { en: string; ar: string } = {
-  en: 'This is taking longer than usual. Hang with me a moment…',
-  ar: 'هذا ياخذ وقت أطول من المعتاد. اصبر معي شوي…',
+  en: 'Still here — this is taking me a little longer than usual…',
+  ar: 'بعدني هنا — الرد ياخذ وقت أطول من المعتاد…',
 }
 
 // Random-without-repeat index generator (a "shuffle bag" degenerate to no-immediate-repeat).
