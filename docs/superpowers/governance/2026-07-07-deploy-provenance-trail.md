@@ -78,3 +78,21 @@ Prod-go authorization requires this table: each signed condition → implementin
 | **#1** V2 ABSTAIN → Node 3, not freeflow (Cardinal Rule 5) | `fc671bb` (PR #171) | `keyword_rerank_veto → low_confidence_respond` observed in `X-Sage-Node-Path` ✓ |
 | **#2** Per-language fail-closed (AR τ absent → V1, no reranker abstain) | Task 6b (in V2 reconcile `202aff5`) | AR turn → `rtl`, `arabic_offer_excluded → skill_executor` (routed via V1 tiers, reranker not applied) ✓ |
 | **#3** `semantic_anchors` empty (passive-SI bleed held) | (anchors-empty guard test, `test_skill_schema`) | guard test green on the deploy SHA ✓ |
+
+### PRODUCTION FLIP — VERIFIED ✅ (2026-07-08)
+
+**Tree:** prod `944939b` (the EXACT staging-verified SHA — no-daylight). Deployed v1-first (byte-identical), then flipped `SKILL_ROUTING_V2=1 SKILL_RERANK_ENABLED=1 SKILL_RERANK_PRECISION=fp32 SAGE_BUILD_SHA=944939b`. **Divergence note:** prod's prior tree (`76f339d`) had 4 `item3` **docs-only** commits not in `944939b` (preserved on master, empty code-delta, zero runtime impact); `944939b` contains the veto `bc3cb4b`, so ancestry-not-recency (a *safety*-commit rule) is satisfied.
+
+**Hard gates PASS:** `/health/ready` `routing_mode:"v2"` + `reranker_head_control:"passed"` (fp32 head; headless→503 so 200 is the real check), `/health/version` `build_sha:944939b`, ancestry-contains-veto ✓.
+
+**Acceptance probe (mirror of staging + crisis-invariance) — ALL PASS:**
+- in_scope EN → skill offer ✓
+- veto-abstain → `keyword_rerank_veto → low_confidence_respond` (the Task-6 fix, live in prod) ✓
+- Arabic → `rtl`, `arabic_offer_excluded → skill_executor` (V1 tiers, fail-closed) ✓
+- **crisis-invariance** → `node_path = [safety_check, crisis_response]` ONLY (skill_select/reranker never reached), tier T2, `[[CRISIS_DETECTED]]` — Node 1 short-circuits identically under flags-on ✓
+
+**Task 12 (sampled prod measurement):** 3/3 id_oos clinician-territory corpus cases **abstain, 0 routed-to-skill** — the +45pp id_oos win (V1+veto 46.9% → V2 92.2%, driver on `944939b` = prod code) confirmed live end-to-end. Recall tripwire armed: in_scope 52.1% ≥ 51.77% floor.
+
+**ROLLBACK (pre-staged, on-call lever):** set `SKILL_ROUTING_V2=0` + `SKILL_RERANK_ENABLED=0` — the byte-identical guard proves this restores exact V1 behavior with **no redeploy** (a variable write, seconds).
+
+**Latency:** full-turn tail 13–17s = pre-existing LLM-generation cost (prod V1 = 11.68s on the identical turn), not V2 overhead; filed against the north-star <3s p95 KPI. Reranker overhead within the 9.6s bound (abstain probe 7.2s).
