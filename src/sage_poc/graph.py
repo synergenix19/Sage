@@ -244,6 +244,14 @@ def _route_after_intent(state: SageState) -> str:
 
 
 def _route_after_skill_select(state: SageState) -> str:
+    # V2 reranker ABSTAIN (below-τ semantic OR keyword-veto) → Node 3 low_confidence_respond, NOT
+    # freeflow (Cardinal Rule 5). The clinician's −4.7pp recall acceptance rests on lost cases being
+    # recoverable soft-abstains that land in Node 3's empathic clarification, and the signed
+    # soft-abstain-recovery monitoring assumes it. skill_select sets this key only under
+    # _rerank_enabled(); _build_state resets it False each turn (per-turn, like path) so a prior
+    # turn's abstain never leaks into a later skill turn. Flag-off never sets it → V1 path unchanged.
+    if state.get("skill_select_abstained"):
+        return "low_confidence"
     # info_request routes to knowledge_retrieve regardless of active skill — the
     # skill_select node preserves active_skill_id, so the skill survives this turn.
     if state.get("primary_intent") == "info_request":
@@ -300,6 +308,7 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     graph.add_conditional_edges("skill_select", _route_after_skill_select, {
         "skill_executor": "skill_executor",
         "knowledge_retrieve": "knowledge_retrieve",
+        "low_confidence": "low_confidence_respond",
         "freeflow": "freeflow_respond",
     })
     graph.add_edge("knowledge_retrieve", "freeflow_respond")
