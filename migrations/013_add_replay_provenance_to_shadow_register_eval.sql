@@ -40,7 +40,11 @@
 ALTER TABLE shadow_register_eval
   ADD COLUMN IF NOT EXISTS source text,
   ADD COLUMN IF NOT EXISTS source_message_id text,
-  ADD COLUMN IF NOT EXISTS run_id text;
+  ADD COLUMN IF NOT EXISTS run_id text,
+  -- Per-row gate-replay detail (cultural rule-ids fired, banned-opener, format tokens,
+  -- back-translation) — the durable, reviewable gate-port backlog signal. Persisted
+  -- per-row rather than only aggregated into the driver's returned gate_summary.
+  ADD COLUMN IF NOT EXISTS gate_replay_result jsonb;
 
 ALTER TABLE shadow_register_eval ALTER COLUMN session_id DROP NOT NULL;
 ALTER TABLE shadow_register_eval ALTER COLUMN turn_number DROP NOT NULL;

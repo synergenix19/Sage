@@ -91,6 +91,23 @@ def test_provenance_fields_populated():
     assert row["shadow_exemplar_version"] == "v1"
 
 
+def test_gate_replay_result_persisted_per_row():
+    # Layer 3's actionable signal (which gates fired, on which turn) must be durable
+    # per-row, not only in the aggregated gate_summary the run returns.
+    client = _FakeClient(historical_rows=[_row(9)])
+    translate = AsyncMock(return_value="thanks")
+    generate = AsyncMock(return_value=_payload(version="v1"))
+
+    _run("historical_replay", run_id="run-g", exemplar_version="v1",
+         client=client, translate=translate, generate=generate)
+
+    gate = next(iter(client.rows.values()))["gate_replay_result"]
+    assert gate is not None
+    assert set(gate) >= {"cultural_fired", "banned_opener", "format_tokens", "back_en"}
+    assert isinstance(gate["cultural_fired"], list)
+    assert isinstance(gate["banned_opener"], bool)
+
+
 def test_single_exemplar_version_selectable():
     client = _FakeClient(historical_rows=[_row(1), _row(2)])
     translate = AsyncMock(return_value="thanks")

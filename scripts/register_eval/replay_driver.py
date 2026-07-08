@@ -187,7 +187,7 @@ async def _load_items(source: str, client: ReplayClient, *, limit: int | None = 
     raise ValueError(f"unknown source: {source!r} (expected 'seed' or 'historical_replay')")
 
 
-def _build_replay_row(item: dict, message_en: str, out: dict, *, source: str, run_id: str) -> dict:
+def _build_replay_row(item: dict, message_en: str, out: dict, *, gate: dict, source: str, run_id: str) -> dict:
     """Row shape mirrors shadow_eval.build_shadow_eval_row's live-payload columns, plus
     migration 013's provenance columns. Built directly (not via build_shadow_eval_row)
     because that helper defaults session_id/turn_number to ""/0 — wrong for seed rows,
@@ -212,6 +212,10 @@ def _build_replay_row(item: dict, message_en: str, out: dict, *, source: str, ru
         "source": source,
         "source_message_id": item["source_message_id"],
         "run_id": run_id,
+        # Per-row gate-replay detail persisted durably (not just aggregated into the
+        # returned gate_summary): which cultural rules fired, banned-opener, format tokens,
+        # and the back-translation — the actionable, reviewable gate-port backlog signal.
+        "gate_replay_result": gate,
     }
 
 
@@ -287,7 +291,7 @@ async def run_replay(
                     "clinical_flags": item.get("clinical_flags") or [],
                     "shadow_arabic_text": out["text"],
                 })
-                row = _build_replay_row(item, message_en, out, source=source, run_id=run_id)
+                row = _build_replay_row(item, message_en, out, gate=gate, source=source, run_id=run_id)
                 await client.upsert_row(row)
 
                 async with counters_lock:
