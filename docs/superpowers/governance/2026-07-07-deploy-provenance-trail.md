@@ -96,3 +96,8 @@ Prod-go authorization requires this table: each signed condition → implementin
 **ROLLBACK (pre-staged, on-call lever):** set `SKILL_ROUTING_V2=0` + `SKILL_RERANK_ENABLED=0` — the byte-identical guard proves this restores exact V1 behavior with **no redeploy** (a variable write, seconds).
 
 **Latency:** full-turn tail 13–17s = pre-existing LLM-generation cost (prod V1 = 11.68s on the identical turn), not V2 overhead; filed against the north-star <3s p95 KPI. Reranker overhead within the 9.6s bound (abstain probe 7.2s).
+
+
+## RUNBOOK RULE — the harness mirrors the runtime tiers (earned 2026-07-08, 2nd instance)
+
+Any change to the live routing tiers — a veto added, a tier reordered, a threshold moved — MUST land with its harness/driver mirror in the SAME PR. An instrument that does not track the runtime measures a tree that does not exist. Two instances now: (1) "V1 of record = V1+veto" — the OCD veto shifted flags-off id_oos, so the frozen comparator no longer matched the running tree; (2) the reverdict driver measured the PRE-veto leak until `is_harm_intrusive` was mirrored into `routed_of`. Belongs next to the corpus-in-repo rule.
