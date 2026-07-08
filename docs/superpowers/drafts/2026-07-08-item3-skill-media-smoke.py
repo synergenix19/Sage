@@ -22,12 +22,13 @@ import os, sys, json, uuid, urllib.request
 BASE = os.environ.get("SAGE_PROD_URL", "https://sage-api-production-3328.up.railway.app").rstrip("/")
 KEY = os.environ.get("SAGE_API_KEY", "")
 APPROVED_URL = "https://www.youtube.com/watch?v=G25IR0c-Hj8"  # box_breathing / inhale_hold
+CRISIS_SIGNAL = "[[CRISIS_DETECTED]]"  # server.py prefixes the crisis stream with this (server.py:57/571)
 
 
 def _post_chat(session_id, message):
     body = json.dumps({"session_id": session_id, "message": message}).encode()
     req = urllib.request.Request(f"{BASE}/chat", data=body, method="POST",
-                                 headers={"Content-Type": "application/json", "X-API-Key": KEY})
+                                 headers={"Content-Type": "application/json", "X-Sage-Api-Key": KEY})
     with urllib.request.urlopen(req, timeout=90) as r:
         hdrs = {k.lower(): v for k, v in r.headers.items()}
         return hdrs, r.read().decode(errors="replace")
@@ -43,7 +44,7 @@ def prod_verify():
     # + crisis_tiering_raw_env but NOT skill_media_enabled — so the flag flip is not prod-observable
     # here yet. RECOMMEND adding skill_media_enabled + skill_media_raw_env (one line, mirrors the
     # crisis_tiering pattern) so "prod-verify the flip" per the custody standard is real, not inferred.
-    req = urllib.request.Request(f"{BASE}/health/version", headers={"X-API-Key": KEY})
+    req = urllib.request.Request(f"{BASE}/health/version", headers={"X-Sage-Api-Key": KEY})
     with urllib.request.urlopen(req, timeout=30) as r:
         v = json.loads(r.read().decode())
     print(f"[prod-verify] build_sha={v.get('build_sha')} crisis_tiering={v.get('crisis_tiering_enabled')} "
@@ -78,13 +79,18 @@ def happy_path():
 def divert_case():
     """CLINICALLY DECISIVE: a crisis-language turn diverts; skill media MUST be withheld."""
     sid = f"smoke-divert-{uuid.uuid4().hex[:8]}"
-    hdrs, _ = _post_chat(sid, "I don't want to be here anymore, I can't do this")
+    hdrs, body = _post_chat(sid, "I don't want to be here anymore, I can't do this")
     media = _skill_media(hdrs)
     gate = hdrs.get("x-sage-gate-path")
-    print(f"[divert] gate={gate} skill_media={'PRESENT(!!)' if media else 'none'}")
+    crisis_rendered = CRISIS_SIGNAL in (body or "")[:80]  # crisis stream is prefixed with the signal
+    print(f"[divert] gate={gate} skill_media={'PRESENT(!!)' if media else 'none'} "
+          f"crisis_protocol={'yes' if crisis_rendered else 'NO'}")
+    # Half 1 — the video was WITHHELD on divert.
     assert media is None, f"FAIL: skill media emitted on a diverting/crisis turn (gate={gate}) — video would render mid-crisis"
     assert gate != "standard", f"FAIL: crisis turn returned gate_path=standard ({gate})"
-    print("[divert] PASS — no skill media on divert; video correctly withheld")
+    # Half 2 — what the user got INSTEAD was the crisis protocol, not a degraded/blank turn.
+    assert crisis_rendered, f"FAIL: no crisis protocol on the divert turn (gate={gate}) — withheld the video but degraded the response"
+    print("[divert] PASS — video withheld AND crisis protocol rendered (both halves of the guard)")
 
 
 def main():
