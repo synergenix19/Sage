@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { CrisisCard } from '../crisis-card'
 import { useLocaleStore } from '@/lib/stores/locale-store'
+import { CRISIS_CONFIG } from '@/lib/crisis-config'
 
 vi.mock('@/lib/stores/locale-store', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,13 +24,13 @@ describe('CrisisCard', () => {
   it('renders the UAE counselling call link', () => {
     render(<CrisisCard content="Test." />)
     const links = screen.getAllByRole('link')
-    expect(links.some((l) => l.getAttribute('href') === 'tel:800-46342')).toBe(true)
+    expect(links.some((l) => l.getAttribute('href') === CRISIS_CONFIG.tel)).toBe(true)
   })
 
   it('renders the emergency call link', () => {
     render(<CrisisCard content="Test." />)
     const links = screen.getAllByRole('link')
-    expect(links.some((l) => l.getAttribute('href') === 'tel:999')).toBe(true)
+    expect(links.some((l) => l.getAttribute('href') === CRISIS_CONFIG.emergencyTel)).toBe(true)
   })
 })
 
@@ -45,7 +46,7 @@ describe('CrisisCard — Arabic locale', () => {
     render(<CrisisCard content="أنت لست وحدك." />)
     expect(screen.getByText('لست وحدك — الدعم متاح')).toBeInTheDocument()
     const links = screen.getAllByRole('link')
-    expect(links.some((l) => l.getAttribute('href') === 'tel:800-46342')).toBe(true)
-    expect(links.some((l) => l.getAttribute('href') === 'tel:999')).toBe(true)
+    expect(links.some((l) => l.getAttribute('href') === CRISIS_CONFIG.tel)).toBe(true)
+    expect(links.some((l) => l.getAttribute('href') === CRISIS_CONFIG.emergencyTel)).toBe(true)
   })
 })
