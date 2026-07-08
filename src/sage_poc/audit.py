@@ -18,6 +18,13 @@ _HEADERS = {
 # opened 2 separate connections per audit write (auth pre-check + write POST).
 _audit_client: httpx.AsyncClient | None = None
 
+# De-dup state for the auth pre-check warning: under a sustained auth-API outage,
+# _user_exists_in_auth fails on every write and would otherwise log a WARNING per
+# write (spam). Set True on the first failure, suppressed until a pre-check
+# succeeds again — which resets it. Fail-open (returns True) is unaffected; only
+# the logging is de-duped.
+_PRECHECK_DEGRADED = False
+
 
 def _get_audit_client() -> httpx.AsyncClient:
     global _audit_client
@@ -32,18 +39,23 @@ async def _user_exists_in_auth(user_id: str) -> bool:
     Fails open (True) on any network or timeout error so the write is still
     attempted — if that write then fails, it surfaces as a CRITICAL log.
     """
+    global _PRECHECK_DEGRADED
     try:
         r = await _get_audit_client().get(
             f"{_URL}/auth/v1/admin/users/{user_id}",
             headers={"apikey": _KEY or "", "Authorization": f"Bearer {_KEY or ''}"},
             timeout=3.0,
         )
+        _PRECHECK_DEGRADED = False
         return r.status_code == 200
     except Exception as exc:
-        logger.warning(
-            "audit pre-check could not verify user %s: %s — attempting write anyway",
-            user_id, exc,
-        )
+        if not _PRECHECK_DEGRADED:
+            logger.warning(
+                "audit pre-check could not verify user %s: %s — attempting write anyway "
+                "(further pre-check warnings suppressed until a check succeeds)",
+                user_id, exc,
+            )
+            _PRECHECK_DEGRADED = True
         return True
 
 
@@ -89,11 +101,23 @@ async def write_identity_substitution_audit(
         )
         r.raise_for_status()
     except httpx.HTTPStatusError as exc:
-        logger.error(
-            "identity_substitution_audit write failed: %s — body: %s", exc, exc.response.text
+        # A lost identity_substitution row is a PDPL Art. 6 right-to-challenge loss —
+        # same "AUDIT FAILURE" token as the session_audit write-drop path so a
+        # log-match alert catches both.
+        logger.critical(
+            "AUDIT FAILURE — identity_substitution_audit dropped (session %s turn %s "
+            "user %s rule %s): %s — body: %s",
+            session_id, turn_number, user_id, rule_id, exc, exc.response.text,
         )
     except Exception as exc:
-        logger.error("identity_substitution_audit write failed: %s", exc)
+        # Classified by consequence (an audit row was lost), not by exception type —
+        # a ConnectError/timeout/JSON drop here is as much a lost PDPL Art. 6 record
+        # as an FK/HTTPStatusError drop above.
+        logger.critical(
+            "AUDIT FAILURE — identity_substitution_audit dropped (session %s turn %s "
+            "user %s rule %s): %s",
+            session_id, turn_number, user_id, rule_id, exc,
+        )
 
 
 async def _supabase_insert(table: str, row: dict) -> None:
@@ -191,7 +215,15 @@ async def _write_session_audit_row(row: dict, prefer: str, label: str) -> None:
             exc, exc.response.text,
         )
     except Exception as exc:
-        logger.error("%s write failed: %s", label, exc)
+        # Classified by consequence (an audit row was lost), not by exception type —
+        # a ConnectError/timeout/JSON drop is as much a lost audit row as an FK
+        # failure, so this must use the same CRITICAL level and "AUDIT FAILURE"
+        # token as the HTTPStatusError branch above (a log-match alert must catch
+        # both).
+        logger.critical(
+            "AUDIT FAILURE — %s dropped (session %s turn %s user %s): %s",
+            label, row.get("session_id"), row.get("turn_number"), user_id, exc,
+        )
 
 
 async def write_session_audit(state: SageState) -> None:

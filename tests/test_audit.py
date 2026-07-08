@@ -1,5 +1,7 @@
 import asyncio
+import logging
 import os
+import httpx
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -121,7 +123,10 @@ async def test_write_extracts_passage_ids(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_write_swallows_network_error(monkeypatch):
+async def test_write_swallows_network_error(monkeypatch, caplog):
+    """A generic network error must not raise — but it must also not be quiet.
+    A lost audit row is a lost audit row regardless of exception type, so this
+    must log CRITICAL with the same "AUDIT FAILURE" token as an HTTPStatusError."""
     monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
     monkeypatch.setenv("SUPABASE_SERVICE_KEY", "test-service-key")
 
@@ -136,8 +141,169 @@ async def test_write_swallows_network_error(monkeypatch):
             raise ConnectionError("network down")
 
     with patch("httpx.AsyncClient", return_value=BrokenClient()):
-        # Must not raise
-        await audit_mod.write_session_audit(make_audit_state())
+        with caplog.at_level(logging.WARNING, logger="sage_poc.audit"):
+            # Must not raise
+            await audit_mod.write_session_audit(make_audit_state())
+
+    critical_records = [r for r in caplog.records if r.levelno == logging.CRITICAL]
+    assert critical_records, "a dropped audit row must log CRITICAL, not lower"
+    assert any("AUDIT FAILURE" in r.message for r in critical_records)
+
+
+@pytest.mark.asyncio
+async def test_write_connection_error_logs_critical(monkeypatch, caplog):
+    """httpx.ConnectError (or any non-HTTPStatusError write failure) must be classified
+    by consequence — an audit row was lost — not by exception type. It must log CRITICAL
+    with the same "AUDIT FAILURE" token as an FK/HTTPStatusError drop."""
+    monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "test-service-key")
+
+    import importlib
+    import sage_poc.audit as audit_mod
+    importlib.reload(audit_mod)
+
+    class BrokenClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): pass
+        async def post(self, *a, **kw):
+            raise httpx.ConnectError("connection refused")
+
+    with patch("httpx.AsyncClient", return_value=BrokenClient()):
+        with caplog.at_level(logging.WARNING, logger="sage_poc.audit"):
+            await audit_mod.write_session_audit(make_audit_state(
+                session_id="conn-err-sess", turn_number=3,
+            ))
+
+    critical_records = [r for r in caplog.records if r.levelno == logging.CRITICAL]
+    assert critical_records, "ConnectError on write must log CRITICAL"
+    assert any("AUDIT FAILURE" in r.message for r in critical_records)
+    # Session/turn/user context must ride the generic-exception branch too.
+    assert any("conn-err-sess" in r.message for r in critical_records)
+
+
+@pytest.mark.asyncio
+async def test_write_http_status_error_logs_critical(monkeypatch, caplog):
+    """FK / constraint failures (HTTPStatusError) must log CRITICAL with the
+    "AUDIT FAILURE" token — locks in the pre-existing branch."""
+    monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "test-service-key")
+
+    import importlib
+    import sage_poc.audit as audit_mod
+    importlib.reload(audit_mod)
+
+    class MockResponse:
+        status_code = 409
+        text = "foreign key violation"
+        def raise_for_status(self):
+            raise httpx.HTTPStatusError("conflict", request=MagicMock(), response=self)
+
+    class MockClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): pass
+        async def post(self, url, headers, json, **kwargs):
+            return MockResponse()
+
+    with patch("httpx.AsyncClient", return_value=MockClient()):
+        with caplog.at_level(logging.WARNING, logger="sage_poc.audit"):
+            await audit_mod.write_session_audit(make_audit_state(
+                session_id="fk-err-sess", turn_number=4,
+            ))
+
+    critical_records = [r for r in caplog.records if r.levelno == logging.CRITICAL]
+    assert critical_records, "HTTPStatusError on write must log CRITICAL"
+    assert any("AUDIT FAILURE" in r.message for r in critical_records)
+
+
+@pytest.mark.asyncio
+async def test_precheck_warning_deduplicated(monkeypatch, caplog):
+    """Sustained auth-API outage must warn ONCE on the pre-check, not per write —
+    otherwise a degraded auth API turns into per-write warning spam. Fail-open
+    (returns True) must be unchanged; a subsequent successful pre-check resets
+    the suppression so a later failure warns again."""
+    monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "test-service-key")
+
+    import importlib
+    import sage_poc.audit as audit_mod
+    importlib.reload(audit_mod)
+
+    class FailingClient:
+        async def get(self, url, headers, **kwargs):
+            raise httpx.ConnectError("auth API down")
+
+    class OkClient:
+        async def get(self, url, headers, **kwargs):
+            class R:
+                status_code = 200
+            return R()
+
+    with patch.object(audit_mod, "_get_audit_client", return_value=FailingClient()):
+        with caplog.at_level(logging.WARNING, logger="sage_poc.audit"):
+            for _ in range(5):
+                result = await audit_mod._user_exists_in_auth("user-x")
+                assert result is True, "fail-open behavior must be unchanged"
+
+    warnings = [
+        r for r in caplog.records
+        if r.levelno == logging.WARNING and "could not verify user" in r.message
+    ]
+    assert len(warnings) == 1, (
+        f"expected exactly one dedup'd warning across 5 failures, got {len(warnings)}"
+    )
+
+    caplog.clear()
+    # A successful pre-check resets the suppression flag.
+    with patch.object(audit_mod, "_get_audit_client", return_value=OkClient()):
+        result = await audit_mod._user_exists_in_auth("user-x")
+        assert result is True
+
+    with patch.object(audit_mod, "_get_audit_client", return_value=FailingClient()):
+        with caplog.at_level(logging.WARNING, logger="sage_poc.audit"):
+            await audit_mod._user_exists_in_auth("user-x")
+
+    warnings_after_reset = [
+        r for r in caplog.records
+        if r.levelno == logging.WARNING and "could not verify user" in r.message
+    ]
+    assert len(warnings_after_reset) == 1, (
+        "a fresh failure after an intervening success must warn again"
+    )
+
+
+@pytest.mark.asyncio
+async def test_identity_substitution_write_error_logs_critical(monkeypatch, caplog):
+    """write_identity_substitution_audit drops are PDPL Art. 6 losses — both the
+    HTTPStatusError branch and the generic-exception branch must log CRITICAL
+    with the "AUDIT FAILURE" token, not logger.error."""
+    monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "test-service-key")
+
+    import importlib
+    import sage_poc.audit as audit_mod
+    importlib.reload(audit_mod)
+
+    class BrokenClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): pass
+        async def post(self, *a, **kw):
+            raise httpx.ConnectError("connection refused")
+
+    with patch("httpx.AsyncClient", return_value=BrokenClient()):
+        with caplog.at_level(logging.WARNING, logger="sage_poc.audit"):
+            await audit_mod.write_identity_substitution_audit(
+                session_id="id-sub-sess",
+                turn_number=1,
+                rule_id="CUO-ID-001",
+                original_response_hash="abc123",
+                original_response_text="I am a therapist and I'm here to help.",
+                substitute_with="I'm a wellness companion.",
+                user_id="user-1",
+            )
+
+    critical_records = [r for r in caplog.records if r.levelno == logging.CRITICAL]
+    assert critical_records, "identity_substitution_audit write drop must log CRITICAL"
+    assert any("AUDIT FAILURE" in r.message for r in critical_records)
 
 
 @pytest.mark.asyncio
