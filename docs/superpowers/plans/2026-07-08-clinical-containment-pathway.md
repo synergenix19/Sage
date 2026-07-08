@@ -15,7 +15,7 @@ So the postpartum→worry_time routing the finding caught is a **documented spec
 
 ## Global Constraints
 - **Safety over capability:** the open leak does not wait for the destination class. Stage 1 ships behind clinician *pattern* sign-off only.
-- **Deterministic trigger only** (patterns, never the phrasing-sensitive reranker).
+- **Deterministic trigger only** (patterns, never the phrasing-sensitive reranker). **This is a STOPGAP guardrail, not the destination** — keyword matching is brittle across phrasing (the postpartum finding proves it). The aligned trigger for each family is a SEMANTIC classifier (S2-MARBERT, Gap #65) trained on the audit's paraphrase data; the keyword lexicon buys safety while that is built. Migration per family: keyword veto now, semantic family-trigger as the real detection.
 - **Tools never replace guardrails:** on a containment/veto turn, `suggest_skill` is unbound (or family-vetoed) — a guardrail must not be optional through a tool.
 - **Prompt-layer discipline:** retrieved KB → existing **L4** (~300w, via Node 6); containment few-shot/tone/step → **L3** skill-context slot (template-owned). NO new layer. Per-layer word budget asserted in tests; total ≤ ~1,100w.
 - **Bilingual/cultural is mandatory content:** every containment family needs AR+EN few-shot ≥3, `cultural_overrides`, Node-8 cultural rules; **per-language KB fail-safe** — AR falls back if the AR article/naming isn't clinician-ruled yet.
