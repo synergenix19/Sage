@@ -7,9 +7,9 @@
 **Goal:** stop postpartum harm-intrusive disclosures routing to self-help skills (Stage 1), then add a first-class *containment* outcome for clinically-significant non-crisis disclosures (Stage 2).
 
 **Clinical authority = the BOT BEHAVIOUR spec (clinician-owned), NOT Abby.** Abby is a *warmth/style* reference; the spec is what the content conforms to and what the clinician signs against. The spec ALREADY prescribes this territory:
-- **OCD-type / intrusive-thought / compulsive content → route to PROFESSIONAL REFERRAL, not self-guided skills** (spec §Worry-track guards, lines ~229/271: "Worry Tree/Worry Time… can reinforce compulsive patterns"). This is an intermediate disposition, **separate from the crisis guard** (line ~81).
-- **Universal crisis override supersedes everything** (line ~83 and ~9 repeats): SI/self-harm/harm-to-others → exit immediately to crisis protocol.
-- **"Safety woven in naturally rather than led with"** (lines ~482/541/591) is the mandated risk-check style — do not lead with the risk question.
+- **OCD-type / intrusive-thought / compulsive content → route to PROFESSIONAL REFERRAL, not self-guided skills** (pinned spec `56fde86`, Worry-track OCD guard: "Worry Tree/Worry Time… can reinforce compulsive patterns → route to professional referral"). This is an intermediate disposition, **separate from the crisis guard** (pinned spec `56fde86`, "routes to human/professional support… separate from the crisis guard").
+- **Universal crisis override supersedes everything** (pinned spec `56fde86`, universal crisis override, ~10 repeats): SI/self-harm/harm-to-others → exit immediately to crisis protocol.
+- **"Safety woven in naturally rather than led with"** (pinned spec `56fde86`, "safety woven in naturally rather than led with") is the mandated risk-check style — do not lead with the risk question.
 
 So the postpartum→worry_time routing the finding caught is a **documented spec deviation** (the exact "can reinforce compulsive patterns" failure), which raises Stage 1's urgency. **Reference exemplar:** Abby's postpartum reply (validate → psychoeducate → differentiate "does not mean you want to act on them" → name "postpartum OCD" → risk-check → engage) supplies the warmth; the spec adds the **professional-referral signpost** Abby omits.
 

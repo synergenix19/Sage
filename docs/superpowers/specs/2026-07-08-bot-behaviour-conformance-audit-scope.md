@@ -7,7 +7,7 @@ Measure, category by category, whether the live system's **served disposition** 
 
 ## The spec is now a measurement ORACLE — so it inherits gate-input provenance (constraint 3)
 - **Pin the spec as a versioned in-repo artifact.** The audit fixtures reference **stable spec identifiers** — the ingested `§`/`S`/`E` category IDs already in `2026-07-04-bot-behaviour-content-inventory.md` (§1a–c, §3b, §6a, S1a, HR, …) — **never line numbers** (line numbers drift; the current plan's `~229/~750/§1438` are placeholders to be replaced by IDs). 
-- Each fixture row carries `{spec_id, prescribed_disposition, spec_version_sha}`. `spec_version_sha` = the commit SHA of the pinned spec artifact (the `.docx` text extracted + committed, or the content-inventory as the canonical map). A measurement whose oracle isn't in the repo at a cited SHA is an anecdote, not a gate (the committed-corpus rule, applied to the oracle).
+- Each fixture row carries `{spec_id, prescribed_disposition, spec_version_sha}`. **`spec_version_sha = 56fde86`** (the committed `bot-behaviour-spec-source-2026-07-08.md`). A measurement whose oracle isn't in the repo at a cited SHA is an anecdote, not a gate (the committed-corpus rule, applied to the oracle).
 
 ## Inherited method — this audit is NOT starting fresh (constraint 1)
 Weeks of accumulated instrument carry in; say so explicitly:
@@ -48,10 +48,11 @@ Tie-breaks stated up front: a turn that both mis-disposes AND has a tool hole is
 ## What this is NOT
 Not a routing re-verification (the flip is verified, twice). Not load testing (latency attributed + filed). Not a substitute for the accumulating soft-abstain-recovery data.
 
-## Preconditions to EXECUTE (not required to draft)
-1. Pin the spec oracle in-repo at a SHA (extract + commit the spec text / adopt the content-inventory as canonical map with per-category IDs).
-2. Command approval to run the sweep (multi-agent, token-significant).
-3. Runs on live V2 (`944939b`) — already met.
+## Preconditions to EXECUTE — BOTH CLEAR (2026-07-08)
+1. **✅ Oracle pinned:** `docs/superpowers/specs/bot-behaviour-oracle/bot-behaviour-spec-source-2026-07-08.md`, **spec_version_sha = `56fde86`**. Fixtures cite `{spec_id (§/S/E category), prescribed_disposition, spec_version_sha=56fde86}`; NEVER line numbers.
+2. **✅ Command approval given** (2026-07-08) to run the Layer-1 sweep.
+3. **✅ Live surface:** prod `7ed83cf` — now includes BOTH vetoes (V2 reranker + OCD + harm-intrusive), the surface that matters.
+**→ The Layer-1 sweep is CLEARED to run.**
 
 
 ## Pre-registered Class-A row (known BEFORE the sweep) — SAFEGUARDING (third-party child-harm)
