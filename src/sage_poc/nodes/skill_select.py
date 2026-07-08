@@ -671,6 +671,27 @@ async def skill_select_node(state: SageState) -> dict:
         )
         stale_offer_clear = {"offered_skill_ids": None}
 
+    # Harm-intrusive iatrogenic veto (deterministic, ARM-INDEPENDENT safety control; Stage 1 of the
+    # Clinical Containment Pathway, docs/superpowers/plans/2026-07-08-clinical-containment-pathway.md,
+    # mirroring the OCD-compulsion veto precedent; DEPLOY GATED ON CLINICIAN PATTERN SIGN-OFF). A
+    # postpartum / parental EGO-DYSTONIC disclosure of intrusive images or thoughts of harming a baby or
+    # child must NOT route to a self-help skill: worry, rumination, thought-record and grounding tools
+    # REINFORCE the intrusive-thought cycle, so any such route is iatrogenic. ABSTAIN to Node 3
+    # (low_confidence_respond) instead, the correct terminal for these cases today (Stage 1). Runs BEFORE
+    # both routing tiers (keyword Tier 1 + semantic Tier 2) and is NOT gated on SKILL_ROUTING_V2, so V1
+    # (the prod hotfix surface) and V2 behave identically. Subordinate to the crisis + psychotic
+    # auto-selects above (active intent is CRISIS, intercepted at Node 1). Carries no user-facing text.
+    from sage_poc.nodes.harm_intrusive import is_harm_intrusive  # noqa: PLC0415
+    if is_harm_intrusive(state.get("message_en")):
+        return {
+            **stale_offer_clear,
+            "active_skill_id": None,
+            "active_step_id": None,
+            "skill_match_method": None,
+            "semantic_score": None,
+            "path": state["path"] + ["skill_select", "harm_intrusive_veto"],
+        }
+
     # OCD-compulsion iatrogenic veto (deterministic, ARM-INDEPENDENT safety control; approved
     # expedited hotfix, escalation 2026-07-07-v1-iatrogenic-ocd-routing-escalation.md). A disclosed
     # compulsion or ritual (checking, counting/magic/undoing, scrupulosity, rereading/redoing,
