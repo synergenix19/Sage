@@ -634,7 +634,7 @@ def build_cultural_override_block(skill) -> str | None:
     return None
 
 
-def compose_prompt(state: SageState, l2_intent_override: str | None = None) -> tuple[str, str, list[str]]:
+def compose_prompt(state: SageState, l2_intent_override: str | None = None, *, shadow_arabic: bool = False) -> tuple[str, str, list[str]]:
     """Return (system_str, user_str, prompt_layers) for role-separated LLM invocation.
 
     Implements v7 §5.6 6-layer progressive disclosure. Rules Service injections
@@ -660,13 +660,24 @@ def compose_prompt(state: SageState, l2_intent_override: str | None = None) -> t
     # rules so the LLM sees the translation architecture before register calibration.
     # CU-DM-001 v1.2 must not restate this (register calibration only after this fix).
     if language == "ar":
-        system_parts.append(
-            "ARABIC SESSION: This user writes in Arabic. Your response will be "
-            "translated to Khaleeji Arabic by the delivery layer. Generate in English "
-            "with warmth and conversational rhythm that translates naturally to Gulf "
-            "Arabic, not clinical or formal phrasing. Do not write in Arabic."
-        )
-        layers.append("arabic_register")
+        if shadow_arabic:
+            from sage_poc.prompts.loader import load_khaleeji_shadow_exemplars  # noqa: PLC0415
+            _ex_version, _ex_block = load_khaleeji_shadow_exemplars()
+            system_parts.append(
+                "ARABIC SESSION (native generation): This user writes in Arabic. "
+                "Generate your reply directly in warm, informal Gulf Arabic (Khaleeji "
+                "dialect), not Modern Standard Arabic and not clinical or formal "
+                "phrasing. Mirror the user's dialect and level of formality.\n" + _ex_block
+            )
+            layers.append("arabic_native_shadow")
+        else:
+            system_parts.append(
+                "ARABIC SESSION: This user writes in Arabic. Your response will be "
+                "translated to Khaleeji Arabic by the delivery layer. Generate in English "
+                "with warmth and conversational rhythm that translates naturally to Gulf "
+                "Arabic, not clinical or formal phrasing. Do not write in Arabic."
+            )
+            layers.append("arabic_register")
 
     # Cultural injections from Rules Service (unchanged from original)
     code_switch = state.get("code_switching", False)
@@ -881,6 +892,15 @@ def compose_prompt(state: SageState, l2_intent_override: str | None = None) -> t
         # re-probe, no closing question). Falls back to base general_chat automatically if the
         # variant file is missing (get_intent_template returns the base on unknown variant).
         _l2_variant = "directive" if (state.get("directive_posture") and _l2_intent == "general_chat") else None
+        # Repeat-info_request dampening (D4 amendment 2026-07-07). A single-intent info_request
+        # closes with one open clarifying QUESTION (base template, Abby-style triage). On an
+        # IMMEDIATELY-CONSECUTIVE info_request (prev turn also info_request = "lookup mode"),
+        # switch to the statement-bridge "repeat" variant so a user in lookup mode is not
+        # re-triaged every turn. "repeat" is strictly immediately-consecutive: any intervening
+        # non-info_request turn resets prev_primary_intent and restores the question-close.
+        # Falls back to the base template automatically if the variant file is absent.
+        if _l2_intent == "info_request" and state.get("prev_primary_intent") == "info_request":
+            _l2_variant = "repeat"
     l2_block = _build_l2_intent_block(
         _l2_intent, intensity, secondary_intent, variant=_l2_variant, extra_variables=_l2_extra
     )

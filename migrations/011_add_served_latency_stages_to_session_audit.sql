@@ -1,0 +1,14 @@
+-- Add served-arm latency stage columns to session_audit.
+-- freeflow_gen_ms: served English-arm generation time (freeflow_respond_node's
+--   _invoke_with_tool_loop call), captured unconditionally (all languages, shadow
+--   flag on or off) — it is a served-path timing, not shadow data.
+-- translate_out_ms: served translate-out time (output_gate's async_translate_to_arabic
+--   call, including its strict-retry when it fires); NULL when the turn's language/
+--   content did not require a translate-out pass.
+-- Together with the already-captured shadow_register_eval.gen_latency_ms, these support
+-- the pre-registered latency comparison (docs/superpowers/specs/
+-- 2026-07-07-native-arabic-register-preregistration.md §5): shadow generation time vs
+-- served (freeflow_gen_ms + translate_out_ms), joinable to shadow_register_eval by
+-- (session_id, turn_number). Nullable, no backfill needed (historical rows have no
+-- stage timing to recover).
+ALTER TABLE session_audit ADD COLUMN IF NOT EXISTS freeflow_gen_ms integer, ADD COLUMN IF NOT EXISTS translate_out_ms integer;

@@ -6,6 +6,27 @@
 **Decision requested:** explicit **intended / not-intended** ruling on a **24-hour clock**, mirroring the L2 clinical-flag review discipline.
 **Severity:** clinical-safety governance (referral-escalation = escalation-matrix / L2–L3 behaviour), not housekeeping.
 
+## ✅ RESOLUTION — 2026-07-07 (reconciled; supersedes both the interim UPDATE and the #145 draft)
+
+Product-owner ruling, executed by the active command session. This section reconciles two parallel governance edits into one true record (see *Provenance of this record* below) and supersedes both. The header's "24-hour clock" and the interim UPDATE are **closed**.
+
+**Ruling: INTENDED.** Registering and deploying `mindfulness_meditation` to production was authorized.
+- **Clinical basis (for `approved_by`):** the clinician's **#130-cycle approval** of the skill package ("approved it all", merged #130).
+- **Go-live basis:** **product-owner authorization** (Rohan) of registration + deploy under **zero-user mode** (no real users on the prod surface).
+
+**Factual correction (credit to PR #146):** the referral-escalation fix **PR #131 has LANDED on master (`8ab2169`) and is deployed** — the skill is code-complete, not mid-fix. An earlier record (the #145 draft) called #131 "pending"; that was **stale**. The live entry-screen now HOLDS on a derealization disclosure; the referral renders softly pending the #144 example.
+
+**Honest residual — the operative gate is CMS/clinician phrasing sign-off, NOT code.** `approved_by` **stays null on purpose**: the referral phrasing (the deployed #131 text + the #144 example) has **not** received CMS/clinician sign-off. Recording a clean signature would be false — the record's value is that it is true.
+- **24-hour rollback clock: CANCELLED.** The prepared de-registration rollback stays **prepared but UNARMED** — one reviewed PR away if the ruling ever reverses.
+- **Open at ESCALATED priority (Lane 3 clinician clock):** CMS/clinician sign-off of the referral phrasing, carried by **#131** (landed text) + **#144** (the disclosure→referral example, clinician-gated). This is the single remaining gate.
+
+**Provenance of this record (neither prior version erased):**
+- **PR #145** (`0542a90`) wrote the first RESOLUTION (ruling INTENDED, rollback cancelled) but predated #131's landing, so it called #131 "pending".
+- **PR #146** (`df580c4`), branched before #145 merged, **overwrote** #145's RESOLUTION with the interim UPDATE — correctly noting #131 had landed, but not knowing the PO had already ruled INTENDED, so it left the ruling "open, sharpened to the CMS gate".
+- This section merges the true parts of both: #145's ruling + #146's fact + the honest null-`approved_by`.
+
+*This overwrite is the exact failure `SESSION_COORDINATION.md` targets; the protocol is hardened in the same change — governance-doc edits rebase onto current master and reconcile, never overwrite.*
+
 ## What is live
 
 - `mindfulness_meditation` is present in the live `SKILL_REGISTRY` (`src/sage_poc/skill_ids.py:10`) → **registered and routable** in production.

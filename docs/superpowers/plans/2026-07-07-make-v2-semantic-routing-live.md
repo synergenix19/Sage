@@ -474,7 +474,8 @@ The runbook states, verbatim:
 1. **Prod deploys pin to a named, audited SHA — never a branch tip.** `railway up` from a checkout at that SHA; record it.
 2. **Two-endpoint hard gate before declaring a deploy good:** `/health/version` `build_sha` == the intended SHA, AND `/health/ready` `routing_mode` == the intended mode (and, once V2 ships, `reranker_fired: true`). The anti-revert check cannot half-pass — both endpoints, named explicitly.
 3. **Clinically-unsigned skill content ships inert** (unregistered or flag-gated) until sign-off. "Merged to master" ≠ "routable in prod." Cite the 2026-07-07 mm incident.
-4. Include the exact `railway up` command, the env-var sets, and the curl gate.
+4. **Any number that gates a deploy MUST cite a committed fixture SHA — the corpus is part of the artifact.** A measurement whose inputs aren't in the repo is an anecdote, not a gate. (Earned 2026-07-07: the 66/35/100 comparator corpus was unrecoverable at any revision — see `2026-07-07-v1-comparator-correction.md`. Second lost-provenance finding of the week alongside the null prod SHA.)
+5. Include the exact `railway up` command, the env-var sets, and the curl gate.
 
 - [ ] **Step 3: Verify + commit**
 

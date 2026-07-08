@@ -672,6 +672,10 @@ async def output_gate_node(state: SageState) -> dict:
         _log.warning("[output_gate] format tokens after strip: %s", violations)
 
     if lang == "ar" and not _response_en_is_arabic:
+        # §5 served-arm latency timer: brackets ONLY the translate-out operation (plus its
+        # strict-retry, when it fires) -- not the surrounding gate work (cultural check,
+        # format strip, audit build). Same time.monotonic() idiom as latency_ms.
+        _translate_t0 = time.monotonic()
         final_response = await async_translate_to_arabic(response_en)
         if _has_english_bleed(final_response):
             _log.warning("[output_gate] English bleed in Arabic output; re-translating strict")
@@ -679,6 +683,7 @@ async def output_gate_node(state: SageState) -> dict:
             path = path + ["arabic_token_guard_retranslate"]
             if _has_english_bleed(final_response):
                 _log.warning("[output_gate] English bleed persists after strict re-translate (telemetry only)")
+        state = {**state, "translate_out_ms": int((time.monotonic() - _translate_t0) * 1000)}
     else:
         final_response = response_en
     final_response = _strip_output_format(final_response)
@@ -803,6 +808,10 @@ async def output_gate_node(state: SageState) -> dict:
         "gate_path": gate_path or "standard",
         "path": path,
         "turn_count": next_turn,
+        # Persist THIS turn's intent as next turn's prev, for consecutive-info_request
+        # ("lookup mode") detection in the composer. Mirrors prev_step_id: lives in
+        # SageState, absent from _build_state, so it survives via the checkpoint.
+        "prev_primary_intent": state.get("primary_intent"),
         "conversation_history": new_history,
         "conversation_summary": new_summary,
         "cultural_output_violations": cultural_output_violations,

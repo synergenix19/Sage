@@ -52,10 +52,13 @@ def test_genuine_first_question_is_not_directive():
 # D4: intent-gated info_request trigger (Step 1 -- failing tests)
 # ---------------------------------------------------------------------------
 
-def test_info_request_intent_triggers_directive():
-    # A genuine factual/list request classifies as info_request -> answer-first.
+def test_info_request_no_longer_triggers_directive():
+    # D4 AMENDMENT (clinical ruling 2026-07-07, recorded against LOCK-QDISC-22): info_request
+    # no longer sets directive_posture. A single-intent info_request now closes with one open
+    # clarifying QUESTION (Abby-style triage), so answer-first must NOT strip it. Genuine
+    # delegation still triggers directive_posture (see the _DIRECTIVE_PHRASES tests above).
     st = {"message_en": "can you give me a list of sleep tips?", "conversation_history": []}
-    assert detect_directive_request(st, primary_intent="info_request") is True
+    assert detect_directive_request(st, primary_intent="info_request") is False
 
 
 def test_emotional_disclosure_question_does_not_trigger():
@@ -108,8 +111,9 @@ def _base_state(**overrides) -> dict:
 
 
 @pytest.mark.asyncio
-async def test_audit_marker_present_on_info_request_turn():
-    """Step 3b: 'directive_posture_set' must appear in path when LLM returns info_request."""
+async def test_no_directive_marker_on_info_request_turn():
+    """D4 amendment 2026-07-07: info_request must NOT set directive_posture, so the
+    'directive_posture_set' marker is ABSENT and the clarifying question survives output_gate."""
     from sage_poc.nodes.intent_route import intent_route_node
 
     mock_response = (
@@ -120,9 +124,9 @@ async def test_audit_marker_present_on_info_request_turn():
     with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=mock_response)):
         result = await intent_route_node(state)
 
-    assert result["directive_posture"] is True, "info_request must set directive_posture"
-    assert "directive_posture_set" in result["path"], (
-        f"audit marker 'directive_posture_set' missing from path: {result['path']}"
+    assert result["directive_posture"] is False, "D4 amendment: info_request must NOT set directive_posture"
+    assert "directive_posture_set" not in result["path"], (
+        f"'directive_posture_set' must be ABSENT on info_request after the amendment: {result['path']}"
     )
 
 

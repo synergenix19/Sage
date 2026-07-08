@@ -133,6 +133,11 @@ SKILL_OFFER_COOLDOWN_ENABLED: bool = os.getenv("SAGE_SKILL_OFFER_COOLDOWN_ENABLE
 D5_ACUITY_GATE_ENABLED: bool = os.getenv("SAGE_D5_ACUITY_GATE", "false").lower() == "true"
 D5_ACUITY_FLOOR: int = int(os.getenv("SAGE_D5_ACUITY_FLOOR", "8"))
 
+# Tier 0 native-Arabic register measurement. Ships INERT: when on, generates a
+# second native-Khaleeji response written ONLY to shadow_register_eval and NEVER
+# served or placed in SageState. See docs/superpowers/plans/2026-07-07-native-arabic-shadow-measure.md
+NATIVE_ARABIC_SHADOW_ENABLED: bool = os.getenv("SAGE_NATIVE_ARABIC_SHADOW", "false").lower() == "true"
+
 # Connection-pool ceilings (feedback #9). POC ran asyncpg max_size=5 and httpx keepalive=5,
 # which throttled under the 58-user load behind the p95 latency. Raise + make env-configurable.
 DB_POOL_MAX_SIZE = int(os.getenv("SAGE_DB_POOL_MAX_SIZE", "20"))
