@@ -115,3 +115,15 @@ The first `railway up 7ed83cf` deployed **SUCCESS / healthy / `/health/version`=
 - **RULE: `railway up` MUST set `RAILWAY_GIT_COMMIT_SHA=<deploy-sha>`** (feeds the Dockerfile cache-bust ARG) so the `COPY` layer rebuilds. Without it, code edits under `src/` can silently not deploy.
 - **RULE: do NOT override `SAGE_BUILD_SHA` as a service var** — let it derive from the cache-bust ARG so `/health/version` reflects the BUILT code, not a hand-set label.
 - Fix applied: set `RAILWAY_GIT_COMMIT_SHA=7ed83cf`, rebuilt, re-probed → veto fires. Earlier 944939b prod deploy was behaviorally verified at the time (probe pair), so it was not stale.
+
+## Entry 5 — 2026-07-08 · crisis-number templating (single-config) + STALE-BUILD lesson REPEATED
+
+**Tree:** prod advanced `7ed83cf` → `9f5705c` (stale) → **`e34e97f`** (current master: crisis templating #193 + item3 + both vetoes). Crisis `number`/`hours` PO-**verified** (`800 46342` / `24/7`).
+
+**What shipped:** crisis phone numbers templated to ONE config source (`config.CRISIS_CONFIG`), resolved at load, fail-closed boot guard. **Byte-identical mechanism** (resolved output == prior literals).
+
+**Verification — cache-bust-verified, NOT behaviorally.** Because it's byte-identical, the crisis smoke (response resolves `800 46342`, no `{{crisis` leak) CANNOT distinguish templated from literal. So it's verified by the **cache-bust structural guarantee** (`RAILWAY_GIT_COMMIT_SHA 7ed83cf→e34e97f` → `COPY` rebuilt) + the boot guard (app booted → no unresolved placeholder) — not an output probe. Recorded as such, deliberately not as "behaviorally verified."
+
+**⚠️ STALE-BUILD LESSON REPEATED (mine).** First attempt: `railway up` + set `SAGE_BUILD_SHA=9f5705c` **without** bumping the cache-bust ARG → container ran stale `7ed83cf` code under a `9f5705c` label; `/health` lied; the byte-identical smoke gave a **false PASS**. Caught only by reading `RAILWAY_GIT_COMMIT_SHA` (=`7ed83cf`). Fix: bump `RAILWAY_GIT_COMMIT_SHA`→`e34e97f`. This is the **second** stale-build incident this session — the reason for `docs/superpowers/governance/2026-07-08-prod-deploy-control.md`, which adds the sharper rule: **byte-identical changes have no output probe → add a `/health/version` templating-provenance field.**
+
+**Clobbers this session (context):** item3 (`76f339d`) and crisis-templating (`27bfd3b`) were each reverted by **parallel prod deploys**; each resolved by redeploying current master. → the one-writer-to-prod + always-deploy-master control.
