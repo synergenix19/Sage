@@ -6,7 +6,12 @@
 
 **Goal:** stop postpartum harm-intrusive disclosures routing to self-help skills (Stage 1), then add a first-class *containment* outcome for clinically-significant non-crisis disclosures (Stage 2).
 
-**Reference exemplar:** Abby's postpartum reply (validate → normalize/psychoeducate → **differentiate** "does not mean you want to act on them" → name "postpartum OCD" → **risk-check** "noticed these influencing your behavior?" → engage). The harm-intrusive family's L3 few-shot + KB article are modeled on it.
+**Clinical authority = the BOT BEHAVIOUR spec (clinician-owned), NOT Abby.** Abby is a *warmth/style* reference; the spec is what the content conforms to and what the clinician signs against. The spec ALREADY prescribes this territory:
+- **OCD-type / intrusive-thought / compulsive content → route to PROFESSIONAL REFERRAL, not self-guided skills** (spec §Worry-track guards, lines ~229/271: "Worry Tree/Worry Time… can reinforce compulsive patterns"). This is an intermediate disposition, **separate from the crisis guard** (line ~81).
+- **Universal crisis override supersedes everything** (line ~83 and ~9 repeats): SI/self-harm/harm-to-others → exit immediately to crisis protocol.
+- **"Safety woven in naturally rather than led with"** (lines ~482/541/591) is the mandated risk-check style — do not lead with the risk question.
+
+So the postpartum→worry_time routing the finding caught is a **documented spec deviation** (the exact "can reinforce compulsive patterns" failure), which raises Stage 1's urgency. **Reference exemplar:** Abby's postpartum reply (validate → psychoeducate → differentiate "does not mean you want to act on them" → name "postpartum OCD" → risk-check → engage) supplies the warmth; the spec adds the **professional-referral signpost** Abby omits.
 
 ## Global Constraints
 - **Safety over capability:** the open leak does not wait for the destination class. Stage 1 ships behind clinician *pattern* sign-off only.
@@ -64,9 +69,10 @@ No state/schema/graph-vocabulary change. Destination = today's bare abstain (Nod
 - [ ] Author the KB article (`data/knowledge_corpus/postpartum_intrusive_thoughts.md`) modeled on Abby; deploy-time auto-sync + recalibrate if corpus crosses the gate.
 - [ ] **Checklist (clinician-ruled, not memo):** AR+EN few-shot **≥3 each**; `cultural_overrides`; the **Khaleeji rendering of "postpartum OCD"**; **Arabic KB counterpart**. Until the AR set is ruled, the per-language fail-safe treats AR as content-not-ready → AR falls back to bare abstain.
 
-## Task 6: Containment skill template (validate → psychoeducate → differentiate → check)
-- [ ] Test: the differentiation risk-positive branch → `crisis_response` (L3 safety); risk-negative → continued containment (L2 flag carried); NO autonomous "no-risk" clearance path.
-- [ ] Build the skeleton once (Falcon-interpretation + rule-based escalation lands here, inherited by every family); harm-intrusive supplies its differentiation question + branches.
+## Task 6: Containment skill template (validate → psychoeducate → differentiate → risk-check → REFER → engage)
+Template steps must match the BOT BEHAVIOUR spec, not just Abby. The **professional-referral signpost is required** (spec's OCD/intrusive prescription) — Abby omits it. Risk-check is **woven in naturally, not led with** (spec lines ~482/541/591). Differentiation+branches are authored in the spec's **"guard"** vocabulary (the clinician already owns it).
+- [ ] Test: the differentiation risk-positive branch → `crisis_response` (universal crisis override, spec line ~83); risk-negative → continued containment carrying the professional-referral signpost + L2 flag; NO autonomous "no-risk" clearance path; the referral step is present on every containment turn.
+- [ ] Build the skeleton once (Falcon-interpretation + rule-based escalation lands here, inherited by every family); harm-intrusive supplies its differentiation question + branches + the referral copy (clinician-owned, no em dashes).
 
 ## Task 7: Audit + output_gate
 - [ ] Test: Node-8 audit row logs directive `family`, `rule_id`, KB retrieval ids, `flag_level`; audit writes alert-or-fail (#160), never silent.
@@ -77,6 +83,12 @@ No state/schema/graph-vocabulary change. Destination = today's bare abstain (Nod
 
 ## Migration order
 Stage 1 harm-intrusive veto (this week) → Stage 2 approval → containment pathway → upgrade harm-intrusive + OCD abstain→contain → clinical-flag families (CMS, clinical clock).
+
+## Relationship to the BOT BEHAVIOUR audit (run in PARALLEL — the audit is the discovery engine)
+The postpartum finding was one hand-found instance of a **spec deviation**; the bot-behaviour audit is the systematic version, and it now runs on the **live V2 matcher**. Its "route to professional referral / escalate / guard" prescriptions (OCD/intrusive §229; depressive rumination §228; anger-harm §750; boundary-unsafe-reaction §911/988; "know what to do but can't" §398/401; existential+low-mood §423) are **the family backlog for the containment pathway** — each is a place the current system may route to self-help against the spec. So:
+- **Parallel, with a feed:** the audit does NOT block Stage 1 (harm-intrusive ships now). The audit *discovers* the deviation set; the containment pathway is the *general remedy*; each discovered family becomes a CMS `contain` row on the clinical clock.
+- The audit ALSO surfaces non-containment conformance gaps (tone/register, safety-woven-in, presentation-one-step-at-a-time §201, cultural-never-assume §1438) — separate work, separately owned.
+- **Sequencing:** don't wait for the audit to finish before Stage 1 (the leak is live). Do let the audit's family list define Stage 2's backlog rather than guessing families.
 
 ## Self-review
 - Urgent leak decoupled to Stage 1 (safety over capability). ✓
