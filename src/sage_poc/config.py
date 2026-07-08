@@ -22,12 +22,16 @@ RESISTANCE_MODEL = os.getenv("SAGE_RESISTANCE_MODEL", CLASSIFIER_MODEL)
 # Default ON — crisis activations must leave an audit trail unless explicitly disabled.
 AUDIT_LOG_ENABLED = os.getenv("SAGE_AUDIT_LOG", "true").lower() == "true"
 
-# UAE crisis helpline — the SINGLE authoritative source for every crisis-copy site
-# (graph, output_gate, crisis_content rules, L0). Nothing may re-embed these literals.
-# ✅ VALUES APPROVED (PO, 2026-07-08): `number` = "800 46342" is FINAL (the G8 transcription-error
-# theory → "800 4673" is OVERRULED); `hours` = "24/7" CONFIRMED. This dict is the single canonical
-# source; tests/test_crisis_helpline_conformance.py fails CI if any crisis-copy site diverges from it.
-# The frontend mirrors this in cdai apps/web/lib/crisis-config.ts (kept in sync by tests both sides).
+# UAE crisis helpline — the SINGLE source for every crisis-copy site (graph, output_gate,
+# crisis_content rules, L0, skills). Nothing may re-embed these literals; change here and
+# tests/test_crisis_helpline_conformance.py forces every site to follow. Frontend mirror:
+# cdai apps/web/lib/crisis-config.ts.
+# ⚠️ VALUE STATUS — approval-of-USE, NOT verification. The PO directed (2026-07-08) that we KEEP
+# and centralise the currently-served `number` = "800 46342" and `hours` = "24/7". Its CORRECTNESS
+# is UNRESOLVED: the G8 question — is "800 46342" a transcription error for "800 4673" (LifeLine
+# Arabia / 800-HOPE), the number authoritative directories list? — needs a DIAL-TEST, which owns
+# the verdict. Do NOT read this dict as "final/correct". When the dial-test settles it, change this
+# one dict (the conformance test checks consistency, not correctness).
 CRISIS_CONFIG = {
     "number": "800 46342",
     "label": "MoHAP Counselling Line",
