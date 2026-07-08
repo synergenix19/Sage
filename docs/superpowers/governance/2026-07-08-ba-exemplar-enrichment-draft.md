@@ -40,3 +40,7 @@ This draft is **EN-only** (the audit corpus was EN). BA's target_presentations a
 
 ## The clinician's ask (~30 sec)
 Confirm bin (a) routes to BA; confirm bin (b) stays abstain (or move any); **rule bin (c)** — that's the boundary edit that matters.
+
+
+## SIGN-OFF (2026-07-08)
+**Clinical lead: APPROVED.** ① all three bin-(c) phrases → **stay abstain** ('I don't really care anymore', 'I feel empty', 'everything feels pointless' — the last removed from BA target_presentations). ② bins (a)/(b) confirmed. ③ rendered semantic_description confirmed. Recognition clause = bin (a) only. PO present (Rohan).

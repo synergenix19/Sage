@@ -1,6 +1,6 @@
 # Per-Pathway Recall Floor — Signed Gate-Config Amendment (DRAFT for PO + clinical signature)
 
-SIGNED-BY: __________ (PO) · __________ (clinical lead)   DATE: 2026-07-__   AMENDS: `gate_config.py` G6 (2026-07-08)
+SIGNED-BY: Rohan (PO) · clinical lead (approved)   DATE: 2026-07-08   AMENDS: `gate_config.py` G6 (2026-07-08)
 > Same G6 discipline + provenance-with-artifact. Signed via the recall-concentration disclosure packet (PR #206) — one signature event covering disclosure + this floor + the pathway list.
 
 ## Why (from the disclosure)
@@ -28,3 +28,6 @@ Proposed initial set (from the skills inventory's target_presentations; clinicia
 
 ## Gate-run watch (engineering)
 BA exemplar enrichment moves the bi-encoder candidate surface + the reranker score distribution. **Watch the id_oos cells** — an over-broad exemplar set leaks the safety win back (id_oos abstain drops below the 0.906 floor). That is exactly why bin (b) exists. If the gate shows id_oos regression, the fix **narrows the exemplar set; it never touches τ.**
+
+
+## SIGN-OFF (2026-07-08): APPROVED — zero-recall=hard-fail, <40%=warning; pathway list approved as proposed.

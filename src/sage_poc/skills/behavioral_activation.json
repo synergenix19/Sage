@@ -18,7 +18,6 @@
     "stuck at home",
     "can't be bothered",
     "cant be bothered",
-    "everything feels pointless",
     "nothing interests me",
     "i don't enjoy anything",
     "stopped enjoying things",
@@ -71,7 +70,7 @@
     "no hobbies",
     "nothing i enjoy"
   ],
-  "semantic_description": "Behavioral activation: graded activity scheduling protocol. Adapted from Martell et al. (2001) and Richards et al. (2016) low-intensity BA: identify one concrete task, assign a specific day and time, complete it, observe the result. Activity hierarchy: start with smallest achievable step and build up. Pleasurable activity planning: pick one activity, schedule it, report back. Activity monitoring log: track what is completed and when. One-task experiment per day. Schedule one achievable task this week. Behavioral engagement through structured task scheduling.",
+  "semantic_description": "Behavioral activation for low mood and withdrawal: loss of interest or pleasure, low motivation or energy, cancelling plans, avoiding or withdrawing from people, staying home, everything feeling like effort. Graded activity scheduling protocol (Martell 2001; Richards 2016): identify one concrete task, assign a specific day and time, complete it, observe the result. Start with the smallest achievable step and build up. Pleasurable activity planning; activity monitoring; one small task per day.",
   "steps": [
     {
       "step_id": "activity_audit",
