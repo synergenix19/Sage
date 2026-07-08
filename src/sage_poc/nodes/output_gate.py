@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sage_poc.state import SageState
 from sage_poc.language import async_translate_to_arabic
-from sage_poc.config import AUDIT_LOG_ENABLED, CRISIS_LINE_UAE, CLASSIFIER_MODEL
+from sage_poc.config import AUDIT_LOG_ENABLED, CRISIS_LINE_UAE, CRISIS_CONFIG, CLASSIFIER_MODEL
 from sage_poc.llm import get_classifier
 from sage_poc.rules import engine as rules_engine
 from sage_poc.prompts.summarizer import summarise_history
@@ -327,7 +327,7 @@ async def _rewrite_opener(response_en: str, opener: str, user_message_en: str) -
 # A silent turn during crisis monitoring is the worst failure mode; commas only (no em dash).
 _EMPTY_MONITORING_FALLBACK = (
     "I'm still here with you. If things get harder, please reach out right now, "
-    f"the UAE MoHAP support line on {CRISIS_LINE_UAE}, or 999 for an emergency."
+    f"the UAE MoHAP support line on {CRISIS_LINE_UAE}, or {CRISIS_CONFIG['emergency']} for an emergency."
 )
 
 JAILBREAK_RESPONSE = (

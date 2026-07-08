@@ -13,6 +13,7 @@ possibly-correct value).
 """
 from pathlib import Path
 from sage_poc.config import CRISIS_CONFIG
+from sage_poc.crisis_copy import resolve_crisis_placeholders
 
 _NUM = CRISIS_CONFIG["number"]
 _ROOT = Path(__file__).resolve().parents[1] / "src" / "sage_poc"
@@ -36,10 +37,24 @@ def test_config_has_a_nonempty_number():
 
 
 def test_every_crisis_copy_site_matches_config():
-    # Consistency: whatever config holds, every site must carry it. Change config -> sites follow.
+    # Consistency: whatever config holds, every site must carry it after resolution. The files now
+    # carry {{crisis_*}} placeholders (raw text no longer holds the number), so this checks the
+    # RESOLVED output — what actually reaches the LLM / user — carries config's number. Change
+    # config -> resolved sites follow. Still asserts NOTHING about which number is correct.
     for rel in _CRISIS_COPY_FILES:
-        text = (_ROOT / rel).read_text(encoding="utf-8")
-        assert _NUM in text, (
-            f"{rel} diverges from config.CRISIS_CONFIG['number'] ({_NUM!r}). "
-            "Update the site to match config (the single source), or update config if the number changed."
+        resolved = resolve_crisis_placeholders((_ROOT / rel).read_text(encoding="utf-8"))
+        assert _NUM in resolved, (
+            f"{rel} resolved output diverges from config.CRISIS_CONFIG['number'] ({_NUM!r}). "
+            "Every site renders config (the single source) via the {{crisis_number}} placeholder; "
+            "update config if the number changed, or restore the placeholder if it was edited out."
         )
+
+
+def test_python_fallbacks_do_not_hardcode_the_crisis_number():
+    # The Python fail-safe crisis strings (graph.py hard-fallback, output_gate.py monitoring
+    # fallback) source number/emergency/hours from CRISIS_CONFIG, not literals. The JSON boot
+    # guard does NOT cover Python f-strings, so this guards them: the number must not reappear
+    # inline (that would be a second, unguarded source that could silently diverge).
+    for rel in ["graph.py", "nodes/output_gate.py"]:
+        src = (_ROOT / rel).read_text(encoding="utf-8")
+        assert _NUM not in src, f"{rel} hardcodes the crisis number {_NUM!r} inline; use CRISIS_CONFIG."

@@ -15,7 +15,7 @@
       "action": {
         "type": "inject",
         "target": "system",
-        "content": "THIRD-PARTY CRISIS: The user is describing someone else who may be in crisis, not themselves. Do NOT treat the user as the person in crisis. Respond with empathy for the user's concern. Gently validate their worry. Encourage them to share UAE crisis resources with their friend or family member: MoHAP Counselling Line {{crisis_number}} (free, {{crisis_hours}}) and emergency services {{crisis_emergency}}. Suggest they stay connected with the person and encourage professional support."
+        "content": "THIRD-PARTY CRISIS: The user is describing someone else who may be in crisis, not themselves. Do NOT treat the user as the person in crisis. Respond with empathy for the user's concern. Gently validate their worry. Encourage them to share UAE crisis resources with their friend or family member: MoHAP Counselling Line 800 46342 (free, 24/7) and emergency services 999. Suggest they stay connected with the person and encourage professional support."
       }
     }
   ]

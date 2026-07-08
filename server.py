@@ -23,6 +23,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from sage_poc.graph import build_graph
 from sage_poc.config import RESPONDER_MODEL, DB_POOL_MAX_SIZE, CHECKPOINT_POOL_MAX_SIZE, CRISIS_TIERING_ENABLED
+from sage_poc.crisis_copy import assert_crisis_copy_resolves
 from sage_poc.language import text_direction
 from sage_poc.server_helpers import _build_state, _stale_skill_overrides, _void_unseen_offer
 from sage_poc.llm import get_classifier
@@ -319,6 +320,12 @@ async def _corpus_sync_task(pool) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _bge_ready
+    # FAIL-CLOSED crisis-copy boot guard. Every crisis-copy source, in RESOLVED form, must carry
+    # NO unresolved '{{crisis_*}}' placeholder. A missed resolution point or a clinician typo raises
+    # RuntimeError here and the app REFUSES TO BOOT rather than serve a raw placeholder in a crisis
+    # message. Runs first, before any warmup, so the failure is immediate and unmistakable.
+    assert_crisis_copy_resolves()
+    _log.info("[sage/startup] crisis-copy boot guard passed (no unresolved {{crisis_*}} placeholders)")
     # Boot-observable crisis-tier flag state (guaranteed-visible: logging is configured by now).
     # repr distinguishes None / "" / "true" — the exact states the 2026-07-03 env-injection debugging
     # kept inferring from black-box probes. "Is tiering ON in this container?" is now a log read.

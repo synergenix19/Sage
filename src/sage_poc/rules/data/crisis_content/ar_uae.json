@@ -13,10 +13,10 @@
       "crisis_level": "acute",
       "action": {
         "type": "crisis_response",
-        "response_text": "أنا مهتم جداً بسلامتك وبما شاركته معي. أرجوك تواصل مع خط وزارة الصحة للدعم النفسي الآن: 800 46342 (مجاني، 24/7)، أو رقم الطوارئ: 999. أنت لست وحدك.",
+        "response_text": "أنا مهتم جداً بسلامتك وبما شاركته معي. أرجوك تواصل مع خط وزارة الصحة للدعم النفسي الآن: {{crisis_number}} (مجاني، {{crisis_hours}})، أو رقم الطوارئ: {{crisis_emergency}}. أنت لست وحدك.",
         "resources": [
-          {"name": "خط وزارة الصحة للدعم النفسي", "number": "800 46342", "available": "24/7"},
-          {"name": "خدمات الطوارئ", "number": "999", "available": "24/7"}
+          {"name": "خط وزارة الصحة للدعم النفسي", "number": "{{crisis_number}}", "available": "{{crisis_hours}}"},
+          {"name": "خدمات الطوارئ", "number": "{{crisis_emergency}}", "available": "{{crisis_hours}}"}
         ]
       }
     }

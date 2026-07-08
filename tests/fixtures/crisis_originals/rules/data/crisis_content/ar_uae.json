@@ -1,0 +1,24 @@
+{
+  "category": "crisis_content",
+  "rules": [
+    {
+      "rule_id": "CC-AR-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Arabic acute crisis response for UAE",
+      "category": "crisis_content",
+      "locale": "ar_uae",
+      "crisis_level": "acute",
+      "action": {
+        "type": "crisis_response",
+        "response_text": "أنا مهتم جداً بسلامتك وبما شاركته معي. أرجوك تواصل مع خط وزارة الصحة للدعم النفسي الآن: 800 46342 (مجاني، 24/7)، أو رقم الطوارئ: 999. أنت لست وحدك.",
+        "resources": [
+          {"name": "خط وزارة الصحة للدعم النفسي", "number": "800 46342", "available": "24/7"},
+          {"name": "خدمات الطوارئ", "number": "999", "available": "24/7"}
+        ]
+      }
+    }
+  ]
+}

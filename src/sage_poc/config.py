@@ -22,14 +22,15 @@ RESISTANCE_MODEL = os.getenv("SAGE_RESISTANCE_MODEL", CLASSIFIER_MODEL)
 # Default ON — crisis activations must leave an audit trail unless explicitly disabled.
 AUDIT_LOG_ENABLED = os.getenv("SAGE_AUDIT_LOG", "true").lower() == "true"
 
-# UAE crisis helpline — the SINGLE source for every crisis-copy site (graph, output_gate,
-# crisis_content rules, L0, skills). Nothing may re-embed these literals; change here and
-# tests/test_crisis_helpline_conformance.py forces every site to follow. Frontend mirror:
-# cdai apps/web/lib/crisis-config.ts.
-# ✅ VALUE STATUS — `number` = "800 46342" is VERIFIED FINAL (PO, 2026-07-08: "I have verified this
-# number"). The G8 transcription question (46342 vs "800 4673" / 800-HOPE) is RESOLVED by
-# verification: 800 46342 is confirmed correct. `hours` = "24/7" is PO-directed. If the number ever
-# changes, change this ONE dict; the conformance test enforces every site follows.
+# UAE crisis helpline — the SINGLE source for every crisis-copy site. Crisis-copy files carry
+# {{crisis_*}} placeholders (not literals), resolved from this dict at load (crisis_copy.py); the
+# graph/output_gate Python fail-safes read it directly. Change a value HERE and every surface
+# follows — a true single-config edit. Defense in depth: the boot guard (server.py lifespan) fails
+# the app if any {{crisis_*}} stays unresolved, and the conformance test asserts the resolved output
+# carries this value. Frontend mirror: cdai apps/web/lib/crisis-config.ts (cross-stack test).
+# ✅ VALUES VERIFIED FINAL (PO, 2026-07-08: "I have verified this number" + "24/7 is also verified"):
+# `number` = "800 46342" confirmed (G8 transcription question 46342-vs-4673 RESOLVED by
+# verification), `hours` = "24/7" confirmed. If a value ever changes, change this ONE dict.
 CRISIS_CONFIG = {
     "number": "800 46342",
     "label": "MoHAP Counselling Line",
