@@ -12,8 +12,10 @@ export function PresenceIndicator({ onPhrase }: { onPhrase?: (id: number) => voi
   const reduced = usePrefersReducedMotion()
   const [phase, setPhase] = useState<Phase>('dot')
   const [phraseIdx, setPhraseIdx] = useState<number>(-1)
+  // Latest-callback ref, updated in an effect (not during render) so the timer effect below
+  // can read the current onPhrase without being in its dependency array.
   const onPhraseRef = useRef(onPhrase)
-  onPhraseRef.current = onPhrase
+  useEffect(() => { onPhraseRef.current = onPhrase }, [onPhrase])
 
   useEffect(() => {
     const t1 = setTimeout(() => {

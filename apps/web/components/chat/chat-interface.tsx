@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { mapSdkRole, type ChatSession, type MessageRole, type Source } from '@cdai/types'
 import { FIRST_CHAT_EVENT } from '@/components/pwa/install-prompt'
 import { CRISIS_SIGNAL, SERVER_ERROR_SIGNAL } from '@/lib/constants'
@@ -311,22 +311,20 @@ export function ChatInterface({ initialSession, initialMessages = [], userName, 
   // history — that path starts with isLoading already false and must not animate the last
   // historical message on every page load, Bug 2).
   const [revealId, setRevealId] = useState<string | null>(null)
-  const prevLoadingRef = useRef(isLoading)
-  // useLayoutEffect (not useEffect): runs synchronously BEFORE the browser paints, so
-  // reveal=true is applied in the same commit as the full-content message. useEffect runs
-  // AFTER paint, which let the full answer paint once (reveal=false) before flipping to
-  // reveal=true on the next tick — a visible "flash & re-type" (full answer, then it
-  // collapses back to word-1 typewriter). Same prevLoadingRef true->false edge-detection
-  // logic as before; Bug 2 (no reveal on history mount) is preserved because mount never
-  // produces that edge.
-  useLayoutEffect(() => {
-    const was = prevLoadingRef.current
-    prevLoadingRef.current = isLoading
-    if (was && !isLoading) {
+  // Detect the isLoading true->false EDGE DURING RENDER (React's documented "adjust state when
+  // a prop changes" pattern) rather than in an effect. Setting reveal during render applies it
+  // in the SAME commit as the full-content message, so the full answer never paints before the
+  // reveal flips on (no "flash & re-type"), and it avoids the setState-in-effect lint. Bug 2
+  // (no reveal on history mount) holds: prevLoading initializes to isLoading, so mounting with
+  // loaded history (isLoading already false) never produces a true->false edge.
+  const [prevLoading, setPrevLoading] = useState(isLoading)
+  if (prevLoading !== isLoading) {
+    setPrevLoading(isLoading)
+    if (prevLoading && !isLoading) {
       const last = messages[messages.length - 1]
       if (last?.role === 'assistant' && last.content) setRevealId(last.id)
     }
-  }, [isLoading, messages])
+  }
 
   // Stable callbacks — both are re-render triggers for the reveal effects downstream
   // (useTypewriter completion effect, PresenceIndicator's phrase timer) so they must not
