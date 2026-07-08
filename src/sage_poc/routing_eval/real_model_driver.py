@@ -86,6 +86,7 @@ from sage_poc.routing_eval.gate_runner import RoutingMetrics, compute_metrics_by
 from sage_poc.routing_eval.schema import ABSTAIN, EvalRecord
 from sage_poc.skills.keyword_matcher import match_skill_keywords
 from sage_poc.nodes.ocd_compulsion import is_ocd_compulsion as ss_is_ocd_compulsion
+from sage_poc.nodes.harm_intrusive import is_harm_intrusive as ss_is_harm_intrusive
 import sage_poc.nodes.skill_select as ss
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -174,6 +175,13 @@ def make_routed_of(exclude_skills: frozenset[str] = DEFAULT_EXCLUDE_SKILLS) -> C
 
     def routed_of(r: EvalRecord) -> str:
         utterance = r.utterance
+
+        # Harm-intrusive iatrogenic veto (skill_select.py, arm-independent, before both tiers).
+        # A postpartum/parental ego-dystonic disclosure of intrusive images/thoughts of harming a
+        # baby or child ABSTAINS (never routes to a self-help skill). Deterministic, runs identically
+        # in V1 and V2. Mirrors the live node's is_harm_intrusive(message_en) check.
+        if ss_is_harm_intrusive(utterance):
+            return ABSTAIN
 
         # OCD-compulsion iatrogenic veto (skill_select.py, arm-independent, before both tiers).
         # A disclosed compulsion/ritual ABSTAINS (never routes to a self-help skill). Deterministic,
