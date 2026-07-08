@@ -101,3 +101,17 @@ Prod-go authorization requires this table: each signed condition → implementin
 ## RUNBOOK RULE — the harness mirrors the runtime tiers (earned 2026-07-08, 2nd instance)
 
 Any change to the live routing tiers — a veto added, a tier reordered, a threshold moved — MUST land with its harness/driver mirror in the SAME PR. An instrument that does not track the runtime measures a tree that does not exist. Two instances now: (1) "V1 of record = V1+veto" — the OCD veto shifted flags-off id_oos, so the frozen comparator no longer matched the running tree; (2) the reverdict driver measured the PRE-veto leak until `is_harm_intrusive` was mirrored into `routed_of`. Belongs next to the corpus-in-repo rule.
+
+
+## Entry 4 — 2026-07-08 · Phase 1 harm-intrusive veto (clinician-approved) + STALE-BUILD lesson
+
+**Tree:** prod + staging `7ed83cf` (harm-intrusive veto merged; SHA verified BEHAVIORALLY, not by /health alone). Clinician-approved 2026-07-08.
+
+**Full-feature regression on prod 7ed83cf (all behaviorally verified):** V2 in_scope→skill; harm-intrusive→`harm_intrusive_veto` (leak closed); OCD→`ocd_compulsion_veto`; reranker-abstain→`keyword_rerank_veto→low_confidence_respond`; Arabic→`arabic_offer_excluded` fail-closed; substance→`clinical_flag_abstain`; crisis→`[safety_check, crisis_response]` T2; parenting-worry→routes (no over-veto). 8/8.
+
+### ⚠️ STALE-BUILD-CACHE lesson (earned again, 2026-07-08) — new runbook rules
+The first `railway up 7ed83cf` deployed **SUCCESS / healthy / `/health/version`=7ed83cf** but served **STALE code without the veto** — the harm-intrusive probe routed to a skill (leak still open). Root cause: `railway up` from a local dir leaves the Dockerfile cache-bust `ARG RAILWAY_GIT_COMMIT_SHA=unknown`, so the `COPY . .` layer was reused (Railway/Kaniko quirk); and `SAGE_BUILD_SHA` is an env var I *set*, so `/health/version` reported a tree the container was not running.
+- **RULE: `/health/version` SHA is NECESSARY BUT NOT SUFFICIENT.** It can be a set env var, not the running code. A **behavioral probe of the actual change is MANDATORY** on every deploy (the probe pair is what caught this; the green health gate lied).
+- **RULE: `railway up` MUST set `RAILWAY_GIT_COMMIT_SHA=<deploy-sha>`** (feeds the Dockerfile cache-bust ARG) so the `COPY` layer rebuilds. Without it, code edits under `src/` can silently not deploy.
+- **RULE: do NOT override `SAGE_BUILD_SHA` as a service var** — let it derive from the cache-bust ARG so `/health/version` reflects the BUILT code, not a hand-set label.
+- Fix applied: set `RAILWAY_GIT_COMMIT_SHA=7ed83cf`, rebuilt, re-probed → veto fires. Earlier 944939b prod deploy was behaviorally verified at the time (probe pair), so it was not stale.
