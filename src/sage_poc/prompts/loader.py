@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from typing import Optional
 from .schemas import PromptTemplate
+from sage_poc.crisis_copy import resolve_crisis_placeholders_deep
 
 _DATA_DIR = Path(__file__).parent / "templates"
 _cache: dict[str, PromptTemplate] = {}
@@ -12,7 +13,11 @@ _loaded: bool = False
 def _load_all_templates() -> dict[str, PromptTemplate]:
     templates: dict[str, PromptTemplate] = {}
     for json_file in sorted(_DATA_DIR.glob("**/*.json")):
-        raw = json.loads(json_file.read_text(encoding="utf-8"))
+        # Resolve {{crisis_*}} placeholders (L0_persona) so the RESOLVED persona reaches the LLM.
+        # No-op for templates that carry no crisis placeholders.
+        raw = resolve_crisis_placeholders_deep(
+            json.loads(json_file.read_text(encoding="utf-8"))
+        )
         tmpl = PromptTemplate.model_validate(raw)
         templates[tmpl.template_id] = tmpl
     return templates

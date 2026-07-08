@@ -13,7 +13,7 @@ from sage_poc.nodes.skill_select import skill_select_node
 from sage_poc.nodes.skill_executor import skill_executor_node
 from sage_poc.nodes.freeflow_respond import freeflow_respond_node
 from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
-from sage_poc.config import CRISIS_LINE_UAE
+from sage_poc.config import CRISIS_LINE_UAE, CRISIS_CONFIG
 from sage_poc.nodes.output_gate import output_gate_node
 from sage_poc.config import AUDIT_LOG_ENABLED
 from sage_poc.audit import write_session_audit
@@ -54,9 +54,9 @@ async def _crisis_response_node(state: SageState) -> dict:
     else:
         # Hard fallback: should never fire if JSON files are present
         response_text = (
-            f"Please reach out for support now. UAE: MoHAP Counselling Line {CRISIS_LINE_UAE} (free, 24/7) or emergency: 999."
+            f"Please reach out for support now. UAE: MoHAP Counselling Line {CRISIS_LINE_UAE} (free, {CRISIS_CONFIG['hours']}) or emergency: {CRISIS_CONFIG['emergency']}."
             if lang != "ar"
-            else f"أرجوك تواصل مع خط وزارة الصحة {CRISIS_LINE_UAE} أو الطوارئ 999 الآن."
+            else f"أرجوك تواصل مع خط وزارة الصحة {CRISIS_LINE_UAE} أو الطوارئ {CRISIS_CONFIG['emergency']} الآن."
         )
 
     path = state["path"] + ["crisis_response"]

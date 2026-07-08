@@ -3,6 +3,8 @@ from pathlib import Path
 from typing import Literal
 from pydantic import AliasChoices, BaseModel, Field, field_validator, model_validator
 
+from sage_poc.crisis_copy import resolve_crisis_placeholders_deep
+
 SKILLS_DIR = Path(__file__).parent
 
 
@@ -91,5 +93,8 @@ class Skill(BaseModel):
 
 def load_skill(skill_id: str) -> Skill:
     path = SKILLS_DIR / f"{skill_id}.json"
-    data = json.loads(path.read_text())
+    # Resolve {{crisis_*}} placeholders (crisis skills embed the helpline in steps,
+    # contraindications, and escalation_matrix) so the RESOLVED copy is what reaches the
+    # LLM / user. No-op for skills that carry no crisis placeholders.
+    data = resolve_crisis_placeholders_deep(json.loads(path.read_text()))
     return Skill.model_validate(data)

@@ -7,6 +7,7 @@ from sage_poc.rules.schemas import (
     SafetyRule, CrisisContentRule, CulturalRule, PromptInjectionRule,
     CulturalOutputRule, SkillMatchingRule, TierRoutingRule,
 )
+from sage_poc.crisis_copy import resolve_crisis_placeholders_deep
 
 _log = logging.getLogger(__name__)
 
@@ -76,7 +77,12 @@ def load_rules(category: str) -> list:
 
     rules = []
     for json_file in sorted(category_dir.glob("*.json")):
-        raw = json.loads(json_file.read_text(encoding="utf-8"))
+        # Resolve {{crisis_*}} placeholders (crisis_content, prompt_injection) at the lowest
+        # shared read point so the RESOLVED text is what reaches the LLM / user. No-op for
+        # rule files that carry no crisis placeholders.
+        raw = resolve_crisis_placeholders_deep(
+            json.loads(json_file.read_text(encoding="utf-8"))
+        )
         for rule_data in raw.get("rules", []):
             rule = model_cls.model_validate(rule_data)
             if rule.active:

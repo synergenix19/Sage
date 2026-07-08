@@ -218,12 +218,16 @@ def test_no_dead_step_policy_signals():
 
 def test_post_crisis_check_in_l1_includes_crisis_line():
     import json, pathlib
+    from sage_poc.config import CRISIS_CONFIG
+    from sage_poc.crisis_copy import resolve_crisis_placeholders
     skill = json.loads(
         (pathlib.Path(__file__).parent.parent / "src/sage_poc/skills/post_crisis_check_in.json")
         .read_text()
     )
-    l1 = skill["escalation_matrix"]["L1"]
-    assert "800 46342" in l1, f"post_crisis_check_in L1 missing crisis line. Current: {l1!r}"
+    # L1 carries the {{crisis_number}} placeholder; resolution (via load_skill at runtime) is what
+    # reaches the user, so assert against the RESOLVED text.
+    l1 = resolve_crisis_placeholders(skill["escalation_matrix"]["L1"])
+    assert CRISIS_CONFIG["number"] in l1, f"post_crisis_check_in L1 missing crisis line. Current: {l1!r}"
     assert any(w in l1.lower() for w in ("door", "return", "come back", "whenever")), \
         f"L1 must leave the door open explicitly. Current: {l1!r}"
     assert "stop" in l1.lower() or "not" in l1.lower(), \
