@@ -181,3 +181,31 @@ def test_generation_none_writes_no_row():
     assert client.rows == {}
     assert summary["written"] == 0
     assert client.upsert_calls == 0
+
+
+def test_row_carries_gender_marked_from_raw_user_text():
+    # gender_marked must be computed from the RAW Arabic user text (row["content"]),
+    # not the reconstructed message_en — translate() below returns unrelated English
+    # text, so if gender_marked came from message_en instead this would fail to
+    # detect the feminine self-marking present only in the Arabic original.
+    client = _FakeClient(historical_rows=[_row(1, content="أنا تعبانة ومحتاجة أتكلم")])
+    translate = AsyncMock(return_value="I need to talk, not gendered in English")
+    generate = AsyncMock(return_value=_payload(version="v1"))
+
+    _run("historical_replay", run_id="run-1", exemplar_version="v1",
+         client=client, translate=translate, generate=generate)
+
+    row = next(iter(client.rows.values()))
+    assert row["gender_marked"] == "f"
+
+
+def test_row_carries_gender_marked_none_when_unmarked():
+    client = _FakeClient(historical_rows=[_row(1, content="عندي اجتماع بكرة الصبح")])
+    translate = AsyncMock(return_value="I have a meeting tomorrow morning")
+    generate = AsyncMock(return_value=_payload(version="v1"))
+
+    _run("historical_replay", run_id="run-1", exemplar_version="v1",
+         client=client, translate=translate, generate=generate)
+
+    row = next(iter(client.rows.values()))
+    assert row["gender_marked"] == "none"

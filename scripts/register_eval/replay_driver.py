@@ -37,6 +37,7 @@ import os
 import uuid
 from pathlib import Path
 
+from scripts.register_eval.gender_marker import detect_gender_marking
 from scripts.register_eval.replay_gates import replay_gates_on_row, gate_fire_summary
 
 _log = logging.getLogger(__name__)
@@ -196,6 +197,10 @@ def _build_replay_row(item: dict, message_en: str, out: dict, *, gate: dict, sou
     offline generate() call (no live tool loop instrumentation here); shadow_timed_out
     is always False because generate() already fails open to None on any error/timeout
     (see test_generation_none_writes_no_row) rather than a live "censored" observation.
+
+    gender_marked is computed from item["raw_message"] — the raw historical `content` /
+    seed `text` — NOT message_en: the mirror-when-marked policy is about the user's own
+    Arabic grammar, and English has no equivalent marking to detect it from.
     """
     return {
         "session_id": item.get("session_id"),
@@ -211,6 +216,7 @@ def _build_replay_row(item: dict, message_en: str, out: dict, *, gate: dict, sou
         "shadow_timed_out": False,
         "source": source,
         "source_message_id": item["source_message_id"],
+        "gender_marked": detect_gender_marking(item.get("raw_message") or ""),
         "run_id": run_id,
         # Per-row gate-replay detail persisted durably (not just aggregated into the
         # returned gate_summary): which cultural rules fired, banned-opener, format tokens,

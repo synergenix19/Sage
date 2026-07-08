@@ -15,6 +15,13 @@
 --                          lets a killed/rerun batch be traced without being part of
 --                          the idempotency key itself (re-running under a NEW run_id
 --                          must still collapse onto the same row per Blocking below).
+--   gender_marked       — deterministic 'f' | 'm' | 'none' computed by
+--                          scripts/register_eval/gender_marker.py::detect_gender_marking
+--                          from the RAW user input text (never message_en, never a
+--                          rater/LLM judgment). Drives register-measurement
+--                          stratification for the shadow-measure's "mirror-when-marked,
+--                          neutral-when-unknown" gender policy, and the mis-gender
+--                          secondary metric (did the generation mirror a marked input).
 --
 -- session_id / turn_number become NULLABLE: seed rows have no live session/turn to
 -- attach (they are curated calibration inputs, not real conversation turns), so the
@@ -44,7 +51,10 @@ ALTER TABLE shadow_register_eval
   -- Per-row gate-replay detail (cultural rule-ids fired, banned-opener, format tokens,
   -- back-translation) — the durable, reviewable gate-port backlog signal. Persisted
   -- per-row rather than only aggregated into the driver's returned gate_summary.
-  ADD COLUMN IF NOT EXISTS gate_replay_result jsonb;
+  ADD COLUMN IF NOT EXISTS gate_replay_result jsonb,
+  -- Deterministic 'f' | 'm' | 'none' from detect_gender_marking(raw user text) — drives
+  -- register stratification + the mis-gender secondary metric. Never rater/LLM-judged.
+  ADD COLUMN IF NOT EXISTS gender_marked text;
 
 ALTER TABLE shadow_register_eval ALTER COLUMN session_id DROP NOT NULL;
 ALTER TABLE shadow_register_eval ALTER COLUMN turn_number DROP NOT NULL;
