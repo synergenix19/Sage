@@ -22,12 +22,14 @@ RESISTANCE_MODEL = os.getenv("SAGE_RESISTANCE_MODEL", CLASSIFIER_MODEL)
 # Default ON — crisis activations must leave an audit trail unless explicitly disabled.
 AUDIT_LOG_ENABLED = os.getenv("SAGE_AUDIT_LOG", "true").lower() == "true"
 
-# UAE crisis helpline — the SINGLE authoritative source for every crisis-copy site
-# (graph, output_gate, crisis_content rules, L0). Nothing may re-embed these literals.
-# ⚠️ VALUES PENDING G8: `number` is a likely transcription error (→ "800 4673" / 800-HOPE,
-# "Mental Support Line", hours "8am-8pm daily") and `hours` "24/7" is FALSE for that line.
-# The value/label/hours correction + rules-JSON + L0 edits ride the gated commit-2 (dial-test
-# + L0 fast-track re-sign). Commit-1 keeps CURRENT values so behaviour is unchanged.
+# UAE crisis helpline — the SINGLE source for every crisis-copy site (graph, output_gate,
+# crisis_content rules, L0, skills). Nothing may re-embed these literals; change here and
+# tests/test_crisis_helpline_conformance.py forces every site to follow. Frontend mirror:
+# cdai apps/web/lib/crisis-config.ts.
+# ✅ VALUE STATUS — `number` = "800 46342" is VERIFIED FINAL (PO, 2026-07-08: "I have verified this
+# number"). The G8 transcription question (46342 vs "800 4673" / 800-HOPE) is RESOLVED by
+# verification: 800 46342 is confirmed correct. `hours` = "24/7" is PO-directed. If the number ever
+# changes, change this ONE dict; the conformance test enforces every site follows.
 CRISIS_CONFIG = {
     "number": "800 46342",
     "label": "MoHAP Counselling Line",
