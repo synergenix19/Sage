@@ -5,7 +5,7 @@
 ## What this is
 A deterministic Stage-1 veto (mirrors the OCD-compulsion veto exactly) that stops postpartum/parental harm-intrusive disclosures being routed to a self-help skill (worry_time / imagery) — the iatrogenic routing found live in prod, which is also a **documented BOT BEHAVIOUR spec deviation** (spec: OCD/intrusive content → professional referral, "Worry Tree can reinforce compulsive patterns"). Destination for now = today's bare abstain → Node 3 (empathic clarification). No schema change.
 
-**It is a stopgap, by design.** Keyword patterns are a deterministic *guardrail*; they are brittle across phrasing (the same weakness that caused the leak). The aligned target is a **semantic classifier (S2-MARBERT, Gap #65)** trained on the audit's paraphrase data — the keyword lexicon buys safety now while that is built. Do not read this list as the destination.
+**This is a PERMANENT Tier-1 deterministic guardrail**, not a stopgap — like the OCD veto and crisis keywords, it stays in production. A semantic classifier (S2-MARBERT, Gap #65) is added LATER as a second layer for generalization (defense in depth); it does not replace the deterministic floor. Both coexist.
 
 ## Before / after evidence
 Expanded harm corpus (fixture commit `9642846`; the failing worry-framed phrasing + paraphrases + a terse control added). Harm-domain skill-absorptions:
@@ -40,11 +40,11 @@ Group B matches "I would **never** harm my baby" (reassurance) → over-vetoes t
 "My partner is harming my baby" is caught by Group B → currently abstains to Node 3. This is **not** an over-veto oddity — it is a **report of possible active child harm**, a different territory from anything Stage 1 was scoped for.
 - (a) **Current behavior:** generic abstain → Node 3's empathic clarification (holds space, never misroutes to self-help).
 - (b) **Correct disposition:** a **safeguarding/referral family with its own escalation posture** — arguably **L3-adjacent, not L2** (clinician rules the tier).
-- (c) **This is flagged NOW as a named, dated interim gap.** The interim (abstain, holds space) is acceptable *as an interim* precisely because it doesn't misroute — but the clinician is asked to **rule its acceptable duration (a clock, days-not-weeks)** and to **prioritize the safeguarding family's design**, not leave it to be "mapped by the audit eventually." A safeguarding gap parked silently in a backlog reads very differently in retrospect. It is **pre-registered as a known-priority row** in the audit family backlog.
+- (c) **The safeguarding family is built as a proper production family — no interim, no clock, no temporary signpost.** It is the **#1 priority family** in the containment backlog. Until it ships, the current behavior (harm-intrusive veto incidentally catching some safeguarding phrasings → safe abstain to Node 3, never a self-help skill) simply IS the current state, not interim work; when the real family lands it takes precedence. Pre-registered as a known-priority Class-A row. **Clinician rules the tier (recommend L3-adjacent).**
 
 ## Deploy plan the sign-off unblocks
 On sign-off: command merges → deploy behind the standing gates (ancestry-contains-veto, `/health` routing_mode + reranker + build_sha, prod probe) → **live probe pair:** (1) worry-framed harm-intrusive → **abstains** (leak closed); (2) ordinary parenting worry → **still routes** to a skill (no over-suppression). Then the verdict artifact is annotated with the expanded-corpus numbers.
 
 ## The ask
 1. Sign the lexicon (or rule broad-now vs tightened per §2).
-2. Rule the §4 safeguarding interim: acceptable-for-how-long + prioritize the safeguarding family design.
+2. Confirm safeguarding as the #1 production family + rule its tier (recommend L3-adjacent). No interim.
