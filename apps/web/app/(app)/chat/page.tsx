@@ -2,11 +2,11 @@ import { ChatFadeIn } from '@/components/chat/chat-fade-in'
 import { ChatInterface } from '@/components/chat/chat-interface'
 import { createClient } from '@/lib/supabase/server'
 import { hydrateSources } from '@/lib/sources'
+import { mapRowToSdkMessage, type MappedMessage, type MessageRow } from '@/lib/message-mapping'
 import type { Source } from '@cdai/types'
 import { redirect } from 'next/navigation'
 
-type SdkRole = 'user' | 'assistant' | 'system'
-interface InitialMessage { id: string; role: SdkRole; content: string; sources?: Source[]; isCrisis?: boolean }
+type InitialMessage = MappedMessage & { sources?: Source[] }
 
 export default async function ChatPage({
   searchParams,
@@ -68,16 +68,11 @@ export default async function ChatPage({
     .order('created_at', { ascending: true })
     .order('turn_number', { ascending: true, nullsFirst: true })
 
+  // All row->message field derivation (role, isCrisis, supabaseId, direction) lives in one tested
+  // function so no reload path can drop a field (#191 sibling audit). Sources hydration stays here
+  // (UI-specific). Lane 2 Item 1.5 (c): malformed jsonb degrades to no card, never a crash.
   const initialMessages: InitialMessage[] = (msgRows ?? []).map((row) => ({
-    id: row.id as string,
-    role: (row.role === 'ai' || row.role === 'crisis' ? 'assistant' : row.role) as SdkRole,
-    // OUT-OF-BAND crisis flag (#191): set isCrisis explicitly and keep content CLEAN — do NOT
-    // re-prepend the [[CRISIS_DETECTED]] sentinel. The old in-band prefix left reloaded crisis
-    // replies rendering as plain sentinel text (the render guard only checked the flag), and it
-    // never set the flag, so they lost their card. This is the in-band-signaling root cause.
-    content: row.content as string,
-    isCrisis: row.role === 'crisis' ? true : undefined,
-    // Lane 2 Item 1.5 (c): malformed/old-schema jsonb degrades to no card, never a crash.
+    ...mapRowToSdkMessage(row as MessageRow),
     sources: hydrateSources(row.sources),
   }))
 
