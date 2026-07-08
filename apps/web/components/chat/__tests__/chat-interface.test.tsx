@@ -40,7 +40,9 @@ vi.mock('../input-bar', () => ({
     </div>
   ),
 }))
-vi.mock('../crisis-card', () => ({ CrisisCard: () => null }))
+vi.mock('../crisis-card', () => ({
+  CrisisCard: ({ content }: { content: string }) => <div data-testid="crisis-card">{content}</div>,
+}))
 // Enhanced (Task 7): surfaces `reveal` via a data attribute so tests can assert on the
 // prop ChatInterface computed, while still rendering full `message.content` synchronously
 // like the original stub (no timers) — existing assertions that only check text are unaffected.
@@ -467,6 +469,53 @@ describe('ChatInterface — presence indicator + typewriter reveal (Task 7)', ()
     // The mocked MessageBubble surfaces the `reveal` prop ChatInterface computed — it must
     // be false because isLoading was never true->false on this render (no edge occurred).
     expect(screen.getByTestId('msg-a1')).toHaveAttribute('data-reveal', 'false')
+  })
+
+  // Task 2 (#191 render-boundary invariant): a crisis reply that reaches render WITH the in-band
+  // sentinel but WITHOUT its isCrisis flag (the history/reload leak) must NEVER render as a plain
+  // bubble, and the sentinel must never be displayed — it routes to the pinned card, stripped.
+  it('never renders a sentinel-prefixed crisis message as plain text — routes to the card, stripped (#191)', () => {
+    const SENTINEL = '[[CRISIS_DETECTED]]' // CRISIS_SIGNAL, the in-band crisis marker
+    const history = [
+      { id: 'u1', role: 'user' as const, content: 'I feel unsafe' },
+      { id: 'c1', role: 'assistant' as const, content: `${SENTINEL}You are not alone — support is available` },
+    ]
+    render(
+      <ChatInterface
+        initialSession={null}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        initialMessages={history as any}
+        userName="X"
+        userId="u"
+      />
+    )
+    // The sentinel must appear NOWHERE in the rendered output.
+    expect(screen.queryByText(/CRISIS_DETECTED/)).toBeNull()
+    // Not rendered as a transcript bubble...
+    expect(screen.queryByTestId('msg-c1')).toBeNull()
+    // ...rendered in the pinned crisis card, sentinel-stripped.
+    expect(screen.getByTestId('crisis-card')).toHaveTextContent('You are not alone — support is available')
+  })
+
+  // Task 4 (sign-off packet — crisis-UX behavior change): repeated crisis disclosures pin the
+  // LATEST card (matches the most recent disclosure), not the first.
+  it('pins the LATEST crisis card on repeated disclosures (findLast)', () => {
+    const history = [
+      { id: 'c1', role: 'assistant' as const, content: 'FIRST crisis response', isCrisis: true },
+      { id: 'u2', role: 'user' as const, content: 'again' },
+      { id: 'c2', role: 'assistant' as const, content: 'SECOND crisis response', isCrisis: true },
+    ]
+    render(
+      <ChatInterface
+        initialSession={null}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        initialMessages={history as any}
+        userName="X"
+        userId="u"
+      />
+    )
+    expect(screen.getByTestId('crisis-card')).toHaveTextContent('SECOND crisis response')
+    expect(screen.getByTestId('crisis-card')).not.toHaveTextContent('FIRST crisis response')
   })
 
   // Task 8 (closes the Task 7 review Minor): end-to-end skip-on-type. Drives a full turn to

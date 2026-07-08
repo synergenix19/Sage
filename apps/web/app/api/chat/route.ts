@@ -2,7 +2,8 @@
 import { after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { CRISIS_SIGNAL, SERVER_ERROR_SIGNAL } from '@/lib/constants'
+import { SERVER_ERROR_SIGNAL } from '@/lib/constants'
+import { hasCrisisSignal, stripCrisisSignal } from '@/lib/crisis'
 import { z } from 'zod'
 
 const MessageSchema = z.object({
@@ -190,10 +191,8 @@ export async function POST(req: Request) {
         return
       }
 
-      const isCrisis = accumulated.startsWith(CRISIS_SIGNAL)
-      const content  = isCrisis
-        ? accumulated.slice(CRISIS_SIGNAL.length).trimStart()
-        : accumulated
+      const isCrisis = hasCrisisSignal(accumulated)
+      const content  = stripCrisisSignal(accumulated)  // pinned invariant: sentinel never reaches storage (lib/crisis.ts + its test)
 
       // Lane 2 Item 1.5: persist EXACTLY the parsed, already-deduped/capped/typed
       // sourcesHeader list (stored == rendered) — never the raw passage set. Parsed

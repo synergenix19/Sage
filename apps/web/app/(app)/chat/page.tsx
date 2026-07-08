@@ -1,13 +1,12 @@
 import { ChatFadeIn } from '@/components/chat/chat-fade-in'
 import { ChatInterface } from '@/components/chat/chat-interface'
 import { createClient } from '@/lib/supabase/server'
-import { CRISIS_SIGNAL } from '@/lib/constants'
 import { hydrateSources } from '@/lib/sources'
 import type { Source } from '@cdai/types'
 import { redirect } from 'next/navigation'
 
 type SdkRole = 'user' | 'assistant' | 'system'
-interface InitialMessage { id: string; role: SdkRole; content: string; sources?: Source[] }
+interface InitialMessage { id: string; role: SdkRole; content: string; sources?: Source[]; isCrisis?: boolean }
 
 export default async function ChatPage({
   searchParams,
@@ -72,7 +71,12 @@ export default async function ChatPage({
   const initialMessages: InitialMessage[] = (msgRows ?? []).map((row) => ({
     id: row.id as string,
     role: (row.role === 'ai' || row.role === 'crisis' ? 'assistant' : row.role) as SdkRole,
-    content: row.role === 'crisis' ? `${CRISIS_SIGNAL}${row.content as string}` : row.content as string,
+    // OUT-OF-BAND crisis flag (#191): set isCrisis explicitly and keep content CLEAN — do NOT
+    // re-prepend the [[CRISIS_DETECTED]] sentinel. The old in-band prefix left reloaded crisis
+    // replies rendering as plain sentinel text (the render guard only checked the flag), and it
+    // never set the flag, so they lost their card. This is the in-band-signaling root cause.
+    content: row.content as string,
+    isCrisis: row.role === 'crisis' ? true : undefined,
     // Lane 2 Item 1.5 (c): malformed/old-schema jsonb degrades to no card, never a crash.
     sources: hydrateSources(row.sources),
   }))
