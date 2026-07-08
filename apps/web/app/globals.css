@@ -17,7 +17,11 @@ html[dir=rtl] body {
   to { opacity: 1; }
 }
 
-@keyframes breathe { 0%,100% { opacity: .35; transform: scale(1); } 50% { opacity: 1; transform: scale(1.15); } }
+/* Presence indicator: the whole row (dot + phrase) shares one opacity "heartbeat" so they
+   pulse in unison; the dot additionally does a subtle scale. Single timeline on the parent
+   keeps dot and text perfectly in phase. */
+@keyframes heartbeat { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
+@keyframes breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.2); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 @media (prefers-reduced-motion: reduce) {
