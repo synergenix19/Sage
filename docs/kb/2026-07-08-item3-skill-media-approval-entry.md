@@ -29,10 +29,20 @@ oembed-verified (public + embedding-enabled) **2026-07-07**; media confirmed wir
 ## 4. Accessibility — captions/subtitles (explicit, not silence)
 WCAG-in-spirit applies at least as strongly to a *delivered intervention* as to a reading card: a video-delivered technique a hearing-impaired user cannot follow is an **intervention-access gap**, not polish.
 
-- **Automated caption probe result:** INCONCLUSIVE. The `timedtext` track-list endpoint returned 0 tracks for all five, but that endpoint is deprecated and does **not** detect YouTube auto-generated captions — so this is *not* a confirmed absence. Caption presence must be confirmed per video on its YouTube page before relying on it.
-- **Signer decision (check one):**
-  - [ ] **Accept** shipping these five without a verified-captions guarantee at POC (documented access limitation; re-verify before external exposure).
-  - [ ] **Require** per-video caption confirmation (curator verifies each on YouTube) before `SAGE_SKILL_MEDIA_ENABLED` is flipped.
+- **Caption status — KNOWN (verified per video via each video's player-response `captionTracks`, 2026-07-08):**
+
+  | Video | Skill | Captions |
+  |---|---|---|
+  | Box Breathing for Stress (CHI Health) | box_breathing | ❌ **NONE** |
+  | PMR #27 (Therapy in a Nutshell) | progressive_muscle_relaxation | ✅ ar, de, en, es, fil, hi |
+  | Meditation for Working with Difficulties (UCLA Health) | mindfulness_meditation | ✅ en |
+  | A Body Scan with Diana Winston (Mindful.org) | mindfulness_body_scan | ✅ en |
+  | Safe and Peaceful Place Visualization (Clarity) | safe_place_visualization | ✅ en |
+
+  4/5 have caption tracks; **Box Breathing (CHI Health) is the sole gap.** Caveat: some of the four include auto-generated (ASR) tracks — present, but not human-verified; adequate-beats-absent for POC, flag human-caption verification for Full Build.
+- **Signer decision (the question narrows to Box Breathing) — check one:**
+  - [ ] **Accept** Box Breathing uncaptioned at POC — condition recorded: *"Box Breathing shipped without captions at POC; captioned or replaced before Full Build."* Other four clear.
+  - [ ] **Require** Box Breathing captioned or replaced with a captioned equivalent before `SAGE_SKILL_MEDIA_ENABLED` is flipped. Other four clear.
 
 ## 5. Provenance + rollback
 - **Channel decision provenance:** `docs/kb/2026-07-08-video-channel-fork-resolution.md` (Item 3, not KB source cards).
