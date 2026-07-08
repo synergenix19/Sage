@@ -40,9 +40,9 @@ WCAG-in-spirit applies at least as strongly to a *delivered intervention* as to 
   | Safe and Peaceful Place Visualization (Clarity) | safe_place_visualization | ✅ en |
 
   4/5 have caption tracks; **Box Breathing (CHI Health) is the sole gap.** Caveat: some of the four include auto-generated (ASR) tracks — present, but not human-verified; adequate-beats-absent for POC, flag human-caption verification for Full Build.
-- **Signer decision (the question narrows to Box Breathing) — check one:**
-  - [ ] **Accept** Box Breathing uncaptioned at POC — condition recorded: *"Box Breathing shipped without captions at POC; captioned or replaced before Full Build."* Other four clear.
-  - [ ] **Require** Box Breathing captioned or replaced with a captioned equivalent before `SAGE_SKILL_MEDIA_ENABLED` is flipped. Other four clear.
+- **Signer decision (the question narrows to Box Breathing):**
+  - [x] **Accept** Box Breathing uncaptioned at POC — **SELECTED (signer, 2026-07-08)** — condition recorded: *"Box Breathing shipped without captions at POC; captioned or replaced before Full Build."* Other four clear.
+  - [ ] Require Box Breathing captioned/replaced before enable. (not selected)
 
 ## 5. Provenance + rollback
 - **Channel decision provenance:** `docs/kb/2026-07-08-video-channel-fork-resolution.md` (Item 3, not KB source cards).
@@ -52,9 +52,9 @@ WCAG-in-spirit applies at least as strongly to a *delivered intervention* as to 
 ---
 
 ## Signature
-- **Decision:** ☐ Approved ☐ Approved with conditions (note §4 choice) ☐ Rejected
-- **Signer (name + role):** ______________________________  (role recorded per register discipline)
-- **Date:** ____________
-- **Conditions / notes:** ________________________________________________
+- **Decision:** ☑ **Approved with conditions** (§4 Box Breathing choice)
+- **Signer (name + role):** Product Owner (synergenix.global@gmail.com) — *recorded onto the artifact from the signer's direct in-session confirmation, 2026-07-08 ("the entry is signed; I had given the approval"). Register holder: stamp exact name/title if the register standard requires more than role.*
+- **Date:** 2026-07-08
+- **Conditions / notes:** §4 = **ACCEPT Box Breathing uncaptioned at POC** (CHI Health video has no captions); condition — *"Box Breathing captioned or replaced before Full Build."* Other four videos captioned. Rollback = `SAGE_SKILL_MEDIA_ENABLED` unset/false.
 
-*On signature: flip `SAGE_SKILL_MEDIA_ENABLED=true` in prod as a separate explicit trigger, prod-verify, then behavioral smoke (ask for box breathing → confirm the video step renders through the facade inside the guided flow; attach transcript).*
+*Signed → flag already `true` in prod (legitimate under this approval) → prod-verify at `/health/version` (needs the observability field, PR #170) → behavioral smoke (box breathing renders the video step through the facade in the guided flow; crisis turn withholds it; transcript attached) before "live" is claimed.*
