@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { mapSdkRole, type ChatSession, type MessageRole, type Source } from '@cdai/types'
 import { FIRST_CHAT_EVENT } from '@/components/pwa/install-prompt'
-import { CRISIS_SIGNAL, SERVER_ERROR_SIGNAL } from '@/lib/constants'
+import { SERVER_ERROR_SIGNAL } from '@/lib/constants'
+import { hasCrisisSignal, stripCrisisSignal } from '@/lib/crisis'
 import { useLocaleStore } from '@/lib/stores/locale-store'
 import { seedPresenceBag } from '@/lib/presence-phrases'
 import { ChatHeader } from './chat-header'
@@ -159,10 +160,8 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
             }
           }
           accumulated += decoder.decode(value, { stream: true })
-          const isCrisisMsg = accumulated.startsWith(CRISIS_SIGNAL)
-          const displayContent = isCrisisMsg
-            ? accumulated.slice(CRISIS_SIGNAL.length).trimStart()
-            : accumulated
+          const isCrisisMsg = hasCrisisSignal(accumulated)
+          const displayContent = stripCrisisSignal(accumulated)
           setMessages((curr) =>
             curr.map((m) =>
               m.id === assistantId
@@ -294,17 +293,27 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
   return { messages, append, isLoading, error, reload, crisisState }
 }
 
+// Crisis detection at the RENDER BOUNDARY (invariant, issue #191). A message is crisis if its
+// flag says so OR its content still carries the in-band `[[CRISIS_DETECTED]]` sentinel. This is
+// belt-and-suspenders: even if `isCrisis` was mis-derived upstream (e.g. a history/reload path),
+// the sentinel can NEVER render as plain text and crisis content NEVER renders as a normal
+// bubble. Root cause is in-band signaling; the class-level fix is Phase 0b's out-of-band
+// render_mode — this invariant remains as defense-in-depth after 0b lands.
+const isCrisisMessage = (m: SdkMessage): boolean =>
+  m.isCrisis === true || hasCrisisSignal(m.content)
+
 export function ChatInterface({ initialSession, initialMessages = [], userName, userId }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const hasSignaledInstall = useRef(false)
   const { messages, append, isLoading, error, reload, crisisState } = useStreamingChat(initialSession?.id, userId, initialMessages)
   const locale = useLocaleStore((s) => s.locale)
   // Pin the crisis card while in monitoring; dismiss when backend signals resolved.
-  // Content is already CRISIS_SIGNAL-stripped on the message during streaming.
-  const pinnedCrisis =
-    crisisState !== 'resolved'
-      ? (messages.find((m) => m.isCrisis)?.content ?? null)
-      : null
+  // Crisis content is normally sentinel-stripped during streaming, but strip again here so a
+  // message that reached us with the sentinel still (history/reload path, #191) yields a clean
+  // card. `findLast`: on repeated crisis disclosures, pin the LATEST card (matches the most recent
+  // disclosure) — a crisis-UX behavior change on the sign-off packet (Task 4).
+  const pinnedCrisisMsg = crisisState !== 'resolved' ? messages.findLast(isCrisisMessage) : undefined
+  const pinnedCrisis = pinnedCrisisMsg ? stripCrisisSignal(pinnedCrisisMsg.content) : null
 
   // Typewriter reveal (spec §3): the id of the assistant message currently mid-reveal.
   // Set ONLY on a genuine isLoading true->false EDGE (never on initial mount with loaded
@@ -392,7 +401,7 @@ export function ChatInterface({ initialSession, initialMessages = [], userName, 
           <EmptyState userName={userName} onChipClick={handleSend} />
         ) : (
           messages.map((m) => {
-            const isCrisis = m.isCrisis === true
+            const isCrisis = isCrisisMessage(m)
             if (isCrisis) return null
             const content = m.content
             const role: MessageRole = mapSdkRole(m.role)
