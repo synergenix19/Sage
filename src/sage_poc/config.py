@@ -26,12 +26,10 @@ AUDIT_LOG_ENABLED = os.getenv("SAGE_AUDIT_LOG", "true").lower() == "true"
 # crisis_content rules, L0, skills). Nothing may re-embed these literals; change here and
 # tests/test_crisis_helpline_conformance.py forces every site to follow. Frontend mirror:
 # cdai apps/web/lib/crisis-config.ts.
-# ⚠️ VALUE STATUS — approval-of-USE, NOT verification. The PO directed (2026-07-08) that we KEEP
-# and centralise the currently-served `number` = "800 46342" and `hours` = "24/7". Its CORRECTNESS
-# is UNRESOLVED: the G8 question — is "800 46342" a transcription error for "800 4673" (LifeLine
-# Arabia / 800-HOPE), the number authoritative directories list? — needs a DIAL-TEST, which owns
-# the verdict. Do NOT read this dict as "final/correct". When the dial-test settles it, change this
-# one dict (the conformance test checks consistency, not correctness).
+# ✅ VALUE STATUS — `number` = "800 46342" is VERIFIED FINAL (PO, 2026-07-08: "I have verified this
+# number"). The G8 transcription question (46342 vs "800 4673" / 800-HOPE) is RESOLVED by
+# verification: 800 46342 is confirmed correct. `hours` = "24/7" is PO-directed. If the number ever
+# changes, change this ONE dict; the conformance test enforces every site follows.
 CRISIS_CONFIG = {
     "number": "800 46342",
     "label": "MoHAP Counselling Line",
