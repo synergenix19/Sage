@@ -483,6 +483,24 @@ def test_chat_accepts_correct_api_key(monkeypatch, client, session_id):
     assert res.status_code == 200
 
 
+def test_health_version_exposes_skill_media_flag(monkeypatch, client):
+    """/health/version must report skill_media_enabled + its raw env so the Item-3 flag flip is
+    prod-OBSERVABLE (custody standard), mirroring crisis_tiering_enabled. The reported value must
+    use the SAME resolution as the emit gate (_skill_media_enabled) so it can never drift from
+    what actually fires."""
+    monkeypatch.setenv("SAGE_API_KEY", "test-secret")
+    monkeypatch.setenv("SAGE_SKILL_MEDIA_ENABLED", "true")
+    res = client.get("/health/version", headers={"X-Sage-Api-Key": "test-secret"})
+    assert res.status_code == 200
+    body = res.json()
+    assert body["skill_media_enabled"] is True
+    assert body["skill_media_raw_env"] == "true"
+
+    monkeypatch.setenv("SAGE_SKILL_MEDIA_ENABLED", "")   # default-OFF
+    res = client.get("/health/version", headers={"X-Sage-Api-Key": "test-secret"})
+    assert res.json()["skill_media_enabled"] is False
+
+
 def test_chat_bypasses_key_check_when_sage_api_key_unset(monkeypatch, client, session_id):
     """No SAGE_API_KEY in env → check is disabled. Preserves backward compatibility
     for local dev where the key is not configured.

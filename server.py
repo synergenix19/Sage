@@ -142,6 +142,12 @@ def _skill_media_entry(item) -> str:
     )
 
 
+def _skill_media_enabled() -> bool:
+    """Item-3 kill-switch resolution — the SINGLE source of truth for BOTH the emit gate and the
+    /health/version report, so the reported flag can never drift from what actually fires."""
+    return os.environ.get("SAGE_SKILL_MEDIA_ENABLED", "").strip().lower() in ("1", "true", "yes", "on")
+
+
 def _skill_media_header(result: dict) -> str | None:
     """Build the X-Sage-Skill-Media header: the just-delivered step's approved media for the
     turn's language, or None.
@@ -152,7 +158,7 @@ def _skill_media_header(result: dict) -> str | None:
     active_skill_id (already recorded) + the approved skill curation list. It inherits the same
     allowlist gate and ensure_ascii. Behind a default-OFF kill-switch (SAGE_SKILL_MEDIA_ENABLED).
     """
-    if os.environ.get("SAGE_SKILL_MEDIA_ENABLED", "").strip().lower() not in ("1", "true", "yes", "on"):
+    if not _skill_media_enabled():
         return None
     if result.get("gate_path") not in _SOURCE_ALLOWED_GATE_PATHS:
         return None
@@ -775,6 +781,8 @@ async def health_version(_: None = Depends(require_api_key)):
         "build_sha": os.environ.get("SAGE_BUILD_SHA", "unknown"),
         "crisis_tiering_enabled": CRISIS_TIERING_ENABLED,
         "crisis_tiering_raw_env": os.environ.get("SAGE_CRISIS_TIERING"),
+        "skill_media_enabled": _skill_media_enabled(),
+        "skill_media_raw_env": os.environ.get("SAGE_SKILL_MEDIA_ENABLED"),
         "sage_poc_path": getattr(sage_poc, "__file__", "unknown"),
         # Deep diagnostic (bug #2: graph computes crisis_tier=NULL despite flag true). Reports what the
         # DEPLOYED process's graph modules actually see, so "why is the tier NULL" is an observation.
