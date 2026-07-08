@@ -4,14 +4,17 @@ import { useOnboardingStore } from '@/lib/stores/onboarding-store'
 import { useLocaleStore } from '@/lib/stores/locale-store'
 import { Button } from '@cdai/ui'
 import { tenant } from '@cdai/tenant'
+import { CRISIS_CONFIG } from '@/lib/crisis-config'
 
+// Crisis line uses the SAME source as the crisis card (PO 2026-07-08: onboarding must show the
+// crisis number, not a separate service). Number/label/hours from crisis-config.ts — no literal here.
 const COPY = {
   en: {
     heading: 'Before you begin',
     lines: [
       'Sage is an experimental wellbeing tool, not a substitute for professional mental health care.',
       'Conversations are stored and may be reviewed by our clinical team.',
-      'If you are in crisis, contact LifeLine Arabia: 4673 (free, 24/7).',
+      `If you are in crisis, contact ${CRISIS_CONFIG.labelEn}: ${CRISIS_CONFIG.number} (free, ${CRISIS_CONFIG.hours}).`,
     ],
     cta: 'I understand, continue',
   },
@@ -20,7 +23,7 @@ const COPY = {
     lines: [
       'سيج أداة تجريبية للعافية، وليست بديلاً عن الرعاية النفسية المتخصصة.',
       'يتم تخزين المحادثات وقد تراجعها فريقنا السريري.',
-      'إذا كنت في أزمة، تواصل مع لايف لاين أرابيا: 4673 (مجاني، على مدار الساعة).',
+      `إذا كنت في أزمة، تواصل مع ${CRISIS_CONFIG.labelAr}: ${CRISIS_CONFIG.number} (مجاني، على مدار الساعة).`,
     ],
     cta: 'أفهم وأوافق، متابعة',
   },

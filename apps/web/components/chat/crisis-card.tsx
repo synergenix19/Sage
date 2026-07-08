@@ -1,15 +1,8 @@
 'use client'
 import { useLocaleStore } from '@/lib/stores/locale-store'
+import { CRISIS_CONFIG } from '@/lib/crisis-config'
 
-// CRISIS HOTLINE NUMBERS — confirm with CDA before production deploy.
-// Counselling: 800 46342 (MoHAP UAE, free 24/7)
-// Emergency:   999       (Dubai Police, immediate danger)
-const UAE_COUNSELLING_LINE = '800 46342'
-const UAE_COUNSELLING_HREF = 'tel:800-46342'
-// tel: URI format — hyphens and spaces are equivalent per RFC 3966
-const UAE_EMERGENCY_LINE   = '999'
-const UAE_EMERGENCY_HREF   = 'tel:999'
-
+// Crisis numbers come from the single source (crisis-config.ts) — no literals in this file.
 export function CrisisCard({ content }: { content: string }) {
   const locale = useLocaleStore((s) => s.locale)
   const isAr = locale === 'ar'
@@ -22,25 +15,25 @@ export function CrisisCard({ content }: { content: string }) {
       <p className="mb-3 text-sm text-[var(--color-text-primary)]" dir="auto">{content}</p>
       <div className="flex flex-col gap-2">
         <a
-          href={UAE_COUNSELLING_HREF}
-          aria-label="Call 800 46342 – Talk to a counsellor / اتصل بـ 800 46342"
+          href={CRISIS_CONFIG.tel}
+          aria-label={`Call ${CRISIS_CONFIG.number} – Talk to a counsellor / اتصل بـ ${CRISIS_CONFIG.number}`}
           className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-[var(--color-crisis)] px-4 py-2 text-sm font-medium text-white"
         >
           {isAr ? (
-            <>اتصل بـ <span dir="ltr">{UAE_COUNSELLING_LINE}</span> — تحدث مع مستشار</>
+            <>اتصل بـ <span dir="ltr">{CRISIS_CONFIG.number}</span> — تحدث مع مستشار</>
           ) : (
-            <>Call {UAE_COUNSELLING_LINE} — Talk to a counsellor</>
+            <>Call {CRISIS_CONFIG.number} — Talk to a counsellor</>
           )}
         </a>
         <a
-          href={UAE_EMERGENCY_HREF}
-          aria-label="Call 999 – Emergency services / اتصل بـ 999"
+          href={CRISIS_CONFIG.emergencyTel}
+          aria-label={`Call ${CRISIS_CONFIG.emergency} – Emergency services / اتصل بـ ${CRISIS_CONFIG.emergency}`}
           className="inline-flex min-h-[44px] items-center justify-center rounded-full border-2 border-[var(--color-crisis)] px-4 py-2 text-sm font-medium text-[var(--color-crisis)]"
         >
           {isAr ? (
-            <>اتصل بـ <span dir="ltr">{UAE_EMERGENCY_LINE}</span> — خدمات الطوارئ</>
+            <>اتصل بـ <span dir="ltr">{CRISIS_CONFIG.emergency}</span> — خدمات الطوارئ</>
           ) : (
-            <>Call {UAE_EMERGENCY_LINE} — Emergency services</>
+            <>Call {CRISIS_CONFIG.emergency} — Emergency services</>
           )}
         </a>
       </div>
