@@ -779,8 +779,9 @@ async def skill_select_node(state: SageState) -> dict:
         # safety gate — without this, Tier-1 over-routes id_oos before the reranker can veto (id_oos
         # 90→76). Flag-off (reranker disabled): never runs -> keyword routing is byte-identical V1.
         if _rerank_enabled() and _keyword_rerank_veto(candidates, state["message_en"], detected_language):
+            # Reranker vetoed a keyword match (safety-critical abstain producer) → Node 3, not freeflow.
             return {**stale_offer_clear, "active_skill_id": None, "active_step_id": None,
-                    "skill_match_method": None, "semantic_score": None,
+                    "skill_match_method": None, "semantic_score": None, "skill_select_abstained": True,
                     "path": state["path"] + ["skill_select", "keyword_rerank_veto"]}
         # resolve result must win the merge: offer results set offered_skill_ids themselves
         return {**stale_offer_clear,
@@ -857,5 +858,7 @@ async def skill_select_node(state: SageState) -> dict:
         "active_step_id": None,
         "skill_match_method": None,
         "semantic_score": None,
+        # Below-τ semantic ABSTAIN under V2 → Node 3 (Cardinal Rule 5). Flag-off: key absent → V1 freeflow.
+        **({"skill_select_abstained": True} if _rerank_enabled() else {}),
         "path": state["path"] + ["skill_select"],
     }

@@ -165,6 +165,7 @@ def _build_state(req: _RequestLike) -> dict:
         "response_en":        None,
         "response":           None,
         "path":               [],
+        "skill_select_abstained": False,   # per-turn reset (like path) — no cross-turn abstain leak
         "code_switching":     False,
         "directive_posture":  False,
         "self_reference":     False,
