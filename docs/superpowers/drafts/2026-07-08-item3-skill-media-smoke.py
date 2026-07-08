@@ -26,7 +26,7 @@ CRISIS_SIGNAL = "[[CRISIS_DETECTED]]"  # server.py prefixes the crisis stream wi
 
 
 def _post_chat(session_id, message):
-    body = json.dumps({"session_id": session_id, "message": message}).encode()
+    body = json.dumps({"session_id": session_id, "messages": [{"role": "user", "content": message}]}).encode()
     req = urllib.request.Request(f"{BASE}/chat", data=body, method="POST",
                                  headers={"Content-Type": "application/json", "X-Sage-Api-Key": KEY})
     with urllib.request.urlopen(req, timeout=90) as r:
