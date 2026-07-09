@@ -24,6 +24,11 @@ fi
 # 2. CLAIM
 rw variables --set "DEPLOY_LOCK=${HOLDER}|${ENV}|${SHA:0:12}|$(now)" >/dev/null
 echo "🔒 lock claimed: $HOLDER on $ENV @ ${SHA:0:12} (TTL ${TTL}s)"
+# tripwire feed: record this locked deploy in LOCKED_DEPLOY_LOG (last 10 short-SHAs, comma-sep) so
+# scripts/deploy_tripwire.sh can detect a prod SHA that never claimed the lock (an unlocked deploy).
+_LOG=$(rw variables --json 2>/dev/null | python3 -c "import sys,json;print(json.load(sys.stdin).get('LOCKED_DEPLOY_LOG',''))" || echo "")
+_NEW=$(printf "%s,%s" "${SHA:0:12}" "$_LOG" | tr ',' '\n' | awk 'NF' | head -10 | paste -sd, -)
+rw variables --set "LOCKED_DEPLOY_LOG=$_NEW" >/dev/null 2>&1 || true
 # 3. ANCESTRY GATE (load-bearing safety commits must be ancestors of the deploy tree)
 FAIL=0; for c in bc3cb4b 5852ea1 944939b 27bfd3b 8079caa 7a57107; do
   git merge-base --is-ancestor $c "$SHA" 2>/dev/null || { echo "❌ ancestry: $c NOT ancestor of $SHA"; FAIL=1; }; done
