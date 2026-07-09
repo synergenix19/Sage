@@ -76,6 +76,9 @@ jobs:
             tests/test_p1_mid_freeflow_shape.py
             tests/test_declined_skills_signal.py
             tests/test_nodes.py
+            tests/test_phase2_t1_containment_state.py
+            tests/test_phase2_t2_contain_action.py
+            tests/test_phase2_t3_crisis_supremacy.py
           "
           # test_nodes.py added 2026-06-13: it carries the skill-selection acute-routing
           # assertions (which skill a presentation routes to) that previously sat OUTSIDE
