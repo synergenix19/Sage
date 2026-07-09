@@ -2,6 +2,8 @@
 **Normative spec:** `BOT BEHAVIOUR.docx` (2218 lines), clinician-ruled normative 2026-07-10.
 **Deliverable:** implementation-matches-spec, behaviorally verified EN + AR.
 **Status legend:** `CONFORMS` (verified behaviorally or by code) · `GAP` (verified divergence) · `PARTIAL` · `UNTESTED` (requirement captured, not yet verified — the DoD requires a driven test before this may become CONFORMS).
+**CONFORMS interpretive rule (OF-1):** `CONFORMS` = implementation *content* matches the doc; documented house-style *presentation* additions (e.g. the offer-blurb duration clause) are permitted and do not block CONFORMS. A row is `PARTIAL` when engineering-authored copy paraphrases a clinical source no clinician has ticked (see `docs/2026-07-10-OF-1-blurb-signoff-packet.md`).
+**Wave-1 code (PR #280):** SG-2, OF-1 (5 canonical + 2 renames), PS-2, OR-3/4 landed CODED + unit-verified; rows flip to CONFORMS only on the driven EN+AR transcript. Clinician inputs staged: `docs/2026-07-10-section-H-clinician-queries.md`, `docs/2026-07-10-OF-1-blurb-signoff-packet.md`, `docs/2026-07-10-CR-0-crisis-lexicon-gap.md`.
 **Definition of done (per row):** green via a driven behavioral test on the deployed build, **EN and AR**, transcript attached. No conformance claimed from code reads (that method was wrong 3× in the audit).
 **Priority tags:** P0a consent · P0b delivery_format · P1 Arabic media · P2 tiering · (blank = triage during test-writing).
 
