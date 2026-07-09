@@ -9,7 +9,8 @@
     "review_required": [
       "Clinical review of every display_name and description before production"
     ],
-    "_signed_off": "EN blurbs enriched 2026-06-17 for informed choice (one-clause -> what it is, what you do, what it helps with, plus duration); approach clinician-approved (relayed via product owner), intensity-gating deferred. v0.2.0 EN wording clinician-approved 2026-06-13. ar pending S2-2 + two-rater Khaleeji scoring. Two-rater EN offer-turn QUALITY scoring remains a SEPARATE open gate."
+    "_signed_off": "EN blurbs enriched 2026-06-17 for informed choice (one-clause -> what it is, what you do, what it helps with, plus duration); approach clinician-approved (relayed via product owner), intensity-gating deferred. v0.2.0 EN wording clinician-approved 2026-06-13. ar pending S2-2 + two-rater Khaleeji scoring. Two-rater EN offer-turn QUALITY scoring remains a SEPARATE open gate.",
+    "_normative_realignment_2026_07_10": "OF-1 (BOT BEHAVIOUR.docx now normative). 5 canonical-source blurbs synced to the doc's One-line psychoeducation column (content verbatim, case-folded for mid-sentence offer grammar; house what-you-do + duration retained): box_breathing, grounding_5_4_3_2_1, stop_technique, progressive_muscle_relaxation, mindfulness_meditation. display_name realigned to normative doc names (skill_ids untouched; supersedes the 2026-06-13 name approval for these two): cbt_thought_record -> 'Fact vs. Opinion', values_clarification -> 'Life Compass'. The other 15 blurbs remain deliberate house style = PARTIAL, queued to a clinician sign-off packet, NOT re-approved here. HELD pending confirm (may not suit a user-facing offer label): interpersonal_effectiveness doc name 'DEARMAN' (technique acronym), financial_anxiety doc name 'Financial Anxiety (Gulf)' (category label)."
   },
   "descriptions": {
     "box_breathing": {
@@ -18,7 +19,7 @@
         "ar": null
       },
       "description": {
-        "en": "a short guided breathing exercise where you breathe in, hold, out, and hold again to an even count, to help your body settle when it feels wound up or panicky, about five minutes",
+        "en": "a simple 4-count breathing pattern that slows your heart rate and signals safety to your nervous system, where you breathe in, hold, out, and hold again to an even count, about five minutes",
         "ar": null
       }
     },
@@ -28,7 +29,7 @@
         "ar": null
       },
       "description": {
-        "en": "a quick exercise where you name what you can see, hear, and touch through your five senses, to pull your attention out of spinning thoughts and back to the present, takes a few minutes",
+        "en": "uses your five senses to anchor your attention in the present moment instead of the anxious thought loop, naming what you can see, hear, and touch, takes a few minutes",
         "ar": null
       }
     },
@@ -38,7 +39,7 @@
         "ar": null
       },
       "description": {
-        "en": "a brief pause for heated moments where you stop, take a breath, notice what is happening and what you feel, then choose how to respond instead of reacting on impulse, about a minute",
+        "en": "a short pause-and-reframe technique to create space between a trigger and your reaction, where you stop, take a breath, notice what is happening and what you feel, then choose how to respond, about a minute",
         "ar": null
       }
     },
@@ -58,7 +59,7 @@
         "ar": null
       },
       "description": {
-        "en": "a guided exercise where you gently tense and then release each muscle group in turn, to notice and let go of the physical tension that stress leaves in your body, ten to fifteen minutes",
+        "en": "systematically tensing and releasing muscle groups to physically discharge built-up tension, gently tensing and then releasing each muscle group in turn, ten to fifteen minutes",
         "ar": null
       }
     },
@@ -84,7 +85,7 @@
     },
     "cbt_thought_record": {
       "display_name": {
-        "en": "Thought check",
+        "en": "Fact vs. Opinion",
         "ar": null
       },
       "description": {
@@ -154,7 +155,7 @@
     },
     "values_clarification": {
       "display_name": {
-        "en": "What matters most",
+        "en": "Life Compass",
         "ar": null
       },
       "description": {
@@ -258,7 +259,7 @@
         "ar": null
       },
       "description": {
-        "en": "a short sitting practice where you rest your attention on your breath and let thoughts and feelings come and go without fighting them, learning to be with what is here rather than fix it, a few minutes",
+        "en": "a longer-form practice for sitting with anxious feelings without needing to fix or fight them, resting your attention on your breath and letting thoughts and feelings come and go, a few minutes",
         "ar": null
       }
     }
