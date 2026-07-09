@@ -67,12 +67,27 @@ from functools import lru_cache as _lru_cache
 
 _KHALEEJI_EXEMPLARS_PATH = _Path(__file__).parent / "khaleeji_shadow_exemplars.json"
 
+# gender_marked value ('f' | 'm' | 'none', see scripts/register_eval/gender_marker.py)
+# -> the per-exemplar rendering key to use, for the mirror-when-marked policy: a
+# grammatically self-marked user mirrors back in that gender, an unmarked user gets
+# the neutral rendering. Any value not in this map (including "none") falls back to
+# "ar_neutral" -- the safe default.
+_RENDERING_KEY_BY_GENDER = {"f": "ar_f", "m": "ar_m"}
 
-@_lru_cache(maxsize=1)
-def load_khaleeji_shadow_exemplars() -> tuple[str, str]:
+
+@_lru_cache(maxsize=None)
+def load_khaleeji_shadow_exemplars(gender: str = "none") -> tuple[str, str]:
+    """Return (version, block) for the khaleeji shadow exemplars.
+
+    `gender` selects the rendering per the mirror-when-marked policy: "f" -> ar_f,
+    "m" -> ar_m, anything else (including the "none" default) -> ar_neutral. Callers
+    that only need a style-reference block (e.g. shadow_arabic.py's exemplar_version
+    lookup) can call with no arguments and get the neutral rendering.
+    """
     data = _json.loads(_KHALEEJI_EXEMPLARS_PATH.read_text(encoding="utf-8"))
+    key = _RENDERING_KEY_BY_GENDER.get(gender, "ar_neutral")
     lines = ["KHALEEJI EXEMPLARS (style reference, do not quote verbatim):"]
     for ex in data.get("exemplars", []):
-        ar = ex.get("ar", "")
-        lines.append(f"- {ex['en']}\n  → {ar}" if ar and ar != "TODO_NATIVE_AUTHOR" else f"- {ex['en']}")
+        ar = ex.get(key, "")
+        lines.append(f"- {ex['en']}\n  → {ar}" if ar else f"- {ex['en']}")
     return data.get("version", "unknown"), "\n".join(lines)

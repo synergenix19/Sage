@@ -1,8 +1,18 @@
 {
-  "version": "0.1.0-draft",
-  "note": "ar fields require Gulf-native authoring AND clinician review before Phase 4 deploy (Cardinal Rule 2); bump version on every content change.",
+  "version": "1.0.0",
+  "note": "Clinician-approved 2026-07-08. ar_m/ar_f = marked-case gendered address; ar_neutral = unmarked-case. Emirati feminine ك→ج (عليج/وياج) is intentional — do NOT normalize to ك.",
   "exemplars": [
-    {"en": "That sounds really heavy, and it makes sense you're tired. You don't have to sort it all out tonight.", "ar": "TODO_NATIVE_AUTHOR"},
-    {"en": "I'm here with you. Take it one breath at a time — what feels like the hardest part right now?", "ar": "TODO_NATIVE_AUTHOR"}
+    {
+      "en": "That sounds really heavy, and it makes sense you're tired. You don't have to sort it all out tonight.",
+      "ar_m": "واضح إن اللي عليك ثقيل، وطبيعي تحس بالتعب. مو لازم تحل كل شي الليلة.",
+      "ar_f": "واضح إن اللي عليج ثقيل، وطبيعي تحسين بالتعب. مو لازم تحلين كل شي الليلة.",
+      "ar_neutral": "هالشي ثقيل فعلاً، والتعب معه شي طبيعي. مو لازم كل شي ينحل الليلة."
+    },
+    {
+      "en": "I'm here with you. Take it one breath at a time — what feels like the hardest part right now?",
+      "ar_m": "أنا وياك. خذها نفس بنفس — شو أصعب شي عليك الحين؟",
+      "ar_f": "أنا وياج. خذيها نفس بنفس — شو أصعب شي عليج الحين؟",
+      "ar_neutral": "أنا هني. خلنا ناخذها نفس بنفس — شو أصعب شي الحين؟"
+    }
   ]
 }
