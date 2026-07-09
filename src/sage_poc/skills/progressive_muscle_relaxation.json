@@ -2,6 +2,7 @@
   "skill_id": "progressive_muscle_relaxation",
   "skill_name": "Progressive Muscle Relaxation",
   "skill_type": "structured",
+  "delivery_format": "video_all_at_once",
   "evidence_base": "Jacobson (1938); Bernstein & Borkovec (1973); WHO mhGAP Intervention Guide; NICE CG90 anxiety",
   "self_evolution": "manual_only",
   "target_presentations": [
