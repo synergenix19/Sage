@@ -31,9 +31,21 @@ Safety floor is **fixed and not reopenable**: any `crisis_response` turn keeps *
 - (c) Recorded as **deferred for DPIA** purposes.
 
 ## D5 — Continuation-recall KPI
-**KPI split ENDORSED.** System-level continuation-crisis target = **≥95%** (same guarantee as first disclosure). Node-1 recall and system-level recall reported separately; continuation broken out.
-- Engineering: continuation-context becomes a separate gated line in the crisis-recall harness at the ≥95% bar.
-- _Note: the clinician's "three mechanics" detail was truncated in relay; confirm if substantive beyond process notes._
+**KPI split ENDORSED.** **System-level** continuation-crisis target = **≥95%** (clinician-owned, same guarantee as first disclosure). **Node-1 sub-target** is engineering-derived + countersigned — and is scoped to the **context-free subset ONLY** (see labeling field 5): a single-utterance classifier cannot be held to context-dependent meaning it cannot see, and doing so sets an unmeetable bar that masks where real coverage comes from. Context-dependent coverage is measured at **system level** (via the D3 sticky-state / monitoring layer), not at Node 1.
+- Engineering: continuation-context becomes a separate gated line in the crisis-recall harness; the Node-1 gate runs on the context-free subset, the ≥95% system gate on the full continuation set.
+
+## D1 execution — labeling schema + additive scope (folded from the 2026-07-09 relay)
+**Additive, not re-labeling.** The locked TD3 corpus stays as-is; the delta is a NEW continuation-context set labeled from scratch. Re-labeling existing locked items is **ruled out** (scope creep against change-control) unless the session surfaces a direct contradiction. One exception: pull **~20–30 existing TD3 items as calibration anchors** so new tier labels sit on the locked corpus's scale (prevents drift).
+
+**Four sources, one schema.** Sources: (1) the #205 exemplar; (2) every L2-flagged miss the backstop has collected (production misses > synthetic — weight toward these); (3) clinician-authored continuation phrasings (their taxonomy — legitimate); (4) a **negative set** — continuation-shaped non-crisis phrasings ("ما عاد عندي رغبة" completed with mundane objects, disengagement/fatigue, skill-exit requests) to protect precision.
+
+**Per-item schema — 5 fields:** (1) crisis yes/no; (2) tier; (3) dialect validity (native-Khaleeji tick); (4) positive/negative membership; (5) **context-dependency — the critical field: does the crisis reading require the preceding conversation, or is it standalone?**
+
+**Field 5 routing (why it's critical):** MARBERT classifies utterances. Context-required items are only learnable if classifier input includes a context window — training on them without context teaches the model to fire on ambiguous phrasings everywhere (precision disaster). So each item routes by field 5:
+- **context-free** → straight into the MARBERT fine-tune (and counts toward the Node-1 sub-target).
+- **context-required** → EITHER motivate a context-window input change to Node 1 (an Exp 4.2 architecture decision, with a latency implication against the <50ms Layer-1 budget) OR be formally assigned to the **D3 sticky-state / monitoring** layer as their catch mechanism.
+
+**Session process:** dual-label everything flagged in the tier-ambiguity column; adjudicate disagreements live; record **inter-rater agreement on the tier field** (continuation tiers are exactly where competent clinicians diverge — the disagreement rate itself measures how classifier-learnable this class is). **Volume:** ~100–200 positives + a comparable negative set, weighted toward backstop-collected production misses.
 
 ## Status after this record
 - Signed/actionable now: **D2, D4, D5** fully; **D3** adopted (implementation ticketed); **D1** approved (process unblocked).
