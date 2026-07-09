@@ -87,7 +87,10 @@ async def test_async_translate_to_arabic_default_gender_none_unchanged_prompt():
          patch.object(language, "get_translator", lambda: object()):
         await language.async_translate_to_arabic("Take your time.")
 
-    assert "neutral" in captured["content"].lower()
+    # Strengthened neutral directive uses "gender-free" + names the constructions (was the weak
+    # "neutral / do not guess" wording, which leaked masculine in prod — functional test 2026-07-09).
+    assert "gender-free" in captured["content"].lower()
+    assert "خلنا" in captured["content"]  # positive construction named, not just "avoid gender"
 
 
 # ---- output_gate integration: computes gender from raw_message, passes it through ------
