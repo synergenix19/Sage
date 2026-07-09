@@ -25,7 +25,7 @@
 
 **Question:** When a skill's Format column says "Video", is it delivered all-at-once (whole asset in one turn) rather than turn-by-turn? Or is "Video" only a table label with no delivery semantics?
 
-**Verbatim evidence:** "Video" appears **only** as a Format-column value (Box Breathing L109, PMR L122, Mindfulness L125; Body Scan "Video/audio guided" L913; Guided Visualization L983 *"a short guided imagery video ... no activity required"*). **No prose anywhere defines a cadence for "Video."** The only cadence prose is skill-specific and does *not* reference the label: L200 (TIPP, "Visual + guided conversation") *"one instruction at a time ... never all at once."*
+**Verbatim evidence:** "Video" appears as a Format-column value (Box Breathing, PMR, Mindfulness; Body Scan "Video/audio guided") **and** in incidental prose (the offer-ordering "lead with the video" note; the Guided Visualization *"short guided imagery video ... no activity required"* description). **None of it defines a delivery *cadence* for "Video"** — the only cadence prose in the doc is TIPP-specific. The only cadence prose is skill-specific and does *not* reference the label: L200 (TIPP, "Visual + guided conversation") *"one instruction at a time ... never all at once."*
 
 **Proposed default sentence (for the clinician to tick or reword):**
 > *"A skill whose Format is 'Video' or 'Video/audio guided' is delivered as a single all-at-once turn — the technique framing and its video together, then straight to the check-in — not the turn-by-turn, one-instruction-per-turn delivery used for guided-conversation skills such as TIPP. The five Video skills are: box breathing, progressive muscle relaxation, mindfulness meditation, body scan, guided/safe-place visualization."*
@@ -59,7 +59,7 @@
 |---|---|---|
 | Emergency (immediate danger) | 999 | — |
 | National Mental Support Line | 800-HOPE (800-4673) | **8am–8pm daily**, AR/EN, WhatsApp |
-| Abu Dhabi crisis line (SAKINA) | 800-725462 | 24/7 |
+| Abu Dhabi 24/7 crisis line (800-SAKINA) | 800-725462 | 24/7, psychological first aid |
 | Dubai Health Authority | 800 111 | 24/7 |
 | Sharjah Child & Youth | 800 51115 | 9am–5pm Mon–Fri |
 | Nearest ER | — | out-of-hours / immediate danger |

@@ -14,7 +14,7 @@
 |---|---|---|---|
 | Emergency | 999 | — | immediate danger |
 | National Mental Support Line | 800-HOPE (800-4673) | 8am–8pm daily | national (primary) |
-| Abu Dhabi SAKINA | 800-725462 | 24/7 | regional |
+| Abu Dhabi 24/7 crisis line (800-SAKINA) | 800-725462 | 24/7, psychological first aid | regional |
 | Dubai Health Authority | 800 111 | 24/7 | regional |
 | Sharjah Child & Youth | 800 51115 | 9am–5pm Mon–Fri | youth |
 | Nearest ER | — | out-of-hours / danger | fallback |
