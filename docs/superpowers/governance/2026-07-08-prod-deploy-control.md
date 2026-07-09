@@ -11,6 +11,29 @@
    - Until that field exists, a byte-identical deploy is verified ONLY by the **cache-bust structural guarantee** (ARG changed → `COPY` rebuilt → new source), and must be recorded as *"cache-bust-verified,"* NOT *"behaviorally verified."*
 5. **Ancestry gate before every deploy:** `git merge-base --is-ancestor <hotfix> <tree>` for each load-bearing commit (OCD-veto, harm-veto, crisis-templating, item3).
 
+## #258 — build-side deploy-lock enforcement (prevent, not just detect) — shipped DORMANT 2026-07-10
+
+The tripwire (`deploy_tripwire.sh`) fires AFTER an unlocked deploy is live — it deters, it does not
+prevent. `scripts/verify_build_lock.sh` runs INSIDE the image build (`Dockerfile`, after `COPY . .`)
+and FAILS the build when the SHA being built never claimed the lock (its short SHA absent from
+`LOCKED_DEPLOY_LOG`, which `deploy_prod.sh` populates before `railway up`). A direct `railway up`
+bypassing `deploy_prod.sh` never logs its SHA → its build fails → the bypass is prevented.
+
+**Shipped DEFAULT-OFF** (`ARG ENFORCE_DEPLOY_LOCK=0`): dormant warn-and-pass on every build today,
+no behavior change. Self-tested offline (`verify_build_lock.sh --self-test`, gated in CI via
+`tests/test_deploy_build_lock.py`).
+
+**Enablement (do NOT flip blind — one staging build test first):**
+1. Confirm Railway passes `LOCKED_DEPLOY_LOG` into the Dockerfile build ARG — this is UNVERIFIED from
+   a dev box and is the one real unknown. Deploy to STAGING via `deploy_prod.sh` with
+   `ENFORCE_DEPLOY_LOCK=1` set; the build must PASS (SHA is in the log).
+2. Negative test on staging: a direct `railway up` (no `deploy_prod.sh`) with `ENFORCE_DEPLOY_LOCK=1`
+   must FAIL the build (SHA not in log). If it passes, Railway is not passing the var → the check is
+   inert and needs a different proof channel (pass `LOCKED_DEPLOY_LOG` as an explicit `--build-arg`
+   from `deploy_prod.sh`).
+3. Only then set `ENFORCE_DEPLOY_LOCK=1` on production. Break-glass for a legit emergency direct
+   deploy = set it to 0 for the one build, justified + logged (below), re-enable after.
+
 ## Break-glass — bypassing the required CI gate in a genuine emergency (2026-07-10)
 
 `master` branch protection now requires the `Safety-surface unit tests` check (strict) AND
