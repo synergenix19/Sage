@@ -5,7 +5,12 @@ set -euo pipefail
 ENV="${1:?usage: deploy_prod.sh <staging|production> <full-40char-sha>}"; SHA="${2:?full deploy SHA required}"
 PROJECT=4f1811e7-cab2-4002-9107-a9f782f2f274; SERVICE=160e9f65-e3c8-409a-b647-fbe2339a265d
 HOLDER="${USER:-unknown}@$(hostname -s 2>/dev/null||echo host)-$$"; TTL=1200
-rw(){ RAILWAY_CALLER="skill:use-railway@1.2.0" RAILWAY_AGENT_SESSION="deploy-lock-$$" railway "$@" --project $PROJECT --environment $ENV --service $SERVICE; }
+# railway CLI (this version) does NOT accept --project/--environment/--service on `variables` —
+# set context ONCE via link, then call flag-free. (Fix: dogfood caught the inline-flag bug 2026-07-09.)
+RAILWAY_CALLER="skill:use-railway@1.2.0" RAILWAY_AGENT_SESSION="deploy-lock-$$" \
+  railway link --project "$PROJECT" --environment "$ENV" --service "$SERVICE" >/dev/null 2>&1 \
+  || { echo "❌ railway link failed (auth/context)" >&2; exit 4; }
+rw(){ RAILWAY_CALLER="skill:use-railway@1.2.0" RAILWAY_AGENT_SESSION="deploy-lock-$$" railway "$@"; }
 now(){ date +%s; }
 # 1. CHECK LOCK (shared Railway var DEPLOY_LOCK = holder|env|sha|epoch)
 LOCK=$(rw variables --json 2>/dev/null | python3 -c "import sys,json;print(json.load(sys.stdin).get('DEPLOY_LOCK',''))" || echo "")
