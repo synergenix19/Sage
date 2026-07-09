@@ -355,6 +355,30 @@ _EMPTY_MONITORING_FALLBACK = (
     "I'm still here with you. If things get harder, please reach out right now, "
     f"the UAE MoHAP support line on {CRISIS_LINE_UAE}, or {CRISIS_CONFIG['emergency']} for an emergency."
 )
+# Native AR hard fallback — used ONLY if the CC-AR-002 rule is unavailable, mirroring graph.py's
+# crisis-node hard fallback. Digits come from CRISIS_CONFIG, never a translator.
+_EMPTY_MONITORING_FALLBACK_AR = (
+    "ما زلت هنا معك. إذا أصبحت الأمور أصعب، أرجوك تواصل الآن مع خط وزارة الصحة للدعم النفسي "
+    f"{CRISIS_LINE_UAE}، أو اتصل برقم الطوارئ {CRISIS_CONFIG['emergency']}."
+)
+
+
+def _monitoring_fallback(lang: str) -> str:
+    """Locale-selected post-crisis monitoring empty-reply fail-safe.
+
+    Mirrors the acute crisis card: a natively-authored crisis_content rule (CC-EN-003 / CC-AR-002) is
+    selected by locale, so Arabic is served native and BYPASSES translate-out — the downstream
+    _response_en_is_arabic check routes native AR around the translator, keeping the helpline digits
+    deterministic from CRISIS_CONFIG rather than at risk of translator digit-corruption (#1). Falls
+    back to the hard-coded constants only if the rule is missing (defense-in-depth, as graph.py does).
+    """
+    result = rules_engine.evaluate("crisis_content", {
+        "language": lang,
+        "crisis_level": "monitoring_fallback",
+    })
+    if result.fired:
+        return result.fired[0].action["response_text"]
+    return _EMPTY_MONITORING_FALLBACK_AR if lang == "ar" else _EMPTY_MONITORING_FALLBACK
 
 JAILBREAK_RESPONSE = (
     "I'm Sage, a wellness companion here to offer emotional support and evidence-based coping "
@@ -498,7 +522,7 @@ async def output_gate_node(state: SageState) -> dict:
     # turn re-surfaces resources rather than a generic line; never return silence.
     if not response_en and gate_path not in ("scope_refusal", "jailbreak"):
         if state.get("crisis_state") == "monitoring":
-            response_en = _EMPTY_MONITORING_FALLBACK
+            response_en = _monitoring_fallback(lang)
         else:
             response_en = _VETTED_FALLBACK_RESPONSE
         path = path + ["output_gate_empty_fallback"]

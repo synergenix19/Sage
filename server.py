@@ -23,7 +23,11 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from sage_poc.graph import build_graph
 from sage_poc.config import RESPONDER_MODEL, DB_POOL_MAX_SIZE, CHECKPOINT_POOL_MAX_SIZE, CRISIS_TIERING_ENABLED
-from sage_poc.crisis_copy import assert_crisis_copy_resolves, crisis_copy_is_templated
+from sage_poc.crisis_copy import (
+    assert_crisis_copy_resolves,
+    assert_crisis_locale_parity,
+    crisis_copy_is_templated,
+)
 from sage_poc.language import text_direction
 from sage_poc.server_helpers import _build_state, _stale_skill_overrides, _void_unseen_offer
 from sage_poc.llm import get_classifier
@@ -326,6 +330,12 @@ async def lifespan(app: FastAPI):
     # message. Runs first, before any warmup, so the failure is immediate and unmistakable.
     assert_crisis_copy_resolves()
     _log.info("[sage/startup] crisis-copy boot guard passed (no unresolved {{crisis_*}} placeholders)")
+    # FAIL-CLOSED crisis LOCALE-PARITY boot guard (#1 class-fix). Every active crisis_content level
+    # must have a native twin in every supported locale (en_uae + ar_uae). A crisis string shipped in
+    # one locale without its twin fails the boot rather than reaching the other locale's users via
+    # machine translation — keeps helpline digits deterministic from CRISIS_CONFIG on every locale.
+    assert_crisis_locale_parity()
+    _log.info("[sage/startup] crisis locale-parity boot guard passed (en_uae + ar_uae twins present)")
     # Boot-observable crisis-tier flag state (guaranteed-visible: logging is configured by now).
     # repr distinguishes None / "" / "true" — the exact states the 2026-07-03 env-injection debugging
     # kept inferring from black-box probes. "Is tiering ON in this container?" is now a log read.
