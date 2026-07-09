@@ -260,3 +260,22 @@ Both the trigger and description edits change the routing surface → **calibrat
 2. **§1e** — rule the **which-skill** (box_breathing vs worry_time/problem_solving_therapy) BEFORE confirming its triggers/clause (the −11 over-pull risk rides on this).
 3. **§7c** — pick option (a) / (b) / (c).
 4. Confirm the trigger phrasings are specific enough (multi-word) to control substring false-positives.
+
+---
+
+# COMMAND RECOMMENDATIONS — for the clinician to APPROVE / EDIT / REJECT
+
+The clinician can act on each in one line. Recommendations are engineering-clinical reads against best practice + the spec; the ruling is theirs.
+
+## §6b + §6c → `assertive_communication` (one two-part edit)
+**RECOMMEND APPROVE.** Triggers (difficult/tough/hard conversation, set a boundary, word/draft/rehearse a message, phrase an email) + one prepended recognition clause. The reranker flips cleanly (−7 → −2/−4), the bins are drawn conservatively, and it's one edit covering two pathways. → *approve / edit the phrasings / reject.*
+
+## §1e Anticipatory anxiety — READ THE FIT DATUM BEFORE RULING
+The pre-enrichment reranker score of **−11 is not merely an over-pull flag — it is the reranker's honest signal that box_breathing's semantic surface is FAR from anticipatory-anxiety phrasing.** Enriching box_breathing to clear τ would drag its description toward utterances the skill may not actually serve (spec-first ≠ semantically-nearest) — which is precisely how a mechanism-1 (reranker-veto) problem gets *manufactured*, the opposite of what we're fixing.
+**RECOMMEND: route §1e to `worry_time` or `problem_solving_therapy`** — semantically closer to "dreading a specific upcoming event," and clinically apt (worry containment / actionable prep for an event). The spec sequences box_breathing first; overriding that is yours to do, but with the −11 datum visible a box_breathing ruling is a different, deliberate ruling. → *approve worry_time/PST as the §1e home / hold to box_breathing (spec-first, datum acknowledged) / edit.*
+
+## §7c How do I connect — disposition
+**RECOMMEND option (a)** — serve it well through the existing `info_request → KB` path **if** the KB carries connection/social content; otherwise **(c) confirm conformant + close.** "How do I make friends" is genuinely information-seeking, no current skill fits (psychoed_anxiety is anxiety-ed; interpersonal_effectiveness is DBT for *existing* relationships), and info_request→KB is arguably the system working as designed. → *(a) KB content / (b) new-or-remapped skill (your clock) / (c) confirm conformant.*
+
+## What ships when you rule
+On rulings: I build the confirmed two-part edits, run `calibrate_threshold`, the full signed gate + per-pathway floor, the probe pair, and a live UX read — same pipeline as BA. Nothing ships on theory.
