@@ -11,6 +11,31 @@
    - Until that field exists, a byte-identical deploy is verified ONLY by the **cache-bust structural guarantee** (ARG changed → `COPY` rebuilt → new source), and must be recorded as *"cache-bust-verified,"* NOT *"behaviorally verified."*
 5. **Ancestry gate before every deploy:** `git merge-base --is-ancestor <hotfix> <tree>` for each load-bearing commit (OCD-veto, harm-veto, crisis-templating, item3).
 
+## Break-glass — bypassing the required CI gate in a genuine emergency (2026-07-10)
+
+`master` branch protection now requires the `Safety-surface unit tests` check (strict) AND
+`enforce_admins=true` — the gate binds everyone, including admins, by design (an admin bypass
+on a safety gate is the lock-bypass pattern with better credentials: it exempts exactly the
+people moving fastest under pressure, which is when the gate matters most). Emergencies are
+handled by a RECORDED exception, not a standing hole. Every real emergency this project has had
+(GL-1 helpline, the iatrogenic-OCD hotfix) still cleared its gates in hours — the evidence says
+we do not need the hole.
+
+**Break-glass procedure (all five steps, in order):**
+1. **Record the justification FIRST** — append an entry to `2026-07-07-deploy-provenance-trail.md`:
+   what is bypassing, why it cannot wait for CI, who authorized, timestamp.
+2. **Temporarily disable** — `gh api -X PUT .../branches/master/protection` with `enforce_admins:false`
+   (keep `required_status_checks` as-is). This is the smallest possible opening.
+3. **Merge the one change**, then **immediately re-enable** `enforce_admins:true` (same PUT, flipped).
+   The window is minutes, not a session.
+4. **Verify the gate is back on** — re-read protection; confirm `enforce_admins.enabled==true`.
+5. **Post-hoc review within 24h** — the bypassed change goes through the normal gate retroactively
+   (open a follow-up PR that runs the suite, or run it locally and attach the result to the
+   provenance entry). If it would have failed, that is an incident, not a footnote.
+
+A break-glass with steps 1/4/5 skipped is just an admin bypass wearing a runbook — the recorded
+justification and the re-enable are what make it an exception rather than a hole.
+
 ## This session's incidents (evidence, so this isn't abstract)
 - **Clobber 1:** item3 (`76f339d`, verified) reverted by parallel `944939b`.
 - **Clobber 2:** crisis-templating (`27bfd3b`) reverted by parallel `7ed83cf` (#196 "Phase 1").
