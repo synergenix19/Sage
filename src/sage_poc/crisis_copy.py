@@ -86,6 +86,24 @@ def crisis_copy_source_files() -> list[Path]:
     return paths
 
 
+def crisis_copy_is_templated() -> bool:
+    """DEPLOY-PROVENANCE probe: True iff the crisis-copy SOURCE on disk carries a ``{{crisis_``
+    placeholder — i.e. the deployed tree is the TEMPLATED version, not the pre-templating literals.
+
+    Exposed at /health/version because crisis templating is BYTE-IDENTICAL: the /health SHA can be
+    a stale label and the crisis output looks the same either way, so neither distinguishes a real
+    templated deploy from a stale literal one. This inspects the RAW (unresolved) source, which only
+    the templated tree carries — a mechanism-level attestation that survives a lying SHA.
+    """
+    for path in crisis_copy_source_files():
+        try:
+            if _UNRESOLVED_MARKER in path.read_text(encoding="utf-8"):
+                return True
+        except OSError:
+            continue
+    return False
+
+
 def assert_crisis_copy_resolves(paths: list[Path] | None = None) -> None:
     """FAIL-CLOSED boot guard.
 

@@ -501,6 +501,17 @@ def test_health_version_exposes_skill_media_flag(monkeypatch, client):
     assert res.json()["skill_media_enabled"] is False
 
 
+def test_health_version_reports_crisis_copy_templated(monkeypatch, client):
+    """/health/version attests whether the deployed crisis copy is TEMPLATED — a mechanism-level
+    provenance signal for the byte-identical templating (build_sha can be a stale label; the crisis
+    output is identical either way, so neither distinguishes a real templated deploy from a stale
+    literal one). This tree carries {{crisis_}} placeholders, so it must report True."""
+    monkeypatch.setenv("SAGE_API_KEY", "test-secret")
+    res = client.get("/health/version", headers={"X-Sage-Api-Key": "test-secret"})
+    assert res.status_code == 200
+    assert res.json()["crisis_copy_templated"] is True
+
+
 def test_chat_bypasses_key_check_when_sage_api_key_unset(monkeypatch, client, session_id):
     """No SAGE_API_KEY in env → check is disabled. Preserves backward compatibility
     for local dev where the key is not configured.
