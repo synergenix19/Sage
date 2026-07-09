@@ -45,9 +45,20 @@
     "threw me under the bus",
     "confront my manager",
     "i freeze when",
-    "take advantage of me"
+    "take advantage of me",
+    "difficult conversation",
+    "word a message",
+    "draft a text",
+    "tough conversation",
+    "hard conversation",
+    "hard talk",
+    "set a boundary",
+    "phrase an email",
+    "rehearse what to say",
+    "practice what to say",
+    "tell someone to stop"
   ],
-  "semantic_description": "Assertiveness training protocol. DESC formula: Describe, Express, Specify, Consequence. Assertive communication technique. Passive versus assertive versus aggressive communication styles. Communication assertiveness training. Assertive self-expression. Setting limits. Saying no with clarity. The art of the assertive request. Interpersonal effectiveness skills. DESC communication formula application. Wolpe assertiveness training. Assertive boundary-setting protocol. Role-play rehearsal for assertive communication. Communication style identification and training. Expressing needs directly. The no-guilt assertive refusal technique. Smith assertive communication protocol.",
+  "semantic_description": "Assertive communication for preparing a difficult, tough, or hard conversation, setting a boundary, saying no, standing up for yourself, or wording, drafting, or rehearsing a message you are nervous to send. Assertiveness training protocol. DESC formula: Describe, Express, Specify, Consequence. Assertive communication technique. Passive versus assertive versus aggressive communication styles. Communication assertiveness training. Assertive self-expression. Setting limits. Saying no with clarity. The art of the assertive request. Interpersonal effectiveness skills. DESC communication formula application. Wolpe assertiveness training. Assertive boundary-setting protocol. Role-play rehearsal for assertive communication. Communication style identification and training. Expressing needs directly. The no-guilt assertive refusal technique. Smith assertive communication protocol.",
   "steps": [
     {
       "step_id": "understand_assertiveness",
