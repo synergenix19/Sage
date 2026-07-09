@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sage_poc.state import SageState
 from sage_poc.language import async_translate_to_arabic
+from sage_poc.gender_marker import detect_gender_marking
 from sage_poc.config import AUDIT_LOG_ENABLED, CRISIS_LINE_UAE, CRISIS_CONFIG, CLASSIFIER_MODEL
 from sage_poc.llm import get_classifier
 from sage_poc.rules import engine as rules_engine
@@ -676,10 +677,14 @@ async def output_gate_node(state: SageState) -> dict:
         # strict-retry, when it fires) -- not the surrounding gate work (cultural check,
         # format strip, audit build). Same time.monotonic() idiom as latency_ms.
         _translate_t0 = time.monotonic()
-        final_response = await async_translate_to_arabic(response_en)
+        # Signed "mirror-when-marked, neutral-when-unknown" gender-address policy: computed
+        # from raw_message (the raw AR user text), never message_en (translated EN carries no
+        # Arabic grammatical gender marking to detect against).
+        _gender_marked = detect_gender_marking(state.get("raw_message", ""))
+        final_response = await async_translate_to_arabic(response_en, gender=_gender_marked)
         if _has_english_bleed(final_response):
             _log.warning("[output_gate] English bleed in Arabic output; re-translating strict")
-            final_response = await async_translate_to_arabic(response_en, strict=True)
+            final_response = await async_translate_to_arabic(response_en, strict=True, gender=_gender_marked)
             path = path + ["arabic_token_guard_retranslate"]
             if _has_english_bleed(final_response):
                 _log.warning("[output_gate] English bleed persists after strict re-translate (telemetry only)")

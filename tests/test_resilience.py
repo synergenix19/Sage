@@ -664,7 +664,9 @@ async def test_output_gate_arabic_uses_async_translate():
         return_value="أسمعك",
     ) as mock_t:
         result = await output_gate_node(state)
-    mock_t.assert_called_once_with("I hear you")
+    # gender="none": state carries no raw_message, so detect_gender_marking("") -> "none"
+    # (signed gender-address policy, computed from the raw AR user text at the translate hop).
+    mock_t.assert_called_once_with("I hear you", gender="none")
     assert result["response"] == "أسمعك"
 
 
