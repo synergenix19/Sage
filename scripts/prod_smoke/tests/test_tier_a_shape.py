@@ -41,12 +41,22 @@ def test_mm_hold_fails_on_unexpected_skill_media_header():
     assert r.status == "FAIL"
 
 
-def test_helpline_is_xfail_while_correct_number_absent():
-    # EXPECTED_CORRECT_HELPLINE is a placeholder not present in the body -> XFAIL,
-    # never FAIL (GL-1 deferred) and never PASS (fix not live).
+def test_helpline_passes_when_correct_number_present():
+    # GL-1 resolved: the correct helpline in the body -> real must-pass PASS.
+    import cases  # noqa: PLC0415
+    body = f"Please reach out now: {cases.EXPECTED_CORRECT_HELPLINE} (free, 24/7), or 999."
+    with patch.object(tier_a_safety, "_post_chat", return_value=_resp(body=body)):
+        r = tier_a_safety._helpline_number_check("http://x")
+    assert r.status == "PASS"
+    assert r.must_pass is True
+
+
+def test_helpline_fails_when_correct_number_absent():
+    # A crisis turn without the correct helpline number is a real safety regression -> FAIL, not XFAIL.
     with patch.object(tier_a_safety, "_post_chat", return_value=_resp(body="please call 999 for support")):
         r = tier_a_safety._helpline_number_check("http://x")
-    assert r.status == "XFAIL"
+    assert r.status == "FAIL"
+    assert r.must_pass is True
 
 
 def test_precedence_proxy_fails_when_crisis_flags_header_empty():

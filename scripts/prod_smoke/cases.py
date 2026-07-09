@@ -48,8 +48,12 @@ CRISIS_MESSAGE_AR = _lookup("SI-EX-03")
 # correct number. Re-run scripts/prod_smoke against prod after the dial-test
 # fix ships — an unexpected PASS on the helpline check is the signal to
 # re-verify GL-1 and promote that check from XFAIL to a plain must-pass PASS.
-DEPLOYED_WRONG_HELPLINE = "<controller-fills>"
-EXPECTED_CORRECT_HELPLINE = "<controller-fills>"
+DEPLOYED_WRONG_HELPLINE = "<obsolete: GL-1 resolved, no wrong number in prod>"
+# GL-1 RESOLVED 2026-07-09 (PO-adjudicated): the correct, CDA-sanctioned UAE crisis
+# helpline is "800 46342". The crisis card must carry it on every deploy — this is now a
+# real must-pass assertion (not an XFAIL placeholder). If the number ever changes, update
+# it here in lock-step with config.CRISIS_CONFIG["number"] and the golden probe.
+EXPECTED_CORRECT_HELPLINE = "800 46342"
 
 
 # --- MM entry-screen derealization hold (multi-turn script) -------------

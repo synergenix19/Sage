@@ -23,54 +23,54 @@ from functional_test_production import HEADERS  # noqa: E402 — reuse, do not f
 
 TIER = "c"
 
-# server.py's `health_ready` (GET /health/ready) returns only
-# {"status": "ready", "routing_mode": <"v1"|"v2">} today — it does not echo
-# these env-gated kill-switch flags. Each is therefore reported as a FAIL
-# with a detail that names the observability gap, rather than guessed at.
-# If /health/ready is ever extended to expose a flag under its own env-var
-# name, _evaluate_flag below picks up the real value automatically.
-_EXPECTED_ON = {
-    "SAGE_ROUTE_PRECEDENCE": True,
-    "SAGE_SKILL_MEDIA_ENABLED": True,
-    "SAGE_IPV_PREEMPTION": False,
-}
+# Deploy-flag readback via GET /health/version (auth-gated — it returns the RESOLVED value and raw
+# env for each kill-switch: crisis_tiering_enabled, skill_media_enabled, route_precedence_enabled,
+# ipv_preemption_enabled). /health/ready deliberately carries only readiness signals, not flags, so
+# this reads the provenance endpoint instead. Each entry: (env-var label for the check name, the
+# /health/version field, the expected RESOLVED state on a correct prod deploy).
+_FLAG_CHECKS = (
+    ("SAGE_ROUTE_PRECEDENCE", "route_precedence_enabled", True),
+    ("SAGE_SKILL_MEDIA_ENABLED", "skill_media_enabled", True),
+    ("SAGE_IPV_PREEMPTION", "ipv_preemption_enabled", False),
+)
 
 _NON_KB_CHAT_MESSAGE = "I had a pretty good day today, just wanted to check in."
 
 
-def _evaluate_flag(flag: str, expected_on: bool, body: dict) -> CheckResult:
-    if flag not in body:
+def _evaluate_flag(label: str, field: str, expected_on: bool, body: dict) -> CheckResult:
+    if field not in body:
         return CheckResult(
-            name=f"flag_readback[{flag}]",
+            name=f"flag_readback[{label}]",
             tier=TIER,
             status="FAIL",
-            detail="flag not observable via /health/ready — endpoint needs a field",
+            detail=f"{field!r} not present on /health/version — deploy predates the field, or endpoint drift",
             must_pass=True,
         )
-    observed = body[flag]
+    observed = body[field]
     ok = bool(observed) == expected_on
     return CheckResult(
-        name=f"flag_readback[{flag}]",
+        name=f"flag_readback[{label}]",
         tier=TIER,
         status="PASS" if ok else "FAIL",
-        detail=f"/health/ready.{flag}={observed!r} (expected {'on' if expected_on else 'off'})",
+        detail=f"/health/version.{field}={observed!r} (expected {'on' if expected_on else 'off'})",
         must_pass=True,
     )
 
 
 def _flag_checks(base_url: str) -> list[CheckResult]:
     try:
-        resp = httpx.get(f"{base_url}/health/ready", timeout=15.0)
+        # /health/version is auth-gated (GL-5) — reuse the shared X-Sage-Api-Key HEADERS.
+        resp = httpx.get(f"{base_url}/health/version", headers=HEADERS, timeout=15.0)
         resp.raise_for_status()
         body = resp.json()
     except Exception as exc:
-        detail = f"GET /health/ready failed: {exc}"
+        detail = f"GET /health/version failed: {exc}"
         return [
-            CheckResult(name=f"flag_readback[{flag}]", tier=TIER, status="FAIL", detail=detail, must_pass=True)
-            for flag in _EXPECTED_ON
+            CheckResult(name=f"flag_readback[{label}]", tier=TIER, status="FAIL", detail=detail, must_pass=True)
+            for label, _field, _exp in _FLAG_CHECKS
         ]
 
-    return [_evaluate_flag(flag, expected_on, body) for flag, expected_on in _EXPECTED_ON.items()]
+    return [_evaluate_flag(label, field, exp, body) for label, field, exp in _FLAG_CHECKS]
 
 
 def _chat_header_regression(base_url: str) -> CheckResult:
