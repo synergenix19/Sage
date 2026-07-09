@@ -23,3 +23,6 @@ Each item shows the **rendered wording/patterns** (not just the question), so on
 
 ## (Item 4 moved OUT of this queue) — Containment Task 0 is an ARCHITECTURE SIGNATURE, not a content approval
 Deliberately NOT bundled here: items 1–3 are one-touch content approvals; Task 0 is a heavy architecture signature with two co-signatories (arch-doc owner, PO) and its own dated chase (`2026-07-09-containment-signature-chase.md`, PR #223). Bundling invites clearing the light items and deferring the heavy one. **Task 0 runs on its own channel as the named 07-31 escalation.**
+
+
+## ✅ APPROVED 2026-07-09 — Vee (clinical lead): item 1 rehome clause, item 2 #219 Group A, item 3 #218 ERP copy (incl. ERP-modality enrichment). #218 rendered-composition + rehome-clause clinician-confirm GIVEN.
