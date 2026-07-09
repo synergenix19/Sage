@@ -39,3 +39,12 @@ def test_entry_screen_surfaces_cardiac_pregnancy_caveat_verbatim():
     assert ("skip those two steps" in haystack) or ("check with a doctor" in haystack), (
         "caveat must instruct skipping the temperature/exercise steps or checking with a doctor"
     )
+
+
+def test_entry_screen_carries_psychoed_opener():
+    """H1 (clinician-filled): the completed L187 opener must precede the caveat."""
+    entry = _entry_screen()
+    haystack = " ".join([" ".join(entry.examples or []), entry.technique_description or ""]).lower()
+    assert "don't push yourself beyond what feels safe" in haystack, (
+        "TIPP entry must carry the completed psychoed opener (BOT BEHAVIOUR L187, clinician-filled)"
+    )
