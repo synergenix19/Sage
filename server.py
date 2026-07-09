@@ -862,8 +862,24 @@ async def health_version(_: None = Depends(require_api_key)):
     """
     import sage_poc, sage_poc.config as _c, sage_poc.nodes.safety_check as _sc
     from sage_poc.safety.crisis_tier import resolve_crisis_tier_detail as _r
+    # Deploy-provenance SHA with EXPLICIT fallback ordering. The endpoint must never return a silent
+    # empty string — a blank/lying version string caused the 2026-07-03 stale-build incident, and a
+    # manual `railway up` leaves SAGE_BUILD_SHA stale while a git-integration deploy sets
+    # RAILWAY_GIT_COMMIT_SHA. Prefer the explicit pin, fall back to the integration SHA, else say
+    # "unknown" loudly. `build_sha_source` names which one answered, so provenance is never ambiguous.
+    _build_sha = (
+        os.environ.get("SAGE_BUILD_SHA")
+        or os.environ.get("RAILWAY_GIT_COMMIT_SHA")
+        or "unknown"
+    )
+    _build_sha_source = (
+        "SAGE_BUILD_SHA" if os.environ.get("SAGE_BUILD_SHA")
+        else "RAILWAY_GIT_COMMIT_SHA" if os.environ.get("RAILWAY_GIT_COMMIT_SHA")
+        else "unknown"
+    )
     return {
-        "build_sha": os.environ.get("SAGE_BUILD_SHA", "unknown"),
+        "build_sha": _build_sha,
+        "build_sha_source": _build_sha_source,
         "crisis_tiering_enabled": CRISIS_TIERING_ENABLED,
         "crisis_tiering_raw_env": os.environ.get("SAGE_CRISIS_TIERING"),
         "skill_media_enabled": _skill_media_enabled(),
