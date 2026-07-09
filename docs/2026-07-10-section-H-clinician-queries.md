@@ -17,7 +17,7 @@
 
 **What we need:** the completed L187 sentence — what should the user be told *not* to do? And: is L187 a **separate** instruction, or should it merge into the L188 cardiac caveat (already live)? *(Note: L118 — cited earlier — is unrelated; it is a `STOPP` skill-table cell. The only truncation is L187.)*
 
-**Decision:** ☐ fill: ________________________________________  ☐ L187 merges into L188 (no separate line)
+**Decision (2026-07-10, PO):** ☑ **FILLED** → *"We're going to shock your system into calming down, step by step, just follow along. Please note, don't push yourself beyond what feels safe."* — a separate opener line preceding the L188 caveat. **Shipped:** dbt_tipp entry (commit `a6c0771`, PR #280).
 
 ---
 
@@ -30,7 +30,7 @@
 **Proposed default sentence (for the clinician to tick or reword):**
 > *"A skill whose Format is 'Video' or 'Video/audio guided' is delivered as a single all-at-once turn — the technique framing and its video together, then straight to the check-in — not the turn-by-turn, one-instruction-per-turn delivery used for guided-conversation skills such as TIPP. The five Video skills are: box breathing, progressive muscle relaxation, mindfulness meditation, body scan, guided/safe-place visualization."*
 
-**Decision:** ☐ tick (adopt as the delivery rule for Wave-2 `delivery_format`)  ☐ edit: ____________________  ☐ reject (keep turn-by-turn)
+**Decision (2026-07-10, PO):** ☑ **TICKED** — adopted verbatim as the Wave-2 `delivery_format` rule. The five Video skills (box breathing, PMR, mindfulness meditation, body scan, guided/safe-place visualization) deliver **all-at-once** (technique framing + video → straight to check-in), vs. turn-by-turn for guided-conversation skills like TIPP. **Unblocks the Wave-2 build.**
 
 ---
 
@@ -77,6 +77,6 @@ Lead-logic (L2146): *lead with 999 only on indication of immediate danger; other
 
 **What we need (cross-normative — PO + clinical lead, no eng recommendation):** (a) the authoritative primary number + its *true* hours; (b) whether prod carries the full 5-entry list + lead-logic; (c) explicit reconciliation of `800 46342 / 24-7` against the doc — is it correct, or a mistaken entry to replace?
 
-**Decision:** ☐ config is authoritative as-is  ☐ adopt doc 5-entry list + lead-logic  ☐ correct the number/hours to: ____________________  ☐ needs verification call before ruling
+**Decision (2026-07-10, PO):** ☑ **adopt the doc's list exactly, config-driven.** ⚠ **REVERSES GL-1** (2026-07-09 PO ruling: `800 46342` + 24/7 correct, config authoritative) — now superseded because the doc is normative. **HELD BEFORE PROD** on three gates: (a) the doc's own *"verify numbers/hours before launch"* check (L2130); (b) clinical sign-off (crisis-path change); (c) crisis-freeze lift. Config-driven refactor to be built on a branch, **not deployed**, pending these + an explicit reversal confirmation.
 
 > **Constraint:** crisis config is under change-freeze and PO-owned. This item is **findings + decision-request only** — no edit is proposed or will be made without an explicit PO/clinical ruling recorded here.
