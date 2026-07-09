@@ -1,8 +1,14 @@
 # §3a Low-Mood Screen — Final Recommendations (for Vee: approve / reject / edit)
 
-> **What this resolves.** How §3a low-mood disclosures get the spec-mandated validate → screen → woven-SI-question flow: specifically, *what fires the screen* (eligibility detection) and *where the safety guarantee lives*. Grounded in the measurements we ran (calibration-gated, config-stamped) and the BOT BEHAVIOUR spec you approved. Nothing here flips the flag; all of it is pre-flip, flag-OFF, no field exposure.
+> **READ THIS FIRST — what you are actually signing.** Every number in this packet was measured against the **PROPOSED, unsigned** List A/B (the trigger-set deliverable). So this is **design-confirmation, not certification of performance.** The first thing your signature does is convert the oracle from draft to signed. The sequence is:
+> **you sign the lists → enrichment runs → the harness re-runs against *your signed* lists → those numbers meet R5/R6 → only then do the detector-retirement and flag-flip decisions have certified numbers under them.**
+> You are not ratifying measured performance here — you are signing the oracle that performance will then be measured against. Every figure below is the *current* state against the draft lists, for scoping — not a promise of where it lands.
 >
-> **How to read it.** 7 recommendations, each with the rationale and an **[ ] Approve · [ ] Edit · [ ] Reject**. R3/R4/R5 are the ones that are genuinely yours (clinical); R1/R2/R6/R7 are architecture/eng you should be aware of and can veto.
+> **What this resolves.** How §3a low-mood disclosures get the spec-mandated validate → screen → woven-SI-question flow: specifically, *what fires the screen* (eligibility detection) and *where the safety guarantee lives*. Grounded in calibration-gated, config-stamped measurements and the BOT BEHAVIOUR spec you approved. Nothing here flips the flag; all pre-flip, flag-OFF, no field exposure.
+>
+> **The measured baseline (joint keyword + semantic path, the real prod routing — not semantic alone):** §3a recall = **25/39 = 0.641** on the draft List A; FP = **3/15** on draft List B. Verified joint: the keyword tier was live (4 exact-match hits) and **none** of the 14 misses were caught by the keyword tier — so the residual survives *both* tiers.
+>
+> **How to read it.** 7 recommendations, each with rationale and **[ ] Approve · [ ] Edit · [ ] Reject**. R3/R4/R5 are genuinely yours (clinical); R1/R2/R6/R7 are architecture/eng you should be aware of and can veto.
 
 ---
 
@@ -17,7 +23,7 @@ Why (this is the load-bearing safety principle): an eligibility **miss is fail-s
 **[ ] Approve · [ ] Edit · [ ] Reject**
 
 ## R3 — Confirm these ~11 markers as true §3a gaps to close (the spec already says they are).
-**Recommendation: treat as §3a (should fire the screen).** The docx lists each bare statement only/primarily under §3a: "everything feels like an effort", "stay under the covers", "nothing sounds enjoyable", "can't be bothered", "even small tasks feel difficult", "keep putting everything off", "I feel flat", "I feel disconnected from everything", "going through the motions", "build a better routine", "don't want to talk to anyone". Today the routing sends these to nothing or to a non-BA skill, so they miss the depression screen + its SI question.
+**Recommendation: treat as §3a (should fire the screen).** These are the **real residual, not an inflated one**: they were measured against the **joint keyword+semantic path**, and none were caught by the keyword tier — so they genuinely miss *both* tiers today (they route to nothing or to a non-BA skill, missing the depression screen + its SI question). The docx lists each bare statement only/primarily under §3a: "everything feels like an effort", "stay under the covers", "nothing sounds enjoyable", "can't be bothered", "even small tasks feel difficult", "keep putting everything off", "I feel flat", "I feel disconnected from everything", "going through the motions", "build a better routine", "don't want to talk to anyone".
 **[ ] Approve · [ ] Edit (move any to R4) · [ ] Reject**
 
 ## R4 — Leave these 3 "oracle-edge" markers routing elsewhere; do NOT enrich them into BA.
@@ -29,8 +35,10 @@ Why (this is the load-bearing safety principle): an eligibility **miss is fail-s
 **[ ] Approve (exclude all 3) · [ ] Edit (per-marker disposition) · [ ] Reject**
 
 ## R5 — The flag-flip recall bar is your clinical acceptance call, not an engineering threshold.
-**Recommendation: 0.90 recall on the signed List A as the *design* gate; the *flip* bar is whatever real recall you accept.** After the R1 enrichment (11 markers), projected recall is ~0.92 on non-edge §3a. But "N% of §3a disclosures don't get the depression-cluster safety screen" is a clinical risk-acceptance decision — engineering confirms the number; you accept it. The 3 R4 edges are deliberately excluded from the denominator.
-**[ ] Approve 0.90 floor · [ ] Edit the bar · [ ] Reject**
+**Recommendation: adopt 0.90 recall on the signed List A as the *design* gate; the *flip* bar is whatever real recall you accept once measured.**
+The call is made against the **measured** state, not a forecast: **current joint-path recall = 25/39 = 0.641** (25/36 = 0.69 excluding the 3 R4 cross-categorized edges), and the **demonstrated gap = 11 spec-unambiguous §3a markers that currently miss the screen**. "N% of §3a disclosures don't get the depression-cluster safety screen" is a clinical risk-acceptance decision; engineering will report the real recall *after* the R1 enrichment runs against your signed lists, and you accept, or don't, whatever that measured number is.
+**Deliberately omitted: any projected post-enrichment recall.** Enrichment has not run; a forecast is exactly the plausible-but-unmeasured figure this workstream has had refuted three times, so R5 leans only on measured data.
+**[ ] Approve 0.90 design gate (flip bar set later against measured recall) · [ ] Edit the gate · [ ] Reject**
 
 ## R6 — Precision gate: zero false-BA on the *signed look-alike set*, err toward not-asking.
 **Recommendation: FP = 0 on signed List B** (a spurious §3a fires an SI question at a benign user near the still-broken GL-1 card — the asymmetry is real). Current FP = 3/15: 1 keyword-tier (fix = tighten BA's `target_presentations`), 2 semantic-tier (the enrichment must not worsen these; the harness measures FP through every change). Note: "FP = 0 on the curated adversarial set" is the gate, **not** a claim of zero false positives in the wild.
