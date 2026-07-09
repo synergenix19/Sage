@@ -23,7 +23,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from sage_poc.graph import build_graph
 from sage_poc.config import RESPONDER_MODEL, DB_POOL_MAX_SIZE, CHECKPOINT_POOL_MAX_SIZE, CRISIS_TIERING_ENABLED
-from sage_poc.crisis_copy import assert_crisis_copy_resolves
+from sage_poc.crisis_copy import assert_crisis_copy_resolves, crisis_copy_is_templated
 from sage_poc.language import text_direction
 from sage_poc.server_helpers import _build_state, _stale_skill_overrides, _void_unseen_offer
 from sage_poc.llm import get_classifier
@@ -790,6 +790,10 @@ async def health_version(_: None = Depends(require_api_key)):
         "crisis_tiering_raw_env": os.environ.get("SAGE_CRISIS_TIERING"),
         "skill_media_enabled": _skill_media_enabled(),
         "skill_media_raw_env": os.environ.get("SAGE_SKILL_MEDIA_ENABLED"),
+        # Mechanism-level attestation for BYTE-IDENTICAL crisis templating: True iff the deployed
+        # crisis source carries {{crisis_}} placeholders. Distinguishes a real templated deploy from
+        # a stale-literal one when the build_sha above is a lying label (see deploy-control doc).
+        "crisis_copy_templated": crisis_copy_is_templated(),
         "sage_poc_path": getattr(sage_poc, "__file__", "unknown"),
         # Deep diagnostic (bug #2: graph computes crisis_tier=NULL despite flag true). Reports what the
         # DEPLOYED process's graph modules actually see, so "why is the tier NULL" is an observation.
