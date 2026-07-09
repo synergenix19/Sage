@@ -83,7 +83,7 @@ def _mood_state(**kw):
 # ── BOUNDARY-CROSSING E2E (the W1 lesson): drive output_gate_node through the translate step ────
 @pytest.mark.asyncio
 async def test_e2e_anchor_present_when_translate_corrupts_scale():
-    async def corrupt_translate(text, *, strict=False):
+    async def corrupt_translate(text, *, strict=False, **_kw):
         return _CORRUPT_AR
     with patch("sage_poc.nodes.output_gate.async_translate_to_arabic", side_effect=corrupt_translate), \
          patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()):
@@ -96,7 +96,7 @@ async def test_e2e_anchor_present_when_translate_corrupts_scale():
 async def test_e2e_anchor_present_when_translate_is_scaleless():
     # Option C through the real boundary + the OBSERVED prod behaviour: translate emits a warm,
     # scale-less invitation -> the canonical anchored scale must still be in the final output.
-    async def scaleless_translate(text, *, strict=False):
+    async def scaleless_translate(text, *, strict=False, **_kw):
         return _SCALELESS_AR
     with patch("sage_poc.nodes.output_gate.async_translate_to_arabic", side_effect=scaleless_translate), \
          patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()):
