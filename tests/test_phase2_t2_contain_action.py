@@ -13,9 +13,12 @@ def test_dormant_on_master_no_contain_flags():
 
 
 def test_contain_supersedes_abstain_in_source():
-    # the consumer branch places contain BEFORE the abstain early-return (contain supersedes)
+    # the consumer branch places contain BEFORE the abstain early-return (contain supersedes).
+    # Anchor on CODE markers, not the bare path strings (which also appear in comments).
     import inspect
-    src = inspect.getsource(ss.skill_select_node) if hasattr(ss, "skill_select_node") else inspect.getsource(ss)
-    ci = src.find("clinical_flag_contain")
-    ai = src.find("clinical_flag_abstain")
-    assert ci != -1 and ai != -1 and ci < ai, "contain branch must precede abstain (design §2: contain supersedes bare abstain)"
+    src = inspect.getsource(ss.skill_select_node)
+    ci = src.find("_contain_flag = next(")                       # the contain branch (code)
+    ai = src.find('if any(_disp.get(f) == "abstain"')            # the abstain early-return (code)
+    assert ci != -1, "contain branch (_contain_flag) must exist in skill_select_node"
+    assert ai != -1, "abstain early-return must exist"
+    assert ci < ai, "contain branch must precede abstain (design §2: contain supersedes bare abstain)"
