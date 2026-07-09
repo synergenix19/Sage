@@ -2,6 +2,12 @@
 
 **One relay, every open decision.** Clinician turnaround is the only clock on this thread we don't control, so it is paid **once** here rather than per item. Ordered by urgency; each item is **tick / edit / reject**; evidence files linked. Route: same channel as prior copy sign-offs; PO relays.
 
+> **STATUS — clinical sign-off APPROVED by Vee, 2026-07-10** (batch doc-verified against BOT BEHAVIOUR.docx by a 4-agent QA pass; no safety defects; 4 accuracy fixes applied pre-approval).
+> - **ITEM 1 (OF-1 15 blurbs):** clinically approved → matrix rows move PARTIAL → CONFORMS-content (CONFORMS pending driven transcript).
+> - **ITEM 2 (Wave-2 5 collapsed scripts):** clinically approved → clear to re-author the 5 skills.
+> - **ITEM 0 (H4 crisis composition):** clinical accuracy of the doc's list confirmed. The **live-value change stays gated** — reversing GL-1 + verify-before-launch + the crisis-freeze lift are PO/operational decisions, not clinical-only. Not cleared to deploy by this approval alone.
+> - **ITEM 3 (H3 ST-6 target):** confirm whether Vee's approval filled this blank or it remains open.
+
 ---
 
 ## ⚠️ ITEM 0 — URGENT (latency has a safety cost): crisis-resource composition (H4)
