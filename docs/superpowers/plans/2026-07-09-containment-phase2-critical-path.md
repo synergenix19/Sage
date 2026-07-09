@@ -78,8 +78,12 @@ Three hard human gates in 11 days (07-16/18/21) against 07-31, from signatories 
 - **HG-2 (tier) + HG-3 (referral copy) — DRAFT THIS WEEK** even though dated 07-18/07-21, so Vee can clear them early if her calendar allows. (HG-2/3 partly pre-answered inside the HG-1 packet already — tier recommendation + 116111 signpost — so they may collapse into the HG-1 sitting.)
 - **#258 build-side lock enforcement — ride any idle window this week** (before a third bypass tests whether the tripwire alone deters).
 
-## Build status (2026-07-09)
-✅ **T1 shipped** (containment_directive state field, inert, PR #262). Serial spine next: T2 contain-action → T3 edge. Reference-family (OCD) content in parallel. HG-1 out; HG-2/3 drafting.
+## Build status
+✅ **T1 shipped** (containment_directive state field, inert, PR #262).
+✅ **T2 shipped** (contain disposition supersedes abstain in skill_select, dormant, PR #268/#269).
+✅ **T3 shipped 2026-07-10** (conditional containment edge in _route_after_skill_select → knowledge_retrieve; dormant, byte-identical to master; PR #275). **AC-CRISIS-SUPREMACY landed + PASSING** (bidirectional, `tests/test_phase2_t3_crisis_supremacy.py`) — proven STRUCTURAL: the edge is downstream of the Node-1 crisis short-circuit, so crisis wins positionally for whichever detector fires; empirical finding recorded that the intent-escalation fixture does not trip the keyword lexicon (rests on semantic/S7), which is why the test asserts the positional invariant not a keyword. The 3 phase2 spine tests are now inside the required merge-blocking `Safety-surface unit tests` check.
+
+**Spine engineering complete (T1→T2→T3, all dormant).** NEXT: **T4-REFERENCE (OCD abstain→contain)** — proves the whole chain end-to-end. Its parts (each a gate): P5 template (validate→psychoeducate→differentiate→refer→engage) as verbatim post-gen pin; the OCD KB article (embedding-surface change → full mechanism-4 gate + clinician-signed byte-for-byte per the pre-registration); the OCD flag declaring `contain`; **first live directive → staging first + full probe set (AC-CRISIS-SUPREMACY re-run live, KB-failsafe, suggest_skill-off, L2 queue row, AC-RENDER to Vee)**. HG-1 out; HG-2/3 drafting (safeguarding T4 gated on HG-1/2/3).
 
 ---
 

@@ -21,6 +21,10 @@ semantic/S7 detectors. That is exactly why this suite asserts the positional inv
 than a keyword match: the guarantee must hold for whichever detector fires, so a keyword-keyed
 test would be both brittle and understate the guarantee. End-to-end render is AC-RENDER (T4,
 staging, Vee).
+
+This suite is in the unit-gate CANDIDATES list, so AC-CRISIS-SUPREMACY sits inside the
+required merge-blocking "Safety-surface unit tests" check (see .github/workflows/unit-gate.yml,
+which runs on every PR via the guard-job so the required check never deadlocks a docs-only PR).
 """
 from langgraph.graph import END
 
