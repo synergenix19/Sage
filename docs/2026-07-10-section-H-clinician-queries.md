@@ -45,7 +45,7 @@
 
 **What we need:** the concrete resource(s) for a **non-crisis** TIPP-ceiling case (L80 says this is explicitly *not* the crisis path). Reuse the UAE crisis list? A separate non-emergency referral (e.g. National Mental Support Line)? A named service/number?
 
-**Decision:** ☐ fill: ________________________________________  ☐ reuse crisis list (see H4)  ☐ non-emergency referral: ____________________
+**Decision (2026-07-10, PO):** ☑ **reuse the crisis-resource composition (`CRISIS_RESOURCES`) message for now** — interim. ST-6 ceiling routes to the same resource list as the crisis path (the National Mental Support Line is an appropriate general human-support target). A dedicated non-emergency referral can replace this later. *(Note: this pragmatically links ST-6 to the crisis composition despite the doc framing Section E as "separate from the crisis guard" — an interim, PO-approved.)*
 
 ---
 
