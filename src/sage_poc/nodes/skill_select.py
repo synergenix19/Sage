@@ -710,6 +710,7 @@ async def skill_select_node(state: SageState) -> dict:
             "skill_match_method": None,
             "semantic_score": None,
             "path": state["path"] + ["skill_select", "ocd_compulsion_veto"],
+            "abstain_referral": "ocd_erp",  # #218: Node-8 pins the ERP professional-referral signpost
         }
 
     # V2 behavior #4: enforce the frozen ABSTAIN dispositions DECLARED on the flag definitions.

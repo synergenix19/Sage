@@ -96,6 +96,31 @@ def _pin_mood_anchor(text: str, executed_step_id: str | None, lang: str) -> str:
     if _MOOD_SCALE_RX.search(text):                # 3. LLM presented a non-canonical scale -> canonical
         return _MOOD_PINNED_TEMPLATE_AR
     return text.rstrip() + " " + _MOOD_PINNED_SCALE_AR  # 4. warm wrapper only -> append canonical scale
+
+
+# #218 (Layer 2): the vetoed-OCD abstain must carry the spec §1d professional-referral signpost.
+# Pinned VERBATIM post-generation at Node 8 (mirrors the mood-anchor pin) so the clinician-approved
+# ERP wording is un-paraphrasable + audit-visible. EN only; AR referral filed to the AR track.
+_OCD_ERP_REFERRAL_EN = (
+    "It sounds like these thoughts are really distressing and hard to sit with. Thoughts like these "
+    "often respond well to support from a mental health professional who offers ERP (exposure and "
+    "response prevention) for OCD, an approach with strong evidence. I'm here to keep talking in the "
+    "meantime if that would help."
+)
+
+
+def _pin_ocd_referral(text: str, abstain_referral: str | None, lang: str) -> str:
+    """Node-8 post-generation append of the pinned OCD/ERP professional-referral signpost on a
+    vetoed-OCD abstain turn (spec §1d; #218). Verbatim, never through the LLM — the approved wording
+    ships exactly and is audit-visible. EN only (AR referral -> AR track); already-present or other
+    turns/langs -> no-op."""
+    if abstain_referral != "ocd_erp" or lang != "en":
+        return text
+    if "exposure and response prevention" in text.lower():
+        return text
+    return text.rstrip() + "\n\n" + _OCD_ERP_REFERRAL_EN
+
+
 _OPENER_REWRITE_DISTRESS_CEILING = 9  # severe distress (9-10/10) -> suppress rewrite (pass through);
 # the lexicon is the primary sensitive-content gate, this is a wording-independent backstop for the top of the scale
 
@@ -697,6 +722,7 @@ async def output_gate_node(state: SageState) -> dict:
     # the verbatim clause concatenated (never un-anchored). Defense — identical anchors (translate
     # corruption) fall back to the pinned template. AR score_mood turns only.
     final_response = _pin_mood_anchor(final_response, state.get("executed_step_id"), lang)
+    final_response = _pin_ocd_referral(final_response, state.get("abstain_referral"), lang)  # #218
 
     if AUDIT_LOG_ENABLED:
         audit = {
