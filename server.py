@@ -766,6 +766,11 @@ async def extract_profile(
             **profile.get("cultural_preferences", {}),
         },
         "mood_trajectory":          mood_traj,
+        # Carry observations forward. They are written only by the record_observation
+        # tool (never emitted by extract_session_profile), so omitting this key made the
+        # full-row upsert overwrite them with [] — silent loss of mid-session clinical
+        # observations. Preserve existing; the extractor never contributes observations.
+        "observations":             existing.get("observations", []),
         "total_skills_completed":   existing.get("total_skills_completed", 0) + profile.get("skills_completed", 0),
         "session_count":            session_count + 1,
         "last_extraction_turn":     turn_count,
