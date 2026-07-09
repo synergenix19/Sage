@@ -44,3 +44,6 @@ Confirm bin (a) routes to BA; confirm bin (b) stays abstain (or move any); **rul
 
 ## SIGN-OFF (2026-07-08)
 **Clinical lead: APPROVED.** ① all three bin-(c) phrases → **stay abstain** ('I don't really care anymore', 'I feel empty', 'everything feels pointless' — the last removed from BA target_presentations). ② bins (a)/(b) confirmed. ③ rendered semantic_description confirmed. Recognition clause = bin (a) only. PO present (Rohan).
+
+
+## SHIPPED 2026-07-09 — prod master 7f2b30d; behaviorally verified (depression→BA, passive-SI→crisis). Gate cleared.

@@ -19,3 +19,6 @@ Nothing about the engineering fix waits on you. The fix (BA exemplar enrichment,
 ## Packet order (severity-first)
 1. THIS §3a concentration disclosure + per-pathway floor.
 2. The three presence_only Class-A rulings (PR #204 backlog): §3d offload, §7a company, S2a grief.
+
+
+## RESOLVED 2026-07-09 — fix deployed prod 7f2b30d (BA recall recovered, id_oos held). Per-pathway floor signed + in gate criteria.

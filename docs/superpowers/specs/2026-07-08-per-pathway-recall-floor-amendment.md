@@ -31,3 +31,6 @@ BA exemplar enrichment moves the bi-encoder candidate surface + the reranker sco
 
 
 ## SIGN-OFF (2026-07-08): APPROVED — zero-recall=hard-fail, <40%=warning; pathway list approved as proposed.
+
+
+## SHIPPED 2026-07-09 — BA pathway 0→7/7 clears the signed floor; deployed prod 7f2b30d.
