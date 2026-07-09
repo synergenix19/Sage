@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Prod/staging deploy wrapper — enforces prod-deploy-control.md MECHANICALLY (the deploy lock #225).
+# A control that exists beats a norm everyone must remember. Usage: deploy_prod.sh <staging|production> <full-sha>
+set -euo pipefail
+ENV="${1:?usage: deploy_prod.sh <staging|production> <full-40char-sha>}"; SHA="${2:?full deploy SHA required}"
+PROJECT=4f1811e7-cab2-4002-9107-a9f782f2f274; SERVICE=160e9f65-e3c8-409a-b647-fbe2339a265d
+HOLDER="${USER:-unknown}@$(hostname -s 2>/dev/null||echo host)-$$"; TTL=1200
+rw(){ RAILWAY_CALLER="skill:use-railway@1.2.0" RAILWAY_AGENT_SESSION="deploy-lock-$$" railway "$@" --project $PROJECT --environment $ENV --service $SERVICE; }
+now(){ date +%s; }
+# 1. CHECK LOCK (shared Railway var DEPLOY_LOCK = holder|env|sha|epoch)
+LOCK=$(rw variables --json 2>/dev/null | python3 -c "import sys,json;print(json.load(sys.stdin).get('DEPLOY_LOCK',''))" || echo "")
+if [ -n "$LOCK" ]; then
+  TS=$(echo "$LOCK"|awk -F'|' '{print $4}'); N=$(now)
+  if [ -n "$TS" ] && [ $((N-TS)) -lt $TTL ]; then
+    echo "❌ ABORT: deploy in progress — [$LOCK] held $((N-TS))s ago (< ${TTL}s). Serialize (prod-deploy-control.md §1)." >&2; exit 2
+  fi
+  echo "⚠️  stale lock [$LOCK] (> ${TTL}s) — reclaiming."
+fi
+# 2. CLAIM
+rw variables --set "DEPLOY_LOCK=${HOLDER}|${ENV}|${SHA:0:12}|$(now)" >/dev/null
+echo "🔒 lock claimed: $HOLDER on $ENV @ ${SHA:0:12} (TTL ${TTL}s)"
+# 3. ANCESTRY GATE (load-bearing safety commits must be ancestors of the deploy tree)
+FAIL=0; for c in bc3cb4b 5852ea1 944939b 27bfd3b 8079caa 7a57107; do
+  git merge-base --is-ancestor $c "$SHA" 2>/dev/null || { echo "❌ ancestry: $c NOT ancestor of $SHA"; FAIL=1; }; done
+[ $FAIL -eq 1 ] && { echo "ABORT: ancestry gate failed."; rw variables delete DEPLOY_LOCK >/dev/null 2>&1||true; exit 3; }
+echo "✅ ancestry gate passed"
+# 4. cache-bust hygiene (full-SHA ARG; delete the lying SAGE_BUILD_SHA override)
+rw variables delete SAGE_BUILD_SHA >/dev/null 2>&1 || true
+rw variables --set "RAILWAY_GIT_COMMIT_SHA=$SHA" >/dev/null
+echo "✅ cache-bust set: RAILWAY_GIT_COMMIT_SHA=$SHA · SAGE_BUILD_SHA deleted (derives from ARG)"
+echo ""
+echo "NEXT (still yours to run, the lock is held ${TTL}s): from a worktree detached at origin/master ($SHA):"
+echo "  railway up --detach -c -m '<msg>'"
+echo "Then MANDATORY behavioral probe (health SHA is necessary-not-sufficient) + verify crisis_copy_templated."
+echo "Release when verified:  railway variables --set DEPLOY_LOCK='' ... (or let the ${TTL}s TTL expire)."
