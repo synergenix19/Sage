@@ -115,9 +115,16 @@ _GENDER_DIRECTIVES: dict[str, str] = {
         "exemplars' masculine address."
     ),
     "none": (
-        "The user's gender is not marked. Use gender-NEUTRAL constructions -- avoid "
-        "gendered second-person verbs/pronoun suffixes; prefer first-person presence, "
-        "collaborative forms (خلنا), impersonal/nominal phrasing. Do NOT guess a gender."
+        "The user's gender is NOT marked, so gendered second-person address of EITHER "
+        "gender is wrong here -- masculine forms (عليك، إنك، تحسّ، تقدر) are as incorrect "
+        "as feminine ones; do NOT fall back to the exemplars' masculine address. Build the "
+        "reply ONLY from these gender-free Khaleeji constructions: (1) NOMINAL framing -- "
+        "describe the situation, not the person («الوضع ثقيل» / «هالشي صعب», not «أنت "
+        "متعب»); (2) IMPERSONAL / PASSIVE verbs («ما لازم كل شي ينحل الليلة»، «يصير في "
+        "ضغط»); (3) COLLABORATIVE first-person-plural («خلنا ناخذها خطوة خطوة»، «نقدر "
+        "نشوف»); (4) FIRST-PERSON presence («أنا هني»، «أنا أسمع»); (5) QUESTIONS with no "
+        "second-person address («شو أصعب شي الحين؟»). Any ك/ج suffix or gendered "
+        "second-person verb aimed at the user is an error in this case."
     ),
 }
 

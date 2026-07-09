@@ -31,16 +31,23 @@ def test_masculine_directive_is_explicit():
     assert "وياك" in prompt
 
 
-def test_neutral_directive_avoids_guessing():
+def test_neutral_directive_is_strong_and_positive():
+    """The neutral directive must be positive + concrete (name the constructions to USE) and
+    explicitly forbid the masculine default -- not merely 'avoid gender'. The weak form let the
+    masculine exemplars leak in prod (functional test 2026-07-09: unmarked reply came back
+    masculine). Strengthened to match the feminine directive's specificity."""
     prompt = _build_khaleeji_translation_prompt("Take your time.", gender="none")
-    assert "neutral" in prompt.lower()
-    assert "not guess a gender" in prompt.lower() or "not guess" in prompt.lower()
+    assert "gender-free" in prompt.lower()
+    assert "خلنا" in prompt          # collaborative construction named
+    assert "ينحل" in prompt          # impersonal/passive named
+    assert "أنا هني" in prompt       # first-person presence named
+    assert "عليك" in prompt and "إنك" in prompt   # masculine default explicitly forbidden
 
 
 def test_default_gender_is_none_and_neutral_directive_present():
-    """Callers that do not pass gender get the neutral directive (safe default)."""
+    """Callers that do not pass gender get the (strong) neutral directive as the safe default."""
     prompt = _build_khaleeji_translation_prompt("Take your time.")
-    assert "neutral" in prompt.lower()
+    assert "gender-free" in prompt.lower()
 
 
 # ---- async_translate_to_arabic threads gender into the prompt --------------------------
