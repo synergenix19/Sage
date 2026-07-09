@@ -63,3 +63,34 @@ class TestFireTripwire:
         monkeypatch.setattr(httpx.AsyncClient, "post", _boom)
         # Contract: never raises — the review write must not fail on a tripwire error.
         await tripwire.fire_l2_tripwire(user_id="real", session_id="s", reason="r", severity="high")
+
+
+class TestNotifyReviewRequiredWiring:
+    """The notify_review_required -> fire_l2_tripwire wiring. Overrides the conftest autouse mute
+    with a spy, so this is the one test that proves the hook is actually invoked (with the flag's
+    identity, after the DB write) — the integration point the unit tests above don't cover."""
+
+    async def test_wires_tripwire_after_pool_release(self, monkeypatch):
+        from unittest.mock import AsyncMock, MagicMock
+        import sage_poc.memory.notification as notif
+
+        calls = []
+
+        async def _spy(**kwargs):
+            calls.append(kwargs)
+
+        monkeypatch.setattr(notif, "fire_l2_tripwire", _spy)
+
+        pool = MagicMock()
+        conn = AsyncMock()
+        pool.acquire = MagicMock(return_value=AsyncMock(
+            __aenter__=AsyncMock(return_value=conn), __aexit__=AsyncMock()))
+        conn.execute = AsyncMock()
+
+        await notif.PostgresNotifier(pool).notify_review_required(
+            user_id="real-user", session_id="s9", reason="crisis_flags",
+            source="layer1_safety", payload={"flags": ["x"]}, severity="high",
+        )
+        assert conn.execute.await_count == 2   # INSERT + NOTIFY still happen
+        assert calls == [{"user_id": "real-user", "session_id": "s9",
+                          "reason": "crisis_flags", "severity": "high"}]
