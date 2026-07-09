@@ -18,8 +18,16 @@ import pytest
 
 from sage_poc import config
 from sage_poc.state import SageState
+from sage_poc.nodes.low_mood_detect import LOW_MOOD_FIRE_PHRASES, LOW_MOOD_LOOKALIKE_PHRASES
 from sage_poc.nodes.skill_select import skill_select_node
 from tests.test_skill_select import _ss_state
+
+# NOTE: `offerable=` passed to `_ss_state` below is inert scaffolding, it is
+# not a SageState field and skill_select_node never reads it. These tests
+# actually exercise the real Tier-1 keyword matcher (behavioral_activation's
+# target_presentations) against `message_en`, which is why every message_en
+# used with `offerable=["behavioral_activation"]` also contains a BA keyword
+# match (e.g. "lost interest in everything").
 
 
 def test_flag_defaults_off():
@@ -70,12 +78,19 @@ _LOW_MOOD_POSITIVES = [
     "I don't want to see anyone, I just want to stay in bed",
 ]
 
-_LOW_MOOD_NEGATIVES = [
-    "meh, bit of a flat day today",
-    "I lost interest in the movie halfway through",
-    "I'm tired after a long week",
-    "bored, what should I do tonight",
-]
+# The original Task-2 negative set, PLUS the full clinician-owned look-alike
+# list (list B, governance doc), deduplicated. This is the held-green
+# precision boundary through the Task-2-hardening recall widen: every one of
+# these must still fail to fire, exactly as before.
+_LOW_MOOD_NEGATIVES = sorted(
+    {
+        "meh, bit of a flat day today",
+        "I lost interest in the movie halfway through",
+        "I'm tired after a long week",
+        "bored, what should I do tonight",
+        *LOW_MOOD_LOOKALIKE_PHRASES,
+    }
+)
 
 
 @pytest.mark.parametrize("phrase", _LOW_MOOD_POSITIVES)
@@ -101,7 +116,8 @@ def test_low_mood_false_positive_rate_on_negative_set_is_zero():
 
     A matcher that over-fires manufactures an SI question for benign users and
     routes them toward a crisis card — false positives are a safety cost here,
-    not just noise. Do not weaken _LOW_MOOD_NEGATIVES to make this pass.
+    not just noise. Do not weaken _LOW_MOOD_NEGATIVES (list B, the clinician
+    precision boundary, plus the original Task-2 negatives) to make this pass.
     """
     from sage_poc.nodes.low_mood_detect import is_low_mood_disclosure
 
@@ -110,6 +126,51 @@ def test_low_mood_false_positive_rate_on_negative_set_is_zero():
     assert fp_rate == 0.0, (
         f"§3a low-mood false-positive rate on the negative set is {fp_rate:.2%} "
         f"(non-zero): {false_positives!r}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Task-2 hardening — recall widen: every list-A (fire) phrase, transcribed
+# from the governance doc and single-sourced from low_mood_detect's data
+# file, plus ten independent review paraphrases that exercise the
+# family/token-aware generalization (not verbatim list-A strings) must fire.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("phrase", LOW_MOOD_FIRE_PHRASES)
+def test_is_low_mood_disclosure_fires_on_every_list_a_phrase(phrase):
+    from sage_poc.nodes.low_mood_detect import is_low_mood_disclosure
+
+    assert is_low_mood_disclosure(phrase) is True, (
+        f"§3a governance list-A (fire) phrase not detected: {phrase!r}"
+    )
+
+
+_LOW_MOOD_REVIEW_PARAPHRASES = [
+    "I have no motivation for anything anymore",
+    "I can't get out of bed most days",
+    "nothing brings me joy anymore",
+    "I don't want to do anything today",
+    "I feel so numb inside lately",
+    "I have zero energy these days",
+    "everything feels like such an effort",
+    "I have been avoiding all my friends",
+    "I just want to isolate from everyone",
+    "nothing is fun anymore",
+]
+
+
+@pytest.mark.parametrize("phrase", _LOW_MOOD_REVIEW_PARAPHRASES)
+def test_is_low_mood_disclosure_fires_on_review_paraphrases(phrase):
+    """AC-RECALL: independent paraphrases (not verbatim list A) must still fire.
+
+    These exercise the family/token-aware generalization built for Task-2
+    hardening, proving the matcher isn't just matching its own seed strings.
+    """
+    from sage_poc.nodes.low_mood_detect import is_low_mood_disclosure
+
+    assert is_low_mood_disclosure(phrase) is True, (
+        f"§3a review paraphrase not detected: {phrase!r}"
     )
 
 
