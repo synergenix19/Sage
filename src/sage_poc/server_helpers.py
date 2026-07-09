@@ -167,6 +167,7 @@ def _build_state(req: _RequestLike) -> dict:
         "path":               [],
         "skill_select_abstained": False,   # per-turn reset (like path) — no cross-turn abstain leak
         "abstain_referral": None,   # #218 per-turn reset (like skill_select_abstained)
+        "containment_directive": None,   # Phase-2 T1 per-turn reset (inert until T2-T4)
         "code_switching":     False,
         "directive_posture":  False,
         "self_reference":     False,

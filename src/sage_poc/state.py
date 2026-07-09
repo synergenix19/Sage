@@ -96,6 +96,7 @@ class SageState(TypedDict):
     path: list[str]
     skill_select_abstained: bool   # per-turn (reset by _build_state): True only when the V2 reranker
     abstain_referral: Optional[str]   # #218: 'ocd_erp' on a vetoed-OCD abstain turn -> Node-8 pins the ERP referral; per-turn reset
+    containment_directive: Optional[dict]   # Phase-2 T1: {family, flag_level, kb_topics, containment_skill_id?, rule_id} set ONLY by deterministic rules; per-turn reset; default None (inert until T2 contain-action + T3 edge wire it)
                                    # ABSTAINed (below-τ or keyword-veto) → routes to Node 3, not freeflow
     turn_count: int
     turn_number: int   # incremented by safety_check_node on every message; used for session_audit
