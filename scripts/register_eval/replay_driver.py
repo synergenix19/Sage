@@ -37,7 +37,7 @@ import os
 import uuid
 from pathlib import Path
 
-from scripts.register_eval.gender_marker import detect_gender_marking
+from sage_poc.gender_marker import detect_gender_marking
 from scripts.register_eval.replay_gates import replay_gates_on_row, gate_fire_summary
 
 _log = logging.getLogger(__name__)

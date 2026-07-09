@@ -662,7 +662,7 @@ def compose_prompt(state: SageState, l2_intent_override: str | None = None, *, s
     if language == "ar":
         if shadow_arabic:
             from sage_poc.prompts.loader import load_khaleeji_shadow_exemplars  # noqa: PLC0415
-            from scripts.register_eval.gender_marker import detect_gender_marking  # noqa: PLC0415
+            from sage_poc.gender_marker import detect_gender_marking  # noqa: PLC0415
             # Mirror-when-marked gender policy: detect grammatical self-marking from
             # the user's OWN raw Arabic text (never message_en — English carries no
             # equivalent marking), then select the matching few-shot rendering so the

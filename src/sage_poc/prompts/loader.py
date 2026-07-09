@@ -67,7 +67,7 @@ from functools import lru_cache as _lru_cache
 
 _KHALEEJI_EXEMPLARS_PATH = _Path(__file__).parent / "khaleeji_shadow_exemplars.json"
 
-# gender_marked value ('f' | 'm' | 'none', see scripts/register_eval/gender_marker.py)
+# gender_marked value ('f' | 'm' | 'none', see src/sage_poc/gender_marker.py)
 # -> the per-exemplar rendering key to use, for the mirror-when-marked policy: a
 # grammatically self-marked user mirrors back in that gender, an unmarked user gets
 # the neutral rendering. Any value not in this map (including "none") falls back to

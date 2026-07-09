@@ -1,4 +1,4 @@
-"""Unit tests for scripts/register_eval/gender_marker.py::detect_gender_marking.
+"""Unit tests for src/sage_poc/gender_marker.py::detect_gender_marking.
 
 The shadow-measure's gender policy is "mirror-when-marked, neutral-when-unknown":
 mirror the user's own grammatical self-marking of gender when present, fall back
@@ -6,7 +6,7 @@ to neutral Arabic otherwise. detect_gender_marking is the deterministic classifi
 that drives that stratification — it must never guess: conflicting or absent
 markers both resolve to "none", never a coin-flip toward "f" or "m".
 """
-from scripts.register_eval.gender_marker import detect_gender_marking
+from sage_poc.gender_marker import detect_gender_marking
 
 
 def test_feminine_self_marking_seed_017():
