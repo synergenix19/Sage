@@ -16,6 +16,7 @@ from sage_poc.resilience import EMBEDDING_TIMEOUT_SECONDS
 from sage_poc.observability import stage_timer
 from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP, SEMANTIC_EXCLUSION_WORDS
 from sage_poc.rules import engine as rules_engine
+from sage_poc import config
 from sage_poc.config import (
     SKILL_RUNNER_UP_MIN, SKILL_RUNNER_UP_MARGIN, SKILL_OFFER_COOLDOWN_TURNS,
     SKILL_OFFER_COOLDOWN_ENABLED,
@@ -452,6 +453,7 @@ def _resolve_entry(
     filtered by declined_skills: declined handling is the fired rule's decision
     (the acute rule substitutes within a pool via action.on_declined)."""
     # declined_skills updates on user decline are intent_route's responsibility (Task 8).
+    from sage_poc.nodes.low_mood_detect import is_low_mood_disclosure  # noqa: PLC0415
     primary = candidates[0]
 
     # Arabic-exclusion gate (2026-06-13): the R1 consent-offer flow is English-only
@@ -543,6 +545,28 @@ def _resolve_entry(
             "semantic_score": None,
             "path": state["path"] + audit_markers + ["all_candidates_declined"],
         }
+
+    # §3a low-mood validate-first interception (Task 2, SAGE_LOW_MOOD_SCREEN, default OFF).
+    # A §3a low-mood/anhedonia disclosure must not receive the immediate behavioral_activation
+    # offer today's flow gives it -- that skips the clinician-mandated screening + safety
+    # question. Defer the offer (screen_stage="validated") so a later flow (built in other
+    # tasks) can validate -> screen -> ask the woven SI question. This block only defers; it
+    # does not build the screen itself.
+    if config.LOW_MOOD_SCREEN_ENABLED and state.get("detected_language") == "en" \
+            and not state.get("screen_stage") \
+            and "behavioral_activation" in (offerable or []) \
+            and is_low_mood_disclosure(state.get("message_en")):
+        # lang gate is FIRST-CLASS, not defence-in-depth: never enter a screen whose SI
+        # answer we cannot parse. AR §3a falls through to today's offer path until the AR unit ships.
+        return {
+            "active_skill_id": None,
+            "active_step_id": None,
+            "offered_skill_ids": None,
+            "screen_stage": "validated",
+            "skill_match_method": "low_mood_screen",
+            "path": state["path"] + ["skill_select", "low_mood_screen"],
+        }
+
     return {
         "active_skill_id": None,
         "active_step_id": None,
