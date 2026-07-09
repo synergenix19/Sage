@@ -61,3 +61,22 @@ Both are ACCEPTANCE (block ship), not aspirations — they were signature condit
 
 ## Check 5 — explicit NOT-INCLUDED (bounded scope)
 Phase 2 builds ONLY the three approved families: OCD (reference), harm-intrusive (migration), safeguarding (#1). **The BOT BEHAVIOUR audit's other Class-A discoveries (§3d offload, §7a company, S2a grief, and any future) STAY in the CMS backlog the clinician prioritizes — they do NOT enter Phase 2 by discovery.** A ten-family audit does not make Phase 2 a ten-family project. The pathway (state/action/edge/template) is reusable, so a later family is a CMS `contain` row, not a Phase-2 reopen.
+
+---
+
+# REVIEW CONDITIONS ACCEPTED (2026-07-09) — verdict: pass + 2 conditions + front-load caution
+
+## Condition 2 — reference-family gate includes RENDERED-OUTPUT acceptance (not just routing)
+"The pathway works" ≠ "the pathway produces class output" — and the second is what Phase 2 was sold on. So the OCD reference-family migration-gate adds, as BLOCKING acceptance:
+- **AC-RENDER:** a **staging transcript of the OCD containment turn** goes to Vee — asserting the full chain rendered well: directive fires → knowledge_retrieve seeds → L3/L4 compose **within budget** → Falcon renders → output_gate appends the referral + audits → the **L2 queue row exists**. Not "did it route" — "did it produce a clinician-class containment response."
+- **AC-CANNED (the still-open commitment):** the two staging renders promised in the canned-ness debate — **skill-guided vs freeflow** on the same containment turn — land here as their natural home; both go to Vee with AC-RENDER.
+The reference gate result (including these transcripts) is the **next command checkpoint** — the moment Phase 2 proves it delivers what Abby's transcript started.
+
+## Front-load caution — the calendar has NO slack; front-load the one clock we don't control
+Three hard human gates in 11 days (07-16/18/21) against 07-31, from signatories whose Task-0 turnaround took a full week. Escalation-after-miss recovers days that don't exist. **Mitigation (mechanical): every HG packet ships the moment its content exists, not on its deadline.**
+- **HG-1 — OUT TODAY** (`2026-07-09-HG1-safeguarding-clinician-packet.md`, enriched per Condition 1).
+- **HG-2 (tier) + HG-3 (referral copy) — DRAFT THIS WEEK** even though dated 07-18/07-21, so Vee can clear them early if her calendar allows. (HG-2/3 partly pre-answered inside the HG-1 packet already — tier recommendation + 116111 signpost — so they may collapse into the HG-1 sitting.)
+- **#258 build-side lock enforcement — ride any idle window this week** (before a third bypass tests whether the tripwire alone deters).
+
+## Build status (2026-07-09)
+✅ **T1 shipped** (containment_directive state field, inert, PR #262). Serial spine next: T2 contain-action → T3 edge. Reference-family (OCD) content in parallel. HG-1 out; HG-2/3 drafting.
