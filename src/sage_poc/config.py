@@ -126,6 +126,13 @@ SKILL_OFFER_COOLDOWN_TURNS = int(os.getenv("SAGE_SKILL_OFFER_COOLDOWN_TURNS", "2
 # C3 timing without bypassing C3.
 SKILL_OFFER_COOLDOWN_ENABLED: bool = os.getenv("SAGE_SKILL_OFFER_COOLDOWN_ENABLED", "false").lower() == "true"
 
+# §3a low-mood validate-first + woven-safety flow (GATED — default OFF, clinician-signed
+# design pending build completion). When enabled, an English low-mood/anhedonia disclosure
+# routes to a validate -> screen -> woven-SI-question flow instead of an immediate BA offer
+# (spec 2026-07-09-low-mood-validate-first-woven-safety-design.md). Flag OFF => byte-identical
+# to today's §3a offer path. Interception is EN-only until the native-Khaleeji Arabic unit ships.
+LOW_MOOD_SCREEN_ENABLED: bool = os.getenv("SAGE_LOW_MOOD_SCREEN", "false").lower() == "true"
+
 # D5 deterministic acuity gate (GATED — default OFF, pending standalone clinical sign-off).
 # When enabled, _intensity_guidance() returns a validate-only string at/above the floor:
 # name the specific thing said, stay purely supportive, do NOT challenge a distorted belief.
