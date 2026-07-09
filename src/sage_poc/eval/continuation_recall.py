@@ -60,6 +60,20 @@ class DeckItem:
 Detector = Callable[[DeckItem, bool], bool]
 
 
+def _validate_deck(deck: list[DeckItem]) -> None:
+    """FAIL LOUD on set/crisis inconsistency. `set` and `crisis` are independent columns in the #231
+    schema, but a POS item MUST be crisis=True and a NEG item crisis=False. A mismatch is a labeling
+    error (e.g. `crisis` corrected in triage but `set` not) that would otherwise silently shrink a
+    denominator on a >=95% gate, or penalise precision for a correct detection — so we raise rather
+    than drop. No silent caps on a clinical-recall metric."""
+    bad = [i.id for i in deck if i.is_pos != i.crisis]
+    if bad:
+        raise ValueError(
+            "deck set/crisis inconsistency (POS must be crisis=True, NEG crisis=False): "
+            + ", ".join(bad)
+        )
+
+
 def load_deck(path: str | Path) -> list[DeckItem]:
     """Load a JSONL deck in the #231 schema. Unknown columns are kept in `raw` (no transformation)."""
     items: list[DeckItem] = []
@@ -75,6 +89,7 @@ def load_deck(path: str | Path) -> list[DeckItem]:
             clinician_tier=d.get("clinician_tier"), dialect_ok=d.get("dialect_ok"),
             raw=d,
         ))
+    _validate_deck(items)
     return items
 
 
@@ -104,9 +119,12 @@ class HarnessReport:
 
 
 def score(deck: list[DeckItem], detect: Detector) -> HarnessReport:
-    """Score a labeled deck against a detector. Pure — no I/O, no model loading."""
-    pos = [i for i in deck if i.is_pos and i.crisis]
-    neg = [i for i in deck if not i.is_pos]
+    """Score a labeled deck against a detector. Pure — no I/O, no model loading. Raises on a
+    set/crisis-inconsistent deck (fail-loud; see _validate_deck), so a directly-built deck is held
+    to the same invariant as a loaded one."""
+    _validate_deck(deck)
+    pos = [i for i in deck if i.is_pos]      # crisis==True guaranteed by _validate_deck
+    neg = [i for i in deck if not i.is_pos]  # crisis==False guaranteed by _validate_deck
     standalone_pos = [i for i in pos if i.is_standalone]
     context_pos = [i for i in pos if not i.is_standalone]
 

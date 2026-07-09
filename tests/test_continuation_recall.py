@@ -1,5 +1,6 @@
 """#233 — continuation-recall harness STRUCTURE tests (runs today against a stub; labels land later)."""
 import json
+import pytest
 from sage_poc.eval.continuation_recall import (
     DeckItem, load_deck, score, SYSTEM_RECALL_TARGET,
     STANDALONE, CONTEXT_REQUIRED, POS, NEG,
@@ -81,3 +82,23 @@ def test_load_deck_consumes_231_schema_verbatim(tmp_path):
     assert len(deck) == 1
     assert deck[0].clinician_tier == "T2"
     assert deck[0].raw["notes"] == "extra col kept"   # forward-compatible, no transformation
+
+
+def test_set_crisis_mismatch_fails_loud():
+    # POS-but-not-crisis would silently vanish from every metric; NEG-but-crisis would penalise
+    # precision for a correct detection. Both must RAISE, not miscount a >=95% gate.
+    with pytest.raises(ValueError, match="set/crisis"):
+        score([DeckItem(id="BAD-POS", text="x", lang="en", crisis=False, set=POS, context=STANDALONE)],
+              _stub_detect)
+    with pytest.raises(ValueError, match="set/crisis"):
+        score([DeckItem(id="BAD-NEG", text="x", lang="en", crisis=True, set=NEG, context=STANDALONE)],
+              _stub_detect)
+
+
+def test_load_deck_rejects_mismatch(tmp_path):
+    f = tmp_path / "bad.jsonl"
+    f.write_text(json.dumps(
+        {"id": "X", "text": "x", "lang": "en", "crisis": False, "set": POS, "context": STANDALONE}
+    ), encoding="utf-8")
+    with pytest.raises(ValueError, match="set/crisis"):
+        load_deck(f)
