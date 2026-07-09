@@ -118,6 +118,8 @@ class SageState(TypedDict):
                                    # ABSTAINed (below-τ or keyword-veto) → routes to Node 3, not freeflow
     turn_count: int
     turn_number: int   # incremented by safety_check_node on every message; used for session_audit
+    screen_stage: Optional[str]   # §3a low-mood screen stage: None|"validated"|"described"|"si_asked"|"cleared". CROSS-TURN: set by the low_mood screen, read by safety_check on a later turn; NOT reset in _build_state (would clear the probe before the answer arrives)
+    safety_probe_asked: bool      # §3a: True after the woven SI question is posed. CROSS-TURN: read by safety_check on the answer turn to catch an affirmative-without-lexicon; NOT reset in _build_state
     turn_started_at: float   # time.monotonic() stamped before ainvoke (server.py); output_gate uses it to compute latency_ms
     latency_ms: int          # per-turn graph latency, computed in output_gate from turn_started_at; written to session_audit
     freeflow_gen_ms: Optional[int]   # served English-arm generation time (_invoke_with_tool_loop), ms; set unconditionally by freeflow_respond_node (all languages, shadow flag on/off); written to session_audit
