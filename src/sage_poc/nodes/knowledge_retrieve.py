@@ -35,8 +35,17 @@ async def knowledge_retrieve_node(state: SageState) -> dict:
         }
 
     lang = state.get("detected_language", "en")
-    # Use original text for Arabic FTS matching; translated text for English.
-    query = state.get("raw_message", "") if lang == "ar" else state.get("message_en", "")
+    # Phase-2 T4 (DORMANT): on a containment turn the directive seeds the FAMILY psychoeducation
+    # article by kb_topics, not the user's message — a contain turn must serve the clinician-approved
+    # article, not whatever the message happens to retrieve. containment_directive is None until a
+    # family declares contain (T4), so this branch is inert and the retrieval below is unchanged.
+    directive = state.get("containment_directive")
+    if directive and directive.get("kb_topics"):
+        query = " ".join(directive["kb_topics"])
+        _log.info("[knowledge_retrieve] containment seed: kb_topics=%s", directive["kb_topics"])
+    else:
+        # Use original text for Arabic FTS matching; translated text for English.
+        query = state.get("raw_message", "") if lang == "ar" else state.get("message_en", "")
 
     repo = PostgresKnowledgeRepository(pool)
     result = await repo.retrieve(query, language=lang, top_k=5)
