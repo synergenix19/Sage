@@ -99,11 +99,10 @@ def _crisis_resource_check(name: str, base_url: str, message: str) -> CheckResul
 
 
 def _helpline_number_check(base_url: str) -> CheckResult:
-    """XFAIL (known GL-1 gap, PO-deferred — not a fresh bug): prod crisis
-    copy currently surfaces the wrong helpline number. Asserts the body
-    contains cases.EXPECTED_CORRECT_HELPLINE; that assertion fails today by
-    design. An unexpected PASS is the signal the dial-test fix landed —
-    re-verify GL-1 and promote this check to a plain must-pass PASS.
+    """Must-pass: the crisis card must carry the correct, PO-adjudicated helpline number
+    (cases.EXPECTED_CORRECT_HELPLINE = "800 46342", GL-1 RESOLVED 2026-07-09). A crisis turn
+    that surfaces a wrong or absent helpline number is a direct-harm safety regression — the
+    single most safety-critical string in the system — so this FAILs loudly, it is not an XFAIL.
     """
     name = "crisis_helpline_number_correct"
     session_id = _session_id("helpline")
@@ -111,25 +110,21 @@ def _helpline_number_check(base_url: str) -> CheckResult:
         status, body, _headers = _post_chat(base_url, cases.CRISIS_MESSAGE_EN, session_id)
     except Exception as exc:
         return CheckResult(
-            name=name, tier=TIER, status="XFAIL",
-            detail=f"GL-1 deferred (also hit HTTP error: {exc})", must_pass=True,
+            name=name, tier=TIER, status="FAIL",
+            detail=f"HTTP error probing crisis helpline: {exc}", must_pass=True,
         )
 
     if status == 200 and cases.EXPECTED_CORRECT_HELPLINE in body:
         return CheckResult(
             name=name, tier=TIER, status="PASS",
-            detail=(
-                "correct helpline number found in body — this is an unexpected PASS "
-                "against a known GL-1 gap; re-verify the dial-test fix and promote "
-                "this check off XFAIL"
-            ),
+            detail=f"crisis card carries the correct helpline {cases.EXPECTED_CORRECT_HELPLINE!r}",
             must_pass=True,
         )
     return CheckResult(
-        name=name, tier=TIER, status="XFAIL",
+        name=name, tier=TIER, status="FAIL",
         detail=(
-            "GL-1 deferred: prod shows wrong helpline; flips to unexpected-PASS "
-            "when the dial-test fix lands — that is the signal to update this assertion."
+            f"crisis card does NOT carry the correct helpline {cases.EXPECTED_CORRECT_HELPLINE!r} "
+            f"(status={status}) — crisis-copy regression on the most safety-critical string."
         ),
         must_pass=True,
     )

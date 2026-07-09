@@ -889,6 +889,13 @@ async def health_version(_: None = Depends(require_api_key)):
         "crisis_tiering_raw_env": os.environ.get("SAGE_CRISIS_TIERING"),
         "skill_media_enabled": _skill_media_enabled(),
         "skill_media_raw_env": os.environ.get("SAGE_SKILL_MEDIA_ENABLED"),
+        # Kill-switch flag readback (resolved value + raw env), same pattern as crisis_tiering /
+        # skill_media above, so the prod smoke suite (tier C) can verify these default-OFF safety
+        # switches are in their intended state on a deploy rather than guessing.
+        "route_precedence_enabled": _c.ROUTE_PRECEDENCE_ENABLED,
+        "route_precedence_raw_env": os.environ.get("SAGE_ROUTE_PRECEDENCE"),
+        "ipv_preemption_enabled": _c.IPV_PREEMPTION_ENABLED,
+        "ipv_preemption_raw_env": os.environ.get("SAGE_IPV_PREEMPTION"),
         # Mechanism-level attestation for BYTE-IDENTICAL crisis templating: True iff the deployed
         # crisis source carries {{crisis_}} placeholders. Distinguishes a real templated deploy from
         # a stale-literal one when the build_sha above is a lying label (see deploy-control doc).
