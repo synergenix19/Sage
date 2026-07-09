@@ -444,3 +444,51 @@ The flag does not go live until every line below is filled in (not left as `____
 - [ ] Migrations 009 + 010 applied and RLS verified on PROD (§9, §10): `______`
 - [ ] Exemplar `ar` content native-authored + clinician-reviewed, version bumped (§10): `______`
 - [ ] Compiled-graph e2e sentinel green on deploy SHA (§10): `______`
+
+---
+
+## Amendment 1 (2026-07-08) — offline-campaign re-scope
+
+**Status:** supersedes the live-cohort assumption of §§2–5 for the *primary* measurement. The flag (`SAGE_NATIVE_ARABIC_SHADOW`), its deploy, and the served-path shadow arm remain built and correct, but they leave the measurement critical path: the three numbers (register delta, gate-fire rate, latency) are captured **offline** from the already-built instruments (`generate_shadow_arabic`, `rating_harness`, `replay_gates`) plus a new replay driver (`scripts/register_eval/replay_driver.py`, migration `013`). A short live confirmation run becomes optional, not the measurement.
+
+### A1.1 Three-layer offline design
+- **Layer 1 — seed set:** 25–30 curated Khaleeji / code-switch / Arabizi inputs (`seed_inputs.json`) → generator → blinded rating → gate replay. Controlled, authored inputs.
+- **Layer 2 — historical replay (primary source):** the ~431 real Arabic-script `role='user'` turns in `messages` (from 2026-06-08) → generator → blinded rating against the **actually-served reply** → gate replay. Real input distribution; zero users touched, zero latency imposed, zero serving-path risk.
+- **Layer 3 — gate replay over both batches** → the measured gate-port backlog (gate-fire rate).
+
+### A1.2 Sampling frame — full distribution, stratified by turn type
+Replaying every AR turn directly through `generate_shadow_arabic` **removes the live shadow's freeflow-arm-only limitation** (the smoke-test gap where skill-routed AR turns produced no row): skill-path turns are now covered. This is a *strict improvement* in sampling frame.
+
+**Honesty note, pre-committed:** a skill-path turn replayed offline is generated **without the live skill scaffold** — the step instruction injected at serving time is not reconstructed, so the native candidate for a skill turn is *freeflow-shaped*. Register is a **language property, not a protocol property**, so it is still validly measured; but this is the same class as §2's existing "non-comparable — shadow generated without the served arm's retrieved evidence" (a skill turn is typically a `tool_loop_iterations > 0` turn). Therefore: **results are stratified by turn type (freeflow vs skill / zero-tool vs tool>0). Skill/tool-turn register is reported separately and is NOT pooled into the zero-tool primary KPI mean (§2 governs).** A skill-turn register difference must not be read as a generation-language effect.
+
+### A1.3 Comparators — pre-committed primary vs secondary
+Layer 2 provides something the live shadow never had: the **actually-served reply alongside the native candidate for the same real message.**
+- **PRIMARY (register):** historical **served-vs-native** on the zero-tool primary set (§2) — the stored translate-out reply vs the native candidate. *Pre-committed as primary.* Caveat recorded: the two arms differ in **more than generation language** — the served reply carries live-time skill/routing context; this is why the zero-tool restriction (§2) and turn-type stratification (A1.2) bound the claim.
+- **SECONDARY (controlled):** the seed set — native vs a controlled English-then-translate arm, no live-time context confound.
+Pre-committing the primary prevents a post-hoc "which comparison counts" argument after the numbers are seen.
+
+### A1.4 `message_en` reconstruction caveat
+`message_en` was never persisted. The driver reconstructs it by **re-translating** the stored Arabic `content` with the live `async_translate_to_english`. Consequence, pre-committed: the reconstructed `message_en` is a **fresh** translation, not the live-time one; the `clinical_flags` replayed against are the **original stored** ones (the safety classification is preserved). Therefore replay **gate-fire is representative, not bit-identical** to live, and is reported as such.
+
+### A1.5 Latency (amends §5)
+Production p95 is **not** offline-measurable and is not claimed. `shadow_gen_latency_ms` is measured per replay (descriptive). The §5 served comparator (`freeflow_gen_ms + translate_out_ms`) did not exist when the historical turns were served, so it is unavailable for replay; `messages.latency_ms` is a stored but **anti-conservative** proxy (the same bias §5 already documents for combined `latency_ms`) and is reported only with that caution. **Primary latency evidence = a controlled staging load test** for prod p95; replay latency is descriptive only.
+
+### A1.6 Analysis integrity — one exemplar version per pool
+Migration `013` adds `source`, `source_message_id`, `run_id` and a **partial unique index on `(source_message_id, shadow_exemplar_version)`**. A re-run (seed shakedown → 431-scale → post-exemplar-bump re-run) **cannot double-populate the rating pool or mix treatment versions** in one blinded sheet; the harness selects a **single exemplar version** cleanly. This extends the §4 blinding-integrity control: a mixed-version pool is an invalidated comparison, now prevented at the schema level.
+
+### A1.7 Governance (replaces the live-pilot DPO ack)
+Layer 2 is **secondary use of clinical text for internal evaluation** → a recorded **DPO note** (same one-line class). The re-translation and generation reuse the **same external processor (OpenAI)** the live path already uses — **no new data-processor exposure**. **What lands in the row (the DPO note must name these, not just "outputs"):** the native shadow text, the reconstructed `message_en`, and — inside `gate_replay_result` — the English **back-translation** of the native output used for gate adjudication. That back-translation is a derived translation of a real-user-adjacent model output — **same restricted class** — covered by the table's existing RLS `ENABLE`+`FORCE`+`REVOKE` (migration `010`; migration `013` adds columns only, **no new grants**).
+
+### A1.8 Human gates: 5 → 2
+Off the critical path: prod deploy, flag flip, coordination window, flag-off date, and the full live-pilot DPO ack. **Remaining, irreducible:**
+1. **Gulf-native exemplar authoring + clinician tone sign-off** — no treatment arm exists without the Arabic exemplar text (the long pole).
+2. **Rater(s) + rubric sign-off** (§3, §4).
+The DPO ack shrinks to the A1.7 replay note. Scope removed, not safeguards.
+
+### A1.9 Gender-of-address policy (mirror-when-marked) + mis-gender secondary metric
+The register measure adopts **mirror-when-marked, neutral-when-unknown** (signed gender-of-address package; `ARCHITECTURE_BOUNDARIES` bias-safety convention). This is a **bridge toward the deferred Full-Build `gender_address` injection**, not gender-avoidance: neutral is the *unknown-gender* register, not the product's voice.
+- **`gender_marked` (f/m/none)** is computed **deterministically** from the raw user input (`detect_gender_marking`, migration `013` column) — not rater-judged, not model-asked. It stratifies the register set and runs over the 431 historical turns for free.
+- **Rating (amended 2026-07-08 — methodological correction):** register is scored on **language quality alone, always** (dialect, fluency, warmth), **regardless of gender correctness**. A **mis-gendered reply is a separate per-item flag** feeding the mis-gender secondary metric, with **no effect on the register score**. Rationale: capping register for a mis-gender folds an orthogonal address error into the quality scale — it would drag the marked-stratum register mean down by something that is not a language-quality defect (a mis-gendered reply can be otherwise-perfect Khaleeji), confounding the marked-vs-unmarked comparison this stratification exists to make and destroying the answer to "is neutrality costing warmth?". Score dimensions separately. On `none`, neutral is expected and **not** penalized for absent gendered warmth. Marked and unmarked register are reported **separately**.
+- **Served-path shift + evidence checkpoint (pre-committed 2026-07-08):** the same mirror-when-marked policy applies to the served **translate-out** path (PR #220 — closes a live masculine-default mis-gendering of unmarked/feminine users; session-stickiness = committed fast-follow #221). That shift makes *unmarked* served replies **neutral** (they were masculine-leaning, because the translation exemplars are masculine). **The unmarked stratum of this harness is that shift's evidence checkpoint** — it measures neutral-Khaleeji register against the ≥4.0 bar directly. **Pre-committed disposition (recorded now so it is not relitigated once the numbers are seen):** if the unmarked-stratum register comes back **materially below the marked stratum**, the neutral constructions get a **targeted authoring pass** (a warmer-neutral *authoring* problem) — **not** a policy reversal; the risk-asymmetry (wrong-gender is an alliance failure; neutral is a formality nuance) stands regardless. Gitex-window monitoring: a Gulf-native spot-check of a sample of served unmarked replies, plus the one-PR rollback lever.
+- **Mis-gender rate on marked inputs** is a **named secondary metric** — GPT-4o's compliance with the in-prompt mirror rule, i.e. the evidence the Full-Build *prompt-mirroring vs deterministic profile-injection* decision needs. **Never folded into the register mean.**
+- **Detector caveat (measurement integrity — reduce-then-quantify):** `detect_gender_marking` uses a starter lexicon (8 predicate-adjective pairs) with no Arabizi coverage. The third-party false-positive (a feminine mention of *someone else*, e.g. *أختي تعبانة*) is now **reduced by a first-person-anchor guard** — a marker counts as self-marking only with a nearby first-person anchor (أنا/إني/صرلي/عندي…), and never when a third-person possessor (أختي/أخوي…) immediately precedes it — biased toward false-negatives (→ neutral) over false-positives (→ wrong gender). The **residual** rate is then quantified over the 431 (the detector run yields it). The anchor/possessor lists and the lexicon remain starter sets pending Gulf-native linguist review. **Reduce first, then quantify — in that order** (architect condition of record).

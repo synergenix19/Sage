@@ -662,12 +662,25 @@ def compose_prompt(state: SageState, l2_intent_override: str | None = None, *, s
     if language == "ar":
         if shadow_arabic:
             from sage_poc.prompts.loader import load_khaleeji_shadow_exemplars  # noqa: PLC0415
-            _ex_version, _ex_block = load_khaleeji_shadow_exemplars()
+            from sage_poc.gender_marker import detect_gender_marking  # noqa: PLC0415
+            # Mirror-when-marked gender policy: detect grammatical self-marking from
+            # the user's OWN raw Arabic text (never message_en — English carries no
+            # equivalent marking), then select the matching few-shot rendering so the
+            # shadow generation actually applies the policy the gender_marked
+            # stratification column measures against.
+            _gender = detect_gender_marking(state.get("raw_message") or "")
+            _ex_version, _ex_block = load_khaleeji_shadow_exemplars(_gender)
+            _mirror_directive = (
+                "Address the user in the gender they grammatically self-mark; if "
+                "unmarked, use gender-neutral constructions. Never infer gender from "
+                "topic or name."
+            )
             system_parts.append(
                 "ARABIC SESSION (native generation): This user writes in Arabic. "
                 "Generate your reply directly in warm, informal Gulf Arabic (Khaleeji "
                 "dialect), not Modern Standard Arabic and not clinical or formal "
-                "phrasing. Mirror the user's dialect and level of formality.\n" + _ex_block
+                "phrasing. Mirror the user's dialect and level of formality.\n"
+                + _mirror_directive + "\n" + _ex_block
             )
             layers.append("arabic_native_shadow")
         else:
