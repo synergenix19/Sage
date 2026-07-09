@@ -19,6 +19,26 @@
           {"name": "خدمات الطوارئ", "number": "{{crisis_emergency}}", "available": "{{crisis_hours}}"}
         ]
       }
+    },
+    {
+      "rule_id": "CC-AR-002",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "approved_by": "vee",
+      "effective_date": "2026-07-10",
+      "active": true,
+      "description": "Native Arabic post-crisis monitoring empty-reply fail-safe (twin of CC-EN-003). Locale-selected native AR bypassing translate-out so the helpline digits come deterministically from CRISIS_CONFIG, never the translator. Clinician-signed (Vee) 2026-07-10.",
+      "category": "crisis_content",
+      "locale": "ar_uae",
+      "crisis_level": "monitoring_fallback",
+      "action": {
+        "type": "crisis_response",
+        "response_text": "ما زلت هنا معك. إذا أصبحت الأمور أصعب، أرجوك تواصل الآن مع خط وزارة الصحة للدعم النفسي: {{crisis_number}}، أو اتصل برقم الطوارئ {{crisis_emergency}}.",
+        "resources": [
+          {"name": "خط وزارة الصحة للدعم النفسي", "number": "{{crisis_number}}", "available": "{{crisis_hours}}"},
+          {"name": "خدمات الطوارئ", "number": "{{crisis_emergency}}"}
+        ]
+      }
     }
   ]
 }
