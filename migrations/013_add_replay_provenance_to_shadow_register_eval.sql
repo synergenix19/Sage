@@ -59,6 +59,11 @@ ALTER TABLE shadow_register_eval
 ALTER TABLE shadow_register_eval ALTER COLUMN session_id DROP NOT NULL;
 ALTER TABLE shadow_register_eval ALTER COLUMN turn_number DROP NOT NULL;
 
+-- NOT partial: PostgREST's on_conflict (the driver's upsert key) cannot match a PARTIAL
+-- unique index — Postgres raises 42P10 "no unique constraint matching the ON CONFLICT
+-- specification". NULLs are distinct in a unique index, so live-shadow rows
+-- (source_message_id IS NULL) still never collide here; they dedupe on the 009
+-- (session_id, turn_number) key. (Verified against real PostgREST 2026-07-09 — the
+-- _FakeClient tests did not exercise a live upsert, so the partial index slipped through.)
 CREATE UNIQUE INDEX IF NOT EXISTS shadow_register_eval_source_message_exemplar_uidx
-  ON shadow_register_eval (source_message_id, shadow_exemplar_version)
-  WHERE source_message_id IS NOT NULL;
+  ON shadow_register_eval (source_message_id, shadow_exemplar_version);
