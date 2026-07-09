@@ -121,6 +121,31 @@ def _pin_ocd_referral(text: str, abstain_referral: str | None, lang: str) -> str
     return text.rstrip() + "\n\n" + _OCD_ERP_REFERRAL_EN
 
 
+# Phase-2 T4 — P5 containment template, verbatim-pinned like the ERP referral above.
+# UNSIGNED PLACEHOLDER: empty until Vee signs the bytes (see 2026-07-10-t4-reference-content-drafts §A).
+# The empty-string default + the guard in _pin_containment_template make it STRUCTURALLY impossible
+# to serve unsigned content — even if a flag were declared prematurely, an empty template is a no-op.
+_CONTAINMENT_TEMPLATE_EN = ""
+
+
+def _pin_containment_template(text: str, containment_directive: dict | None, lang: str) -> str:
+    """Node-8 verbatim pin of the P5 containment template on a containment turn (Phase-2 T4).
+    Mirrors _pin_ocd_referral. DOUBLE no-op today: (1) containment_directive is None until a family
+    declares skill_select_disposition 'contain' (T4), and (2) the template is an empty UNSIGNED
+    placeholder until the signed bytes land. The empty-template guard is the load-bearing safety
+    invariant — it makes serving unsigned content impossible, so this can be wired ahead of sign-off
+    without building past the gate. EN only (AR template -> AR track); already-present -> no-op."""
+    if not containment_directive or lang != "en":
+        return text
+    if not _CONTAINMENT_TEMPLATE_EN.strip():
+        _log.warning("[output_gate] containment_directive set but P5 template is UNSIGNED (empty) — "
+                     "serving composed reply WITHOUT the template rather than an unsigned placeholder")
+        return text
+    if _CONTAINMENT_TEMPLATE_EN in text:
+        return text
+    return text.rstrip() + "\n\n" + _CONTAINMENT_TEMPLATE_EN
+
+
 _OPENER_REWRITE_DISTRESS_CEILING = 9  # severe distress (9-10/10) -> suppress rewrite (pass through);
 # the lexicon is the primary sensitive-content gate, this is a wording-independent backstop for the top of the scale
 
@@ -757,6 +782,7 @@ async def output_gate_node(state: SageState) -> dict:
     # corruption) fall back to the pinned template. AR score_mood turns only.
     final_response = _pin_mood_anchor(final_response, state.get("executed_step_id"), lang)
     final_response = _pin_ocd_referral(final_response, state.get("abstain_referral"), lang)  # #218
+    final_response = _pin_containment_template(final_response, state.get("containment_directive"), lang)  # T4 (dormant)
 
     if AUDIT_LOG_ENABLED:
         audit = {
