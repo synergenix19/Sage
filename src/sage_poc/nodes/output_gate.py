@@ -380,10 +380,20 @@ def _monitoring_fallback(lang: str) -> str:
         return result.fired[0].action["response_text"]
     return _EMPTY_MONITORING_FALLBACK_AR if lang == "ar" else _EMPTY_MONITORING_FALLBACK
 
-JAILBREAK_RESPONSE = (
+# Canonical Sage identity statement — SINGLE SOURCE OF TRUTH. Anchored to the ratified L0 persona
+# (L0_persona.json v2.5.0, clinical-lead signed 2026-06-25, live in prod): "a warm Khaleeji wellness
+# companion ... You offer emotional support and evidence-based coping tools." Both the jailbreak
+# persona-reassertion below and the CUO-ID-001 identity substitution (wellness_identity.json) restate
+# it; tests/test_identity_statement_single_source.py pins all three to this wording so they can never
+# silently drift again (#6). If this changes, update wellness_identity.json CUO-ID-001 in lock-step —
+# the drift-guard test enforces it.
+SAGE_IDENTITY_STATEMENT = (
     "I'm Sage, a wellness companion here to offer emotional support and evidence-based coping "
-    "techniques. That's my role. What's been on your mind today?"
+    "tools. That's my role. What's been on your mind today?"
 )
+
+# The jailbreak / persona-reassertion reply IS the canonical identity statement.
+JAILBREAK_RESPONSE = SAGE_IDENTITY_STATEMENT
 
 
 async def _log_clinical_review(
