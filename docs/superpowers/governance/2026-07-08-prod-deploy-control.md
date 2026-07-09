@@ -63,3 +63,12 @@ justification and the re-enable are what make it an exception rather than a hole
 - **Clobber 1:** item3 (`76f339d`, verified) reverted by parallel `944939b`.
 - **Clobber 2:** crisis-templating (`27bfd3b`) reverted by parallel `7ed83cf` (#196 "Phase 1").
 - **Stale build (mine):** deployed "`9f5705c`" via `railway up` + set `SAGE_BUILD_SHA` — but `RAILWAY_GIT_COMMIT_SHA` stayed `7ed83cf`, so the container ran `7ed83cf` code under a `9f5705c` label. `/health` lied; the byte-identical smoke couldn't catch it. Caught only by reading `RAILWAY_GIT_COMMIT_SHA`; fixed by cache-busting to current master (`e34e97f`).
+
+## Deploy mechanics — reliable vs. loaded gun (2026-07-10, consistent across 3 deploys: #256, #272)
+
+Three consecutive deploys produced the same evidence about the CLI surface — this is now a documented mechanism, not an anecdote:
+
+- **RELIABLE — `railway up`:** uploads a *named local tree*, so it deploys exactly what you checked out with no pin inheritance. Combined with `railway deployment list --environment <env> --service <svc> --json` for status (BUILDING → DEPLOYING → SUCCESS/FAILED). A `SUCCESS` means the container passed its `/health/ready` healthcheck — the observable proof that a fail-to-boot guard (e.g. `assert_crisis_locale_parity()`) passed, since a tripped guard crash-loops to FAILED.
+- **LOADED GUN — `railway redeploy --from-source`:** re-deploys the *currently-pinned* commit, NOT the branch HEAD. Observed re-deploying `d27987f` three times while master was far ahead. Its failure mode is silently reverting a live fix; never use it while a hotfix is load-bearing. Deploy a **named SHA** instead.
+- **BROKEN HELPER — `use-railway/scripts/railway-api.sh`:** reads `.user.token`, which the CLI leaves `null` (the real token is `.user.accessToken`), so its GraphQL polling returns `null` every poll. Use `railway deployment list` for status, not the API helper.
+- **Provenance consequence (fixed this turn):** because `railway up` cannot set `RAILWAY_GIT_COMMIT_SHA`, `/health/version.build_sha` now falls back `SAGE_BUILD_SHA → RAILWAY_GIT_COMMIT_SHA → "unknown"` (loud, never blank) and reports `build_sha_source`. The durable class-fix is to stop deploying by manual upload: a named-SHA git-integration deploy re-points the source off the stale pin and makes `RAILWAY_GIT_COMMIT_SHA` truthful, closing both the `--from-source` gun and the lying-SHA in one motion.
