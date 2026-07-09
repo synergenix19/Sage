@@ -80,3 +80,21 @@ Three hard human gates in 11 days (07-16/18/21) against 07-31, from signatories 
 
 ## Build status (2026-07-09)
 ✅ **T1 shipped** (containment_directive state field, inert, PR #262). Serial spine next: T2 contain-action → T3 edge. Reference-family (OCD) content in parallel. HG-1 out; HG-2/3 drafting.
+
+---
+
+# PRE-REGISTRATIONS FOR THE CHECKPOINT (2026-07-10) — so it reads itself
+
+## T3 crisis-supremacy overlap test = the spine's HARDEST acceptance (checked FIRST)
+T3's conditional edge is Phase 2's one real architectural risk — the moment containment enters the routing order. Its priority position is the load-bearing line: **AFTER Node-1 crisis short-circuit, BESIDE the veto safety routes, BEFORE the generic abstain/freeflow fallbacks.**
+- **AC-CRISIS-SUPREMACY (BLOCKING, T3):** a crisis utterance that ALSO matches a containment pattern MUST reach `crisis_response`, NEVER the containment path. Test with a **deliberately OVERLAPPING fixture** — e.g. harm-intrusive phrasing escalating into intent/command language ("intrusive images of harming my baby… and tonight I might actually do it") — because the overlap is exactly where a priority bug hides. Crisis supremacy was a signature condition; **this test existing + passing is the first thing checked at the checkpoint.**
+
+## HG-2 / HG-3 — the clinician makes the collapse, not the packets (three rows, not one blur)
+HG-1's pre-answered tier + 116111 is good front-loading, but **each gate keeps its own signature row.** Send HG-1/2/3 as SEPARABLE items that CAN be cleared in one sitting; **record them as THREE distinct rulings** in the conditions-satisfied table, each with its own evidence. A merged sitting producing one blurry approval covering three gates is how a signature condition gets half-covered. Collapse is the clinician's to make; the record stays three rows.
+
+## The OCD reference-family checkpoint — FOUR-part, self-adjudicating
+The gate result arrives with all four; green across all four → harm-intrusive + remaining migrations proceed on the plan WITHOUT returning to command; anything short → finding per the standing rule:
+1. **Routing acceptances:** directive fires · KB-failsafe · suggest_skill-off · L2 queue row exists · **AC-CRISIS-SUPREMACY overlap test** (above).
+2. **Full mechanism-4 gate, margin framing:** the OCD KB article + any description touches are embedding-surface changes → id_oos 0.9219 band, distance-from-floor reporting, harm-0, wrong-route no-regress.
+3. **AC-RENDER:** the staging containment transcript → **Vee's read is the acceptance, not ours** (class output, not just routing).
+4. **AC-CANNED:** the skill-guided-vs-freeflow render pair — closes the open commitment from the deterministic-branch debate.
