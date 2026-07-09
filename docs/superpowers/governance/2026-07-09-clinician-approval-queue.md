@@ -26,3 +26,15 @@ Deliberately NOT bundled here: items 1–3 are one-touch content approvals; Task
 
 
 ## ✅ APPROVED 2026-07-09 — Vee (clinical lead): item 1 rehome clause, item 2 #219 Group A, item 3 #218 ERP copy (incl. ERP-modality enrichment). #218 rendered-composition + rehome-clause clinician-confirm GIVEN.
+
+---
+
+## 5. interpersonal_effectiveness semantic_description TRIM (591 chars) — AWAITING CONFIRM · DEPLOY HELD
+**What changed & why:** the approved rehome clause (item 1) pushed the field to 762 chars, over the 600-char `semantic_description` cap enforced by `test_trimmed_semantic_descriptions_within_cap` (a real CI regression, shipped to master under the then-advisory gate; now fixed, PR #273). To fit the cap I removed only REDUNDANT technique-identity tokens from the DEARMAN body — the duplicate "Dialectical Behavior Therapy relationship skills", "Validation and relationship repair", "Managing interpersonal conflict", and the "Boundary setting" lead-in the clause already covers. **Your approved scoped clause is preserved verbatim**; DEAR MAN / GIVE / FAST and the "family and close relationships" distinction are intact.
+**Rendered field (byte-for-byte, the exact 591 chars on master now):**
+> *"Interpersonal effectiveness DEARMAN skill for preparing a specific difficult, tough, or hard conversation, setting a boundary you need to raise, and rehearsing out loud what to say before that conversation. DBT interpersonal effectiveness skills module. DEAR MAN assertiveness technique. GIVE skills: Gentle, Interested, Validate, Easy manner. FAST skills: Fair, Apologies, Stick to values, Truthful. Assertiveness in family and close relationships. Expressing needs without shame or guilt. Saying no without destroying the relationship. Balancing relationship, self-respect, and objectives."*
+**Status:** the `semantic_description` is a signed clinical field; this is a changed-field edit → needs your one-line confirm. **Mechanism-4 re-gate PASSED** (A/B trimmed-591 vs live-762 on the §6b/§6c/id_oos fixtures: §6b 8/11→8/11, §6c 6/12→**7/12**, id_oos abstain 14/34→14/34, no new leak) — but A/B-identity proves only that the RERANKER can't distinguish the texts; it does NOT substitute for your read of whether the trimmed wording still says what you signed. **Prod stays on the 762 (confirmed) version; the trim is HELD from deploy until this line lands.** Rides the same channel as the T4 content below.
+→ **confirm trimmed rendering / edit wording / revert to 762 (accept the cap exception instead).**
+
+## NOTE — item 1's rendered clause above is the STALE pre-scoping wording
+The clause quoted under item 1 ("…or wording, drafting, or rehearsing what to say or send…") is the pre-scoping draft; the rehome verdict records you approving the SCOPED clause (message-drafting removed: "…and rehearsing out loud what to say before that conversation"), which is what shipped and what item 5 quotes. Flagged so the record is not read as approving message-drafting language.
