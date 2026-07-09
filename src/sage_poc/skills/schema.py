@@ -84,6 +84,14 @@ class Skill(BaseModel):
                     "null = unbounded (current behavior). Clinical holds stay senior (no forced "
                     "advance); this only bounds re-probing. Clinician-ownable per skill.",
     )
+    delivery_format: Literal["guided_conversation", "video_all_at_once", "single_message"] = Field(
+        default="guided_conversation",
+        description="Per BOT BEHAVIOUR Format column (H2 ruling 2026-07-10). "
+                    "guided_conversation = one instruction per turn (default = current behavior, "
+                    "unchanged for every existing skill). video_all_at_once = the whole skill in one "
+                    "turn (technique framing + video -> check-in) for the five Video-format skills. "
+                    "single_message = one-shot. Clinician-ownable per skill.",
+    )
 
     @field_validator("cultural_overrides", mode="before")
     @classmethod
