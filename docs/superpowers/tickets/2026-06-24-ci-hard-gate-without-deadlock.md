@@ -1,6 +1,8 @@
 # Ticket: Make CI a true hard merge gate without deadlocking non-code PRs
 
-**Filed:** 2026-06-24 · **Status:** open · **Type:** CI/branch-protection follow-up
+**Filed:** 2026-06-24 · **Status:** RESOLVED 2026-07-10 (PR #276) · **Type:** CI/branch-protection follow-up
+
+> **RESOLVED 2026-07-10:** `Safety-surface unit tests` was made a required strict check; the predicted deadlock hit 9 open docs/scripts PRs. Fixed with the guard-job pattern in `.github/workflows/unit-gate.yml` (PR #276): the workflow runs on every PR (no path filter) so the required context always reports, and a Detect step gates the heavy install+pytest on whether a safety-surface path changed — docs-only PRs skip the suite and still succeed. This doc-only edit is itself the verification that the guard reports green on a docs-only PR. Already-open PRs need a one-time rebase onto post-guard master to pick up the guard workflow.
 
 ## Problem
 Branch protection was reconfigured 2026-06-24 to remove the admin-bypass need (PR required,
