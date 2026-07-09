@@ -1,4 +1,5 @@
 import asyncio
+import time
 import json
 import logging
 from datetime import datetime, timezone
@@ -61,12 +62,18 @@ async def _crisis_response_node(state: SageState) -> dict:
 
     path = state["path"] + ["crisis_response"]
 
+    # PDPL audit completeness (#205 ADR): crisis_response -> END BYPASSES output_gate, where
+    # latency_ms is stamped for every other path. Stamp it here too so the crisis audit record is
+    # complete on the one path with the tightest budget — traceability admits no per-path exception
+    # (verified 2026-07-08: crisis turns had latency_ms=NULL, 0/18, vs 56/56 non-crisis).
+    _tsa = state.get("turn_started_at")
     _audit_task = asyncio.create_task(write_session_audit({
         **state,
         "path": path,
         "gate_path": "crisis",
         "crisis_state": "monitoring",
         "re_escalation_within_monitoring": is_reescalation,
+        "latency_ms": int((time.monotonic() - _tsa) * 1000) if _tsa is not None else state.get("latency_ms"),
     }))
     _audit_task.add_done_callback(
         lambda t: _log.warning("[crisis_response] session audit error: %s", t.exception())

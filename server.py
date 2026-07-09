@@ -441,6 +441,60 @@ class NameSessionRequest(BaseModel):
     message:    str
 
 
+def _crisis_affordance_decision(
+    *, gate_path: str | None, crisis_tier: str | None, path: list[str],
+    is_safe: bool, tiering_enabled: bool,
+) -> tuple[bool, bool]:
+    """Decide whether to emit the crisis card, and whether that decision is a path-consistency
+    mismatch. Returns (emit_card, mismatch).
+
+    AFFORDANCE FOLLOWS PATH (#205, Cardinal Rule 4): the routing outcome is the AUTHORITATIVE crisis
+    signal. If the turn ran the crisis_response protocol (gate_path == "crisis" or "crisis_response"
+    in the node path), the response IS a crisis response and MUST carry crisis affordances (card +
+    role='crisis'), independent of the turn's initial tier. #205: a monitoring-continuation turn ran
+    crisis_response at crisis_tier="none" (a continuation-context recall miss the monitoring state
+    rescued into crisis_response); the tier-only emit then dropped the card, shipping crisis content
+    with no tap-to-call.
+
+    `mismatch` = the crisis protocol ran but the tier signal ALONE would not have emitted the card
+    (the recall miss the routing rescued). Pure STRUCTURAL check (path vs tier signal) — no text
+    heuristics, so a KB reply that merely mentions a helpline can never trip it. The backstop should
+    essentially never fire once the classifier gap (Component 2) is closed — the correct steady state.
+    """
+    path_is_crisis = gate_path == "crisis" or "crisis_response" in (path or [])
+    tier_says_card = (crisis_tier == "T2") if (tiering_enabled and crisis_tier is not None) else (not is_safe)
+    return (tier_says_card or path_is_crisis, path_is_crisis and not tier_says_card)
+
+
+async def _file_crisis_affordance_review(
+    session_id: str, user_id: str, gate_path: str | None, crisis_tier: str | None
+) -> None:
+    """L2 clinical-review flag for the #205 class: a crisis_response protocol ran but the tier signal
+    did NOT classify the turn as crisis (a Node-1/tiering recall miss the routing rescued). Records
+    that crisis content shipped on a non-crisis-classified turn so a clinician sees the gap. Every
+    such flag also doubles as a labelled miss for the continuation-context retraining set (Component 2).
+    Fire-and-forget: never raises, never blocks the turn."""
+    try:
+        pool = getattr(app.state, "_db_pool", None)
+        if not pool or not session_id or not user_id:
+            return
+        from sage_poc.memory.notification import PostgresNotifier  # noqa: PLC0415
+        notifier = PostgresNotifier(pool)
+        await notifier.notify_review_required(
+            user_id=user_id,
+            session_id=session_id,
+            reason=(
+                f"crisis path-consistency backstop (#205): crisis_response ran but tier={crisis_tier} "
+                f"(gate_path={gate_path}) -- crisis affordance forced; continuation-recall miss to review"
+            ),
+            source="layer1_safety",
+            payload={"backstop": "crisis_path_consistency", "gate_path": gate_path, "crisis_tier": crisis_tier},
+            severity="high",
+        )
+    except Exception as exc:
+        _log.warning("[sage/chat] crisis-affordance review write failed: %s", exc)
+
+
 @app.post("/chat")
 async def chat(
     req: ChatRequest,
@@ -573,11 +627,25 @@ async def chat(
     # entrypoint is_safe-reader that the reader-disposition enumeration missed (it lives at repo root,
     # outside src/sage_poc/). Disposition: tiering ON -> card iff crisis_tier == "T2" (the acute floor);
     # T1/none -> warm, no card. Flag OFF (or tier not computed) -> legacy binary `not is_safe`.
+    _gate_path = result.get("gate_path")
     _crisis_tier = result.get("crisis_tier")
-    if CRISIS_TIERING_ENABLED and _crisis_tier is not None:
-        _emit_crisis_card = _crisis_tier == "T2"
-    else:
-        _emit_crisis_card = not is_safe
+    _emit_crisis_card, _crisis_affordance_mismatch = _crisis_affordance_decision(
+        gate_path=_gate_path, crisis_tier=_crisis_tier, path=path,
+        is_safe=is_safe, tiering_enabled=CRISIS_TIERING_ENABLED,
+    )
+    # PATH-CONSISTENCY BACKSTOP (Component 1, #205): the card is forced structurally above; here we make
+    # the mismatch VISIBLE (log + L2 clinical-review flag) so the Node-1/tiering recall gap is surfaced,
+    # not silently rescued. Should essentially never fire once the classification fix (Component 2) lands.
+    if _crisis_affordance_mismatch:
+        _log.warning(
+            "[sage/chat] crisis path-consistency mismatch: crisis_response ran (gate_path=%s tier=%s) "
+            "but tier-emit was off -- forcing crisis card + filing clinical review (session=%s)",
+            _gate_path, _crisis_tier, req.session_id,
+        )
+        if app.state._db_pool and req.user_id:
+            asyncio.create_task(
+                _file_crisis_affordance_review(req.session_id, req.user_id, _gate_path, _crisis_tier)
+            )
 
     async def _body() -> AsyncGenerator[bytes, None]:
         if _emit_crisis_card:
