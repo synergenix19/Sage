@@ -330,6 +330,39 @@
         "type": "crisis_flag",
         "flag_id": "si_explicit"
       }
+    },
+    {
+      "rule_id": "SK-EN-HTO-001",
+      "version": "0.1.0",
+      "authored_by": "PENDING_CLINICIAN_SIGNOFF",
+      "effective_date": "2026-07-09",
+      "active": false,
+      "description": "Harm-to-others EXPLICIT INTENT — Node-1 deterministic backstop for the LLM crisis classifier (Layer 2 #219). Group A (explicit intent) ONLY; Group B (figurative/anger-adjacent) HELD pending clinician ruling because the FP direction here is INVERTED vs the shipped vetoes: a false positive is a crisis card served to someone venting, an over-escalation that damages trust. Fires as an s1 keyword flag -> T2 via existing s1_any tier rule. active:false until clinician approves Group A. See 2026-07-09-clinician-approval-queue.md #2.",
+      "category": "safety",
+      "match_type": "keyword",
+      "patterns": [
+        "want to hurt him",
+        "want to hurt her",
+        "want to hurt them",
+        "want to hurt someone",
+        "going to hurt him",
+        "going to hurt her",
+        "going to hurt them",
+        "going to hurt someone",
+        "planning to hurt",
+        "plan to hurt him",
+        "plan to hurt her",
+        "plan to hurt them",
+        "feel like hurting someone"
+      ],
+      "language": "en",
+      "modifiers": [
+        "negation_check"
+      ],
+      "action": {
+        "type": "crisis_flag",
+        "flag_id": "harm_to_others_explicit"
+      }
     }
   ]
 }
