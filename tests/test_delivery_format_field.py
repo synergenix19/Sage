@@ -2,8 +2,8 @@
 
 The field is additive with a default of guided_conversation, so every existing skill keeps its
 current turn-by-turn behavior byte-for-byte. video_all_at_once is the new one-turn delivery for
-the five Video-format skills (executor branch built separately; the 5 skills adopt it only after
-the collapsed-copy sign-off).
+the five Video-format skills, which were set to it (H2 tick + Vee sign-off 2026-07-10, structural
+adoption); their collapsed EN copy is a separate follow-on that pairs with the AR translation.
 """
 import json
 
@@ -14,9 +14,12 @@ from sage_poc.skills.schema import SKILLS_DIR, Skill, load_skill
 
 
 def test_delivery_format_defaults_to_guided_conversation():
-    # existing skills unchanged: default = current turn-by-turn behavior
-    assert load_skill("box_breathing").delivery_format == "guided_conversation"
+    # Skills that do NOT set the field keep the default (current turn-by-turn behavior).
+    # The 5 Video skills are explicitly video_all_at_once (see test_video_skills_delivery_format);
+    # assert the default only on skills NOT in that set.
     assert load_skill("dbt_tipp").delivery_format == "guided_conversation"
+    assert load_skill("grounding_5_4_3_2_1").delivery_format == "guided_conversation"
+    assert load_skill("stop_technique").delivery_format == "guided_conversation"
 
 
 def test_delivery_format_accepts_the_three_valid_values():
