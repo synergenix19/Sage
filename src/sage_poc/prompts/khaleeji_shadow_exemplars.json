@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0-unattested",
-  "note": "UNATTESTED — do NOT use for a pre-registered run. The sign-off gate is NOT satisfied: clinician NAME/attestation not recorded; ar_neutral [AI-DRAFT] strings not correction-passed by a Gulf-native; no encoding check. (Marked pairs ar_m/ar_f were clinician-confirmed in substance 2026-07-08; ar_neutral are AI drafts.) ar_m/ar_f = marked-case gendered address; ar_neutral = unmarked-case; Emirati feminine ك→ج (عليج/وياج) intentional, do NOT normalize. Bump to a signed version ONLY when clinician name + neutral-string correction pass + encoding check all exist.",
+  "version": "1.0.1",
+  "note": "SIGNED 2026-07-09 — clinician 'vee' approved ALL as-is (relayed by the PO/coordinator). ar_neutral [AI-drafted] strings: correct as-is, NO corrections. ar_m/ar_f: confirmed (marked-case). This is a blanket as-is attestation attributed to vee and relayed — NOT a line-edited native correction pass; recorded as such. Encoding check PASS (controller). Content is identical to the prematurely-bumped, quarantined 1.0.0 shakedown; 1.0.1 is the version that carries the recorded attestation. Emirati feminine ك→ج (عليج/وياج) intentional, do NOT normalize.",
   "exemplars": [
     {
       "en": "That sounds really heavy, and it makes sense you're tired. You don't have to sort it all out tonight.",
