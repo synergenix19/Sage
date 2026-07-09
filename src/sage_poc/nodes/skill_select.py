@@ -557,7 +557,8 @@ def _resolve_entry(
             and "behavioral_activation" in (offerable or []) \
             and is_low_mood_disclosure(state.get("message_en")):
         # lang gate is FIRST-CLASS, not defence-in-depth: never enter a screen whose SI
-        # answer we cannot parse. AR §3a falls through to today's offer path until the AR unit ships.
+        # answer we cannot parse. AR §3a falls through to today's direct-entry
+        # (arabic_offer_excluded) path above, not the offer path, until the AR unit ships.
         return {
             "active_skill_id": None,
             "active_step_id": None,

@@ -1,0 +1,92 @@
+{
+  "_meta": {
+    "id": "SS3a low-mood disclosure trigger set (Node 4 skill_select low-mood screen interception)",
+    "status": "PROPOSED placeholder pending clinician sign-off. See docs/superpowers/governance/2026-07-10-low-mood-3a-trigger-set.md for the source deliverable, both lists, and the discriminator wording. This file is NOT a signed clinical artifact: every row is 'PROPOSED, clinician tick required' in the governance doc. Do not treat a merge of this scaffold as trigger logic done.",
+    "discriminator": "SS3a fires on GLOBAL, PERVASIVE, PERSISTENT loss of interest/energy/motivation/connection across life (across the board / lately / in general). It must NOT fire on LOCAL, situational, task-specific, or physical look-alikes (this one thing / today / after X). See list B for the precision boundary.",
+    "fire_families": "Transcribed verbatim from governance doc list A (BOT BEHAVIOUR SS3a trigger tables): energy_effort, anhedonia_interest, motivation, social_withdrawal, affective_flatness, meaning_going_through_motions, explicit_ask.",
+    "lookalike_categories": "Transcribed verbatim from governance doc list B (engineering-proposed precision boundary, needs clinician tick most): situational_transient, task_specific, physical_literal, ordinary_boredom, growth_values.",
+    "match": "Matching code lives in nodes/low_mood_detect.py: family/token-aware, deterministic, no LLM. This file is the clinician-owned vocabulary source; the code additionally generalizes a few families (energy scope, numb/flat subject-anchoring, motivation object-generic checks) so paraphrases in the same family still fire without widening onto any list B row. Do NOT add trigger vocabulary beyond list A here, and do NOT remove or weaken list B rows to make anything pass."
+  },
+  "fire_families": {
+    "energy_effort": [
+      "I don't have the energy",
+      "everything feels like an effort",
+      "even small tasks feel difficult",
+      "I can't seem to get going",
+      "I don't have the energy to do anything",
+      "I just want to stay in bed",
+      "I just want to stay under the covers"
+    ],
+    "anhedonia_interest": [
+      "nothing sounds enjoyable",
+      "I don't enjoy the things I used to",
+      "I don't look forward to anything",
+      "nothing feels rewarding",
+      "I don't feel interested in anything",
+      "I've lost interest in everything",
+      "nothing brings me joy anymore"
+    ],
+    "motivation": [
+      "I don't feel like doing anything",
+      "I can't be bothered",
+      "I don't feel motivated",
+      "I just don't have the motivation",
+      "I have no motivation for anything",
+      "I keep putting everything off"
+    ],
+    "social_withdrawal": [
+      "I don't want to see anyone",
+      "I keep cancelling plans",
+      "I just want to be on my own",
+      "I've been avoiding people",
+      "I don't want to leave the house",
+      "I'm withdrawing from everyone",
+      "I don't want to talk to anyone",
+      "I just want to be left alone"
+    ],
+    "affective_flatness": [
+      "I feel flat",
+      "I feel numb",
+      "I don't really care anymore",
+      "I feel disconnected from everything",
+      "I feel emotionally drained",
+      "I feel empty",
+      "I don't feel like myself"
+    ],
+    "meaning_going_through_motions": [
+      "I'm just going through the motions",
+      "everything feels pointless",
+      "I feel stuck"
+    ],
+    "explicit_ask": [
+      "build a better routine"
+    ]
+  },
+  "lookalike_categories": {
+    "situational_transient": [
+      "meh, bit of a flat day today",
+      "feeling a bit down after a rough week",
+      "just an off day"
+    ],
+    "task_specific": [
+      "I lost interest in the movie halfway through",
+      "can't be bothered to cook tonight",
+      "no energy to finish this report",
+      "don't feel like going to the gym today"
+    ],
+    "physical_literal": [
+      "my arm feels numb",
+      "numb from the cold",
+      "I'm tired after a long week",
+      "didn't sleep well so I've no energy today"
+    ],
+    "ordinary_boredom": [
+      "bored, what should I do tonight",
+      "nothing fun to do right now"
+    ],
+    "growth_values": [
+      "I want to make a change",
+      "I want to grow as a person"
+    ]
+  }
+}
