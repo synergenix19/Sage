@@ -151,3 +151,21 @@ SPEC-GROUNDED RESIDUAL READ (2026-07-10, BOT BEHAVIOUR.docx, cross-category veri
     Any future anchor-enrichment targets ONLY these 11, NEVER the 3 edges. The spec (Vee-approved) ANSWERS
     most of the read; only the 3 edges need Vee's explicit boundary call. Held the meta-pattern: spec check
     FIRST (Vee's instruction), no jump to fix. Task-3 hold + flag-OFF unchanged.
+
+*** APPROVED (Vee, relayed 2026-07-10): R1-R7 + CD1-CD5 + trigger-set List A/B all signed. ***
+  Oracle low_mood_3a_triggers.json flipped PROPOSED -> SIGNED. Design CONFIRMED (was pending).
+  Signed calls: R1 semantic+scoped-anchor (no classifier); R2 determinism on SI-answer catch;
+  R3 11 §3a gaps (CD1: tier by DSM strength); R4/CD3 exclude numb/stuck/feel-like-myself from BA,
+  clarifying-turn default for bare numb, suppress BA in acute grief; R5/CD4 two-tier recall
+  (fail-safe screen ~80-90%, acute-SI catch near-zero-miss); R6/CD5 err-toward-not-asking, rationale
+  = specificity/burden/trust NOT "asking harms"; R7 signed-oracle governance + flip-gates.
+  NOW UNBLOCKED (in order): (a) apply CD1 tiering + CD3 exclusions to the signed oracle; (b) run the
+  SCOPED enrichment (BA semantic_anchors for the strong §3a-only markers, NEVER the 3 edges) against
+  the SIGNED oracle via the calibration-gated harness — measure recall + FP + BA GLOBAL side-effects
+  + the affective-flatness miss-distribution (Vee's watch-item), not just aggregate; (c) if it clears
+  CD4 band + FP=0, retire keyword detector in a commit that shows the eval justifying it; (d) Task 3
+  (deterministic SI-catch) after the crisis safety_check contention lands; (e) flag flips only when
+  ALL R7 gates clear (signed lists + recall bar + FP=0 + GL-1 fixed + DPO + AR unit for Gulf).
+  MEMORY: this approval is for the COMMAND SESSION to write; this work session does not.
+  BRANCH: enrichment touches BA global routing -> build off CURRENT master (impl branch is behind),
+  coordinate with the skill_select workstream, keep flag OFF throughout.
