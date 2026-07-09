@@ -180,3 +180,12 @@
 ## Pre-registered / known Class-A rows (from scope doc — NOT newly discovered here)
 - **Safeguarding (third-party child harm)** — 'my partner is harming my baby' currently abstains via harm-intrusive veto (Node 3); named a known-priority Class-A row in the scope doc; correct disposition = safeguarding/referral family (clinician-ruled). Interim (abstain, holds space) per `2026-07-08-harm-intrusive-veto-signoff-packet.md` §4.
 - **Harm-intrusive & OCD** — already the two live vetoes and the Phase-2 approved families; abstain_veto observed here is the intended containment interim, not a new finding.
+
+## Suppression-Mechanism Ledger (added 2026-07-09) — start the next pathway from "which mechanism?"
+Three distinct suppression mechanisms, each found by a live diagnosis. Diagnose-before-fix now has a lookup table (see `2026-07-09-sibling-pathways-enrichment-draft.md` for evidence):
+| # | mechanism | signature (node-path) | pathways | fix | scales? |
+|---|---|---|---|---|---|
+| 1 | **reranker-vs-description** | keyword match → `keyword_rerank_veto → low_confidence_respond` | §3a, §7b (BA) | enrich `semantic_description` | per-skill content route scales |
+| 2 | **intent-route diversion** | NO keyword match → `intent_route → freeflow`/general_chat (skill_select never runs) | §1e, §6b, §6c | `target_presentations` trigger (Node-2 pre-pass) + description enrichment | needs trigger surface maintained per-presentation (the #209 toil) |
+| 3 | **info_request classification** | `skill_select → knowledge_retrieve` (classified info-seeking) | §7c | disposition decision (KB / new-skill / confirm-conformant), NOT a description edit | n/a — content/inventory question |
+**Rule:** before proposing a fix for any newly-found suppressed pathway, trace one utterance to classify the mechanism; the fix follows from the row, not from assuming the last pathway's shape (BA's history: two wrong mechanism theories ruled out only by tracing).
