@@ -169,3 +169,17 @@ SPEC-GROUNDED RESIDUAL READ (2026-07-10, BOT BEHAVIOUR.docx, cross-category veri
   MEMORY: this approval is for the COMMAND SESSION to write; this work session does not.
   BRANCH: enrichment touches BA global routing -> build off CURRENT master (impl branch is behind),
   coordinate with the skill_select workstream, keep flag OFF throughout.
+
+=== HANDOFF TO COMMAND SESSION (memorialize first, then release step 2) ===
+CORRECTED MEMORY LINE (preserve signed != certified):
+  "§3a low-mood: full design (R1-R7) + clinical decisions (CD1-CD5) DESIGN-SIGNED by Vee 2026-07-10;
+   trigger-set List A/B now the signed eval oracle. SIGNED != CERTIFIED — performance numbers are
+   measured only against the now-signed oracle at ENRICHMENT time, which has NOT been run. Enrichment-
+   measurement + flip-gates pending; keyword-detector retirement gated on the eval; Task 3 gated on the
+   crisis safety_check contention. Flag OFF throughout."
+STEP-2 CONSTRAINTS (now documented in scripts/low_mood_3a_semantic_eval.py header, wire before running):
+  (1) CD3 edges -> HARD ABORT if BA-offerable post-enrichment (like calibration anchor).
+  (2) flatness-cluster recall -> its own stamped pass/fail criterion, separate threshold.
+  (3) non-§3a CONTROL set -> assert BA global offer-rate does not rise (List B won't catch it).
+STEP 2 = run off CURRENT master, coordinate with skill_select workstream, flag OFF, don't start until
+  command session releases it. Do NOT start step 2 in the current work session.
