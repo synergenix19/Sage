@@ -35,7 +35,7 @@
 ## Part C — Rubric note (append to §3/§4; raters stay blind to arm, sighted on marking)
 
 > Each item carries a **deterministic** `gender_marked` value (`f` / `m` / `none`), computed from the user input by `detect_gender_marking` — **not judged by the rater, not asked of the model.**
-> - `gender_marked = f`/`m`: matching gendered Khaleeji address is **expected** — score register on the 1–5 anchors as normal. **Mis-gendered address on a marked input = capped at 2** (wrong register) and flagged.
+> - `gender_marked = f`/`m`: matching gendered Khaleeji address is **expected**. **Register scores language quality alone (the 1–5 anchors), always — a mis-gender does NOT lower the register score.** A mis-gendered reply is a **separate per-item flag** feeding the mis-gender secondary metric, with **no effect on register** (an address error must not drag down otherwise-fluent Khaleeji, or the marked-vs-unmarked comparison is confounded — score dimensions separately).
 > - `gender_marked = none`: neutral constructions are **expected and fully acceptable** — do **not** penalize the absence of gendered warmth; score the 1–5 anchors as written.
 > **Mis-gender rate on marked inputs** is reported as a **named secondary metric** (GPT-4o's compliance with the in-prompt rule — the evidence the Full-Build "prompt-mirroring vs deterministic profile-injection" decision needs). It is **never folded into the register mean.**
 
@@ -47,7 +47,8 @@ Authored + captured: 017–023. **Still needed from the clinician:** `016` (khal
 ## Scope + safety notes (so you know the blast radius of what you're blessing)
 - **Blast radius:** this directive lives **only** in the shadow-Arabic prompt variant (`compose_prompt(shadow_arabic=True)`) — and, in Full Build, the serving Arabic directive. **It never touches the crisis path:** crisis responses are hardcoded/templated (`[[CRISIS_DETECTED]]`, the MoHAP helpline copy) and are unaffected by any generation directive. You are blessing a register policy for **non-crisis Arabic generation only.**
 - **Bias-safety, recorded as a standing convention** (beyond this feature): *user gender is never inferred from topic, name, or content anywhere in the system; only explicit grammatical self-marking or the profile `gender_address` field may gender the address.* (Applies to skill content, cultural rules, future personalization.)
-- **`gender_marked` is deterministic** (a starter marker lexicon, itself flagged for Gulf-native linguist review) — so the marked/unmarked stratification also runs over the 431 historical messages for free.
+- **`gender_marked` is deterministic**, with a **first-person-anchor guard** (a marker counts only with a nearby first-person anchor, and is rejected when a third-person possessor precedes it — e.g. *أختي تعبانة* → `none`) that **reduces** the third-party false-positive; the residual is then quantified over the 431 (reduce, then quantify). Starter lexicon + anchor/possessor lists flagged for Gulf-native linguist review. The stratification runs over the 431 for free.
+- **Warmth reference (marked-case register):** the "what good sounds like" calibration line — «هذا الشي ثقيل عليك وايد، وأنا وياك هني…» — is **gendered (marked case)**. Judge the *neutral* (Item 4) drafts against a *neutral* warmth bar, not this one; this anchors the marked-case register only.
 
 ---
 

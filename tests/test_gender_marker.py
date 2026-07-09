@@ -33,24 +33,31 @@ def test_no_self_marking_short_neutral_phrase():
     assert detect_gender_marking(text) == "none"
 
 
-def test_conflicting_markers_resolve_to_none():
-    # Both a masculine and a feminine predicate adjective present — ambiguous,
-    # must not guess either way.
-    text = "أنا تعبان بس أختي قالت هي زعلانة"
+def test_conflicting_self_markers_resolve_to_none():
+    # A masculine AND a feminine marker, BOTH first-person-anchored (each beside
+    # أنا) — a genuine self-marking conflict, must not guess either way.
+    text = "أنا تعبان وأنا زعلانة"
     assert detect_gender_marking(text) == "none"
 
 
-def test_third_party_marking_current_behavior():
-    # KNOWN LIMITATION: the whole-word matcher has no syntactic subject-tracking,
-    # so it cannot distinguish "أختي تعبانة" (describing someone else) from a
-    # genuine first-person self-marking. Ideally this would be "none" since the
-    # speaker never self-describes. This test asserts the CURRENT (honest, not
-    # faked) behavior rather than pretending the limitation doesn't exist: the
-    # lexicon match alone fires "f" here. Flagged for the Gulf-native linguist
-    # review pass (see the STARTER-lexicon comment in gender_marker.py) to add
-    # subject-scoping before this can be trusted for third-party sentences.
-    text = "أختي تعبانة اليوم"
-    assert detect_gender_marking(text) == "f"
+def test_third_party_marker_rejected_by_possessor_guard():
+    # "أختي تعبانة اليوم": the feminine marker's immediate predecessor is the
+    # third-person possessor أختي (my sister), so it describes HER, not the speaker.
+    # The anchor guard rejects it -> "none" (was a false-positive "f" before the guard,
+    # which the reduce-then-quantify condition of record required fixing first).
+    assert detect_gender_marking("أختي تعبانة اليوم") == "none"
+
+
+def test_third_party_excluded_but_self_marking_kept():
+    # "I'm sad [masc, self] but my sister is tired [fem, about her]": self-masculine
+    # is anchored to أنا and kept; the feminine is possessor-guarded out -> "m".
+    assert detect_gender_marking("أنا زعلان بس أختي تعبانة") == "m"
+
+
+def test_pronoun_dropped_marker_without_anchor_is_none():
+    # Bare "تعبانة اليوم" (feminine, no nearby first-person anchor): biased toward
+    # "none" rather than risk a wrong-gender guess — the accepted false-negative.
+    assert detect_gender_marking("تعبانة اليوم") == "none"
 
 
 def test_empty_string_is_none():

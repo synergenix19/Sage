@@ -24,13 +24,17 @@ Conservative by design: any ambiguity (no marker, conflicting markers, or a
 marker whose subject may not be the speaker — see the third-party limitation
 below) resolves to "none". A wrong gender call is worse than an absent one.
 
-Known limitation (deliberately not worked around here): this is a whole-word
-lexicon match, not a parser — it has no subject-tracking, so "أختي تعبانة"
-(her being tired, not the speaker) matches the same as "أنا تعبانة" would.
-tests/test_gender_marker.py::test_third_party_marking_current_behavior asserts
-this honestly rather than faking subject-scoping the implementation doesn't do.
-Fixing this needs a Gulf-native linguist / lightweight parse pass — flagged
-below, not silently worked around.
+First-person-anchor guard (reduce-then-quantify): a marker only counts as
+self-marking when a first-person anchor (أنا/إني/صرلي/عندي…) sits within a small
+window of it, and never when a third-person possessor immediately precedes it
+("أختي تعبانة" -> "none", the sister, not the speaker). This REDUCES the
+third-party false-positive before the 431-message run, as a condition of record;
+the residual rate is then quantified over that run. It is a heuristic, not a
+parser: the anchor and possessor lists are STARTER sets flagged for Gulf-native
+linguist review, and it is deliberately biased toward "none" — a pronoun-dropped
+self-mark with no nearby anchor (e.g. bare "تعبانة اليوم") resolves to "none"
+rather than risk a wrong gender. False-negatives (-> neutral) are the accepted
+cost of not false-positiving (-> wrong gender).
 """
 from __future__ import annotations
 
@@ -83,6 +87,31 @@ _PROCLITICS = ("و", "ف")
 
 _WORD_RE = re.compile(r"\w+", re.UNICODE)
 
+# First-person-anchor guard (reduce-then-quantify, per architect condition of record).
+# A gendered predicate adjective only counts as SELF-marking if a first-person anchor
+# sits near it; otherwise -> "none". Biased toward false-negatives (-> neutral) over
+# false-positives (-> wrong gender), per "a wrong guess is worse than neutrality."
+# STARTER set — flag for Gulf-native linguist review; extend, don't treat as complete.
+_FIRST_PERSON_ANCHORS: frozenset[str] = frozenset({
+    "أنا", "انا", "إني", "اني", "إنني", "انني",
+    "عندي", "صرلي", "صارلي", "نفسي", "ليتني", "ياليتني", "لي",
+})
+
+# Third-person possessors ("my sister/brother/mother/friend/…"): when one sits
+# IMMEDIATELY before a gendered marker, the marker describes THAT person, not the
+# speaker (e.g. "أختي تعبانة") — reject even if a first-person anchor is elsewhere.
+# STARTER set — flag for Gulf-native linguist review; extend, don't treat as complete.
+_THIRD_PERSON_POSSESSORS: frozenset[str] = frozenset({
+    "أختي", "اختي", "أخوي", "اخوي", "أخي", "اخي",
+    "أمي", "امي", "أبوي", "ابوي", "أبي", "ابي",
+    "زوجتي", "زوجي", "بنتي", "ولدي", "ابني",
+    "صديقتي", "صديقي", "صاحبتي", "صاحبي", "ربيعتي", "ربيعي", "رفيجتي", "رفيجي",
+})
+
+# Window (in tokens, each side) within which a first-person anchor must appear for a
+# marker to count as self-marking.
+_ANCHOR_WINDOW = 3
+
 
 def _normalize(text: str) -> str:
     return _DIACRITICS_RE.sub("", text)
@@ -112,14 +141,35 @@ def detect_gender_marking(text: str) -> str:
     normalized = _normalize(text)
     tokens = _WORD_RE.findall(normalized)
 
+    def _anchored(i: int) -> bool:
+        lo, hi = max(0, i - _ANCHOR_WINDOW), min(len(tokens), i + _ANCHOR_WINDOW + 1)
+        window = tokens[lo:i] + tokens[i + 1:hi]
+        return any(
+            t in _FIRST_PERSON_ANCHORS or _strip_leading_proclitics(t) in _FIRST_PERSON_ANCHORS
+            for t in window
+        )
+
+    def _third_party(i: int) -> bool:
+        if i == 0:
+            return False
+        prev = tokens[i - 1]
+        return prev in _THIRD_PERSON_POSSESSORS or _strip_leading_proclitics(prev) in _THIRD_PERSON_POSSESSORS
+
     found_f = False
     found_m = False
-    for token in tokens:
+    for i, token in enumerate(tokens):
         candidates = {token, _strip_leading_proclitics(token)}
-        if candidates & FEMININE_MARKERS:
-            found_f = True
-        if candidates & MASCULINE_MARKERS:
-            found_m = True
+        is_f = bool(candidates & FEMININE_MARKERS)
+        is_m = bool(candidates & MASCULINE_MARKERS)
+        if not (is_f or is_m):
+            continue
+        # A marker whose immediate predecessor is a 3rd-person possessor describes
+        # someone else; a marker with no nearby first-person anchor is unattributed —
+        # both resolve to no self-marking (biased toward "none").
+        if _third_party(i) or not _anchored(i):
+            continue
+        found_f = found_f or is_f
+        found_m = found_m or is_m
 
     if found_f and found_m:
         return "none"
