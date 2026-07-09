@@ -1,46 +1,29 @@
-# SDD Ledger — psychoed Phase 1 content plan (2026-07-23)
-Plan: docs/superpowers/plans/2026-07-23-psychoed-phase1-content-plan.md
-Branch: docs/psychoed-pathways-design (contains pinned docx Task 1 needs; plan named feat/psychoed-phase1-content but branching off unmerged docs branch would orphan the PR — recorded deviation)
-Base at start: dad19358
-Checkpoints retained by controller: T1 fingerprint, T10 expected-fail, per-category transcription diffs
-T1 fingerprint reconciliation: erratum committed, constants verified by controller (checkpoint held)
-Task 1: complete (commits 4c65338a..5635cb1c, review clean; Minor: extraction file swept into erratum commit by controller git add -A, byte-identical verified by reviewer live re-run)
-Task 2: complete (commit 501bf826, review clean; 1f-b1 transcription controller-verified exact)
-Task 3: complete (commits dfec196f..850817c5, review clean; Minors: registry-rule valid-direction only fixture-tested; provenance-fix red-run not captured. 1f rows=inferred provenance, worry_tree bridge=null pending clinician)
-Task 4: complete (commits 165ee86b..ca210851, review clean, no findings; 3c framing sanctioned-equivalent; 3c-t4/t5 inferred; bridge removed per spec 4.3)
-Task 5: complete (commit 734dbcdd, review clean; 4b-b6 stage-direction excluded; diagnosis_guard armed category-agnostic per spec 5.5, noted for packet)
-Task 6: complete (commit 66f2eca7, review clean; 6d guard=E7-adjacent flagged -> packet flip-consideration alongside §6a-guard blocker; red-run methodology accepted)
-Task 7: complete (commit 2e4bfda3, review clean; condition-level bridge schema added; §7c ruled-amendment realized; guard routes 7a/7b summarized for packet)
-Task 8: complete (commit 72f433f6, review clean; S2c all doc_table; reunification phrasing correctly excluded from tables -> provenance_note; flip_gate_note verbatim)
-Task 9: complete (commits db0bd40f..6c52488d, review clean; human_referral_close=PENDING-CLINICIAN adjudicated; 3c-b7 restored byte-identical; count-claim scrubbed)
-Task 10: complete (commits ab6c659b..6e89765e, staged red observed by controller, subsumption gap found by reviewer + fixed; collision table: 2 exact + 2 subsumption entries, 3 pending clinician; weave-dominance rule -> packet ask 3)
-Task 11: complete (commit 227a2414, review clean; weave data draft w/ evaluation_semantics pinned; EN-only, AR gated on validator)
-Task 12: complete (commit 3b2ec3d2, review clean; Minor: block-disk cross-check subset-only, rogue block-only category tolerated — final-review triage)
-Task 13: complete (commits a13c2718..f953672f, review clean; packet enumerates 40+18+4+31 by name, 12 asks, 3rd period+capital site 6d-b2 self-found; Lane-3 clock STARTED)
-Task 14: complete (commits 5197afd2..5291bc1b, re-review RESOLVED all 5; handoff notes carry verbatim keys, corrected 3-form bridge taxonomy)
-Final review: READY FOR MERGE after fix wave 969c802e + pin re-stamp bb5829cd (138 tests green; 68 dash sites = 64 comma / 4 period+capital, all 4 read-differently sites enumerated for clinical)
+# §3a Low-Mood — SDD progress ledger
+Branch: feat/low-mood-3a-impl (off origin/master 140ff2d)
+venv: .venv/bin/python -m pytest
+Baseline: 3 pre-existing test_nodes.py Arabic-translation-mock failures on clean master (not ours).
 
---- CLEANUP RULING (2026-07-28, session close) ---
-Keep worktree + branch until the sign-off packet signs. At signature: move this .superpowers/sdd/ audit trail (task briefs, reports, review packages, this ledger) into docs/superpowers/governance/ adjacent to 2026-07-28-psychoed-signoff-packet.md IN THE SAME CHANGE that deletes the worktree/branch. Rationale: the trail answers "who transcribed this ratified copy, against what source, reviewed by whom, with what catches" — clinical-governance weight outlives the branch. Branch itself carries nothing the merge commit (95bf2370) lacks.
+Task 1: complete (commit ee6f4ca, flag + cross-turn state fields, inline, tests green)
+Task 2: in_progress (skill_select §3a interception, EN-gated, + precision set) — subagent-driven
 
-# SDD Ledger — psychoed Phase 2 mechanism plan (2026-07-28) [RECONSTRUCTED after reviewer git-reset incident; committed henceforth]
-Plan: docs/superpowers/plans/2026-07-28-psychoed-phase2-mechanism-plan.md (amended: gap-1 pathway-clear, gap-2 escalation audit)
-Branch: feat/psychoed-phase2-mechanism | Checkpoints: T8 diff ✓done, T11 hash-gate branches ✓done, T12 byte-identity, T13 escalation graph test
-P2 Task 1: complete (a0a5e602; Low: red transcript not pasted)
-P2 Task 2: complete (98311d10; Medium report gap fixed post-hoc; standing rule: no red transcript = rejected)
-P2 Task 3: complete (e9aacd8e; ACCEPTED DEVIATION: pathway keys default at consumers — binding on 8/10/11)
-P2 env fix: uv sync --extra dev (pytest-asyncio missing) -> Mechanism-A baseline 18/18 GREEN
-P2 Task 4: complete (b5051512; adversarial hand-traces fail-closed correct)
-P2 Task 5: complete (4d3b93d9; threshold band probes exact)
-P2 Task 6: complete (8fa4ff79..14a1f6be; plan-code KeyError found; Medium ambiguity fixed: multi-match fails closed both tiers)
-P2 Task 7: complete (efba7f39..bcdfc8e4; MEDIUM-HIGH false-attestation fixed; template status strings ADVISORY — flag is only gate; menu_first+weave = data-guarded)
-P2 Task 8: complete (d71f3da6..7e9bba3b; controller checkpoint + independent review clean; 9 clear sites; accepted: path-accumulation, escalation-scoped clear)
-P2 Task 9: complete (e2590959; kb_ref schema additive, 28/28 skills load)
-P2 Task 10: complete (16a9af8d..cc981b39; HIGH plan-gap fixed: backstop gated active-skill + Classifier A per spec §2.1/§2.2)
-P2 Task 11: in progress (6482155f..1f96fec1; checkpoint: mismatch branch correct, corruption hole fixed, EN entry gate added; REVIEW: Medium menu-after-weave AR path open; Low compose_turn1 exception→server handler, triage at final review)
-INCIDENT: T11 reviewer popped pre-existing s3_semantic stash + reset --hard destroyed uncommitted ledger (this reconstruction); stashes verified intact; ledger committed from now on
-P2 Task 11: complete (commits 6482155f..a463f394; checkpoint fixes: corruption chain, EN entry gates x2, menu-after-weave AR fall-through; Low compose_turn1-exception noted for final triage; INCIDENT recovered, no-stash-pop rule standing)
-P2 Task 12: complete (commit 43abf34f, review clean; tautology audit passed all 16 pins; controller byte-identity checkpoint PASSED)
-P2 Task 13: complete (commit 7f3623c4; escalation graph test observed green by controller; as-built deltas 1-14 + spec register 8-12; PACKET ADDENDUM OPEN: phrase→block hints)
-P2 FINAL REVIEW: READY FOR MERGE after fix wave b8315d30 (HIGH-1 weave routing net via _route_after_intent — the flagship fail-closed property now holds mechanically; HIGH-2 menu-pick phantom serve fixed; MEDIUM continuation reachable via l2_intent_override, served-topics deferred delta 15). Residual Lows recorded: offer-mid-pathway L2 suppression (new, F5 fixture item), post-crisis monitoring weave re-eval (pre-existing, fail-closed direction), psychoed_depression fixture-divergence pair -> separate reconciliation ticket.
-P2 BUILD CLOSED 2026-07-29: 13 tasks, 30 commits, 311 psychoed tests green, 138 integrity green, flag-OFF byte-identical, channels 106/106.
+Task 2 review (base ee6f4ca..62ad9b5): SPEC ✅ / CODE QUALITY changes-requested.
+  Findings:
+  - [Important #1] is_low_mood_disclosure matches ~only its own test strings; real §3a
+    paraphrases false-negative -> unscreened BA offer. Confirmed by probe (BA offerable but
+    detect=False for "I have no motivation for anything anymore"). Detector also does real
+    precision work ("tired after a long week": BA offerable, correctly excluded). Root cause:
+    brief gave 10 e.g. phrases as if a complete set. Trigger set is CLINICIAN-OWNED ->
+    ESCALATED as a decision (needs signed §3a trigger set + robust matching + data-file).
+  - [Important #2] AC2 rewrite authorization recorded only in report -> closing via durable
+    record (this ledger + controller verified the arabic_offer_excluded repro independently).
+  - [Minor #3] stale prod comment skill_select.py:560 "today's offer path" (AR is direct-entry).
+  - [Minor #4] dead `offerable` kwarg in tests (inert; tests pass via real Tier-1 keyword match).
+  - [Minor #5] trigger list inline vs ocd_compulsion's CMS-JSON single-source -> fold into #1.
+  STATUS: Task 2 structurally correct; NOT complete — #1 open, human decision required before Task 3.
+
+Task 2 hardening (30de34c) REVIEW: SPEC ❌ / CODE QUALITY changes-requested — REJECTED.
+  Adversarial novel-input review (verified independently by controller):
+  - Novel §3a recall = 2/15 (13.3%) — same overfitting as v1; regexes fit the 10 seed paraphrases, not the family/scope discriminator. "nothing excites me anymore", "I feel hollow", "zero drive" all MISS.
+  - Novel look-alike FP = 3/15 (20%) — NEW safety negative. "I feel stuck in traffic", "no energy left to clean the kitchen tonight", "nothing fun at this party" all FIRE -> SI question -> broken GL-1 card.
+  - NOT single-sourced: matching runs on a hand-typed _LITERAL_PHRASES tuple + regexes, JSON only feeds tests -> clinician edits won't change behavior (the drift risk we set out to close).
+  DECISION: two deterministic attempts have now failed to generalize. §3a detection is a SEMANTIC problem, not keyword/regex. Escalated to user: revisit the "deterministic only" constraint; recall likely belongs to the existing semantic BA-offerable signal, precision to a semantic filter or BA's own target_presentations. Do NOT dispatch a third regex fix. Hardening 30de34c to be reverted or redesigned per user's approach decision. Flag stays OFF regardless.
