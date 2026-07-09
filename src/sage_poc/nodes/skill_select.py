@@ -199,6 +199,29 @@ def _flag_dispositions() -> dict[str, str]:
     return _FLAG_DISPOSITIONS_CACHE
 
 
+_FLAG_CONTAIN_CACHE: dict[str, dict] | None = None
+
+
+def _flag_contain_params() -> dict[str, dict]:
+    """flag_id -> containment params {family, flag_level, kb_topics, skill_id?} for flags whose
+    skill_select_disposition is 'contain' (Phase-2 T2). Same by-reference read as _flag_dispositions;
+    the safety lane OWNS which flags contain (declared on the flag action's `contain` object). EMPTY
+    until a family declares it (T4) — so this is dormant/inert on master. skill_select is a pure consumer."""
+    global _FLAG_CONTAIN_CACHE
+    if _FLAG_CONTAIN_CACHE is None:
+        import json
+        import pathlib as _pl
+        path = _pl.Path(__file__).resolve().parent.parent / "rules/data/safety/clinical_flag_patterns.json"
+        data = json.loads(path.read_text(encoding="utf-8"))
+        out: dict[str, dict] = {}
+        for rule in data.get("rules", []):
+            action = rule.get("action", {})
+            if action.get("skill_select_disposition") == "contain" and action.get("flag_id"):
+                out[action["flag_id"]] = action.get("contain", {})
+        _FLAG_CONTAIN_CACHE = out
+    return _FLAG_CONTAIN_CACHE
+
+
 def _anchor_counts() -> dict[str, int]:
     """How many index anchors each skill contributes (description + semantic_anchors [+ exemplars
     under v2]). The count that drives the max-over-anchors bias."""
@@ -710,6 +733,7 @@ async def skill_select_node(state: SageState) -> dict:
             "skill_match_method": None,
             "semantic_score": None,
             "path": state["path"] + ["skill_select", "ocd_compulsion_veto"],
+            "abstain_referral": "ocd_erp",  # #218: Node-8 pins the ERP professional-referral signpost
         }
 
     # V2 behavior #4: enforce the frozen ABSTAIN dispositions DECLARED on the flag definitions.
@@ -725,7 +749,23 @@ async def skill_select_node(state: SageState) -> dict:
     # picked so the safety reason owns the audit trail when both could fire.
     if _v2_enabled():
         _disp = _flag_dispositions()
-        if any(_disp.get(f) == "abstain" for f in (state.get("clinical_flags") or [])):
+        _flags_now = state.get("clinical_flags") or []
+        # Phase-2 T2: contain SUPERSEDES abstain for families that declare it (design §2). Dormant
+        # until a flag declares skill_select_disposition "contain" (T4); T3's edge routes on the
+        # directive. Sets containment_directive; behavior-identical to master while no family declares it.
+        _contain_flag = next((f for f in _flags_now if _disp.get(f) == "contain"), None)
+        if _contain_flag:
+            _cp = _flag_contain_params().get(_contain_flag, {})
+            return {
+                **stale_offer_clear,
+                "active_skill_id": None,
+                "active_step_id": None,
+                "skill_match_method": None,
+                "semantic_score": None,
+                "containment_directive": {**_cp, "rule_id": _contain_flag},
+                "path": state["path"] + ["skill_select", "clinical_flag_contain"],
+            }
+        if any(_disp.get(f) == "abstain" for f in _flags_now):
             return {
                 **stale_offer_clear,
                 "active_skill_id": None,

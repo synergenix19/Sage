@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sage_poc.state import SageState
 from sage_poc.language import async_translate_to_arabic
+from sage_poc.gender_marker import detect_gender_marking
 from sage_poc.config import AUDIT_LOG_ENABLED, CRISIS_LINE_UAE, CRISIS_CONFIG, CLASSIFIER_MODEL
 from sage_poc.llm import get_classifier
 from sage_poc.rules import engine as rules_engine
@@ -95,6 +96,31 @@ def _pin_mood_anchor(text: str, executed_step_id: str | None, lang: str) -> str:
     if _MOOD_SCALE_RX.search(text):                # 3. LLM presented a non-canonical scale -> canonical
         return _MOOD_PINNED_TEMPLATE_AR
     return text.rstrip() + " " + _MOOD_PINNED_SCALE_AR  # 4. warm wrapper only -> append canonical scale
+
+
+# #218 (Layer 2): the vetoed-OCD abstain must carry the spec §1d professional-referral signpost.
+# Pinned VERBATIM post-generation at Node 8 (mirrors the mood-anchor pin) so the clinician-approved
+# ERP wording is un-paraphrasable + audit-visible. EN only; AR referral filed to the AR track.
+_OCD_ERP_REFERRAL_EN = (
+    "It sounds like these thoughts are really distressing and hard to sit with. Thoughts like these "
+    "often respond well to support from a mental health professional who offers ERP (exposure and "
+    "response prevention) for OCD, an approach with strong evidence. I'm here to keep talking in the "
+    "meantime if that would help."
+)
+
+
+def _pin_ocd_referral(text: str, abstain_referral: str | None, lang: str) -> str:
+    """Node-8 post-generation append of the pinned OCD/ERP professional-referral signpost on a
+    vetoed-OCD abstain turn (spec §1d; #218). Verbatim, never through the LLM — the approved wording
+    ships exactly and is audit-visible. EN only (AR referral -> AR track); already-present or other
+    turns/langs -> no-op."""
+    if abstain_referral != "ocd_erp" or lang != "en":
+        return text
+    if "exposure and response prevention" in text.lower():
+        return text
+    return text.rstrip() + "\n\n" + _OCD_ERP_REFERRAL_EN
+
+
 _OPENER_REWRITE_DISTRESS_CEILING = 9  # severe distress (9-10/10) -> suppress rewrite (pass through);
 # the lexicon is the primary sensitive-content gate, this is a wording-independent backstop for the top of the scale
 
@@ -329,11 +355,45 @@ _EMPTY_MONITORING_FALLBACK = (
     "I'm still here with you. If things get harder, please reach out right now, "
     f"the UAE MoHAP support line on {CRISIS_LINE_UAE}, or {CRISIS_CONFIG['emergency']} for an emergency."
 )
-
-JAILBREAK_RESPONSE = (
-    "I'm Sage, a wellness companion here to offer emotional support and evidence-based coping "
-    "techniques. That's my role. What's been on your mind today?"
+# Native AR hard fallback — used ONLY if the CC-AR-002 rule is unavailable, mirroring graph.py's
+# crisis-node hard fallback. Digits come from CRISIS_CONFIG, never a translator.
+_EMPTY_MONITORING_FALLBACK_AR = (
+    "ما زلت هنا معك. إذا أصبحت الأمور أصعب، أرجوك تواصل الآن مع خط وزارة الصحة للدعم النفسي "
+    f"{CRISIS_LINE_UAE}، أو اتصل برقم الطوارئ {CRISIS_CONFIG['emergency']}."
 )
+
+
+def _monitoring_fallback(lang: str) -> str:
+    """Locale-selected post-crisis monitoring empty-reply fail-safe.
+
+    Mirrors the acute crisis card: a natively-authored crisis_content rule (CC-EN-003 / CC-AR-002) is
+    selected by locale, so Arabic is served native and BYPASSES translate-out — the downstream
+    _response_en_is_arabic check routes native AR around the translator, keeping the helpline digits
+    deterministic from CRISIS_CONFIG rather than at risk of translator digit-corruption (#1). Falls
+    back to the hard-coded constants only if the rule is missing (defense-in-depth, as graph.py does).
+    """
+    result = rules_engine.evaluate("crisis_content", {
+        "language": lang,
+        "crisis_level": "monitoring_fallback",
+    })
+    if result.fired:
+        return result.fired[0].action["response_text"]
+    return _EMPTY_MONITORING_FALLBACK_AR if lang == "ar" else _EMPTY_MONITORING_FALLBACK
+
+# Canonical Sage identity statement — SINGLE SOURCE OF TRUTH. Anchored to the ratified L0 persona
+# (L0_persona.json v2.5.0, clinical-lead signed 2026-06-25, live in prod): "a warm Khaleeji wellness
+# companion ... You offer emotional support and evidence-based coping tools." Both the jailbreak
+# persona-reassertion below and the CUO-ID-001 identity substitution (wellness_identity.json) restate
+# it; tests/test_identity_statement_single_source.py pins all three to this wording so they can never
+# silently drift again (#6). If this changes, update wellness_identity.json CUO-ID-001 in lock-step —
+# the drift-guard test enforces it.
+SAGE_IDENTITY_STATEMENT = (
+    "I'm Sage, a wellness companion here to offer emotional support and evidence-based coping "
+    "tools. That's my role. What's been on your mind today?"
+)
+
+# The jailbreak / persona-reassertion reply IS the canonical identity statement.
+JAILBREAK_RESPONSE = SAGE_IDENTITY_STATEMENT
 
 
 async def _log_clinical_review(
@@ -472,7 +532,7 @@ async def output_gate_node(state: SageState) -> dict:
     # turn re-surfaces resources rather than a generic line; never return silence.
     if not response_en and gate_path not in ("scope_refusal", "jailbreak"):
         if state.get("crisis_state") == "monitoring":
-            response_en = _EMPTY_MONITORING_FALLBACK
+            response_en = _monitoring_fallback(lang)
         else:
             response_en = _VETTED_FALLBACK_RESPONSE
         path = path + ["output_gate_empty_fallback"]
@@ -676,10 +736,14 @@ async def output_gate_node(state: SageState) -> dict:
         # strict-retry, when it fires) -- not the surrounding gate work (cultural check,
         # format strip, audit build). Same time.monotonic() idiom as latency_ms.
         _translate_t0 = time.monotonic()
-        final_response = await async_translate_to_arabic(response_en)
+        # Signed "mirror-when-marked, neutral-when-unknown" gender-address policy: computed
+        # from raw_message (the raw AR user text), never message_en (translated EN carries no
+        # Arabic grammatical gender marking to detect against).
+        _gender_marked = detect_gender_marking(state.get("raw_message", ""))
+        final_response = await async_translate_to_arabic(response_en, gender=_gender_marked)
         if _has_english_bleed(final_response):
             _log.warning("[output_gate] English bleed in Arabic output; re-translating strict")
-            final_response = await async_translate_to_arabic(response_en, strict=True)
+            final_response = await async_translate_to_arabic(response_en, strict=True, gender=_gender_marked)
             path = path + ["arabic_token_guard_retranslate"]
             if _has_english_bleed(final_response):
                 _log.warning("[output_gate] English bleed persists after strict re-translate (telemetry only)")
@@ -692,6 +756,7 @@ async def output_gate_node(state: SageState) -> dict:
     # the verbatim clause concatenated (never un-anchored). Defense — identical anchors (translate
     # corruption) fall back to the pinned template. AR score_mood turns only.
     final_response = _pin_mood_anchor(final_response, state.get("executed_step_id"), lang)
+    final_response = _pin_ocd_referral(final_response, state.get("abstain_referral"), lang)  # #218
 
     if AUDIT_LOG_ENABLED:
         audit = {

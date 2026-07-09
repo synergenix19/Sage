@@ -32,9 +32,20 @@
     "ساعدني أتنفس",
     "أبي تمرين تنفس",
     "تمرين تنفس الصندوق",
-    "تعلمت تنفس الصندوق"
+    "تعلمت تنفس الصندوق",
+    "dreading",
+    "dreading a big event",
+    "nervous about my presentation",
+    "dreading the interview",
+    "anxious about my presentation",
+    "presentation tomorrow",
+    "sick with nerves",
+    "the exam is coming up",
+    "anxious about the flight",
+    "big appointment coming up",
+    "deadline is stressing"
   ],
-  "semantic_description": "Box breathing: four-count inhale, four-count hold, four-count exhale, four-count hold. Square breathing. Paced breathing exercise. Walk me through the four-count breathing cycle.",
+  "semantic_description": "Box breathing to calm anticipatory nerves before a specific upcoming event: dreading a presentation, interview, exam, flight, appointment, or deadline. Calms physiological arousal first before preparing. Box breathing: four-count inhale, four-count hold, four-count exhale, four-count hold. Square breathing. Paced breathing exercise. Walk me through the four-count breathing cycle.",
   "steps": [
     {
       "step_id": "inhale_hold",

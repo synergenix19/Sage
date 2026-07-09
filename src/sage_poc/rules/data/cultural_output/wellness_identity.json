@@ -3,12 +3,12 @@
   "rules": [
     {
       "rule_id": "CUO-ID-001",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "authored_by": "sage_clinics",
-      "approved_by": null,
-      "effective_date": "2026-05-27",
+      "approved_by": "vee",
+      "effective_date": "2026-07-10",
       "active": true,
-      "description": "Blocks LLM responses that self-identify Sage as a mental health coach, therapist, or counsellor. Substitutes a canonical wellness companion statement. Applied post-generation so the LLM cannot bypass it.",
+      "description": "Blocks LLM responses that self-identify Sage as a mental health coach, therapist, or counsellor. Substitutes a canonical wellness companion statement. Applied post-generation so the LLM cannot bypass it. Substitute text is SINGLE-SOURCED with SAGE_IDENTITY_STATEMENT (output_gate.py) and anchored to the ratified L0_persona v2.5.0; drift-guarded by tests/test_identity_statement_single_source.py (#6). Clinician-signed (Vee) 2026-07-10.",
       "category": "cultural_output",
       "check_type": "blocklist",
       "condition_type": "always",

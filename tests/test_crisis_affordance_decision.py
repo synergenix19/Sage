@@ -58,3 +58,26 @@ class TestTieringDisabledLegacyPath:
         emit, mismatch = _d(tiering_enabled=False, is_safe=False, path=["safety_check", "crisis_response"])
         assert emit is True
         assert mismatch is False     # is_safe already said crisis
+
+
+class TestSafetyFloorD2DoNotDelete:
+    """D2 clinician ruling (#234): the safety floor is FIXED and NOT reopenable — any turn that ran
+    crisis_response MUST emit the crisis card, regardless of tier.
+
+    DO NOT DELETE this test as 'trivially true'. It looks tautological only because the code
+    currently enforces it. Its job is to FAIL LOUD if a future refactor re-couples the card to the
+    initial tier — which is the exact #205 regression (a tier=none monitoring-rescued crisis turn
+    shipping with no card). This is the #191 lesson applied: the test a future engineer is tempted to
+    delete as obvious is precisely the one guarding a signed safety invariant.
+    """
+
+    def test_crisis_response_path_emits_card_at_every_tier(self):
+        for tier in ("none", "T1", "T2", None):
+            emit, _ = _d(gate_path="crisis", crisis_tier=tier,
+                         path=["safety_check", "crisis_response"])
+            assert emit is True, f"SAFETY FLOOR VIOLATED: crisis_response ran but card suppressed at tier={tier}"
+
+    def test_crisis_gate_path_emits_card_even_without_node_in_path(self):
+        # gate_path=='crisis' alone is sufficient — belt-and-suspenders with the node-path check.
+        emit, _ = _d(gate_path="crisis", crisis_tier="none", path=["safety_check"])
+        assert emit is True

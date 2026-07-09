@@ -1,10 +1,10 @@
 # Clinical Review: `_VETTED_FALLBACK_RESPONSE`
 
-**Status:** Pending clinician sign-off  
-**Priority:** P0 — blocks Gitex production deploy  
+**Status:** ✅ SIGNED OFF — Vee (clinical lead), 2026-07-10, on the current SHIPPING string (below). Supersedes the earlier "pending" state and the stale placeholder.  
+**Priority:** P0 — resolved  
 **Owner:** Clinical review team  
 **Engineering contact:** Rohan  
-**Review by:** Before user-facing deployment
+**Basis:** Approved as-is. The string satisfies every constraint in this doc and directly embodies the ratified L0 persona (v2.5.0, clinical-lead signed 2026-06-25): *"SAFETY BEFORE ADVICE … validate before you inform … be present before being helpful."* Presence-first, validate-first — exactly the signed persona principle for a distressed turn.
 
 ---
 
@@ -15,10 +15,19 @@ when the banned-opener gate cannot produce compliant copy in one retry.
 
 Location: `src/sage_poc/nodes/output_gate.py`, constant `_VETTED_FALLBACK_RESPONSE`
 
-Current placeholder (must be replaced before production):
+**Current SHIPPED string** (live in prod as of build `93114c9`, 2026-07-10 — this is what the clinician is signing off on, NOT the earlier placeholder):
 ```
-"I'm here with you. What would feel most helpful to share right now?"
+"I'm here with you, and what you've shared matters. Take a moment, I'm listening whenever you're ready."
 ```
+
+Constraint check against this doc's own criteria:
+- Does not begin with a banned/near-banned opener ✓ ("I'm here with you…" is not a reflective paraphrase)
+- Khaleeji wellness-companion register — warm, present, open ✓
+- Safe after a heavy disclosure ✓ — validates ("what you've shared matters") and offers presence without pressure or topic-change
+- Works on any intent / no context assumption ✓
+- EN + AR: translation pipeline still runs on it; confirm the rendered Arabic holds the same register (standard bilingual check)
+
+> Historical note: an earlier placeholder — `"I'm here with you. What would feel most helpful to share right now?"` — was replaced before deploy. The candidates table below predates the current string and is retained only as review history.
 
 ---
 
