@@ -1,0 +1,16 @@
+{
+  "metric": "v7.1 tiering non-inferiority: a true-SI case must resolve to T2. Regression set = {true-SI EN : s3 fired AND no s1} that would drop to T1.",
+  "corpus": "CRADLE Bench eval.jsonl (crisis-tier labels: active_suicide_ideation, passive_suicide_ideation, self_harm)",
+  "case_count": 232,
+  "per_language": {
+    "en": 232,
+    "ar": "UNMEASURED \u2014 no Arabic CRADLE corpus exists"
+  },
+  "fired_to_T2": 89,
+  "no_signal_preexisting_miss": 143,
+  "tiering_regression_set_size": 0,
+  "tiering_regression_cases": [],
+  "verdict": "NON_INFERIOR",
+  "git_sha": "fd963c6b74fb0b868f5e6384284fe37d3499758b",
+  "note": "AR routing is provably unchanged by tiering (s3_ar_az + s3_failclosed); AR recall is a separate pre-existing gap (Gate 1, S2/MARBERT)."
+}

@@ -184,6 +184,12 @@ def test_guardrail_budget_deducted_no_overflow_shrink():
     from sage_poc.prompts import composer as _composer_module
 
     guardrail = _build_freeflow_guardrail_block()
+    # The fixture is mid-intensity (default emotional_intensity=5), so compose_prompt appends the
+    # P1(mid) response-shape floor to the guardrail block and deducts ITS words from L1 too (see
+    # composer._MID_FREEFLOW_SHAPE). Mirror that here, so this wiring test also asserts P1's shape
+    # words are budget-accounted, not just the base guardrail's. (P1 fires only at intensity 4-6;
+    # at low/high bands this line would be inert.)
+    guardrail = guardrail + "\n\n" + _composer_module._MID_FREEFLOW_SHAPE
     guardrail_words = count_words(guardrail)
 
     # 12 turns × ~50w = ~600w history — fills the 600w flex budget so L1 is budget-limited.

@@ -244,3 +244,11 @@ def test_text_direction_unknown_or_missing_defaults_ltr():
     from sage_poc.language import text_direction
     assert text_direction(None) == "ltr"
     assert text_direction("fr") == "ltr"
+
+
+# ---- strict mode for Arabic translation (Task 3 / feedback #4) ----------------
+
+def test_strict_arabic_prompt_forbids_english_words():
+    from sage_poc.language import _build_khaleeji_translation_prompt
+    strict = _build_khaleeji_translation_prompt("how is your sleep lately", strict=True)
+    assert "Arabic script" in strict or "no English" in strict.lower()

@@ -1,4 +1,5 @@
 import asyncio
+import time
 import json
 import logging
 from datetime import datetime, timezone
@@ -13,7 +14,7 @@ from sage_poc.nodes.skill_select import skill_select_node
 from sage_poc.nodes.skill_executor import skill_executor_node
 from sage_poc.nodes.freeflow_respond import freeflow_respond_node
 from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
-from sage_poc.config import CRISIS_LINE_UAE
+from sage_poc.config import CRISIS_LINE_UAE, CRISIS_CONFIG
 from sage_poc.nodes.output_gate import output_gate_node
 from sage_poc.config import AUDIT_LOG_ENABLED
 from sage_poc.audit import write_session_audit
@@ -54,19 +55,25 @@ async def _crisis_response_node(state: SageState) -> dict:
     else:
         # Hard fallback: should never fire if JSON files are present
         response_text = (
-            f"Please reach out for support now. UAE: MoHAP Counselling Line {CRISIS_LINE_UAE} (free, 24/7) or emergency: 999."
+            f"Please reach out for support now. UAE: MoHAP Counselling Line {CRISIS_LINE_UAE} (free, {CRISIS_CONFIG['hours']}) or emergency: {CRISIS_CONFIG['emergency']}."
             if lang != "ar"
-            else f"أرجوك تواصل مع خط وزارة الصحة {CRISIS_LINE_UAE} أو الطوارئ 999 الآن."
+            else f"أرجوك تواصل مع خط وزارة الصحة {CRISIS_LINE_UAE} أو الطوارئ {CRISIS_CONFIG['emergency']} الآن."
         )
 
     path = state["path"] + ["crisis_response"]
 
+    # PDPL audit completeness (#205 ADR): crisis_response -> END BYPASSES output_gate, where
+    # latency_ms is stamped for every other path. Stamp it here too so the crisis audit record is
+    # complete on the one path with the tightest budget — traceability admits no per-path exception
+    # (verified 2026-07-08: crisis turns had latency_ms=NULL, 0/18, vs 56/56 non-crisis).
+    _tsa = state.get("turn_started_at")
     _audit_task = asyncio.create_task(write_session_audit({
         **state,
         "path": path,
         "gate_path": "crisis",
         "crisis_state": "monitoring",
         "re_escalation_within_monitoring": is_reescalation,
+        "latency_ms": int((time.monotonic() - _tsa) * 1000) if _tsa is not None else state.get("latency_ms"),
     }))
     _audit_task.add_done_callback(
         lambda t: _log.warning("[crisis_response] session audit error: %s", t.exception())
@@ -148,9 +155,17 @@ async def _crisis_response_node(state: SageState) -> dict:
 
 def _route_after_safety(state: SageState) -> str:
     if state.get("crisis_state") == "monitoring":
-        # In monitoring: only re-escalate if S1-S6 fired directly or S7 classified a new crisis
+        # In monitoring: only re-escalate if S1-S6 fired directly or S7 classified a new crisis.
+        # Tiering does NOT apply here (per reader-disposition table): any signal re-escalates.
         if not state["is_safe"] or state.get("s7_result") == "NEW_CRISIS":
             return "crisis"
+        return "safe"
+    # v7.1 tiering (flag-gated). A confident-English semantic-only signal is T1 (warm): route to
+    # the normal graph with supportive posture, NOT crisis_response. is_safe stays False (truthful
+    # detector record); routing authority is crisis_tier here. Flag OFF => this branch is skipped
+    # and routing reads is_safe exactly as v7/master (Check B).
+    from sage_poc import config as _cfg  # noqa: PLC0415
+    if _cfg.CRISIS_TIERING_ENABLED and state.get("crisis_tier") == "T1":
         return "safe"
     return "safe" if state["is_safe"] else "crisis"
 
@@ -207,6 +222,16 @@ def _route_after_intent(state: SageState) -> str:
             and not state.get("active_skill_id")
             and state.get("emotional_intensity", 5) >= ACUTE_INTENSITY_FLOOR):
         return "skill_select"
+    # v7.2 Node-2 keyword pre-pass HINT: a general_chat turn the classifier would send to freeflow,
+    # but whose message deterministically matched a skill trigger (pre-pass), reaches skill_select so
+    # the skill can offer/enter per R1. Mirrors the Routing-SF-2 slot+guards exactly: after the
+    # safety/monitoring/psychotic redirects, before the confidence gate; guarded on active_skill_id
+    # (mid-skill turns fall through, preserving the checkpoint). Hint, not hijack — primary_intent is
+    # unchanged; info_request already reaches skill_select on its own, so this targets general_chat.
+    if (intent == "general_chat"
+            and not state.get("active_skill_id")
+            and (state.get("prepass_matched") or [])):
+        return "skill_select"
     if confidence < 0.6:
         return "low_confidence"
     if intent == "exit_skill":
@@ -226,6 +251,27 @@ def _route_after_intent(state: SageState) -> str:
 
 
 def _route_after_skill_select(state: SageState) -> str:
+    # Phase-2 T3: a fired containment directive routes to the containment pathway —
+    # knowledge_retrieve seeds the family KB, then the existing knowledge_retrieve→freeflow edge
+    # composes the L3/L4 template (validate→psychoeducate→differentiate→refer→engage). Checked
+    # FIRST here, which is already DOWNSTREAM of the Node-1 crisis short-circuit: _route_after_safety
+    # sends a crisis to crisis_response BEFORE skill_select (hence this router) ever runs, so crisis
+    # supremacy over an overlapping containment pattern is STRUCTURAL (AC-CRISIS-SUPREMACY), not a
+    # priority compare here. contain also supersedes abstain (belt-and-suspenders vs T2's node-level
+    # mutual exclusion). DORMANT until a family declares skill_select_disposition "contain" (T4);
+    # containment_directive is None every turn until then, so this is byte-identical to master.
+    # The guided-skill (skill_id) variant is deferred: T2 sets active_skill_id=None, so a
+    # skill_executor route would be dead — the reference OCD family uses the KB path below.
+    if state.get("containment_directive"):
+        return "knowledge_retrieve"
+    # V2 reranker ABSTAIN (below-τ semantic OR keyword-veto) → Node 3 low_confidence_respond, NOT
+    # freeflow (Cardinal Rule 5). The clinician's −4.7pp recall acceptance rests on lost cases being
+    # recoverable soft-abstains that land in Node 3's empathic clarification, and the signed
+    # soft-abstain-recovery monitoring assumes it. skill_select sets this key only under
+    # _rerank_enabled(); _build_state resets it False each turn (per-turn, like path) so a prior
+    # turn's abstain never leaks into a later skill turn. Flag-off never sets it → V1 path unchanged.
+    if state.get("skill_select_abstained"):
+        return "low_confidence"
     # info_request routes to knowledge_retrieve regardless of active skill — the
     # skill_select node preserves active_skill_id, so the skill survives this turn.
     if state.get("primary_intent") == "info_request":
@@ -242,11 +288,9 @@ def _route_after_skill_executor(state: SageState) -> str:
 
 
 def _route_after_output_gate(state: SageState) -> str:
-    # Cardinal Rule 4: crisis output is deterministic and never subject to stylistic retry.
-    if state.get("crisis_state") not in (None, "none"):
-        return END
-    if state.get("banned_opener_correction") and state.get("banned_opener_retry_count", 0) <= 1:
-        return "freeflow_respond"
+    # output_gate is terminal. The banned-opener freeflow re-entry was removed in #58: opener
+    # remediation is now an inline rewrite/pass-through inside output_gate (no second generation).
+    # Crisis never reaches here (routes to END at safety_check); stylistic retry never applied to it.
     return END
 
 
@@ -284,6 +328,7 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     graph.add_conditional_edges("skill_select", _route_after_skill_select, {
         "skill_executor": "skill_executor",
         "knowledge_retrieve": "knowledge_retrieve",
+        "low_confidence": "low_confidence_respond",
         "freeflow": "freeflow_respond",
     })
     graph.add_edge("knowledge_retrieve", "freeflow_respond")
@@ -294,7 +339,6 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     })
     graph.add_edge("freeflow_respond", "output_gate")
     graph.add_conditional_edges("output_gate", _route_after_output_gate, {
-        "freeflow_respond": "freeflow_respond",
         END: END,
     })
 

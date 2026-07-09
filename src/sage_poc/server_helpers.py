@@ -165,8 +165,12 @@ def _build_state(req: _RequestLike) -> dict:
         "response_en":        None,
         "response":           None,
         "path":               [],
+        "skill_select_abstained": False,   # per-turn reset (like path) — no cross-turn abstain leak
+        "abstain_referral": None,   # #218 per-turn reset (like skill_select_abstained)
+        "containment_directive": None,   # Phase-2 T1 per-turn reset (inert until T2-T4)
         "code_switching":     False,
         "directive_posture":  False,
+        "self_reference":     False,
         "s7_result":          None,
         "s7_method":          None,
         "skill_match_method": None,
@@ -184,6 +188,7 @@ def _build_state(req: _RequestLike) -> dict:
         "knowledge_passages":      [],
         "offer_response":          None,
         "offer_choice_skill_id":   None,
+        "stall_detected":          None,   # per-turn; set in intent_route
         # Set from request — needed by tools and summary persistence
         "session_id": req.session_id,
         "user_id":    req.user_id,

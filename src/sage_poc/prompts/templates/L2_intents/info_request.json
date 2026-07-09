@@ -1,14 +1,16 @@
 {
   "template_id": "L2_info_request",
-  "version": "1.0.0",
-  "authored_by": "sage_clinics",
-  "approved_by": null,
-  "effective_date": "2026-05-22",
+  "version": "2.1.0",
+  "status": "approved",
+  "authored_by": "engineering",
+  "approved_by": "Rohan Sarda (clinical lead)",
+  "effective_date": "2026-07-07",
   "layer": "L2",
   "role": "user",
   "always_include": true,
-  "word_budget": 50,
-  "content": "INTENT: The user is asking for information. Emotional intensity: {intensity}/10. {intensity_guidance} Answer clearly and briefly. If the answer is uncertain, say so. Do not pad the response with unsolicited support.",
+  "word_budget": 160,
+  "content": "INTENT: The user is asking for information. Emotional intensity: {intensity}/10. {intensity_guidance} Answer the question directly and clearly, in plain, warm language, not a clinical brief. When knowledge passages are provided, ground the answer in them and weave them in naturally; if none of them cover the question, or the evidence is thin, say so plainly and do not invent clinical facts. Do not assume the person is struggling, and do not add sympathy they did not ask for. End with exactly one open, warm clarifying question that helps you understand what they need next, for example whether they are asking about this for themselves or in general. Ask only that single question: never a second question, never a closed 'do you want to know more', and never suggest seeing a professional on a purely factual turn. Keep the reply concise.",
   "variables": ["intensity", "intensity_guidance"],
-  "intent": "info_request"
+  "intent": "info_request",
+  "_signed_off": "Clinical ruling 2026-07-07 (turn-aware both/and; SUPERSEDES the unpromoted v2.1.0 pure-statement package pre-promotion). BASE = question-close: a single-intent info_request ends with exactly one open clarifying question (Abby-style triage: for-yourself-or-in-general), which is a triage/routing act, not an over-question. Enabled by the D4 amendment (directive_posture no longer fires on info_request; commit removes directive_detect info_request trigger; audit 2026-07-07 confirmed the strip was its only info_request effect, code + Rules Service). Repeat/consecutive info_request falls back to the statement variant L2_info_request_repeat (Option i retained). Constraints: one open question only; never a second; never a closed 'want to know more'; no professional redirect on a factual turn; no em dashes. See 2026-07-07-info_request-d4-amendment-turn-aware.md."
 }

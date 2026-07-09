@@ -6,6 +6,7 @@ import hmac
 import os
 import pathlib
 import re
+import sys
 import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -21,19 +22,56 @@ from pydantic import BaseModel
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from sage_poc.graph import build_graph
-from sage_poc.config import RESPONDER_MODEL
+from sage_poc.config import RESPONDER_MODEL, DB_POOL_MAX_SIZE, CHECKPOINT_POOL_MAX_SIZE, CRISIS_TIERING_ENABLED
+from sage_poc.crisis_copy import (
+    assert_crisis_copy_resolves,
+    assert_crisis_locale_parity,
+    crisis_copy_is_templated,
+)
 from sage_poc.language import text_direction
 from sage_poc.server_helpers import _build_state, _stale_skill_overrides, _void_unseen_offer
 from sage_poc.llm import get_classifier
+from sage_poc.observability import log_stage_latency
 from sage_poc.skills.conformance import SCHEMA_CONFORMANCE, get_conformance_report
+from sage_poc.skills.schema import load_skill
 
 _log = logging.getLogger(__name__)
+
+
+def _configure_instrumentation_logging() -> None:
+    """uvicorn configures only its own loggers, so app `logging.info()` is dropped on the
+    deployed image (falls through to the WARNING-level lastResort). The latency baseline reads
+    the stage_latency + llm_call lines, so attach a stdout handler to EXACTLY those two
+    instrumentation loggers at INFO — both content-free by construction (stage/ms/IDs; node/
+    model/latency). Deliberately NOT a global basicConfig(INFO): that would also surface the
+    output_gate audit (clinical-flag metadata), widening the log content boundary. Idempotent;
+    propagate=False so root config can't double-print or re-level these.
+    """
+    _handler = logging.StreamHandler(sys.stdout)
+    _handler.setFormatter(logging.Formatter("%(message)s"))
+    for _name in ("sage.latency", "sage_poc.resilience"):
+        _lg = logging.getLogger(_name)
+        if not any(isinstance(h, logging.StreamHandler) for h in _lg.handlers):
+            _lg.addHandler(_handler)
+        _lg.setLevel(logging.INFO)
+        _lg.propagate = False
+
+
+_configure_instrumentation_logging()
+
 CRISIS_SIGNAL = "[[CRISIS_DETECTED]]"
 AINVOKE_TIMEOUT_SECONDS: float = float(os.environ.get("AINVOKE_TIMEOUT_SECONDS", "30"))
 
 # Gate: True once BGE-M3 warmup completes (or is intentionally skipped).
 # /health/ready and /chat both check this; Railway healthcheck holds LB traffic until ready.
 _bge_ready: bool = False
+
+# V2 reranker head-control result, surfaced on /health/ready so the deploy HARD GATE is a direct
+# readable check — not a suppressed INFO log line (the app logger defaults to WARNING, so the success
+# string never reached stdout, making the runbook's "logs show head-control passed" check unsatisfiable).
+# Values: "pending" (warmup not finished), "disabled" (SKILL_RERANK_ENABLED!=1), "passed" (head loaded
+# and separating), "failed" (headless/no-separation — readiness is also withheld → 503).
+_reranker_status: str = "pending"
 
 
 async def require_api_key(x_sage_api_key: str | None = Header(default=None)) -> None:
@@ -67,6 +105,83 @@ def _stream_tokens(text: str) -> list[str]:
     return _STREAM_TOKEN_RE.findall(text)
 
 
+# ALLOWLIST, not a denylist: only these ordinary content gate_paths emit sources.
+# Any other value (crisis today; medical/hr/ipv/future safety routes; unknown/None)
+# fails SAFE and returns no sources. TODO Step 3a: drive one KB info_request turn on
+# staging and read X-Sage-Gate-Path to confirm it is "standard"; if it comes back
+# None instead, add None here explicitly — never widen this to a denylist.
+_SOURCE_ALLOWED_GATE_PATHS = frozenset({"standard"})
+
+
+def _sources_header(result: dict) -> str | None:
+    """Build the X-Sage-Sources header value: a JSON list of source cards, or None.
+
+    Sources are always a SUBSET of result["knowledge_passages"] — the exact list
+    audited in session_audit.knowledge_passage_ids — so every source card shown to
+    the user is audit-traceable back to that turn's retrieval.
+    """
+    if result.get("gate_path") not in _SOURCE_ALLOWED_GATE_PATHS:
+        return None
+    entries: list[dict] = []
+    seen: set[str] = set()
+    for p in (result.get("knowledge_passages") or []):
+        video, url = p.get("video_url", ""), p.get("source_url", "")
+        if not (video or url):
+            continue
+        key = url or video                          # dedupe by article-level URL
+        if key in seen:
+            continue
+        seen.add(key)
+        entries.append({"type": "video" if video else "article", "title": p.get("title", ""),
+                        "url": video or url, "citation": p.get("citation", "")})
+        if len(entries) >= 3:                        # cap = L4 max_passages evidence budget
+            break
+    return json.dumps(entries, ensure_ascii=True) if entries else None
+
+
+def _skill_media_entry(item) -> str:
+    """One skill-media item as JSON, HTTP-header-safe (ensure_ascii for Arabic titles)."""
+    return json.dumps(
+        {"type": item.type, "url": item.url, "title": item.title, "provider": item.provider},
+        ensure_ascii=True,
+    )
+
+
+def _skill_media_enabled() -> bool:
+    """Item-3 kill-switch resolution — the SINGLE source of truth for BOTH the emit gate and the
+    /health/version report, so the reported flag can never drift from what actually fires."""
+    return os.environ.get("SAGE_SKILL_MEDIA_ENABLED", "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _skill_media_header(result: dict) -> str | None:
+    """Build the X-Sage-Skill-Media header: the just-delivered step's approved media for the
+    turn's language, or None.
+
+    SEPARATE from X-Sage-Sources by design (Item 3): skill media is NOT a retrieved
+    knowledge_passage, so it must not ride the sources channel — that channel's invariant is
+    sources ⊆ session_audit.knowledge_passage_ids. Skill media audits instead to
+    active_skill_id (already recorded) + the approved skill curation list. It inherits the same
+    allowlist gate and ensure_ascii. Behind a default-OFF kill-switch (SAGE_SKILL_MEDIA_ENABLED).
+    """
+    if not _skill_media_enabled():
+        return None
+    if result.get("gate_path") not in _SOURCE_ALLOWED_GATE_PATHS:
+        return None
+    skill_id = result.get("active_skill_id") or result.get("completed_skill_id")
+    step_id = result.get("executed_step_id")
+    if not skill_id or not step_id:
+        return None
+    try:
+        skill = load_skill(skill_id)
+    except Exception:
+        return None
+    step = next((s for s in skill.steps if s.step_id == step_id), None)
+    if not step or not step.media:
+        return None
+    item = step.media.get(result.get("detected_language") or "en")
+    return _skill_media_entry(item) if item else None
+
+
 def _warmup_bge_m3() -> None:
     from sage_poc.nodes.skill_select import _ensure_semantic_ready
     _ensure_semantic_ready()
@@ -75,6 +190,35 @@ def _warmup_bge_m3() -> None:
     # on Railway CPU (no ANE), causing permanent S1-only degradation.
     from sage_poc.safety.s3_semantic import _ensure_s3_ready
     _ensure_s3_ready()
+
+
+def _warmup_reranker() -> None:
+    """Warm the V2 cross-encoder reranker AND assert its head-loaded positive control.
+
+    READINESS-BLOCKING by design. The reranker is only active when SKILL_RERANK_ENABLED=1; when off
+    this is a no-op (V1 path unaffected). When on, head_loaded_ok() loads bge-reranker-v2-m3 and checks
+    that the reranker HEAD produces real logit separation (relevant >> off-topic). A silent headless
+    load (sentence_transformers.CrossEncoder bug class — no head → ~0 logits → confident-wrong routing
+    with NO error) is the exact failure the whole measurement discipline guards against, and it would
+    be invisible on the deploy target. So a failed control RAISES — the caller keeps _bge_ready=False
+    and /health/ready stays 503, taking the instance OUT of rotation rather than serving wrong routing.
+    This must BLOCK, never warn-and-continue (the warmup-silent-failure anti-pattern).
+
+    Also pays the ~2.2GB model load here so the first real routing turn is warm (and the latency
+    benchmark measures steady-state batch-1, not the cold load).
+    """
+    global _reranker_status
+    if os.environ.get("SKILL_RERANK_ENABLED") != "1":
+        _reranker_status = "disabled"
+        return
+    from sage_poc.nodes.skill_rerank_model import head_loaded_ok, active_precision
+    if not head_loaded_ok():
+        _reranker_status = "failed"
+        raise RuntimeError(
+            f"reranker head-control FAILED (precision={active_precision()}): head not loaded or not "
+            "separating — refusing readiness (headless-load guard, the CrossEncoder-headless bug class)"
+        )
+    _reranker_status = "passed"
 
 
 async def _warmup_task() -> None:
@@ -104,6 +248,20 @@ async def _warmup_task() -> None:
         # Keep _bge_ready = False; /health/ready stays 503; /chat stays gated.
         _log.error(
             "[sage/startup] BGE-M3 warmup failed — service is NOT ready: %s", exc
+        )
+        return
+
+    # V2 reranker head-control — READINESS-BLOCKING (see _warmup_reranker). A headless load would
+    # route confident-wrong with no error, so it withholds readiness (keeps the instance out of
+    # rotation) rather than warn-and-continue. No-op when SKILL_RERANK_ENABLED != 1.
+    try:
+        await asyncio.to_thread(_warmup_reranker)
+        if os.environ.get("SKILL_RERANK_ENABLED") == "1":
+            _log.info("[sage/startup] reranker head-control passed (warm)")
+    except Exception as exc:
+        _log.error(
+            "[sage/startup] reranker head-control FAILED — service is NOT ready "
+            "(headless-load guard): %s", exc
         )
         return
 
@@ -166,6 +324,25 @@ async def _corpus_sync_task(pool) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _bge_ready
+    # FAIL-CLOSED crisis-copy boot guard. Every crisis-copy source, in RESOLVED form, must carry
+    # NO unresolved '{{crisis_*}}' placeholder. A missed resolution point or a clinician typo raises
+    # RuntimeError here and the app REFUSES TO BOOT rather than serve a raw placeholder in a crisis
+    # message. Runs first, before any warmup, so the failure is immediate and unmistakable.
+    assert_crisis_copy_resolves()
+    _log.info("[sage/startup] crisis-copy boot guard passed (no unresolved {{crisis_*}} placeholders)")
+    # FAIL-CLOSED crisis LOCALE-PARITY boot guard (#1 class-fix). Every active crisis_content level
+    # must have a native twin in every supported locale (en_uae + ar_uae). A crisis string shipped in
+    # one locale without its twin fails the boot rather than reaching the other locale's users via
+    # machine translation — keeps helpline digits deterministic from CRISIS_CONFIG on every locale.
+    assert_crisis_locale_parity()
+    _log.info("[sage/startup] crisis locale-parity boot guard passed (en_uae + ar_uae twins present)")
+    # Boot-observable crisis-tier flag state (guaranteed-visible: logging is configured by now).
+    # repr distinguishes None / "" / "true" — the exact states the 2026-07-03 env-injection debugging
+    # kept inferring from black-box probes. "Is tiering ON in this container?" is now a log read.
+    _log.info(
+        "[sage/startup] CRISIS_TIERING_ENABLED=%s raw_env=%r",
+        CRISIS_TIERING_ENABLED, os.environ.get("SAGE_CRISIS_TIERING"),
+    )
     if os.environ.get("SAGE_WARMUP_BGE", "1") != "0":
         # Schedule warmup as a background task — server starts immediately.
         # /health/ready returns 503 until the task finishes and sets _bge_ready = True.
@@ -204,13 +381,18 @@ async def lifespan(app: FastAPI):
             saver_pool = AsyncConnectionPool(
                 conninfo=checkpoint_url,
                 open=False,
+                # max_size: psycopg defaults min=max=4. The checkpointer pool is hit on every
+                # turn (aget below + LangGraph's per-turn write), so 4 caps per-turn concurrency.
+                # Raise to match the asyncpg pool; see CHECKPOINT_POOL_MAX_SIZE for the
+                # Supavisor session-vs-transaction-mode sizing caveat.
+                max_size=CHECKPOINT_POOL_MAX_SIZE,
                 kwargs={"prepare_threshold": None},
             )
             await saver_pool.open()
             asyncpg_pool = await asyncpg.create_pool(
                 db_url,
                 min_size=1,
-                max_size=5,
+                max_size=DB_POOL_MAX_SIZE,
                 max_inactive_connection_lifetime=300,  # recycle connections idle >5 min
             )
         except Exception as exc:
@@ -269,6 +451,60 @@ class NameSessionRequest(BaseModel):
     message:    str
 
 
+def _crisis_affordance_decision(
+    *, gate_path: str | None, crisis_tier: str | None, path: list[str],
+    is_safe: bool, tiering_enabled: bool,
+) -> tuple[bool, bool]:
+    """Decide whether to emit the crisis card, and whether that decision is a path-consistency
+    mismatch. Returns (emit_card, mismatch).
+
+    AFFORDANCE FOLLOWS PATH (#205, Cardinal Rule 4): the routing outcome is the AUTHORITATIVE crisis
+    signal. If the turn ran the crisis_response protocol (gate_path == "crisis" or "crisis_response"
+    in the node path), the response IS a crisis response and MUST carry crisis affordances (card +
+    role='crisis'), independent of the turn's initial tier. #205: a monitoring-continuation turn ran
+    crisis_response at crisis_tier="none" (a continuation-context recall miss the monitoring state
+    rescued into crisis_response); the tier-only emit then dropped the card, shipping crisis content
+    with no tap-to-call.
+
+    `mismatch` = the crisis protocol ran but the tier signal ALONE would not have emitted the card
+    (the recall miss the routing rescued). Pure STRUCTURAL check (path vs tier signal) — no text
+    heuristics, so a KB reply that merely mentions a helpline can never trip it. The backstop should
+    essentially never fire once the classifier gap (Component 2) is closed — the correct steady state.
+    """
+    path_is_crisis = gate_path == "crisis" or "crisis_response" in (path or [])
+    tier_says_card = (crisis_tier == "T2") if (tiering_enabled and crisis_tier is not None) else (not is_safe)
+    return (tier_says_card or path_is_crisis, path_is_crisis and not tier_says_card)
+
+
+async def _file_crisis_affordance_review(
+    session_id: str, user_id: str, gate_path: str | None, crisis_tier: str | None
+) -> None:
+    """L2 clinical-review flag for the #205 class: a crisis_response protocol ran but the tier signal
+    did NOT classify the turn as crisis (a Node-1/tiering recall miss the routing rescued). Records
+    that crisis content shipped on a non-crisis-classified turn so a clinician sees the gap. Every
+    such flag also doubles as a labelled miss for the continuation-context retraining set (Component 2).
+    Fire-and-forget: never raises, never blocks the turn."""
+    try:
+        pool = getattr(app.state, "_db_pool", None)
+        if not pool or not session_id or not user_id:
+            return
+        from sage_poc.memory.notification import PostgresNotifier  # noqa: PLC0415
+        notifier = PostgresNotifier(pool)
+        await notifier.notify_review_required(
+            user_id=user_id,
+            session_id=session_id,
+            reason=(
+                f"crisis path-consistency backstop (#205): crisis_response ran but tier={crisis_tier} "
+                f"(gate_path={gate_path}) -- crisis affordance forced; continuation-recall miss to review"
+            ),
+            source="layer1_safety",
+            payload={"backstop": "crisis_path_consistency", "gate_path": gate_path, "crisis_tier": crisis_tier},
+            severity="high",
+        )
+    except Exception as exc:
+        _log.warning("[sage/chat] crisis-affordance review write failed: %s", exc)
+
+
 @app.post("/chat")
 async def chat(
     req: ChatRequest,
@@ -293,6 +529,10 @@ async def chat(
     # one pool slot per turn under concurrent load and collapsing pool capacity.
     # aget is a single SELECT; it blocks at most until a pool slot is free, then
     # completes quickly and returns the connection cleanly.
+    # Latency baseline (log-only): time the pre-graph block (checkpoint read + profile load).
+    # This is the "outside-graph" span NOT covered by session_audit.latency_ms (which starts
+    # at turn_started_at below). server.py-level only — does not touch the safety path.
+    _pre_graph_start = time.monotonic()
     try:
         snap = await graph.checkpointer.aget(
             {"configurable": {"thread_id": req.session_id}}
@@ -313,12 +553,32 @@ async def chat(
             state["therapeutic_profile"] = await repo.get_therapeutic_profile(req.user_id)
         except Exception as exc:
             _log.warning("[sage/chat] therapeutic profile load failed: %s", exc)
+    log_stage_latency(
+        "pre_graph",
+        int((time.monotonic() - _pre_graph_start) * 1000),
+        session_id=req.session_id,
+    )
     _request_start = time.monotonic()  # consumed by Tasks 3+4 (latency audit)
+    # Stamp the turn start into state so output_gate can compute latency_ms for session_audit.
+    # The audit row is written INSIDE the graph (output_gate), before this handler resumes, so
+    # the latency must be derived from a monotonic timestamp carried through the graph state.
+    state["turn_started_at"] = _request_start
     try:
         result = await asyncio.wait_for(
             graph.ainvoke(
                 state,
                 config={"configurable": {"thread_id": req.session_id}},
+                # Persist one checkpoint at graph exit, not per super-step. Prod measured
+                # ~7.5 checkpoint + ~105 checkpoint_writes rows/turn (LangGraph default
+                # durability="async" writes per super-step), each a cross-region INSERT;
+                # exit collapses a turn to ~1 write. Cross-turn memory is preserved (exit
+                # checkpoint still written). Verified (test_durability_exit.py): a value
+                # set before a mid-graph crash is RETAINED under exit too — LangGraph still
+                # records the completed node's pending write — so clinical_flags are not
+                # dropped on a crashed turn. No mid-graph interrupts exist, so nothing to
+                # resume is lost. Residual: a true pod death mid-turn loses intra-turn
+                # state (same tiny window async has between a node finishing and its flush).
+                durability="exit",
             ),
             timeout=AINVOKE_TIMEOUT_SECONDS,
         )
@@ -347,20 +607,71 @@ async def chat(
 
         return StreamingResponse(_err(), media_type="text/plain; charset=utf-8")
 
+    # Latency baseline (log-only): ainvoke wall-clock vs the graph-internal latency_ms
+    # (which output_gate stamps as turn_started_at→output_gate, i.e. BEFORE the durability="exit"
+    # checkpoint write). The difference isolates the post-graph checkpoint-write span — the
+    # outside-graph cost ① (checkpointer pool) most affects. _request_start == turn_started_at.
+    _ainvoke_total_ms = int((time.monotonic() - _request_start) * 1000)
+    _graph_internal_ms = result.get("latency_ms")
+    log_stage_latency(
+        "ainvoke_total", _ainvoke_total_ms,
+        session_id=req.session_id,
+        turn=result.get("turn_count"),
+        lang=result.get("detected_language"),
+    )
+    if isinstance(_graph_internal_ms, int):
+        log_stage_latency(
+            "post_graph_write", max(0, _ainvoke_total_ms - _graph_internal_ms),
+            session_id=req.session_id,
+            turn=result.get("turn_count"),
+            lang=result.get("detected_language"),
+        )
+
     path: list[str] = result.get("path") or []
     is_safe: bool = result.get("is_safe", True)
     response_text: str = result.get("response") or ""
 
+    # Crisis-card sentinel must follow the graph's ROUTING, not is_safe. Under v7.1 tiering, is_safe
+    # stays the truthful detector aggregate — False on a warm T1 turn too (is_safe = len(flags)==0) —
+    # so the legacy `if not is_safe` wrongly renders the RED card on a T1 warm turn. server.py is the
+    # entrypoint is_safe-reader that the reader-disposition enumeration missed (it lives at repo root,
+    # outside src/sage_poc/). Disposition: tiering ON -> card iff crisis_tier == "T2" (the acute floor);
+    # T1/none -> warm, no card. Flag OFF (or tier not computed) -> legacy binary `not is_safe`.
+    _gate_path = result.get("gate_path")
+    _crisis_tier = result.get("crisis_tier")
+    _emit_crisis_card, _crisis_affordance_mismatch = _crisis_affordance_decision(
+        gate_path=_gate_path, crisis_tier=_crisis_tier, path=path,
+        is_safe=is_safe, tiering_enabled=CRISIS_TIERING_ENABLED,
+    )
+    # PATH-CONSISTENCY BACKSTOP (Component 1, #205): the card is forced structurally above; here we make
+    # the mismatch VISIBLE (log + L2 clinical-review flag) so the Node-1/tiering recall gap is surfaced,
+    # not silently rescued. Should essentially never fire once the classification fix (Component 2) lands.
+    if _crisis_affordance_mismatch:
+        _log.warning(
+            "[sage/chat] crisis path-consistency mismatch: crisis_response ran (gate_path=%s tier=%s) "
+            "but tier-emit was off -- forcing crisis card + filing clinical review (session=%s)",
+            _gate_path, _crisis_tier, req.session_id,
+        )
+        if app.state._db_pool and req.user_id:
+            asyncio.create_task(
+                _file_crisis_affordance_review(req.session_id, req.user_id, _gate_path, _crisis_tier)
+            )
+
     async def _body() -> AsyncGenerator[bytes, None]:
-        if not is_safe:
+        if _emit_crisis_card:
             yield (CRISIS_SIGNAL + "\n").encode()
         for token in _stream_tokens(response_text):
             yield token.encode()
+
+    _sources = _sources_header(result)
+    _skill_media = _skill_media_header(result)
 
     return StreamingResponse(
         _body(),
         media_type="text/plain; charset=utf-8",
         headers={
+            **({"X-Sage-Sources": _sources} if _sources else {}),
+            **({"X-Sage-Skill-Media": _skill_media} if _skill_media else {}),
             "X-Sage-Node-Path":             json.dumps(path),
             "X-Sage-Model":                 RESPONDER_MODEL,
             "X-Sage-Skill-Id":              result.get("active_skill_id") or result.get("completed_skill_id") or "",
@@ -368,6 +679,7 @@ async def chat(
             "X-Sage-Active-Step-Id":        result.get("active_step_id") or "",
             "X-Sage-Gate-Path":             result.get("gate_path") or "",
             "X-Sage-Crisis-Flags":          json.dumps(result.get("crisis_flags") or []),
+            "X-Sage-Crisis-Tier":           result.get("crisis_tier") or "",
             "X-Sage-Clinical-Flags":        json.dumps(result.get("clinical_flags") or []),
             "X-Sage-Emotional-Intensity":   str(result.get("emotional_intensity") or 0),
             "X-Sage-Crisis-State":          result.get("crisis_state") or "none",
@@ -505,6 +817,19 @@ async def name_session(
     return {"status": "ok", "name": name}
 
 
+def compute_routing_mode() -> str:
+    """Truthful routing mode for /health/ready. Returns 'v2' ONLY if the reranker selector path is
+    present in THIS build AND enabled — so a set env flag can never advertise a reranker the running
+    code does not contain (fixes the inert-flag misreporting where prod ran V1 with V2 flags set,
+    2026-07-07). On a V1/master build the import fails and the mode is 'v1' regardless of the flag.
+    """
+    try:
+        from sage_poc.nodes.skill_select import _rerank_enabled
+    except ImportError:
+        return "v1"
+    return "v2" if _rerank_enabled() else "v1"
+
+
 @app.get("/health/ready")
 async def health_ready():
     """Railway healthcheck target. Returns 503 until BGE-M3 warmup completes.
@@ -515,7 +840,47 @@ async def health_ready():
             status_code=503,
             detail="Service warming up — BGE-M3 index not ready",
         )
-    return {"status": "ready"}
+    # Two deploy-gate signals on one 200 (Task 10 two-endpoint gate):
+    #  - routing_mode (master #138): truthful V1/V2 label so a set flag never advertises an absent reranker.
+    #  - reranker_head_control (V2): "passed" (or "disabled" when off) confirms the deployed reranker is
+    #    real head-bearing, not silently headless — a headless load never reaches 200 (readiness withheld),
+    #    so 200 + "passed" is the directly-checkable success condition the prod runbook verifies.
+    return {
+        "status": "ready",
+        "routing_mode": compute_routing_mode(),
+        "reranker_head_control": _reranker_status,
+    }
+
+
+@app.get("/health/version")
+async def health_version(_: None = Depends(require_api_key)):
+    """Deployment provenance — 'which code is serving?' as a curl, never an inference chain.
+    GL-5: API-key gated — the deep fields (module paths, PYTHONPATH, resolver) must not be exposed
+    unauthenticated once external users are on the app. Ops passes X-Sage-Api-Key to read it.
+    Exposes the baked git SHA and the resolved crisis-tier flag + its raw env value (repr-style).
+    Added after the 2026-07-03 rollout where stale-build-cache served old code under a green deploy.
+    """
+    import sage_poc, sage_poc.config as _c, sage_poc.nodes.safety_check as _sc
+    from sage_poc.safety.crisis_tier import resolve_crisis_tier_detail as _r
+    return {
+        "build_sha": os.environ.get("SAGE_BUILD_SHA", "unknown"),
+        "crisis_tiering_enabled": CRISIS_TIERING_ENABLED,
+        "crisis_tiering_raw_env": os.environ.get("SAGE_CRISIS_TIERING"),
+        "skill_media_enabled": _skill_media_enabled(),
+        "skill_media_raw_env": os.environ.get("SAGE_SKILL_MEDIA_ENABLED"),
+        # Mechanism-level attestation for BYTE-IDENTICAL crisis templating: True iff the deployed
+        # crisis source carries {{crisis_}} placeholders. Distinguishes a real templated deploy from
+        # a stale-literal one when the build_sha above is a lying label (see deploy-control doc).
+        "crisis_copy_templated": crisis_copy_is_templated(),
+        "sage_poc_path": getattr(sage_poc, "__file__", "unknown"),
+        # Deep diagnostic (bug #2: graph computes crisis_tier=NULL despite flag true). Reports what the
+        # DEPLOYED process's graph modules actually see, so "why is the tier NULL" is an observation.
+        "config_file": getattr(_c, "__file__", "?"),
+        "config_flag_in_module": _c.CRISIS_TIERING_ENABLED,
+        "safety_check_file": getattr(_sc, "__file__", "?"),
+        "resolve_s3_en": str(_r({"s3_semantic"}, "en")),
+        "pythonpath": os.environ.get("PYTHONPATH"),
+    }
 
 
 @app.get("/health/schema-conformance")

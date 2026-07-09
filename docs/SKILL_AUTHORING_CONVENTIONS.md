@@ -171,6 +171,18 @@ All four escalation levels must be present:
 
 ---
 
+## §6 guard escalation targets must match the spec
+
+When a skill's entry screen or contraindications screen for states the BOT BEHAVIOUR spec treats under a category **§6 guard** (dissociation, panic-with-derealization, trauma flashback, psychosis-like content), the **escalation target must match what the spec says**, not a plausible-looking substitute. The spec escalates those specific states to **referral** ("escalate to referral rather than presenting the standard tools") precisely because grounding/mindfulness can *intensify* them — so redirecting them to another self-guided tool (grounding, breathing) is under-escalation, even though it looks safe.
+
+Checklist: for each state a skill screens out, confirm the destination (referral vs anchored alternative vs skill-switch) is the one the spec assigns to that state. Differentiate by severity: serious §6 states → referral (a milder anchored tool may serve only as a brief stabiliser while support is arranged); milder presentations → anchored alternative. (Origin: 2026-07-07, `mindfulness_meditation` entry_screen initially routed derealization/trauma-flashback to grounding instead of referral; caught on a post-authoring spec double-check, PR #131.)
+
+## entry_screen skills must be registered in `_LLM_CRITERIA_SKILLS`
+
+If a skill's first step is `entry_screen`, the skill_id **must** be added to `_LLM_CRITERIA_SKILLS` in `nodes/skill_executor.py`. The entry-screen `completion_criteria` gate is evaluated by an LLM only for skills in that set; without membership it silently degrades to a word-count check (>1 word passes anything), so the safety screen becomes inert — the same failure mode as a dead signal. This is required plumbing at authoring time, independent of `SKILL_REGISTRY` routing-registration.
+
+A load-time guard (`_validate_entry_screen_coverage()`) enforces it: an entry-screen skill not in `_LLM_CRITERIA_SKILLS` **raises at import**. The guard worked as designed — a loud failure at import beats silent degradation to word-count. (Origin: 2026-07-07, `mindfulness_meditation` was merged in #130 without this entry, breaking master's import; hotfix #132. The gap was authoring-process, not the guard.)
+
 ## Arabic examples in steps
 
 Every skill must include at least one Arabic (Khaleeji Gulf dialect) example in each step's `examples` array. Arabic examples should use the same colloquial register as the English examples, not clinical Arabic.

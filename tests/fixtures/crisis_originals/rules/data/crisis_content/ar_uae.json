@@ -1,0 +1,44 @@
+{
+  "category": "crisis_content",
+  "rules": [
+    {
+      "rule_id": "CC-AR-001",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-05-21",
+      "active": true,
+      "description": "Arabic acute crisis response for UAE",
+      "category": "crisis_content",
+      "locale": "ar_uae",
+      "crisis_level": "acute",
+      "action": {
+        "type": "crisis_response",
+        "response_text": "أنا مهتم جداً بسلامتك وبما شاركته معي. أرجوك تواصل مع خط وزارة الصحة للدعم النفسي الآن: 800 46342 (مجاني، 24/7)، أو رقم الطوارئ: 999. أنت لست وحدك.",
+        "resources": [
+          {"name": "خط وزارة الصحة للدعم النفسي", "number": "800 46342", "available": "24/7"},
+          {"name": "خدمات الطوارئ", "number": "999", "available": "24/7"}
+        ]
+      }
+    },
+    {
+      "rule_id": "CC-AR-002",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "approved_by": "vee",
+      "effective_date": "2026-07-10",
+      "active": true,
+      "description": "Native Arabic post-crisis monitoring empty-reply fail-safe (twin of CC-EN-003). Locale-selected native AR bypassing translate-out so the helpline digits come deterministically from CRISIS_CONFIG, never the translator. Clinician-signed (Vee) 2026-07-10.",
+      "category": "crisis_content",
+      "locale": "ar_uae",
+      "crisis_level": "monitoring_fallback",
+      "action": {
+        "type": "crisis_response",
+        "response_text": "ما زلت هنا معك. إذا أصبحت الأمور أصعب، أرجوك تواصل الآن مع خط وزارة الصحة للدعم النفسي: 800 46342، أو اتصل برقم الطوارئ 999.",
+        "resources": [
+          {"name": "خط وزارة الصحة للدعم النفسي", "number": "800 46342", "available": "24/7"},
+          {"name": "خدمات الطوارئ", "number": "999"}
+        ]
+      }
+    }
+  ]
+}

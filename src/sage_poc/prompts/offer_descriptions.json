@@ -152,16 +152,6 @@
         "ar": null
       }
     },
-    "mi_readiness_ruler": {
-      "display_name": {
-        "en": "Readiness check",
-        "ar": null
-      },
-      "description": {
-        "en": "a quick, pressure free way to weigh how ready you feel for a change you have been considering, and what would move you closer, so the next step gets clearer, about five minutes",
-        "ar": null
-      }
-    },
     "values_clarification": {
       "display_name": {
         "en": "What matters most",
@@ -259,6 +249,16 @@
       },
       "description": {
         "en": "a gentle, guided space to be with a loss at your own pace, with no pressure to fix it or move on, just room to feel it and put it into words, about fifteen minutes",
+        "ar": null
+      }
+    },
+    "mindfulness_meditation": {
+      "display_name": {
+        "en": "Mindfulness meditation",
+        "ar": null
+      },
+      "description": {
+        "en": "a short sitting practice where you rest your attention on your breath and let thoughts and feelings come and go without fighting them, learning to be with what is here rather than fix it, a few minutes",
         "ar": null
       }
     }

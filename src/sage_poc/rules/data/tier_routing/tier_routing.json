@@ -1,0 +1,40 @@
+{
+  "category": "tier_routing",
+  "version": "1.1.0",
+  "last_updated": "2026-07-03",
+  "authored_by": "sage_clinics",
+  "description": "v7.1 amendment to §5.1 OR-fusion. Maps the Layer-1 detection outcome (which safety signals fired + language) to a crisis TIER, so the RESPONSE is graded while DETECTION stays sensitive. safety_check reads the first matching rule's tier and hardcodes no boundary. Clinician-editable. No phrase/keyword lists (phrase tuning stays in the S3 FP calibration set). v1.1.0 adds the conservative language gate + fail-closed catch-all (the T1 warm route is safe ONLY on confident English; language ID is weakest for Arabizi/code-switch). Signed 2026-07-03 (G1) + language-gate closure.",
+  "signal_semantics": {
+    "s1_fired": "any Layer-1 KEYWORD flag fired (e.g. si_explicit, si_passive, crisis keyword) — i.e. any fired flag other than s3_semantic",
+    "s3_fired": "the s3_semantic (BGE-M3 cosine) flag fired",
+    "lang_in": "detected_language is one of the listed codes",
+    "require_confident_lang": "resolver-computed: lang=='en' AND not code_switching AND not arabizi_suspect. Guards the T1 route against an Arabizi/code-switched true-SI message misread as English."
+  },
+  "rules": [
+    {
+      "id": "s1_any",
+      "when": {"s1_fired": true},
+      "tier": "T2",
+      "note": "Any keyword corroboration -> acute crisis (RED), all languages. The T2 safety floor."
+    },
+    {
+      "id": "s3_solo_en",
+      "when": {"s1_fired": false, "s3_fired": true, "lang_in": ["en"], "require_confident_lang": true},
+      "tier": "T1",
+      "note": "CONFIDENT English semantic-only signal -> warm concern (offer-not-force). Fixes the prod false-RED on 'i am feeling hopeless' / 'burden ... so low'. Only fires when language is confidently English (not code-switched, not Arabizi-suspect)."
+    },
+    {
+      "id": "s3_ar_az",
+      "when": {"s1_fired": false, "s3_fired": true, "lang_in": ["ar", "az"]},
+      "tier": "T2",
+      "note": "Arabic/Arabizi semantic signal -> acute; S1 keyword coverage is weak there, so S3 remains load-bearing (preserves the Arabic command-hallucination catch)."
+    },
+    {
+      "id": "s3_failclosed",
+      "when": {"s3_fired": true},
+      "tier": "T2",
+      "note": "FAIL-CLOSED catch-all: any semantic signal not confidently-English (low-confidence EN, code-switch, Arabizi, or a language no rule maps) routes acute. Never let a fired crisis signal fall through to 'none'."
+    }
+  ],
+  "default_tier": "none"
+}

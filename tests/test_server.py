@@ -38,10 +38,32 @@ def _patch_graph(monkeypatch, mock_ainvoke):
     from server import app
 
     class _MockGraph:
-        async def ainvoke(self, state, config=None):
+        async def ainvoke(self, state, config=None, **kwargs):
             return await mock_ainvoke(state)
 
     monkeypatch.setattr(app.state, "_graph", _MockGraph())
+
+
+def test_chat_invokes_graph_with_durability_exit(monkeypatch, client, session_id):
+    """Per-turn ainvoke must use durability='exit' to avoid per-super-step checkpoint
+    write amplification (each write is a cross-region INSERT). See 2026-06-24 latency RCA."""
+    from server import app
+
+    captured = {}
+
+    class _RecordingGraph:
+        async def ainvoke(self, state, config=None, **kwargs):
+            captured.update(kwargs)
+            return {"response": "ok", "path": ["freeflow_respond"],
+                    "is_safe": True, "turn_count": 1}
+
+    monkeypatch.setattr(app.state, "_graph", _RecordingGraph())
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "hi"}],
+        "session_id": session_id,
+    })
+    assert res.status_code == 200
+    assert captured.get("durability") == "exit"
 
 
 def test_chat_bad_request_empty_messages(client):
@@ -68,6 +90,88 @@ def test_chat_crisis_message_has_signal(client, session_id):
     assert res.text.startswith("[[CRISIS_DETECTED]]")
 
 
+# ── E2E crisis-card disposition through the HTTP entrypoint (v7.1 tiering) ─────────────────────
+# The gap that let five green proof-sets coexist with flag-OFF deployed behaviour: NO test crossed
+# server.py's /chat response assembly. server.py read is_safe directly and rendered the RED card on
+# any is_safe=False — including a warm T1 turn (is_safe = len(crisis_flags)==0, so False whenever a
+# signal fired). These mock the graph result and assert the card follows crisis_tier, not is_safe.
+def _graph_result(**over):
+    base = {"is_safe": True, "response": "ok", "path": [], "crisis_flags": []}
+    base.update(over)
+    return base
+
+
+def test_chat_T1_warm_turn_emits_no_crisis_card(monkeypatch, client, session_id):
+    # THE BUG: a T1 warm turn has is_safe=False (s3_semantic fired) but crisis_tier="T1" — it must
+    # render the WARM reply, NOT the RED card. Reproduces the deployed prod behaviour at the HTTP layer.
+    import server
+    monkeypatch.setattr(server, "CRISIS_TIERING_ENABLED", True)
+
+    async def _mock(state):
+        return _graph_result(is_safe=False, crisis_tier="T1",
+                             crisis_flags=["s3_semantic"], response="That sounds really heavy. I'm here with you.")
+    _patch_graph(monkeypatch, _mock)
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "i am feeling hopeless"}], "session_id": session_id})
+    assert res.status_code == 200
+    assert not res.text.startswith("[[CRISIS_DETECTED]]"), \
+        "T1 warm turn wrongly rendered the RED crisis card (server.py is_safe reader bug)"
+
+
+def test_chat_T2_turn_emits_crisis_card(monkeypatch, client, session_id):
+    import server
+    monkeypatch.setattr(server, "CRISIS_TIERING_ENABLED", True)
+
+    async def _mock(state):
+        return _graph_result(is_safe=False, crisis_tier="T2", crisis_flags=["si_explicit"],
+                             path=["safety_check", "crisis_response"], response="Please reach out now.")
+    _patch_graph(monkeypatch, _mock)
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "i want to kill myself"}], "session_id": session_id})
+    assert res.text.startswith("[[CRISIS_DETECTED]]")
+
+
+def test_chat_flag_off_binary_card_on_unsafe(monkeypatch, client, session_id):
+    # Kill-switch / legacy path: tiering OFF -> card follows is_safe (crisis_tier not computed).
+    import server
+    monkeypatch.setattr(server, "CRISIS_TIERING_ENABLED", False)
+
+    async def _mock(state):
+        return _graph_result(is_safe=False, crisis_tier=None, crisis_flags=["si_explicit"], response="...")
+    _patch_graph(monkeypatch, _mock)
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "x"}], "session_id": session_id})
+    assert res.text.startswith("[[CRISIS_DETECTED]]")
+
+
+# ── REAL-graph E2E (crosses reducer AND HTTP — the boundary bug #2 + bug #1 lived at) ──────────
+# The mocked tests above verify server.py's disposition; these drive the ACTUAL compiled graph so a
+# regression in either the state channel (bug #2: crisis_tier dropped) OR the entrypoint (bug #1:
+# card on is_safe) fails the test. This is the class-closure the whole saga was missing.
+def test_chat_T2_real_graph_card_and_tier_header(client, session_id):
+    # Fast (S1 keyword, no LLM): a T2 phrase -> RED card + X-Sage-Crisis-Tier: T2 through the real graph.
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "I want to end it all"}], "session_id": session_id})
+    assert res.status_code == 200
+    assert res.text.startswith("[[CRISIS_DETECTED]]")
+    assert res.headers.get("X-Sage-Crisis-Tier") == "T2", \
+        f"T2 phrase did not resolve crisis_tier=T2 through the graph (bug #2 regressed?): {res.headers.get('X-Sage-Crisis-Tier')!r}"
+
+
+@pytest.mark.slow
+def test_chat_T1_real_graph_hopeless_warm_no_card(client, session_id):
+    # THE class-closure E2E: "i am feeling hopeless" through the REAL graph (S3 semantic + freeflow).
+    # crisis_tier=T1 must SURVIVE the reducer (bug #2) AND the entrypoint must render WARM, no RED card
+    # (bug #1). Fails if either regresses. Slow: BGE-M3 encode + freeflow LLM.
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "i am feeling hopeless"}], "session_id": session_id})
+    assert res.status_code == 200
+    assert res.headers.get("X-Sage-Crisis-Tier") == "T1", \
+        f"hopeless did not resolve T1 through the graph (crisis_tier dropped by reducer?): {res.headers.get('X-Sage-Crisis-Tier')!r}"
+    assert not res.text.startswith("[[CRISIS_DETECTED]]"), \
+        "T1 warm turn wrongly rendered the RED crisis card (entrypoint is_safe reader?)"
+
+
 @pytest.mark.slow
 def test_chat_returns_text_for_valid_message(client, session_id):
     import httpx
@@ -83,7 +187,7 @@ def test_chat_graph_error_returns_sentinel(monkeypatch, client):
     from server import app
 
     class _ErrGraph:
-        async def ainvoke(self, state, config=None):
+        async def ainvoke(self, state, config=None, **kwargs):
             raise RuntimeError("simulated graph failure")
 
     monkeypatch.setattr(app.state, "_graph", _ErrGraph())
@@ -206,7 +310,7 @@ def test_skill_response_audit_headers(monkeypatch, client):
         }
 
     class _MockGraph:
-        async def ainvoke(self, state, config=None):
+        async def ainvoke(self, state, config=None, **kwargs):
             return await _mock_skill(state)
 
     monkeypatch.setattr(app.state, "_graph", _MockGraph())
@@ -242,7 +346,7 @@ def test_freeflow_response_audit_headers(monkeypatch, client):
         }
 
     class _MockGraph:
-        async def ainvoke(self, state, config=None):
+        async def ainvoke(self, state, config=None, **kwargs):
             return await _mock_freeflow(state)
 
     monkeypatch.setattr(app.state, "_graph", _MockGraph())
@@ -282,7 +386,7 @@ def test_chat_response_has_all_trace_headers(monkeypatch, client):
         }
 
     class _MockGraph:
-        async def ainvoke(self, state, config=None):
+        async def ainvoke(self, state, config=None, **kwargs):
             return await _mock_trace(state)
 
     monkeypatch.setattr(app.state, "_graph", _MockGraph())
@@ -331,7 +435,7 @@ def test_skill_ferry_headers_present(monkeypatch, client):
         }
 
     class _MockGraph:
-        async def ainvoke(self, state, config=None):
+        async def ainvoke(self, state, config=None, **kwargs):
             return await _mock(state)
 
     monkeypatch.setattr(app.state, "_graph", _MockGraph())
@@ -379,6 +483,35 @@ def test_chat_accepts_correct_api_key(monkeypatch, client, session_id):
     assert res.status_code == 200
 
 
+def test_health_version_exposes_skill_media_flag(monkeypatch, client):
+    """/health/version must report skill_media_enabled + its raw env so the Item-3 flag flip is
+    prod-OBSERVABLE (custody standard), mirroring crisis_tiering_enabled. The reported value must
+    use the SAME resolution as the emit gate (_skill_media_enabled) so it can never drift from
+    what actually fires."""
+    monkeypatch.setenv("SAGE_API_KEY", "test-secret")
+    monkeypatch.setenv("SAGE_SKILL_MEDIA_ENABLED", "true")
+    res = client.get("/health/version", headers={"X-Sage-Api-Key": "test-secret"})
+    assert res.status_code == 200
+    body = res.json()
+    assert body["skill_media_enabled"] is True
+    assert body["skill_media_raw_env"] == "true"
+
+    monkeypatch.setenv("SAGE_SKILL_MEDIA_ENABLED", "")   # default-OFF
+    res = client.get("/health/version", headers={"X-Sage-Api-Key": "test-secret"})
+    assert res.json()["skill_media_enabled"] is False
+
+
+def test_health_version_reports_crisis_copy_templated(monkeypatch, client):
+    """/health/version attests whether the deployed crisis copy is TEMPLATED — a mechanism-level
+    provenance signal for the byte-identical templating (build_sha can be a stale label; the crisis
+    output is identical either way, so neither distinguishes a real templated deploy from a stale
+    literal one). This tree carries {{crisis_}} placeholders, so it must report True."""
+    monkeypatch.setenv("SAGE_API_KEY", "test-secret")
+    res = client.get("/health/version", headers={"X-Sage-Api-Key": "test-secret"})
+    assert res.status_code == 200
+    assert res.json()["crisis_copy_templated"] is True
+
+
 def test_chat_bypasses_key_check_when_sage_api_key_unset(monkeypatch, client, session_id):
     """No SAGE_API_KEY in env → check is disabled. Preserves backward compatibility
     for local dev where the key is not configured.
@@ -402,7 +535,7 @@ def test_chat_passes_thread_id_as_config(monkeypatch, client):
     received_config = {}
 
     class _MockGraph:
-        async def ainvoke(self, state, config=None):
+        async def ainvoke(self, state, config=None, **kwargs):
             received_config.update(config or {})
             return {
                 "path": ["output_gate"],
@@ -453,7 +586,7 @@ def test_chat_ainvoke_timeout_returns_server_error(monkeypatch, client):
     class _HangingGraph:
         checkpointer = None
 
-        async def ainvoke(self, state, config=None):
+        async def ainvoke(self, state, config=None, **kwargs):
             await asyncio.sleep(999)
 
     monkeypatch.setattr("server.AINVOKE_TIMEOUT_SECONDS", 0.05)
@@ -480,7 +613,7 @@ def test_chat_ainvoke_timeout_fires_within_window(monkeypatch, client):
     class _HangingGraph:
         checkpointer = None
 
-        async def ainvoke(self, state, config=None):
+        async def ainvoke(self, state, config=None, **kwargs):
             await asyncio.sleep(999)
 
     monkeypatch.setattr("server.AINVOKE_TIMEOUT_SECONDS", 0.1)
@@ -499,3 +632,50 @@ def test_chat_ainvoke_timeout_fires_within_window(monkeypatch, client):
     # 3s bound accounts for ASGI/thread-pool dispatch overhead on slow CI; validates
     # only that we don't wait for the full 999s sleep.
     assert elapsed < 3.0
+
+
+# ── Native-Arabic shadow containment: API-layer assertion (Task 7 merge gate item (a)) ─────────
+# The node-level sentinel test (tests/test_shadow_never_served.py) proves the shadow text never
+# enters the node's return dict. This test crosses the HTTP boundary too: it drives an Arabic turn
+# with NATIVE_ARABIC_SHADOW_ENABLED=True and a monkeypatched shadow generator returning a
+# distinctive sentinel, through a mock graph that actually calls the real freeflow_respond_node
+# (not a hand-built stand-in dict, so the wiring itself is exercised) — then asserts the sentinel
+# is absent from the streamed HTTP body AND from every response header.
+def test_chat_arabic_shadow_sentinel_never_in_http_payload(monkeypatch, client, session_id):
+    import sage_poc.nodes.freeflow_respond as fr
+    from unittest.mock import patch, AsyncMock
+    from server import app
+    from tests.test_freeflow_respond import fr_stub_llm
+
+    _SENTINEL = "ZZZ_SHADOW_SENTINEL_ﷺ_NEVER_SERVE"
+    shadow_payload = {
+        "text": _SENTINEL, "prompt_hash": "x" * 16, "exemplar_version": "0.1",
+        "generation_language": "ar_native", "gen_latency_ms": 3,
+    }
+    monkeypatch.setattr(fr, "NATIVE_ARABIC_SHADOW_ENABLED", True)
+    monkeypatch.setattr(fr, "_SHADOW_TIMEOUT_S", 0.05)
+
+    async def _mock(state):
+        with patch.object(fr, "generate_shadow_arabic", new=AsyncMock(return_value=shadow_payload)), \
+             patch.object(fr, "write_shadow_eval_row", new=AsyncMock()):
+            node_out = await fr.freeflow_respond_node(
+                {**state, "detected_language": "ar", "raw_message": "تعبت", "message_en": "tired",
+                 "path": [], "user_id": None, "session_id": session_id, "turn_number": 1},
+                llm=fr_stub_llm(),
+            )
+        return {**_graph_result(), "response": node_out["response_en"], "path": node_out["path"],
+                "detected_language": "ar"}
+
+    class _MockGraph:
+        async def ainvoke(self, state, config=None, **kwargs):
+            return await _mock(state)
+
+    monkeypatch.setattr(app.state, "_graph", _MockGraph())
+    res = client.post("/chat", json={
+        "messages": [{"role": "user", "content": "تعبت"}],
+        "session_id": session_id,
+    })
+    assert res.status_code == 200
+    assert _SENTINEL not in res.text, "shadow sentinel leaked into the served HTTP body"
+    for name, value in res.headers.items():
+        assert _SENTINEL not in value, f"shadow sentinel leaked into response header {name!r}"

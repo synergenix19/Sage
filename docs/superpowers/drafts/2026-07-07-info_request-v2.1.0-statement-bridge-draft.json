@@ -1,0 +1,17 @@
+{
+  "_draft_note": "DRAFT for clinical review (info_request bridge reword, 2026-07-07). NOT loaded (docs/, not src/.../templates/). Reconciles the v2.0.0 bridge with the governed D4 answer-first policy (directive_posture -> output_gate _strip_trailing_question on info_request; commit abf1f8a, ticket #22 LOCK-QDISC-22): reword the closing bridge from an INVITATION (which gpt-4o renders as a QUESTION and D4 amputates) to a warm continuation STATEMENT (no '?'), which survives the strip AND keeps the conversation going ('question or not'). REST ON RATIFICATION, not assumption: this honors D4 ONLY under the reading 'answer-first / do not over-question' (mechanism = strip questions); under the reading 'no engagement hooks after directive answers' it circumvents D4 — the clinical lead ratifies which was signed (see 2026-07-07-info_request-bridge-d4-reconciliation-ratification.md). CHANGE MECHANICS (Condition 4): v2.0.0 -> v2.1.0; approved_by re-populated on sign-off; manifest classified_against_version re-confirmed to 2.1.0 (the #127 guard enforces); PromptFoo cases audited — the defaultTest 'invitation' rubric must be updated to require statement/offer form (not a question) per rewrite-not-delete, then re-run. GUARDED by tests/test_info_request_bridge_survives_gate.py (statement survives + strip scope is question-only, EN+AR).",
+  "template_id": "L2_info_request",
+  "version": "2.1.0",
+  "status": "draft-pending-review",
+  "authored_by": "engineering-draft-for-clinical-review",
+  "approved_by": null,
+  "effective_date": null,
+  "layer": "L2",
+  "role": "user",
+  "always_include": true,
+  "word_budget": 160,
+  "content": "INTENT: The user is asking for information. Emotional intensity: {intensity}/10. {intensity_guidance} Answer the question directly and clearly, in plain, warm language, not a clinical brief. When knowledge passages are provided, ground the answer in them and weave them in naturally; if none of them cover the question, or the evidence is thin, say so plainly and do not invent clinical facts. Do not assume the person is struggling, and do not add sympathy or reassurance they did not ask for; a factual question deserves a real answer, not a therapy response. End with exactly one short, warm line that leaves the door open, phrased as an offer or a statement and never as a question: for example, letting them know you are here if they want to go further into what is behind it. If you did not have the information, that same open door line is the recovery: name the gap honestly and leave the door open, again as a statement and not a question. Keep the whole reply free of closing questions, and concise.",
+  "variables": ["intensity", "intensity_guidance"],
+  "intent": "info_request",
+  "_clinical_review_note": "Only change from v2.0.0: the closing bridge is now a STATEMENT offer, not a question, and the reply carries no closing questions. Rationale (research-grounded): the failure being fixed is genericness/dead-ending (JMIR 2025 top frustration: 'so generic I just existed in this space for 5 minutes'); a statement-offer also avoids the over-questioning and premature-referral frustrations the same research flags, and for a factual turn respects the info-seeker's autonomy (D4's valid point). No gate change, no D4 re-litigation. No em dashes."
+}

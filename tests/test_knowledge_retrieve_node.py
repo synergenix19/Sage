@@ -83,3 +83,60 @@ async def test_knowledge_retrieve_routes_arabic_to_ar_corpus():
     # query must be raw_message, not message_en
     query_arg = call_kwargs.args[0] if call_kwargs.args else call_kwargs.kwargs.get("query")
     assert query_arg == "what is CBT?", f"Expected raw_message as query, got: {query_arg}"
+
+
+@pytest.mark.asyncio
+async def test_node_arabic_query_normalized_before_search():
+    """Node path: an Arabic turn reaches the backend _search with a normalized
+    query. Observed at _search so the assertion cannot pass without the rewrite."""
+    from sage_poc.knowledge.models import KnowledgeResult
+    from sage_poc.knowledge.postgres_repository import PostgresKnowledgeRepository
+    from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
+
+    seen = {}
+
+    async def fake_search(self, query, language="en", top_k=5):
+        seen["query"] = query
+        seen["language"] = language
+        return KnowledgeResult(passages=[], abstain=True)
+
+    with patch.object(PostgresKnowledgeRepository, "_search", fake_search):
+        with patch("sage_poc.nodes.knowledge_retrieve._get_pool", return_value=MagicMock()):
+            await knowledge_retrieve_node(
+                _kr_state(detected_language="ar", raw_message="أنا قلقان", message_en="I am anxious")
+            )
+
+    assert seen["query"] == "انا قلقان"   # normalized, not raw "أنا قلقان"
+    assert seen["language"] == "ar"
+
+
+@pytest.mark.asyncio
+async def test_node_writes_query_trace_to_state():
+    from sage_poc.knowledge.models import KnowledgeResult
+    from sage_poc.knowledge.postgres_repository import PostgresKnowledgeRepository
+    from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
+
+    async def fake_search(self, query, language="en", top_k=5):
+        return KnowledgeResult(passages=[], abstain=True)
+
+    with patch.object(PostgresKnowledgeRepository, "_search", fake_search):
+        with patch("sage_poc.nodes.knowledge_retrieve._get_pool", return_value=MagicMock()):
+            result = await knowledge_retrieve_node(
+                _kr_state(detected_language="ar", raw_message="أنا قلقان", message_en="I am anxious")
+            )
+
+    assert result["knowledge_query_raw"] == "أنا قلقان"
+    assert result["knowledge_query_searched"] == "انا قلقان"
+
+
+@pytest.mark.asyncio
+async def test_node_emits_top_similarity_to_state():
+    from sage_poc.knowledge.models import KnowledgeResult
+    from sage_poc.knowledge.postgres_repository import PostgresKnowledgeRepository
+    from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
+    async def fake_search(self, query, language="en", top_k=5):
+        return KnowledgeResult(passages=[], abstain=True, top_similarity=0.11)
+    with patch.object(PostgresKnowledgeRepository, "_search", fake_search):
+        with patch("sage_poc.nodes.knowledge_retrieve._get_pool", return_value=MagicMock()):
+            r = await knowledge_retrieve_node(_kr_state(detected_language="en"))
+    assert r["knowledge_top_similarity"] == 0.11

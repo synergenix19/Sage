@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from typing import Optional
 from .schemas import PromptTemplate
+from sage_poc.crisis_copy import resolve_crisis_placeholders_deep
 
 _DATA_DIR = Path(__file__).parent / "templates"
 _cache: dict[str, PromptTemplate] = {}
@@ -12,7 +13,11 @@ _loaded: bool = False
 def _load_all_templates() -> dict[str, PromptTemplate]:
     templates: dict[str, PromptTemplate] = {}
     for json_file in sorted(_DATA_DIR.glob("**/*.json")):
-        raw = json.loads(json_file.read_text(encoding="utf-8"))
+        # Resolve {{crisis_*}} placeholders (L0_persona) so the RESOLVED persona reaches the LLM.
+        # No-op for templates that carry no crisis placeholders.
+        raw = resolve_crisis_placeholders_deep(
+            json.loads(json_file.read_text(encoding="utf-8"))
+        )
         tmpl = PromptTemplate.model_validate(raw)
         templates[tmpl.template_id] = tmpl
     return templates
@@ -59,3 +64,20 @@ def reload_all() -> None:
         _declined_instruction.cache_clear()
     except Exception:
         pass
+
+
+import json as _json
+from pathlib import Path as _Path
+from functools import lru_cache as _lru_cache
+
+_KHALEEJI_EXEMPLARS_PATH = _Path(__file__).parent / "khaleeji_shadow_exemplars.json"
+
+
+@_lru_cache(maxsize=1)
+def load_khaleeji_shadow_exemplars() -> tuple[str, str]:
+    data = _json.loads(_KHALEEJI_EXEMPLARS_PATH.read_text(encoding="utf-8"))
+    lines = ["KHALEEJI EXEMPLARS (style reference, do not quote verbatim):"]
+    for ex in data.get("exemplars", []):
+        ar = ex.get("ar", "")
+        lines.append(f"- {ex['en']}\n  → {ar}" if ar and ar != "TODO_NATIVE_AUTHOR" else f"- {ex['en']}")
+    return data.get("version", "unknown"), "\n".join(lines)

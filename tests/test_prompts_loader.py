@@ -84,10 +84,11 @@ def test_load_l0_persona():
     assert tmpl.layer == "L0"
     assert tmpl.role == "system"
     assert tmpl.always_include is True
-    # L0 v2.2.0 (2026-06-14): budget 590->600 (reply length keyed to weight not input length;
-    # over-affirmation duplication between WARMTH and CONVERSATION DISCIPLINE consolidated).
+    # L0 v2.4.0 (2026-06-24): budget 640->675 (MEMORY clause split present/absent to fix the
+    # v2.3.0 false-denial regression while preserving A4); prior v2.3.0: 600->640 (memory-honesty
+    # clause); v2.2.0: 590->600 (reply length keyed to weight not input length).
     # content starts with the FORMAT block.
-    assert tmpl.word_budget == 600
+    assert tmpl.word_budget == 684  # v2.5.0 (#66): 675->684 for the sensitive-disclosure no-frequency line
     assert tmpl.content.startswith("FORMAT")
 
 
@@ -320,7 +321,7 @@ def test_l0_persona_has_one_question_and_anti_over_affirmation():
     lowered = tmpl.content.lower()
     assert "one question" in lowered and ("never stack" in lowered or "not stack" in lowered)
     assert "over-affirm" in lowered or "uncritical" in lowered
-    assert tmpl.version == "2.2.0"
+    assert tmpl.version == "2.5.0"
 
 
 def test_l0_reply_length_keyed_to_weight_not_input_length():

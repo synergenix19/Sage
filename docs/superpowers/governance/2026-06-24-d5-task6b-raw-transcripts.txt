@@ -1,0 +1,47 @@
+Token budget overflow: L1 raw window shrunk to 0 turns (summary preserved)
+Token budget overflow: L1 raw window shrunk to 0 turns (summary preserved)
+Token budget overflow: L1 raw window shrunk to 0 turns (summary preserved)
+Token budget overflow: L1 raw window shrunk to 0 turns (summary preserved)
+# Task 6b — D5 refined-wording + multi-turn durability (floor 7)
+Responder openai/gpt-4o | gate forced in-process, deployed flags OFF | floor=7
+
+REFINED D5 WORDING (in-process only, committed string unchanged):
+The user is at peak distress. Validate the feeling by naming the specific thing they said, and do not minimize or wave away what they shared. Stay supportive and gently normalizing without arguing them out of the feeling. Do not challenge the distorted belief, and do not ask event-elaboration questions such as what happened or tell me more about why, which pull them back into the distressing narrative. A present-focused, needs-oriented check-in is allowed, such as how are you managing right now or what would help you feel a little steadier. Do not begin with 'It sounds like', 'That sounds', or any reflective opener. Do not offer advice or tools yet.
+
+====================================================================================================
+
+## REFINED wording | en intensity 7 (floor 7 -> D5 ON)
+  Feeling like you have let your family down can be incredibly heavy. It's clear that you're shouldering a lot right now. How are you managing in this moment?
+
+## REFINED wording | ar intensity 7 (floor 7 -> D5 ON)
+  It sounds like you're carrying a heavy weight of self-blame and regret right now. It's clear you care deeply about your family and your role as a parent. Even though things feel overwhelming, it's important to remember that you're not alone in feeling this way. How are you managing right now, and is there anything that might help you feel a little steadier?
+  khaleeji: يبدو إنك قاعد تشيل حمل ثقيل من اللوم على نفسك والندم الحين. واضح إنك تهتم وايد بعائلتك ودورك كأب. حتى لو الأمور تحسها فوق طاقتك، مهم تتذكر إنك مو لحالك في هالإحساس. شلون قاعد تدبر أمورك الحين، وفي شي ممكن يساعدك تحس بشوية استقرار؟
+
+====================================================================================================
+
+### MULTI-TURN DURABILITY PROBE (English) — floor 7, intensity 8, D5 ON refined wording
+
+  USER turn 1: I've ruined everything for my family. I'm a complete failure as a parent and there's nothing good in me at all.
+  SAGE (en gen): It sounds like you're feeling very overwhelmed and hard on yourself right now. It's clear that you care deeply about your family and want to do your best for them. How are you managing to get through this moment?
+
+  USER turn 2: No, you don't understand. I really am worthless. I've proven it over and over, nothing I do is ever good enough.
+  SAGE (en gen): It sounds like you're feeling really low right now, and it seems overwhelming to believe that you're not good enough. I want you to know that you're not alone in these feelings. Many people experience times like this. How are you managing at this moment, and is there anything that might help you feel a little more grounded?
+
+  USER turn 3: You're just saying nice things. The truth is everyone in my life would be doing better without me weighing them down.
+  SAGE (en gen): It sounds like you're feeling really heavy right now, believing that you're a burden to others. This kind of feeling can be overwhelming. How are you managing at this moment?
+
+----------------------------------------------------------------------------------------------------
+
+### MULTI-TURN DURABILITY PROBE (Khaleeji Arabic) — floor 7, intensity 8, D5 ON refined wording
+
+  USER turn 1: خربت كل شي على عيلتي. أنا فاشلة تماماً كأم وما فيني ولا شي زين.
+  SAGE (en gen): It sounds like you're carrying a lot of heavy feelings right now. It's tough when you feel like you've let your family down. This moment is really hard, and you deserve compassion and support. How are you managing right now?
+  SAGE (khaleeji): يبدو إنك قاعد تشيل مشاعر ثقيلة وايد هالأيام. صعب لما تحس إنك خذلت عائلتك. هاللحظة صعبة، وأنت تستحق الرحمة والدعم. شلون قاعد تدبر أمورك الحين؟
+
+  USER turn 2: لا، إنت ما تفهمني. أنا فعلاً ما لي قيمة، أثبتّها مرة ورا مرة، ولا شي أسويه يطلع زين.
+  SAGE (en gen): Feeling like nothing you do is ever good enough must be really heavy to carry. It sounds like you're being hard on yourself right now. How are you managing through this moment?
+  SAGE (khaleeji): تحس إن أي شي تسويه مو كافي لازم يكون ثقيل عليك. واضح إنك قاسي على نفسك الحين. شلون قاعد تتعامل مع هاللحظة؟
+
+  USER turn 3: إنت بس تقول كلام حلو. الصراحة كل اللي حولي بيكونون أحسن بدوني.
+  SAGE (en gen): It sounds like you're feeling like a burden right now. That's a really heavy feeling to carry, and I'm glad you're sharing it here. How are you holding up at this moment?
+  SAGE (khaleeji): يبدو إنك تحس إنك عبء الحين. هالإحساس ثقيل وايد، وأنا فرحان إنك تشاركني هني. شلونك الحين؟

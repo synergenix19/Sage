@@ -378,17 +378,42 @@ async def test_offer_accept_parsed_with_choice():
 
 
 @pytest.mark.asyncio
-async def test_offer_accept_invalid_choice_defaults_to_first():
+async def test_offer_accept_ambiguous_multi_choice_reasks_not_defaults():
+    """F2: an unresolvable choice on a MULTI-option offer must RE-ASK, never
+    silently promote offered[0]. Previously 'yes' + an unresolvable choice on a
+    two-option offer was promoted to offered[0] (box_breathing) — the 'picks A,
+    gets B' defect. Determinism: the system must not guess which option the user
+    chose; it re-renders the offer instead."""
     from sage_poc.nodes.intent_route import intent_route_node
     mock_response = (
         '{"primary_intent": "general_chat", "secondary_intent": null, '
         '"intent_confidence": 0.5, "emotional_intensity": 4, "engagement": 5, '
         '"offer_response": "accept", "offer_choice_skill_id": "hallucinated_skill"}'
     )
-    state = _base_state(message_en="yes", **_OFFER_STATE_KW)
+    state = _base_state(message_en="yes", offer_count=1, **_OFFER_STATE_KW)
     with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=mock_response)):
         result = await intent_route_node(state)
-    assert result["offer_choice_skill_id"] == "box_breathing"
+    # Must NOT promote: no accept, no chosen skill.
+    assert result.get("offer_response") != "accept"
+    assert not result.get("offer_choice_skill_id")
+    # Offer survives for a re-ask (not cleared), and is marked for re-render.
+    assert "offered_skill_ids" not in result, "ambiguous accept must NOT clear the offer"
+    assert "offer_choice_ambiguous" in result["path"]
+    assert result["offer_count"] == 2  # incremented -> lighter reoffer next render
+
+
+def test_resolve_offer_choice_returns_none_when_ambiguous_on_multi_offer():
+    """Unresolvable choice + 2 offers -> None (signals re-ask), not offered[0]."""
+    from sage_poc.nodes.intent_route import _resolve_offer_choice
+    assert _resolve_offer_choice(
+        "hallucinated_skill", ["box_breathing", "grounding_5_4_3_2_1"]
+    ) is None
+
+
+def test_resolve_offer_choice_single_offer_is_unambiguous():
+    """With one offer, 'yes' is unambiguous — promoting it is not a guess."""
+    from sage_poc.nodes.intent_route import _resolve_offer_choice
+    assert _resolve_offer_choice("yes", ["box_breathing"]) == "box_breathing"
 
 
 @pytest.mark.asyncio
@@ -573,3 +598,37 @@ async def test_intent_route_directive_posture_false_for_normal_message():
     with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=mock_response)):
         result = await intent_route_node(state)
     assert result["directive_posture"] is False
+
+
+# ── stall-guard wiring: intent_route sets a deterministic stall flag ──────────
+
+_STALL_LLM = (
+    '{"primary_intent": "general_chat", "secondary_intent": null, '
+    '"intent_confidence": 0.5, "emotional_intensity": 4, "engagement": 5}'
+)
+
+
+@pytest.mark.asyncio
+async def test_intent_route_sets_stall_detected_on_non_answer_run():
+    from sage_poc.nodes.intent_route import intent_route_node
+    history = [
+        {"role": "user", "content": "not sure"}, {"role": "assistant", "content": "ok"},
+        {"role": "user", "content": "not sure"}, {"role": "assistant", "content": "ok"},
+    ]
+    state = _base_state(message_en="not sure", conversation_history=history)
+    with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=_STALL_LLM)):
+        result = await intent_route_node(state)
+    assert result["stall_detected"] is True
+
+
+@pytest.mark.asyncio
+async def test_intent_route_no_stall_on_varied_conversation():
+    from sage_poc.nodes.intent_route import intent_route_node
+    history = [
+        {"role": "user", "content": "my kids are breaking things"}, {"role": "assistant", "content": "ok"},
+        {"role": "user", "content": "I tried speaking calmly but they wont listen"}, {"role": "assistant", "content": "ok"},
+    ]
+    state = _base_state(message_en="I feel overwhelmed and angry", conversation_history=history)
+    with patch("sage_poc.nodes.intent_route.resilient_invoke", AsyncMock(return_value=_STALL_LLM)):
+        result = await intent_route_node(state)
+    assert result["stall_detected"] is False

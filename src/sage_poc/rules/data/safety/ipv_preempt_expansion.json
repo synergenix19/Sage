@@ -1,0 +1,32 @@
+{
+  "_meta": {
+    "id": "E7 §6a coercive-control / relationship-safety pre-emption — lexicon expansion",
+    "source": "BOT BEHAVIOUR §6a guard recognition table (clinician-authored), verbatim. Mirrors the src=6a positives in tests/fixtures/bot_behaviour/ipv_e7_recall.json — test_ipv_preempt.py::test_expansion_phrases_match_fixture_verbatim enforces byte-equality so these can never drift.",
+    "flag": "SAGE_IPV_PREEMPTION (default OFF). These phrases fire domestic_situation + §6 pre-emption ONLY when the flag is ON; OFF -> only the approved CF-005 lexicon fires (byte-identical v7).",
+    "governance": "Approved as part of the E7 entry (clinical lead Rohan Sarda, 2026-07-04; review-cycle-package §E). This is a FLAG-GATED SHIP MECHANISM, NOT the destination.",
+    "consolidation_obligation": "TRACKED IN E7 PR — do not leave as permanent architecture. When SAGE_IPV_PREEMPTION flips ON permanently (governed: E7 recall >=95% on the fixture set + clinician CMS approval, per Rohan's CF-005 approval workflow), fold these 19 phrases into CF-005 vNext via the CMS draft->review->approve cycle and RETIRE this side-path. Single-authority principle (content inventory): domestic_situation must not live under two governance regimes (approved CF-005 + this flag-gated supplement) indefinitely.",
+    "language": "English-first (§6a verbatim). Khaleeji/MSA/Arabizi expansion is tracked debt — CF-005 already carries the deployed Arabic domestic_situation set.",
+    "match": "case-insensitive substring, consistent with CF-005 keyword matching; naturalistic/paraphrase matching is the same tracked debt as CF-005."
+  },
+  "phrases": [
+    "They get really angry if I say no",
+    "I don't know what they'd do if I pushed back",
+    "They lose it when things don't go their way",
+    "I have to be careful what I say around them",
+    "I never know what mood they'll be in",
+    "I'm always watching what I say so I don't set them off",
+    "They'll punish me for it somehow",
+    "I'll pay for it later",
+    "They make me regret saying no",
+    "They check up on everything I do",
+    "I have to explain where I am or who I'm with",
+    "They control the money so I can't really say no",
+    "They don't let me see my friends or family as much anymore",
+    "They're the only person I really see anymore",
+    "I've lost touch with everyone else because of them",
+    "I'm scared of them",
+    "They've threatened to leave, hurt me, or hurt themselves if I don't",
+    "Things could get physical if I push back",
+    "I don't feel safe saying no to them"
+  ]
+}

@@ -2,6 +2,8 @@ from __future__ import annotations
 import json
 from abc import ABC, abstractmethod
 
+from sage_poc.safety.tripwire import fire_l2_tripwire
+
 
 class ReviewNotifier(ABC):
     """Abstraction over the clinician notification mechanism.
@@ -69,3 +71,8 @@ class PostgresNotifier(ReviewNotifier):
                 user_id, session_id, reason, source, severity, message,
             )
             await conn.execute("SELECT pg_notify($1, $2)", self.CHANNEL, message)
+        # D4 interim tripwire (#234): a dumb non-test-user notification — the safety valve the
+        # logs-only review ruling was signed contingent on. Pool released first; non-fatal.
+        await fire_l2_tripwire(
+            user_id=user_id, session_id=session_id, reason=reason, severity=severity
+        )

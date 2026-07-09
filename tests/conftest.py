@@ -35,6 +35,31 @@ except ModuleNotFoundError:
 
 
 # ---------------------------------------------------------------------------
+# L2 tripwire isolation (#234) — suite-wide
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(autouse=True)
+def _tripwire_test_isolation(monkeypatch):
+    """The L2 tripwire (#234) is wired into notify_review_required, so ANY unit test that writes a
+    review would otherwise fire it with fabricated user data — spurious TRIPWIRE log spam, and a real
+    outbound webhook POST if SAGE_TRIPWIRE_WEBHOOK_URL leaks into the test env. Neutralize the env
+    suite-wide (never POST, deterministic predicate) and mute the hook by default.
+
+    The tripwire's OWN logic is covered directly in test_tripwire.py (which calls
+    sage_poc.safety.tripwire.fire_l2_tripwire — a different reference, unaffected by this patch), and
+    the notify_review_required->tripwire WIRING is covered by an explicit spy test there that
+    overrides this mute."""
+    monkeypatch.delenv("SAGE_TRIPWIRE_WEBHOOK_URL", raising=False)
+    monkeypatch.delenv("SAGE_TEST_USER_IDS", raising=False)
+    import sage_poc.memory.notification as _notif
+
+    async def _muted(**_kwargs):
+        return None
+
+    monkeypatch.setattr(_notif, "fire_l2_tripwire", _muted)
+
+
+# ---------------------------------------------------------------------------
 # LLM mock helpers — shared across integration test modules
 # ---------------------------------------------------------------------------
 

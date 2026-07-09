@@ -7,6 +7,7 @@ from pathlib import Path
 from sage_poc.state import SageState
 from sage_poc.skills.schema import SkillStep, load_skill
 from sage_poc.rules import engine as rules_engine
+from sage_poc import config as _config
 from .loader import get_template, get_intent_template
 from .tokens import count_words, count_words_in_parts
 
@@ -91,6 +92,66 @@ _INTENSITY_GUIDANCE: dict[str, str] = {
     "mid": "The user is moderately engaged. Be present and attentive.",
     "high": "The user is significantly distressed. Name the specific thing they said, directly. Ask one focused question about it. Do NOT paraphrase or reflect back what they said. Do NOT begin with 'It sounds like', 'That sounds', or any reflective opener. Do NOT offer guidance yet.",
 }
+
+# D5 acuity guidance (GATED, default-off). Returned only when D5_ACUITY_GATE_ENABLED is True
+# AND emotional_intensity >= D5_ACUITY_FLOOR (default 8). Replaces the high-intensity string
+# at peak distress: validate by naming the specific thing said, stay purely supportive,
+# do NOT challenge or question a distorted belief. No em dashes (rule content mirrors into LLM output).
+_D5_ACUITY_GUIDANCE = (
+    "The user is at peak distress. Validate the feeling by naming the specific thing they said, "
+    "not a generic reflection. Stay purely supportive. Do not challenge or question a distorted "
+    "belief here. Do NOT begin with 'It sounds like', 'That sounds', or any reflective opener. "
+    "Do NOT offer guidance yet."
+)
+
+# P1(mid) response-shape floor (engineering, no clinical sign-off). Injected ONLY on
+# pure-freeflow general_chat turns at the MID band (intensity 4-6), appended to the
+# freeflow guardrail block at its existing discriminator (no step_instruction and no
+# offer), so it cannot reach the skill_offer or skill_executor surfaces and never fires
+# on the low band (light moments stay light) or the high/D5 acute band. Rationale: the
+# 2026-06-25 band-attribution run showed the cold-reply defect is pure-freeflow + mid +
+# no skill, and is a VARIANCE problem (5 samples of the same case ranged 19-38 words, all
+# under the P-2 validation band) caused by the underspecified mid string giving no shape
+# or length floor. This raises the floor and imposes R-7 shape (validation-first, one open
+# question) bounded by the P-2 validation band (40-80 words). Deliberately EXCLUDES the
+# P2 normalization sentence (parked for clinical sign-off) and the P3 menu/fork question
+# (gated on Arabic + crisis eval): one plain open question only. No em dashes (mirrors into
+# output). See docs/superpowers/audits 2026-06-25 band attribution.
+#
+# LOAD-BEARING COUPLING (do not remove without reading): this shape only clears the
+# length floor because it INVOKES an existing, clinician-signed L0 exception rather than
+# overriding L0's concision default. The plain "40-80 words" floor (v1) was overridden by
+# L0's signed cap "Keep replies concise, two to four sentences" and produced no effect.
+# The clause it rides, verbatim in L0_persona.json (template_id L0_persona), is:
+#   "...two to four sentences unless the person needs more; a heavy disclosure deserves a
+#    longer, more present reply even when it is brief..."
+# That clause is CLINICIAN-OWNED (L0 is signed). If a future L0 edit tightens the concision
+# cap or drops the "unless the person needs more / heavy disclosure deserves a longer reply"
+# exception, this shape silently reverts to cold with no engineering signal. The coupling is
+# guarded by tests/test_p1_mid_freeflow_shape.py::test_l0_longer_reply_exception_present,
+# which fails loudly if that clause leaves L0. Arabic note: AR turns generate in English
+# against this same L0 (see "ARABIC SESSION" below), so the exception is NOT language-split;
+# the Arabic risk is translation survival of the floor, not a missing AR exception.
+_MID_FREEFLOW_SHAPE = (
+    "RESPONSE SHAPE: This is a turn that needs more than a brief reply, so give fuller presence "
+    "rather than two short sentences. Begin by acknowledging the feeling the person named, in your "
+    "own words. Then ask one open question that follows directly from what they said. Write three "
+    "or four sentences, roughly forty to eighty words, enough to feel present and unhurried, never "
+    "so long it becomes advice. Ask only a single question, not several, and do not offer "
+    "suggestions or techniques here."
+)
+
+# Stall-guard recovery instruction (freeflow-only). Fires when the deterministic
+# detector flags a stall. It must RE-GROUND in established context, not merely
+# suppress the repeated question (which would degrade into a different generic
+# opener). No em dashes: rule content mirrors into LLM output.
+_STALL_RECOVERY_INSTRUCTION = (
+    "RECOVERY: The user has repeated themselves or has not moved forward over the "
+    "last few turns. Do not ask another open ended question and do not open with a "
+    "new generic line. Use what they have ALREADY shared earlier in this "
+    "conversation, name those specific details back to them, and offer one "
+    "concrete next step grounded in those details."
+)
 
 _OFFER_DESCRIPTIONS_PATH = Path(__file__).parent / "offer_descriptions.json"
 _DECLINED_INSTRUCTION_PATH = Path(__file__).parent / "declined_skills_instruction.json"
@@ -201,6 +262,12 @@ def _intensity_guidance(intensity: int) -> str:
         return _INTENSITY_GUIDANCE["low"]
     if intensity <= 6:
         return _INTENSITY_GUIDANCE["mid"]
+    # High band (intensity >= 7). D5 acuity gate fires only when explicitly enabled AND
+    # intensity reaches the acuity floor (default 8). Gate is OFF by default; when OFF the
+    # return value is byte-identical to pre-D5 production. Floor/band gap is documented in
+    # config.py: intensity == 7 is in the high band but below D5_ACUITY_FLOOR=8 by design.
+    if _config.D5_ACUITY_GATE_ENABLED and intensity >= _config.D5_ACUITY_FLOOR:
+        return _D5_ACUITY_GUIDANCE
     return _INTENSITY_GUIDANCE["high"]
 
 
@@ -419,12 +486,13 @@ def _build_freeflow_guardrail_block(variant: str | None = None) -> str:
     protocol via the L3 step instruction. Draft-pending clinical review.
 
     Coverage boundary: this guardrail reaches only the compose_prompt freeflow
-    path. low_confidence_respond_node uses a hardcoded _SYSTEM prompt and
-    bypasses compose_prompt entirely, so the guardrail does not reach it. This
-    is benign today because low_confidence_respond caps its output at 2
-    sentences, making free-prose protocol delivery practically impossible. If
-    that 2-sentence cap is ever removed, the guardrail must be added to
-    low_confidence_respond_node's _SYSTEM prompt as well.
+    path. low_confidence_respond_node now composes via compose_prompt (§5.6.3)
+    but passes l2_intent_override="low_confidence", which suppresses this
+    guardrail (and the MID shape) — low_confidence is its own short-clarifying
+    contract, not a freeflow turn. This remains benign because that template
+    caps output at 2 sentences, making free-prose protocol delivery practically
+    impossible. If that 2-sentence cap is ever removed from the low_confidence
+    template, drop the override-suppression so the guardrail reaches it.
     """
     tmpl = get_template("freeflow_guardrail", variant=variant)
     _log.debug("freeflow_guardrail@%s loaded", tmpl.version)
@@ -436,13 +504,20 @@ def _build_l1_history_block(
     variant: str | None = None,
     word_budget: int | None = None,
     conversation_summary: str | None = None,
+    pin_turn: dict | None = None,
 ) -> str | None:
-    if not conversation_history and not conversation_summary:
+    if not conversation_history and not conversation_summary and pin_turn is None:
         return None
     tmpl = get_template("L1_history", variant=variant)
     window_size = tmpl.window_size or 8
     effective_budget = word_budget if word_budget is not None else (tmpl.word_budget or _L1_BASE_BUDGET)
-    window = conversation_history[-window_size:]
+    window = list(conversation_history[-window_size:])
+    # self_reference eviction-exemption: guarantee the recalled disclosure turn is in the
+    # window even if it falls outside it, so an overflow shrink cannot drop the very turn
+    # the user is asking about. pin_turn is None for every non-recall caller, so the loop
+    # below preserves its original behaviour byte-for-byte in that case.
+    if pin_turn is not None and pin_turn not in window:
+        window = [pin_turn] + window
     lines: list[str] = []
     word_total = 0
     for m in reversed(window):            # newest → oldest
@@ -453,9 +528,12 @@ def _build_l1_history_block(
         )
         line = f"{m['role'].upper()}: {content}"
         words = count_words(line)
-        if lines and word_total + words > effective_budget:
+        is_pinned = pin_turn is not None and m is pin_turn
+        if lines and not is_pinned and word_total + words > effective_budget:
             _log.debug("L1 history truncated at word budget %d", effective_budget)
-            break
+            if pin_turn is None:
+                break          # original behaviour: stop at first over-budget turn
+            continue           # recall turn: skip middle turns, keep scanning for the pinned disclosure
         lines.append(line)
         word_total += words
     lines.reverse()                       # restore chronological order for prompt
@@ -474,6 +552,62 @@ def _build_l1_history_block(
     content = tmpl.content.format(history_lines=history_text)
     _log.debug("L1_history@%s loaded", tmpl.version)
     return content
+
+
+# --- self_reference eviction-exemption: find the disclosure turn the recall refers to ---
+# Language split mirrors the detector: Arabic recall + Arabic history live in raw text, so an
+# English-token anchor would silently miss every Arabic recall and fall back to most-recent —
+# landing the weak path exactly where the diagnostic found eviction worst (Arabic/cultural turns).
+_ANCHOR_STOP = {
+    "what", "did", "just", "tell", "say", "said", "you", "your", "about", "the", "that", "this",
+    "have", "with", "mention", "remember", "told", "and", "for", "was", "were", "dont", "don",
+}
+
+
+def _recall_text(state: SageState) -> str:
+    return state.get("raw_message", "") if state.get("detected_language") == "ar" else state.get("message_en", "")
+
+
+def _salient_tokens(text: str) -> set[str]:
+    return {t for t in re.findall(r"\w+", (text or "").lower()) if len(t) >= 3 and t not in _ANCHOR_STOP}
+
+
+def _anchor_turn(history: list[dict], recall_text: str) -> dict | None:
+    """Most-recent user turn sharing a salient token with the recall; else most-recent user turn."""
+    user_turns = [m for m in history if m.get("role") == "user"]
+    if not user_turns:
+        return None
+    toks = _salient_tokens(recall_text)
+    if toks:
+        for m in reversed(user_turns):
+            if toks & _salient_tokens(m.get("content", "")):
+                return m
+    return user_turns[-1]
+
+
+# --- absent-side A4 fix: empty-retrieval sentinel for the MEMORY path ---
+# Mirrors the knowledge path's "No relevant clinical evidence found" anchor. The original A4 fix
+# shipped the L0 *instruction* to admit but not the *signal* to admit against, so empty retrieval
+# was silence the model fabricates into (~15-25% of the time). This gives it the signal.
+_MEMORY_ABSENT_SENTINEL = (
+    "MEMORY CHECK: the person is asking you to recall something, but no earlier record of it was "
+    "found, not in this conversation and not in any prior-session context above. Do not invent, "
+    "infer, or guess what they said. Tell them you do not have a record of that and invite them to "
+    "share it again."
+)
+
+
+def memory_absent_sentinel(state: SageState, prior_context_present: bool) -> str | None:
+    """Return the sentinel ONLY when a recall is requested AND grounding is genuinely empty:
+    no prior-session context, and no user turns in this conversation. Keys off emptiness
+    (language-agnostic), NOT the keyword-anchor, so it carries no Arabic-parity dependency and
+    cannot assert absence over real disclosure (which would re-introduce the false-denial vector).
+    Returns None when any user history exists -> the back-door is closed by erring toward NOT firing."""
+    if not state.get("self_reference") or prior_context_present:
+        return None
+    if any(m.get("role") == "user" for m in state.get("conversation_history", [])):
+        return None
+    return _MEMORY_ABSENT_SENTINEL
 
 
 _CULTURAL_BUDGET_WORDS = 250
@@ -500,7 +634,7 @@ def build_cultural_override_block(skill) -> str | None:
     return None
 
 
-def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
+def compose_prompt(state: SageState, l2_intent_override: str | None = None, *, shadow_arabic: bool = False) -> tuple[str, str, list[str]]:
     """Return (system_str, user_str, prompt_layers) for role-separated LLM invocation.
 
     Implements v7 §5.6 6-layer progressive disclosure. Rules Service injections
@@ -526,13 +660,24 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     # rules so the LLM sees the translation architecture before register calibration.
     # CU-DM-001 v1.2 must not restate this (register calibration only after this fix).
     if language == "ar":
-        system_parts.append(
-            "ARABIC SESSION: This user writes in Arabic. Your response will be "
-            "translated to Khaleeji Arabic by the delivery layer. Generate in English "
-            "with warmth and conversational rhythm that translates naturally to Gulf "
-            "Arabic, not clinical or formal phrasing. Do not write in Arabic."
-        )
-        layers.append("arabic_register")
+        if shadow_arabic:
+            from sage_poc.prompts.loader import load_khaleeji_shadow_exemplars  # noqa: PLC0415
+            _ex_version, _ex_block = load_khaleeji_shadow_exemplars()
+            system_parts.append(
+                "ARABIC SESSION (native generation): This user writes in Arabic. "
+                "Generate your reply directly in warm, informal Gulf Arabic (Khaleeji "
+                "dialect), not Modern Standard Arabic and not clinical or formal "
+                "phrasing. Mirror the user's dialect and level of formality.\n" + _ex_block
+            )
+            layers.append("arabic_native_shadow")
+        else:
+            system_parts.append(
+                "ARABIC SESSION: This user writes in Arabic. Your response will be "
+                "translated to Khaleeji Arabic by the delivery layer. Generate in English "
+                "with warmth and conversational rhythm that translates naturally to Gulf "
+                "Arabic, not clinical or formal phrasing. Do not write in Arabic."
+            )
+            layers.append("arabic_register")
 
     # Cultural injections from Rules Service (unchanged from original)
     code_switch = state.get("code_switching", False)
@@ -649,8 +794,22 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     # exclusive per turn, matching the budget docstring.
     _guardrail_block: str | None = None
     _guardrail_words: int = 0
-    if not state.get("step_instruction") and not _offer_ids:
+    # l2_intent_override (e.g. low_confidence) is NOT a freeflow turn: it carries
+    # its own response contract (a short clarifying question), so the freeflow-only
+    # guardrail + MID shape must not fire here — the MID shape would contradict that
+    # contract's brevity cap. Protocol-as-prose is impossible in a 2-sentence reply,
+    # so suppressing the guardrail here is safe (same rationale as the pre-migration
+    # bypass, now explicit).
+    if not state.get("step_instruction") and not _offer_ids and not l2_intent_override:
         _guardrail_block = _build_freeflow_guardrail_block()
+        # P1(mid): on pure-freeflow validation turns at the MID band only, append the
+        # response-shape floor. Gated to 4 <= intensity <= 6 so the low band (light
+        # moments) and the high/D5 acute band are untouched. This branch is already
+        # inside the freeflow discriminator (no step_instruction, no offer), so the
+        # shape can never reach the skill-offer or skill-execution surfaces. Appended
+        # to the guardrail string so its words deduct from L1 in the same pass.
+        if 4 <= intensity <= 6:
+            _guardrail_block = _guardrail_block + "\n\n" + _MID_FREEFLOW_SHAPE
         _guardrail_words = count_words(_guardrail_block)
 
     # S2-7 B2: declined-skills signal (consent integrity). On freeflow turns
@@ -667,7 +826,7 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     # excludes declined skills in skill_select; this note only protects the
     # freeflow prose path, and declined_words simply adds to the same proactive
     # L1 deduction alongside offer_words when both apply.
-    _is_freeflow = not state.get("step_instruction")
+    _is_freeflow = not state.get("step_instruction") and not l2_intent_override
     _declined_ids = state.get("declined_skills") or []
     _declined_note = ""
     _declined_words = 0
@@ -684,10 +843,16 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
         offer_words=_offer_words,
         declined_words=_declined_words,
     )
+    # self_reference eviction-exemption: pin the recalled disclosure from the INITIAL build, not
+    # only inside the overflow branch. Otherwise the normal L1 budget can drop the disclosure here,
+    # which keeps total under budget, so the overflow branch (and its pin) never runs.
+    _pin_turn = (_anchor_turn(state.get("conversation_history", []), _recall_text(state))
+                 if state.get("self_reference") else None)
     l1_block = _build_l1_history_block(
         state.get("conversation_history", []),
         word_budget=l1_budget,
         conversation_summary=state.get("conversation_summary"),
+        pin_turn=_pin_turn,
     )
     if l1_block:
         user_parts.append(l1_block)
@@ -700,7 +865,14 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     # Rule 1 approval — template is draft-pending-review.
     # Offer override: _offer_ids / _offer_block_str were precomputed above the
     # L1 budget call so the block is built exactly once per turn.
-    if _offer_ids:
+    if l2_intent_override:
+        # Explicit L2 selection (e.g. the low_confidence node, whose routing is a
+        # confidence outcome, not a primary_intent). Bypasses intent/offer-based
+        # selection. Every other caller passes None => byte-identical behaviour.
+        _l2_intent = l2_intent_override
+        _l2_extra = None
+        _l2_variant = None
+    elif _offer_ids:
         _l2_intent = "skill_offer"
         _l2_extra = {"offer_options_block": _offer_block_str}
         # Repeat-offer variant: on the 2nd+ consecutive render of the same offer
@@ -720,6 +892,15 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
         # re-probe, no closing question). Falls back to base general_chat automatically if the
         # variant file is missing (get_intent_template returns the base on unknown variant).
         _l2_variant = "directive" if (state.get("directive_posture") and _l2_intent == "general_chat") else None
+        # Repeat-info_request dampening (D4 amendment 2026-07-07). A single-intent info_request
+        # closes with one open clarifying QUESTION (base template, Abby-style triage). On an
+        # IMMEDIATELY-CONSECUTIVE info_request (prev turn also info_request = "lookup mode"),
+        # switch to the statement-bridge "repeat" variant so a user in lookup mode is not
+        # re-triaged every turn. "repeat" is strictly immediately-consecutive: any intervening
+        # non-info_request turn resets prev_primary_intent and restores the question-close.
+        # Falls back to the base template automatically if the variant file is absent.
+        if _l2_intent == "info_request" and state.get("prev_primary_intent") == "info_request":
+            _l2_variant = "repeat"
     l2_block = _build_l2_intent_block(
         _l2_intent, intensity, secondary_intent, variant=_l2_variant, extra_variables=_l2_extra
     )
@@ -736,6 +917,14 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
     if _guardrail_block is not None:
         user_parts.append(_guardrail_block)
         layers.append("freeflow_guardrail")
+
+    # Stall-guard recovery (freeflow only). The deterministic detector set the
+    # flag in intent_route; here we direct the model to re-ground in prior context
+    # rather than ask yet another open question. On skill turns the executor owns
+    # the protocol, so this must not fire there.
+    if _is_freeflow and state.get("stall_detected"):
+        user_parts.append(_STALL_RECOVERY_INSTRUCTION)
+        layers.append("stall_recovery")
 
     # L5: User context (before skill/knowledge so LLM has profile context first)
     l5_block = _build_l5_user_context_block(
@@ -872,12 +1061,16 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
         l1_tmpl = get_template("L1_history")
         half_window = max(1, (l1_tmpl.window_size or 8) // 2)
         non_l1_words = total_words - count_words(user_parts[0])
+        # On a recall turn, pin the disclosure the user is asking about so the shrink below
+        # cannot evict it (vector 1). Reuse the pin computed for the initial build above.
+        pin_turn = _pin_turn
         for raw_turns in range(half_window, -1, -1):
             recent = history[-raw_turns:] if raw_turns else []
             shrunk = _build_l1_history_block(
                 recent,
                 word_budget=300,    # conservative for overflow case
                 conversation_summary=summary,
+                pin_turn=pin_turn,
             ) or ""
             if non_l1_words + count_words(shrunk) <= _TOTAL_WORD_BUDGET or raw_turns == 0:
                 break
@@ -886,6 +1079,17 @@ def compose_prompt(state: SageState) -> tuple[str, str, list[str]]:
             "Token budget overflow: L1 raw window shrunk to %d turns (summary preserved)",
             raw_turns,
         )
+        # Recall turn where even the pinned disclosure + static layers exceed budget: keep the
+        # disclosure (never drop the thing being recalled), but make it OBSERVABLE rather than
+        # silently shipping over budget. Status sentinel is "status:"-prefixed so it is not read
+        # as a content layer. Deviation from v7 §5.6.3 shrink order is flagged in the sign-off.
+        # Structural resolution (trim L0) is the broader-bloat ticket, not this one.
+        if pin_turn is not None and non_l1_words + count_words(shrunk) > _TOTAL_WORD_BUDGET:
+            layers.append("status:prompt_over_budget")
+            _log.warning(
+                "self_reference recall over budget after pinning disclosure; kept disclosure, "
+                "prompt over budget (L0 bloat, broader-bloat ticket)"
+            )
 
     user_str = "\n\n".join(user_parts)
     return system_str, user_str, layers

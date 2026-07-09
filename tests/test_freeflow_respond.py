@@ -29,6 +29,23 @@ _BASE_STATE = {
 }
 
 
+def fr_stub_llm(content: str = "That sounds really difficult."):
+    """Shared stub LLM for freeflow_respond tests: bind_tools().ainvoke() returns a plain-text
+    message (no tool_calls), so the English arm of the tool loop completes in one round-trip.
+    Reused by tests/test_freeflow_shadow_wiring.py and tests/test_shadow_never_served.py so the
+    shadow-wiring tests don't need to duplicate this mock shape.
+    """
+    mock_msg = MagicMock()
+    mock_msg.content = content
+    mock_msg.usage_metadata = {"input_tokens": 10, "output_tokens": 5, "total_tokens": 15}
+    mock_msg.tool_calls = None
+    mock_bound_llm = AsyncMock()
+    mock_bound_llm.ainvoke = AsyncMock(return_value=mock_msg)
+    mock_llm = MagicMock()
+    mock_llm.bind_tools = MagicMock(return_value=mock_bound_llm)
+    return mock_llm
+
+
 def test_compose_prompt_returns_layers():
     with patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules()):
         _, _, layers = compose_prompt(_BASE_STATE)
@@ -119,30 +136,32 @@ def test_freeflow_respond_node_returns_prompt_layers():
 
 
 def test_freeflow_respond_node_returns_token_usage():
-    """token_usage is returned as empty dict when resilient_invoke is used (string response)."""
+    """The string/resilient_invoke path carries no usage -> token_usage stays {}.
+    Deterministic: a state where Node 6 already ran suppresses knowledge_lookup, so with no
+    user_id there are no tools -> _invoke_with_tool_loop goes straight to resilient_invoke."""
     from unittest.mock import patch
+    state = {**_BASE_STATE, "path": ["safety_check", "intent_route", "skill_select", "knowledge_retrieve"]}
     with patch(
         "sage_poc.nodes.freeflow_respond.resilient_invoke",
         new_callable=AsyncMock,
         return_value="That sounds really difficult.",
     ):
-        result = asyncio.run(freeflow_respond_node(_BASE_STATE))
+        result = asyncio.run(freeflow_respond_node(state))
 
     assert "token_usage" in result
     assert result["token_usage"] == {}
 
 
 def test_freeflow_respond_node_handles_missing_usage_metadata():
-    """token_usage is returned as empty dict when resilient_invoke is used (string response)."""
-    from unittest.mock import patch
-    with patch(
-        "sage_poc.nodes.freeflow_respond.resilient_invoke",
-        new_callable=AsyncMock,
-        return_value="I hear you.",
-    ):
-        result = asyncio.run(freeflow_respond_node(_BASE_STATE))
+    """A generation with no usage_metadata must not crash and yields token_usage {}."""
+    mock_msg = MagicMock()
+    mock_msg.content = "I hear you."
+    mock_msg.usage_metadata = None   # provider/mocks may omit it
+    mock_msg.tool_calls = None
+    mock_bound = AsyncMock(); mock_bound.ainvoke = AsyncMock(return_value=mock_msg)
+    mock_llm = MagicMock(); mock_llm.bind_tools = MagicMock(return_value=mock_bound)
+    result = asyncio.run(freeflow_respond_node(_BASE_STATE, llm=mock_llm))
 
-    assert "token_usage" in result
     assert result["token_usage"] == {}
 
 
@@ -261,3 +280,95 @@ async def test_freeflow_sets_knowledge_source_tool_lookup_when_tool_fires():
                 result = await freeflow_respond_node(state, llm=mock_llm)
 
     assert result.get("knowledge_source") == "tool_lookup"
+
+
+@pytest.mark.asyncio
+async def test_tool_loop_model_exception_falls_back_not_raises():
+    """A provider error on the bound-tools ainvoke must NOT surface as an exception;
+    the user must still receive a non-empty fallback reply (RC-6 / B1)."""
+    mock_llm = MagicMock()
+    bound = MagicMock()
+    bound.ainvoke = AsyncMock(side_effect=RuntimeError("provider 500"))
+    mock_llm.bind_tools = MagicMock(return_value=bound)
+    # base (non-tools) ainvoke is what resilient_invoke uses for the fallback
+    mock_llm.ainvoke = AsyncMock(return_value=MagicMock(content="I'm here with you. What feels most present right now?"))
+    mock_llm.model_name = "test-model"
+    mock_llm.openai_api_base = ""
+
+    with patch("sage_poc.nodes.freeflow_respond.get_fallback_responder", return_value=mock_llm), \
+         patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules()):
+        result = await freeflow_respond_node(_BASE_STATE, llm=mock_llm)
+
+    assert result["response_en"], "user must receive a non-empty reply when the tool loop errors"
+    assert "here with you" in result["response_en"].lower()
+
+
+# ── RC-3 knowledge_lookup gating + token-usage capture (perf PR) ──────────────────
+
+def test_knowledge_lookup_BOUND_when_node6_did_not_run():
+    """Evidence-grounding door stays OPEN: a turn that did NOT route through knowledge_retrieve
+    (e.g. a mid-conversation factual question in a skill/general_chat turn) must still bind
+    knowledge_lookup so the model can retrieve rather than answer from parametric memory."""
+    from sage_poc.nodes.freeflow_respond import _build_llm_tools
+    state = {"path": ["safety_check", "intent_route", "skill_select"], "detected_language": "en"}
+    tools = _build_llm_tools(state, user_id=None, session_id=None)
+    assert any(getattr(t, "name", "") == "knowledge_lookup" for t in tools), \
+        "knowledge_lookup must stay bound when Node 6 did not run this turn"
+
+
+def test_knowledge_lookup_SUPPRESSED_when_node6_already_ran():
+    """RC-3: when knowledge_retrieve (Node 6) already retrieved THIS turn, do not re-bind
+    knowledge_lookup (it would cause a redundant retrieval + extra LLM round-trip)."""
+    from sage_poc.nodes.freeflow_respond import _build_llm_tools
+    state = {"path": ["safety_check", "intent_route", "skill_select", "knowledge_retrieve"],
+             "detected_language": "en"}
+    tools = _build_llm_tools(state, user_id=None, session_id=None)
+    assert not any(getattr(t, "name", "") == "knowledge_lookup" for t in tools), \
+        "knowledge_lookup must be suppressed when Node 6 already retrieved this turn"
+
+
+def test_token_usage_populated_via_tool_loop():
+    """token_usage is now captured from the generation's usage_metadata (was hard-coded {})."""
+    mock_msg = MagicMock()
+    mock_msg.content = "Here is a gentle suggestion."
+    mock_msg.usage_metadata = {"input_tokens": 200, "output_tokens": 40, "total_tokens": 240}
+    mock_msg.tool_calls = None
+    mock_bound = AsyncMock(); mock_bound.ainvoke = AsyncMock(return_value=mock_msg)
+    mock_llm = MagicMock(); mock_llm.bind_tools = MagicMock(return_value=mock_bound)
+    result = asyncio.run(freeflow_respond_node(_BASE_STATE, llm=mock_llm))
+    assert result["token_usage"] == {"input": 200, "output": 40, "total": 240}
+
+
+def test_freeflow_gen_ms_captured_flag_off():
+    """freeflow_gen_ms times the served English arm's _invoke_with_tool_loop call and is
+    captured unconditionally (flag off, English turn — the common served path)."""
+    mock_msg = MagicMock()
+    mock_msg.content = "That sounds really difficult."
+    mock_msg.usage_metadata = {"input_tokens": 10, "output_tokens": 5, "total_tokens": 15}
+    mock_msg.tool_calls = None
+    mock_bound = AsyncMock(); mock_bound.ainvoke = AsyncMock(return_value=mock_msg)
+    mock_llm = MagicMock(); mock_llm.bind_tools = MagicMock(return_value=mock_bound)
+
+    result = asyncio.run(freeflow_respond_node(_BASE_STATE, llm=mock_llm))
+
+    assert "freeflow_gen_ms" in result
+    assert isinstance(result["freeflow_gen_ms"], int)
+    assert result["freeflow_gen_ms"] >= 0
+
+
+def test_freeflow_gen_ms_captured_flag_on_arabic_concurrent_path():
+    """freeflow_gen_ms must also be set on the concurrent (shadow flag ON, Arabic) path —
+    the English arm still runs and must still be timed."""
+    from unittest.mock import patch
+    import sage_poc.nodes.freeflow_respond as fr_mod
+
+    state = {**_BASE_STATE, "detected_language": "ar", "raw_message": "تعبت"}
+    payload = {"text": "مرحبا", "prompt_hash": "a" * 16, "exemplar_version": "0.1",
+               "generation_language": "ar_native", "gen_latency_ms": 4}
+    with patch.object(fr_mod, "NATIVE_ARABIC_SHADOW_ENABLED", True), \
+         patch.object(fr_mod, "generate_shadow_arabic", new=AsyncMock(return_value=payload)), \
+         patch.object(fr_mod, "write_shadow_eval_row", new=AsyncMock()):
+        result = asyncio.run(freeflow_respond_node(state, llm=fr_stub_llm()))
+
+    assert isinstance(result["freeflow_gen_ms"], int)
+    assert result["freeflow_gen_ms"] >= 0

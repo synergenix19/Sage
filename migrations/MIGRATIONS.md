@@ -1,0 +1,21 @@
+# Migration Number Ledger
+
+Migration numbers are CLAIMED HERE AT BRANCH CREATION, before writing the file, so two
+concurrent branches never independently mint the same number (a silent merge/deploy-runbook
+conflict — root cause of a real collision on 2026-07-03 when `feat/abstain-cosine-gate` and
+`feat/crisis-tiering` both created a `006`). Add a row when you start a branch that needs a
+migration; keep it in ascending order.
+
+| # | file | branch | table | status |
+|---|------|--------|-------|--------|
+| 004 | 004_add_s3_score_to_session_audit.sql | (merged) | session_audit | applied |
+| 005 | 005_add_knowledge_query_trace_to_session_audit.sql | feat/arabic-rewriter-wiring (merged #84) | session_audit | applied prod 2026-07-03 |
+| 006 | 006_add_crisis_tier_to_session_audit.sql | feat/crisis-tiering | session_audit | claimed |
+| 007 | 007_add_knowledge_top_similarity_to_session_audit.sql | feat/abstain-cosine-gate | session_audit | claimed (renumbered from 006 to avoid collision) |
+| 008 | 008_add_precedence_to_session_audit.sql | feat/e-build-b0-precedence | session_audit | claimed — DEPLOY GATE for SAGE_ROUTE_PRECEDENCE flip |
+| 009 | 009_add_shadow_register_eval.sql | feat/native-arabic-shadow-measure | shadow_register_eval (new, restricted) | applied to repo-local Supabase (project jrfrficjdwguqbvumdyo, via .env DATABASE_URL) 2026-07-07 — Task 6 brief said "008" but 008 was already claimed by feat/e-build-b0-precedence when this branch got here; renumbered to 009 to avoid collision. NOTE: jrfrficjdwguqbvumdyo is the repo-local/staging project per [[reference_prod_supabase_access]] memory, NOT the real prod project (tcekehffneiqcdyhzobi) — prod deploy of this migration is still a separate controller action. |
+| 010 | 010_rls_shadow_register_eval.sql | feat/native-arabic-shadow-measure (RLS hardening audit) | shadow_register_eval | applied to repo-local Supabase (project jrfrficjdwguqbvumdyo) 2026-07-07 — 009 shipped with NO RLS, so the table was reachable via PostgREST under default anon/authenticated grants (verified: before this migration, `information_schema.role_table_grants` showed full SELECT/INSERT/UPDATE/DELETE for anon+authenticated and `pg_class.relrowsecurity=false`). This migration does ENABLE+FORCE RLS (zero policies ⇒ default-deny for all non-bypassrls roles, including a future owner-role change) and REVOKE ALL FROM anon, authenticated. Verified post-apply: relrowsecurity=t, relforcerowsecurity=t, zero anon/authenticated grants remain. Prod (tcekehffneiqcdyhzobi) apply is a separate controller action (Phase-4 precondition), same as 009 — NOT done here. See `.superpowers/sdd/rls-hardening-report.md` for the full audit. |
+| 011 | 011_add_served_latency_stages_to_session_audit.sql | feat/native-arabic-shadow-measure (latency timers task) | session_audit | applied to repo-local Supabase (project jrfrficjdwguqbvumdyo, via .env DATABASE_URL) 2026-07-07 — number reused: an earlier `011_rls_session_audit.sql` (INSERT-policy hardening finding, same branch) was claimed under this number but the file was removed in commit `7034dbd` ("session_audit is cdai-ledger-owned, remediation routed to cdai ticket") before this migration was written, so 011 was free. That finding is NOT resolved here — it is routed to a cdai-side ticket per the removal commit, since session_audit's RLS/policies are versioned in the sibling `cdai/supabase/migrations/` tree, not this repo. Adds nullable `freeflow_gen_ms`/`translate_out_ms` (served-arm latency stage timers for the native-Arabic shadow-measure §5 comparison). Not applied to prod (tcekehffneiqcdyhzobi) — separate controller action, same as 009/010. |
+
+## PROD APPLICATION RECORD — 2026-07-07 (out-of-band, deploy-owner notice)
+Migrations **009 / 010 / 011** applied directly to **prod** Supabase `tcekehffneiqcdyhzobi` (host `aws-1-ap-south-1.pooler.supabase.com`) via `psql`, outside the coordinated pipeline. Idempotent. Verified by query: `shadow_register_eval` exists, RLS `relrowsecurity|relforcerowsecurity = t|t`, 0 anon/authenticated grants; `session_audit` gained `freeflow_gen_ms`,`translate_out_ms`. **Do NOT double-apply.** If the coordinated deploy pipeline uses a separate migration tracker, it must be reconciled to show these as applied. Standing rule: prod schema changes ride the coordinated process — no further out-of-band psql.

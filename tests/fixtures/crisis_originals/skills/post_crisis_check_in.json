@@ -1,0 +1,142 @@
+{
+  "skill_id": "post_crisis_check_in",
+  "skill_name": "Post-Crisis Check-In",
+  "skill_type": "structured",
+  "self_evolution": "manual_only",
+  "evidence_base": "ASIST (2018); SafeTALK; SAMHSA Safe Messaging Guidelines (2023)",
+  "target_presentations": [
+    "checking in after crisis",
+    "follow up after earlier",
+    "feeling safer now",
+    "a bit calmer now",
+    "wanted to check in",
+    "still here",
+    "doing better now",
+    "أحس أحسن الحين",
+    "أبي أشوف كيف أنت بعد قبل شوي"
+  ],
+  "semantic_description": "Post-crisis safety monitoring protocol. ASIST post-intervention follow-up. Structured safety reassessment after acute suicidal ideation de-escalation: current safety status, whether intrusive thoughts have receded, access to support network. Crisis stabilization verification. Safety check-in after previously expressed passive or active suicidal ideation. Monitoring-phase transition assessment: post-acute stability, risk re-escalation detection, helpline resource provision. Follow-up after crisis intervention. Safety plan review.",
+  "steps": [
+    {
+      "step_id": "acknowledge_and_check",
+      "goal": "Acknowledge what the user has been through and gently check in on how they are right now",
+      "technique": "Active listening, validation, open check-in",
+      "technique_description": "Active listening and open-ended checking in, without clinical probing or re-processing. The goal is to confirm current safety and convey continued presence. A post-crisis user does not need to explain themselves; they need to feel heard and safe.",
+      "tone": "warm, unhurried, non-intrusive",
+      "contraindications": "Do NOT ask probing questions about the crisis content. Do NOT say 'tell me more about what happened' or 'what made you feel that way.' The goal is to confirm current safety, not re-process the event. Re-processing a crisis without clinical containment can re-traumatise. Do NOT use clinical language ('how is your suicidal ideation?'). Do NOT express relief in a way that signals the conversation is over ('I am glad you are okay now').",
+      "completion_criteria": "User has explicitly or implicitly confirmed current safety status, 'I am okay now,' 'a bit calmer,' 'still here' all qualify. Any ambiguity about current safety triggers L2 escalation and safety clarification before proceeding. Do NOT advance to bridge_or_close if safety status is unclear.",
+      "examples": [
+        "I am really glad you are still here. How are you feeling right now, compared to a little while ago?",
+        "That was a lot. I want to make sure you are okay. How are you doing in this moment?",
+        "You have been through something difficult. I am here. How does it feel right now?",
+        "أنا مبسوط إنك هني. كيف تحس الحين، مقارنة بقبل شوي؟"
+      ]
+    },
+    {
+      "step_id": "bridge_or_close",
+      "goal": "Based on how the user responds, either bridge toward continued support or gently close the check-in",
+      "technique": "Safety planning bridge or warm closure",
+      "technique_description": "Safety planning bridge or warm closure depending on the user's signal. If the user wants to continue talking, shift to freeflow support. If they want to close, leave the door explicitly open and provide the crisis line. The close must always include a help-available reminder.",
+      "tone": "warm, steady, forward-looking",
+      "contraindications": "Do NOT introduce new therapeutic content, skills, or coping strategies unprompted at this step. A post-crisis user does not need a skill introduction, they need steadiness. Do NOT ask what caused the crisis or explore the precipitant. Do NOT give the impression that the conversation is now 'done' or 'resolved.' Always leave the door explicitly open. If closing, the crisis line number (800 46342) must be included.",
+      "completion_criteria": "User has acknowledged the closing message or has indicated they want to continue talking. If they want to continue, the session may shift to freeflow support, which is appropriate. If they want to stop, they have been explicitly reminded that help is available at any time and the crisis line has been provided. A close without the help-available reminder does not meet this criterion.",
+      "examples": [
+        "It sounds like things are a little steadier now. Is there anything you would find helpful to talk through?",
+        "I am glad you are feeling calmer. If things get harder again, I am right here, and support is also available at 800 46342.",
+        "You do not have to have everything figured out right now. I am here whenever you want to talk.",
+        "يبدو إنك أحسن شوي الحين. لو احتجت تتكلم أي وقت، أنا هني. وفي دعم دايم على 800 46342."
+      ]
+    }
+  ],
+  "step_policy": [
+    {
+      "condition": {
+        "signal": "re_escalation_detected",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_to_crisis_protocol",
+      "instruction": "New crisis signals have appeared during the post-crisis check-in. Exit the check-in immediately and re-enter the crisis protocol. Do not attempt to continue the check-in. Treat this as a new acute crisis.",
+      "next_step_id": "exit"
+    },
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": "<=",
+        "value": 4,
+        "step": "acknowledge_and_check"
+      },
+      "action": "advance",
+      "instruction": "User is calm and stable. Warmly acknowledge their improved state and transition to bridge_or_close: offer continued conversation or a gentle close, whichever feels right. Leave the door explicitly open.",
+      "next_step_id": "bridge_or_close"
+    },
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": "<=",
+        "value": 4,
+        "step": "bridge_or_close"
+      },
+      "action": "complete",
+      "instruction": "User is stable and the check-in is complete. Close warmly: affirm that reaching out took courage, remind them support is always available at 800 46342, and leave the door explicitly open for future conversations. Do not introduce new content.",
+      "next_step_id": "bridge_or_close"
+    },
+    {
+      "condition": {
+        "signal": "emotional_intensity",
+        "operator": ">",
+        "value": 7,
+        "step": "ANY"
+      },
+      "action": "validate_only",
+      "instruction": "The user is still highly distressed. Stay present and validating. Do not attempt to move forward. Express that you are here and that support is also available at 800 46342.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "resistance",
+        "operator": ">",
+        "value": 6,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "offer_skill_switch_or_break",
+      "instruction": "User has shown sustained resistance to the check-in. This may mean they are overwhelmed or not ready. Ease back, offer simple presence, and do not push further.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "engagement",
+        "operator": "<",
+        "value": 3,
+        "turns": 3,
+        "step": "ANY"
+      },
+      "action": "check_in_micro",
+      "instruction": "User is disengaged from the check-in. In post-crisis context, this may signal overwhelm rather than disinterest. Reduce intensity, offer simple presence, and do not interpret silence as a sign they are fine.",
+      "next_step_id": "current"
+    },
+    {
+      "condition": {
+        "signal": "user_stop_request",
+        "operator": "==",
+        "value": true,
+        "step": "ANY"
+      },
+      "action": "exit_warm_closing",
+      "instruction": "User wants to stop the check-in. Exit with warmth. Let them know help is always available and they can come back whenever they are ready. A post-crisis user stopping a check-in may be overwhelmed, not disengaged. Do not interpret this as a sign they are fine.",
+      "next_step_id": "exit"
+    }
+  ],
+  "escalation_matrix": {
+    "L1": "Exit the skill immediately and warmly when the user asks to stop. Do all three without exception: (1) mention the crisis support line before closing, for example: 'If things ever feel too heavy, you can call or WhatsApp 800 46342, it is free and available any time.' (2) Leave the door open explicitly, for example: 'You can come back whenever you are ready, I will be here.' (3) Do NOT assume they are better because they asked to stop. A stop request is not a signal of resolution.",
+    "L2": "Add clinician_review flag if trauma or substance mention detected",
+    "L3": "Exit immediately to crisis protocol if any new crisis signal",
+    "L4": "Trigger human handoff if 3 or more crises detected in last 30 days"
+  },
+  "cultural_overrides": {
+    "islamic_relief_language": "If the user expresses relief in Islamic terms ('الحمد لله على السلامة'), mirror this warmly. Islamic spiritual expression is a genuine coping resource, not avoidance. Do not redirect away from it.",
+    "shame_help_seeking": "Post-crisis, Gulf users, particularly male users, may feel ashamed of having reached a crisis point. Actively counter this: frame reaching out as courage and strength. Never treat the check-in as a clinical debrief."
+  }
+}

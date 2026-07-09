@@ -15,7 +15,7 @@
       "action": {
         "type": "inject",
         "target": "system",
-        "content": "CLINICAL ADAPTATION (substance use): The user has disclosed substance use. Use motivational interviewing language. Do NOT judge or suggest immediate cessation. Explore ambivalence gently. UAE LEGAL CONTEXT: Substance use carries serious legal risk in the UAE. Do NOT ask about quantities, suppliers, specific substances, or logistics. Do NOT suggest harm reduction strategies that assume legal access (needle exchanges, safe-use guidance). Focus on the emotional relationship with the substance, the feelings it manages, the role it plays, not the substance itself."
+        "content": "CLINICAL ADAPTATION (substance use): The user has disclosed substance use. Use motivational interviewing language. Do NOT judge or suggest immediate cessation. Explore ambivalence gently. UAE LEGAL CONTEXT: Substance use carries serious legal risk in the UAE. Do NOT ask about quantities, frequency, or how often or how much it happens, nor about suppliers, specific substances, or logistics. A frequency or quantity question reads as assessment rather than support. Instead, reflect what the person shared, or ask one open question about the role it plays for them. Do NOT suggest harm reduction strategies that assume legal access (needle exchanges, safe-use guidance). Focus on the emotional relationship with the substance, the feelings it manages, the role it plays, not the substance itself."
       }
     },
     {
@@ -100,7 +100,7 @@
       "action": {
         "type": "inject",
         "target": "system",
-        "content": "CLINICAL ADAPTATION (psychotic symptoms): The user has disclosed symptoms that may include perceptual disturbances. Do NOT diagnose or label what they are experiencing. Do NOT probe for details about the nature of the voices or visions. Do NOT suggest these experiences are imaginary or unreal. Acknowledge their experience with care, then gently indicate that what they are describing is important to discuss with a mental health professional. Provide UAE professional support if appropriate: MoHAP Counselling Line 800 46342, free and available 24 hours a day."
+        "content": "CLINICAL ADAPTATION (psychotic symptoms): The user has disclosed symptoms that may include perceptual disturbances. Do NOT diagnose or label what they are experiencing. Do NOT probe for details about the nature of the voices or visions. Do NOT suggest these experiences are imaginary or unreal. Acknowledge their experience with care, then gently indicate that what they are describing is important to discuss with a mental health professional. Provide UAE professional support if appropriate: MoHAP Counselling Line {{crisis_number}}, free and available 24 hours a day."
       }
     }
   ]

@@ -97,69 +97,61 @@ def test_banned_opener_re_passes_clean_responses(clean):
 
 # ---- output_gate_node early-return tests ------------------------------------
 
+# #58 MIGRATION: the two tests here previously asserted the old remediation contract
+# (correction-flag early return; canned fallback on second violation). That mechanism was
+# removed. They are rewritten to the new contract: inline rewrite, and pass-through (NOT canned)
+# when the rewrite fails. The remediation contract is owned by test_banned_opener_rewrite.py;
+# these stay here only because they exercise output_gate_node end to end via _base_state.
+
 @pytest.mark.asyncio
-async def test_output_gate_returns_correction_flag_on_first_violation():
-    """On first banned opener (retry_count=0), output_gate must return early with
-    banned_opener_correction set and retry_count incremented to 1.
-    No LLM call happens inside output_gate.
-    """
+async def test_banned_opener_is_rewritten_inline():
+    """A banned opener on an ordinary turn is fixed by an inline rewrite: no regen, no correction
+    flag, no early return. The rewritten reply replaces the original; audit records the rewrite."""
+    from sage_poc.nodes import output_gate
     from sage_poc.nodes.output_gate import output_gate_node
 
-    state = _base_state(
-        response_en="It sounds like you're really overwhelmed right now.",
-        banned_opener_retry_count=0,
-    )
+    state = _base_state(response_en="It sounds like you're really overwhelmed right now.")
 
-    with patch("sage_poc.nodes.output_gate.rules_engine.evaluate", return_value=MagicMock(fired=[])):
+    async def _fake_rewrite(response_en, opener, user_message_en):
+        return "You're carrying a great deal right now."
+
+    with patch.object(output_gate, "_rewrite_opener", _fake_rewrite), \
+         patch("sage_poc.nodes.output_gate.rules_engine.evaluate", return_value=MagicMock(fired=[])), \
+         patch("sage_poc.nodes.output_gate.async_translate_to_arabic", AsyncMock(return_value="...")), \
+         patch("sage_poc.nodes.output_gate.write_session_audit", AsyncMock()):
         result = await output_gate_node(state)
 
-    assert result.get("banned_opener_correction") is not None, (
-        "output_gate must set banned_opener_correction on first violation"
-    )
-    assert result.get("banned_opener_retry_count") == 1, (
-        f"retry_count must be incremented to 1. Got: {result.get('banned_opener_retry_count')}"
-    )
-    assert "output_gate_banned_opener_retry" in result.get("path", []), (
-        "Path must include retry marker"
-    )
-    # response must NOT be finalized on early return
-    assert "response" not in result or result.get("response") is None
+    assert result.get("response") == "You're carrying a great deal right now."
+    assert "output_gate_opener_rewritten" in result.get("path", [])
+    assert result.get("banned_opener_correction") is None          # mechanism removed
+    assert result.get("opener_rewrite", {}).get("applied") is True
+    assert result["opener_rewrite"]["model"] and "latency_ms" in result["opener_rewrite"]
 
 
 @pytest.mark.asyncio
-async def test_output_gate_substitutes_fallback_on_second_violation():
-    """On second violation (retry_count=1), output_gate must substitute _VETTED_FALLBACK_RESPONSE
-    rather than passing the violating response to the user.
-
-    The user must receive the vetted fallback, not the banned opener.
-    banned_opener_fallback_used=True, banned_opener_violation=True (violation occurred and was
-    intercepted by fallback substitution — audit must record it for clinical review).
-    """
+async def test_failed_rewrite_passes_original_through_not_canned():
+    """When the rewrite fails/returns empty, the model's REAL reply passes through (a soft opener
+    is the lesser evil), NOT the content-free canned fallback. Violation flag is set for audit."""
+    from sage_poc.nodes import output_gate
     from sage_poc.nodes.output_gate import output_gate_node, _VETTED_FALLBACK_RESPONSE
 
-    state = _base_state(
-        response_en="That sounds really tough. I'm here for you.",
-        banned_opener_retry_count=1,
-    )
+    original = "That sounds really tough. I'm here for you."
+    state = _base_state(response_en=original)
 
-    with patch("sage_poc.nodes.output_gate.rules_engine.evaluate", return_value=MagicMock(fired=[])):
-        with patch("sage_poc.nodes.output_gate.async_translate_to_arabic", AsyncMock(return_value="...")):
-            with patch("sage_poc.nodes.output_gate.write_session_audit", AsyncMock()):
-                result = await output_gate_node(state)
+    async def _fail_rewrite(response_en, opener, user_message_en):
+        return ""  # rewrite unavailable
 
-    assert result.get("response") == _VETTED_FALLBACK_RESPONSE, (
-        f"User must receive the vetted fallback, not the banned opener. "
-        f"Got: {result.get('response')!r}"
-    )
-    assert result.get("banned_opener_fallback_used") is True, (
-        "banned_opener_fallback_used must be True when fallback is substituted"
-    )
-    assert result.get("banned_opener_violation") is True, (
-        "banned_opener_violation must be True when fallback is substituted — "
-        "the violation occurred and must be recorded in the audit log"
-    )
-    assert result.get("banned_opener_retry_count") == 0, "retry_count must reset for next turn"
-    assert result.get("banned_opener_correction") is None
+    with patch.object(output_gate, "_rewrite_opener", _fail_rewrite), \
+         patch("sage_poc.nodes.output_gate.rules_engine.evaluate", return_value=MagicMock(fired=[])), \
+         patch("sage_poc.nodes.output_gate.async_translate_to_arabic", AsyncMock(return_value="...")), \
+         patch("sage_poc.nodes.output_gate.write_session_audit", AsyncMock()):
+        result = await output_gate_node(state)
+
+    assert result.get("response") == original                      # the REAL reply, not the placeholder
+    assert result.get("response") != _VETTED_FALLBACK_RESPONSE
+    assert "output_gate_opener_passthrough" in result.get("path", [])
+    assert result.get("banned_opener_violation") is True
+    assert result.get("opener_rewrite", {}).get("applied") is False
 
 
 @pytest.mark.asyncio
@@ -198,14 +190,16 @@ async def test_output_gate_no_banned_check_for_scope_refusal():
 
 # ---- Graph routing tests ----------------------------------------------------
 
-def test_route_after_output_gate_returns_freeflow_when_correction_set():
-    """_route_after_output_gate must return 'freeflow_respond' when correction is set."""
+def test_route_after_output_gate_is_terminal_even_with_correction():
+    """#58: the freeflow re-entry was removed; _route_after_output_gate is now terminal (always
+    END) even if a stale banned_opener_correction were present. Opener fixes are inline now."""
     from sage_poc.graph import _route_after_output_gate
+    from langgraph.graph import END
     state = {
-        "banned_opener_correction": "Your previous response began with a banned opener...",
+        "banned_opener_correction": "stale value must not re-enter freeflow",
         "banned_opener_retry_count": 1,
     }
-    assert _route_after_output_gate(state) == "freeflow_respond"
+    assert _route_after_output_gate(state) == END
 
 
 def test_route_after_output_gate_returns_end_when_no_correction():
@@ -341,88 +335,34 @@ def test_g5_edge_cases_do_not_crash_and_do_not_match(edge_case, description):
 # ---- Audit write on early return -------------------------------------------
 
 @pytest.mark.asyncio
-async def test_retry_path_marker_in_state_on_early_return():
-    """On early return, output_gate_banned_opener_retry must appear in the path list
-    returned in state. The final write_session_audit at the end of the second pass reads
-    path from state, so the retry marker reaches the audit record without an intermediate
-    write. No audit write fires on the early-return pass — one authoritative row per turn.
-    """
+async def test_rewrite_turn_writes_one_authoritative_audit_and_marks_path():
+    """#58 (migrated from the early-return audit tests): with the early return removed, a
+    banned-opener turn writes exactly ONE authoritative audit row (the final write) and carries
+    the new path marker. Preserves the 'one row per turn' invariant the early-return guarded."""
+    from sage_poc.nodes import output_gate
     from sage_poc.nodes.output_gate import output_gate_node
 
-    state = _base_state(
-        response_en="It sounds like you're overwhelmed.",
-        banned_opener_retry_count=0,
-        session_id="test-session-audit-pdpl",
-    )
+    state = _base_state(response_en="It sounds like you're overwhelmed.", session_id="s-audit")
 
-    with patch("sage_poc.nodes.output_gate.rules_engine.evaluate", return_value=MagicMock(fired=[])):
-        with patch("sage_poc.nodes.output_gate.write_session_audit", AsyncMock()) as mock_final_audit:
-            result = await output_gate_node(state)
+    async def _fake_rewrite(response_en, opener, user_message_en):
+        return "The overwhelm is real right now."
 
-    assert result.get("banned_opener_correction") is not None, "Early return must have triggered"
-    assert "output_gate_banned_opener_retry" in result.get("path", []), (
-        "output_gate_banned_opener_retry must be in returned path so the second-pass "
-        "write_session_audit captures it without a separate intermediate write"
-    )
-    mock_final_audit.assert_not_called()
+    with patch.object(output_gate, "_rewrite_opener", _fake_rewrite), \
+         patch("sage_poc.nodes.output_gate.rules_engine.evaluate", return_value=MagicMock(fired=[])), \
+         patch("sage_poc.nodes.output_gate.async_translate_to_arabic", AsyncMock(return_value="...")), \
+         patch("sage_poc.nodes.output_gate.write_session_audit", AsyncMock()) as mock_audit:
+        result = await output_gate_node(state)
+
+    assert "output_gate_opener_rewritten" in result.get("path", [])
+    assert mock_audit.call_count == 1            # one authoritative row, no intermediate early-return write
+    assert result.get("opener_rewrite", {}).get("applied") is True
 
 
-@pytest.mark.asyncio
-async def test_no_intermediate_audit_write_on_early_return():
-    """Early-return path must not write any audit row, regardless of session_id.
-    The single authoritative audit row for the turn is written by write_session_audit
-    at the end of the second (completing) output_gate pass. This prevents the
-    (session_id, turn_number) 409 race that occurred when write_session_audit_initial
-    was called in the early-return path.
-    """
-    from sage_poc.nodes.output_gate import output_gate_node
-
-    for session_id in ("test-session-id", None):
-        state = _base_state(
-            response_en="It sounds like you're overwhelmed.",
-            banned_opener_retry_count=0,
-            session_id=session_id,
-        )
-        with patch("sage_poc.nodes.output_gate.rules_engine.evaluate", return_value=MagicMock(fired=[])):
-            with patch("sage_poc.nodes.output_gate.write_session_audit", AsyncMock()) as mock_final:
-                result = await output_gate_node(state)
-
-        assert result.get("banned_opener_correction") is not None
-        mock_final.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_banned_opener_violation_true_when_fallback_substituted():
-    """When fallback is substituted on retry-exhausted banned opener,
-    banned_opener_violation must be True in the returned state dict.
-
-    Bug: banned_opener_violation was initialised to False and never set to True,
-    so the audit log always recorded zero violations even when fallback fired.
-    """
-    from sage_poc.nodes.output_gate import output_gate_node, _VETTED_FALLBACK_RESPONSE
-
-    second_banned = "That sounds really difficult. Have you tried something different?"
-
-    state = _base_state(
-        response_en=second_banned,
-        banned_opener_retry_count=1,
-    )
-
-    with patch("sage_poc.nodes.output_gate.rules_engine.evaluate", return_value=MagicMock(fired=[])):
-        with patch("sage_poc.nodes.output_gate.async_translate_to_arabic", AsyncMock(return_value="...")):
-            with patch("sage_poc.nodes.output_gate.write_session_audit", AsyncMock()):
-                result = await output_gate_node(state)
-
-    assert result["banned_opener_violation"] is True, (
-        "banned_opener_violation must be True when fallback is substituted. "
-        f"Got: {result['banned_opener_violation']}"
-    )
-    assert result["banned_opener_fallback_used"] is True
-    assert result["response"] == _VETTED_FALLBACK_RESPONSE
-    # The path marker is what write_session_audit uses to record the fallback event in Supabase.
-    # Assert CONTAINS, not commit order — the fix is the duplicate-resolution semantics, not timing.
-    assert "output_gate_fallback_substituted" in result.get("path", []), (
-        "output_gate_fallback_substituted must appear in path so the Supabase audit row "
-        "can be queried for fallback events. "
-        f"Got path: {result.get('path')}"
-    )
+# RETIRED in #58 (mechanism removed; coverage preserved elsewhere):
+#  - test_no_intermediate_audit_write_on_early_return: there is no early return now, so "no
+#    intermediate write" is structural. The one-row-per-turn invariant it guarded (the 409 race)
+#    is asserted by test_rewrite_turn_writes_one_authoritative_audit_and_marks_path above
+#    (mock_audit.call_count == 1).
+#  - test_banned_opener_violation_true_when_fallback_substituted: the canned-fallback-on-second-
+#    violation path no longer exists; a failed rewrite passes the real reply through with
+#    banned_opener_violation=True, asserted by test_failed_rewrite_passes_original_through_not_canned.

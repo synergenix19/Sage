@@ -57,6 +57,14 @@
       "goal": "Gently introduce the concept of a safe place and invite the user to identify a real or imagined location where they feel or have felt safe",
       "technique": "EMDR-adapted safe place introduction, grounding in choice and agency",
       "tone": "warm, slow, gentle, explicitly checking safety before proceeding",
+      "media": {
+        "en": {
+          "type": "video",
+          "url": "https://www.youtube.com/watch?v=G1bxxiiXc48",
+          "title": "Safe and Peaceful Place Visualization",
+          "provider": "Clarity Psychological Services"
+        }
+      },
       "examples": [
         "I want to try something with you that might help you feel a little more grounded. It is called a safe place. We are going to imagine a place, real or made up, where you feel completely safe and calm. Does that sound okay to try?",
         "This is entirely yours. The safe place can be anywhere: a real memory of somewhere you felt at peace, or somewhere completely imagined. A beach, a room, a garden, a place in nature. Is there anywhere that comes to mind when you think of feeling safe?",

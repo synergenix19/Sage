@@ -277,6 +277,92 @@
         "type": "crisis_flag",
         "flag_id": "si_explicit"
       }
+    },
+    {
+      "rule_id": "SK-EN-008",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "approved_by": "clinical_lead (sign-off packet A-D, 2026-07-03; B9 plan/means)",
+      "effective_date": "2026-07-03",
+      "active": true,
+      "description": "Plan+means SI missed by SK-EN-001/003: euphemistic 'end it' when plan/means-bound. Closes 2026-07-03 finding ('i have pills and a plan to end it' fired nothing, S3 0.793). Multi-token means/plan-bound ONLY; bare 'end it' excluded (FP-prone).",
+      "category": "safety",
+      "match_type": "keyword",
+      "patterns": [
+        "a plan to end it",
+        "plan to end it",
+        "pills and a plan",
+        "pills and a plan to end",
+        "plan to end my life"
+      ],
+      "language": "en",
+      "modifiers": [
+        "negation_check"
+      ],
+      "action": {
+        "type": "crisis_flag",
+        "flag_id": "si_method"
+      }
+    },
+    {
+      "rule_id": "SK-AZ-003",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "approved_by": "clinical_lead (sign-off packet A-D, 2026-07-03)",
+      "effective_date": "2026-07-03",
+      "active": true,
+      "description": "Egyptian Arabizi explicit SI ('3ayez amot'=want to die) missed by SK-AZ-001 (Levantine 'bidi amoot' only). Closes 2026-07-03 Arabizi finding.",
+      "category": "safety",
+      "match_type": "keyword",
+      "patterns": [
+        "3ayez amot",
+        "3ayza amot",
+        "3ayez amout",
+        "3ayza amout",
+        "3aayez amot",
+        "ma3ish 3ayiz a3ish"
+      ],
+      "language": "az",
+      "modifiers": [
+        "negation_check"
+      ],
+      "action": {
+        "type": "crisis_flag",
+        "flag_id": "si_explicit"
+      }
+    },
+    {
+      "rule_id": "SK-EN-HTO-001",
+      "version": "0.1.0",
+      "authored_by": "PENDING_CLINICIAN_SIGNOFF",
+      "effective_date": "2026-07-09",
+      "active": false,
+      "description": "Harm-to-others EXPLICIT INTENT — Node-1 deterministic backstop for the LLM crisis classifier (Layer 2 #219). Group A (explicit intent) ONLY; Group B (figurative/anger-adjacent) HELD pending clinician ruling because the FP direction here is INVERTED vs the shipped vetoes: a false positive is a crisis card served to someone venting, an over-escalation that damages trust. Fires as an s1 keyword flag -> T2 via existing s1_any tier rule. active:false until clinician approves Group A. See 2026-07-09-clinician-approval-queue.md #2.",
+      "category": "safety",
+      "match_type": "keyword",
+      "patterns": [
+        "want to hurt him",
+        "want to hurt her",
+        "want to hurt them",
+        "want to hurt someone",
+        "going to hurt him",
+        "going to hurt her",
+        "going to hurt them",
+        "going to hurt someone",
+        "planning to hurt",
+        "plan to hurt him",
+        "plan to hurt her",
+        "plan to hurt them",
+        "feel like hurting someone"
+      ],
+      "language": "en",
+      "modifiers": [
+        "negation_check"
+      ],
+      "action": {
+        "type": "crisis_flag",
+        "flag_id": "harm_to_others_explicit"
+      }
     }
   ]
 }

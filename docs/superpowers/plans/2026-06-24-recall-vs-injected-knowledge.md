@@ -1,0 +1,1 @@
+> Renamed 2026-06-24. This plan is now **[2026-06-24-l0-history-regression.md](2026-06-24-l0-history-regression.md)** — the injection framing in the old title was disproved (see the RETIRED section). Stub kept so older references resolve.

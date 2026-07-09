@@ -282,20 +282,8 @@ async def test_semantic_dbt_tipp_internal_volcano_phrase():
     assert result["skill_match_method"] == "semantic_offer"
 
 
-@pytest.mark.slow
-@pytest.mark.asyncio
-async def test_semantic_mi_readiness_half_wanting_phrase():
-    """MI readiness ruler semantic match: ambivalence described without readiness/change keywords."""
-    phrase = "I wish I could rate my own motivation and confidence to see where I actually stand"
-    assert _phrase_is_keyword_clean(phrase, "mi_readiness_ruler"), (
-        "Phrase accidentally matches a keyword — choose a different phrase."
-    )
-    state = _ss_state(message_en=phrase)
-    result = await skill_select_node(state)
-    assert result["offered_skill_ids"][0] == "mi_readiness_ruler", (
-        f"Expected mi_readiness_ruler offer, got: {result.get('offered_skill_ids')} "
-        f"(score: {result.get('semantic_score')})"
-    )
+# (test_semantic_mi_readiness_half_wanting_phrase removed — mi_readiness_ruler deprecated 2026-07-07,
+#  spec-absent + routing-margin collision; JSON retained, deregistered from SKILL_REGISTRY.)
 
 
 @pytest.mark.asyncio
@@ -860,5 +848,41 @@ async def test_sf1_catastrophizing_routes_to_cognitive_restructuring_gated():
     }
     result = await skill_select_node(state)
     assert (result.get("offered_skill_ids") or [None])[0] == "cognitive_restructuring"
+
+
+@pytest.mark.asyncio
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "RT-4 trip-wire (governance/2026-06-25-rt4-matcher-evidence-general-chat-gate-shield.md). "
+        "Affective loneliness phrasing misroutes at the matcher: Tier-1 keyword collision on "
+        "'dont know what to do' -> problem_solving_therapy; if that did not fire, Tier-2 -> "
+        "worry_time at 0.4609 (threshold 0.4593). The clinically-correct skill "
+        "(behavioral_activation / self_compassion_break) is not selectable. This is EXPECTED to "
+        "fail today. When the matcher is fixed (BA 'lonely' coverage, PST collision, threshold "
+        "calibration) it will XPASS, and strict=True turns that XPASS into a hard failure -- the "
+        "loud signal that the general_chat gate is now a redundant shield and is safe to revisit. "
+        "Asserted at the skill_select layer, NOT end-to-end: end-to-end the gate routes this to "
+        "freeflow and would pass for the wrong reason, masking the matcher."
+    ),
+)
+async def test_loneliness_routes_to_connection_skill_not_problem_solving():
+    """Trip-wire for RT-4 matcher correctness on relational-loneliness disclosure.
+
+    Forces the message past the production general_chat gate (primary_intent='new_skill')
+    so the assertion tests the MATCHER, not the gate. Do not relax to xfail(strict=False):
+    a silent XPASS is exactly the missed signal this test exists to prevent.
+    """
+    msg = "I just feel lonely, I don't know what to do or how to cope"
+    state = _ss_state(
+        raw_message=msg,
+        message_en=msg,
+        primary_intent="new_skill",
+        emotional_intensity=6,
+    )
+    result = await skill_select_node(state)
+    routed = _routed_skill(result)
+    assert routed in {"behavioral_activation", "self_compassion_break"}
+    assert routed not in {"problem_solving_therapy", "worry_time"}
 
 

@@ -3,6 +3,8 @@ from pathlib import Path
 from typing import Literal
 from pydantic import AliasChoices, BaseModel, Field, field_validator, model_validator
 
+from sage_poc.crisis_copy import resolve_crisis_placeholders_deep
+
 SKILLS_DIR = Path(__file__).parent
 
 
@@ -33,6 +35,15 @@ class StepPolicyRule(BaseModel):
         return self
 
 
+class SkillMediaItem(BaseModel):
+    # Item 3 (SkillStep.media): a single media resource for one language.
+    # Provider-agnostic full URL (never a bare id), same contract as Source.url.
+    type: Literal["video"] = "video"
+    url: str
+    title: str = ""
+    provider: str = ""                # attribution, e.g. "UCLA Health"
+
+
 class SkillStep(BaseModel):
     step_id: str
     goal: str
@@ -42,6 +53,9 @@ class SkillStep(BaseModel):
     examples: list[str]
     contraindications: str = ""
     completion_criteria: str = ""
+    # Item 3: optional per-language media, keyed by language ("en", "ar"), mirroring
+    # the bilingual `examples` pattern. null = no media (byte-identical pre-Item-3).
+    media: dict[str, SkillMediaItem] | None = None
 
 
 class Skill(BaseModel):
@@ -79,5 +93,8 @@ class Skill(BaseModel):
 
 def load_skill(skill_id: str) -> Skill:
     path = SKILLS_DIR / f"{skill_id}.json"
-    data = json.loads(path.read_text())
+    # Resolve {{crisis_*}} placeholders (crisis skills embed the helpline in steps,
+    # contraindications, and escalation_matrix) so the RESOLVED copy is what reaches the
+    # LLM / user. No-op for skills that carry no crisis placeholders.
+    data = resolve_crisis_placeholders_deep(json.loads(path.read_text()))
     return Skill.model_validate(data)

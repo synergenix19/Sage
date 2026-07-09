@@ -96,8 +96,27 @@ async def write_identity_substitution_audit(
         logger.error("identity_substitution_audit write failed: %s", exc)
 
 
+async def _supabase_insert(table: str, row: dict) -> None:
+    """Minimal reusable POST to a Supabase REST table. Raises on failure — callers
+    that need fail-open behaviour (e.g. shadow_eval) must catch around this call.
+
+    Mirrors the base URL / service key / headers used by
+    write_identity_substitution_audit and _write_session_audit_row, but is not
+    tied to a specific table's row shape.
+    """
+    if not _URL or not _KEY:
+        raise RuntimeError("Supabase URL/service key not configured")
+    r = await _get_audit_client().post(
+        f"{_URL}/rest/v1/{table}",
+        headers=_HEADERS,
+        json=row,
+        timeout=5.0,
+    )
+    r.raise_for_status()
+
+
 def _build_session_audit_row(state: SageState) -> dict:
-    return {
+    row = {
         "session_id":             state.get("session_id", ""),
         "turn_number":            state.get("turn_number", 0),
         "node_path":              state.get("path") or [],
@@ -110,6 +129,9 @@ def _build_session_audit_row(state: SageState) -> dict:
         "knowledge_source":       state.get("knowledge_source") or None,
         "knowledge_passage_ids":  [p.get("source_id", "") for p in state.get("knowledge_passages") or []],
         "knowledge_abstain":      bool(state.get("knowledge_abstain", False)),
+        "knowledge_query_raw":      state.get("knowledge_query_raw") or None,
+        "knowledge_query_searched": state.get("knowledge_query_searched") or None,
+        "knowledge_top_similarity": state.get("knowledge_top_similarity"),
         "crisis_state":           state.get("crisis_state"),
         "crisis_flags":           state.get("crisis_flags") or [],
         "s3_score":               state.get("s3_score"),  # advisory; see CRADLE sweep 2026-06-05
@@ -118,9 +140,27 @@ def _build_session_audit_row(state: SageState) -> dict:
         "emotional_intensity":    state.get("emotional_intensity"),
         "model_version":          state.get("model_version"),
         "latency_ms":             state.get("latency_ms"),
+        "freeflow_gen_ms":        state.get("freeflow_gen_ms"),
+        "translate_out_ms":       state.get("translate_out_ms"),
         "user_id":                state.get("user_id") or None,
         "re_escalation_within_monitoring": state.get("re_escalation_within_monitoring"),
     }
+    # v7.1 tiering (F / schema-delta): the tier classification is auditable ONLY when the flag
+    # is ON (safety_check omits crisis_tier when OFF). Including it conditionally keeps a flag-OFF
+    # audit row byte-identical to master (Check B) and means migration 006 (crisis_tier/tier_rule_id
+    # columns) is required only before the flag is flipped ON — a deploy gate, not a merge gate.
+    if state.get("crisis_tier") is not None:
+        row["crisis_tier"] = state.get("crisis_tier")
+        row["tier_rule_id"] = state.get("tier_rule_id")
+    # B0 §4.5 precedence (flag-gated, same discipline as tiering above): included ONLY when a
+    # safety route actually fired this turn (apply_precedence emits nothing when the flag is OFF,
+    # and an empty fired-list is dropped here). Keeps a flag-OFF / no-safety row byte-identical to
+    # master; the precedence columns' migration is a flag-flip deploy gate, not a merge gate.
+    # The full fired list is written even when precedence suppressed the lower routes (never dropped).
+    if state.get("fired_safety_routes"):
+        row["fired_safety_routes"] = state.get("fired_safety_routes")
+        row["precedence_winner"] = state.get("precedence_winner")
+    return row
 
 
 async def _write_session_audit_row(row: dict, prefer: str, label: str) -> None:

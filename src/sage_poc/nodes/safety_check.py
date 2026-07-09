@@ -27,6 +27,7 @@ import asyncio
 import logging
 from sage_poc.state import SageState
 from sage_poc.language import detect_language, async_translate_to_english
+from sage_poc.observability import stage_timer
 from sage_poc.rules import engine as rules_engine
 from sage_poc.nodes.post_crisis_classifier import evaluate_s7
 from sage_poc.safety.s3_semantic import check_s3, check_s3_bilingual, S3_THRESHOLD
@@ -43,6 +44,9 @@ _DISTRESS_STREAK = 3
 _ENGAGEMENT_WINDOW = 4
 _ENGAGEMENT_LOW = 4
 _ENGAGEMENT_STREAK = 3
+
+# W2 / G4: consecutive S7-clear monitoring turns required to step down monitoring -> supportive.
+STEP_DOWN_CLEAR_TURNS = 2
 
 
 def _update_distress_trajectory(state: SageState) -> tuple[list[int], bool]:
@@ -136,10 +140,18 @@ async def safety_check_node(state: SageState) -> dict:
     try:
         # check_s3_bilingual batches text_en + text_ar in one forward pass — avoids
         # two sequential encode() calls for Arabic (was the source of the latency regression).
-        s3_score = await asyncio.wait_for(
-            asyncio.to_thread(check_s3_bilingual, message_en, text_ar),
-            timeout=5.0,
-        )
+        # stage_timer is log-only and wraps the call UNCHANGED — it cannot perturb the S3
+        # encode or crisis verdict (asserted by test_embed_cache_equivalence's reference path).
+        with stage_timer(
+            "s3_encode",
+            session_id=state.get("session_id"),
+            turn=state.get("turn_count"),
+            lang=lang,
+        ):
+            s3_score = await asyncio.wait_for(
+                asyncio.to_thread(check_s3_bilingual, message_en, text_ar),
+                timeout=5.0,
+            )
         if s3_score >= S3_THRESHOLD:
             s3_suppressed = any(
                 a.get("type") == "crisis_suppress" for a in safety_result.actions
@@ -202,7 +214,70 @@ async def safety_check_node(state: SageState) -> dict:
     # from this single deduped list.
     new_crisis_flags = list(dict.fromkeys(new_crisis_flags))
 
+    # W2 / G4 warm de-escalation: while monitoring, count CONSECUTIVE S7-clear turns and step down
+    # monitoring -> supportive after STEP_DOWN_CLEAR_TURNS. A "clear" turn is S7=RECOVERING AND no
+    # S1/S3 fire this turn (is_safe). Any non-clear turn (STILL_DISTRESSED / UNCLEAR / NEW_CRISIS, or
+    # a crisis fire) resets the streak — the safety floor is never softened by a broken streak. This
+    # is a STATE computation; it never touches _route_after_safety (supportive is not 'monitoring',
+    # so routing lets it fall through to the normal graph on its own). Never steps to 'none' in-session.
+    _this_turn_is_safe = len(new_crisis_flags) == 0
+    monitoring_clear_turns = state.get("monitoring_clear_turns", 0)
+    if crisis_state == "monitoring":
+        if _this_turn_is_safe and s7_result == "RECOVERING":
+            monitoring_clear_turns += 1
+        else:
+            monitoring_clear_turns = 0
+        if monitoring_clear_turns >= STEP_DOWN_CLEAR_TURNS:
+            crisis_state = "supportive"  # stepped down; supportive is the in-session floor, never 'none'
+
+    # v7.1 tiering (flag-gated). Fields are ABSENT when OFF, so a flag-off state write / audit
+    # row is byte-identical to master (Check B); populated only when ON (F). is_safe and
+    # crisis_flags below are UNCHANGED either way (is_safe stays the truthful detector aggregate);
+    # routing authority moves to crisis_tier in _route_after_safety only when the flag is ON.
+    tier_update: dict = {}
+    from sage_poc import config as _cfg  # noqa: PLC0415
+    if _cfg.CRISIS_TIERING_ENABLED:
+        from sage_poc.safety.crisis_tier import (  # noqa: PLC0415
+            resolve_crisis_tier_detail, _is_arabizi_suspect,
+        )
+        _tier, _tier_rule = resolve_crisis_tier_detail(
+            new_crisis_flags, lang,
+            code_switching=code_switching,
+            arabizi_suspect=_is_arabizi_suspect(raw),
+        )
+        tier_update = {
+            "crisis_tier": _tier,
+            "tier_rule_id": _tier_rule,
+            "supportive_posture": _tier == "T1",
+            # G1b session counter: incremented on each T1 turn (output_gate flags the 2nd).
+            "t1_count": state.get("t1_count", 0) + (1 if _tier == "T1" else 0),
+        }
+
+    # E7 §6a IPV pre-emption — detection expansion (flag-gated SAGE_IPV_PREEMPTION). Merges
+    # domestic_situation for the 19 §6a-guard phrases so the route reaches ≥95% recall and the
+    # precedence resolver/audit below see the IPV hit. OFF -> {} (byte-identical: only CF-005 fires).
+    # Runs BEFORE apply_precedence so domestic_situation is present when the resolver ranks routes.
+    from sage_poc.nodes.ipv_preempt import apply_ipv_preempt  # noqa: PLC0415
+    ipv_update = apply_ipv_preempt({
+        "message_en": message_en, "raw_message": raw, "clinical_flags": all_clinical,
+    })
+    if ipv_update:
+        all_clinical = ipv_update["clinical_flags"]
+
+    # B0 §4.5 precedence (flag-gated, same discipline as tier_update above). apply_precedence
+    # returns {} when SAGE_ROUTE_PRECEDENCE is OFF -> this write is byte-identical to master.
+    # When ON it emits precedence_winner + the full fired_safety_routes list (crisis/HR/IPV read
+    # off the flags just computed; medical reads an empty channel until E3/B1 lands). is_safe and
+    # crisis_flags are UNCHANGED either way — the resolver records, it does not yet re-route.
+    from sage_poc.nodes.safety_precedence import apply_precedence  # noqa: PLC0415
+    precedence_update = apply_precedence({
+        "is_safe": len(new_crisis_flags) == 0,
+        "clinical_flags": all_clinical,
+    })
+
     return {
+        **tier_update,
+        **precedence_update,
         "detected_language": lang,
         "message_en": message_en,
         "is_safe": len(new_crisis_flags) == 0,
@@ -215,6 +290,7 @@ async def safety_check_node(state: SageState) -> dict:
         "engagement_trajectory": engagement_trajectory,
         "code_switching": code_switching,
         "crisis_state": crisis_state,
+        "monitoring_clear_turns": monitoring_clear_turns,
         "s7_result": s7_result,
         "s7_method": s7_method,
         "path": state["path"] + ["safety_check"],

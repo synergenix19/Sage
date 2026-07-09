@@ -69,6 +69,25 @@ def text_direction(language: str | None) -> str:
 
 
 _EXEMPLARS_PATH = Path(__file__).parent / "data" / "khaleeji_translation_exemplars.json"
+_GLOSSARY_PATH = Path(__file__).parent / "data" / "clinical_term_glossary.json"
+
+
+def _clinical_glossary() -> dict:
+    """W5 (G6): clinician-extendable therapy-term map anchoring CBT/ACT/DBT technique names to
+    clinically sensible Khaleeji Arabic (avoids literal errors like grounding->'للتواصل مع الأرض')."""
+    return json.loads(_GLOSSARY_PATH.read_text(encoding="utf-8"))
+
+
+def _glossary_lines_for(text: str) -> list[str]:
+    """Only the glossary entries whose EN term appears in this message (no prompt bloat)."""
+    low = (text or "").lower()
+    hits = [t for t in _clinical_glossary()["terms"] if t["en"].lower() in low]
+    if not hits:
+        return []
+    out = ["", "Clinical terms — render these EXACTLY as given, never translate them literally:"]
+    for t in hits:
+        out.append(f"  {t['en']} -> {t['ar']}")
+    return out
 
 
 @lru_cache(maxsize=1)
@@ -77,11 +96,52 @@ def _khaleeji_exemplars() -> dict:
     return json.loads(_EXEMPLARS_PATH.read_text(encoding="utf-8"))
 
 
-def _build_khaleeji_translation_prompt(text: str) -> str:
+# Signed "mirror-when-marked, neutral-when-unknown" gender-address policy applied at the
+# translation hop: when the user's own message grammatically self-marks their gender
+# (see sage_poc.gender_marker.detect_gender_marking), the reply mirrors it in correct
+# Emirati Khaleeji second-person address; when unmarked, the reply is gender-neutral.
+# The exemplars in khaleeji_translation_exemplars.json are all masculine-addressed
+# (وياك/عليك/تحس) -- these directives override that masculine default per-turn.
+_GENDER_DIRECTIVES: dict[str, str] = {
+    "f": (
+        "The user identifies as female (self-marked in their message). Address them in "
+        "FEMININE Emirati Khaleeji second-person forms (عليج not عليك, وياج not وياك, "
+        "تحسّين not تحسّ). The exemplars show register/warmth -- follow their dialect and "
+        "tone but use feminine address, overriding the exemplars' masculine forms."
+    ),
+    "m": (
+        "The user identifies as male (self-marked in their message). Address them in "
+        "MASCULINE Emirati Khaleeji second-person forms (عليك, وياك, تحسّ), matching the "
+        "exemplars' masculine address."
+    ),
+    "none": (
+        "The user's gender is NOT marked, so gendered second-person address of EITHER "
+        "gender is wrong here -- masculine forms (عليك، إنك، تحسّ، تقدر) are as incorrect "
+        "as feminine ones; do NOT fall back to the exemplars' masculine address. Build the "
+        "reply ONLY from these gender-free Khaleeji constructions: (1) NOMINAL framing -- "
+        "describe the situation, not the person («الوضع ثقيل» / «هالشي صعب», not «أنت "
+        "متعب»); (2) IMPERSONAL / PASSIVE verbs («ما لازم كل شي ينحل الليلة»، «يصير في "
+        "ضغط»); (3) COLLABORATIVE first-person-plural («خلنا ناخذها خطوة خطوة»، «نقدر "
+        "نشوف»); (4) FIRST-PERSON presence («أنا هني»، «أنا أسمع»); (5) QUESTIONS with no "
+        "second-person address («شو أصعب شي الحين؟»). Any ك/ج suffix or gendered "
+        "second-person verb aimed at the user is an error in this case."
+    ),
+}
+
+
+def _build_khaleeji_translation_prompt(text: str, *, strict: bool = False, gender: str = "none") -> str:
     """Build a few-shot prompt that anchors the translator on named Emirati Gulf
     exemplars so the output dialect stays consistent turn to turn.
 
     Single source of truth for both the sync and async Arabic translators.
+
+    When strict=True, the prompt forbids leaving any English word untranslated,
+    forcing the LLM to transliterate or translate all terms.
+
+    gender is "f" | "m" | "none" (see sage_poc.gender_marker.detect_gender_marking) and
+    selects the second-person address-form directive per the signed gender policy.
+    Defaults to "none" (gender-neutral) so callers that do not pass it keep the safe,
+    non-guessing behavior.
     """
     data = _khaleeji_exemplars()
     dialect = data["dialect_name"]
@@ -90,10 +150,18 @@ def _build_khaleeji_translation_prompt(text: str) -> str:
         f"named Sage into {dialect}. Keep the same warmth and conversational rhythm. "
         f"Use natural everyday {dialect} phrasing, not formal or clinical Modern "
         f"Standard Arabic. Stay in {dialect} consistently across the whole message. "
-        f"Return only the translation.",
+        f"Return only the translation."
+        + (
+            " The output must be entirely in Arabic script with no English words; "
+            "translate or transliterate any names or terms." if strict else ""
+        ),
         "",
-        "Examples:",
+        _GENDER_DIRECTIVES.get(gender, _GENDER_DIRECTIVES["none"]),
     ]
+    # W5 (G6): inject the clinical-term glossary for any technique names present in this message,
+    # so CBT/ACT/DBT terms render as clinically sensible Arabic instead of literal mistranslations.
+    lines.extend(_glossary_lines_for(text))
+    lines += ["", "Examples:"]
     for ex in data["exemplars"]:
         lines.append(f"English: {ex['en']}")
         lines.append(f"Arabic: {ex['ar']}")
@@ -126,18 +194,21 @@ def translate_to_english(text: str) -> str:
         return text
 
 
-def translate_to_arabic(text: str) -> str:
+def translate_to_arabic(text: str, *, gender: str = "none") -> str:
     """Translate *text* to Khaleeji Gulf Arabic.
 
     Falls back to the original English text if the API is unavailable so the
     user receives a response rather than a crash.
+
+    gender is "f" | "m" | "none" (signed gender-address policy); default "none" preserves
+    existing callers' current (gender-neutral) behavior.
     """
     try:
         from sage_poc.llm import get_translator
         llm = get_translator()
         response = llm.invoke([{
             "role": "user",
-            "content": _build_khaleeji_translation_prompt(text),
+            "content": _build_khaleeji_translation_prompt(text, gender=gender),
         }])
         return response.content.strip()
     except Exception:
@@ -147,14 +218,19 @@ def translate_to_arabic(text: str) -> str:
 TRANSLATION_TIMEOUT_SECONDS: float = 30.0
 
 
-async def async_translate_to_arabic(text: str) -> str:
-    """Translate text to Khaleeji Gulf Arabic using resilient_invoke. Returns original on failure."""
+async def async_translate_to_arabic(text: str, *, strict: bool = False, gender: str = "none") -> str:
+    """Translate text to Khaleeji Gulf Arabic using resilient_invoke. Returns original on failure.
+
+    gender is "f" | "m" | "none" (signed "mirror-when-marked, neutral-when-unknown" address
+    policy; see sage_poc.gender_marker.detect_gender_marking). Default "none" preserves the
+    prior (gender-neutral) prompt for any caller that does not pass it.
+    """
     from sage_poc.resilience import resilient_invoke
     result = await resilient_invoke(
         get_translator(),
         [{
             "role": "user",
-            "content": _build_khaleeji_translation_prompt(text),
+            "content": _build_khaleeji_translation_prompt(text, strict=strict, gender=gender),
         }],
         node="translate_to_arabic",
         language="ar",

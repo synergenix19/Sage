@@ -1,5 +1,10 @@
 # Clinical-routing finding: acute-overwhelm routing to dbt_tipp vs grounding (C1 conflict)
 
+> **See also (2026-06-25):** `2026-06-25-rt4-matcher-evidence-general-chat-gate-shield.md` —
+> records that the `general_chat` intensity gate (`graph.py:27/208`) is load-bearing *by
+> accident*: it currently shields users from a brittle matcher misroute. Its correctness is
+> conditional on matcher untrustworthiness; revisit only when RT-4 closes.
+
 **Date:** 2026-06-13
 **Status:** OPEN — needs clinical adjudication before any code change reaches master
 **Surfaced by:** PR #4 (engagement R1/R3/R5) rebase verification
