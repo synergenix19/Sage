@@ -22,10 +22,27 @@ Defense in depth (both required, neither sufficient alone):
 """
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
 from sage_poc.config import CRISIS_CONFIG
+
+# Locales that MUST have a native twin for every served crisis level. A crisis string shipped in one
+# locale without its twin here would reach the other locale's users via machine translation — the RCA
+# of the #1 finding (the monitoring fallback had no native AR twin and rode translate-out, the one
+# crisis-number surface not deterministic end-to-end in Arabic). Extend this tuple when a new locale
+# is supported.
+_REQUIRED_CRISIS_LOCALES = ("en_uae", "ar_uae")
+
+# crisis_level values EXEMPT from the parity requirement. "extended" is the proactive crisis-resource
+# directory (CC-EN-002): it is NOT served by any node today (graph.py only ever evaluates
+# crisis_level="acute"; the monitoring path uses "monitoring_fallback"), so it cannot reach a user in
+# any locale and the parity guard — whose purpose is "no crisis STRING reaches a user in a locale it
+# was not natively authored for" — does not apply. It remains an EN-only gap tracked as audit finding
+# #8: if "extended" is ever wired to a served path, author a native ar_uae twin (CC-AR-003) and
+# REMOVE it from this exemption so the guard enforces its parity.
+_PARITY_EXEMPT_LEVELS = frozenset({"extended"})
 
 # Any placeholder that shares this prefix but is NOT in _PLACEHOLDERS survives resolution and
 # is caught by the boot guard — that is the whole point (unknown/misspelled variable == boot fail).
@@ -102,6 +119,64 @@ def crisis_copy_is_templated() -> bool:
         except OSError:
             continue
     return False
+
+
+def _load_crisis_content_rules() -> list[dict]:
+    """Read every crisis_content rule (raw dicts) from rules/data/crisis_content/*.json.
+
+    Deliberately reads the JSON directly rather than importing the rules loader: the boot guard must
+    run before/independently of the rules service and must not depend on schema validation succeeding.
+    """
+    rules: list[dict] = []
+    for path in sorted((_SRC_ROOT / "rules" / "data" / "crisis_content").glob("*.json")):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        rules.extend(data.get("rules", []))
+    return rules
+
+
+def assert_crisis_locale_parity(rules: list[dict] | None = None) -> None:
+    """FAIL-CLOSED boot guard — crisis locale parity (the class-guarantee for #1).
+
+    Every ACTIVE crisis_content level present for one supported locale must have a natively-authored
+    twin in EVERY supported locale (``_REQUIRED_CRISIS_LOCALES``). A crisis string added in English
+    without its Arabic twin (or vice versa) fails the boot rather than reaching a non-English user via
+    machine translation — the digits stay deterministic from CRISIS_CONFIG on every locale.
+
+    Inactive rules are exempt (a deactivated/dead rule can never reach a user). *rules* is injectable
+    for testing; defaults to the shipped crisis_content data.
+    """
+    if rules is None:
+        rules = _load_crisis_content_rules()
+    levels_by_locale: dict[str, set[str]] = {}
+    served_levels: set[str] = set()
+    for rule in rules:
+        if not rule.get("active", True):
+            continue
+        locale = rule.get("locale")
+        level = rule.get("crisis_level")
+        if not locale or not level or level in _PARITY_EXEMPT_LEVELS:
+            continue
+        levels_by_locale.setdefault(locale, set()).add(level)
+        if locale in _REQUIRED_CRISIS_LOCALES:
+            served_levels.add(level)
+    missing = [
+        f"{locale}:{level}"
+        for level in sorted(served_levels)
+        for locale in _REQUIRED_CRISIS_LOCALES
+        if level not in levels_by_locale.get(locale, set())
+    ]
+    if missing:
+        raise RuntimeError(
+            "CRISIS LOCALE PARITY BOOT GUARD FAILED — active crisis_content level(s) present in one "
+            f"locale but missing a native twin in another: {missing}. Every served crisis string must "
+            f"be natively authored in each supported locale {list(_REQUIRED_CRISIS_LOCALES)}, never "
+            "reach a user via machine translation of another locale (helpline digits must stay "
+            "deterministic from CRISIS_CONFIG). Author the missing locale twin, or deactivate the "
+            "unpaired rule if it is not served."
+        )
 
 
 def assert_crisis_copy_resolves(paths: list[Path] | None = None) -> None:

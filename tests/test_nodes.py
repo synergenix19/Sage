@@ -875,7 +875,8 @@ async def test_output_gate_arabic_response_is_translated():
     ) as mock_translate:
         result = await output_gate_node(state)
     assert result["response"] == "أسمعك. يبدو هذا صعباً للغاية."
-    mock_translate.assert_called_once_with("I hear you. That sounds incredibly hard.")
+    # #220 signed gender policy: unmarked response -> neutral address
+    mock_translate.assert_called_once_with("I hear you. That sounds incredibly hard.", gender="none")
 
 # Task 12B: low_confidence_respond node
 from sage_poc.nodes.low_confidence_respond import low_confidence_respond_node
@@ -1463,7 +1464,8 @@ async def test_output_gate_scope_refusal_arabic_user_gets_translated_response():
         return_value="هذا سؤال يجيب عليه متخصص طبي.",
     ) as mock_translate:
         result = await output_gate_node(state)
-    mock_translate.assert_called_once_with(SCOPE_REFUSAL_RESPONSE)
+    # #220 signed gender policy: canned refusal carries no gender marker -> neutral address
+    mock_translate.assert_called_once_with(SCOPE_REFUSAL_RESPONSE, gender="none")
     assert result["response"] == "هذا سؤال يجيب عليه متخصص طبي."
 
 
@@ -1483,7 +1485,8 @@ async def test_output_gate_jailbreak_arabic_user_gets_translated_response():
         return_value="أنا سيج، مرافق للعافية.",
     ) as mock_translate:
         result = await output_gate_node(state)
-    mock_translate.assert_called_once_with(JAILBREAK_RESPONSE)
+    # #220 signed gender policy: canned refusal carries no gender marker -> neutral address
+    mock_translate.assert_called_once_with(JAILBREAK_RESPONSE, gender="none")
     assert result["response"] == "أنا سيج، مرافق للعافية."
 
 

@@ -43,6 +43,26 @@
           {"name": "American Center for Psychiatry and Neurology", "type": "therapy"}
         ]
       }
+    },
+    {
+      "rule_id": "CC-EN-003",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "approved_by": "vee",
+      "effective_date": "2026-07-10",
+      "active": true,
+      "description": "English post-crisis monitoring empty-reply fail-safe. Migrated from the _EMPTY_MONITORING_FALLBACK constant in output_gate.py into locale-selected crisis_content so it has a native ar_uae twin (CC-AR-002) and never rides translate-out. Wording is verbatim the live prod constant.",
+      "category": "crisis_content",
+      "locale": "en_uae",
+      "crisis_level": "monitoring_fallback",
+      "action": {
+        "type": "crisis_response",
+        "response_text": "I'm still here with you. If things get harder, please reach out right now, the UAE MoHAP support line on 800 46342, or 999 for an emergency.",
+        "resources": [
+          {"name": "MoHAP Counselling Line", "number": "800 46342", "available": "24/7"},
+          {"name": "Emergency Services", "number": "999"}
+        ]
+      }
     }
   ]
 }

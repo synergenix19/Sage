@@ -22,7 +22,7 @@ async def test_latin_word_in_arabic_output_triggers_strict_retranslate():
     leaked word is gone (RC-5 / feedback #4: 'نومك lately')."""
     calls = {"n": 0}
 
-    async def fake_translate(text, *, strict=False):
+    async def fake_translate(text, *, strict=False, **_kw):
         calls["n"] += 1
         # First (non-strict) call leaks English; strict retry is clean.
         return "كيف نومك lately؟" if not strict else "كيف نومك مؤخرا؟"
@@ -38,12 +38,12 @@ async def test_latin_word_in_arabic_output_triggers_strict_retranslate():
 
 @pytest.mark.asyncio
 async def test_clean_arabic_output_not_retranslated():
-    async def fake_translate(text, *, strict=False):
+    async def fake_translate(text, *, strict=False, **_kw):
         return "كيف نومك مؤخرا؟"
     seen = {"n": 0}
-    async def counting(text, *, strict=False):
+    async def counting(text, *, strict=False, **_kw):
         seen["n"] += 1
-        return await fake_translate(text, strict=strict)
+        return await fake_translate(text, strict=strict, **_kw)
     with patch("sage_poc.nodes.output_gate.async_translate_to_arabic", side_effect=counting), \
          patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()):
         await output_gate_node(make_state())
@@ -56,7 +56,7 @@ async def test_translate_out_ms_times_only_translate_block_excludes_gate_overhea
     call's own delay, not the surrounding gate work (cultural check, format strip, audit
     build). Patch the translate call with a ~50ms delay and assert the captured timer is
     close to that delay, not blown out by unrelated gate overhead."""
-    async def slow_translate(text, *, strict=False):
+    async def slow_translate(text, *, strict=False, **_kw):
         await asyncio.sleep(0.05)
         return "كيف نومك مؤخرا؟"
 

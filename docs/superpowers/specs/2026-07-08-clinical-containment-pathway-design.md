@@ -26,6 +26,9 @@ Today a turn ends in one of four places: route-to-skill, abstain-to-Node-3, cris
 Phase 2's build scope is **only the already-approved families**: (1) harm-intrusive **enrichment** (Phase-1 veto's destination abstain→contain), (2) OCD-compulsion **upgrade** (abstain→contain), (3) **safeguarding family — #1 priority, TARGET 2026-07-31** (posture: referral-with-urgency + mandatory L2 review, distinct from suicide-crisis; tier L3-adjacent, clinician-ruled). The BOT BEHAVIOUR audit will discover more Class-A candidates; those go to the CMS backlog the clinician prioritizes on their clock — **they do NOT enter Phase 2's scope by discovery.** A bounded architecture change stays bounded.
 
 ## 5. Sign-offs (record here before any implementation)
-- [ ] **Arch-doc owner** — the graph-edge / state-schema / Rules-Service-vocabulary amendment. Signature + date:
-- [ ] **Clinical lead** — containment AS a destination class; the template steps + ego-syntonic branch + family split + safeguarding posture + Khaleeji renderings. (Harm-intrusive lexicon + phasing already approved 2026-07-08.) Signature + date:
-- [ ] **PO** — Absolute Rule 1 acceptance; the bounded-scope discipline (§4); the 2026-07-31 safeguarding target. Signature + date:
+- [x] **Arch-doc owner** — SIGNED: Rohan (PO/arch-doc owner) 2026-07-09. — the graph-edge / state-schema / Rules-Service-vocabulary amendment. Signature + date:
+- [x] **Clinical lead** — SIGNED: Vee (clinical lead) 2026-07-09. — containment AS a destination class; the template steps + ego-syntonic branch + family split + safeguarding posture + Khaleeji renderings. (Harm-intrusive lexicon + phasing already approved 2026-07-08.) Signature + date:
+- [x] **PO** — SIGNED: Rohan (PO) 2026-07-09. — Absolute Rule 1 acceptance; the bounded-scope discipline (§4); the 2026-07-31 safeguarding target. Signature + date:
+
+
+## ✅ TASK 0 FULLY SIGNED 2026-07-09 — Vee (clinical lead) + Rohan (arch-doc owner + PO). Containment Phase 2 (Tasks 1-7 + the safeguarding family, target 2026-07-31) is UNBLOCKED to build.

@@ -251,6 +251,19 @@ def _route_after_intent(state: SageState) -> str:
 
 
 def _route_after_skill_select(state: SageState) -> str:
+    # Phase-2 T3: a fired containment directive routes to the containment pathway —
+    # knowledge_retrieve seeds the family KB, then the existing knowledge_retrieve→freeflow edge
+    # composes the L3/L4 template (validate→psychoeducate→differentiate→refer→engage). Checked
+    # FIRST here, which is already DOWNSTREAM of the Node-1 crisis short-circuit: _route_after_safety
+    # sends a crisis to crisis_response BEFORE skill_select (hence this router) ever runs, so crisis
+    # supremacy over an overlapping containment pattern is STRUCTURAL (AC-CRISIS-SUPREMACY), not a
+    # priority compare here. contain also supersedes abstain (belt-and-suspenders vs T2's node-level
+    # mutual exclusion). DORMANT until a family declares skill_select_disposition "contain" (T4);
+    # containment_directive is None every turn until then, so this is byte-identical to master.
+    # The guided-skill (skill_id) variant is deferred: T2 sets active_skill_id=None, so a
+    # skill_executor route would be dead — the reference OCD family uses the KB path below.
+    if state.get("containment_directive"):
+        return "knowledge_retrieve"
     # V2 reranker ABSTAIN (below-τ semantic OR keyword-veto) → Node 3 low_confidence_respond, NOT
     # freeflow (Cardinal Rule 5). The clinician's −4.7pp recall acceptance rests on lost cases being
     # recoverable soft-abstains that land in Node 3's empathic clarification, and the signed
