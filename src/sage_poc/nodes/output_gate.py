@@ -151,6 +151,35 @@ SCOPE_REFUSAL_RESPONSE = (
     "how you're feeling about it, or find some general information. Would either of those help?"
 )
 
+# PS-2 (BOT BEHAVIOUR.docx L694, condition-generic wording). A diagnosis request
+# ("do I have X") gets the verbatim no-diagnose script; other out-of-scope requests
+# (medication, prescription) keep the generic SCOPE_REFUSAL_RESPONSE above. Source em
+# dash -> comma per the no-em-dash-in-output convention (would be stripped by T6 anyway).
+DIAGNOSIS_DECLINE_RESPONSE = (
+    "I'm here to help you understand what you're experiencing and offer tools that might "
+    "help, but I'm not able to diagnose any mental health condition. A diagnosis needs a "
+    "full picture from a qualified professional who can properly assess what's going on. "
+    "If you're wondering whether something has a clinical name, that's worth bringing to a "
+    "doctor or therapist directly."
+)
+
+_DIAGNOSIS_REQUEST_MARKERS = (
+    "do i have", "do you think i have", "think i have", "think i might have",
+    "could i have", "have i got", "do i suffer from", "what do i have",
+    "diagnos", "is this depression", "is it depression", "is this anxiety",
+)
+
+
+def _scope_refusal_response(message_en: str) -> str:
+    """Route a scope-refusal turn: diagnosis requests ('do I have X') get the verbatim
+    no-diagnose script; medication/prescription and other out-of-scope asks keep the
+    generic copy. message_en is the EN-normalised user message, so Arabic diagnosis
+    requests route correctly and the reply is translated out downstream."""
+    haystack = (message_en or "").lower()
+    if any(marker in haystack for marker in _DIAGNOSIS_REQUEST_MARKERS):
+        return DIAGNOSIS_DECLINE_RESPONSE
+    return SCOPE_REFUSAL_RESPONSE
+
 _FORMAT_VIOLATIONS = re.compile(
     r"—"                            # em dash
     r"|\*\*"                        # bold markdown
@@ -521,7 +550,7 @@ async def output_gate_node(state: SageState) -> dict:
     user_id = state.get("user_id")
 
     if gate_path == "scope_refusal":
-        response_en = SCOPE_REFUSAL_RESPONSE
+        response_en = _scope_refusal_response(state.get("message_en") or "")
     elif gate_path == "jailbreak":
         response_en = JAILBREAK_RESPONSE
     else:
