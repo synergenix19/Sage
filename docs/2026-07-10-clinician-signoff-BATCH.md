@@ -38,9 +38,13 @@ Full evidence: `docs/2026-07-10-section-H-clinician-queries.md` §H4. Frontend `
 Tick/edit each: current blurb beside its doc source. Until ticked these matrix rows are PARTIAL.
 → `docs/2026-07-10-OF-1-blurb-signoff-packet.md`
 
-## ITEM 2 — Collapsed video-skill copy, 5 skills (Wave-2)
+## ITEM 2 — Collapsed video-skill copy, 5 skills (Wave-2) — EN [Vee-APPROVED]
 New all-at-once delivery scripts (H2 ruling): box breathing, PMR, mindfulness meditation, body scan, safe-place visualization. Tick/edit each proposed script.
 → `docs/2026-07-10-wave2-collapsed-copy-packet.md`
+
+## ITEM 2b — Wave-2 collapsed copy, ARABIC translation (the Wave-2 re-land gate)
+AR equivalents of the approved EN scripts. Wave-2 re-lands only when EN **and** AR are both signed. **Three cross-cutting rulings needed** (not just per-script ticks): (1) gender — feminine variants for female users; (2) safe-place **Islamic framing** — add prayer-space/mosque to the AR example list?; (3) mindfulness **back-off wording** is now the only in-delivery safety on the acceptance step — confirm AR strength.
+→ `docs/2026-07-10-wave2-collapsed-copy-AR-signoff.md`
 
 ## ITEM 3 — ST-6 ceiling human-support target (H3)
 A genuine blank: when High-tier TIPP shows no improvement, what concrete non-crisis resource is offered? Doc specifies none.
