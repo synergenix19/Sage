@@ -3,7 +3,11 @@
 **Deliverable:** implementation-matches-spec, behaviorally verified EN + AR.
 **Status legend:** `CONFORMS` (verified behaviorally or by code) · `GAP` (verified divergence) · `PARTIAL` · `UNTESTED` (requirement captured, not yet verified — the DoD requires a driven test before this may become CONFORMS).
 **CONFORMS interpretive rule (OF-1):** `CONFORMS` = implementation *content* matches the doc; documented house-style *presentation* additions (e.g. the offer-blurb duration clause) are permitted and do not block CONFORMS. A row is `PARTIAL` when engineering-authored copy paraphrases a clinical source no clinician has ticked (see `docs/2026-07-10-OF-1-blurb-signoff-packet.md`).
-**Wave-1 code (PR #280):** SG-2, OF-1 (5 canonical + 2 renames), PS-2, OR-3/4 landed CODED + unit-verified; rows flip to CONFORMS only on the driven EN+AR transcript. Clinician inputs staged: `docs/2026-07-10-section-H-clinician-queries.md`, `docs/2026-07-10-OF-1-blurb-signoff-packet.md`, `docs/2026-07-10-CR-0-crisis-lexicon-gap.md`.
+**Wave-1 DEPLOYED to prod 2026-07-10** (`f49dcb0`; Wave-2 reverted via #295, re-lands with collapsed copy). **Driven EN+AR transcript results (the DoD gate):**
+- **PS-2 / OR-5 → CONFORMS** — no-diagnose script verbatim, EN + AR (deterministic `output_gate` path). Genuinely live.
+- **SG-2 → GAP (content deployed, does NOT fire)** — the cardiac/pregnancy caveat is LLM-discretionary (entry_screen "Example approach"); `freeflow_respond` drops it and suggests cold water WITHOUT the screen across 4 EN + 1 AR drives. Needs a **deterministic firing fix** (force-inject before any temperature/exercise instruction) — Contraindication-Firing-Gap class. **The unit tests passed on JSON but the driven test caught the non-firing — this is why CONFORMS requires a transcript, not a code read.**
+- **OF-1 → unverified via offer surface** — freeflow paraphrases blurbs; box_breathing direct-enters rather than being offered, so the exact copy didn't render.
+Clinician inputs staged: `section-H`, `OF-1 packet`, `CR-0`, `wave2-collapsed-copy` (EN + AR).
 **Definition of done (per row):** green via a driven behavioral test on the deployed build, **EN and AR**, transcript attached. No conformance claimed from code reads (that method was wrong 3× in the audit).
 **Priority tags:** P0a consent · P0b delivery_format · P1 Arabic media · P2 tiering · (blank = triage during test-writing).
 

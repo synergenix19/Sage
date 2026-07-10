@@ -43,7 +43,7 @@ New all-at-once delivery scripts (H2 ruling): box breathing, PMR, mindfulness me
 → `docs/2026-07-10-wave2-collapsed-copy-packet.md`
 
 ## ITEM 2b — Wave-2 collapsed copy, ARABIC translation (the Wave-2 re-land gate)
-AR equivalents of the approved EN scripts. Wave-2 re-lands only when EN **and** AR are both signed. **Three cross-cutting rulings needed** (not just per-script ticks): (1) gender — feminine variants for female users; (2) safe-place **Islamic framing** — add prayer-space/mosque to the AR example list?; (3) mindfulness **back-off wording** is now the only in-delivery safety on the acceptance step — confirm AR strength.
+AR equivalents of the approved EN scripts. Wave-2 re-lands only when EN **and** AR are both signed. Cross-cutting items were **checked against the doc — 2 of 3 are doc-governed, not clinician judgment**: (1) **gender** — DOC SILENT; real gap, build gender-adaptive (not masculine-default); (2) **safe-place Islamic framing** — DOC RESOLVES: do NOT default-add (L1697 "never assume faith"), stays opt-in via cultural_override; (3) **mindfulness back-off** — DOC-SUPPORTED (L126/L144), keep it. So the clinician's AR asks are per-script translation ticks + the gender-adaptive direction.
 → `docs/2026-07-10-wave2-collapsed-copy-AR-signoff.md`
 
 ## ITEM 3 — ST-6 ceiling human-support target (H3)
