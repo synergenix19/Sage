@@ -2,7 +2,6 @@
   "skill_id": "safe_place_visualization",
   "skill_name": "Safe Place Visualization",
   "skill_type": "structured",
-  "delivery_format": "video_all_at_once",
   "evidence_base": "safe place concept adapted from Shapiro (2001); Bourne (2010) Anxiety and Phobia Workbook guided imagery",
   "self_evolution": "manual_only",
   "target_presentations": [

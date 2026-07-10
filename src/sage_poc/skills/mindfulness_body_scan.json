@@ -2,7 +2,6 @@
   "skill_id": "mindfulness_body_scan",
   "skill_name": "Mindfulness Body Scan",
   "skill_type": "structured",
-  "delivery_format": "video_all_at_once",
   "evidence_base": "Kabat-Zinn (1990) Full Catastrophe Living; Williams, Teasdale, Segal and Kabat-Zinn (2007) The Mindful Way through Depression; Ong et al. (2014) mindfulness-based therapy for insomnia; MBSR and MBCT clinical protocols",
   "self_evolution": "manual_only",
   "target_presentations": [

@@ -2,7 +2,6 @@
   "skill_id": "box_breathing",
   "skill_name": "Box Breathing",
   "skill_type": "structured",
-  "delivery_format": "video_all_at_once",
   "criteria_hold_budget": 1,
   "evidence_base": "Jerath et al. (2006); US Navy SEAL slow breathing protocol; Zaccaro et al. (2018), respiratory regulation and autonomic nervous system",
   "self_evolution": "manual_only",

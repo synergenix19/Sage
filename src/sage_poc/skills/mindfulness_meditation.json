@@ -2,7 +2,6 @@
   "skill_id": "mindfulness_meditation",
   "skill_name": "Mindfulness Meditation",
   "skill_type": "structured",
-  "delivery_format": "video_all_at_once",
   "evidence_base": "Kabat-Zinn (1990) Full Catastrophe Living; Kabat-Zinn (2003) Mindfulness-Based Interventions in Context; Segal, Williams and Teasdale (2013) Mindfulness-Based Cognitive Therapy for Depression, 2nd ed.; Roemer and Orsillo (2009) acceptance-based behavioral therapy for generalized anxiety; MBSR and MBCT sitting-practice protocols. PROPOSED lineage, pending clinician confirmation.",
   "self_evolution": "manual_only",
   "target_presentations": [
