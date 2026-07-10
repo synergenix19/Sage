@@ -183,3 +183,14 @@ STEP-2 CONSTRAINTS (now documented in scripts/low_mood_3a_semantic_eval.py heade
   (3) non-§3a CONTROL set -> assert BA global offer-rate does not rise (List B won't catch it).
 STEP 2 = run off CURRENT master, coordinate with skill_select workstream, flag OFF, don't start until
   command session releases it. Do NOT start step 2 in the current work session.
+
+>>> TOP OF COMMAND-SESSION PICKUP — READ BEFORE ANYTHING ELSE <<<
+NOTHING in this session flips the flag, and the flip is NOT engineering's to clear.
+The flip gates that OUTLIVE the design sign-off, foregrounded:
+  * GL-1 (wrong helpline, tel:800-46342 should be 800 4673) — HIGHEST. This §3a flow INCREASES
+    crisis-card routing, and the card still dials a wrong number. PO item, not clinical/eng. Fix before
+    ANY exposure that hits the card (incl. internal safety-catch testing per D5).
+  * DPO retention/consent review of the SI-screening audit rows — PO/DPO item, not eng.
+  * Native-Khaleeji Arabic safety unit — gates broad Gulf launch.
+Signed design + signed oracle + built harness == ZERO certified numbers (enrichment not run), and even
+certified numbers clear only ONE gate. "Vee signed everything" must NOT read as "close to flipping."
