@@ -100,7 +100,7 @@ def _pin_mood_anchor(text: str, executed_step_id: str | None, lang: str) -> str:
 
 # #218 (Layer 2): the vetoed-OCD abstain must carry the spec §1d professional-referral signpost.
 # Pinned VERBATIM post-generation at Node 8 (mirrors the mood-anchor pin) so the clinician-approved
-# ERP wording is un-paraphrasable + audit-visible. EN only; AR referral filed to the AR track.
+# ERP wording is un-paraphrasable + audit-visible. Clinician-approved EN (#218, Vee 2026-07-09).
 _OCD_ERP_REFERRAL_EN = (
     "It sounds like these thoughts are really distressing and hard to sit with. Thoughts like these "
     "often respond well to support from a mental health professional who offers ERP (exposure and "
@@ -108,17 +108,35 @@ _OCD_ERP_REFERRAL_EN = (
     "meantime if that would help."
 )
 
+# #4-AR: native Arabic twin of the ERP referral, appended verbatim (bypasses translate-out, mirroring
+# _OCD_ERP_REFERRAL_EN) so Arabic vetoed-OCD users get the §1d signpost too. CLINICIAN-SIGNED
+# (Vee / sage_clinics) 2026-07-13; mirrors the approved EN #218 copy.
+_OCD_ERP_REFERRAL_AR = (
+    "يبدو أن هذه الأفكار مزعجة فعلاً وصعبة تجلس معها. غالباً أفكار من هذا النوع تستجيب بشكل جيد لدعم "
+    "من مختص في الصحة النفسية يقدّم العلاج بالتعرّض ومنع الاستجابة (ERP) للوسواس القهري، وهو أسلوب "
+    "له أدلة قوية على فعاليته. وأنا هني معك لو حاب نكمل الحديث في هذه الأثناء."
+)
+# Distinctive fragment for the idempotency (already-present) guard in each language.
+_OCD_ERP_MARKER_EN = "exposure and response prevention"
+_OCD_ERP_MARKER_AR = "التعرّض ومنع الاستجابة"
+
 
 def _pin_ocd_referral(text: str, abstain_referral: str | None, lang: str) -> str:
     """Node-8 post-generation append of the pinned OCD/ERP professional-referral signpost on a
     vetoed-OCD abstain turn (spec §1d; #218). Verbatim, never through the LLM — the approved wording
-    ships exactly and is audit-visible. EN only (AR referral -> AR track); already-present or other
-    turns/langs -> no-op."""
-    if abstain_referral != "ocd_erp" or lang != "en":
+    ships exactly and is audit-visible. EN and AR twins (#4-AR); other directives/langs or an
+    already-present referral -> no-op (byte-identical)."""
+    if abstain_referral != "ocd_erp":
         return text
-    if "exposure and response prevention" in text.lower():
-        return text
-    return text.rstrip() + "\n\n" + _OCD_ERP_REFERRAL_EN
+    if lang == "en":
+        if _OCD_ERP_MARKER_EN in text.lower():
+            return text
+        return text.rstrip() + "\n\n" + _OCD_ERP_REFERRAL_EN
+    if lang == "ar":
+        if _OCD_ERP_MARKER_AR in text:
+            return text
+        return text.rstrip() + "\n\n" + _OCD_ERP_REFERRAL_AR
+    return text
 
 
 _OPENER_REWRITE_DISTRESS_CEILING = 9  # severe distress (9-10/10) -> suppress rewrite (pass through);
@@ -312,6 +330,15 @@ _LATIN_ALLOWLIST = {"cbt", "act", "dbt", "tipp", "sage", "youtube"}
 
 def _has_english_bleed(text: str) -> bool:
     return any(w.lower() not in _LATIN_ALLOWLIST for w in _LATIN_WORD_RE.findall(text))
+
+
+# #5: native-AR failsafe for TOTAL translate-out failure (the util fell open to untranslated English).
+# Served only when final_response == response_en after the strict retry, so a merely-imperfect Arabic
+# reply is never replaced. Presence-first, no content claim, invites a retry. CLINICIAN-SIGNED
+# (Vee / sage_clinics) 2026-07-13.
+_AR_TRANSLATE_FAILSAFE = (
+    "عذراً، واجهت مشكلة بسيطة في الرد عليك بالعربي هالحين. أنا هني معك، ممكن نجرب من جديد بعد لحظات."
+)
 
 
 _BANNED_OPENER_CORRECTION = (
@@ -775,7 +802,17 @@ async def output_gate_node(state: SageState) -> dict:
             final_response = await async_translate_to_arabic(response_en, strict=True, gender=_gender_marked)
             path = path + ["arabic_token_guard_retranslate"]
             if _has_english_bleed(final_response):
-                _log.warning("[output_gate] English bleed persists after strict re-translate (telemetry only)")
+                if final_response.strip() == response_en.strip():
+                    # Total translate-out failure: the util fell open to the untranslated English
+                    # (both attempts returned the input verbatim). Serve a native-AR failsafe rather
+                    # than ship an English wall of text to an Arabic user (#5). A stray Latin token in
+                    # an otherwise-Arabic reply is NOT this case (final_response != response_en) and
+                    # ships as-is, as before.
+                    final_response = _AR_TRANSLATE_FAILSAFE
+                    path = path + ["arabic_translate_failsafe"]
+                    _log.warning("[output_gate] translate-out failed outright; served native-AR failsafe")
+                else:
+                    _log.warning("[output_gate] English bleed persists after strict re-translate (telemetry only)")
         state = {**state, "translate_out_ms": int((time.monotonic() - _translate_t0) * 1000)}
     else:
         final_response = response_en
