@@ -450,28 +450,6 @@ def evaluate_step_policy(
         f"Example approaches: {'; '.join(_select_examples(step.examples, detected_language))}"
     )
 
-    # video_all_at_once (BOT BEHAVIOUR Format=Video, H2 ruling 2026-07-10): once past the
-    # entry-screen safety gate, deliver the whole remaining sequence in ONE turn — technique
-    # framing + video + the closing check-in prompt concatenated — and complete, instead of
-    # one instruction per turn. The entry_screen contraindication gate is NEVER bypassed:
-    # this branch is skipped for that step, so the safety screen still runs first (and the
-    # media-carrying content step is the one executed, so the existing media header fires).
-    if skill.delivery_format == "video_all_at_once" and current_step_id != "entry_screen":
-        _step_ids = [s.step_id for s in skill.steps]
-        _remaining = skill.steps[_step_ids.index(current_step_id):]
-        all_at_once_instruction = " ".join(
-            f"Goal: {s.goal}. Technique: {s.technique}. Tone: {s.tone}. "
-            f"Example approaches: {'; '.join(_select_examples(s.examples, detected_language))}"
-            for s in _remaining
-        )
-        return {
-            "action":             "complete",
-            "instruction":        all_at_once_instruction,
-            "next_step_id":       current_step_id,
-            "skill_complete":     True,
-            "_video_all_at_once": True,
-        }
-
     # entry_screen steps must always route through LLM evaluation — the word-count
     # heuristic passes any multi-word message including "I have a pacemaker", which is
     # exactly the input the gate exists to catch. Forcing heuristic_met=False ensures
