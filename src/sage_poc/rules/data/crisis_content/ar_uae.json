@@ -13,10 +13,14 @@
       "crisis_level": "acute",
       "action": {
         "type": "crisis_response",
-        "response_text": "أنا مهتم جداً بسلامتك وبما شاركته معي. أرجوك تواصل مع خط وزارة الصحة للدعم النفسي الآن: {{crisis_number}} (مجاني، {{crisis_hours}})، أو رقم الطوارئ: {{crisis_emergency}}. أنت لست وحدك.",
+        "response_text": "أنا مهتم جداً بسلامتك وبما شاركته معي. أرجوك تواصل مع خط الدعم النفسي الوطني الآن: {{crisis_number}} (مجاني، {{crisis_hours}})، أو رقم الطوارئ: {{crisis_emergency}}. أنت لست وحدك.",
         "resources": [
-          {"name": "خط وزارة الصحة للدعم النفسي", "number": "{{crisis_number}}", "available": "{{crisis_hours}}"},
-          {"name": "خدمات الطوارئ", "number": "{{crisis_emergency}}", "available": "{{crisis_hours}}"}
+          {"name": "خط الدعم النفسي الوطني", "number": "{{crisis_number}}", "available": "{{crisis_hours}}"},
+          {"name": "خدمات الطوارئ", "number": "{{crisis_emergency}}", "available": "24/7"},
+          {"name": "خط سكينة للأزمات – أبوظبي (على مدار الساعة)", "number": "800-SAKINA (800-725462)", "available": "24/7"},
+          {"name": "خط هيئة الصحة بدبي للمساعدة", "number": "800 111", "available": "24/7"},
+          {"name": "خط الشارقة للصحة النفسية للأطفال واليافعين", "number": "800 51115", "available": "9 صباحاً–5 مساءً، الإثنين–الجمعة"},
+          {"name": "أقرب قسم طوارئ في المستشفى", "number": "999 / nearest ER", "available": "عند الخطر المباشر أو خارج ساعات عمل الخطوط"}
         ]
       }
     },
@@ -33,9 +37,9 @@
       "crisis_level": "monitoring_fallback",
       "action": {
         "type": "crisis_response",
-        "response_text": "ما زلت هنا معك. إذا أصبحت الأمور أصعب، أرجوك تواصل الآن مع خط وزارة الصحة للدعم النفسي: {{crisis_number}}، أو اتصل برقم الطوارئ {{crisis_emergency}}.",
+        "response_text": "ما زلت هنا معك. إذا أصبحت الأمور أصعب، أرجوك تواصل الآن مع خط الدعم النفسي الوطني: {{crisis_number}}، أو اتصل برقم الطوارئ {{crisis_emergency}}.",
         "resources": [
-          {"name": "خط وزارة الصحة للدعم النفسي", "number": "{{crisis_number}}", "available": "{{crisis_hours}}"},
+          {"name": "خط الدعم النفسي الوطني", "number": "{{crisis_number}}", "available": "{{crisis_hours}}"},
           {"name": "خدمات الطوارئ", "number": "{{crisis_emergency}}"}
         ]
       }
