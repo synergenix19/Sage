@@ -36,6 +36,22 @@
       "signed_by": "PO (product owner)",
       "signed_date": "2026-07-08",
       "signoff": "GL-1 adjudication: '24/7' verified"
+    },
+    {
+      "id": "harm_to_others_backstop_rule",
+      "selector": "saferule:src/sage_poc/rules/data/safety/crisis_keywords.json:SK-EN-HTO-001",
+      "sha256": "43cb79376a3eefcb715e22c4c6316e22fa507c7346ab6872bb47474716ba60ed",
+      "signed_by": "Vee (clinical lead)",
+      "signed_date": "2026-07-09",
+      "signoff": "clinician-approval-queue item 2 Group A; activated #244/aef9499; RESTORED 2026-07-13 after #218 stale-base clobber reverted it to active:false (see 2026-07-13 harm-to-others finding)"
+    },
+    {
+      "id": "safety_rule_activation_map",
+      "selector": "safeactive:src/sage_poc/rules/data/safety/crisis_keywords.json,src/sage_poc/rules/data/safety/passive_si_patterns.json,src/sage_poc/rules/data/safety/clinical_flag_patterns.json",
+      "sha256": "6bbcda70422939aee363c63ede2d03478941f47223f675fa732aef9574ce244b",
+      "signed_by": "safety lane (crisis sprint) + clinical lead",
+      "signed_date": "2026-07-13",
+      "signoff": "the {rule_id: active} map across all safety rule files. Born from the #218 clobber: any active-flag flip OR new safety rule now fails CI until re-signed here. A silent deactivation of a signed crisis control is the exact incident this pins against."
     }
   ]
 }
