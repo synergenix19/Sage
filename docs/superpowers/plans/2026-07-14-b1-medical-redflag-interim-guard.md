@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Ship a deterministic regex harm-floor that routes verbatim BOT BEHAVIOUR §1 cardiac/stroke red-flag phrasing to a static medical-referral terminal, closing the live gap where "crushing pain… spreading to my jaw" currently routes to `box_breathing`.
+**Goal:** Ship a deterministic regex harm-floor that routes cardiac/stroke red-flag phrasing to a static medical-referral terminal, closing the live gap where the escalation trace — *"crushing pain in my chest spreading to my jaw, my left arm's gone numb"* — and its jaw-less variant currently route to `box_breathing`.
 
-**Architecture:** A self-contained regex detector runs inside `safety_check_node`, populating a new `medical_flags` state channel. `_route_after_safety` gains a `medical` branch (precedence: **crisis > medical > safe**) to a new `medical_response` terminal that mirrors `crisis_response` (static text → END, bypasses `output_gate`). Everything is behind `SAGE_MEDICAL_REDFLAG_GUARD`, off by default, flipped only once the must-NOT-fire controls are green.
+**Architecture:** A self-contained regex/literal detector runs inside `safety_check_node`, populating a new `medical_flags` state channel. `_route_after_safety` gains a `medical` branch (precedence: **crisis > medical > safe**) to a new `medical_response` terminal that goes straight to END. It bypasses `output_gate` (like `crisis_response`) **but writes its own `write_session_audit` record** — it must not inherit the crisis node's audit gap. Everything is behind `SAGE_MEDICAL_REDFLAG_GUARD`, off by default, flipped only once the must-NOT-fire controls are green.
 
 **Tech Stack:** Python 3.12, LangGraph `StateGraph`, `pytest` (`uv run pytest`), the existing Rules-Service data convention for the clinician-ownable phrase list.
 
@@ -18,6 +18,9 @@
 - **Trigger set is verbatim BOT BEHAVIOUR §1** (mirrored in `tests/fixtures/bot_behaviour/medical_e3_recall.json` positives). Clinical status: `PENDING Q1-triggers ratification` — ratification, not elicitation.
 - **Assert on behaviour markers** (`medical_flags`, route string, `gate_path`), never on response prose.
 - **Must-NOT-fire controls** (verbatim §1 negatives) stay on the support path: `racing heart`, `tight chest`, `shallow breath`, `my chest feels a little tight`, `my heart is racing from the panic`. A false medical route is its own harm.
+- **The red test is the verbatim escalation trace, never a phrasing adjusted to fit the list.** Both the full trace and its jaw-less variant must fire; if the jaw-less variant does not, the phrase list is wrong — extend the list (word-order/proximity variants), never narrow the test. (This defect was caught in review: the first draft fitted the test to the regex.)
+- **Arabic coverage is not native.** The detector is English-only. Arabic input rides the EN path **solely** via the upstream machine translation `raw → message_en` in `safety_check` (L90-93); there is no Arabic phrase list, and verbatim-English-against-machine-translation recall is **unvalidated and expected near-zero for colloquial Gulf**. This exact claim ships in `_meta`, the module docstring, and the escalation — "we don't know" is not acceptable in a safety artifact.
+- **The medical terminal writes its own audit record** (`write_session_audit`): path, `medical_flags`, matched phrase ids, flag state, latency. It must not inherit the crisis node's bypass-and-under-audit gap.
 - **Flag default OFF.** `SAGE_MEDICAL_REDFLAG_GUARD=false` until controls pass; flip is a separate governed step.
 - Code verified against deploy SHA `113bb09` (files byte-identical at measurement baseline `43b9b62`).
 
@@ -39,9 +42,19 @@
 # tests/test_medical_redflag_guard.py
 from sage_poc.safety.medical_redflag import detect_medical_redflag
 
-def test_cardiac_trace_fires():
-    # The live failure trace from the escalation (fixture-aligned phrasing).
-    assert detect_medical_redflag("crushing chest pain spreading to my jaw") != []
+# The VERBATIM escalation trace. Do not adjust this string to fit the phrase list.
+LIVE_TRACE = "crushing pain in my chest spreading to my jaw, my left arm's gone numb"
+# The same presentation with the one clause that trivially matched removed. A textbook
+# cardiac presentation phrased the way people actually phrase it — MUST still fire.
+JAWLESS_VARIANT = "crushing pain in my chest, my left arm's gone numb"
+
+def test_live_trace_fires():
+    assert detect_medical_redflag(LIVE_TRACE) != []
+
+def test_jawless_variant_fires():
+    # If this fails, the phrase list is wrong — extend it (word-order/proximity
+    # variants), never narrow this test.
+    assert detect_medical_redflag(JAWLESS_VARIANT) != []
 
 def test_must_not_fire_controls_stay_clear():
     for benign in ("racing heart", "tight chest", "shallow breath",
@@ -60,25 +73,32 @@ Expected: FAIL — `ModuleNotFoundError: sage_poc.safety.medical_redflag`
 // src/sage_poc/rules/data/safety/medical_redflag_phrases.json
 {
   "_meta": {
-    "source": "BOT BEHAVIOUR §1 universal red-flag override (verbatim); mirrors medical_e3_recall.json positives",
+    "source": "BOT BEHAVIOUR §1 universal red-flag override (verbatim §1 positives from medical_e3_recall.json) + word-order/proximity variants required to fire the verbatim escalation trace and its jaw-less form",
     "status": "INTERIM harm-floor list. Poor paraphrase recall BY DESIGN. Not coverage. Full E3 detector gates on medical_e3_recall.json.",
+    "arabic": "ZERO native Arabic coverage. English-only. Arabic input rides the EN path solely via upstream machine translation (safety_check L90-93); AR recall is unvalidated and expected near-zero for colloquial Gulf. NOT covered.",
     "authored_by": "engineering",
-    "clinical_signoff": "PENDING — Q1-triggers ratification"
+    "clinical_signoff": "PENDING — Q1-triggers ratification",
+    "match_field": "entries default to literal (re.escape) substring; entries with match:\"regex\" are compiled as regex."
   },
   "phrases": [
-    {"id": "chest_pressure", "phrase": "pressure in my chest"},
-    {"id": "chest_heavy",    "phrase": "chest feels heavy"},
-    {"id": "crushing",       "phrase": "crushing chest pain"},
-    {"id": "stabbing",       "phrase": "stabbing chest pain"},
-    {"id": "searing",        "phrase": "searing chest pain"},
-    {"id": "spread_arm",     "phrase": "spreading to my arm"},
-    {"id": "spread_jaw",     "phrase": "spreading to my jaw"},
-    {"id": "spread_back",    "phrase": "spreading to my back"},
-    {"id": "numb_one_side",  "phrase": "numbness on one side"},
-    {"id": "weak_one_side",  "phrase": "weakness on one side"}
+    {"id": "chest_pressure",   "phrase": "pressure in my chest"},
+    {"id": "chest_heavy",      "phrase": "chest feels heavy"},
+    {"id": "crushing",         "phrase": "crushing chest pain"},
+    {"id": "crushing_variant", "phrase": "crushing pain in (my |the )?chest", "match": "regex"},
+    {"id": "stabbing",         "phrase": "stabbing chest pain"},
+    {"id": "searing",          "phrase": "searing chest pain"},
+    {"id": "spread_arm",       "phrase": "spreading to my arm"},
+    {"id": "spread_jaw",       "phrase": "spreading to my jaw"},
+    {"id": "spread_back",      "phrase": "spreading to my back"},
+    {"id": "numb_one_side",    "phrase": "numbness on one side"},
+    {"id": "weak_one_side",    "phrase": "weakness on one side"},
+    {"id": "arm_numb",         "phrase": "arm[^.,;]{0,20}numb", "match": "regex"},
+    {"id": "gone_numb",        "phrase": "gone numb"}
   ]
 }
 ```
+
+> **Why the variants exist (do not delete them):** the verbatim §1 list alone fails the real trace. `"crushing pain in my chest"` is not a substring of `"crushing chest pain"` (word order), and `"my left arm's gone numb"` is not `"numbness on one side"`. `crushing_variant`, `arm_numb`, and `gone_numb` are the minimum additions that make both the full trace and the jaw-less variant fire. Verify against the must-NOT-fire controls after any edit.
 
 - [ ] **Step 4: Implement the detector module**
 
@@ -86,11 +106,17 @@ Expected: FAIL — `ModuleNotFoundError: sage_poc.safety.medical_redflag`
 # src/sage_poc/safety/medical_redflag.py
 """Interim medical red-flag pre-screen (B1 harm floor).
 
-STOPGAP, not the fix. Deterministic regex over the verbatim BOT BEHAVIOUR §1
+STOPGAP, not the fix. Deterministic literal/regex match over the BOT BEHAVIOUR §1
 phrase list. Poor recall against paraphrase BY DESIGN — closes the exact-phrase
-case the fixtures were written for while the full E3 detector is built to the
->=95% per-class recall gate (medical_e3_recall.json). Do NOT present this as
-coverage. It does not reduce or defer B1's real detector.
+and near-phrase case the fixtures were written for while the full E3 detector is
+built to the >=95% per-class recall gate (medical_e3_recall.json). Do NOT present
+this as coverage. It does not reduce or defer B1's real detector.
+
+ARABIC: ZERO native coverage. This matcher is English-only. Arabic input reaches it
+ONLY as the upstream machine translation raw->message_en produced in safety_check
+(L90-93); there is no Arabic phrase list, and verbatim-English against a machine
+translation of colloquial Gulf is unvalidated and expected near-zero. AR is NOT
+covered by this guard.
 """
 import json
 import re
@@ -103,12 +129,17 @@ _PHRASES_PATH = Path(__file__).resolve().parent.parent / "rules" / "data" / "saf
 @lru_cache(maxsize=1)
 def _patterns() -> tuple[tuple[str, "re.Pattern[str]"], ...]:
     data = json.loads(_PHRASES_PATH.read_text(encoding="utf-8"))
-    return tuple((p["id"], re.compile(re.escape(p["phrase"]), re.IGNORECASE)) for p in data["phrases"])
+    out = []
+    for p in data["phrases"]:
+        expr = p["phrase"] if p.get("match") == "regex" else re.escape(p["phrase"])
+        out.append((p["id"], re.compile(expr, re.IGNORECASE)))
+    return tuple(out)
 
 
 def detect_medical_redflag(*texts: str) -> list[str]:
     """Ids of any §1 red-flag phrases present across the given texts. [] = none.
-    Verbatim substring, case-insensitive. Paraphrase recall is intentionally weak."""
+    Case-insensitive; entries are literal substrings unless flagged match:"regex".
+    English-only; paraphrase and Arabic recall are intentionally weak/absent."""
     hay = " \n ".join(t for t in texts if t)
     return [pid for pid, pat in _patterns() if pat.search(hay)]
 ```
@@ -277,9 +308,23 @@ git commit -m "feat(safety): populate medical_flags from the interim red-flag de
 @pytest.mark.asyncio
 async def test_medical_response_returns_referral_and_gate_path():
     from sage_poc.nodes.medical_response import medical_response_node
-    out = await medical_response_node(_state("crushing chest pain spreading to my jaw") | {"medical_flags": ["crushing"]})
+    out = await medical_response_node(_state("x") | {"medical_flags": ["crushing"]})
     assert out["gate_path"] == "medical"
     assert out["response"] and "medical" in out["response"].lower()
+
+@pytest.mark.asyncio
+async def test_medical_response_writes_its_own_audit(monkeypatch):
+    # Defect 3: this path bypasses output_gate, so it MUST write its own audit.
+    import asyncio
+    import sage_poc.nodes.medical_response as mr
+    captured = {}
+    async def _fake_audit(rec): captured.update(rec)
+    monkeypatch.setattr(mr, "write_session_audit", _fake_audit)
+    await mr.medical_response_node(_state("x") | {"medical_flags": ["crushing"]})
+    await asyncio.sleep(0)  # let the fire-and-forget audit task run
+    assert captured.get("gate_path") == "medical"
+    assert captured.get("medical_flags") == ["crushing"]
+    assert "latency_ms" in captured and "path" in captured
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -311,27 +356,57 @@ MEDICAL_REFERRAL_TEXT: str = os.getenv(
 
 ```python
 # src/sage_poc/nodes/medical_response.py
-"""B1 medical red-flag terminal. Mirrors crisis_response: static referral text -> END,
-bypassing output_gate. Interim target per doc L1477 (Q1-terminal stub)."""
+"""B1 medical red-flag terminal: static referral text -> END, bypassing output_gate.
+UNLIKE crisis_response's historical gap, it writes its OWN session audit record — a
+medical-emergency turn is the most consequential the system emits and must be fully
+traceable (path, flags, matched phrase ids, latency). Interim target per doc L1477
+(Q1-terminal stub)."""
+import asyncio
+import logging
+import time
 from sage_poc.state import SageState
 from sage_poc import config as _cfg
-from sage_poc.observability import stage_timer
+from sage_poc.audit import write_session_audit
+
+_log = logging.getLogger(__name__)
 
 
 async def medical_response_node(state: SageState) -> dict:
-    with stage_timer() as t:
-        text = _cfg.MEDICAL_REFERRAL_TEXT
+    _t0 = time.monotonic()
+    text = _cfg.MEDICAL_REFERRAL_TEXT
+    latency_ms = int((time.monotonic() - _t0) * 1000)
+    medical_flags = state.get("medical_flags", [])
+    path = state["path"] + ["medical_response"]
+
+    # Explicit audit: output_gate (the normal audit-write point) is bypassed on this
+    # path, so without this the single most consequential turn is unrecorded. Fire-and-
+    # forget, mirroring crisis_response's task pattern — but here it is NOT optional.
+    _audit_task = asyncio.create_task(write_session_audit({
+        "session_id": state.get("session_id"),
+        "user_id": state.get("user_id"),
+        "gate_path": "medical",
+        "path": path,
+        "medical_flags": medical_flags,
+        "crisis_flags": state.get("crisis_flags", []),
+        "response_text": text,
+        "latency_ms": latency_ms,
+    }))
+    _audit_task.add_done_callback(
+        lambda tk: _log.warning("[medical_response] session audit error: %s", tk.exception())
+        if not tk.cancelled() and tk.exception() else None
+    )
+
     return {
         "response": text,
         "response_en": text,
         "gate_path": "medical",
-        "medical_flags": state.get("medical_flags", []),
-        "path": state["path"] + ["medical_response"],
-        "latency_ms": t.ms,  # crisis-node parity: this path bypasses output_gate's latency stamp
+        "medical_flags": medical_flags,
+        "path": path,
+        "latency_ms": latency_ms,
     }
 ```
 
-> If `stage_timer()`/`t.ms` differs from the `_crisis_response_node` idiom in `graph.py`, mirror that node's exact latency-stamp call instead — the requirement is only that `latency_ms` is stamped here (crisis turns had `latency_ms=NULL` until stamped; do not repeat that gap).
+> Reconcile the audit dict keys with `sage_poc.audit.write_session_audit`'s actual signature (see its call in `_crisis_response_node`, `graph.py:70`). The **requirement** is that a medical turn produces a traceable record carrying `gate_path="medical"`, `medical_flags`, `path`, and `latency_ms`; match the audit schema's field names exactly so the row is not silently dropped.
 
 - [ ] **Step 5: Run test to verify it passes**
 
@@ -461,14 +536,21 @@ git commit -m "feat(graph): wire medical red-flag route (crisis>medical>safe), f
 - [ ] **Step 1: Write the end-to-end test (the escalation's record)**
 
 ```python
+import pytest
+from sage_poc import config as _cfg
+
+@pytest.mark.parametrize("trace,tid", [
+    ("crushing pain in my chest spreading to my jaw, my left arm's gone numb", "b1-e2e-full"),
+    ("crushing pain in my chest, my left arm's gone numb", "b1-e2e-jawless"),  # jaw clause removed
+])
 @pytest.mark.asyncio
-async def test_end_to_end_cardiac_no_longer_reaches_a_skill(monkeypatch):
+async def test_end_to_end_cardiac_no_longer_reaches_a_skill(monkeypatch, trace, tid):
     monkeypatch.setattr(_cfg, "MEDICAL_REDFLAG_GUARD_ENABLED", True)
     from sage_poc.graph import build_graph
     app = build_graph()
     result = await app.ainvoke(
-        {"raw_message": "crushing chest pain spreading to my jaw", "path": []},
-        config={"configurable": {"thread_id": "b1-e2e"}},
+        {"raw_message": trace, "path": []},
+        config={"configurable": {"thread_id": tid}},
     )
     assert result.get("gate_path") == "medical"
     assert "medical_response" in result.get("path", [])
@@ -492,9 +574,26 @@ async def test_flip_control_benign_panic_stays_on_support_path(monkeypatch):
 Run: `uv run pytest tests/test_medical_redflag_guard.py -k "end_to_end or flip_control" -v`
 Expected on deploy SHA **before** Tasks 1–5: the cardiac drive routes to a skill (RED). After Tasks 1–5 with the flag on: PASS. Record the pre-fix red run in the escalation as the live-failure exhibit.
 
-- [ ] **Step 3: Verify the honesty note is in the shipped artifact**
+- [ ] **Step 3: Verify BOTH honesty notes are in the shipped artifacts**
 
-Confirm `medical_redflag_phrases.json._meta.status` still reads *"INTERIM harm-floor list. Poor paraphrase recall BY DESIGN. Not coverage. Full E3 detector gates on medical_e3_recall.json."* This sentence is a required deliverable — it prevents the mitigation being mistaken for the fix.
+Confirm two claims ship verbatim (each is a required deliverable — they prevent the mitigation being mistaken for the fix):
+1. `_meta.status` (and the module docstring): *"INTERIM harm-floor list. Poor paraphrase recall BY DESIGN. Not coverage. Full E3 detector gates on medical_e3_recall.json."*
+2. `_meta.arabic` (and the module docstring): *"ZERO native Arabic coverage… Arabic input rides the EN path solely via upstream machine translation… unvalidated and expected near-zero… NOT covered."*
+
+Add an assertion so this can't silently regress:
+
+```python
+def test_honesty_notes_ship_verbatim():
+    import json
+    from pathlib import Path
+    import sage_poc.safety.medical_redflag as mr
+    meta = json.loads(Path(mr._PHRASES_PATH).read_text())["_meta"]
+    assert "Not coverage" in meta["status"]
+    assert "ZERO native Arabic" in meta["arabic"]
+    assert "Arabic" in mr.__doc__ and "ZERO native coverage" in mr.__doc__
+```
+
+The Arabic claim also goes into the escalation record (command session owns that write).
 
 - [ ] **Step 4: Run the full file + confirm no regression in existing safety tests**
 
@@ -510,6 +609,12 @@ git commit -m "test(safety): end-to-end cardiac red->green trace + benign flip-c
 
 ---
 
+## Accepted interim debt (record, do not fix here)
+
+This plan wires a **parallel medical route in `graph.py`** rather than reviving the existing but inert `safety_precedence.py` framework (`SAFETY_ROUTE_ORDER`, `_medical_fired`, `SAGE_ROUTE_PRECEDENCE`). That is the correct call for an interim — the framework is dead code and reviving it is B1-full's job — but it means **two precedence mechanisms now coexist**: the live `_route_after_safety` branch here, and the inert framework. 
+
+**Retirement condition (named so B1-full converges rather than forks):** when B1-full lands, medical routing moves onto the `safety_precedence` framework (its detector populates `medical_flags`; `SAGE_ROUTE_PRECEDENCE` consumes the winner and records `fired_safety_routes` per the §4.5 never-dropped rule), and the parallel `_route_after_safety` medical branch added in Task 5 is **removed**. Until then, the interim branch is the single source of medical routing and the framework stays inert. Do not wire both live at once.
+
 ## Flip-to-live (post-plan, governed — NOT a code step)
 
 Once Task 6 is green and the must-NOT-fire controls hold, flipping `SAGE_MEDICAL_REDFLAG_GUARD=true` in prod is the go-live. It is not frozen and needs no clinical re-sign of `acute_direct_entry`, but the **Q1-terminal** value (`SAGE_MEDICAL_REFERRAL_TEXT`) should carry clinician ratification before flip, and the full E3 detector remains the real deliverable this interim does not replace.
@@ -518,7 +623,11 @@ Once Task 6 is green and the must-NOT-fire controls hold, flipping `SAGE_MEDICAL
 
 ## Self-Review
 
-**Spec coverage (§2):** interim regex guard (Tasks 1–5) ✓; verbatim §1 triggers + must-not-fire negatives (Tasks 1, 6) ✓; live route because the precedence framework is inert (Tasks 4–5) ✓; crisis>medical precedence (Task 5) ✓; Q1-terminal stub/default (Task 4) ✓; honesty clause (Tasks 1, 6) ✓; flag-gated, not-frozen (Tasks 4–6) ✓; red test = live failure trace (Task 6) ✓. **Out of scope by design (own plans):** full E3 detector to ≥95% per-class gate; `fired_safety_routes` never-dropped audit completeness for medical (the full precedence wiring); AR phrasing.
+**Spec coverage (§2):** interim regex/literal guard (Tasks 1–5) ✓; verbatim §1 triggers + word-order variants + must-not-fire negatives (Tasks 1, 6) ✓; live route because the precedence framework is inert (Tasks 4–5) ✓; crisis>medical precedence (Task 5) ✓; Q1-terminal stub/default (Task 4) ✓; harm-floor + **Arabic-zero** honesty clauses shipped and test-guarded (Tasks 1, 6) ✓; explicit medical-turn audit (Task 4, Defect 3) ✓; flag-gated, not-frozen (Tasks 4–6) ✓; **red test = verbatim escalation trace + jaw-less variant** (Tasks 1, 6, Defect 1) ✓.
+
+**Arabic (stated, not buried):** the guard is English-only; AR reaches it solely via upstream machine translation (`safety_check` L90-93), unvalidated and near-zero — shipped verbatim in `_meta.arabic`, the module docstring, and the escalation. This is a **named live gap the full E3 detector must close with a native AR path**, not an out-of-scope item.
+
+**Out of scope by design (own plans):** full E3 detector to ≥95% per-class gate + native AR; the `safety_precedence` framework revival + `fired_safety_routes` never-dropped completeness (see Accepted interim debt).
 
 **Placeholder scan:** none — every step carries the file, code, command, and expected output.
 
