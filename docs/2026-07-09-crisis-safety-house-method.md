@@ -39,6 +39,17 @@ mechanism for the continuation-context retraining set (the TD3 / Component-2 wor
 only a safety net — it is the data pipeline that eventually shrinks its own firing rate. Wire the two
 together deliberately: a backstop whose catches are not harvested is a net with no feedback loop.
 
+## The conformance register is a living record — write-back rule
+
+Any PR that closes or moves a matrix-tracked deviation **MUST update that register row (status + evidence
+link + date) in the same PR**. The BOT BEHAVIOUR conformance register is a living record, not a
+point-in-time audit. The failure mode this prevents: a remediation stream ships conformance-relevant
+fixes to prod while the register goes stale, so the next "how conformant are we?" reading is wrong in
+both directions — it misses fixes that landed AND rubber-stamps fixes that didn't achieve their goal. A
+recurring "re-run the whole matrix" task is the smell that this rule is missing. Corollary (move 3
+applied to the register itself): a row may only move to CONFORMS on driven/instrument evidence, never on
+a code-read — "the fix is in the file" is the exact false assurance this whole method exists to reject.
+
 ## When to apply
 
 Any change on a safety-critical path (crisis, clinical-flag, safety routing). For ordinary feature work,
@@ -50,3 +61,7 @@ moves 1 and 3 still pay off; move 2 is reserved for paths where a silent miss re
 - #205 — crisis affordance follows routing path + path-consistency backstop (all three) + ADR for the
   boundary deviation.
 - Copy-gate catches — driven review surfaced defects the aggregate suite hid (move 3).
+- §6c write-back exhibit (2026-07-14) — a routing fix recorded as "rehomed + shipped prod" measured
+  still 4/5 deviating on prod; the register never absorbed either the claim or its failure. The
+  strongest case for the write-back rule; reopened as #312, measured in v2 register
+  `docs/2026-07-14-bot-behaviour-conformance-matrix-v2.md`.
