@@ -4,13 +4,17 @@
 // literals. Change in ONE place per stack; never inline. The cross-stack parity test
 // (sage-poc/tests/test_crisis_config_cross_stack.py) asserts this array == backend CRISIS_RESOURCES.
 //
-// ✅ VALUE STATUS — VERIFIED FINAL (PO, 2026-07-08: "I have verified this number" + "24/7 is also
-// verified"). MoHAP 800 46342 / 24/7 is confirmed correct (the G8 46342-vs-4673 transcription
-// question is RESOLVED by verification). These are the CURRENT values. This is the Phase-1
-// (structure-only) reshape: the card is multi-resource-CAPABLE but the VALUES are unchanged. The
-// coupled value flip (both stacks → the doc's 5-entry composition) is a separate clinician-gated
-// step (reverses GL-1; needs verify + sign-off + crisis-freeze lift). Do NOT change values here
-// without that ruling AND the mirrored backend edit — the cross-stack test keeps both sides honest.
+// ✅ VALUE STATUS — DOC COMPOSITION (H4 value flip). These VALUES now mirror the backend's adopted
+// directory (sage_poc.config.CRISIS_RESOURCES): National Mental Support Line 800-HOPE (800-4673),
+// 8am-8pm daily (NOT 24/7); 999; Abu Dhabi 800-SAKINA (800-725462) 24/7; DHA 800 111 24/7; Sharjah
+// youth 800 51115 9am-5pm; nearest ER. This SUPERSEDES the pre-flip MoHAP 800 46342 / 24/7 set (the
+// GL-1 reversal: 46342-vs-4673 resolved in favour of 4673 by the 2026-07-10 dial-test + clinician
+// sign-off). The National line is 8am-8pm, so it must NEVER be shown as a lone or 24/7 number: the
+// lead-logic below always keeps 999 + a 24/7 line inline (top-3 safety invariant).
+// COORDINATED DEPLOY: this flip makes the frontend show 4673 — it must ship AFTER PR #301 (the
+// multi-resource card) and WITH backend PR #288 (the mirrored config), never alone. The cross-stack
+// parity test (sage-poc) keeps both sides entry-for-entry honest. Change values in ONE place per
+// stack (this array + backend config); never inline.
 
 export type CrisisScope = 'national' | 'emergency' | (string & {})
 
@@ -35,11 +39,11 @@ export interface CrisisResource {
 // persistent affordance so a slow/down backend never leaves a user without numbers.
 export const CRISIS_RESOURCES: readonly CrisisResource[] = [
   {
-    labelEn: 'MoHAP Counselling Line',
-    labelAr: 'خط وزارة الصحة للدعم النفسي',
-    number: '800 46342',
-    tel: 'tel:800-46342', // RFC 3966: hyphens/spaces equivalent
-    hours: '24/7',
+    labelEn: 'National Mental Support Line',
+    labelAr: 'خط الدعم النفسي الوطني',
+    number: '800-HOPE (800-4673)',
+    tel: 'tel:800-4673', // vanity number 800-HOPE dials 800-4673
+    hours: '8am–8pm daily',
     scope: 'national',
   },
   {
@@ -48,6 +52,38 @@ export const CRISIS_RESOURCES: readonly CrisisResource[] = [
     number: '999',
     tel: 'tel:999',
     hours: '24/7',
+    scope: 'emergency',
+  },
+  {
+    labelEn: 'Abu Dhabi 24/7 crisis line',
+    labelAr: 'خط سكينة للأزمات – أبوظبي',
+    number: '800-SAKINA (800-725462)',
+    tel: 'tel:800-725462', // vanity number 800-SAKINA dials 800-725462
+    hours: '24/7',
+    scope: 'regional',
+  },
+  {
+    labelEn: 'Dubai Health Authority helpline',
+    labelAr: 'خط هيئة الصحة بدبي للمساعدة',
+    number: '800 111',
+    tel: 'tel:800-111',
+    hours: '24/7',
+    scope: 'regional',
+  },
+  {
+    labelEn: 'Sharjah Child & Youth Mental Health Helpline',
+    labelAr: 'خط الشارقة للصحة النفسية للأطفال واليافعين',
+    number: '800 51115',
+    tel: 'tel:800-51115',
+    hours: '9am–5pm Mon–Fri',
+    scope: 'youth',
+  },
+  {
+    labelEn: 'Nearest hospital emergency department',
+    labelAr: 'أقرب قسم طوارئ في المستشفى',
+    number: '999 / nearest ER',
+    tel: 'tel:999',
+    hours: 'immediate danger or outside helpline hours',
     scope: 'emergency',
   },
 ] as const
