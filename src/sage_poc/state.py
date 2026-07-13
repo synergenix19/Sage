@@ -13,6 +13,7 @@ class SageState(TypedDict):
 
     is_safe: bool
     crisis_flags: list[str]
+    medical_flags: list[str]    # B1/E3: verbatim §1 red-flag phrase ids fired this turn; empty until the interim guard or full detector populates it. Declared channel (LangGraph drops undeclared keys).
     s3_score: Optional[float]    # advisory BGE-M3 cosine similarity; 0 recall adds at 0.8059 per CRADLE sweep
     clinical_flags: list[str]   # substance_use, trauma_indicator, eating_concern, medication_mention
     new_clinical_flags_turn: list[str]  # flags detected THIS turn only; reset each turn in _build_state()
@@ -88,7 +89,7 @@ class SageState(TypedDict):
     knowledge_query_searched: str   # query actually searched (post-normalization)
     knowledge_top_similarity: float | None  # best cosine sim in the returned pack; drives abstain
 
-    gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak", "crisis"]]
+    gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak", "crisis", "medical"]]
 
     response_en: Optional[str]
     response: Optional[str]

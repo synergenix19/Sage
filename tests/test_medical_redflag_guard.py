@@ -1,4 +1,15 @@
 from sage_poc.safety.medical_redflag import detect_medical_redflag
+import typing
+
+def test_state_declares_medical_channel():
+    from sage_poc.state import SageState
+    hints = typing.get_type_hints(SageState)
+    assert "medical_flags" in hints, "medical_flags must be a declared channel (LangGraph drops undeclared keys)"
+
+def test_gate_path_allows_medical():
+    from sage_poc.state import SageState
+    hints = typing.get_type_hints(SageState)
+    assert "medical" in str(hints["gate_path"])
 
 # The VERBATIM escalation trace. Do not adjust this string to fit the phrase list.
 LIVE_TRACE = "crushing pain in my chest spreading to my jaw, my left arm's gone numb"
