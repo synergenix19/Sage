@@ -1,0 +1,24 @@
+{
+  "_meta": {
+    "source": "BOT BEHAVIOUR §1 universal red-flag override (verbatim §1 positives from medical_e3_recall.json) + word-order/proximity variants required to fire the verbatim escalation trace and its jaw-less form",
+    "status": "INTERIM harm-floor list. Poor paraphrase recall BY DESIGN. Not coverage. Full E3 detector gates on medical_e3_recall.json.",
+    "arabic": "ZERO native Arabic coverage. English-only. Arabic input rides the EN path solely via upstream machine translation (safety_check L90-93); AR recall is unvalidated and expected near-zero for colloquial Gulf. NOT covered.",
+    "authored_by": "engineering",
+    "clinical_signoff": "PENDING — Q1-triggers ratification",
+    "match_field": "entries default to literal (re.escape) substring; entries with match:\"regex\" are compiled as regex."
+  },
+  "phrases": [
+    {"id": "chest_pressure",   "phrase": "pressure in my chest"},
+    {"id": "chest_heavy",      "phrase": "chest feels heavy"},
+    {"id": "crushing",         "phrase": "crushing chest pain"},
+    {"id": "crushing_variant", "phrase": "crushing pain in (my |the )?chest", "match": "regex"},
+    {"id": "stabbing",         "phrase": "stabbing chest pain"},
+    {"id": "searing",          "phrase": "searing chest pain"},
+    {"id": "spread_arm",       "phrase": "spreading to my arm"},
+    {"id": "spread_jaw",       "phrase": "spreading to my jaw"},
+    {"id": "spread_back",      "phrase": "spreading to my back"},
+    {"id": "numb_one_side",    "phrase": "numbness on one side"},
+    {"id": "weak_one_side",    "phrase": "weakness on one side"},
+    {"id": "one_sided_numb",   "phrase": "(left|right) (arm|hand|side|face|leg|foot)[^.,;]{0,20}(gone |went )?numb", "match": "regex"}
+  ]
+}

@@ -1,0 +1,25 @@
+from sage_poc.safety.medical_redflag import detect_medical_redflag
+
+# The VERBATIM escalation trace. Do not adjust this string to fit the phrase list.
+LIVE_TRACE = "crushing pain in my chest spreading to my jaw, my left arm's gone numb"
+# The same presentation with the one clause that trivially matched removed. A textbook
+# cardiac presentation phrased the way people actually phrase it — MUST still fire.
+JAWLESS_VARIANT = "crushing pain in my chest, my left arm's gone numb"
+
+def test_live_trace_fires():
+    assert detect_medical_redflag(LIVE_TRACE) != []
+
+def test_jawless_variant_fires():
+    # If this fails, the phrase list is wrong — extend it (word-order/proximity
+    # variants), never narrow this test.
+    assert detect_medical_redflag(JAWLESS_VARIANT) != []
+
+def test_must_not_fire_controls_stay_clear():
+    # Panic negatives AND benign-numbness negatives. Benign limb-numbness (no
+    # laterality) must NOT route to a medical emergency — §1's criterion is one-sided.
+    for benign in ("racing heart", "tight chest", "shallow breath",
+                   "my chest feels a little tight", "my heart is racing from the panic",
+                   "my foot's gone numb from sitting",
+                   "my hand went numb from sleeping on it",
+                   "my leg's gone numb from sitting cross-legged"):
+        assert detect_medical_redflag(benign) == [], benign
