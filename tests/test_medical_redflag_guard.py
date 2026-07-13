@@ -14,6 +14,14 @@ def test_jawless_variant_fires():
     # variants), never narrow this test.
     assert detect_medical_redflag(JAWLESS_VARIANT) != []
 
+def test_crushing_variant_isolated_forces_word_order_entry():
+    # No numbness/jaw clause — only the word-order variant can match. If crushing_variant
+    # is deleted or broken, this fails (the other entries cannot cover it).
+    ids = detect_medical_redflag("I have crushing pain in my chest")
+    assert "crushing_variant" in ids, ids
+    # And the verbatim §1 literal (different word order) still matches its own entry:
+    assert "crushing" in detect_medical_redflag("this is crushing chest pain")
+
 def test_must_not_fire_controls_stay_clear():
     # Panic negatives AND benign-numbness negatives. Benign limb-numbness (no
     # laterality) must NOT route to a medical emergency — §1's criterion is one-sided.
