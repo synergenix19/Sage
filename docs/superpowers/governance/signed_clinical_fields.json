@@ -25,18 +25,18 @@
     {
       "id": "crisis_helpline_number",
       "selector": "pyconst:sage_poc.config:CRISIS_CONFIG:number",
-      "sha256": "b23c3f56ed12639469f19291d16094a14e972b8e397a61d15bd84e2975998c4f",
+      "sha256": "72359ac51ecaae71b3fbdf625fda67eee12061fa3a1f9af9069d09a8b13a5087",
       "signed_by": "PO (product owner)",
-      "signed_date": "2026-07-08",
-      "signoff": "GL-1 adjudication: '800 46342' verified (46342-vs-4673 resolved); config.py is the single source"
+      "signed_date": "2026-07-13",
+      "signoff": "GL-1 REVERSAL (2026-07-13): National Mental Support Line '800-HOPE (800-4673)' adopted as the derived CRISIS_CONFIG.number, superseding the 2026-07-08 '800 46342' verification; a new PO dial-test resolved 46342-vs-4673 in favour of 4673. CRISIS_RESOURCES is the single source; CRISIS_CONFIG derives from it. Primary record: docs/superpowers/governance/2026-07-13-gl1-crisis-helpline-reversal.md"
     },
     {
       "id": "crisis_helpline_hours",
       "selector": "pyconst:sage_poc.config:CRISIS_CONFIG:hours",
-      "sha256": "0464c3f1419f3d9214563b13f9590490b34eabe457faf3e701bb3b2e731c43a4",
+      "sha256": "ffc350abb41621dfc2ec45be0858edc9ea2c44aa317366fae32ed31b4c7d9281",
       "signed_by": "PO (product owner)",
-      "signed_date": "2026-07-08",
-      "signoff": "GL-1 adjudication: '24/7' verified"
+      "signed_date": "2026-07-13",
+      "signoff": "GL-1 REVERSAL (2026-07-13): the derived CRISIS_CONFIG.hours is now '8am-8pm daily' (the National line), NOT 24/7, superseding the 2026-07-08 '24/7' verification. The always-24/7 safety invariant is preserved by 999 + the multi-resource hours-aware card (select_crisis_resources guarantees a dialable 24/7 line at any hour). Primary record: docs/superpowers/governance/2026-07-13-gl1-crisis-helpline-reversal.md"
     },
     {
       "id": "harm_to_others_backstop_rule",
