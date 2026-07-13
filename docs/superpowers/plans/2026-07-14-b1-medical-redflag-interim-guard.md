@@ -15,9 +15,9 @@
 - **This is an INTERIM harm floor, not the fix.** Poor recall against paraphrase is expected and must be stated as such in code comments — never sold as coverage. It does **not** reduce, defer, or gate-relax the full E3 detector (separate plan, `≥95%` per-class recall on `medical_e3_recall.json`).
 - **NOT frozen / additive.** Touches no signed clinical field, does not modify `acute_direct_entry`. Trips no `signed_clinical_fields.json` check. Live-shippable pre-Gitex.
 - **Precedence is crisis > medical > safe.** A cardiac red flag that co-occurs with suicidal intent routes to **crisis**, never medical.
-- **Trigger set is verbatim BOT BEHAVIOUR §1** (mirrored in `tests/fixtures/bot_behaviour/medical_e3_recall.json` positives). Clinical status: `PENDING Q1-triggers ratification` — ratification, not elicitation.
+- **Q1-triggers is now two parts (governance shape changed by the Defect-1 fix):** (a) **ratify** the verbatim BOT BEHAVIOUR §1 list (mirrored in `medical_e3_recall.json` positives) — a ratification; (b) **approve or amend** the two engineering-authored variants `crushing_variant` and `one_sided_numb`, added because the verbatim §1 list does not fire on the real trace — these are engineering's clinical judgment about what a cardiac/stroke presentation looks like and must be **signed, not assumed** (an elicitation). Status: `PENDING Q1-triggers (a)+(b)`.
 - **Assert on behaviour markers** (`medical_flags`, route string, `gate_path`), never on response prose.
-- **Must-NOT-fire controls** (verbatim §1 negatives) stay on the support path: `racing heart`, `tight chest`, `shallow breath`, `my chest feels a little tight`, `my heart is racing from the panic`. A false medical route is its own harm.
+- **Must-NOT-fire controls** stay on the support path — panic negatives AND benign-numbness negatives: `racing heart`, `tight chest`, `shallow breath`, `my chest feels a little tight`, `my heart is racing from the panic`, `my foot's gone numb from sitting`, `my hand went numb from sleeping on it`, `my leg's gone numb from sitting cross-legged`. A false medical route (a dead leg sent to the ER) is its own harm; benign limb-numbness without laterality must not fire.
 - **The red test is the verbatim escalation trace, never a phrasing adjusted to fit the list.** Both the full trace and its jaw-less variant must fire; if the jaw-less variant does not, the phrase list is wrong — extend the list (word-order/proximity variants), never narrow the test. (This defect was caught in review: the first draft fitted the test to the regex.)
 - **Arabic coverage is not native.** The detector is English-only. Arabic input rides the EN path **solely** via the upstream machine translation `raw → message_en` in `safety_check` (L90-93); there is no Arabic phrase list, and verbatim-English-against-machine-translation recall is **unvalidated and expected near-zero for colloquial Gulf**. This exact claim ships in `_meta`, the module docstring, and the escalation — "we don't know" is not acceptable in a safety artifact.
 - **The medical terminal writes its own audit record** (`write_session_audit`): path, `medical_flags`, matched phrase ids, flag state, latency. It must not inherit the crisis node's bypass-and-under-audit gap.
@@ -57,8 +57,13 @@ def test_jawless_variant_fires():
     assert detect_medical_redflag(JAWLESS_VARIANT) != []
 
 def test_must_not_fire_controls_stay_clear():
+    # Panic negatives AND benign-numbness negatives. Benign limb-numbness (no
+    # laterality) must NOT route to a medical emergency — §1's criterion is one-sided.
     for benign in ("racing heart", "tight chest", "shallow breath",
-                   "my chest feels a little tight", "my heart is racing from the panic"):
+                   "my chest feels a little tight", "my heart is racing from the panic",
+                   "my foot's gone numb from sitting",
+                   "my hand went numb from sleeping on it",
+                   "my leg's gone numb from sitting cross-legged"):
         assert detect_medical_redflag(benign) == [], benign
 ```
 
@@ -92,13 +97,12 @@ Expected: FAIL — `ModuleNotFoundError: sage_poc.safety.medical_redflag`
     {"id": "spread_back",      "phrase": "spreading to my back"},
     {"id": "numb_one_side",    "phrase": "numbness on one side"},
     {"id": "weak_one_side",    "phrase": "weakness on one side"},
-    {"id": "arm_numb",         "phrase": "arm[^.,;]{0,20}numb", "match": "regex"},
-    {"id": "gone_numb",        "phrase": "gone numb"}
+    {"id": "one_sided_numb",   "phrase": "(left|right) (arm|hand|side|face|leg|foot)[^.,;]{0,20}(gone |went )?numb", "match": "regex"}
   ]
 }
 ```
 
-> **Why the variants exist (do not delete them):** the verbatim §1 list alone fails the real trace. `"crushing pain in my chest"` is not a substring of `"crushing chest pain"` (word order), and `"my left arm's gone numb"` is not `"numbness on one side"`. `crushing_variant`, `arm_numb`, and `gone_numb` are the minimum additions that make both the full trace and the jaw-less variant fire. Verify against the must-NOT-fire controls after any edit.
+> **Why the two variants exist (do not delete them), and why `one_sided_numb` is laterality-bound:** the verbatim §1 list alone fails the real trace — `"crushing pain in my chest"` is not a substring of `"crushing chest pain"` (word order), and `"my left arm's gone numb"` is not `"numbness on one side"`. `crushing_variant` and `one_sided_numb` are the minimum engineering-authored additions that fire both the full trace and the jaw-less variant. **`one_sided_numb` is deliberately bound to laterality (`left|right … numb`) because §1's actual criterion is *one-sided* numbness.** An earlier draft used a bare `gone_numb` literal — it fired on `"my foot's gone numb from sitting"`, routing a dead leg to the ER (caught in review; pattern-vs-criterion drift, widening). These two variants are **engineering's clinical judgment, not §1 verbatim** — they are Q1-triggers part (b), an elicitation requiring sign-off. Verify against the benign-numbness AND panic must-NOT-fire controls after any edit.
 
 - [ ] **Step 4: Implement the detector module**
 
