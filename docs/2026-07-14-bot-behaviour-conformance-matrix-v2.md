@@ -48,3 +48,10 @@ Root cause of the v1 stale snapshot was NOT a bad reading; it was a remediation 
 - AR disposition — no instrument; needs a scoping decision, not a silent number.
 
 **Deploy sequencing:** #298 (SG-2 firing) rides the next deploy carrying the sibling caveats — but note the TIPP-unreachable finding: #298 restores the protection; a separate routing fix is needed for the skill to actually be reached.
+
+## Filed follow-ups (per spec 3 + 4)
+
+- **#311** — TIPP-unreachable routing regression (ei=8 acute distress → box_breathing via semantic match, not dbt_tipp; intensity scoring correct at 8; fix domain = skill-matching rules/anchor space, prime suspect §1e box_breathing anchor-widening). SG-2 caveat protection for dbt_tipp is LATENT until this lands — **shipped ≠ solved.**
+- **#312** — §6c reopen (claimed "rehomed + shipped", measured still 4/5 deviating). Red test = the abstaining §6c corpus variants.
+- **#313** — build Arabic Layer-1 corpus + AR disposition pass (target 2026-07-28). AR disposition currently UNMEASURED, not faked.
+- **#227** (`f915e3d`) — house-method write-back rule: any PR closing a matrix-tracked deviation updates its register row in the same PR (living register, not point-in-time audit); CONFORMS only on driven/instrument evidence, never a code-read.
