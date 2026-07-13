@@ -14,7 +14,7 @@ Three independent sweeps (master `a0721c0`/`6e8f713`, direct source re-verificat
 ## What this means concretely
 **IN SCOPE NOW — verify + activate what's built:**
 - Behaviorally confirm in-session recall + honest-absence actually fire in prod (drive a disclosure→recall turn and an absent-recall turn against `6e8f713`), not just green unit tests.
-- Fix the `techniques_used` within-session defect **iff** any skill exercises `prior_exposure` (it is a built-but-broken *within-session* behavior — squarely "make what we built work"). Otherwise log-and-defer stating that condition.
+- ~~Fix the `techniques_used` phantom read iff a skill uses `prior_exposure`.~~ **RESOLVED 2026-07-13:** three skills use `prior_exposure`, but every use is a **cross-session** "skip psychoeducation for a returning user" optimization (`skill_executor.py:367-368` — "cross-session skill usage only; first session = 0"). So in-session `prior_exposure=0` is the *correct* value (a non-returning user should get the full intro); skills degrade gracefully. Not a within-session defect → **deferred into the dormant cross-session set**, not fixed now. See `../tickets/2026-07-10-techniques-used-phantom-read.md` Correction.
 
 **DORMANT — do not build or activate:**
 - Cross-session profile injection, session-summary-recall-as-feature, flag cross-session persistence. Leave the writes dormant (no urgent rip-out — DPO is parked), do **not** wire the reads, do **not** flip the config.

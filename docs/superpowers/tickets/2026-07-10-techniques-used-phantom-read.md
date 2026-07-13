@@ -1,6 +1,18 @@
 # Ticket: `techniques_used` phantom read in step-policy prior_exposure
 
-**Filed:** 2026-07-10 · **Status:** open — fix-candidate (conditional, see disposition) · **Type:** DEFECT (within-session behaviour) · **Verified against:** master `a0721c0` (read-path files byte-identical across `f78101e`…`a0721c0`) · **Links:** `src/sage_poc/nodes/skill_executor.py:556-557`, `src/sage_poc/memory/postgres_repository.py:20-25`, sibling scope ticket `2026-07-10-therapeutic-profile-persistence-nonfunctional.md`
+**Filed:** 2026-07-10 · **Status:** RECLASSIFIED + DEFERRED 2026-07-13 — NOT a within-session defect; dormant cross-session efficiency logic, in-session behaviour is correct (see Correction) · **Type:** ~~DEFECT (within-session)~~ → DORMANT cross-session (part of `therapeutic-profile-persistence-nonfunctional`) · **Verified against:** master `a0721c0`/`6e8f713` · **Links:** `src/sage_poc/nodes/skill_executor.py:556-557,367-368`, skill JSONs `mi_readiness_ruler.json:158`, `act_psychological_flexibility.json:236`, `problem_solving_therapy.json:203`, scope ticket `2026-07-10-therapeutic-profile-persistence-nonfunctional.md`, decision `../governance/2026-07-13-memory-scope-internal-testing-decision.md`
+
+## ⚠️ CORRECTION 2026-07-13 (resolves the conditional; downgrades this ticket)
+The original "within-session DEFECT" framing below was **wrong**. Verified: `prior_exposure` IS consumed by three skills — but every use is a **cross-session efficiency optimization**, not within-session behaviour:
+- `mi_readiness_ruler.json:158`: `prior_exposure >= 3 → skip_psychoeducation` ("this user has done the readiness ruler before").
+- `act_psychological_flexibility.json:236`: `prior_exposure >= 2 → skip_psychoeducation` ("user has used ACT before").
+- `problem_solving_therapy.json:203`: same shape.
+
+The code is explicit (`skill_executor.py:367-368`): *"prior_exposure reflects **cross-session** skill usage only… Within a first session, prior_exposure=0 regardless of repetitions."* `corpus_constants.py:38` labels it "skip/efficiency logic."
+
+**Therefore, in-session, `prior_exposure=0` is the CORRECT designed value** — a non-returning user *should* receive the full psychoeducation. The skills degrade **gracefully** (always teach the intro); no wrong or clinically-unsafe behaviour. The always-0 only disables a **returning-user shortcut**, which is a cross-session feature.
+
+**Resolution:** this is not a defect to fix now — fixing it (populating `techniques_used`) = **building cross-session capability**, which the 2026-07-13 ruling defers. Folded into the dormant cross-session set. Revisit only if/when cross-session re-enters scope. The original analysis below is retained for history but is superseded by this correction.
 
 ## The datum (code-verified)
 `skill_executor.py` computes a skill's `prior_exposure` from a profile field that is never populated:
