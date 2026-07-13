@@ -51,6 +51,11 @@ vi.mock('../testing-guide-panel', () => ({
     open ? React.createElement('div', { 'data-testid': 'testing-guide-panel' }) : null,
 }))
 
+vi.mock('../crisis-help-panel', () => ({
+  CrisisHelpPanel: ({ open }: { open: boolean }) =>
+    open ? React.createElement('div', { 'data-testid': 'crisis-help-panel' }) : null,
+}))
+
 // --- Import after all mocks ---
 import { ChatHeader } from '../chat-header'
 
@@ -120,6 +125,27 @@ describe('ChatHeader — settings', () => {
     fireEvent.click(screen.getByRole('button', { name: /settings/i }))
     await waitFor(() => {
       expect(screen.getByTestId('settings-panel')).toBeInTheDocument()
+    })
+  })
+})
+
+describe('ChatHeader — persistent "Get help now" affordance', () => {
+  it('renders a "Get help now" button available every turn (off crisis detection)', () => {
+    render(<ChatHeader session={null} />)
+    expect(screen.getByRole('button', { name: 'Get help now' })).toBeInTheDocument()
+  })
+
+  it('exposes an Arabic aria-label when locale is ar (bilingual from day one)', () => {
+    mockLocale = 'ar'
+    render(<ChatHeader session={null} />)
+    expect(screen.getByRole('button', { name: 'احصل على المساعدة الآن' })).toBeInTheDocument()
+  })
+
+  it('opens the CrisisHelpPanel when clicked', async () => {
+    render(<ChatHeader session={null} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Get help now' }))
+    await waitFor(() => {
+      expect(screen.getByTestId('crisis-help-panel')).toBeInTheDocument()
     })
   })
 })

@@ -5,6 +5,7 @@ import type { ChatSession } from '@cdai/types'
 import { tenant } from '@cdai/tenant'
 import { HistoryPanel } from './history-panel'
 import { SettingsPanel } from './settings-panel'
+import { CrisisHelpPanel } from './crisis-help-panel'
 // TODO: remove after clinical pilot
 import { TestingGuidePanel } from './testing-guide-panel'
 import { LanguageToggle } from '@/components/auth/language-toggle'
@@ -13,6 +14,7 @@ import { useLocaleStore } from '@/lib/stores/locale-store'
 export function ChatHeader({ session }: { session: ChatSession | null }) {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
   // TODO: remove after clinical pilot period ends
   const [guideOpen, setGuideOpen] = useState(false)
   const router = useRouter()
@@ -33,6 +35,25 @@ export function ChatHeader({ session }: { session: ChatSession | null }) {
           </span>
         </div>
         <div className="flex items-center gap-1">
+          {/* Persistent "Get help now" affordance — available every turn, not only on crisis
+              detection. Opens the resource list rendered client-side (deterministic + offline). */}
+          <button
+            onClick={() => setHelpOpen(true)}
+            className="flex min-h-[44px] items-center gap-1.5 rounded-full border border-[var(--color-crisis)] px-3 text-xs font-medium text-[var(--color-crisis)] hover:bg-[var(--color-crisis)]/10"
+            aria-label={locale === 'ar' ? 'احصل على المساعدة الآن' : 'Get help now'}
+            data-testid="get-help-now"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.5" />
+              <path
+                d="M8 5v3.5M8 11h.007"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="whitespace-nowrap">{locale === 'ar' ? 'مساعدة' : 'Get help'}</span>
+          </button>
           {/* Compose icon — mobile only, left of clock per spec */}
           <button
             onClick={handleNewChat}
@@ -78,6 +99,7 @@ export function ChatHeader({ session }: { session: ChatSession | null }) {
       </header>
       <HistoryPanel open={historyOpen} onClose={() => setHistoryOpen(false)} />
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <CrisisHelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} />
       {/* TODO: remove after clinical pilot */}
       <TestingGuidePanel open={guideOpen} onClose={() => setGuideOpen(false)} />
     </>
