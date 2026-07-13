@@ -10,6 +10,12 @@
    - **Add a provenance field to `/health/version`** — e.g. `crisis_copy_templated: bool` that checks whether the *raw* crisis source still carries a `{{crisis_}}` placeholder (present only in the templated tree). This gives byte-identical deploys a real probe.
    - Until that field exists, a byte-identical deploy is verified ONLY by the **cache-bust structural guarantee** (ARG changed → `COPY` rebuilt → new source), and must be recorded as *"cache-bust-verified,"* NOT *"behaviorally verified."*
 5. **Ancestry gate before every deploy:** `git merge-base --is-ancestor <hotfix> <tree>` for each load-bearing commit (OCD-veto, harm-veto, crisis-templating, item3).
+6. **Clinical-surface diff before every deploy** (added 2026-07-10, from the trim-shipped-unconfirmed miss — the 591 trim rode a parallel deploy live before its sign-off was recorded). A deploy must not silently change a clinician-signed field. Two commands, both before `railway up`:
+   ```
+   python scripts/check_signed_fields.py                       # (a) deploy tree fully signed
+   git diff --stat <PROD_SHA>..<DEPLOY_SHA> -- $(python scripts/check_signed_fields.py --files)
+   ```
+   (a) FAILS if any signed field changed without its manifest sign-off (belt-and-suspenders to the CI gate). The second command lists which signed-field-backing files change in THIS deploy. For **every** signed field that changes, name it + its sign-off reference in the deploy-provenance entry — "deploying interpersonal_effectiveness.semantic_description change, signed Vee 2026-07-10 (item 5)". A signed-field change with no sign-off to cite = STOP, not a footnote. Manifest: `signed_clinical_fields.json`.
 
 ## #258 — build-side deploy-lock enforcement (prevent, not just detect) — shipped DORMANT 2026-07-10
 
