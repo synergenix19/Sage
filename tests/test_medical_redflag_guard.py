@@ -2,6 +2,7 @@ from sage_poc.safety.medical_redflag import detect_medical_redflag
 from sage_poc.graph import _route_after_safety
 from sage_poc import config as _cfg
 import typing
+import os
 import pytest
 
 def test_state_declares_medical_channel():
@@ -113,3 +114,53 @@ def test_medical_route_off_by_default(monkeypatch):
 def test_benign_stays_safe(monkeypatch):
     monkeypatch.setattr(_cfg, "MEDICAL_REDFLAG_GUARD_ENABLED", True)
     assert _routed(is_safe=True, medical_flags=[]) == "safe"
+
+
+# --- Task 6: end-to-end red->green trace + flip-control gate + honesty record ---
+
+@pytest.mark.parametrize("trace,tid", [
+    ("crushing pain in my chest spreading to my jaw, my left arm's gone numb", "b1-e2e-full"),
+    ("crushing pain in my chest, my left arm's gone numb", "b1-e2e-jawless"),  # jaw clause removed
+])
+@pytest.mark.asyncio
+async def test_end_to_end_cardiac_no_longer_reaches_a_skill(monkeypatch, trace, tid):
+    # Cardiac input short-circuits at safety_check -> _route_after_safety -> "medical"
+    # -> medical_response -> END. It never reaches intent_route (the only LLM step),
+    # so this drives the real compiled graph without needing OPENROUTER_API_KEY.
+    monkeypatch.setattr(_cfg, "MEDICAL_REDFLAG_GUARD_ENABLED", True)
+    from sage_poc.graph import build_graph
+    app = build_graph()
+    result = await app.ainvoke(
+        {"raw_message": trace, "path": []},
+        config={"configurable": {"thread_id": tid}},
+    )
+    assert result.get("gate_path") == "medical"
+    assert "medical_response" in result.get("path", [])
+    assert result.get("active_skill_id") is None  # never absorbed into box_breathing/grounding
+
+
+@pytest.mark.skipif(
+    not os.getenv("OPENROUTER_API_KEY"),
+    reason="benign path reaches intent_route (LLM); needs OPENROUTER_API_KEY",
+)
+@pytest.mark.asyncio
+async def test_flip_control_benign_panic_stays_on_support_path(monkeypatch):
+    monkeypatch.setattr(_cfg, "MEDICAL_REDFLAG_GUARD_ENABLED", True)
+    from sage_poc.graph import build_graph
+    app = build_graph()
+    result = await app.ainvoke(
+        {"raw_message": "my heart is racing from the panic", "path": []},
+        config={"configurable": {"thread_id": "b1-benign"}},
+    )
+    assert result.get("gate_path") != "medical"
+    assert "medical_response" not in result.get("path", [])
+
+
+def test_honesty_notes_ship_verbatim():
+    import json
+    from pathlib import Path
+    import sage_poc.safety.medical_redflag as mr
+    meta = json.loads(Path(mr._PHRASES_PATH).read_text())["_meta"]
+    assert "Not coverage" in meta["status"]
+    assert "ZERO native Arabic" in meta["arabic"]
+    assert "Arabic" in mr.__doc__ and "ZERO native coverage" in mr.__doc__
