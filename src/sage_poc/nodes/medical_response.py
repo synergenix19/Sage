@@ -14,11 +14,16 @@ _log = logging.getLogger(__name__)
 
 
 async def medical_response_node(state: SageState) -> dict:
-    _t0 = time.monotonic()
     text = _cfg.MEDICAL_REFERRAL_TEXT
     medical_flags = state.get("medical_flags", [])
     path = state["path"] + ["medical_response"]
-    latency_ms = int((time.monotonic() - _t0) * 1000)
+    # Full-turn latency, not node-local: mirror _crisis_response_node (graph.py:70,77) —
+    # this path also bypasses output_gate (the normal latency-stamp point), so it must
+    # compute from the turn start itself, not re-stamp a near-zero node-entry timer.
+    _tsa = state.get("turn_started_at")
+    latency_ms = (
+        int((time.monotonic() - _tsa) * 1000) if _tsa is not None else state.get("latency_ms")
+    )
 
     # Explicit audit: output_gate (the normal audit-write point) is bypassed on this
     # path, so without this the single most consequential turn is unrecorded. Fire-and-
@@ -44,4 +49,10 @@ async def medical_response_node(state: SageState) -> dict:
         "medical_flags": medical_flags,
         "path": path,
         "latency_ms": latency_ms,
+        # Mirror crisis_response (graph.py:137-139): clear the checkpointer-persisted
+        # active-skill fields so a coping skill in progress cannot resume next turn
+        # right after a medical-emergency referral.
+        "active_skill_id": None,
+        "active_step_id": None,
+        "offered_skill_ids": None,
     }

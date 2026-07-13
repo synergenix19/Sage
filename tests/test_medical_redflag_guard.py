@@ -156,6 +156,19 @@ async def test_flip_control_benign_panic_stays_on_support_path(monkeypatch):
     assert "medical_response" not in result.get("path", [])
 
 
+@pytest.mark.asyncio
+async def test_medical_response_clears_active_skill():
+    # A user mid-skill who reports chest pain must not have the skill resume next turn.
+    from sage_poc.nodes.medical_response import medical_response_node
+    out = await medical_response_node(_state("crushing chest pain") | {
+        "medical_flags": ["crushing"], "active_skill_id": "box_breathing",
+        "active_step_id": "inhale_hold", "offered_skill_ids": ["box_breathing"],
+    })
+    assert out["active_skill_id"] is None
+    assert out["active_step_id"] is None
+    assert out["offered_skill_ids"] is None
+
+
 def test_honesty_notes_ship_verbatim():
     import json
     from pathlib import Path
