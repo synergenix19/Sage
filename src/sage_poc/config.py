@@ -265,3 +265,19 @@ CHECKPOINT_POOL_MAX_SIZE = int(os.getenv("SAGE_CHECKPOINT_POOL_MAX_SIZE", "20"))
 # as the ① pool measurement). Default on — shipped only because the equivalence gate
 # (test_embed_cache_equivalence.py) asserts crisis output is byte-identical with the cache.
 EMBED_CACHE_ENABLED: bool = os.getenv("SAGE_EMBED_CACHE_ENABLED", "true").lower() == "true"
+
+# B1 interim medical red-flag guard. Default OFF; flip only when the must-NOT-fire
+# controls are green (see plan Task 6). Not frozen; touches no signed field.
+MEDICAL_REDFLAG_GUARD_ENABLED: bool = os.getenv("SAGE_MEDICAL_REDFLAG_GUARD", "false").lower() == "true"
+
+# Q1-terminal default: the MEDICAL guard wording (doc lines 62/81/131 / Section 6):
+# "prompt to seek in-person/medical/emergency evaluation; treat as a possible medical
+# emergency." NOT doc L1477 (that is the psychiatric-crisis line rule — a different guard).
+# Single blocking parameter — stubbed here pending clinician ratification.
+MEDICAL_REFERRAL_TEXT: str = os.getenv(
+    "SAGE_MEDICAL_REFERRAL_TEXT",
+    "The symptoms you're describing can be signs of a medical emergency. "
+    "Please seek in-person medical evaluation now, call your local emergency number "
+    "(999 in the UAE) or go to the nearest emergency department. I'm not able to assess "
+    "physical symptoms, and this needs a medical professional right away.",
+)

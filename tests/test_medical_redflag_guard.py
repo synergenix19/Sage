@@ -62,3 +62,26 @@ async def test_safety_check_no_medical_flag_on_benign():
     from sage_poc.nodes.safety_check import safety_check_node
     out = await safety_check_node(_state("my heart is racing from the panic"))
     assert out["medical_flags"] == []
+
+
+@pytest.mark.asyncio
+async def test_medical_response_returns_referral_and_gate_path():
+    from sage_poc.nodes.medical_response import medical_response_node
+    out = await medical_response_node(_state("x") | {"medical_flags": ["crushing"]})
+    assert out["gate_path"] == "medical"
+    assert out["response"] and "medical" in out["response"].lower()
+
+
+@pytest.mark.asyncio
+async def test_medical_response_writes_its_own_audit(monkeypatch):
+    # Defect 3: this path bypasses output_gate, so it MUST write its own audit.
+    import asyncio
+    import sage_poc.nodes.medical_response as mr
+    captured = {}
+    async def _fake_audit(rec): captured.update(rec)
+    monkeypatch.setattr(mr, "write_session_audit", _fake_audit)
+    await mr.medical_response_node(_state("x") | {"medical_flags": ["crushing"]})
+    await asyncio.sleep(0)  # let the fire-and-forget audit task run
+    assert captured.get("gate_path") == "medical"
+    assert captured.get("medical_flags") == ["crushing"]
+    assert "latency_ms" in captured and "path" in captured
