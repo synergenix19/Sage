@@ -11,7 +11,7 @@
 ## 1. box_breathing — CITED PROPOSAL ⭐ (highest live impact: most-routed acute skill, reachable now)
 **Evidence (model-facing, verbatim):** *"Do NOT advance to exhale if the user signals they are hyperventilating, cannot control their breath, or has flagged respiratory conditions, asthma, or a heart condition. Offer to skip the hold and go straight to a slow natural exhale."*
 **Proposed user-facing caveat:** *"Before we start — if you have asthma, a breathing condition, or a heart condition, we'll keep this gentle and skip the breath-hold. Just let me know and we'll adjust."*
-☐ tick  ☐ edit: ____________  ☐ reject  ☐ none-needed
+☑ **APPROVED — clinician yes, relayed by PO 2026-07-14; text as proposed, VERBATIM.** This is the primary sign-off record; box_breathing `mandatory_caveat` is set to this exact string and shipped under the safety exception (Ring-1 + 2.2 + firing test + driven transcript).
 
 ## 2. progressive_muscle_relaxation — CITED PROPOSAL
 **Evidence (verbatim):** *"Do NOT instruct forceful tensing if the user discloses injury, significant chronic pain, arthritis, deep vein conditions, or recent surgery… Offer a modified approach: passive awareness… (awareness-only PMR)."*
