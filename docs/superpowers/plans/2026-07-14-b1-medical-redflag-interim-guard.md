@@ -12,6 +12,7 @@
 
 ## Global Constraints
 
+- **Doc terminology (name it correctly for clinical lead):** the red-flag descriptor list is the **Universal red-flag override** in the **1a–1c preamble** (doc line 10: *"don't let a 'mild' or 'moderate' classification… suppress it"*, plus tier screens at 58/92/131). **Section 6** is the per-category *"Guard — Do Not Present This Pathway If"* block the override routes **into** — a different thing. Earlier drafts and PR #314 used "§1" as loose shorthand for the override block; the trigger set this guard fires on is verbatim from the **Universal red-flag override**, and Q1-triggers asks clinical lead to ratify **that** block by name.
 - **This is an INTERIM harm floor, not the fix.** Poor recall against paraphrase is expected and must be stated as such in code comments — never sold as coverage. It does **not** reduce, defer, or gate-relax the full E3 detector (separate plan, `≥95%` per-class recall on `medical_e3_recall.json`).
 - **NOT frozen / additive.** Touches no signed clinical field, does not modify `acute_direct_entry`. Trips no `signed_clinical_fields.json` check. Live-shippable pre-Gitex.
 - **Precedence is crisis > medical > safe.** A cardiac red flag that co-occurs with suicidal intent routes to **crisis**, never medical.
@@ -345,7 +346,9 @@ In `src/sage_poc/config.py` (near the other feature flags, ~L240):
 # controls are green (see plan Task 6). Not frozen; touches no signed field.
 MEDICAL_REDFLAG_GUARD_ENABLED: bool = os.getenv("SAGE_MEDICAL_REDFLAG_GUARD", "false").lower() == "true"
 
-# Q1-terminal default (doc L1477): lead with in-person/medical evaluation; 999/ER as escalation.
+# Q1-terminal default: the MEDICAL guard wording (doc lines 62/81/131 / Section 6):
+# "prompt to seek in-person/medical/emergency evaluation; treat as a possible medical
+# emergency." NOT doc L1477 (that is the psychiatric-crisis line rule — a different guard).
 # Single blocking parameter — stubbed here pending clinician ratification.
 MEDICAL_REFERRAL_TEXT: str = os.getenv(
     "SAGE_MEDICAL_REFERRAL_TEXT",
