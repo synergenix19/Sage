@@ -3,7 +3,7 @@
 Pinned VERBATIM at Node 8 (output_gate), mirroring the mood-anchor pin: un-paraphrasable +
 audit-visible. Fires ONLY on the ocd_erp directive in English; byte-identical everywhere else.
 """
-from sage_poc.nodes.output_gate import _pin_ocd_referral, _OCD_ERP_REFERRAL_EN
+from sage_poc.nodes.output_gate import _pin_ocd_referral, _OCD_ERP_REFERRAL_EN, _OCD_ERP_REFERRAL_AR
 
 _REPLY = "Those thoughts sound really distressing. Have you been able to talk to anyone about them?"
 
@@ -21,15 +21,28 @@ def test_byte_identical_without_directive():
     assert _pin_ocd_referral(_REPLY, "something_else", "en") == _REPLY
 
 
-def test_no_append_on_arabic():
-    # EN only — AR referral is on the AR track, not shipped silently
-    assert _pin_ocd_referral(_REPLY, "ocd_erp", "ar") == _REPLY
+def test_appends_on_ocd_veto_arabic():
+    # #4-AR: Arabic vetoed-OCD abstain must ALSO get the ERP referral, natively authored (not
+    # translate-out), appended verbatim — mirroring the EN pin. Arabic users are not left without
+    # the §1d signpost.
+    ar_reply = "هذي الأفكار تبدو مزعجة فعلاً. تقدر تحكي لي أكثر عنها؟"
+    out = _pin_ocd_referral(ar_reply, "ocd_erp", "ar")
+    assert out.endswith(_OCD_ERP_REFERRAL_AR), "must append the pinned AR ERP referral verbatim"
+    assert ar_reply in out, "must preserve the composed Arabic reply, then append"
+    assert out != ar_reply, "AR must no longer be a no-op (the #4-AR gap is closed)"
 
 
-def test_idempotent_when_already_present():
+def test_idempotent_when_already_present_en():
     once = _pin_ocd_referral(_REPLY, "ocd_erp", "en")
     twice = _pin_ocd_referral(once, "ocd_erp", "en")
-    assert once == twice, "must not double-append if the referral is already present"
+    assert once == twice, "must not double-append if the EN referral is already present"
+
+
+def test_idempotent_when_already_present_ar():
+    ar_reply = "هذي الأفكار تبدو مزعجة فعلاً."
+    once = _pin_ocd_referral(ar_reply, "ocd_erp", "ar")
+    twice = _pin_ocd_referral(once, "ocd_erp", "ar")
+    assert once == twice, "must not double-append the AR referral"
 
 
 def test_verbatim_wording_names_erp():
