@@ -29,7 +29,8 @@ async def test_empty_response_on_monitoring_turn_resurfaces_resources():
     state = make_state(response_en="", crisis_state="monitoring")
     with patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()):
         result = await output_gate_node(state)
-    assert "800 46342" in result["response"], "monitoring blank must re-surface the crisis line"
+    # H4 adopted (all gates cleared 2026-07-10): National line 800-4673 (supersedes MoHAP 800 46342).
+    assert "800-4673" in result["response"], "monitoring blank must re-surface the crisis line"
     assert "999" in result["response"]
 
 

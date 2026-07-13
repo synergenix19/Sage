@@ -21,7 +21,7 @@
     "tier_fields_present": []
   },
   "i have a plan to hurt myself": {
-    "canned_copy": "I'm really concerned about what you've shared. Please reach out for support now. In the UAE: MoHAP Counselling Line 800 46342 (free, 24/7), or emergency services: 999. You don't have to face this alone.",
+    "canned_copy": "I'm really concerned about what you've shared. Please reach out for support now. In the UAE: National Mental Support Line 800-HOPE (800-4673) (free, 8am–8pm daily), or emergency services: 999. You don't have to face this alone.",
     "crisis_flags": [
       "si_explicit"
     ],
@@ -32,7 +32,7 @@
     "tier_fields_present": []
   },
   "i want to end my life tonight": {
-    "canned_copy": "I'm really concerned about what you've shared. Please reach out for support now. In the UAE: MoHAP Counselling Line 800 46342 (free, 24/7), or emergency services: 999. You don't have to face this alone.",
+    "canned_copy": "I'm really concerned about what you've shared. Please reach out for support now. In the UAE: National Mental Support Line 800-HOPE (800-4673) (free, 8am–8pm daily), or emergency services: 999. You don't have to face this alone.",
     "crisis_flags": [
       "si_explicit"
     ],
@@ -43,7 +43,7 @@
     "tier_fields_present": []
   },
   "i want to kill myself": {
-    "canned_copy": "I'm really concerned about what you've shared. Please reach out for support now. In the UAE: MoHAP Counselling Line 800 46342 (free, 24/7), or emergency services: 999. You don't have to face this alone.",
+    "canned_copy": "I'm really concerned about what you've shared. Please reach out for support now. In the UAE: National Mental Support Line 800-HOPE (800-4673) (free, 8am–8pm daily), or emergency services: 999. You don't have to face this alone.",
     "crisis_flags": [
       "si_explicit"
     ],
@@ -68,7 +68,7 @@
     "tier_fields_present": []
   },
   "أنا i just want to die": {
-    "canned_copy": "أنا مهتم جداً بسلامتك وبما شاركته معي. أرجوك تواصل مع خط وزارة الصحة للدعم النفسي الآن: 800 46342 (مجاني، 24/7)، أو رقم الطوارئ: 999. أنت لست وحدك.",
+    "canned_copy": "أنا مهتم جداً بسلامتك وبما شاركته معي. أرجوك تواصل مع خط الدعم النفسي الوطني الآن: 800-HOPE (800-4673) (مجاني، 8am–8pm daily)، أو رقم الطوارئ: 999. أنت لست وحدك.",
     "crisis_flags": [
       "si_explicit"
     ],
@@ -79,7 +79,7 @@
     "tier_fields_present": []
   },
   "أنا أريد أن أموت": {
-    "canned_copy": "أنا مهتم جداً بسلامتك وبما شاركته معي. أرجوك تواصل مع خط وزارة الصحة للدعم النفسي الآن: 800 46342 (مجاني، 24/7)، أو رقم الطوارئ: 999. أنت لست وحدك.",
+    "canned_copy": "أنا مهتم جداً بسلامتك وبما شاركته معي. أرجوك تواصل مع خط الدعم النفسي الوطني الآن: 800-HOPE (800-4673) (مجاني، 8am–8pm daily)، أو رقم الطوارئ: 999. أنت لست وحدك.",
     "crisis_flags": [
       "si_explicit"
     ],

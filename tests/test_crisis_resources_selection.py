@@ -1,9 +1,9 @@
-"""H4 structure — CRISIS_RESOURCES + select_crisis_resources lead-logic (BOT BEHAVIOUR L2146).
+"""H4 — CRISIS_RESOURCES + select_crisis_resources lead-logic (BOT BEHAVIOUR L2146).
 
-Value-preserving: CRISIS_CONFIG stays byte-identical (derived from the primary/emergency entries),
-so the ~7 consumers + byte-identical/conformance tests are unchanged. The lead-logic + hours-
-awareness is exercised against INJECTED doc-like data (national 8am-8pm + a 24/7 alternative), so
-the out-of-hours branch is tested WITHOUT changing the live, clinician-gated composition.
+The doc's verified 6-entry directory is now LIVE (all gates cleared 2026-07-10). CRISIS_CONFIG is
+DERIVED from the primary national + emergency entries. The lead-logic + hours-awareness is exercised
+both against INJECTED doc-like data (below) and, in the safety property test, against the LIVE
+CRISIS_RESOURCES across all 24 hours ("no stranded 02:00 user").
 """
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -41,9 +41,42 @@ def test_always_includes_a_24_7_option():
         assert any("24/7" in r["hours"] for r in out), f"no 24/7 option present at hour {hour}"
 
 
-def test_crisis_config_shim_is_value_preserving():
-    # The refactor must NOT change live values (GL-1 verified-final set); composition is gated.
+def test_crisis_config_shim_reflects_adopted_composition():
+    # H4 value adoption (all gates cleared 2026-07-10): CRISIS_CONFIG is DERIVED from the doc's
+    # verified 6-entry directory. The primary national line leads the derived single-number shim;
+    # the emergency number is 999. If any value changes, change CRISIS_RESOURCES (the one source).
     assert CRISIS_CONFIG == {
-        "number": "800 46342", "label": "MoHAP Counselling Line", "hours": "24/7", "emergency": "999",
+        "number": "800-HOPE (800-4673)",
+        "label": "National Mental Support Line",
+        "hours": "8am–8pm daily",
+        "emergency": "999",
     }
-    assert {r["scope"] for r in CRISIS_RESOURCES} == {"national", "emergency"}
+    # The full dial-test-confirmed directory: national + emergency + regional (SAKINA, DHA) + youth.
+    assert {r["scope"] for r in CRISIS_RESOURCES} == {"national", "emergency", "regional", "youth"}
+    assert len(CRISIS_RESOURCES) == 6
+    numbers = [r["number"] for r in CRISIS_RESOURCES]
+    assert "800-SAKINA (800-725462)" in numbers  # Abu Dhabi 24/7
+    assert "800 111" in numbers                   # DHA 24/7
+    assert "800 51115" in numbers                 # Sharjah youth
+
+
+def test_a_dialable_24_7_line_is_always_in_the_top_set_every_hour():
+    """SAFETY PROPERTY — "no stranded 02:00 user".
+
+    The primary national line is 8am-8pm; adopting it as the derived single number means the card
+    must NEVER present a top set whose only options are closed lines. For EVERY hour of the day
+    (Asia/Dubai) AND both immediate-danger states, the top set (first 3) served from the LIVE
+    CRISIS_RESOURCES must contain at least one dialable 24/7 resource (999 is always 24/7; SAKINA
+    800-725462 and DHA 800 111 are 24/7). Property-style over all 24 hours, not spot checks.
+    """
+    for hour in range(24):
+        now = datetime(2026, 7, 13, hour, 0, tzinfo=_DUBAI)
+        for immediate_danger in (True, False):
+            out = select_crisis_resources(immediate_danger=immediate_danger, now=now)
+            top = out[:3]
+            has_24_7 = [r for r in top if "24/7" in r.get("hours", "") and r.get("number")]
+            assert has_24_7, (
+                f"hour={hour} immediate_danger={immediate_danger}: top set {[r['number'] for r in top]} "
+                "has no dialable 24/7 line — a user in crisis at this hour could be stranded with only "
+                "a closed helpline."
+            )

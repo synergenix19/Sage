@@ -7,7 +7,11 @@ def test_psychotic_referral_skill_loads():
     assert len(skill.steps) == 1
     step = skill.steps[0]
     combined = (step.technique_description or "") + (step.goal or "") + " ".join(step.examples or [])
-    assert "800 46342" in combined, "Helpline number 800 46342 must appear verbatim"
+    # H4 adopted (all gates cleared 2026-07-10): National line 800-4673 (supersedes MoHAP 800 46342).
+    # NOTE: this pins only the NUMBER. The surrounding copy still hardcodes "MoHAP Counselling Line"
+    # and "available 24 hours a day" / AR "متاح كل وقت" — now FALSE for the 8am-8pm National line.
+    # FLAGGED for clinician remediation (out of H4 value-adoption scope). See PR #288 body.
+    assert "800-4673" in combined, "Helpline number 800-4673 must appear verbatim"
     en_examples = [e for e in (step.examples or []) if not any('؀' <= c <= 'ۿ' for c in e)]
     ar_examples = [e for e in (step.examples or []) if any('؀' <= c <= 'ۿ' for c in e)]
     assert len(en_examples) >= 3, f"Need ≥3 EN examples, got {len(en_examples)}"

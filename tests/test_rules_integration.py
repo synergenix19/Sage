@@ -105,7 +105,8 @@ def test_crisis_content_en_returns_uae_number():
     result = rules_engine.evaluate("crisis_content", {"language": "en", "crisis_level": "acute"})
     assert result.fired
     text = result.fired[0].action["response_text"]
-    assert "800" in text and "46342" in text
+    # H4 adopted (all gates cleared 2026-07-10): National line 800-4673 (supersedes MoHAP 800 46342).
+    assert "800" in text and "4673" in text
 
 
 def test_crisis_content_ar_returns_arabic_text():
