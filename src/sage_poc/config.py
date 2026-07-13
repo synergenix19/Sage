@@ -28,20 +28,28 @@ AUDIT_LOG_ENABLED = os.getenv("SAGE_AUDIT_LOG", "true").lower() == "true"
 # follows — a true single-config edit. Defense in depth: the boot guard (server.py lifespan) fails
 # the app if any {{crisis_*}} stays unresolved, and the conformance test asserts the resolved output
 # carries this value. Frontend mirror: cdai apps/web/lib/crisis-config.ts (cross-stack test).
-# ✅ VALUES VERIFIED FINAL (PO, 2026-07-08: "I have verified this number" + "24/7 is also verified"):
-# `number` = "800 46342" confirmed (G8 transcription question 46342-vs-4673 RESOLVED by
-# verification), `hours` = "24/7" confirmed. If a value ever changes, change this ONE dict.
-# CRISIS_RESOURCES — structured resource directory (H4, 2026-07-10). CRISIS_CONFIG below is DERIVED
-# from this list, so every existing consumer + the byte-identical/conformance tests keep working
-# unchanged. STRUCTURE ONLY: these are the current VERIFIED-FINAL values (MoHAP + 999). Adopting the
-# doc's 5-entry composition (National 800-4673 8am-8pm / SAKINA 24/7 / DHA 24/7 / Sharjah / ER) is a
-# CLINICIAN-GATED data edit: it REVERSES GL-1, and needs verify-before-launch (BOT BEHAVIOUR L2130) +
-# clinical sign-off + the crisis-freeze lift. Do NOT change these values here without that ruling.
-# select_crisis_resources() already implements the doc lead-logic + always-pair-24/7 so the card is
-# correct the moment the composition lands.
+# CRISIS_RESOURCES — structured resource directory (H4). CRISIS_CONFIG below is DERIVED from this
+# list (primary national + emergency entries), so every existing consumer keeps working unchanged.
+# ✅ VALUES ADOPTED 2026-07-10 (ALL GATES CLEARED): the doc's verified composition is now LIVE.
+#   - Dial-test confirmed all 5 numbers 2026-07-10; GL-1 reversal confirmed; crisis-freeze lifted;
+#     clinical sign-off (Vee). The prior "800 46342 / 24/7" verified-final set is SUPERSEDED — the
+#     dial-test is the primary record and it resolved the 46342-vs-4673 question in favour of the
+#     National Mental Support Line (800-HOPE / 800-4673, 8am-8pm daily).
+#   - CRISIS_CONFIG.number is therefore now the NATIONAL line (8am-8pm), NOT a 24/7 number. This is
+#     SAFE ONLY because the frontend multi-resource crisis card (coupled PR) always renders a 24/7
+#     line (999 + SAKINA + DHA) alongside it; select_crisis_resources() below guarantees a 24/7
+#     option is present in the top set at every hour (property-tested). Do not surface the single
+#     derived number alone on any always-open surface.
+#   - If a value ever changes, change this ONE list; every surface follows.
+# select_crisis_resources() implements the doc lead-logic + always-pair-24/7 (never leads with a
+# closed line, always includes a dialable 24/7 option regardless of the clock).
 CRISIS_RESOURCES = [
-    {"name": "MoHAP Counselling Line", "number": "800 46342", "hours": "24/7", "scope": "national"},
+    {"name": "National Mental Support Line", "number": "800-HOPE (800-4673)", "hours": "8am–8pm daily", "scope": "national"},
     {"name": "Emergency Services", "number": "999", "hours": "24/7", "scope": "emergency"},
+    {"name": "Abu Dhabi 24/7 crisis line", "number": "800-SAKINA (800-725462)", "hours": "24/7", "scope": "regional"},
+    {"name": "Dubai Health Authority helpline", "number": "800 111", "hours": "24/7", "scope": "regional"},
+    {"name": "Sharjah Child & Youth Mental Health Helpline", "number": "800 51115", "hours": "9am–5pm Mon–Fri", "scope": "youth"},
+    {"name": "Nearest hospital emergency department", "number": "999 / nearest ER", "hours": "immediate danger or outside helpline hours", "scope": "emergency"},
 ]
 
 
