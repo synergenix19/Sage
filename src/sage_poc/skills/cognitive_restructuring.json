@@ -150,9 +150,9 @@
   ],
   "escalation_matrix": {
     "L1": "Exit skill gracefully if user requests to stop. No persuasion.",
-    "L2": "Add clinician_review flag if trauma disclosure or persistent hopelessness about thinking change is detected.",
-    "L3": "Exit immediately to crisis protocol if any crisis signal is detected. Cognitive restructuring is contraindicated during active crisis.",
-    "L4": "Trigger human handoff if 3 or more crises detected in the last 30 days, or if user explicitly requests a human clinician."
+    "L2": "[STORED_ONLY — enforced by output_gate._log_clinical_review -> clinician_review_queue, not by this string] Documented clinical intent (not runtime-enforced): Add clinician_review flag if trauma disclosure or persistent hopelessness about thinking change is detected.",
+    "L3": "[STORED_ONLY — enforced by the safety graph (_route_after_safety -> _crisis_response_node), not by this string] Documented clinical intent (not runtime-enforced): Exit immediately to crisis protocol if any crisis signal is detected. Cognitive restructuring is contraindicated during active crisis.",
+    "L4": "[NOT_IMPLEMENTED — human-handoff automation deferred per 2026-07-10 decision record; no live call routing in POC; OR-7 response floor covers explicit human requests; 3+ crises/30d trigger deferred to the D4(a) exposure gate] Documented clinical intent (not runtime-enforced): Trigger human handoff if 3 or more crises detected in the last 30 days, or if user explicitly requests a human clinician."
   },
   "cultural_overrides": {
     "collective_thought_framing": "In Gulf Arab culture, unhelpful thoughts often concern family honour, collective obligation, and social standing rather than individual achievement. Do not frame cognitive restructuring as individual self-improvement. The pattern examination should acknowledge collective and relational dimensions. A thought like 'I am failing my family' may be partly realistic and partly distorted, hold both.",
