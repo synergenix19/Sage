@@ -26,9 +26,15 @@ describe('CRISIS_RESOURCES — array shape + internal consistency', () => {
     }
   })
 
-  it('every tel: URI dials exactly the displayed number (guards a stale/mismatched dial target)', () => {
+  it('every tel: URI is a dialable target derived from the displayed number (guards a stale/mismatched dial target)', () => {
     for (const r of CRISIS_RESOURCES) {
-      expect(r.tel).toBe('tel:' + r.number.replace(/\s+/g, '-'))
+      expect(r.tel.startsWith('tel:')).toBe(true)
+      const telDigits = r.tel.replace(/^tel:/, '').replace(/\D/g, '')
+      const numberDigits = r.number.replace(/\D/g, '')
+      expect(telDigits.length).toBeGreaterThan(0)
+      // Vanity numbers ("800-HOPE (800-4673)") and multi-target strings ("999 / nearest ER") dial a
+      // digit run that appears within the displayed number's digits.
+      expect(numberDigits).toContain(telDigits)
     }
   })
 
@@ -37,19 +43,25 @@ describe('CRISIS_RESOURCES — array shape + internal consistency', () => {
     expect(CRISIS_RESOURCES.some((r) => is247(r))).toBe(true)
   })
 
-  it('contains the current verified values (MoHAP national + 999 emergency) — Phase 1 unchanged', () => {
+  it('contains the doc composition (National 8am-8pm + 999 + a distinct 24/7 line) — H4 value flip', () => {
     const national = CRISIS_RESOURCES.find((r) => r.scope === 'national')
     const emergency = CRISIS_RESOURCES.find((r) => r.scope === 'emergency')
-    expect(national?.number).toBe('800 46342')
-    expect(national?.hours).toBe('24/7')
+    expect(national?.number).toBe('800-HOPE (800-4673)')
+    expect(national?.hours).toBe('8am–8pm daily')
     expect(emergency?.number).toBe('999')
+    // The National line is 8am-8pm (NOT 24/7), so a DISTINCT 24/7 support line must also exist so
+    // the top-3 never presents the National line as the lone / 24/7 option.
+    expect(CRISIS_RESOURCES.some((r) => r.scope !== 'emergency' && is247(r))).toBe(true)
+    expect(CRISIS_RESOURCES.length).toBeGreaterThanOrEqual(5)
   })
 })
 
 describe('CRISIS_CONFIG — derived back-compat object', () => {
   it('derives from the national + emergency entries and stays tel-coherent', () => {
-    expect(CRISIS_CONFIG.tel).toBe('tel:' + CRISIS_CONFIG.number.replace(/\s+/g, '-'))
-    expect(CRISIS_CONFIG.emergencyTel).toBe('tel:' + CRISIS_CONFIG.emergency.replace(/\s+/g, '-'))
+    const telDigits = CRISIS_CONFIG.tel.replace(/^tel:/, '').replace(/\D/g, '')
+    expect(CRISIS_CONFIG.number.replace(/\D/g, '')).toContain(telDigits)
+    const emTelDigits = CRISIS_CONFIG.emergencyTel.replace(/^tel:/, '').replace(/\D/g, '')
+    expect(CRISIS_CONFIG.emergency.replace(/\D/g, '')).toContain(emTelDigits)
     const national = CRISIS_RESOURCES.find((r) => r.scope === 'national')
     expect(CRISIS_CONFIG.number).toBe(national?.number)
     expect(CRISIS_CONFIG.labelEn).toBe(national?.labelEn)
@@ -107,11 +119,14 @@ describe('leadingResources — top-3 hard safety invariant', () => {
     }
   })
 
-  it('on the current 2-entry production array, both entries are inline (nothing hidden)', () => {
+  it('on the live doc composition, the top-3 always carries 999 + a 24/7 line; the rest go behind the expander', () => {
     const ordered = selectCrisisResources()
     const top = leadingResources(ordered, 3)
-    expect(top.length).toBe(CRISIS_RESOURCES.length)
-    expect(top.some((r) => r.scope === 'emergency')).toBe(true)
-    expect(top.some((r) => r.scope === 'national')).toBe(true)
+    expect(top.length).toBeLessThanOrEqual(3)
+    expect(top.some((r) => r.scope === 'emergency')).toBe(true) // 999 inline
+    expect(top.some((r) => is247(r))).toBe(true) // a line that answers at 3am inline
+    // The doc composition has >3 entries, so some sit behind "More options" (never 999 / a 24/7).
+    expect(CRISIS_RESOURCES.length).toBeGreaterThan(3)
+    expect(ordered.length).toBe(CRISIS_RESOURCES.length)
   })
 })

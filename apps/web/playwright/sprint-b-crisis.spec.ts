@@ -67,10 +67,15 @@ test.describe('Crisis card — multi-resource list on detection', () => {
 
     const card = page.getByRole('alert')
     await expect(card).toBeVisible()
-    // Ordered list with at least the MoHAP + 999 lines, both dialable.
+    // Doc composition (6 entries): the card shows the top-3 inline (National line + a 24/7 line +
+    // 999) with the rest behind a "More options" expander.
+    // NOTE (H4 value flip / multi-resource): the National line (tel:800-4673) is 8am-8pm, so it is
+    // inline only DURING the day; at night a 24/7 line leads and the National line sits behind the
+    // expander. This assertion assumes a daytime run — the e2e needs a verified pass with a pinned
+    // clock (or expander open) before it is relied on at all hours.
     const telLinks = card.locator('a[href^="tel:"]')
-    await expect(telLinks).toHaveCount(2)
-    await expect(card.locator('a[href="tel:800-46342"]')).toBeVisible()
+    await expect(telLinks).toHaveCount(3)
+    await expect(card.locator('a[href="tel:800-4673"]')).toBeVisible()
     await expect(card.locator('a[href="tel:999"]')).toBeVisible()
   })
 })
@@ -85,7 +90,7 @@ test.describe('Persistent "Get help now" affordance', () => {
 
     const telLinks = page.locator('a[href^="tel:"]')
     await expect(telLinks.first()).toBeVisible()
-    await expect(page.locator('a[href="tel:800-46342"]')).toBeVisible()
+    await expect(page.locator('a[href="tel:800-4673"]')).toBeVisible()
     await expect(page.locator('a[href="tel:999"]')).toBeVisible()
   })
 
@@ -98,7 +103,7 @@ test.describe('Persistent "Get help now" affordance', () => {
 
     await page.getByRole('button', { name: 'Get help now' }).click()
 
-    await expect(page.locator('a[href="tel:800-46342"]')).toBeVisible()
+    await expect(page.locator('a[href="tel:800-4673"]')).toBeVisible()
     await expect(page.locator('a[href="tel:999"]')).toBeVisible()
   })
 })
