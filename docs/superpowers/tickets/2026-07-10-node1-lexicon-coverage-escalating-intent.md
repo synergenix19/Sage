@@ -44,11 +44,15 @@ this in front of the clinician as the disposition:
 
 ### The MARBERT price (say this explicitly to the PO)
 The cross-turn concession makes the **MARBERT bilingual eval the critical safety measurement**:
-escalating-intent cross-turn recall now joins **passive-SI** and **negation** in the unmeasured
-column. Per v7's experiment plan, **Exp 4.2 (MARBERT FT + eval)** is scheduled work — this is the
-**THIRD safety-recall class** to land on it. Three classes resting on one unmeasured model is the
-strongest case yet for **pulling Exp 4.2 forward on the calendar**; recommend saying so when this
-goes to the PO.
+escalating-intent cross-turn recall joins **passive-SI**, **negation**, and — as of the 2026-07-13
+harm-to-others incident — **harm-to-others** in the unmeasured column. Per v7's experiment plan,
+**Exp 4.2 (MARBERT FT + eval)** is scheduled work — this is now the **FOURTH safety-recall class**
+to land on it. **Sharpest exhibit: the 2026-07-13 incident** (`2026-07-13-harm-to-others-clobber-incident.md`)
+— for ~3d 15½h the deterministic harm-to-others backstop was silently reverted in prod, so harm-to-others
+detection rested **entirely** on the unmeasured LLM/MARBERT layer, by accident, undetected — and the
+exposure over that window is **un-auditable** because a disarmed flag leaves no trail (§7). Four classes
+resting on one unmeasured model, one of them having been briefly the *only* layer without our knowing,
+is the strongest case yet for **pulling Exp 4.2 forward**; say so to the PO.
 
 → **clinician queue item; ruling (c) split / (a) all-deterministic / (b) all-semantic / other.**
 Reference the vote alongside HG-1 + the trim confirm + the T4 content if the sitting has room.
