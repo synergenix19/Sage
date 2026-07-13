@@ -44,7 +44,7 @@
         "It sounds like things are a little steadier now. Is there anything you would find helpful to talk through?",
         "I am glad you are feeling calmer. If things get harder again, I am right here, and support is also available at 800-HOPE (800-4673).",
         "You do not have to have everything figured out right now. I am here whenever you want to talk.",
-        "يبدو إنك أحسن شوي الحين. لو احتجت تتكلم أي وقت، أنا هني. وفي دعم دايم على 800-HOPE (800-4673)."
+        "يبدو إنك أحسن شوي الحين. لو احتجت تتكلم أي وقت، أنا هني. وفي دعم على 800-HOPE (800-4673) (8am–8pm daily)، ولحالات الطوارئ 999."
       ]
     }
   ],
@@ -79,7 +79,7 @@
         "step": "bridge_or_close"
       },
       "action": "complete",
-      "instruction": "User is stable and the check-in is complete. Close warmly: affirm that reaching out took courage, remind them support is always available at 800-HOPE (800-4673), and leave the door explicitly open for future conversations. Do not introduce new content.",
+      "instruction": "User is stable and the check-in is complete. Close warmly: affirm that reaching out took courage, remind them support is available at 800-HOPE (800-4673) (8am–8pm daily) and emergency services 999 outside those hours, and leave the door explicitly open for future conversations. Do not introduce new content.",
       "next_step_id": "bridge_or_close"
     },
     {
@@ -130,7 +130,7 @@
     }
   ],
   "escalation_matrix": {
-    "L1": "Exit the skill immediately and warmly when the user asks to stop. Do all three without exception: (1) mention the crisis support line before closing, for example: 'If things ever feel too heavy, you can call or WhatsApp 800-HOPE (800-4673), it is free and available any time.' (2) Leave the door open explicitly, for example: 'You can come back whenever you are ready, I will be here.' (3) Do NOT assume they are better because they asked to stop. A stop request is not a signal of resolution.",
+    "L1": "Exit the skill immediately and warmly when the user asks to stop. Do all three without exception: (1) mention the crisis support line before closing, for example: 'If things ever feel too heavy, you can call or WhatsApp 800-HOPE (800-4673), it is free (8am–8pm daily); outside those hours, call emergency services 999.' (2) Leave the door open explicitly, for example: 'You can come back whenever you are ready, I will be here.' (3) Do NOT assume they are better because they asked to stop. A stop request is not a signal of resolution.",
     "L2": "Add clinician_review flag if trauma or substance mention detected",
     "L3": "Exit immediately to crisis protocol if any new crisis signal",
     "L4": "Trigger human handoff if 3 or more crises detected in last 30 days"
