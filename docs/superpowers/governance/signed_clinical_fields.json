@@ -1,0 +1,41 @@
+{
+  "_meta": {
+    "purpose": "Pins each clinician-signed clinical field to its content hash + sign-off reference. scripts/check_signed_fields.py fails CI if a field's current value no longer matches its pinned hash, so a signed clinical field cannot change and merge without the manifest being updated (new hash + sign-off) in the same PR. Forcing function born from the 2026-07-10 trim-shipped-unconfirmed miss.",
+    "how_to_update": "When a signed field legitimately changes: 1) get the clinician sign-off, 2) run `python scripts/check_signed_fields.py --generate` to read the new hash, 3) update sha256 + signed_by/signed_date/signoff here, in the SAME PR as the field change. Never update the hash without a real sign-off reference.",
+    "extensible": "Add fields as they acquire sign-off records. Known candidates not yet in v1: skill target_presentations (unaudited-keyword memory), KB article .content (byte-for-byte), P5 containment template (on T4 sign-off), SK-EN-HTO-001 patterns (activation state needs reconciliation vs the crisisfix stash before pinning)."
+  },
+  "fields": [
+    {
+      "id": "interpersonal_effectiveness.semantic_description",
+      "selector": "json:src/sage_poc/skills/interpersonal_effectiveness.json:semantic_description",
+      "sha256": "b8018deffbe68b8e1487396bceefa6c4f159212ef34728fcf01e9df94defbb0d",
+      "signed_by": "Vee (clinical lead)",
+      "signed_date": "2026-07-10",
+      "signoff": "clinician-approval-queue item 5 (591 trim confirmed vs 762 side-by-side)"
+    },
+    {
+      "id": "ocd_erp_referral_en",
+      "selector": "pyconst:sage_poc.nodes.output_gate:_OCD_ERP_REFERRAL_EN",
+      "sha256": "fbf3eb6bf1606221e771849c0521e1ca2a4cdcde400cc81c0bcba39b9ed32ca7",
+      "signed_by": "Vee (clinical lead)",
+      "signed_date": "2026-07-09",
+      "signoff": "clinician-approval-queue item 3 (#218 ERP referral copy, incl. ERP-modality enrichment)"
+    },
+    {
+      "id": "crisis_helpline_number",
+      "selector": "pyconst:sage_poc.config:CRISIS_CONFIG:number",
+      "sha256": "b23c3f56ed12639469f19291d16094a14e972b8e397a61d15bd84e2975998c4f",
+      "signed_by": "PO (product owner)",
+      "signed_date": "2026-07-08",
+      "signoff": "GL-1 adjudication: '800 46342' verified (46342-vs-4673 resolved); config.py is the single source"
+    },
+    {
+      "id": "crisis_helpline_hours",
+      "selector": "pyconst:sage_poc.config:CRISIS_CONFIG:hours",
+      "sha256": "0464c3f1419f3d9214563b13f9590490b34eabe457faf3e701bb3b2e731c43a4",
+      "signed_by": "PO (product owner)",
+      "signed_date": "2026-07-08",
+      "signoff": "GL-1 adjudication: '24/7' verified"
+    }
+  ]
+}
