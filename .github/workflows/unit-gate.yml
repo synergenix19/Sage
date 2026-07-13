@@ -105,6 +105,7 @@ jobs:
             tests/test_phase2_t3_crisis_supremacy.py
             tests/test_deploy_build_lock.py
             tests/test_signed_fields_manifest.py
+            tests/test_harm_to_others_node1_backstop.py
           "
           # test_nodes.py added 2026-06-13: it carries the skill-selection acute-routing
           # assertions (which skill a presentation routes to) that previously sat OUTSIDE

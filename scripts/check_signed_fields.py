@@ -46,6 +46,22 @@ def _extract(selector: str) -> str:
         for sub in parts[2:]:
             val = val[sub]
         return json.dumps(val, ensure_ascii=False, sort_keys=True)
+    if kind == "saferule":
+        # saferule:<path>:<rule_id> -> the WHOLE rule object, found by rule_id (order-independent).
+        path, rule_id = rest.split(":", 1)
+        rules = json.loads((_ROOT / path).read_text(encoding="utf-8"))["rules"]
+        rule = next((r for r in rules if r.get("rule_id") == rule_id), None)
+        if rule is None:
+            raise KeyError(f"rule {rule_id} not found in {path}")
+        return json.dumps(rule, ensure_ascii=False, sort_keys=True)
+    if kind == "safeactive":
+        # safeactive:<path1,path2,...> -> the {rule_id: active} map across the safety rule files.
+        # Catches ANY active-flag flip (the #218 clobber class) or a new rule, on any file, in one pin.
+        amap = {}
+        for path in rest.split(","):
+            for r in json.loads((_ROOT / path.strip()).read_text(encoding="utf-8"))["rules"]:
+                amap[r["rule_id"]] = r.get("active")
+        return json.dumps(amap, ensure_ascii=False, sort_keys=True)
     raise ValueError(f"unknown selector kind: {kind!r}")
 
 
@@ -98,8 +114,11 @@ def files() -> int:
     out = set()
     for f in _load_manifest():
         kind, rest = f["selector"].split(":", 1)
-        if kind == "json":
+        if kind in ("json", "saferule"):
             out.add(rest.split(":", 1)[0])
+        elif kind == "safeactive":
+            for path in rest.split(","):
+                out.add(path.strip())
         elif kind == "pyconst":
             out.add("src/" + rest.split(":", 1)[0].replace(".", "/") + ".py")
     for p in sorted(out):
