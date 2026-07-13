@@ -19,13 +19,17 @@ function hoursLabel(resource: CrisisResource, isAr: boolean) {
 
 function CrisisResourceRow({ resource, isAr }: { resource: CrisisResource; isAr: boolean }) {
   const label = isAr ? resource.labelAr : resource.labelEn
+  // Calm, non-alarming palette (subtle like the Abby crisis modal): neutral card + charcoal CTA +
+  // muted-gray hours chip. Saturated crisis-red (var(--color-crisis)) is deliberately NOT used on the
+  // resource rows — a distressed user should not meet a wall of red. Red is reserved as a single
+  // accent on the pinned crisis-card's alert frame (crisis-card.tsx). Do not "restore" red here.
   return (
-    <li className="flex flex-col gap-2 rounded-lg border border-[var(--color-crisis)]/30 bg-[var(--color-surface)] p-3">
+    <li className="flex flex-col gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-medium text-[var(--color-text-primary)]" dir="auto">
           {label}
         </span>
-        <span className="shrink-0 rounded-full bg-[var(--color-crisis)]/10 px-2 py-0.5 text-xs font-medium text-[var(--color-crisis)]">
+        <span className="shrink-0 rounded-full bg-[var(--color-surface-muted)] px-2 py-0.5 text-xs font-medium text-[var(--color-text-secondary)]">
           {hoursLabel(resource, isAr)}
         </span>
       </div>
@@ -36,7 +40,7 @@ function CrisisResourceRow({ resource, isAr }: { resource: CrisisResource; isAr:
             ? `اتصل بـ ${resource.number} — ${resource.labelAr}`
             : `Call ${resource.number} — ${resource.labelEn}`
         }
-        className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-[var(--color-crisis)] px-4 py-2 text-sm font-medium text-white"
+        className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-[var(--color-text-primary)] px-4 py-2 text-sm font-medium text-white"
       >
         {isAr ? (
           <>
@@ -85,7 +89,7 @@ export function CrisisResourceList({
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="min-h-[44px] self-start text-sm font-medium text-[var(--color-crisis)] underline"
+          className="min-h-[44px] self-start text-sm font-medium text-[var(--color-text-secondary)] underline"
         >
           {isAr ? `خيارات أخرى (${more.length})` : `More options (${more.length})`}
         </button>
