@@ -554,20 +554,32 @@ async def _persist_session_summary(
         _log.warning("[output_gate] write_persisted_clinical_flags failed: %s", exc)
 
 
-def _pin_contraindication_caveat(response: str, caveat: str | None) -> str:
+def _pin_contraindication_caveat(
+    response: str, caveat: str | None, skill_id: str = "", step_id: str = ""
+) -> str:
     """SG-2 / Contraindication-Firing. Deliver a step's mandatory contraindication caveat VERBATIM at
     the gate, prepended ahead of any technique content — bypassing LLM discretion the same way
     scope_refusal does (Cardinal Rule: the LLM renders language, it does NOT decide whether safety
     copy fires). No-op when the executed step carries no caveat. Idempotent — won't double a caveat the
     LLM happened to surface. Runs on the English text before translate-out, so the Arabic render
-    inherits it (same placement discipline as question-discipline)."""
+    inherits it (same placement discipline as question-discipline).
+
+    Observability: emits a structured `sg2_caveat_delivery` log line recording WHICH path fired —
+    `llm_complied` (the LLM already surfaced the caveat, gate no-op) vs `gate_injected` (the gate
+    prepended it, bypassing the LLM). Queryable in prod for the gate-inject rate: a nonzero
+    gate-inject rate means the composer instruction isn't landing (tuning signal); a zero rate on a
+    skill known to fire means the backstop is untested in the wild. One field, free observability on
+    a brand-new safety mechanism."""
     if not caveat or not caveat.strip():
         return response
     caveat = caveat.strip()
     if not response or not response.strip():
+        _log.info("sg2_caveat_delivery path=%s skill=%s step=%s", "gate_injected", skill_id, step_id)
         return caveat
     if caveat[:40] in response:   # already surfaced — don't double it
+        _log.info("sg2_caveat_delivery path=%s skill=%s step=%s", "llm_complied", skill_id, step_id)
         return response
+    _log.info("sg2_caveat_delivery path=%s skill=%s step=%s", "gate_injected", skill_id, step_id)
     return f"{caveat} {response}"
 
 
@@ -808,7 +820,12 @@ async def output_gate_node(state: SageState) -> dict:
     # whether safety copy fires). Deliver the executed step's mandatory contraindication caveat
     # VERBATIM here, ahead of any technique content, bypassing LLM discretion. Runs on the English
     # text before translate-out so the Arabic render inherits it. No-op for every step without a caveat.
-    response_en = _pin_contraindication_caveat(response_en, state.get("step_mandatory_caveat"))
+    response_en = _pin_contraindication_caveat(
+        response_en,
+        state.get("step_mandatory_caveat"),
+        skill_id=state.get("active_skill_id") or state.get("completed_skill_id") or "",
+        step_id=state.get("executed_step_id") or "",
+    )
 
     if lang == "ar" and not _response_en_is_arabic:
         # §5 served-arm latency timer: brackets ONLY the translate-out operation (plus its
