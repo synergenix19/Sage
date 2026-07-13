@@ -31,6 +31,7 @@ from sage_poc.observability import stage_timer
 from sage_poc.rules import engine as rules_engine
 from sage_poc.nodes.post_crisis_classifier import evaluate_s7
 from sage_poc.safety.s3_semantic import check_s3, check_s3_bilingual, S3_THRESHOLD
+from sage_poc.safety.medical_redflag import detect_medical_redflag
 
 _log = logging.getLogger(__name__)
 
@@ -275,6 +276,15 @@ async def safety_check_node(state: SageState) -> dict:
         "clinical_flags": all_clinical,
     })
 
+    # B1 interim medical red-flag guard: English-only deterministic phrase match over
+    # the BOT BEHAVIOUR §1 emergency phrase list. Stopgap, not the full E3 detector.
+    # Uses the locally-computed message_en/raw (this turn's values), NOT state.get() —
+    # state["message_en"] is the incoming (previous-turn) value at this point in the node;
+    # the detector's own docstring documents Arabic reaching it only via the translation
+    # produced right here (L92-97), so reading the stale state value would silently break
+    # that one documented path for AR turns.
+    medical_flags = detect_medical_redflag(message_en, raw)
+
     return {
         **tier_update,
         **precedence_update,
@@ -282,6 +292,7 @@ async def safety_check_node(state: SageState) -> dict:
         "message_en": message_en,
         "is_safe": len(new_crisis_flags) == 0,
         "crisis_flags": new_crisis_flags,
+        "medical_flags": medical_flags,
         "s3_score": s3_score,  # advisory; recorded in audit for clinical reviewers
         "third_party_crisis": bool(third_party_flags),
         "new_clinical_flags_turn": new_clinical_flags,

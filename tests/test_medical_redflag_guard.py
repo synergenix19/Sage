@@ -1,5 +1,6 @@
 from sage_poc.safety.medical_redflag import detect_medical_redflag
 import typing
+import pytest
 
 def test_state_declares_medical_channel():
     from sage_poc.state import SageState
@@ -42,3 +43,22 @@ def test_must_not_fire_controls_stay_clear():
                    "my hand went numb from sleeping on it",
                    "my leg's gone numb from sitting cross-legged"):
         assert detect_medical_redflag(benign) == [], benign
+
+
+def _state(msg: str) -> dict:
+    return {"raw_message": msg, "message_en": msg, "detected_language": "en",
+            "path": [], "crisis_flags": [], "clinical_flags": [], "crisis_state": "none"}
+
+
+@pytest.mark.asyncio
+async def test_safety_check_sets_medical_flags_on_cardiac():
+    from sage_poc.nodes.safety_check import safety_check_node
+    out = await safety_check_node(_state("crushing chest pain spreading to my jaw"))
+    assert out["medical_flags"], "cardiac red-flag must populate medical_flags"
+
+
+@pytest.mark.asyncio
+async def test_safety_check_no_medical_flag_on_benign():
+    from sage_poc.nodes.safety_check import safety_check_node
+    out = await safety_check_node(_state("my heart is racing from the panic"))
+    assert out["medical_flags"] == []
