@@ -9,33 +9,33 @@
   "cultural_overrides": {
     "stigma_language": "In Gulf Arab culture, psychotic experiences carry profound stigma often linked to family honour. Never use clinical terms (psychosis, schizophrenia, hallucinations, delusions) or terms associated with 'madness' (جنون). Frame as 'something important that needs specialist attention' not as an illness label.",
     "jinn_and_evil_eye": "Some users or their families may interpret these experiences through a religious or supernatural lens (evil eye, jinn possession). Do not contradict or challenge this framing. Acknowledge respectfully and redirect to professional support: 'Whatever the source of this, a mental health specialist can help you understand and navigate it.'",
-    "family_involvement": "The user may be reluctant to seek help without family knowledge, or may fear family reaction. Do not push for independent action. Validate the complexity: 'This is something worth getting support for, in whatever way feels right for you and your family.' The referral line 800 46342 can advise on family involvement.",
+    "family_involvement": "The user may be reluctant to seek help without family knowledge, or may fear family reaction. Do not push for independent action. Validate the complexity: 'This is something worth getting support for, in whatever way feels right for you and your family.' The referral line 800-HOPE (800-4673) can advise on family involvement.",
     "non_alarming_tone": "The referral must not communicate alarm, urgency, or severity in a way that increases distress or confirms the user's worst fears. Use calm, matter-of-fact language that normalises seeking specialist input without catastrophising."
   },
   "steps": [
     {
       "step_id": "professional_referral",
-      "goal": "Acknowledge what the user shared with care and provide clear guidance to professional support, including UAE helpline 800 46342 verbatim",
+      "goal": "Acknowledge what the user shared with care and provide clear guidance to professional support, including UAE helpline 800-HOPE (800-4673) verbatim",
       "technique": "Warm acknowledgement with professional referral",
-      "technique_description": "What the user is describing sounds like something really important to explore with a mental health professional who can give them the right kind of support. In the UAE, they can reach the MoHAP Counselling Line on 800 46342, free and available 24 hours a day. They do not have to face this alone. Be warm, non-alarming, and non-diagnostic. The phone number 800 46342 must appear verbatim in the response. Do NOT use clinical terms like psychosis, schizophrenia, or hallucinations. Do NOT suggest the user's experience is imaginary.",
+      "technique_description": "What the user is describing sounds like something really important to explore with a mental health professional who can give them the right kind of support. In the UAE, they can reach the National Mental Support Line on 800-HOPE (800-4673) (free, 8am–8pm daily); for immediate danger or outside those hours, they can call emergency services 999. They do not have to face this alone. Be warm, non-alarming, and non-diagnostic. The phone number 800-HOPE (800-4673) must appear verbatim in the response. Do NOT use clinical terms like psychosis, schizophrenia, or hallucinations. Do NOT suggest the user's experience is imaginary.",
       "tone": "warm, calm, non-alarming, non-diagnostic",
-      "contraindications": "Do NOT label the experience (do not say psychosis, hallucinations, or delusions). Do NOT dismiss or minimise. Do NOT ask probing questions about the content of the voices or visions. The phone number 800 46342 must appear verbatim.",
-      "completion_criteria": "Response has acknowledged the user's experience warmly and provided MoHAP 800 46342 verbatim. One-step skill; always complete after one response.",
+      "contraindications": "Do NOT label the experience (do not say psychosis, hallucinations, or delusions). Do NOT dismiss or minimise. Do NOT ask probing questions about the content of the voices or visions. The phone number 800-HOPE (800-4673) must appear verbatim.",
+      "completion_criteria": "Response has acknowledged the user's experience warmly and provided National Mental Support Line 800-HOPE (800-4673) verbatim. One-step skill; always complete after one response.",
       "examples": [
-        "What you're describing sounds really important, and it's something to talk through with a mental health professional who can give you the right kind of support. In the UAE, the MoHAP Counselling Line is at 800 46342, free and open 24 hours a day. You don't have to navigate this alone.",
-        "I hear that something difficult is happening for you. This is the kind of thing that deserves proper support from someone with the right expertise. Please reach out to the MoHAP Counselling Line on 800 46342, any time. They are there for exactly this.",
-        "What you've shared deserves more support than I can give you here. A mental health professional is the right person to help you through this. In the UAE, you can call 800 46342 for free, any time of day or night.",
-        "ما تصفه مهم وتحتاج فيه دعم من متخصص يقدر يساعدك بشكل صحيح. تقدر تتواصل مع خط وزارة الصحة والوقاية على 800 46342، مجاني ومفتوح 24 ساعة. ما أنت لوحدك في هذا.",
-        "أسمعك، وهذا شيء يستاهل اهتمام متخصص. خط وزارة الصحة 800 46342 متاح في أي وقت، وهم موجودين عشانك.",
-        "اللي تحس فيه مهم جداً وتحتاج دعم من شخص متخصص. اتصل على 800 46342 خط وزارة الصحة، مجاني ومتاح كل وقت."
+        "What you're describing sounds really important, and it's something to talk through with a mental health professional who can give you the right kind of support. In the UAE, you can reach the National Mental Support Line on 800-HOPE (800-4673) (free, 8am–8pm daily). If you need someone outside those hours, call emergency services 999. You don't have to navigate this alone.",
+        "I hear that something difficult is happening for you. This is the kind of thing that deserves proper support from someone with the right expertise. Please reach the National Mental Support Line on 800-HOPE (800-4673) (free, 8am–8pm daily), and for anything urgent you can call emergency services 999. They are there for exactly this.",
+        "What you've shared deserves more support than I can give you here. A mental health professional is the right person to help you through this. In the UAE, you can call the National Mental Support Line on 800-HOPE (800-4673) for free, 8am–8pm daily; if it feels urgent or it is outside those hours, call 999.",
+        "ما تصفه مهم وتحتاج فيه دعم من متخصص يقدر يساعدك بشكل صحيح. تقدر تتواصل مع خط الدعم النفسي الوطني على 800-HOPE (800-4673) (مجاني، 8am–8pm daily). وإذا احتجت مساعدة خارج هذي الأوقات، اتصل بخدمات الطوارئ 999. ما أنت لوحدك في هذا.",
+        "أسمعك، وهذا شيء يستاهل اهتمام متخصص. خط الدعم النفسي الوطني 800-HOPE (800-4673) (8am–8pm daily)، وإذا كان الأمر عاجلاً اتصل بخدمات الطوارئ 999. وهم موجودين عشانك.",
+        "اللي تحس فيه مهم جداً وتحتاج دعم من شخص متخصص. اتصل على خط الدعم النفسي الوطني 800-HOPE (800-4673) (مجاني، 8am–8pm daily)، وللحالات العاجلة أو خارج هذي الأوقات اتصل بخدمات الطوارئ 999."
       ]
     }
   ],
   "step_policy": [],
   "escalation_matrix": {
-    "L1": "If the user indicates any risk to themselves or others, stop the referral and respond with the crisis line immediately: emergency services 999 or MoHAP Counselling Line 800 46342 (free, 24/7). Do not continue the referral step.",
+    "L1": "If the user indicates any risk to themselves or others, stop the referral and respond with the crisis line immediately: emergency services 999 or National Mental Support Line 800-HOPE (800-4673) (free, 8am–8pm daily). Do not continue the referral step.",
     "L2": "If the user discloses command hallucinations (voices telling them to harm themselves or others), treat as active crisis: route to crisis_response. Flag for clinician review regardless of whether the user accepts the referral.",
-    "L3": "If the user becomes distressed, agitated, or frightened during the referral step, de-escalate using calm, brief, non-diagnostic language. Do not probe further. Provide 800 46342 and end the interaction warmly. Do not attempt to continue the referral.",
-    "L4": "If the user explicitly requests to speak to a human or expresses that they cannot wait, respond: 'Please call 800 46342 now. They are available 24 hours a day and can connect you to the right support immediately.' Do not substitute any other response."
+    "L3": "If the user becomes distressed, agitated, or frightened during the referral step, de-escalate using calm, brief, non-diagnostic language. Do not probe further. Provide 800-HOPE (800-4673) and end the interaction warmly. Do not attempt to continue the referral.",
+    "L4": "If the user explicitly requests to speak to a human or expresses that they cannot wait, respond: 'Please call emergency services 999 now. They are available 24 hours a day and can connect you to the right support immediately.' Do not substitute any other response."
   }
 }

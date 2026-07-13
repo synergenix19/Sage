@@ -338,8 +338,8 @@ async def test_crisis_clears_active_skill_and_returns_arabic_when_ar_detected():
         conversation_history=[{"role": "user", "content": "hi"}, {"role": "assistant", "content": "hello"}],
     )
     result = await _crisis_response_node(state)
-    # P0-A: Arabic response — contains UAE crisis number
-    assert "800" in result["response"] and "46342" in result["response"], \
+    # P0-A: Arabic response — contains UAE crisis number (H4 adopted: National line 800-4673)
+    assert "800" in result["response"] and "4673" in result["response"], \
         "Arabic user must receive Arabic crisis response with UAE crisis line number"
     # P0-B: skill cleared
     assert result["active_skill_id"] is None, "Skill must be cleared on crisis"
@@ -362,7 +362,7 @@ async def test_crisis_english_user_gets_english_response():
         conversation_history=[],
     )
     result = await _crisis_response_node(state)
-    assert "800" in result["response"] and "46342" in result["response"], \
+    assert "800" in result["response"] and "4673" in result["response"], \
         "English crisis response must contain UAE crisis line number"
     assert result["active_skill_id"] is None
     assert result["turn_count"] == 1
@@ -383,10 +383,11 @@ def _get_ar_crisis_response_text() -> str:
 
 
 def test_arabic_crisis_response_contains_correct_hotline_number():
-    """800 46342 (MoHAP counselling line) must be in the Arabic response."""
+    """H4 adopted (all gates cleared 2026-07-10): the National Mental Support Line
+    800-HOPE (800-4673) must be in the Arabic response (supersedes MoHAP 800 46342)."""
     ar_text = _get_ar_crisis_response_text()
-    assert "800 46342" in ar_text, \
-        "Arabic crisis response must include the verified MoHAP counselling line (800 46342)"
+    assert "800-4673" in ar_text, \
+        "Arabic crisis response must include the adopted National Mental Support Line (800-4673)"
 
 
 def test_arabic_crisis_response_contains_emergency_number():
@@ -590,10 +591,11 @@ def _get_en_crisis_response_text() -> str:
 
 
 def test_english_crisis_response_contains_correct_hotline_number():
-    """800 46342 (MoHAP counselling line) must be in the English response."""
+    """H4 adopted (all gates cleared 2026-07-10): the National Mental Support Line
+    800-HOPE (800-4673) must be in the English response (supersedes MoHAP 800 46342)."""
     en_text = _get_en_crisis_response_text()
-    assert "800 46342" in en_text, \
-        "English crisis response must include the verified MoHAP counselling line (800 46342)"
+    assert "800-4673" in en_text, \
+        "English crisis response must include the adopted National Mental Support Line (800-4673)"
 
 
 def test_english_crisis_response_contains_emergency_number():

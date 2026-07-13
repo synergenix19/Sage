@@ -8,9 +8,10 @@ SCOPE (deliberately narrow — see plan §K / G8):
     changed only under the G8 fast-track re-sign — NOT by this test, and NOT via
     placeholder templating (that would be schema scope creep beyond §K).
 
-Commit-1 is behaviour-identical: values are unchanged (number "800 46342", hours "24/7",
-label as-authored). The value/label/hours correction to "800 4673" / "Mental Support Line"
-/ "8am-8pm daily" + the rules-JSON + L0 edits ship together in the gated commit-2.
+H4 VALUE ADOPTION (all gates cleared 2026-07-10): the value/label/hours are now the National
+Mental Support Line 800-HOPE (800-4673) / "National Mental Support Line" / "8am-8pm daily",
+adopted alongside the rules-JSON edits. These tests remain value-agnostic — they only assert the
+CODE sites reference CRISIS_CONFIG rather than re-embedding whatever digits it currently holds.
 """
 import pathlib
 from sage_poc.config import CRISIS_CONFIG, CRISIS_LINE_UAE

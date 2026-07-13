@@ -7,10 +7,10 @@ so changing a number is a single-config edit. This module replaces those placeho
 every load point so the RESOLVED text is what reaches the LLM / user.
 
 Placeholders (all optional in any file; only the ones present are substituted):
-  ``{{crisis_number}}``    -> CRISIS_CONFIG["number"]    (e.g. "800 46342")
+  ``{{crisis_number}}``    -> CRISIS_CONFIG["number"]    (e.g. "800-HOPE (800-4673)")
   ``{{crisis_emergency}}`` -> CRISIS_CONFIG["emergency"] (e.g. "999")
-  ``{{crisis_hours}}``     -> CRISIS_CONFIG["hours"]      (e.g. "24/7")
-  ``{{crisis_label}}``     -> CRISIS_CONFIG["label"]      (e.g. "MoHAP Counselling Line")
+  ``{{crisis_hours}}``     -> CRISIS_CONFIG["hours"]      (e.g. "8am-8pm daily")
+  ``{{crisis_label}}``     -> CRISIS_CONFIG["label"]      (e.g. "National Mental Support Line")
 
 Defense in depth (both required, neither sufficient alone):
   * BOOT GUARD  (assert_crisis_copy_resolves) — every crisis-copy source, in resolved form,

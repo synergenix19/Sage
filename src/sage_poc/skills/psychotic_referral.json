@@ -17,25 +17,25 @@
       "step_id": "professional_referral",
       "goal": "Acknowledge what the user shared with care and provide clear guidance to professional support, including UAE helpline {{crisis_number}} verbatim",
       "technique": "Warm acknowledgement with professional referral",
-      "technique_description": "What the user is describing sounds like something really important to explore with a mental health professional who can give them the right kind of support. In the UAE, they can reach the MoHAP Counselling Line on {{crisis_number}}, free and available 24 hours a day. They do not have to face this alone. Be warm, non-alarming, and non-diagnostic. The phone number {{crisis_number}} must appear verbatim in the response. Do NOT use clinical terms like psychosis, schizophrenia, or hallucinations. Do NOT suggest the user's experience is imaginary.",
+      "technique_description": "What the user is describing sounds like something really important to explore with a mental health professional who can give them the right kind of support. In the UAE, they can reach the {{crisis_label}} on {{crisis_number}} (free, {{crisis_hours}}); for immediate danger or outside those hours, they can call emergency services {{crisis_emergency}}. They do not have to face this alone. Be warm, non-alarming, and non-diagnostic. The phone number {{crisis_number}} must appear verbatim in the response. Do NOT use clinical terms like psychosis, schizophrenia, or hallucinations. Do NOT suggest the user's experience is imaginary.",
       "tone": "warm, calm, non-alarming, non-diagnostic",
       "contraindications": "Do NOT label the experience (do not say psychosis, hallucinations, or delusions). Do NOT dismiss or minimise. Do NOT ask probing questions about the content of the voices or visions. The phone number {{crisis_number}} must appear verbatim.",
-      "completion_criteria": "Response has acknowledged the user's experience warmly and provided MoHAP {{crisis_number}} verbatim. One-step skill; always complete after one response.",
+      "completion_criteria": "Response has acknowledged the user's experience warmly and provided {{crisis_label}} {{crisis_number}} verbatim. One-step skill; always complete after one response.",
       "examples": [
-        "What you're describing sounds really important, and it's something to talk through with a mental health professional who can give you the right kind of support. In the UAE, the MoHAP Counselling Line is at {{crisis_number}}, free and open 24 hours a day. You don't have to navigate this alone.",
-        "I hear that something difficult is happening for you. This is the kind of thing that deserves proper support from someone with the right expertise. Please reach out to the MoHAP Counselling Line on {{crisis_number}}, any time. They are there for exactly this.",
-        "What you've shared deserves more support than I can give you here. A mental health professional is the right person to help you through this. In the UAE, you can call {{crisis_number}} for free, any time of day or night.",
-        "ما تصفه مهم وتحتاج فيه دعم من متخصص يقدر يساعدك بشكل صحيح. تقدر تتواصل مع خط وزارة الصحة والوقاية على {{crisis_number}}، مجاني ومفتوح 24 ساعة. ما أنت لوحدك في هذا.",
-        "أسمعك، وهذا شيء يستاهل اهتمام متخصص. خط وزارة الصحة {{crisis_number}} متاح في أي وقت، وهم موجودين عشانك.",
-        "اللي تحس فيه مهم جداً وتحتاج دعم من شخص متخصص. اتصل على {{crisis_number}} خط وزارة الصحة، مجاني ومتاح كل وقت."
+        "What you're describing sounds really important, and it's something to talk through with a mental health professional who can give you the right kind of support. In the UAE, you can reach the {{crisis_label}} on {{crisis_number}} (free, {{crisis_hours}}). If you need someone outside those hours, call emergency services {{crisis_emergency}}. You don't have to navigate this alone.",
+        "I hear that something difficult is happening for you. This is the kind of thing that deserves proper support from someone with the right expertise. Please reach the {{crisis_label}} on {{crisis_number}} (free, {{crisis_hours}}), and for anything urgent you can call emergency services {{crisis_emergency}}. They are there for exactly this.",
+        "What you've shared deserves more support than I can give you here. A mental health professional is the right person to help you through this. In the UAE, you can call the {{crisis_label}} on {{crisis_number}} for free, {{crisis_hours}}; if it feels urgent or it is outside those hours, call {{crisis_emergency}}.",
+        "ما تصفه مهم وتحتاج فيه دعم من متخصص يقدر يساعدك بشكل صحيح. تقدر تتواصل مع خط الدعم النفسي الوطني على {{crisis_number}} (مجاني، {{crisis_hours}}). وإذا احتجت مساعدة خارج هذي الأوقات، اتصل بخدمات الطوارئ {{crisis_emergency}}. ما أنت لوحدك في هذا.",
+        "أسمعك، وهذا شيء يستاهل اهتمام متخصص. خط الدعم النفسي الوطني {{crisis_number}} ({{crisis_hours}})، وإذا كان الأمر عاجلاً اتصل بخدمات الطوارئ {{crisis_emergency}}. وهم موجودين عشانك.",
+        "اللي تحس فيه مهم جداً وتحتاج دعم من شخص متخصص. اتصل على خط الدعم النفسي الوطني {{crisis_number}} (مجاني، {{crisis_hours}})، وللحالات العاجلة أو خارج هذي الأوقات اتصل بخدمات الطوارئ {{crisis_emergency}}."
       ]
     }
   ],
   "step_policy": [],
   "escalation_matrix": {
-    "L1": "If the user indicates any risk to themselves or others, stop the referral and respond with the crisis line immediately: emergency services {{crisis_emergency}} or MoHAP Counselling Line {{crisis_number}} (free, {{crisis_hours}}). Do not continue the referral step.",
+    "L1": "If the user indicates any risk to themselves or others, stop the referral and respond with the crisis line immediately: emergency services {{crisis_emergency}} or {{crisis_label}} {{crisis_number}} (free, {{crisis_hours}}). Do not continue the referral step.",
     "L2": "If the user discloses command hallucinations (voices telling them to harm themselves or others), treat as active crisis: route to crisis_response. Flag for clinician review regardless of whether the user accepts the referral.",
     "L3": "If the user becomes distressed, agitated, or frightened during the referral step, de-escalate using calm, brief, non-diagnostic language. Do not probe further. Provide {{crisis_number}} and end the interaction warmly. Do not attempt to continue the referral.",
-    "L4": "If the user explicitly requests to speak to a human or expresses that they cannot wait, respond: 'Please call {{crisis_number}} now. They are available 24 hours a day and can connect you to the right support immediately.' Do not substitute any other response."
+    "L4": "If the user explicitly requests to speak to a human or expresses that they cannot wait, respond: 'Please call emergency services {{crisis_emergency}} now. They are available 24 hours a day and can connect you to the right support immediately.' Do not substitute any other response."
   }
 }

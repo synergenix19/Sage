@@ -38,13 +38,13 @@
       "technique": "Safety planning bridge or warm closure",
       "technique_description": "Safety planning bridge or warm closure depending on the user's signal. If the user wants to continue talking, shift to freeflow support. If they want to close, leave the door explicitly open and provide the crisis line. The close must always include a help-available reminder.",
       "tone": "warm, steady, forward-looking",
-      "contraindications": "Do NOT introduce new therapeutic content, skills, or coping strategies unprompted at this step. A post-crisis user does not need a skill introduction, they need steadiness. Do NOT ask what caused the crisis or explore the precipitant. Do NOT give the impression that the conversation is now 'done' or 'resolved.' Always leave the door explicitly open. If closing, the crisis line number (800 46342) must be included.",
+      "contraindications": "Do NOT introduce new therapeutic content, skills, or coping strategies unprompted at this step. A post-crisis user does not need a skill introduction, they need steadiness. Do NOT ask what caused the crisis or explore the precipitant. Do NOT give the impression that the conversation is now 'done' or 'resolved.' Always leave the door explicitly open. If closing, the crisis line number (800-HOPE (800-4673)) must be included.",
       "completion_criteria": "User has acknowledged the closing message or has indicated they want to continue talking. If they want to continue, the session may shift to freeflow support, which is appropriate. If they want to stop, they have been explicitly reminded that help is available at any time and the crisis line has been provided. A close without the help-available reminder does not meet this criterion.",
       "examples": [
         "It sounds like things are a little steadier now. Is there anything you would find helpful to talk through?",
-        "I am glad you are feeling calmer. If things get harder again, I am right here, and support is also available at 800 46342.",
+        "I am glad you are feeling calmer. If things get harder again, I am right here, and support is also available at 800-HOPE (800-4673).",
         "You do not have to have everything figured out right now. I am here whenever you want to talk.",
-        "يبدو إنك أحسن شوي الحين. لو احتجت تتكلم أي وقت، أنا هني. وفي دعم دايم على 800 46342."
+        "يبدو إنك أحسن شوي الحين. لو احتجت تتكلم أي وقت، أنا هني. وفي دعم على 800-HOPE (800-4673) (8am–8pm daily)، ولحالات الطوارئ 999."
       ]
     }
   ],
@@ -79,7 +79,7 @@
         "step": "bridge_or_close"
       },
       "action": "complete",
-      "instruction": "User is stable and the check-in is complete. Close warmly: affirm that reaching out took courage, remind them support is always available at 800 46342, and leave the door explicitly open for future conversations. Do not introduce new content.",
+      "instruction": "User is stable and the check-in is complete. Close warmly: affirm that reaching out took courage, remind them support is available at 800-HOPE (800-4673) (8am–8pm daily) and emergency services 999 outside those hours, and leave the door explicitly open for future conversations. Do not introduce new content.",
       "next_step_id": "bridge_or_close"
     },
     {
@@ -90,7 +90,7 @@
         "step": "ANY"
       },
       "action": "validate_only",
-      "instruction": "The user is still highly distressed. Stay present and validating. Do not attempt to move forward. Express that you are here and that support is also available at 800 46342.",
+      "instruction": "The user is still highly distressed. Stay present and validating. Do not attempt to move forward. Express that you are here and that support is also available at 800-HOPE (800-4673).",
       "next_step_id": "current"
     },
     {
@@ -130,7 +130,7 @@
     }
   ],
   "escalation_matrix": {
-    "L1": "Exit the skill immediately and warmly when the user asks to stop. Do all three without exception: (1) mention the crisis support line before closing, for example: 'If things ever feel too heavy, you can call or WhatsApp 800 46342, it is free and available any time.' (2) Leave the door open explicitly, for example: 'You can come back whenever you are ready, I will be here.' (3) Do NOT assume they are better because they asked to stop. A stop request is not a signal of resolution.",
+    "L1": "Exit the skill immediately and warmly when the user asks to stop. Do all three without exception: (1) mention the crisis support line before closing, for example: 'If things ever feel too heavy, you can call or WhatsApp 800-HOPE (800-4673), it is free (8am–8pm daily); outside those hours, call emergency services 999.' (2) Leave the door open explicitly, for example: 'You can come back whenever you are ready, I will be here.' (3) Do NOT assume they are better because they asked to stop. A stop request is not a signal of resolution.",
     "L2": "Add clinician_review flag if trauma or substance mention detected",
     "L3": "Exit immediately to crisis protocol if any new crisis signal",
     "L4": "Trigger human handoff if 3 or more crises detected in last 30 days"

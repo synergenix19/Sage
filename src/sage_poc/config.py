@@ -28,14 +28,113 @@ AUDIT_LOG_ENABLED = os.getenv("SAGE_AUDIT_LOG", "true").lower() == "true"
 # follows — a true single-config edit. Defense in depth: the boot guard (server.py lifespan) fails
 # the app if any {{crisis_*}} stays unresolved, and the conformance test asserts the resolved output
 # carries this value. Frontend mirror: cdai apps/web/lib/crisis-config.ts (cross-stack test).
-# ✅ VALUES VERIFIED FINAL (PO, 2026-07-08: "I have verified this number" + "24/7 is also verified"):
-# `number` = "800 46342" confirmed (G8 transcription question 46342-vs-4673 RESOLVED by
-# verification), `hours` = "24/7" confirmed. If a value ever changes, change this ONE dict.
+# CRISIS_RESOURCES — structured resource directory (H4). CRISIS_CONFIG below is DERIVED from this
+# list (primary national + emergency entries), so every existing consumer keeps working unchanged.
+# ✅ VALUES ADOPTED 2026-07-10 (ALL GATES CLEARED): the doc's verified composition is now LIVE.
+#   - Dial-test confirmed all 5 numbers 2026-07-10; GL-1 reversal confirmed; crisis-freeze lifted;
+#     clinical sign-off (Vee). The prior "800 46342 / 24/7" verified-final set is SUPERSEDED — the
+#     dial-test is the primary record and it resolved the 46342-vs-4673 question in favour of the
+#     National Mental Support Line (800-HOPE / 800-4673, 8am-8pm daily).
+#   - CRISIS_CONFIG.number is therefore now the NATIONAL line (8am-8pm), NOT a 24/7 number. This is
+#     SAFE ONLY because the frontend multi-resource crisis card (coupled PR) always renders a 24/7
+#     line (999 + SAKINA + DHA) alongside it; select_crisis_resources() below guarantees a 24/7
+#     option is present in the top set at every hour (property-tested). Do not surface the single
+#     derived number alone on any always-open surface.
+#   - If a value ever changes, change this ONE list; every surface follows.
+# select_crisis_resources() implements the doc lead-logic + always-pair-24/7 (never leads with a
+# closed line, always includes a dialable 24/7 option regardless of the clock).
+CRISIS_RESOURCES = [
+    {"name": "National Mental Support Line", "number": "800-HOPE (800-4673)", "hours": "8am–8pm daily", "scope": "national"},
+    {"name": "Emergency Services", "number": "999", "hours": "24/7", "scope": "emergency"},
+    {"name": "Abu Dhabi 24/7 crisis line", "number": "800-SAKINA (800-725462)", "hours": "24/7", "scope": "regional"},
+    {"name": "Dubai Health Authority helpline", "number": "800 111", "hours": "24/7", "scope": "regional"},
+    {"name": "Sharjah Child & Youth Mental Health Helpline", "number": "800 51115", "hours": "9am–5pm Mon–Fri", "scope": "youth"},
+    {"name": "Nearest hospital emergency department", "number": "999 / nearest ER", "hours": "immediate danger or outside helpline hours", "scope": "emergency"},
+]
+
+
+def _hours_window(hours: str):
+    """(start, end) 24h ints for a 'Nam-Mpm' daily window; None for 24/7 or unparseable (both
+    treated as always-available so a parse failure never hides a resource)."""
+    import re  # noqa: PLC0415
+    if not hours or "24/7" in hours:
+        return None
+    m = re.search(r"(\d{1,2})\s*(am|pm)\s*[-–]\s*(\d{1,2})\s*(am|pm)", hours.lower())
+    if not m:
+        return None
+
+    def _to24(h, ap):
+        return int(h) % 12 + (12 if ap == "pm" else 0)
+
+    return (_to24(m.group(1), m.group(2)), _to24(m.group(3), m.group(4)))
+
+
+def _is_out_of_hours(hours: str, now) -> bool:
+    win = _hours_window(hours)
+    if win is None:
+        return False
+    start, end = win
+    return not (start <= now.hour < end)
+
+
+def select_crisis_resources(resources=None, *, immediate_danger: bool = False, now=None) -> list[dict]:
+    """Ordered crisis-card resources (BOT BEHAVIOUR lead-logic L2146 + hours-awareness).
+
+    immediate_danger -> emergency (999) leads. Otherwise the national line leads IF open, else a
+    24/7 alternative leads (never lead with a closed line). The result ALWAYS contains a 24/7 option
+    (999 is 24/7), so the card is never left with only an out-of-hours number regardless of the
+    clock. `now` defaults to Asia/Dubai wall-clock; injectable for deterministic tests.
+    """
+    from datetime import datetime  # noqa: PLC0415
+    from zoneinfo import ZoneInfo  # noqa: PLC0415
+    resources = list(resources if resources is not None else CRISIS_RESOURCES)
+    if now is None:
+        now = datetime.now(ZoneInfo("Asia/Dubai"))
+
+    def _is_247(r):
+        return _hours_window(r.get("hours", "")) is None
+
+    def _open(r):
+        return not _is_out_of_hours(r.get("hours", ""), now)
+
+    emergency = [r for r in resources if r.get("scope") == "emergency"]
+    national = [r for r in resources if r.get("scope") == "national"]
+    others = [r for r in resources if r.get("scope") not in ("emergency", "national")]
+
+    ordered: list[dict] = []
+    if immediate_danger:
+        ordered += emergency
+    open_national = [r for r in national if _open(r)]
+    if open_national:
+        ordered += open_national
+    else:  # national closed -> lead with a 24/7 alternative, not the closed line
+        ordered += [r for r in (others + national) if _is_247(r)]
+    for r in national + others + emergency:
+        if r not in ordered:
+            ordered.append(r)
+    # always-pair guarantee: at least one 24/7 line must be present (999 is 24/7).
+    if emergency and not any(_is_247(r) or r.get("scope") == "emergency" for r in ordered):
+        ordered += emergency
+    return ordered
+
+
+def _primary_resource() -> dict:
+    return next((r for r in CRISIS_RESOURCES if r.get("scope") == "national"), CRISIS_RESOURCES[0])
+
+
+def _emergency_resource() -> dict:
+    return next((r for r in CRISIS_RESOURCES if r.get("scope") == "emergency"), CRISIS_RESOURCES[-1])
+
+
+# Back-compat shim: CRISIS_CONFIG stays the four-key dict every consumer expects, DERIVED from the
+# primary national + emergency entries. Byte-identical to the prior literal while the values are the
+# current verified set (so crisis_copy placeholders, the graph/output_gate fail-safes, and the
+# byte-identical/conformance/cross-stack tests are all unchanged).
 CRISIS_CONFIG = {
-    "number": "800 46342",
-    "label": "MoHAP Counselling Line",
-    "hours": "24/7",
-    "emergency": "999",
+    "number": _primary_resource()["number"],
+    "label": _primary_resource()["name"],
+    "hours": _primary_resource()["hours"],
+    "emergency": _emergency_resource()["number"],
 }
 # Back-compat alias for existing importers during the migration.
 CRISIS_LINE_UAE = CRISIS_CONFIG["number"]
