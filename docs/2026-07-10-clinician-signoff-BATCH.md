@@ -52,6 +52,9 @@ A genuine blank: when High-tier TIPP shows no improvement, what concrete non-cri
 
 ---
 
+## DECISION-RECORD — clinician ACKNOWLEDGE (not tick): L4 human-handoff deferral
+The audit found the skills' `escalation_matrix` **L4** ("human handoff — 3+ crises/30d, or explicit human request") is **read by no runtime code and has no enforcer anywhere** — 27 skill files assert a safety capability that isn't built. Ruling: **L4 human-handoff automation is DEFERRED** — no live call routing in the POC. The **OR-7 response floor is implemented instead** (user asks for a human → acknowledge + the verified resource list, which *are* humans, + no skill loop — a deterministic script on the new resources). The **3+ crises/30d automated trigger** revisits at the same beyond-demo exposure gate as **D4(a)** (and shares the #232 cross-session-state mechanism family). The truth-in-code PR marks L4 **NOT_IMPLEMENTED per this record**, so the string stops lying and the deferral is auditable. **Clinician: please acknowledge** — the escalation_matrix is clinician-authored content whose L4 tier is now formally not enforced.
+
 ## Already answered (recorded, no action)
 - **H1** — TIPP psychoed opener filled ("…don't push yourself beyond what feels safe") → **shipped** (PR #280).
 - **H2** — Format=Video all-at-once delivery rule **ticked** → Wave-2 engineering built (PR #284).
