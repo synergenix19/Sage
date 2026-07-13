@@ -106,7 +106,16 @@ jobs:
             tests/test_deploy_build_lock.py
             tests/test_signed_fields_manifest.py
             tests/test_harm_to_others_node1_backstop.py
+            tests/test_crisis_availability_consistency.py
+            tests/test_crisis_config_cross_stack.py
           "
+          # test_crisis_availability_consistency.py (H4): fail-closed guard that no crisis-copy
+          # string asserts 24/7 / "24 hours" / "متاح كل وقت" adjacent to the 8am-8pm National line.
+          # test_crisis_config_cross_stack.py (H4): MERGE-BLOCKING entry-for-entry parity between
+          # backend CRISIS_RESOURCES and the frontend crisis-config.ts. NOTE: it SKIPS (does not
+          # block) unless the cdai frontend is present at ../cdai relative to this repo root — CI
+          # must checkout the coupled frontend into that path for this gate to actually bite. Until
+          # that checkout is wired it is a no-op skip; it is verified green + negative-checked locally.
           # test_nodes.py added 2026-06-13: it carries the skill-selection acute-routing
           # assertions (which skill a presentation routes to) that previously sat OUTSIDE
           # the gate — the blind spot that let #15 (overwhelm -> dbt_tipp, a C1-violating
