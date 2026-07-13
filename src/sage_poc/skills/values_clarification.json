@@ -152,9 +152,9 @@
   ],
   "escalation_matrix": {
     "L1": "Exit skill gracefully if user requests to stop. No persuasion. Acknowledge that beginning to name what matters is already meaningful.",
-    "L2": "Add clinician_review flag if values clarification reveals a profound sense of meaninglessness or hopelessness about the future, not just confusion or uncertainty, but despair about whether life can hold anything worth living for.",
-    "L3": "Exit immediately to crisis protocol if any crisis signal is detected during the session.",
-    "L4": "Trigger human handoff if 3 or more crises detected in the last 30 days, or if user explicitly requests a human clinician."
+    "L2": "[STORED_ONLY — enforced by output_gate._log_clinical_review -> clinician_review_queue, not by this string] Documented clinical intent (not runtime-enforced): Add clinician_review flag if values clarification reveals a profound sense of meaninglessness or hopelessness about the future, not just confusion or uncertainty, but despair about whether life can hold anything worth living for.",
+    "L3": "[STORED_ONLY — enforced by the safety graph (_route_after_safety -> _crisis_response_node), not by this string] Documented clinical intent (not runtime-enforced): Exit immediately to crisis protocol if any crisis signal is detected during the session.",
+    "L4": "[NOT_IMPLEMENTED — human-handoff automation deferred per 2026-07-10 decision record; no live call routing in POC; OR-7 response floor covers explicit human requests; 3+ crises/30d trigger deferred to the D4(a) exposure gate] Documented clinical intent (not runtime-enforced): Trigger human handoff if 3 or more crises detected in the last 30 days, or if user explicitly requests a human clinician."
   },
   "cultural_overrides": {
     "collective_values_framing": "Gulf values are often collective — family honour, community contribution, faith expression, filial duty. Do not frame values clarification as individual self-discovery in opposition to community. Committed action can be toward a family role, community, or faith practice. These are genuine values, not obstacles to values work.",

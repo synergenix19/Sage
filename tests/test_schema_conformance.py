@@ -123,3 +123,99 @@ def test_schema_conformance_endpoint_returns_expected_shape(client):
 def test_schema_conformance_endpoint_cultural_overrides_is_used(client):
     data = client.get("/health/schema-conformance").json()
     assert data["fields"]["skill.cultural_overrides"]["status"] == "USED"
+
+
+# ---- escalation_matrix truth-in-code pins (every skill JSON) ----------------
+#
+# These pins encode the VERIFIED runtime reality of the escalation_matrix so the
+# corpus cannot silently re-grow a capability the code does not enforce:
+#   L1  -> the ONLY level read at runtime (skill_executor reads escalation_matrix["L1"]).
+#   L2  -> STORED_ONLY; the real behaviour is the clinical-flag machinery
+#          (output_gate._log_clinical_review -> clinician_review_queue), not this string.
+#   L3  -> STORED_ONLY; the real behaviour is the safety graph
+#          (_route_after_safety -> _crisis_response_node), not this string.
+#   L4  -> NOT_IMPLEMENTED; no enforcer exists anywhere (human-handoff automation deferred).
+# If someone re-adds an imperative L2/L3/L4 string that implies these fire, these
+# tests fail and force the change back through the conformance registry.
+
+import json
+import pathlib
+
+_SKILLS_DIR = pathlib.Path(__file__).parent.parent / "src" / "sage_poc" / "skills"
+_ALL_SKILL_JSON = sorted(_SKILLS_DIR.glob("*.json"))
+_STORED_ONLY_MARKER = "[STORED_ONLY"
+_NOT_IMPLEMENTED_MARKER = "[NOT_IMPLEMENTED"
+
+
+def _em(path: pathlib.Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))["escalation_matrix"]
+
+
+def test_skill_json_corpus_is_nonempty():
+    # Guards against a broken glob silently making every parametrised pin vacuous.
+    assert len(_ALL_SKILL_JSON) >= 20, f"only found {len(_ALL_SKILL_JSON)} skill JSONs"
+
+
+@pytest.mark.parametrize("path", _ALL_SKILL_JSON, ids=lambda p: p.stem)
+def test_escalation_l1_present_and_not_annotated(path):
+    """L1 is the only runtime-read level: it must be present, non-empty, and must
+    NOT carry a STORED_ONLY / NOT_IMPLEMENTED annotation (that would neuter a live path)."""
+    em = _em(path)
+    l1 = em.get("L1", "")
+    assert l1.strip(), f"{path.stem}: L1 missing/empty — L1 is runtime-read (skill_executor)"
+    assert not l1.startswith(_STORED_ONLY_MARKER), f"{path.stem}: L1 is runtime-read, must not be STORED_ONLY-annotated"
+    assert not l1.startswith(_NOT_IMPLEMENTED_MARKER), f"{path.stem}: L1 is runtime-read, must not be NOT_IMPLEMENTED-annotated"
+
+
+@pytest.mark.parametrize("path", _ALL_SKILL_JSON, ids=lambda p: p.stem)
+def test_escalation_l2_annotated_to_clinical_flag_enforcer(path):
+    """L2 must be STORED_ONLY-annotated and name its real enforcer (clinical-flag machinery)."""
+    l2 = _em(path)["L2"]
+    assert l2.startswith(_STORED_ONLY_MARKER), f"{path.stem}: L2 must be STORED_ONLY-annotated, got {l2[:40]!r}"
+    assert "output_gate._log_clinical_review" in l2, f"{path.stem}: L2 annotation must name output_gate._log_clinical_review"
+    assert "clinician_review_queue" in l2, f"{path.stem}: L2 annotation must name clinician_review_queue"
+
+
+@pytest.mark.parametrize("path", _ALL_SKILL_JSON, ids=lambda p: p.stem)
+def test_escalation_l3_annotated_to_safety_graph(path):
+    """L3 must be STORED_ONLY-annotated and name its real enforcer (the safety graph)."""
+    l3 = _em(path)["L3"]
+    assert l3.startswith(_STORED_ONLY_MARKER), f"{path.stem}: L3 must be STORED_ONLY-annotated, got {l3[:40]!r}"
+    assert "_route_after_safety" in l3, f"{path.stem}: L3 annotation must name _route_after_safety"
+    assert "_crisis_response_node" in l3, f"{path.stem}: L3 annotation must name _crisis_response_node"
+
+
+@pytest.mark.parametrize("path", _ALL_SKILL_JSON, ids=lambda p: p.stem)
+def test_escalation_l4_marked_not_implemented(path):
+    """L4 has NO enforcer anywhere — it must be explicitly marked NOT_IMPLEMENTED."""
+    l4 = _em(path)["L4"]
+    assert l4.startswith(_NOT_IMPLEMENTED_MARKER), f"{path.stem}: L4 must be NOT_IMPLEMENTED-annotated, got {l4[:40]!r}"
+    assert "human-handoff" in l4, f"{path.stem}: L4 annotation must reference the deferred human-handoff automation"
+
+
+def test_only_l1_is_read_at_runtime():
+    """No production module may read escalation_matrix L2/L3/L4 by key; at least one reads L1.
+
+    This is the code-side twin of the JSON pins: it keeps the runtime honest even if
+    the annotations above are edited. Scans src/sage_poc only (not tests)."""
+    src_root = pathlib.Path(__file__).parent.parent / "src" / "sage_poc"
+    forbidden = []
+    l1_readers = 0
+    for py in src_root.rglob("*.py"):
+        text = py.read_text(encoding="utf-8")
+        for lvl in ("L2", "L3", "L4"):
+            for pat in (f'escalation_matrix["{lvl}"]', f"escalation_matrix['{lvl}']",
+                        f'escalation_matrix.get("{lvl}"', f"escalation_matrix.get('{lvl}'"):
+                if pat in text:
+                    forbidden.append(f"{py.relative_to(src_root)}: {pat}")
+        if 'escalation_matrix.get("L1"' in text or 'escalation_matrix["L1"]' in text:
+            l1_readers += 1
+    assert not forbidden, f"escalation_matrix L2/L3/L4 read at runtime (STORED_ONLY/NOT_IMPLEMENTED): {forbidden}"
+    assert l1_readers >= 1, "expected at least one runtime read of escalation_matrix L1"
+
+
+def test_conformance_registry_matches_pins():
+    """The registry must still classify L1 USED and L2/L3/L4 STORED_ONLY."""
+    assert SCHEMA_CONFORMANCE["skill.escalation_matrix.L1"]["status"] == "USED"
+    for lvl in ("L2", "L3", "L4"):
+        assert SCHEMA_CONFORMANCE[f"skill.escalation_matrix.{lvl}"]["status"] == "STORED_ONLY"

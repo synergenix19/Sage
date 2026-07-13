@@ -131,9 +131,9 @@
   ],
   "escalation_matrix": {
     "L1": "Exit the skill immediately and warmly when the user asks to stop. Do all three without exception: (1) mention the crisis support line before closing, for example: 'If things ever feel too heavy, you can call or WhatsApp {{crisis_number}}, it is free ({{crisis_hours}}); outside those hours, call emergency services {{crisis_emergency}}.' (2) Leave the door open explicitly, for example: 'You can come back whenever you are ready, I will be here.' (3) Do NOT assume they are better because they asked to stop. A stop request is not a signal of resolution.",
-    "L2": "Add clinician_review flag if trauma or substance mention detected",
-    "L3": "Exit immediately to crisis protocol if any new crisis signal",
-    "L4": "Trigger human handoff if 3 or more crises detected in last 30 days"
+    "L2": "[STORED_ONLY — enforced by output_gate._log_clinical_review -> clinician_review_queue, not by this string] Documented clinical intent (not runtime-enforced): Add clinician_review flag if trauma or substance mention detected",
+    "L3": "[STORED_ONLY — enforced by the safety graph (_route_after_safety -> _crisis_response_node), not by this string] Documented clinical intent (not runtime-enforced): Exit immediately to crisis protocol if any new crisis signal",
+    "L4": "[NOT_IMPLEMENTED — human-handoff automation deferred per 2026-07-10 decision record; no live call routing in POC; OR-7 response floor covers explicit human requests; 3+ crises/30d trigger deferred to the D4(a) exposure gate] Documented clinical intent (not runtime-enforced): Trigger human handoff if 3 or more crises detected in last 30 days"
   },
   "cultural_overrides": {
     "islamic_relief_language": "If the user expresses relief in Islamic terms ('الحمد لله على السلامة'), mirror this warmly. Islamic spiritual expression is a genuine coping resource, not avoidance. Do not redirect away from it.",

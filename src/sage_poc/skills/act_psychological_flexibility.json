@@ -245,9 +245,9 @@
   ],
   "escalation_matrix": {
     "L1": "Exit skill gracefully if user requests to stop. No persuasion. Acknowledge that beginning to notice the struggle itself is already a shift.",
-    "L2": "Add clinician_review flag if the acceptance and willingness work reveals sustained, profound meaninglessness or despair about whether life holds anything worth living for. Temporary distress during defusion does not meet this bar. Sustained hopelessness that is qualitatively different from the presenting distress does.",
-    "L3": "Exit immediately to crisis protocol if any crisis signal is detected during the session.",
-    "L4": "Trigger human handoff if user explicitly requests a human clinician or shows 3 or more crises in the last 30 days."
+    "L2": "[STORED_ONLY — enforced by output_gate._log_clinical_review -> clinician_review_queue, not by this string] Documented clinical intent (not runtime-enforced): Add clinician_review flag if the acceptance and willingness work reveals sustained, profound meaninglessness or despair about whether life holds anything worth living for. Temporary distress during defusion does not meet this bar. Sustained hopelessness that is qualitatively different from the presenting distress does.",
+    "L3": "[STORED_ONLY — enforced by the safety graph (_route_after_safety -> _crisis_response_node), not by this string] Documented clinical intent (not runtime-enforced): Exit immediately to crisis protocol if any crisis signal is detected during the session.",
+    "L4": "[NOT_IMPLEMENTED — human-handoff automation deferred per 2026-07-10 decision record; no live call routing in POC; OR-7 response floor covers explicit human requests; 3+ crises/30d trigger deferred to the D4(a) exposure gate] Documented clinical intent (not runtime-enforced): Trigger human handoff if user explicitly requests a human clinician or shows 3 or more crises in the last 30 days."
   },
   "cultural_overrides": {
     "sabr_and_acceptance": "Sabr in Islamic tradition is not passive endurance or giving up. It is actively remaining present to hardship without being defined by it, while continuing to act with integrity. Frame acceptance as a form of sabr: not agreeing that the situation is okay, but refusing to let the struggle with the feeling consume everything else.",

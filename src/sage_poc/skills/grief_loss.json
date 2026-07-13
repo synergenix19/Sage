@@ -171,9 +171,9 @@
   ],
   "escalation_matrix": {
     "L1": "Exit skill gracefully if user requests to stop. No persuasion. Acknowledge the loss and the meaning of speaking about it.",
-    "L2": "Add clinician_review flag if grief appears to be reaching prolonged grief or complicated grief severity, severely impairing daily functioning or accompanied by persistent hopelessness, or if grief is connected to suicide risk.",
-    "L3": "Exit immediately to crisis protocol if any crisis signal is detected. Grief is a recognised precipitant of suicidal ideation and must be assessed carefully.",
-    "L4": "Trigger human handoff if 3 or more crises detected in the last 30 days, or if user explicitly requests a human clinician."
+    "L2": "[STORED_ONLY — enforced by output_gate._log_clinical_review -> clinician_review_queue, not by this string] Documented clinical intent (not runtime-enforced): Add clinician_review flag if grief appears to be reaching prolonged grief or complicated grief severity, severely impairing daily functioning or accompanied by persistent hopelessness, or if grief is connected to suicide risk.",
+    "L3": "[STORED_ONLY — enforced by the safety graph (_route_after_safety -> _crisis_response_node), not by this string] Documented clinical intent (not runtime-enforced): Exit immediately to crisis protocol if any crisis signal is detected. Grief is a recognised precipitant of suicidal ideation and must be assessed carefully.",
+    "L4": "[NOT_IMPLEMENTED — human-handoff automation deferred per 2026-07-10 decision record; no live call routing in POC; OR-7 response floor covers explicit human requests; 3+ crises/30d trigger deferred to the D4(a) exposure gate] Documented clinical intent (not runtime-enforced): Trigger human handoff if 3 or more crises detected in the last 30 days, or if user explicitly requests a human clinician."
   },
   "cultural_overrides": {
     "islamic_grief_framework": "For Muslim users, inna lillahi wa inna ilayhi rajiun is a profound grief resource, not a platitude. Offer it if the user brings a faith frame, not as imposition. Prayers for the deceased, sadaqa jariyah, and Quran recitation are legitimate continuing bonds. Do not use Islamic concepts to minimize grief or suggest faith shortens mourning.",
