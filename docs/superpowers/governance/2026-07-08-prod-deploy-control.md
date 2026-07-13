@@ -40,7 +40,9 @@ no behavior change. Self-tested offline (`verify_build_lock.sh --self-test`, gat
 3. Only then set `ENFORCE_DEPLOY_LOCK=1` on production. Break-glass for a legit emergency direct
    deploy = set it to 0 for the one build, justified + logged (below), re-enable after.
 
-**STAGING TEST RUN 2026-07-13 — positive PASSED (non-blocking); negative test is REQUIRED and PENDING.**
+**✅ ENABLED ON PROD 2026-07-13 (`ENFORCE_DEPLOY_LOCK=1`).** Both staging tests passed with cited build evidence (Entry 9): POSITIVE `3e9fc51e` build-log `✅ build-lock: 5fca40a3bd77 claimed the deploy lock` with the ENFORCE arg `"1"` (proves Railway injects both vars + verify passes a legit deploy); NEGATIVE `a4c1d4b1` bypass build **FAILED at build phase, `image=NONE`** (verify exited 1, no image — vs the transient positive failure `2ae47518` which was `image=YES` = deploy-phase). Prod post-flip probe: deterministic harm-to-others backstop LIVE. The lock arc is closed (tripwire detects, build-side prevents). Historical note follows (the pre-enablement procedure).
+
+**STAGING TEST RUN 2026-07-13 — positive PASSED (non-blocking); negative test WAS REQUIRED, now DONE (above).**
 Set `ENFORCE_DEPLOY_LOCK=1` on staging, deployed `5fca40a` via `deploy_prod.sh staging` (which populated
 staging's `LOCKED_DEPLOY_LOG` with the SHA), build reached `Healthcheck succeeded` — so **ENFORCE=1 does
 NOT break a legit lock-claimed deploy.** BUT: **Railway's build logs do NOT surface the `verify_build_lock`
