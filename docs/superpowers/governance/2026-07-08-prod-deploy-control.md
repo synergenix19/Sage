@@ -40,6 +40,20 @@ no behavior change. Self-tested offline (`verify_build_lock.sh --self-test`, gat
 3. Only then set `ENFORCE_DEPLOY_LOCK=1` on production. Break-glass for a legit emergency direct
    deploy = set it to 0 for the one build, justified + logged (below), re-enable after.
 
+**STAGING TEST RUN 2026-07-13 — positive PASSED (non-blocking); negative test is REQUIRED and PENDING.**
+Set `ENFORCE_DEPLOY_LOCK=1` on staging, deployed `5fca40a` via `deploy_prod.sh staging` (which populated
+staging's `LOCKED_DEPLOY_LOG` with the SHA), build reached `Healthcheck succeeded` — so **ENFORCE=1 does
+NOT break a legit lock-claimed deploy.** BUT: **Railway's build logs do NOT surface the `verify_build_lock`
+RUN-step stdout/stderr**, so a non-blocking build cannot distinguish "verify passed with ENFORCE injected"
+from "verify was dormant because Railway didn't inject the var." **Therefore the NEGATIVE test is the
+definitive confirmation and is mandatory before the prod flip:** with `ENFORCE=1`, a direct `railway up`
+of a SHA NOT in `LOCKED_DEPLOY_LOG` (bypassing `deploy_prod.sh`) must **FAIL the build**. If it fails →
+injection confirmed, flip prod. If it passes → Railway isn't injecting `LOCKED_DEPLOY_LOG`; switch to
+passing it as an explicit `--build-arg` from `deploy_prod.sh` (or bake the verdict into `/health` so it's
+observable). Staging reset to `ENFORCE_DEPLOY_LOCK=0` after the test; prod untouched.
+**Evidence bar for enabling is otherwise MET** — the incident record now shows the one bypass deploy
+(`7cbc77c`) caused the month's worst safety regression, so this is enable-on-confirmation, not enable-if-motivated.
+
 ## Break-glass — bypassing the required CI gate in a genuine emergency (2026-07-10)
 
 `master` branch protection now requires the `Safety-surface unit tests` check (strict) AND
