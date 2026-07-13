@@ -1,4 +1,6 @@
 from sage_poc.safety.medical_redflag import detect_medical_redflag
+from sage_poc.graph import _route_after_safety
+from sage_poc import config as _cfg
 import typing
 import pytest
 
@@ -85,3 +87,29 @@ async def test_medical_response_writes_its_own_audit(monkeypatch):
     assert captured.get("gate_path") == "medical"
     assert captured.get("medical_flags") == ["crushing"]
     assert "latency_ms" in captured and "path" in captured
+
+
+def _routed(**st) -> str:
+    base = {"is_safe": True, "crisis_state": "none", "medical_flags": [], "crisis_tier": None}
+    return _route_after_safety(base | st)
+
+
+def test_cardiac_routes_medical_when_enabled(monkeypatch):
+    monkeypatch.setattr(_cfg, "MEDICAL_REDFLAG_GUARD_ENABLED", True)
+    assert _routed(is_safe=True, medical_flags=["crushing"]) == "medical"
+
+
+def test_crisis_wins_over_medical(monkeypatch):
+    monkeypatch.setattr(_cfg, "MEDICAL_REDFLAG_GUARD_ENABLED", True)
+    # SI + cardiac in the same turn: crisis takes precedence, never medical.
+    assert _routed(is_safe=False, medical_flags=["crushing"]) == "crisis"
+
+
+def test_medical_route_off_by_default(monkeypatch):
+    monkeypatch.setattr(_cfg, "MEDICAL_REDFLAG_GUARD_ENABLED", False)
+    assert _routed(is_safe=True, medical_flags=["crushing"]) == "safe"
+
+
+def test_benign_stays_safe(monkeypatch):
+    monkeypatch.setattr(_cfg, "MEDICAL_REDFLAG_GUARD_ENABLED", True)
+    assert _routed(is_safe=True, medical_flags=[]) == "safe"
