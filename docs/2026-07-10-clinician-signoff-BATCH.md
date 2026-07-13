@@ -34,6 +34,9 @@ Full evidence: `docs/2026-07-10-section-H-clinician-queries.md` §H4. Frontend `
 
 ---
 
+## ITEM 0b — 🔴 URGENT: crisis-copy "false 24/7" ripple (blocks the H4 value deploy)
+Adopting the 8am–8pm National primary makes 4 files assert a now-FALSE "MoHAP Counselling Line / available 24 hours" next to the `800-4673` number: **`psychotic_referral.json` (a CRISIS referral — worst case)**, `clinical_flag_adaptations.json`, `L0_persona.json` (label), `third_party_guidance.json` (label). Two fixes: (1) **eng/config** — replace the hardcoded "MoHAP" labels with `{{crisis_label}}` (now resolves to the correct service) — deterministic, no clinician needed; (2) **clinical** — `psychotic_referral` is a **crisis** referral, so it must point at a **24/7** line (999 / SAKINA / DHA), NOT the 8am–8pm National — which 24/7 line, and the corrected availability wording, is your call. This BLOCKS the H4 value deploy: shipping "call 800-4673, 24/7" is false-and-unsafe. (Also flagged: the single-source `{{crisis_hours}}` injects English "8am–8pm daily" into Arabic copy — an i18n limitation to note.)
+
 ## ITEM 1 — Offer blurbs, 15 skills (OF-1)
 Tick/edit each: current blurb beside its doc source. Until ticked these matrix rows are PARTIAL.
 → `docs/2026-07-10-OF-1-blurb-signoff-packet.md`
