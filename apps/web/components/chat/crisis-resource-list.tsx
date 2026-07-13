@@ -19,10 +19,11 @@ function hoursLabel(resource: CrisisResource, isAr: boolean) {
 
 function CrisisResourceRow({ resource, isAr }: { resource: CrisisResource; isAr: boolean }) {
   const label = isAr ? resource.labelAr : resource.labelEn
-  // Calm, non-alarming palette (subtle like the Abby crisis modal): neutral card + charcoal CTA +
-  // muted-gray hours chip. Saturated crisis-red (var(--color-crisis)) is deliberately NOT used on the
-  // resource rows — a distressed user should not meet a wall of red. Red is reserved as a single
-  // accent on the pinned crisis-card's alert frame (crisis-card.tsx). Do not "restore" red here.
+  // Calm, on-brand palette: the CTA uses the app's primary green (var(--color-primary), same as every
+  // other primary button — error/not-found/input-bar) so the crisis rows are consistent with the rest
+  // of the app, not a wall of saturated crisis-red and not a stark black pill. Hours chip is muted
+  // gray; row border neutral. Saturated crisis-red (var(--color-crisis)) is deliberately reserved as a
+  // single accent on the pinned crisis-card's alert frame (crisis-card.tsx). Do not "restore" red here.
   return (
     <li className="flex flex-col gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
       <div className="flex items-center justify-between gap-2">
@@ -40,7 +41,7 @@ function CrisisResourceRow({ resource, isAr }: { resource: CrisisResource; isAr:
             ? `اتصل بـ ${resource.number} — ${resource.labelAr}`
             : `Call ${resource.number} — ${resource.labelEn}`
         }
-        className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-[var(--color-text-primary)] px-4 py-2 text-sm font-medium text-white"
+        className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white"
       >
         {isAr ? (
           <>
