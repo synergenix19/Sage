@@ -7,6 +7,7 @@ from sage_poc.nodes.directive_detect import detect_directive_request
 from sage_poc.skills.keyword_matcher import ranked_skill_matches
 from sage_poc.conversation_stall import detect_stall
 from sage_poc.nodes.self_reference_detect import detect_self_reference
+from sage_poc.nodes.venting_detect import detect_venting
 
 # SINGLE-POINT-OF-FAILURE WARNING: The general_chat classification below is the sole
 # gate preventing bare emotional words ("stressed", "depressed", "anxious", "I feel sad")
@@ -162,6 +163,12 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
         ),
         # Deterministic recall signal; sole consumer is the composer eviction-exemption.
         "self_reference": detect_self_reference(state),
+        # F6: deterministic PI-VI-001 don't-fix signal, now given routing authority
+        # (previously only injected a hold-space note into freeflow with no say over
+        # whether a skill gets imposed — same detection-without-authority class as B1).
+        "venting_detected": detect_venting(
+            state.get("message_en", ""), state.get("raw_message", ""), state.get("detected_language", "en")
+        ),
     }
     # v7.2 Node-2 keyword pre-pass (rules-first, Cardinal Rule 5). Deterministic skill-trigger match
     # emitting a routing HINT only — the classifier above still owns primary_intent + engagement/
