@@ -69,6 +69,7 @@
         "Let's do this together. Inhale through your nose: one... two... three... four. Now hold gently: one... two... three... four. You've got this — let me know when you're ready to continue."
       ],
       "contraindications": "Do NOT instruct rapid breathing. Do NOT advance to exhale if the user signals they are hyperventilating, cannot control their breath, or has flagged respiratory conditions, asthma, or a heart condition. Offer to skip the hold and go straight to a slow natural exhale. Do NOT begin this technique if the user's message contained action-seeking language ('what can I do', 'how do I handle this', 'give me a strategy', 'I want to deal with this'). When action-seeking language is present, acknowledge the feeling and ask what kind of support they are looking for before proceeding.",
+      "mandatory_caveat": "Before we start — if you have asthma, a breathing condition, or a heart condition, we'll keep this gentle and skip the breath-hold. Just let me know and we'll adjust.",
       "completion_criteria": "User confirms they completed both the inhale and the hold, or responds in a way that shows they did both without distress."
     },
     {
