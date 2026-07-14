@@ -14,6 +14,7 @@ Test module responsibilities:
 """
 import os
 import sys
+import warnings
 import numpy as np
 import pytest
 import httpx
@@ -144,6 +145,13 @@ def _reset_llm_singletons():
     reset_singletons()
 
 
+# Set True by _warm_bge_m3_once when the real BGE-M3 cannot be loaded offline (see the
+# SAFETY-GATE marker it prints). @slow (embedding-dependent) tests assert this is False so
+# they FAIL rather than silently pass on zero-vectors — a stub the suite doesn't announce is
+# the JSON-presence anti-pattern in CI form.
+_BGE_M3_STUBBED = False
+
+
 @pytest.fixture(autouse=True, scope="session")
 def _warm_bge_m3_once():
     """Pre-warm the shared BGE-M3 model exactly once per session using device="cpu".
@@ -157,25 +165,42 @@ def _warm_bge_m3_once():
     (no ANE recompilation). Subsequent tests reuse the resident model.
     """
     import sage_poc.nodes.skill_select as ss
+    global _BGE_M3_STUBBED
     if ss._embed_model is None:
         from sentence_transformers import SentenceTransformer
         from sage_poc.nodes.skill_select import _BGE_M3_REVISION
         try:
-            model = SentenceTransformer(
+            ss._embed_model = SentenceTransformer(
                 "BAAI/bge-m3",
                 local_files_only=True,
                 revision=_BGE_M3_REVISION,
                 device="cpu",
             )
         except (OSError, EnvironmentError):
-            model = SentenceTransformer("BAAI/bge-m3", revision=_BGE_M3_REVISION, device="cpu")
-        ss._embed_model = model
-    ss._ensure_semantic_ready()
-    # Pre-build the S3 crisis phrase index. Without this, every slow test that does not
-    # request s3_warmed cold-builds the 60-phrase index (~3-5s) inside asyncio.wait_for's
-    # 5s budget. With the index pre-built here, check_s3 is warm-inference only (~50ms).
-    from sage_poc.safety.s3_semantic import _ensure_s3_ready as _build_s3_index
-    _build_s3_index()
+            # Cache-miss. Do NOT download a ~2GB model inside the "deterministic, fast"
+            # safety gate — that Hub download hung CI for 30+ min (#298). Degrade to the
+            # per-test zero-vector stub, but LOUDLY: a silent stub would let the entire
+            # semantic layer of the safety suite pass on zero-vectors. The marker below +
+            # the @slow assertion in _stub_bge_m3 keep the gate honest about what it did
+            # NOT verify. (HF_HUB_OFFLINE=1 in CI makes this except fire fast, not hang.)
+            _BGE_M3_STUBBED = True
+            print(
+                "SAFETY-GATE: BGE-M3 STUBBED — semantic assertions degraded "
+                "(model unavailable offline; @slow tests FAIL, not skip)",
+                file=sys.stderr,
+                flush=True,
+            )
+            warnings.warn(
+                "SAFETY-GATE: BGE-M3 STUBBED — semantic assertions degraded",
+                stacklevel=2,
+            )
+    if not _BGE_M3_STUBBED:
+        ss._ensure_semantic_ready()
+        # Pre-build the S3 crisis phrase index. Without this, every slow test that does not
+        # request s3_warmed cold-builds the 60-phrase index (~3-5s) inside asyncio.wait_for's
+        # 5s budget. With the index pre-built here, check_s3 is warm-inference only (~50ms).
+        from sage_poc.safety.s3_semantic import _ensure_s3_ready as _build_s3_index
+        _build_s3_index()
 
 
 @pytest.fixture(autouse=True)
@@ -208,6 +233,12 @@ def _stub_bge_m3(request):
     saved_s3_phrases = list(s3._phrase_texts)
 
     if request.node.get_closest_marker("slow"):
+        if _BGE_M3_STUBBED:
+            pytest.fail(
+                "SAFETY-GATE: BGE-M3 is stubbed but this @slow test requires real "
+                "embeddings — refusing to pass on zero-vectors. Provide the model (HF "
+                "cache) in this environment, or exclude the @slow suite here."
+            )
         # Preserve the pre-built session index from _warm_bge_m3_once.
         # Clearing _anchor_embeddings forces _ensure_semantic_ready() to re-encode
         # all anchor texts inside the 10s asyncio.to_thread timeout.
