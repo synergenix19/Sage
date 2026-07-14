@@ -730,6 +730,9 @@ async def skill_executor_node(state: SageState) -> dict:
     return {
         "step_instruction":    result["instruction"],
         "executed_step_id":    step_id,
+        # SG-2 / Contraindication-Firing: pass the executed step's mandatory caveat to the gate,
+        # which delivers it verbatim (never LLM-discretionary). Empty for every non-safety step.
+        "step_mandatory_caveat": next((s.mandatory_caveat for s in skill.steps if s.step_id == step_id), ""),
         "active_step_id":      result["next_step_id"],
         "active_skill_id":     None if result.get("skill_complete") else skill_id,
         "completed_skill_id":  skill_id if result.get("skill_complete") else None,

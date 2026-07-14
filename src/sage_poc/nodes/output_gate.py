@@ -554,6 +554,23 @@ async def _persist_session_summary(
         _log.warning("[output_gate] write_persisted_clinical_flags failed: %s", exc)
 
 
+def _pin_contraindication_caveat(response: str, caveat: str | None) -> str:
+    """SG-2 / Contraindication-Firing. Deliver a step's mandatory contraindication caveat VERBATIM at
+    the gate, prepended ahead of any technique content — bypassing LLM discretion the same way
+    scope_refusal does (Cardinal Rule: the LLM renders language, it does NOT decide whether safety
+    copy fires). No-op when the executed step carries no caveat. Idempotent — won't double a caveat the
+    LLM happened to surface. Runs on the English text before translate-out, so the Arabic render
+    inherits it (same placement discipline as question-discipline)."""
+    if not caveat or not caveat.strip():
+        return response
+    caveat = caveat.strip()
+    if not response or not response.strip():
+        return caveat
+    if caveat[:40] in response:   # already surfaced — don't double it
+        return response
+    return f"{caveat} {response}"
+
+
 async def output_gate_node(state: SageState) -> dict:
     gate_path = state.get("gate_path")
     # Per-turn latency for session_audit. turn_started_at is stamped before ainvoke (server.py);
@@ -786,6 +803,12 @@ async def output_gate_node(state: SageState) -> dict:
         # Now telemetry only: anything surviving the deterministic strip (e.g. a stray
         # em-dash preserved inside a quoted span) — not a leak to act on.
         _log.warning("[output_gate] format tokens after strip: %s", violations)
+
+    # SG-2 / Contraindication-Firing (Cardinal Rule: the LLM renders language, it does NOT decide
+    # whether safety copy fires). Deliver the executed step's mandatory contraindication caveat
+    # VERBATIM here, ahead of any technique content, bypassing LLM discretion. Runs on the English
+    # text before translate-out so the Arabic render inherits it. No-op for every step without a caveat.
+    response_en = _pin_contraindication_caveat(response_en, state.get("step_mandatory_caveat"))
 
     if lang == "ar" and not _response_en_is_arabic:
         # §5 served-arm latency timer: brackets ONLY the translate-out operation (plus its
