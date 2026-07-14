@@ -10,6 +10,21 @@
 
 ---
 
+## 0. Re-baseline note (2026-07-14) — the `43b9b62` instrument is retired
+
+Every claim in this spec was originally verified against prod `43b9b62` (and the code-read SHA `113bb09`) — a deploy **64 commits behind `origin/master`** (`52cba81`). Treating that stale tree as ground truth produced **two withdrawn findings** (SG-2 "absent" and the anchor "displacement" were both already fixed in the 64 commits). All safety-relevant claims have been **re-verified against master `52cba81`**:
+
+| claim | status on master `52cba81` |
+|---|---|
+| **B1** medical red-flag override absent | **CONFIRMED absent** — detector absent, `medical_flags` undeclared, citations hold. Finding stands. |
+| **F6** venting → skill imposed | **CONFIRMED live** — "I just need to vent" at ei=8 → `box_breathing` imposed (semantic). |
+| **§1c** High-anxiety under-reaches `dbt_tipp` | **CONFIRMED** — routes grounding/abstain, never TIPP (warmed semantic run). Clinician blocker-with-default. |
+| **SG-2** cardiac/pregnancy caveat absent | **WITHDRAWN** — present + tested (`test_dbt_tipp_safety_caveat` 3/3) + executor-enforced. |
+| **anchor** TIPP → box_breathing displacement | **WITHDRAWN** — never routes box_breathing; conflation of §3d venting (F6) + §1c under-reach. |
+| **embedding_timeout** semantic→silent-ABSTAIN | **CONFIRMED** — new latent-hazard ticket. |
+
+**The escalation's §7 question is answered and inverted:** the pipeline *did* deliver (SG-2 shipped, the anchor defect never existed); **our measurement failed** — a 64-commit-stale deploy SHA was treated as authoritative for four turns. That process finding replaces the fabricated three-instance pattern. Confirmed finding count: **one (B1)**, plus F6 as the standing verified live gap.
+
 ## 1. Problem & framing
 
 The product owner's box-breathing complaint is one symptom of a set of **delivery- and routing-conformance gaps** against the clinician spec. Iterative analysis settled the correct framing, which this spec commits to:
@@ -145,8 +160,8 @@ Additive schema extension → routes through: schema-owner sign-off, `signed_cli
 
 > **ADJUDICATION (2026-07-14, evidence: v2 prod fixtures `0a58a7d`, warmed master re-run).** The "TIPP → box_breathing at ei=8 anchor displacement" premise below (R1.1–R1.3) is **WITHDRAWN — the defect does not exist as described.** Zero drives in the v2 corpus route to `box_breathing` except **§3d venting** (that is F6). **§1c High-anxiety** drives route to `grounding` (keyword) or a low-confidence semantic offer/abstain — **never `box_breathing`, never `dbt_tipp`** — on prod AND on a warmed master run where the semantic tier actually executed. The memory's "TIPP unreachable, 2 → box_breathing" fused two findings. **No anchor repair (old Tasks 1–3) is built.**
 >
-> **What R1 becomes:**
-> 1. **SG-2 cardiac/pregnancy caveat + fail-closed gate + acute-band reachability guard** — build now (live-safety, below). **The fail-closed gate is the safety property and MUST hold independently of any anchor work** (`sg2_present()` gating `dbt_tipp` out of acute routing survives even though the anchor repair is dropped). TIPP is reachable via the keyword tier on master, so **SG-2 is live-and-missing right now** (see escalation, promoted to a second live medical-safety gap).
+> **What R1 becomes (SECOND correction, 2026-07-14): SG-2 is also already present on master — "build SG-2 / live-and-missing" was WRONG, same stale-tree error.** `dbt_tipp` has the caveat in its `entry_screen` (technique_description + a `contraindications` rule + gating `completion_criteria`), it is executor-enforced, and `test_dbt_tipp_safety_caveat` passes 3/3. **Do not build SG-2. It is not a live gap. Retracted from the escalation.**
+> 1. **`sg2_present()` runtime gate** — the ONLY residual: a deterministic *runtime* backstop refusing to route TIPP if a future JSON edit strips the caveat (the load-time guard checks entry_screen *coverage*, not caveat *content*; `test_dbt_tipp_safety_caveat` is CI-time only). Real defense-in-depth, but **against a hypothetical future edit, not a current hazard — a ticket, does NOT outrank F6** (a verified live rupture).
 > 2. **§1c High-anxiety under-reaches `dbt_tipp` — a clinician blocker-with-default, not an open question.** BOT BEHAVIOUR's High tier is specifically TIPP (one instruction at a time, no menu, no upfront acronym — because cognitive load is itself harmful at that intensity). `grounding_5_4_3_2_1` is a valid acute skill but is **not** the doc's High-tier answer and lacks the one-step delivery constraint. Frame to clinical as: **"the doc says TIPP; routing gives grounding/abstain — ratify or amend,"** default = TIPP. The **reachability guard asserts the doc's answer (TIPP) until ratified, and is therefore expected RED** — a red test naming an unratified gap is more honest than a green one encoding our guess.
 > 3. **`embedding_timeout` latent routing hazard (NEW finding).** `skill_select.py:883` wraps the semantic match in `asyncio.wait_for(…, EMBEDDING_TIMEOUT_SECONDS≈10s)`; on timeout it returns `active_skill_id=None` (silent ABSTAIN) and logs `"skill_select_tier": "keyword_only"` — misleading, since the actual effect is *no semantic tier ran*. Model warmup alone took 10.1s here, so on a **cold start / BGE-M3 reload** (a known prod risk) the first non-keyword drives silently lose semantic routing. In a router where 354/865 matches are semantic, a fail-to-abstain that surfaces only as a misleading log line is a prod hazard. Log + own ticket; it may be its own story.
 
