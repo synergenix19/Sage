@@ -50,6 +50,10 @@ recurring "re-run the whole matrix" task is the smell that this rule is missing.
 applied to the register itself): a row may only move to CONFORMS on driven/instrument evidence, never on
 a code-read — "the fix is in the file" is the exact false assurance this whole method exists to reject.
 
+## Never disarm the gate
+
+**Never unblock a deploy by removing, skipping, or `slow`-marking the test that gates it.** Making a failing safety check pass by deleting the check is the CI form of shipping crisis values on conversational authority — the gate exists precisely for the case you are tempted to bypass. Fix the test or the environment, never the gate. (2026-07-14: the BGE-M3 safety-suite CI hang was fixed by making model provisioning honest — fail-fast to a *loud* stub, `@slow` embedding tests fail-not-skip when stubbed — not by dropping `test_sg2_caveat_firing` from the strict candidate list. Proposing that shortcut and rejecting it in the same breath is the discipline working.)
+
 ## When to apply
 
 Any change on a safety-critical path (crisis, clinical-flag, safety routing). For ordinary feature work,
