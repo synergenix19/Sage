@@ -1,6 +1,11 @@
+import os
+import pytest
+
 from sage_poc.nodes.venting_detect import detect_venting
-from sage_poc.graph import _route_after_intent
+from sage_poc.graph import _route_after_intent, build_graph
 from sage_poc import config as _cfg
+
+_needs_llm = pytest.mark.skipif(not os.getenv("OPENROUTER_API_KEY"), reason="intent_route LLM")
 
 
 def test_dontfix_signals_detected():
@@ -51,3 +56,51 @@ def test_new_skill_venting_still_reaches_skill_select(monkeypatch):
     # existing _route(...) helper.)
     monkeypatch.setattr(_cfg, "VENTING_SUPPRESSION_ENABLED", True)
     assert _route(primary_intent="new_skill", venting_detected=True, emotional_intensity=8) == "skill_select"
+
+
+# --- End-to-end (full graph, requires OPENROUTER_API_KEY for intent_route) ---
+
+async def _drive(msg, tid):
+    from langgraph.checkpoint.memory import MemorySaver
+    return await build_graph(MemorySaver()).ainvoke(
+        {"raw_message": msg, "path": []},
+        config={"configurable": {"thread_id": tid}},
+    )
+
+
+@_needs_llm
+@pytest.mark.asyncio
+@pytest.mark.parametrize("msg,tid", [
+    ("please just listen, I can't handle this anymore, everything is falling apart", "f6-1"),
+    ("I'm so overwhelmed I just need to get this out, don't try to fix it", "f6-2"),
+])
+async def test_high_intensity_venting_no_longer_imposes_skill(monkeypatch, msg, tid):
+    # RED on master today: these impose dbt_tipp. Green after Tasks 1-2 with the flag on.
+    monkeypatch.setattr(_cfg, "VENTING_SUPPRESSION_ENABLED", True)
+    r = await _drive(msg, tid)
+    assert r.get("active_skill_id") is None, f"venting imposed {r.get('active_skill_id')}"
+
+
+@_needs_llm
+@pytest.mark.asyncio
+@pytest.mark.parametrize("msg,tid", [
+    ("I'm panicking, help me calm down right now", "f6-help"),   # genuine acute, wants help
+])
+async def test_non_venting_acute_still_reaches_a_skill(monkeypatch, msg, tid):
+    # Do NOT over-suppress: acute distress without a don't-fix signal still gets a skill.
+    monkeypatch.setattr(_cfg, "VENTING_SUPPRESSION_ENABLED", True)
+    r = await _drive(msg, tid)
+    assert r.get("active_skill_id") is not None or r.get("offered_skill_ids"), "over-suppressed a help-seeking acute turn"
+
+
+@_needs_llm
+@pytest.mark.asyncio
+@pytest.mark.parametrize("msg,tid", [
+    ("my mother passed away last week, I just feel numb", "f6-grief"),
+    ("I feel so alone right now, I don't have anyone to talk to", "f6-lonely"),
+])
+async def test_grief_and_loneliness_stay_presence(monkeypatch, msg, tid):
+    # Already correct on master; lock it so a future change can't regress it.
+    monkeypatch.setattr(_cfg, "VENTING_SUPPRESSION_ENABLED", True)
+    r = await _drive(msg, tid)
+    assert r.get("active_skill_id") is None
