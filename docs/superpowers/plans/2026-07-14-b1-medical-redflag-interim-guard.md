@@ -10,6 +10,25 @@
 
 **Parent spec:** `docs/superpowers/specs/2026-07-14-bot-behaviour-routing-conformance-design.md` §2 (item 0) + §8A (red-test seed). **Escalation:** `ESC-2026-07-14-medical-redflag-override-absent`.
 
+## Post-review status (READ THIS — implemented + reviewed 2026-07-14, NOT flipped)
+
+Implemented subagent-driven on branch `cdai/b1-medical-redflag-guard` (8 commits off `origin/master` `52cba81`), all per-task + a final whole-branch review passed; 19 scoped tests green; cardiac e2e (full + jaw-less) ran keyless and green. **Flag `SAGE_MEDICAL_REDFLAG_GUARD` default OFF. Not flipped.**
+
+**Coverage — B1-interim closes the MAIN path only.** `_route_after_safety` routes medical only on the normal safe-path branch. The pre-existing `crisis_state=="monitoring"` and `crisis_tier=="T1"` branches return before the medical check and do **not** consult `medical_flags`. So a cardiac flag arising *during post-crisis monitoring or T1 warm-tiering does not route medical* — a population statistically among the most physiologically at-risk. This is the escalation's original defect, narrowed (fires on some paths, not others), not eliminated. **Do NOT describe the override as "live" anywhere while these branches are uncovered.** Closing them is the top B1-full item.
+
+**Flip blockers (all must clear before `SAGE_MEDICAL_REDFLAG_GUARD=true`):**
+1. **Audit columns absent — Defect 3 is only half-fixed.** `medical_response` calls `write_session_audit`, but `_build_session_audit_row` has no `gate_path`/`medical_flags` columns, so those fields are **written-then-dropped**. What survives (`node_path`) says a medical turn occurred but not *which red-flag phrase fired* — the field needed to measure recall, review a referral after the fact, and gate B1-full at ≥95% per-class. v7's audit requirement (every response traceable to flags) is **not met** for the most consequential turn the system emits. Row-builder + migration, small — but a **flip blocker**, not a follow-up.
+2. **Q1-terminal ratification** (referral text).
+3. **Q1-triggers two-part sign-off** — the §1 list AND the two engineering-authored variants (`crushing_variant`, `one_sided_numb`).
+
+**v7 deviations logged (Absolute Rule 1):**
+- **`medical_response` is a graph node outside the v7 8-node set.** Precedent exists (`crisis_response` is also a terminal alongside the 8), but precedent ≠ documented. Record: the v7 graph is *8 nodes + N safety terminals* (crisis_response, medical_response, …).
+- **`medical_flags` is a new state channel**, not among the enriched state's 6 components and distinct from `clinical_flags`. Correct (reserved by `safety_precedence.py`'s `_medical_fired`), but it is a **schema extension** and belongs in the v7 record.
+
+**Plan-artifact drift (evidence the between-task review is load-bearing, not ceremony):** this plan's own task code carried **three** bugs that only review caught — Task 1's test didn't isolate `crushing_variant`; Task 3's literal `state.get("message_en")` would have silently broken the AR-via-translation path; Task 4's hand-built audit dict would have dropped the row. Plus the final review caught a multi-turn safety gap (a medical referral left the breathing skill resumable — the same skill/safety-authority class as F6). That is the escalation's pattern (a specced safety behavior quietly not delivered) reappearing a **fourth** time — and the **first** instance caught by a gate we actually built. The three code blocks below are corrected to what shipped.
+
+---
+
 ## Global Constraints
 
 - **Doc terminology (name it correctly for clinical lead):** the red-flag descriptor list is the **Universal red-flag override** in the **1a–1c preamble** (doc line 10: *"don't let a 'mild' or 'moderate' classification… suppress it"*, plus tier screens at 58/92/131). **Section 6** is the per-category *"Guard — Do Not Present This Pathway If"* block the override routes **into** — a different thing. Earlier drafts and PR #314 used "§1" as loose shorthand for the override block; the trigger set this guard fires on is verbatim from the **Universal red-flag override**, and Q1-triggers asks clinical lead to ratify **that** block by name.
@@ -56,6 +75,13 @@ def test_jawless_variant_fires():
     # If this fails, the phrase list is wrong — extend it (word-order/proximity
     # variants), never narrow this test.
     assert detect_medical_redflag(JAWLESS_VARIANT) != []
+
+def test_crushing_variant_isolated_forces_word_order_entry():
+    # ADDED post-review: the two tests above ALSO match one_sided_numb/spread_jaw, so a
+    # detector missing crushing_variant would still pass them. This isolates the word-order
+    # entry with a numbness/jaw-free string, so a broken/missing crushing_variant fails here.
+    assert "crushing_variant" in detect_medical_redflag("I have crushing pain in my chest")
+    assert "crushing" in detect_medical_redflag("this is crushing chest pain")
 
 def test_must_not_fire_controls_stay_clear():
     # Panic negatives AND benign-numbness negatives. Benign limb-numbness (no
@@ -271,10 +297,10 @@ At the top of `src/sage_poc/nodes/safety_check.py` (with the other `from sage_po
 from sage_poc.safety.medical_redflag import detect_medical_redflag
 ```
 
-Immediately before the `return {` dict at the end of `safety_check_node` (~L278), add:
+Immediately before the `return {` dict at the end of `safety_check_node` (~L278), add (**corrected post-review** — use the node's LOCAL `message_en`/`raw`, NOT `state.get("message_en")`: `safety_check` recomputes `message_en` fresh this turn at L90-96, so `state.get("message_en")` is the *previous* turn's value and would silently break the AR-via-translation path):
 
 ```python
-    medical_flags = detect_medical_redflag(state.get("message_en", ""), state.get("raw_message", ""))
+    medical_flags = detect_medical_redflag(message_en, raw)
 ```
 
 Then add this key inside the returned dict (alongside `"crisis_flags": new_crisis_flags,`):
@@ -379,23 +405,27 @@ _log = logging.getLogger(__name__)
 
 
 async def medical_response_node(state: SageState) -> dict:
-    _t0 = time.monotonic()
     text = _cfg.MEDICAL_REFERRAL_TEXT
-    latency_ms = int((time.monotonic() - _t0) * 1000)
+    _tsa = state.get("turn_started_at")  # full-turn latency, mirroring crisis_response/output_gate
+    latency_ms = int((time.monotonic() - _tsa) * 1000) if _tsa is not None else state.get("latency_ms")
     medical_flags = state.get("medical_flags", [])
     path = state["path"] + ["medical_response"]
 
     # Explicit audit: output_gate (the normal audit-write point) is bypassed on this
     # path, so without this the single most consequential turn is unrecorded. Fire-and-
     # forget, mirroring crisis_response's task pattern — but here it is NOT optional.
+    # CORRECTED post-review: write_session_audit(state: SageState) takes the FULL state and
+    # builds the row via _build_session_audit_row(state). Spread {**state, ...overrides} like
+    # _crisis_response_node (graph.py:70) — a hand-built fragment dict would drop the row's fields.
+    # NOTE (flip blocker): _build_session_audit_row has no gate_path/medical_flags columns yet, so
+    # those two overrides are written-then-dropped; only node_path captures the medical turn until
+    # the row-builder + migration land. Also clear the active-skill lifecycle (mirror crisis) so a
+    # coping skill cannot resume after a medical referral; compute full-turn latency from turn_started_at.
     _audit_task = asyncio.create_task(write_session_audit({
-        "session_id": state.get("session_id"),
-        "user_id": state.get("user_id"),
-        "gate_path": "medical",
+        **state,
         "path": path,
+        "gate_path": "medical",
         "medical_flags": medical_flags,
-        "crisis_flags": state.get("crisis_flags", []),
-        "response_text": text,
         "latency_ms": latency_ms,
     }))
     _audit_task.add_done_callback(
@@ -410,6 +440,11 @@ async def medical_response_node(state: SageState) -> dict:
         "medical_flags": medical_flags,
         "path": path,
         "latency_ms": latency_ms,
+        # Clear the active-skill lifecycle (mirror crisis_response) so a coping skill cannot
+        # resume the turn AFTER a medical-emergency referral (final-review finding).
+        "active_skill_id": None,
+        "active_step_id": None,
+        "offered_skill_ids": None,
     }
 ```
 

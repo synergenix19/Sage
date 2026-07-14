@@ -69,6 +69,14 @@ Standing behind an open cardiac gap to reach a 95%-recall bar is the wrong trade
 
 ---
 
+### 2.4 B1-interim: implemented status, coverage, flip blockers, v7 deviations (2026-07-14)
+
+B1-interim is implemented + reviewed on `cdai/b1-medical-redflag-guard` (flag OFF, not flipped). Recorded here so the spec is the source of truth:
+
+- **Coverage — main path only.** The medical route fires only on the normal safe-path branch of `_route_after_safety`. The `crisis_state=="monitoring"` and `crisis_tier=="T1"` branches return before it and never consult `medical_flags`, so a cardiac flag *during post-crisis monitoring or T1 tiering does not route medical*. This is the escalation's original defect **narrowed, not eliminated**. The override must not be described as "live" while these branches are uncovered. Closing them is the top B1-full item.
+- **Flip blockers** (before `SAGE_MEDICAL_REDFLAG_GUARD=true`): (1) **audit columns** — `medical_response` writes an audit record, but `_build_session_audit_row` has no `gate_path`/`medical_flags` columns, so those are written-then-dropped; only `node_path` marks the medical turn, not *which phrase fired* (needed for recall measurement + post-hoc referral review + the B1-full ≥95% gate). v7's "every response traceable to flags" is unmet for the most consequential turn. Row-builder + migration = **flip blocker, not follow-up.** (2) Q1-terminal ratification. (3) Q1-triggers two-part sign-off (§1 list + the two engineering variants).
+- **v7 deviations (Absolute Rule 1):** (a) `medical_response` is a graph node **outside the v7 8-node set** — precedent (`crisis_response`) exists but is now documented: the graph is *8 nodes + N safety terminals*. (b) `medical_flags` is a **new state channel** (schema extension), distinct from `clinical_flags`, reserved by `safety_precedence.py`. Both belong in the ratified v7 record.
+
 ## 3. Item 1 — F6: presence-suppression, generalised (3d + 7a + S2a)
 
 ### 3.1 Finding: the detector exists; the gap is authority
@@ -90,6 +98,8 @@ The document generalises this. F6 ships for all three:
 ### 3.3 Framing: F6 is one instance of a universal Guard layer
 
 Every one of the 34 categories carries a *"Guard — Do Not Present This Pathway If"* block. **Suppression is not a special case in this document — it is a universal layer above skill matching, currently unrepresented.** The spec names the mechanism as general (a suppression tier evaluated before/over `skill_matching`), even though only 3d/7a/S2a ship this cycle. This avoids re-deriving the mechanism per category later.
+
+> **Observation from B1 (2026-07-14):** B1's final review caught a medical referral that left the active coping skill *resumable* — a safety decision without authority over the skill layer. That is the **same class** as F6 (a presence decision that must suppress the skill layer). The pattern recurring at the skill/safety boundary suggests F6 may be **less isolated than scoped** — the suppression authority likely needs to be a shared mechanism (clear/withhold the active-skill lifecycle) that both medical terminals and presence-suppression consume, not a per-feature bolt-on. Revisit when F6 is planned.
 
 ### 3.4 Structure
 
