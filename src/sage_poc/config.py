@@ -265,3 +265,6 @@ CHECKPOINT_POOL_MAX_SIZE = int(os.getenv("SAGE_CHECKPOINT_POOL_MAX_SIZE", "20"))
 # as the ① pool measurement). Default on — shipped only because the equivalence gate
 # (test_embed_cache_equivalence.py) asserts crisis output is byte-identical with the cache.
 EMBED_CACHE_ENABLED: bool = os.getenv("SAGE_EMBED_CACHE_ENABLED", "true").lower() == "true"
+
+# F6 venting-suppression authority. Default OFF; changes live routing (Routing-SF-2).
+VENTING_SUPPRESSION_ENABLED: bool = os.getenv("SAGE_VENTING_SUPPRESSION", "false").lower() == "true"

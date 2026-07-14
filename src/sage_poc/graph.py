@@ -206,6 +206,17 @@ def _route_after_intent(state: SageState) -> str:
     # check above by design.
     if (state.get("offered_skill_ids") or []) and state.get("offer_response") == "accept":
         return "skill_select"
+    from sage_poc import config as _cfg  # noqa: PLC0415
+    # F6: a venting / "just listen" turn must NOT be pulled into skill_select by the
+    # intensity override or the prepass hint. PI-VI-001 detects it; this gives that detection
+    # ROUTING AUTHORITY to keep it in presence (freeflow). Same class as B1's medical_response
+    # leaving active_skill_id resumable: detection without authority over the skill layer.
+    # Placed after the crisis/new_skill/monitoring/psychotic returns above, so it only affects
+    # the general_chat fall-through — crisis precedence and help-seeking new_skill are preserved.
+    if (_cfg.VENTING_SUPPRESSION_ENABLED
+            and state.get("venting_detected")
+            and not state.get("active_skill_id")):
+        return "freeflow"
     # Routing-SF-2 (intent-route intensity): acute distress classified as general_chat
     # must still reach skill_select so the acute down-regulation skills (dbt_tipp,
     # grounding_5_4_3_2_1) can keyword-match. intent_route already emits
