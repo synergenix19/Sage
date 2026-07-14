@@ -12,7 +12,9 @@
 
 ## Re-baseline discipline (READ FIRST — this plan does not inherit a stale tree)
 
-Every behavioural claim below was verified against **`origin/master` `52cba81` in the FULL GRAPH** (`app.ainvoke`), not `skill_select` in isolation and not the retired `43b9b62` corpus. The isolation shortcut is exactly what produced two withdrawn findings and nearly a third: `skill_select` tested alone with `primary_intent` forced to `new_skill` shows venting → `box_breathing`, but the real graph's `intent_route` classifies venting as `general_chat`, and the actual imposition is **`dbt_tipp` via the Routing-SF-2 override**, only for a specific corner. **Any claim here carries its verification method; the mechanical check is full-graph replay.**
+Every behavioural claim below was verified in the **FULL GRAPH** (`app.ainvoke`), not `skill_select` in isolation and not the retired `43b9b62` corpus. The isolation shortcut is exactly what produced two withdrawn findings and nearly a third: `skill_select` tested alone with `primary_intent` forced to `new_skill` shows venting → `box_breathing`, but the real graph's `intent_route` classifies venting as `general_chat`, and the actual imposition is **`dbt_tipp` via the Routing-SF-2 override**, only for a specific corner. **Any claim here carries its verification method; the mechanical check is full-graph replay.**
+
+> **SHA drift (the thread's own lesson, applied to this plan):** this plan was authored against `origin/master` `52cba81`. By execution time **master had advanced to `ea50e45`** (`#317`, a box_breathing SG-2 caveat). The worktree was based off `origin/master`, so F6 was **built and re-verified on `ea50e45`**, and the live gap **reproduced there** — but the "`52cba81`" references below are stale by that distance. A plan's SHA is a claim about a moving tree; state the distance, and re-verify on the SHA you actually build against.
 
 ### Verified scope on master `52cba81` (full graph)
 
@@ -198,7 +200,11 @@ In `graph.py` `_route_after_intent`, the Routing-SF-2 block (currently `if (inte
     # F6: a venting / "just listen" turn must NOT be pulled into skill_select by the
     # intensity override — PI-VI-001 detects it and now has routing authority to keep it
     # in presence (freeflow). Guarded by flag; crisis already returned above.
+    # MUST be scoped to intent == "general_chat" (like the SF-2 block below): new_skill and
+    # info_request are handled LATER in the function, so without this scope the guard would
+    # over-suppress an explicit help/skill request that carries a don't-fix keyword.
     if (_cfg.VENTING_SUPPRESSION_ENABLED
+            and intent == "general_chat"
             and state.get("venting_detected")
             and not state.get("active_skill_id")):
         return "freeflow"
@@ -208,6 +214,7 @@ In `graph.py` `_route_after_intent`, the Routing-SF-2 block (currently `if (inte
         return "skill_select"
 ```
 (Match the existing SF-2 condition exactly; only add the venting pre-empt block above it. Confirm `_cfg` is the imported config alias in `graph.py`.)
+> **Corrected post-review (2026-07-14):** the `intent == "general_chat"` clause was **missing from this sample in the plan's first draft** — the implementer copied it verbatim and it over-suppressed `new_skill`/`info_request` venting (a help-seeking request → presence). Caught by between-task review, fixed in commit `e8eb27a`. This is the plan-drift class recorded in the structural escalation's appendix (sample code written from a model of the code, not the code). The block above is the corrected form. **Add a 5th test:** `_route(primary_intent="new_skill", venting_detected=True, emotional_intensity=8) == "skill_select"`.
 
 - [ ] **Step 5: Run — verify pass, then commit**
 
