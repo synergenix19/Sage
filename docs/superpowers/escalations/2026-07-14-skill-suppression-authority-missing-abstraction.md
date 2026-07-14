@@ -50,15 +50,23 @@ signal            (the deterministic detector: venting, medical red-flag, psycho
 
 With this, F6 is a table entry, not a branch. B1's skill-clear is a property of the mechanism, not a thing a node can forget. A fifth guard is a row someone reviews against the same five columns. The 34 BOT BEHAVIOUR guards become data in one registry, not 34 more `if`s.
 
+**Design it to cover two objects, not one.** There is a sibling shape: **delivery suppression** (S1b's timing rule — *don't hand over the sleep-hygiene resource at night; brief tips now, full resource by day*). That is not skill suppression — the skill is selected; what's withheld is the *delivery/rendering* of a resource, conditionally. Same "signal → authority → withhold → precedence" shape, **different object** (a delivery decision, not a selection decision). If the abstraction is designed for skill-suppression only, delivery suppression becomes bolt-on #38 in six months. The mechanism should model *what* is being suppressed (selection vs delivery) as a field, so both ride it.
+
 ## 5. Why this is a v7 deviation (Absolute Rule 1)
 
-It does **not contradict** the v7 spec — it reveals the spec is **silent where it needed to speak.** The Rules Service defines a **`skill_matching`** rule category (how a matched skill *enters*). There is **no `skill_suppression` category** — no representation of a signal that says *do not present a skill here, and clear what's active.* Suppression is currently implemented as the **absence** of matching, per-node, ad hoc. That silence is the gap, and closing it is an architectural decision that needs the owner's sign-off, not an incremental code change.
+It does **not contradict** the v7 spec — it reveals the spec is **silent where it needed to speak.** The Rules Service defines a **`skill_matching`** rule category (how a matched skill *enters*). There is **no `skill_suppression` category** — no representation of a signal that says *do not present a skill here, and clear what's active.* Skill suppression is currently implemented as the **absence** of matching, per-node, ad hoc.
+
+**And v7 already suppresses in four other places, none unified — which is the real tell.** The living arch doc shows suppression re-implemented ad hoc across the system: `crisis_suppress` and `false_positive_exclusions` (safety rule actions that suppress crisis flags), the `escalating_distress` flag *"suppressed when a skill is active AND engagement ≥ 5"* (arch doc §, a hardcoded condition), and the planned `emotions_disclosed` field to *"make the suppression concrete"* (still blocked on a clinical decision about *permanent within-thread vs transient* suppression — exactly the "what does it clear / how long" question the abstraction answers). Suppression is not a new concept in v7; it is a **recurring one that has never been named as a class.** Skill suppression (F6) is the fifth ad-hoc instance. That silence is the gap, and closing it is an architectural decision that needs the owner's sign-off, not an incremental code change.
 
 ## 6. Ask
 
 1. **Ratify or amend the abstraction** in §4 as the v7 representation of skill-suppression authority (a `skill_suppression` Rules-Service category + a single evaluation point + a declared-clears contract + an audit row).
 2. **Decide the migration**: F6 (#318) and B1's skill-clear (#315) ship as bolt-ons now (both flag-gated / reviewed); the abstraction is where they and the 34 BOT BEHAVIOUR guards converge, so the per-node instances are retired onto it rather than multiplied.
-3. This **outranks the remaining feature queue** (P0b, F5) for *architectural review* — not because it is urgent (nothing is on fire), but because it is the only architectural finding in the investigation; the rest are bugs. A design decision made now costs one review; made after 37 bolt-ons, it costs a rewrite.
+3. **Scope of what this ruling gates (corrected — it is NOT the whole feature queue):**
+   - **Gated by the ruling:** F5's **ceiling** ("route to human support" — at ceiling no skill is offered and the turn redirects: signal → authority → suppress → redirect, the same mechanism as F6) and **all 34 category Guards** (each is suppression by definition). Component #2 of conformance — the largest single chunk — is this.
+   - **NOT gated:** **P0b `delivery_format`** governs how an *already-selected* skill is rendered — entirely downstream of selection, zero contact with suppression authority (schema field + executor read + renderer). **Proceed independently.** **F5 band logic** (mild/moderate/high → which skill, menu vs no-menu) and **step-up/step-down** are `skill_matching` / `step_policy` / `escalation_matrix` — selecting or transitioning differently is not suppressing. **Proceed independently.**
+   
+   This ruling **outranks the queue for *architectural review*** — not because it is urgent (nothing is on fire), but because it is the only architectural finding in the investigation; the rest are bugs. A design decision made now costs one review; made after 37 bolt-ons, it costs a rewrite.
 
 ---
 
