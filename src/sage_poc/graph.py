@@ -211,9 +211,12 @@ def _route_after_intent(state: SageState) -> str:
     # intensity override or the prepass hint. PI-VI-001 detects it; this gives that detection
     # ROUTING AUTHORITY to keep it in presence (freeflow). Same class as B1's medical_response
     # leaving active_skill_id resumable: detection without authority over the skill layer.
-    # Placed after the crisis/new_skill/monitoring/psychotic returns above, so it only affects
-    # the general_chat fall-through — crisis precedence and help-seeking new_skill are preserved.
+    # Scoped to intent == "general_chat": new_skill and info_request are handled LATER in this
+    # function (below), so without this guard an explicit skill/help request co-occurring with
+    # a don't-fix keyword would be over-suppressed into freeflow — the exact failure mode this
+    # feature must avoid. Crisis precedence and help-seeking new_skill are preserved.
     if (_cfg.VENTING_SUPPRESSION_ENABLED
+            and intent == "general_chat"
             and state.get("venting_detected")
             and not state.get("active_skill_id")):
         return "freeflow"

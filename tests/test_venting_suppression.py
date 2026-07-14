@@ -43,3 +43,11 @@ def test_flag_off_venting_unchanged(monkeypatch):
 def test_crisis_still_wins_over_venting(monkeypatch):
     monkeypatch.setattr(_cfg, "VENTING_SUPPRESSION_ENABLED", True)
     assert _route(primary_intent="crisis", venting_detected=True) == "crisis"
+
+
+def test_new_skill_venting_still_reaches_skill_select(monkeypatch):
+    # Over-suppression guard: an explicit skill/help request must NOT be suppressed even if a
+    # don't-fix keyword is present. Only general_chat venting is suppressed. (Uses the file's
+    # existing _route(...) helper.)
+    monkeypatch.setattr(_cfg, "VENTING_SUPPRESSION_ENABLED", True)
+    assert _route(primary_intent="new_skill", venting_detected=True, emotional_intensity=8) == "skill_select"
