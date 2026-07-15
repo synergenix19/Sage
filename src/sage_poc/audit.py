@@ -160,6 +160,13 @@ def _build_session_audit_row(state: SageState) -> dict:
     if state.get("fired_safety_routes"):
         row["fired_safety_routes"] = state.get("fired_safety_routes")
         row["precedence_winner"] = state.get("precedence_winner")
+    # B1 medical red-flag audit (flag-gated, same discipline as tiering/precedence above):
+    # included ONLY when a medical turn fired, so a flag-OFF / non-medical row stays
+    # byte-identical to master. Records WHICH phrase fired (recall measurement + post-hoc
+    # referral review + the B1-full >=95% gate). Migration is a flag-flip deploy gate.
+    if state.get("medical_flags"):
+        row["gate_path"] = state.get("gate_path")
+        row["medical_flags"] = state.get("medical_flags")
     return row
 
 

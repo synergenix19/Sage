@@ -14,6 +14,7 @@ from sage_poc.nodes.skill_select import skill_select_node
 from sage_poc.nodes.skill_executor import skill_executor_node
 from sage_poc.nodes.freeflow_respond import freeflow_respond_node
 from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
+from sage_poc.nodes.medical_response import medical_response_node
 from sage_poc.config import CRISIS_LINE_UAE, CRISIS_CONFIG
 from sage_poc.nodes.output_gate import output_gate_node
 from sage_poc.config import AUDIT_LOG_ENABLED
@@ -167,7 +168,11 @@ def _route_after_safety(state: SageState) -> str:
     from sage_poc import config as _cfg  # noqa: PLC0415
     if _cfg.CRISIS_TIERING_ENABLED and state.get("crisis_tier") == "T1":
         return "safe"
-    return "safe" if state["is_safe"] else "crisis"
+    if not state["is_safe"]:
+        return "crisis"
+    if _cfg.MEDICAL_REDFLAG_GUARD_ENABLED and state.get("medical_flags"):
+        return "medical"
+    return "safe"
 
 
 def _route_after_intent(state: SageState) -> str:
@@ -320,14 +325,17 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     graph.add_node("freeflow_respond", freeflow_respond_node)
     graph.add_node("output_gate", output_gate_node)
     graph.add_node("crisis_response", _crisis_response_node)
+    graph.add_node("medical_response", medical_response_node)
 
     graph.set_entry_point("safety_check")
 
     graph.add_conditional_edges("safety_check", _route_after_safety, {
         "safe": "intent_route",
         "crisis": "crisis_response",
+        "medical": "medical_response",
     })
     graph.add_edge("crisis_response", END)
+    graph.add_edge("medical_response", END)
 
     graph.add_conditional_edges("intent_route", _route_after_intent, {
         "skill_select": "skill_select",

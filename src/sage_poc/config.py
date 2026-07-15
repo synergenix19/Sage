@@ -266,5 +266,28 @@ CHECKPOINT_POOL_MAX_SIZE = int(os.getenv("SAGE_CHECKPOINT_POOL_MAX_SIZE", "20"))
 # (test_embed_cache_equivalence.py) asserts crisis output is byte-identical with the cache.
 EMBED_CACHE_ENABLED: bool = os.getenv("SAGE_EMBED_CACHE_ENABLED", "true").lower() == "true"
 
+# B1 interim medical red-flag guard. Default OFF; flip only when the must-NOT-fire
+# controls are green (see plan Task 6). Not frozen; touches no signed field.
+MEDICAL_REDFLAG_GUARD_ENABLED: bool = os.getenv("SAGE_MEDICAL_REDFLAG_GUARD", "false").lower() == "true"
+
+# Q1-terminal default: the MEDICAL guard wording (doc lines 62/81/131 / Section 6):
+# "prompt to seek in-person/medical/emergency evaluation; treat as a possible medical
+# emergency." NOT doc L1477 (that is the psychiatric-crisis line rule, a different guard).
+# NUMBER: lead with 998 = UAE AMBULANCE. 999 is UAE POLICE and must NOT lead a medical/cardiac
+# emergency (the earlier "999" default was inherited from the psychiatric-crisis Resources
+# table, where police co-response is appropriate). The crisis pathway's 999 is unchanged;
+# this is the MEDICAL terminal only. Regression-guarded by test_medical_referral_uses_998.
+# PROVENANCE (do not overclaim): 998=ambulance / 999=police are the standard published UAE
+# emergency numbers (PO-sourced + flagged 2026-07-15). A documented verification record —
+# dial-test or cited authority, per the GL-1 crisis-number precedent — is a PRE-FLIP gate,
+# tracked in the crisis/medical numbers verification ticket. Do not flip on the comment alone.
+# Single blocking parameter, pending clinician ratification of wording.
+MEDICAL_REFERRAL_TEXT: str = os.getenv(
+    "SAGE_MEDICAL_REFERRAL_TEXT",
+    "The symptoms you're describing can be signs of a medical emergency. "
+    "Please seek in-person medical evaluation now. Call 998 (ambulance) in the UAE, "
+    "or go to the nearest emergency department. I'm not able to assess "
+    "physical symptoms, and this needs a medical professional right away.",
+)
 # F6 venting-suppression authority. Default OFF; changes live routing (Routing-SF-2).
 VENTING_SUPPRESSION_ENABLED: bool = os.getenv("SAGE_VENTING_SUPPRESSION", "false").lower() == "true"
