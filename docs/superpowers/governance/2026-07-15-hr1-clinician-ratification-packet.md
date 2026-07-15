@@ -24,6 +24,8 @@ The doc's §3 escalates on the distress-0-10 answer (high/agitation/risk-underwa
 
 **Confirm this default** (risk-language → 999 immediately; else one re-ask, then fail-to-higher). (Stage 2 build; surfaced here so it lands in one conversation.)
 
+**One clinical parameter in the same §3 decision:** the doc escalates "high distress" → 999 but gives no number. We operationalize "high" as **distress ≥ 7 / 10 → higher-severity (999); ≤ 6 → see-a-doctor promptly.** **Confirm 7, or set the boundary.** (This only decides the *framing* for a user who gives a low number with no risk language; 999/ER is always still offered as the escalation option, and any risk language overrides the number.)
+
 ## One ruling (blocker-with-default — the doc has already answered; you are ratifying or amending it)
 The doc's §HR section names dissociation as one of its three high-risk classes with 11 triggers — so **the default is: dissociation routes to professional referral, per the doc.** You are not deciding this fresh. The genuine question is whether you want to **amend** the doc's answer — e.g. split panic-derealization to a lower tier — not to re-derive settled content. **Ratify the doc's default, or specify the amendment.**
 
