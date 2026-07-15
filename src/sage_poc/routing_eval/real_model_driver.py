@@ -89,6 +89,22 @@ from sage_poc.nodes.ocd_compulsion import is_ocd_compulsion as ss_is_ocd_compuls
 from sage_poc.nodes.harm_intrusive import is_harm_intrusive as ss_is_harm_intrusive
 import sage_poc.nodes.skill_select as ss
 
+# WRONG-TREE GUARD. This package is installed editable (`_editable_impl_sage_poc.pth` appends the
+# MAIN checkout's src/ to sys.path), so `.venv/bin/python` run from ANY worktree silently imports
+# the main checkout's sage_poc unless PYTHONPATH overrides it — a verification run can then produce
+# a green result against the wrong code. When SAGE_EXPECT_SRC is set (to the src/ of the tree under
+# test), fail loudly at import if the resolved package is not under it. Opt-in: unset = no-op.
+_expect_src = os.environ.get("SAGE_EXPECT_SRC")
+if _expect_src:
+    import sage_poc as _sp
+    _resolved = str(Path(_sp.__file__).resolve())
+    if not _resolved.startswith(str(Path(_expect_src).resolve())):
+        raise SystemExit(
+            f"SAGE_EXPECT_SRC guard: routing_eval imported sage_poc from {_resolved!r}, "
+            f"not under the intended tree {_expect_src!r}. A stale editable-install .pth is "
+            f"shadowing the worktree — set PYTHONPATH={_expect_src} (before site-packages)."
+        )
+
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _FIXTURE_DIR = _REPO_ROOT / "tests" / "fixtures" / "routing_eval"
 
