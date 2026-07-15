@@ -341,7 +341,6 @@
     },
     {
       "rule_id": "SK-EN-HTO-001",
-      "approved_by": "clinical_lead",
       "version": "1.0.0",
       "authored_by": "sage_clinics",
       "effective_date": "2026-07-09",
