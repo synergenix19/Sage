@@ -79,6 +79,14 @@ jobs:
         if: steps.detect.outputs.code == 'true'
         run: python scripts/check_state_channels.py
 
+      - name: Static — safety trigger-file language parity (no EN-only safety lists)
+        # Fails the build if a safety trigger file carries English triggers but no Arabic coverage
+        # (bilingual product). Root class of #329 (a live AR medical red-flag bypass) and #330.
+        # EXEMPT entries carry a tracking ticket, so debt stays visible while the gate stays green —
+        # the never-disarm principle with a workable escape valve.
+        if: steps.detect.outputs.code == 'true'
+        run: python scripts/check_safety_language_parity.py
+
       - name: Run curated deterministic safety-surface suites
         if: steps.detect.outputs.code == 'true'
         env:
