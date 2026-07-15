@@ -54,6 +54,10 @@ a code-read — "the fix is in the file" is the exact false assurance this whole
 
 **Never unblock a deploy by removing, skipping, or `slow`-marking the test that gates it.** Making a failing safety check pass by deleting the check is the CI form of shipping crisis values on conversational authority — the gate exists precisely for the case you are tempted to bypass. Fix the test or the environment, never the gate. (2026-07-14: the BGE-M3 safety-suite CI hang was fixed by making model provisioning honest — fail-fast to a *loud* stub, `@slow` embedding tests fail-not-skip when stubbed — not by dropping `test_sg2_caveat_firing` from the strict candidate list. Proposing that shortcut and rejecting it in the same breath is the discipline working.)
 
+## Primary sources ground decisions; derived summaries only route attention
+
+**Verify a decision against the primary record, never against a summary that quotes it.** A conformance matrix, a plan, a governance note — these route your attention to the right place, but they are not the place. Reasoning that is *correct-by-luck* (the summary happened to quote the doc accurately) is indistinguishable from reasoning that is *correct-by-verification* — right up until the day the summary is wrong, and by then the decision has shipped. This failure mode has worn three costumes already: #205's correct-by-de-escalation (a boundary deviation that read as safe), the GL-1 "verification" that checked internal consistency instead of ground truth, and the 2026-07-15 SG-2 disposition argued from the conformance summary before the actual BOT BEHAVIOUR.docx was opened (it agreed — but that was luck, not method; reading the source then upgraded the finding from a style call to an explicit rule violation, L71). Make the right habit the easy one: when a source document exists, extract it into the working context and cite it by line, so the next decision checks the primary by default.
+
 ## When to apply
 
 Any change on a safety-critical path (crisis, clinical-flag, safety routing). For ordinary feature work,
