@@ -296,3 +296,62 @@ MEDICAL_REFERRAL_TEXT: str = os.getenv(
 )
 # F6 venting-suppression authority. Default OFF; changes live routing (Routing-SF-2).
 VENTING_SUPPRESSION_ENABLED: bool = os.getenv("SAGE_VENTING_SUPPRESSION", "false").lower() == "true"
+
+# HR-1 Stage 2 (docs/superpowers/specs/2026-07-16-hr1-stage2-terminal-design.md):
+# migrates HR delivery out of the LLM-rendered psychotic_referral skill into a
+# dedicated deterministic two-turn node (high_risk_response). KILL-SWITCH, DEFAULT
+# OFF, same inverted strict parse as ROUTE_PRECEDENCE_ENABLED above: only a LITERAL
+# "true" enables; unset / empty / whitespace / garbage -> OFF. Distinct from
+# HIGH_RISK_DETECTION_ENABLED (Stage 1, gates which HR classes route here at all) so
+# the Stage-2 delivery upgrade can flip independently of Stage-1 detection. OFF =
+# Stage-1 behavior (byte-identical). Flip is governed: clinician sign-off on the
+# §HR fixed copy below + the two-turn state-machine design.
+_hr_terminal_raw = os.getenv("SAGE_HIGH_RISK_TERMINAL")
+HIGH_RISK_TERMINAL_ENABLED = (
+    _hr_terminal_raw is not None and _hr_terminal_raw.strip().lower() == "true"
+)
+if _hr_terminal_raw is not None and _hr_terminal_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_HIGH_RISK_TERMINAL unexpected value %r — applying safe default (terminal OFF); "
+        "only 'true' enables.", _hr_terminal_raw,
+    )
+
+# §HR fixed copy (verbatim from the design doc's "Fixed copy" section) — SINGLE-SOURCED,
+# never LLM-rendered. The high_risk_response node reads these literals directly (like
+# crisis_copy templates); it does not ask an LLM to paraphrase them. No em dashes: the
+# doc's own text uses one in the lower-redirect line, but project convention forbids em
+# dashes in any copy that reaches the LLM/user, so it is rewritten here with a comma.
+
+# Step 0 — the one question (§1). Also reused verbatim as the body of the single re-ask.
+HR_DISTRESS_QUESTION = "On a scale of 0 to 10, how distressing is this for you right now?"
+
+# Step 1 supportive message (§2), sent once alongside the branch redirect below.
+HR_SUPPORTIVE_MESSAGE = (
+    "Thank you for telling me what's going on for you. What you're describing "
+    "sounds really difficult, and I want to make sure you get support from "
+    "someone who can help properly with this."
+)
+
+# Step 1 redirect (§3), higher-severity branch (score high / agitation / risk-underway /
+# non-answer default after the re-ask). This is a LEAD-IN only — it does not hardcode the
+# 999/ER resource list. The node composes the actual resources from
+# select_crisis_resources()/CRISIS_CONFIG (same UAE directory the crisis pathway uses),
+# so the resource set stays single-sourced and never duplicated here.
+HR_REDIRECT_HIGHER_LEAD = "What you're describing needs to be looked at right away."
+
+# Step 1 redirect (§3), lower-severity branch (score low, no risk language). Doc text used
+# an em dash before "they're the right people"; rewritten with a comma per convention.
+HR_REDIRECT_LOWER = (
+    "This is something a doctor or mental health professional should look at with "
+    "you soon, they're the right people to help make sense of what's happening and "
+    "figure out the best support."
+)
+
+# Single gentle re-ask (T2, when neither risk language nor a clean 0-10 answer was given).
+# Content-neutral: it does not probe the experience itself, it only repeats the one
+# question so the branch can still be resolved on T3. Never asked a third time (the node's
+# step machinery makes a third ask unrepresentable).
+HR_REASK = (
+    "It's okay. Just so I can point you to the right support: "
+    "on a scale of 0 to 10, how distressing is this for you right now?"
+)
