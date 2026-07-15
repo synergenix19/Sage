@@ -11,6 +11,8 @@ themselves (E3 medical, E4 HR, E7 IPV) land in Phase B behind this wiring.
 """
 from __future__ import annotations
 
+from sage_poc.safety.hr_disclosure import hr_disclosure_present
+
 # §4.5 order — RATIFIED (clinical lead Rohan Sarda, 2026-07-04, relay via PO; see
 # docs/superpowers/governance/2026-07-04-review-cycle-package.md §E + §A-REV).
 # crisis-first is spec-mandated (BOT BEHAVIOUR §C/§F: crisis "overrides everything" /
@@ -35,8 +37,14 @@ def _medical_fired(state) -> bool:
 
 
 def _hr_fired(state) -> bool:
-    # E4 §HR. Today only psychotic_disclosure; B2b expands to mania/dissociation.
-    return "psychotic_disclosure" in (state.get("clinical_flags") or [])
+    # E4 §HR. HR-1 Stage 1 Task 3: psychotic_disclosure always fires; mania_disclosure
+    # and dissociation_disclosure are gated behind HIGH_RISK_DETECTION_ENABLED (call-time
+    # read, matching apply_precedence's kill-switch honouring below).
+    from sage_poc import config  # noqa: PLC0415
+
+    return hr_disclosure_present(
+        state.get("clinical_flags") or [], flag_enabled=config.HIGH_RISK_DETECTION_ENABLED
+    )
 
 
 def _ipv_fired(state) -> bool:

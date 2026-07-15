@@ -19,6 +19,7 @@ from sage_poc.config import CRISIS_LINE_UAE, CRISIS_CONFIG
 from sage_poc.nodes.output_gate import output_gate_node
 from sage_poc.config import AUDIT_LOG_ENABLED
 from sage_poc.audit import write_session_audit
+from sage_poc.safety.hr_disclosure import hr_disclosure_present
 
 _log = logging.getLogger(__name__)
 
@@ -202,7 +203,13 @@ def _route_after_intent(state: SageState) -> str:
     # offer-accept branch below. If a psychotic disclosure co-occurs with a live skill
     # offer (e.g. the user accepts an offer in the same turn they disclose), the safety
     # referral must win — never let an engagement-layer accept short-circuit the referral.
-    if ("psychotic_disclosure" in (state.get("clinical_flags") or [])
+    #
+    # HR-1 Stage 1 Task 3: broadened via hr_disclosure_present so mania_disclosure and
+    # dissociation_disclosure reach the same referral redirect as psychotic_disclosure.
+    # psychotic_disclosure always routes (flag-independent); the other two are gated
+    # behind HIGH_RISK_DETECTION_ENABLED. Flag OFF -> byte-identical to psychotic-only.
+    from sage_poc import config as _cfg  # noqa: PLC0415
+    if (hr_disclosure_present(state.get("clinical_flags") or [], flag_enabled=_cfg.HIGH_RISK_DETECTION_ENABLED)
             and not state.get("psychotic_referral_delivered")):
         return "skill_select"
     # R1: accept reply to a pending offer routes to skill_select for promotion.
@@ -211,7 +218,6 @@ def _route_after_intent(state: SageState) -> str:
     # check above by design.
     if (state.get("offered_skill_ids") or []) and state.get("offer_response") == "accept":
         return "skill_select"
-    from sage_poc import config as _cfg  # noqa: PLC0415
     # F6: a venting / "just listen" turn must NOT be pulled into skill_select by the
     # intensity override or the prepass hint. PI-VI-001 detects it; this gives that detection
     # ROUTING AUTHORITY to keep it in presence (freeflow). Same class as B1's medical_response
