@@ -96,3 +96,164 @@ def test_higher_redirect_not_hardcoded_composes_from_crisis_pathway():
         # A lead-in template must not itself contain a resource number/link —
         # those come exclusively from the crisis pathway.
         assert "999" not in config.HR_REDIRECT_HIGHER_LEAD
+
+
+# ---------------------------------------------------------------------------
+# Task 3: high_risk_response_node -- the 2-3 turn deterministic terminal.
+#
+# Call the node directly with constructed state dicts (no graph/checkpointer).
+# Per house convention: assert on gate_path / hr_branch / hr_terminal_step /
+# hr_distress_score, NEVER on the copy strings' prose, and NEVER on
+# active_skill_id for "completion" (it is unconditionally cleared on entry).
+# ---------------------------------------------------------------------------
+
+import pytest
+
+from sage_poc.nodes.high_risk_response import high_risk_response_node
+
+
+def _base_state(**overrides) -> dict:
+    state = {
+        "path": [],
+        "message_en": "",
+        "hr_terminal_step": None,
+        "active_skill_id": "box_breathing",
+        "active_step_id": "step_2",
+        "offered_skill_ids": ["box_breathing"],
+    }
+    state.update(overrides)
+    return state
+
+
+async def test_entry_asks_question_and_sets_await_distress():
+    state = _base_state(message_en="I feel really overwhelmed today")
+    result = await high_risk_response_node(state)
+
+    assert result["gate_path"] == "high_risk"
+    assert result["hr_terminal_step"] == "await_distress"
+    assert result["hr_escalate_regardless"] is False
+    # Entry-clear of skill-flow fields (medical_response.py structural precedent),
+    # not asserted as "completion" -- asserted because the node is REQUIRED to clear
+    # them so an in-progress skill cannot resume next turn.
+    assert result["active_skill_id"] is None
+    assert result["active_step_id"] is None
+    assert result["offered_skill_ids"] is None
+
+
+async def test_finding_1_mania_behavior_underway_escalates_regardless_of_low_score():
+    entry_state = _base_state(
+        message_en="I've been spending loads of money and I feel unstoppable"
+    )
+    entry_result = await high_risk_response_node(entry_state)
+    assert entry_result["hr_escalate_regardless"] is True
+
+    branch_state = _base_state(
+        message_en="2",
+        hr_terminal_step=entry_result["hr_terminal_step"],
+        hr_escalate_regardless=entry_result["hr_escalate_regardless"],
+    )
+    branch_result = await high_risk_response_node(branch_state)
+
+    # Critical case: a low numeric score (2) must NOT mask risky-behavior-underway
+    # evidence carried in from entry. Must NOT be "lower".
+    assert branch_result["hr_branch"] == "higher"
+    assert branch_result["hr_branch"] != "lower"
+    assert branch_result["hr_terminal_step"] is None
+    assert branch_result["hr_escalate_regardless"] is False
+
+
+async def test_await_distress_low_score_routes_lower():
+    # HR_HIGH_FLOOR is 7, inclusive (hr_distress.py: "score >= HR_HIGH_FLOOR -> higher"),
+    # so the low-score case must use a score strictly below the floor. "4" is
+    # unambiguous; it is not the boundary value itself.
+    state = _base_state(
+        message_en="4",
+        hr_terminal_step="await_distress",
+        hr_escalate_regardless=False,
+    )
+    result = await high_risk_response_node(state)
+
+    assert result["hr_branch"] == "lower"
+    assert result["hr_distress_score"] == 4
+    assert result["hr_terminal_step"] is None
+    assert result["hr_escalate_regardless"] is False
+
+
+async def test_await_distress_floor_boundary_score_routes_higher():
+    # Boundary check: HR_HIGH_FLOOR=7 is INCLUSIVE ("score >= HR_HIGH_FLOOR -> higher"
+    # in hr_distress.resolve_hr_branch, the signed Task 1 constant). A score of exactly
+    # 7 must route higher, not lower.
+    state = _base_state(
+        message_en="7",
+        hr_terminal_step="await_distress",
+        hr_escalate_regardless=False,
+    )
+    result = await high_risk_response_node(state)
+
+    assert result["hr_branch"] == "higher"
+    assert result["hr_distress_score"] == 7
+    assert result["hr_terminal_step"] is None
+
+
+async def test_await_distress_high_score_routes_higher():
+    state = _base_state(
+        message_en="9",
+        hr_terminal_step="await_distress",
+        hr_escalate_regardless=False,
+    )
+    result = await high_risk_response_node(state)
+
+    assert result["hr_branch"] == "higher"
+    assert result["hr_distress_score"] == 9
+    assert result["hr_terminal_step"] is None
+
+
+async def test_await_distress_risk_language_routes_higher_no_reask():
+    state = _base_state(
+        message_en="they're outside right now",
+        hr_terminal_step="await_distress",
+        hr_escalate_regardless=False,
+    )
+    result = await high_risk_response_node(state)
+
+    assert result["hr_branch"] == "higher"
+    assert result["hr_terminal_step"] is None
+
+
+async def test_await_distress_non_answer_reasks_once():
+    state = _base_state(
+        message_en="who told you that",
+        hr_terminal_step="await_distress",
+        hr_escalate_regardless=False,
+    )
+    result = await high_risk_response_node(state)
+
+    assert result["hr_terminal_step"] == "reask"
+    assert "hr_branch" not in result
+
+
+async def test_reask_non_answer_fails_to_higher():
+    state = _base_state(
+        message_en="still nothing",
+        hr_terminal_step="reask",
+        hr_escalate_regardless=False,
+    )
+    result = await high_risk_response_node(state)
+
+    assert result["hr_branch"] == "higher"
+    assert result["hr_terminal_step"] is None
+    assert result["hr_escalate_regardless"] is False
+
+
+async def test_reask_clean_score_routes_lower():
+    state = _base_state(
+        message_en="3",
+        hr_terminal_step="reask",
+        hr_escalate_regardless=False,
+    )
+    result = await high_risk_response_node(state)
+
+    assert result["hr_branch"] == "lower"
+    assert result["hr_distress_score"] == 3
+    assert result["hr_terminal_step"] is None
+    assert result["hr_escalate_regardless"] is False
