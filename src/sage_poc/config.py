@@ -289,3 +289,5 @@ MEDICAL_REFERRAL_TEXT: str = os.getenv(
     "or go to the nearest emergency department. I'm not able to assess "
     "physical symptoms, and this needs a medical professional right away.",
 )
+# F6 venting-suppression authority. Default OFF; changes live routing (Routing-SF-2).
+VENTING_SUPPRESSION_ENABLED: bool = os.getenv("SAGE_VENTING_SUPPRESSION", "false").lower() == "true"

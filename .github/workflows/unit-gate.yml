@@ -77,6 +77,12 @@ jobs:
           # Suites mock the LLM or do not call it; a dummy key prevents import-time
           # failures in llm.py. No real network/DB is touched.
           OPENROUTER_API_KEY: dummy-ci
+          # The safety gate must NEVER download BGE-M3 (~2GB) — that Hub download hung CI
+          # for 30+ min (#298). Force offline so the warm-load fails FAST to the loud stub
+          # (conftest _warm_bge_m3_once). Non-slow tests run on the zero-vector stub; @slow
+          # tests that need real embeddings are excluded here and would fail-loud if run.
+          HF_HUB_OFFLINE: "1"
+          TRANSFORMERS_OFFLINE: "1"
         run: |
           set -euo pipefail
           CANDIDATES="
@@ -108,6 +114,7 @@ jobs:
             tests/test_harm_to_others_node1_backstop.py
             tests/test_crisis_availability_consistency.py
             tests/test_crisis_config_cross_stack.py
+            tests/test_sg2_caveat_firing.py
           "
           # test_crisis_availability_consistency.py (H4): fail-closed guard that no crisis-copy
           # string asserts 24/7 / "24 hours" / "متاح كل وقت" adjacent to the 8am-8pm National line.

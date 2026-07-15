@@ -53,6 +53,10 @@ class SkillStep(BaseModel):
     examples: list[str]
     contraindications: str = ""
     completion_criteria: str = ""
+    # SG-2 / Contraindication-Firing: a verbatim safety caveat the GATE delivers deterministically
+    # (output_gate), never left to LLM discretion. Empty = none (default, every non-safety step).
+    # English-authored; translate-out renders the Arabic. Prepended ahead of any technique content.
+    mandatory_caveat: str = ""
     # Item 3: optional per-language media, keyed by language ("en", "ar"), mirroring
     # the bilingual `examples` pattern. null = no media (byte-identical pre-Item-3).
     media: dict[str, SkillMediaItem] | None = None

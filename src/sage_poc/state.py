@@ -107,6 +107,7 @@ class SageState(TypedDict):
     translate_out_ms: Optional[int]  # served translate-out time (async_translate_to_arabic + strict retry), ms; set by output_gate_node, None when translate-out doesn't run; written to session_audit
     conversation_history: list[dict]
     stall_detected: Optional[bool]       # deterministic stall-guard signal (per-turn); set in intent_route, read by composer
+    venting_detected: bool   # F6: deterministic PI-VI-001 don't-fix signal; consumed by _route_after_intent to suppress skill imposition (route to presence). Declared channel.
     therapeutic_profile: Optional[dict]  # loaded at turn start; injected into L5
     user_id:    Optional[str]            # authenticated user UUID from request
     session_id: Optional[str]            # = thread_id; needed by tools and summary persistence
