@@ -73,3 +73,10 @@ moves 1 and 3 still pay off; move 2 is reserved for paths where a silent miss re
   still 4/5 deviating on prod; the register never absorbed either the claim or its failure. The
   strongest case for the write-back rule; reopened as #312, measured in v2 register
   `docs/2026-07-14-bot-behaviour-conformance-matrix-v2.md`.
+- SG-2 arc (the project's epistemic argument in miniature) — the cardiac caveat passed through six
+  states: content-in-JSON → LLM-discretionary → mechanism-built → mechanism-inert (undeclared
+  node→node channel) → firing-but-duplicated → verified live (verbatim, once, EN+AR, doc-conformant
+  by the doc's own L71). Each state was discovered only by the verification layer that the previous
+  state's green pipeline had claimed to make unnecessary. This one arc minted the three standing
+  rules now recorded above as house law: **write-back**, **never-disarm-the-gate**, and
+  **primary-sources-ground-decisions**.
