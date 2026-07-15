@@ -1,12 +1,17 @@
-"""HR-1 Stage 1 detection tests: CF-006 psychosis extension + CF-007 mania_disclosure
-+ CF-008 dissociation_disclosure.
+"""HR-1 Stage 1 detection tests: CF-009 psychosis-variant expansion + CF-007
+mania_disclosure + CF-008 dissociation_disclosure.
 
-CF-006/CF-007/CF-008 ship active=false with no approved_by in the real rule file
-(unsigned, pending clinician ratification of the doc's §HR.0 trigger table). To
-exercise detection ahead of ratification, this file loads the REAL rule dicts
-straight out of clinical_flag_patterns.json (so the test tracks the authored
-patterns, not a hand-copied duplicate) and force-activates them locally, exactly
-as tests/test_rules_safety_psychotic.py already does for CF-006 alone.
+CF-006 is the LIVE, SIGNED psychosis rule (active=true, approved_by=clinical_lead)
+and must not be force-activated or otherwise mutated by this file; it is exercised
+by tests/test_rules_safety_psychotic.py. The new psychosis-variant coverage that a
+prior commit (40badf9) wrongly folded into CF-006 lives in CF-009 instead, which
+ships active=false with no approved_by (unsigned, pending clinician ratification
+of the doc's §HR.0 trigger table). CF-007/CF-008 ship the same way. To exercise
+detection ahead of ratification, this file loads the REAL rule dicts straight out
+of clinical_flag_patterns.json (so the test tracks the authored patterns, not a
+hand-copied duplicate) and force-activates CF-007/CF-008/CF-009 locally, exactly
+as tests/test_rules_safety_psychotic.py already does for CF-006 alone (in its own
+file, with its own hand-typed fixture, on its own live rule).
 
 Trigger phrases are verbatim from docs/superpowers/specs/
 2026-07-15-hr1-high-risk-terminal-design.md § "Verbatim trigger sets (doc §HR.0)"
@@ -28,25 +33,39 @@ _RULES_PATH = (
     / "src" / "sage_poc" / "rules" / "data" / "safety" / "clinical_flag_patterns.json"
 )
 
-_HR_RULE_IDS = {"CF-006", "CF-007", "CF-008"}
+# All HR-relevant rules exercised by this file's _flags() helper. CF-006 is
+# included as-is (it already ships active=true, signed, in the real file) so
+# that psychosis assertions relying on its original master patterns (e.g. the
+# bare "i hear voices") keep working; only CF-007/008/009 are force-activated.
+_HR_RULE_IDS = {"CF-006", "CF-007", "CF-008", "CF-009"}
+
+# The new, unsigned HR-1 Stage 1 additions: these ship active=false with no
+# approved_by in the real file, and are force-activated here for test purposes
+# only. CF-006 is deliberately excluded from this set: it must never be
+# mutated or re-activated by this file (it is already live).
+_FORCE_ACTIVE_IDS = {"CF-007", "CF-008", "CF-009"}
 
 
 def _load_hr_rules() -> list[SafetyRule]:
-    """Load CF-006/007/008 straight from the real JSON file, force-activating them.
+    """Load CF-006/007/008/009 straight from the real JSON file.
 
     This intentionally reads the on-disk rule content rather than re-typing patterns
     in Python, so a future edit to the JSON is exercised by this test without any
-    duplication drift. `active` is overridden to True here only, never in the file.
+    duplication drift. `active` is overridden to True only for CF-007/008/009
+    (_FORCE_ACTIVE_IDS), never in the file itself. CF-006 is loaded verbatim: it is
+    already active=true and signed in the real file, so no override is applied or
+    needed (see module docstring).
     """
     raw = json.loads(_RULES_PATH.read_text(encoding="utf-8"))
     rules = []
     for rule_data in raw["rules"]:
         if rule_data["rule_id"] in _HR_RULE_IDS:
-            forced = dict(rule_data)
-            forced["active"] = True
-            rules.append(SafetyRule.model_validate(forced))
+            if rule_data["rule_id"] in _FORCE_ACTIVE_IDS:
+                rule_data = dict(rule_data)
+                rule_data["active"] = True
+            rules.append(SafetyRule.model_validate(rule_data))
     assert {r.rule_id for r in rules} == _HR_RULE_IDS, (
-        f"Expected CF-006/CF-007/CF-008 in {_RULES_PATH}, found {[r.rule_id for r in rules]}"
+        f"Expected CF-006/CF-007/CF-008/CF-009 in {_RULES_PATH}, found {[r.rule_id for r in rules]}"
     )
     return rules
 
@@ -66,19 +85,47 @@ def _any_hr_flag(text_en: str) -> list[str]:
     return [f for f in _flags(text_en) if f in _HR_FLAGS]
 
 
-# ── Gating: the file itself must ship inactive and unsigned ─────────────────
+# ── Gating: the new rules ship inactive and unsigned; CF-006 stays live ──────
 
 def test_hr_rules_ship_inactive_and_unsigned_on_disk():
-    """CRITICAL gating (Task 1 brief): CF-006/007/008 must be active=false and carry
+    """CRITICAL gating (Task 1 brief): CF-007/008/009 must be active=false and carry
     no approved_by key in the real file until clinician ratification. This is the
     forcing function that keeps this branch's unsigned content from going live by
     accident; do not flip it without a ratification record."""
     raw = json.loads(_RULES_PATH.read_text(encoding="utf-8"))
     by_id = {r["rule_id"]: r for r in raw["rules"]}
-    for rule_id in _HR_RULE_IDS:
+    for rule_id in _FORCE_ACTIVE_IDS:
         rule = by_id[rule_id]
         assert rule["active"] is False, f"{rule_id} must ship active=false pending ratification"
         assert "approved_by" not in rule, f"{rule_id} must omit approved_by until signed off"
+
+
+def test_cf006_ships_live_and_signed_on_disk():
+    """CRITICAL regression guard for the 40badf9 defect: CF-006 is the pre-existing,
+    clinically signed psychotic_disclosure rule and must stay active=true with
+    approved_by=clinical_lead in the real file. A prior commit wrongly flipped
+    CF-006 to active=false while folding new variant patterns into it; the variants
+    now live in CF-009 instead (see module docstring), and CF-006 must be
+    byte-identical to its master patterns."""
+    raw = json.loads(_RULES_PATH.read_text(encoding="utf-8"))
+    by_id = {r["rule_id"]: r for r in raw["rules"]}
+    cf006 = by_id["CF-006"]
+    assert cf006["active"] is True, "CF-006 must stay active=true (live, signed rule)"
+    assert cf006["approved_by"] == "clinical_lead", "CF-006 must keep its clinical sign-off"
+    assert cf006["patterns"] == [
+        "hearing voices",
+        "i hear voices",
+        "voices in my head",
+        "seeing things that aren't there",
+        "seeing things that are not there",
+        "seeing things no one else sees",
+        "people are watching me",
+        "someone is following me",
+        "أسمع أصوات",
+        "في أصوات تكلمني",
+        "أشوف أشياء ما أحد يشوفها",
+        "أحد يراقبني",
+    ], "CF-006 patterns must match master exactly; variants belong in CF-009"
 
 
 def test_hr_patterns_contain_no_em_dash():
@@ -89,8 +136,10 @@ def test_hr_patterns_contain_no_em_dash():
             assert "—" not in pattern, f"{rule_id} pattern {pattern!r} contains an em dash"
 
 
-# ── Psychosis (14) — CF-006 extension ────────────────────────────────────────
-# Items 1-4, 6-14 are new; item 5 ("I hear voices") already existed pre-extension.
+# ── Psychosis (14) — CF-009 variant expansion ────────────────────────────────
+# Items 1-4, 6-14 are new (CF-009, force-activated above); item 5 ("I hear
+# voices") already existed pre-extension and is covered by the live, signed
+# CF-006, loaded as-is (see _load_hr_rules).
 
 def test_psychosis_01_people_following_me():
     assert "psychotic_disclosure" in _flags("people are following me everywhere I go")
