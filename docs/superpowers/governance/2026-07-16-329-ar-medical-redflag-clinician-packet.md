@@ -36,20 +36,20 @@ Transcription of the spec §1 descriptor **classes** into MSA. Safety-floor, mir
 
 ## ADDENDUM (post-audit, NEW material — SEPARATE tick-line)
 
-The primary-source audit found the original packet (and the EN base list) **omit two spec red flags** — this was discovered after the packet was sent, so it is its own tick-line, not folded into the 11 above. It is a **live gap in both languages today** (*"I can't breathe at all"* fires nothing, in English, on prod now), so it does not defer to Tier-2.
+The primary-source audit found the original packet (and the EN base list) omit **fainting** (spec L148) as a red flag — discovered after the packet was sent, so it is its own tick-line, not folded into the 11 above.
+
+**Keyword addendum — FAINTING (tick):** fainting/syncope is a red flag (**L148** "…numbness, fainting") and is **keyword-clean** because it is NOT an anxiety-tier symptom.
 
 | id | rendering | spec basis |
 |---|---|---|
-| real_no_breathe / _ar | `can't breathe at all` / `ما أقدر أتنفس نهائي…` | **L216** "real inability to breathe rather than panic-related breathlessness" |
-| real_trouble_breathe | `real trouble breathing` | L101 |
-| faint_en / faint_ar | `about to faint` / `passed out` / `يغمى علي` / `فقدت الوعي` | **L148** "…numbness, fainting" |
+| faint_en / passed_out_en | `about to faint` / `passed out` | L148 |
+| faint_ar / faint_ar2 | `يغمى علي` / `فقدت الوعي` | L148 |
 
-**One HARD cell — flagged for clinician judgment, NOT engineering-authored:** the **real-vs-shallow breathlessness discriminator**. The spec deliberately excludes panic breathlessness (L102) *and* mandates real inability (L216); the exact phrase boundary between them (where `ضيق في التنفس` / `ما أقدر أتنفس` ends and `real inability` begins) is a clinical-linguistic call. The renderings above sit on the clear side; the boundary itself is a BLANK for you to set.
+- [ ] **Addendum tick: fainting renderings correct** (rides this relay if the 11 haven't ticked; one-line follow-up if they have)
 
-- [ ] **Addendum tick: real-inability + fainting renderings correct** (rides this relay if the 11 haven't ticked; one-line follow-up if they have)
-- [ ] **Discriminator: clinician to set the real-vs-shallow breathlessness phrase boundary**
+**NOT added as keywords — real breathlessness is a CONTEXTUAL-SCREEN concern, not a phrase list.** The audit initially proposed real-inability breathlessness phrases; the cross-check *rejected* them: spec **L54** uses *"I can't breathe / can't get any air / can't catch my breath at all"* as **High-anxiety PANIC that routes to TIPP**, and **L216** separates *real* inability from panic **by context (onset/novelty), not by phrase**. A keyword would false-positive on panic and mis-route it to the medical guard. So real-breathlessness belongs to the **quality-check screen (L101) / E3 detector**, tracked in the EN spec-gap ticket — **no clinician phrase-tick here** (there is no clean phrase boundary to set; that was an engineering error caught pre-ship).
 
-*(The EN base list has the same omission — tracked as its own spec-gap ticket; the EN additions here close the EN gap too.)*
+*(The EN base list has the same fainting omission — the EN additions here close it too.)*
 
 ## Tier-2 — complete AR vocabulary (clinician authors, follows)
 
@@ -68,4 +68,6 @@ The AR probe fell through to progressive-muscle-relaxation, whose contraindicati
 
 ## Relay note
 
-#324 (#311 keyword fix) and this packet touch different files/reviewers — batch both ticks in one clinician relay.
+#324 (#311 keyword fix) and this packet touch different files/reviewers — batch all ticks in one clinician relay.
+
+**IMPORTANT — the 11 Tier-1 renderings must NEVER be held for the addendum.** They close a live cardiac bypass; the addendum (fainting) extends coverage. Different urgency classes. **Ticking the 11 alone is a complete, deployable act** — it deploys immediately on their tick, and the fainting addendum follows as a one-line ask if it arrives later. Nothing about the addendum is coupled to the 11.

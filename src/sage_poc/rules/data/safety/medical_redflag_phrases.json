@@ -6,7 +6,7 @@
     "authored_by": "engineering",
     "clinical_signoff": "PENDING — EN: Q1-triggers ratification; AR interim: EXPEDITED tick on the descriptor-transcription list (#329 Tier-1). Ships under the safety exception; Tier-2 full AR vocabulary follows.",
     "match_field": "entries default to literal (re.escape) substring; entries with match:\"regex\" are compiled as regex.",
-    "addendum_2026-07-16": "Post-audit spec-conformance ADDENDUM (SEPARATE clinician tick-line): the spec classifies REAL inability to breathe (L216, distinct from panic/shallow breathlessness which L102 excludes) and FAINTING (L148) as red flags — both were MISSING from the EN base list too (predates #329; tracked in the EN spec-gap ticket). Added the clearest doc-cited real-inability + fainting phrases, EN+AR. The real-vs-shallow breathlessness DISCRIMINATOR (phrase boundary between excluded panic breathlessness and mandated real inability) is a clinical-linguistic call left as a BLANK for clinician judgment, NOT engineering-authored."
+    "addendum_2026-07-16": "Post-audit spec-conformance ADDENDUM (SEPARATE clinician tick-line): FAINTING (spec L148) was missing from the EN base list too — added EN+AR (fainting/syncope is NOT an anxiety-tier symptom, so it is keyword-clean). REAL breathlessness is DELIBERATELY NOT added as a keyword: spec L54 uses 'I can't breathe / can't get any air / can't catch my breath at all' as HIGH-ANXIETY PANIC that routes to TIPP, and L216 separates real inability from panic by CONTEXT (onset/novelty), not phrase — a keyword would false-positive on panic and mis-route it to the medical guard. Real-inability belongs to the contextual quality-check screen (L101) / E3 detector, tracked in the EN spec-gap ticket, NOT this phrase list."
   },
   "phrases": [
     {
@@ -125,32 +125,12 @@
       "lang": "ar"
     },
     {
-      "id": "real_no_breathe",
-      "phrase": "can't breathe at all"
-    },
-    {
-      "id": "real_trouble_breathe",
-      "phrase": "real trouble breathing"
-    },
-    {
       "id": "faint_en",
       "phrase": "about to faint"
     },
     {
       "id": "passed_out_en",
       "phrase": "passed out"
-    },
-    {
-      "id": "real_no_breathe_ar",
-      "phrase": "ما أقدر أتنفس نهائي",
-      "match": "regex",
-      "lang": "ar"
-    },
-    {
-      "id": "real_no_breathe_ar2",
-      "phrase": "ما أقدر أتنفس أبد",
-      "match": "regex",
-      "lang": "ar"
     },
     {
       "id": "faint_ar",
