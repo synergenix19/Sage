@@ -272,12 +272,17 @@ MEDICAL_REDFLAG_GUARD_ENABLED: bool = os.getenv("SAGE_MEDICAL_REDFLAG_GUARD", "f
 
 # Q1-terminal default: the MEDICAL guard wording (doc lines 62/81/131 / Section 6):
 # "prompt to seek in-person/medical/emergency evaluation; treat as a possible medical
-# emergency." NOT doc L1477 (that is the psychiatric-crisis line rule — a different guard).
-# Single blocking parameter — stubbed here pending clinician ratification.
+# emergency." NOT doc L1477 (that is the psychiatric-crisis line rule, a different guard).
+# NUMBER (reality-verified 2026-07-15, per the doc's own "verify before launch" instruction):
+# lead with 998 = UAE AMBULANCE. 999 is UAE POLICE and must NOT lead a medical/cardiac
+# emergency (the earlier "999" default was inherited from the psychiatric-crisis Resources
+# table, where police co-response is appropriate). The crisis pathway's 999 is unchanged;
+# this is the MEDICAL terminal only. Regression-guarded by test_medical_referral_uses_998.
+# Single blocking parameter, pending clinician ratification of wording.
 MEDICAL_REFERRAL_TEXT: str = os.getenv(
     "SAGE_MEDICAL_REFERRAL_TEXT",
     "The symptoms you're describing can be signs of a medical emergency. "
-    "Please seek in-person medical evaluation now, call your local emergency number "
-    "(999 in the UAE) or go to the nearest emergency department. I'm not able to assess "
+    "Please seek in-person medical evaluation now. Call 998 (ambulance) in the UAE, "
+    "or go to the nearest emergency department. I'm not able to assess "
     "physical symptoms, and this needs a medical professional right away.",
 )

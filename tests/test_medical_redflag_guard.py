@@ -177,3 +177,14 @@ def test_honesty_notes_ship_verbatim():
     assert "Not coverage" in meta["status"]
     assert "ZERO native Arabic" in meta["arabic"]
     assert "Arabic" in mr.__doc__ and "ZERO native coverage" in mr.__doc__
+
+
+def test_medical_referral_uses_998_not_999_lead():
+    # UAE reality: 998 = ambulance, 999 = police. A medical/cardiac emergency MUST lead with
+    # 998. Regression guard: the pre-fix default led with "999 in the UAE" — routing a heart
+    # attack to the police. 999 may appear only as an explicit non-leading fallback.
+    from sage_poc import config as _cfg
+    txt = _cfg.MEDICAL_REFERRAL_TEXT
+    assert "998" in txt, "medical referral must give the UAE ambulance number (998)"
+    if "999" in txt:
+        assert txt.index("998") < txt.index("999"), "998 (ambulance) must lead 999 in the medical terminal"
