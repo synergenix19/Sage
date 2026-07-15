@@ -5,32 +5,162 @@
     "arabic": "INTERIM native Arabic layer (#329, 2026-07-16): transcription of the spec §1 descriptor classes (crushing/squeezing/stabbing/searing chest pain, radiation to arm/jaw/back, one-sided numbness) into MSA. Safety-floor, NOT coverage. Colloquial Gulf dialect, code-switched, and full symptom vocabulary are the clinician-authored Tier-2 follow-up. Fires against `raw` (safety_check.py:286 passes both message_en and raw), bypassing the lossy AR->EN translation that caused the live prod bypass.",
     "authored_by": "engineering",
     "clinical_signoff": "PENDING — EN: Q1-triggers ratification; AR interim: EXPEDITED tick on the descriptor-transcription list (#329 Tier-1). Ships under the safety exception; Tier-2 full AR vocabulary follows.",
-    "match_field": "entries default to literal (re.escape) substring; entries with match:\"regex\" are compiled as regex."
+    "match_field": "entries default to literal (re.escape) substring; entries with match:\"regex\" are compiled as regex.",
+    "addendum_2026-07-16": "Post-audit spec-conformance ADDENDUM (SEPARATE clinician tick-line): the spec classifies REAL inability to breathe (L216, distinct from panic/shallow breathlessness which L102 excludes) and FAINTING (L148) as red flags — both were MISSING from the EN base list too (predates #329; tracked in the EN spec-gap ticket). Added the clearest doc-cited real-inability + fainting phrases, EN+AR. The real-vs-shallow breathlessness DISCRIMINATOR (phrase boundary between excluded panic breathlessness and mandated real inability) is a clinical-linguistic call left as a BLANK for clinician judgment, NOT engineering-authored."
   },
   "phrases": [
-    {"id": "chest_pressure",   "phrase": "pressure in my chest"},
-    {"id": "chest_heavy",      "phrase": "chest feels heavy"},
-    {"id": "crushing",         "phrase": "crushing chest pain"},
-    {"id": "crushing_variant", "phrase": "crushing pain in (my |the )?chest", "match": "regex"},
-    {"id": "stabbing",         "phrase": "stabbing chest pain"},
-    {"id": "searing",          "phrase": "searing chest pain"},
-    {"id": "spread_arm",       "phrase": "spreading to my arm"},
-    {"id": "spread_jaw",       "phrase": "spreading to my jaw"},
-    {"id": "spread_back",      "phrase": "spreading to my back"},
-    {"id": "numb_one_side",    "phrase": "numbness on one side"},
-    {"id": "weak_one_side",    "phrase": "weakness on one side"},
-    {"id": "one_sided_numb",   "phrase": "(left|right) (arm|hand|side|face|leg|foot)[^.,;]{0,20}(gone |went )?numb", "match": "regex"},
-
-    {"id": "crushing_ar",       "phrase": "ألم ضاغط في (صدري|الصدر)", "match": "regex", "lang": "ar"},
-    {"id": "squeezing_ar",      "phrase": "ألم عاصر في (صدري|الصدر)", "match": "regex", "lang": "ar"},
-    {"id": "chest_pressure_ar", "phrase": "ضغط في (صدري|الصدر)", "match": "regex", "lang": "ar"},
-    {"id": "stabbing_ar",       "phrase": "ألم طاعن في (صدري|الصدر)", "match": "regex", "lang": "ar"},
-    {"id": "searing_ar",        "phrase": "ألم حارق في (صدري|الصدر)", "match": "regex", "lang": "ar"},
-    {"id": "spread_arm_ar",     "phrase": "(ينتشر|يمتد) (إلى |ل|لـ)?ذراع", "match": "regex", "lang": "ar"},
-    {"id": "spread_jaw_ar",     "phrase": "(ينتشر|يمتد) (إلى |ل|لـ)?(فكي|الفك)", "match": "regex", "lang": "ar"},
-    {"id": "spread_back_ar",    "phrase": "(ينتشر|يمتد) (إلى |ل|لـ)?(ظهري|الظهر)", "match": "regex", "lang": "ar"},
-    {"id": "numb_one_side_ar",  "phrase": "(خدر|تنميل) في جهة واحدة", "match": "regex", "lang": "ar"},
-    {"id": "weak_one_side_ar",  "phrase": "ضعف في جهة واحدة", "lang": "ar"},
-    {"id": "one_sided_numb_ar", "phrase": "(ذراعي|يدي) (اليسرى|اليمنى) مخدرة", "match": "regex", "lang": "ar"}
+    {
+      "id": "chest_pressure",
+      "phrase": "pressure in my chest"
+    },
+    {
+      "id": "chest_heavy",
+      "phrase": "chest feels heavy"
+    },
+    {
+      "id": "crushing",
+      "phrase": "crushing chest pain"
+    },
+    {
+      "id": "crushing_variant",
+      "phrase": "crushing pain in (my |the )?chest",
+      "match": "regex"
+    },
+    {
+      "id": "stabbing",
+      "phrase": "stabbing chest pain"
+    },
+    {
+      "id": "searing",
+      "phrase": "searing chest pain"
+    },
+    {
+      "id": "spread_arm",
+      "phrase": "spreading to my arm"
+    },
+    {
+      "id": "spread_jaw",
+      "phrase": "spreading to my jaw"
+    },
+    {
+      "id": "spread_back",
+      "phrase": "spreading to my back"
+    },
+    {
+      "id": "numb_one_side",
+      "phrase": "numbness on one side"
+    },
+    {
+      "id": "weak_one_side",
+      "phrase": "weakness on one side"
+    },
+    {
+      "id": "one_sided_numb",
+      "phrase": "(left|right) (arm|hand|side|face|leg|foot)[^.,;]{0,20}(gone |went )?numb",
+      "match": "regex"
+    },
+    {
+      "id": "crushing_ar",
+      "phrase": "ألم ضاغط في (صدري|الصدر)",
+      "match": "regex",
+      "lang": "ar"
+    },
+    {
+      "id": "squeezing_ar",
+      "phrase": "ألم عاصر في (صدري|الصدر)",
+      "match": "regex",
+      "lang": "ar"
+    },
+    {
+      "id": "chest_pressure_ar",
+      "phrase": "ضغط في (صدري|الصدر)",
+      "match": "regex",
+      "lang": "ar"
+    },
+    {
+      "id": "stabbing_ar",
+      "phrase": "ألم طاعن في (صدري|الصدر)",
+      "match": "regex",
+      "lang": "ar"
+    },
+    {
+      "id": "searing_ar",
+      "phrase": "ألم حارق في (صدري|الصدر)",
+      "match": "regex",
+      "lang": "ar"
+    },
+    {
+      "id": "spread_arm_ar",
+      "phrase": "(ينتشر|يمتد) (إلى |ل|لـ)?ذراع",
+      "match": "regex",
+      "lang": "ar"
+    },
+    {
+      "id": "spread_jaw_ar",
+      "phrase": "(ينتشر|يمتد) (إلى |ل|لـ)?(فكي|الفك)",
+      "match": "regex",
+      "lang": "ar"
+    },
+    {
+      "id": "spread_back_ar",
+      "phrase": "(ينتشر|يمتد) (إلى |ل|لـ)?(ظهري|الظهر)",
+      "match": "regex",
+      "lang": "ar"
+    },
+    {
+      "id": "numb_one_side_ar",
+      "phrase": "(خدر|تنميل) في جهة واحدة",
+      "match": "regex",
+      "lang": "ar"
+    },
+    {
+      "id": "weak_one_side_ar",
+      "phrase": "ضعف في جهة واحدة",
+      "lang": "ar"
+    },
+    {
+      "id": "one_sided_numb_ar",
+      "phrase": "(ذراعي|يدي) (اليسرى|اليمنى) مخدرة",
+      "match": "regex",
+      "lang": "ar"
+    },
+    {
+      "id": "real_no_breathe",
+      "phrase": "can't breathe at all"
+    },
+    {
+      "id": "real_trouble_breathe",
+      "phrase": "real trouble breathing"
+    },
+    {
+      "id": "faint_en",
+      "phrase": "about to faint"
+    },
+    {
+      "id": "passed_out_en",
+      "phrase": "passed out"
+    },
+    {
+      "id": "real_no_breathe_ar",
+      "phrase": "ما أقدر أتنفس نهائي",
+      "match": "regex",
+      "lang": "ar"
+    },
+    {
+      "id": "real_no_breathe_ar2",
+      "phrase": "ما أقدر أتنفس أبد",
+      "match": "regex",
+      "lang": "ar"
+    },
+    {
+      "id": "faint_ar",
+      "phrase": "يغمى علي",
+      "lang": "ar"
+    },
+    {
+      "id": "faint_ar2",
+      "phrase": "فقدت الوعي",
+      "lang": "ar"
+    }
   ]
 }

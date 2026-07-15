@@ -14,21 +14,28 @@ from sage_poc.safety.medical_redflag import detect_medical_redflag
 
 # AR cardiac red-flags that MUST fire (spec §1 descriptor classes: crushing/searing chest pain,
 # radiation to arm, one-sided numbness). The first is the exact prod-verified bypass probe.
+# ADDENDUM (post-audit): spec L216 REAL inability to breathe + L148 fainting are ALSO red flags.
 AR_REDFLAGS_MUST_FIRE = [
     "عندي ألم ضاغط في صدري وينتشر إلى ذراعي اليسرى",   # crushing + radiation-to-arm (prod bypass probe)
     "ألم حارق في صدري",                                  # searing chest pain
     "عندي خدر في جهة واحدة من جسمي",                     # one-sided numbness
+    "ما أقدر أتنفس نهائيًا وحسيت إني راح يغمى علي",       # ADDENDUM: real inability to breathe + faint (L216/L148)
 ]
 
-# AR benign anxiety that must NOT fire — spec L102: do not screen on core anxiety symptoms
-# (racing heart, shortness of breath). Mirrors the EN list's deliberate exclusion of bare breathlessness.
+# AR benign anxiety that must NOT fire. Spec L102 excludes SHALLOW/panic breathlessness (core anxiety
+# symptom) — but L216 MANDATES *real inability to breathe* as a red flag. The must-fire above and the
+# must-not-fire below straddle that boundary; the exact phrase discriminator is a clinician call (packet
+# addendum blank), so these probes sit deliberately on the clear side of each.
 AR_BENIGN_MUST_NOT_FIRE = [
-    "قلبي يدق بسرعة وأنا قلقان",          # racing heart + anxious
-    "أشعر بالقلق وضيق في التنفس",         # anxiety + shortness of breath
+    "قلبي يدق بسرعة وأنا قلقان",          # racing heart + anxious (L102)
+    "أشعر بالقلق وضيق في التنفس",         # anxiety + shallow/panic breathlessness (L102) — NOT real inability
 ]
 
-# EN regression — must stay firing after the AR additions.
-EN_MUST_FIRE = ["I have crushing chest pain spreading to my arm"]
+# EN regression + ADDENDUM real-inability (both were spec red flags missing from the EN base list too).
+EN_MUST_FIRE = [
+    "I have crushing chest pain spreading to my arm",
+    "I can't breathe at all",                            # ADDENDUM: real inability (L216) — EN gap predates #329
+]
 
 
 @pytest.mark.parametrize("text", AR_REDFLAGS_MUST_FIRE)

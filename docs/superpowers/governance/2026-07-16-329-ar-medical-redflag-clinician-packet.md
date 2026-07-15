@@ -30,9 +30,26 @@ Transcription of the spec §1 descriptor **classes** into MSA. Safety-floor, mir
 | weak_one_side_ar | ضعف في جهة واحدة | one-sided weakness | |
 | one_sided_numb_ar | ذراعي/يدي اليسرى/اليمنى مخدرة | one-sided arm/hand numb | |
 
-**Deliberate exclusion (please confirm):** bare breathlessness (ضيق في التنفس) and racing heart (قلبي يدق بسرعة) are NOT triggers — spec L102 forbids screening on core anxiety symptoms. Verified: two benign AR anxiety probes do not fire.
+**Exclusion (please confirm — CORRECTED after spec audit):** *shallow / panic-related* breathlessness (ضيق في التنفس) and racing heart (قلبي يدق بسرعة) are NOT triggers — spec **L102** excludes core anxiety symptoms. This is NOT a blanket breathlessness exclusion (see addendum below). Verified: the two benign AR anxiety probes do not fire.
 
 - [ ] **Tier-1 clinician tick: the 11 AR descriptor renderings above are correct → deploy under safety exception**
+
+## ADDENDUM (post-audit, NEW material — SEPARATE tick-line)
+
+The primary-source audit found the original packet (and the EN base list) **omit two spec red flags** — this was discovered after the packet was sent, so it is its own tick-line, not folded into the 11 above. It is a **live gap in both languages today** (*"I can't breathe at all"* fires nothing, in English, on prod now), so it does not defer to Tier-2.
+
+| id | rendering | spec basis |
+|---|---|---|
+| real_no_breathe / _ar | `can't breathe at all` / `ما أقدر أتنفس نهائي…` | **L216** "real inability to breathe rather than panic-related breathlessness" |
+| real_trouble_breathe | `real trouble breathing` | L101 |
+| faint_en / faint_ar | `about to faint` / `passed out` / `يغمى علي` / `فقدت الوعي` | **L148** "…numbness, fainting" |
+
+**One HARD cell — flagged for clinician judgment, NOT engineering-authored:** the **real-vs-shallow breathlessness discriminator**. The spec deliberately excludes panic breathlessness (L102) *and* mandates real inability (L216); the exact phrase boundary between them (where `ضيق في التنفس` / `ما أقدر أتنفس` ends and `real inability` begins) is a clinical-linguistic call. The renderings above sit on the clear side; the boundary itself is a BLANK for you to set.
+
+- [ ] **Addendum tick: real-inability + fainting renderings correct** (rides this relay if the 11 haven't ticked; one-line follow-up if they have)
+- [ ] **Discriminator: clinician to set the real-vs-shallow breathlessness phrase boundary**
+
+*(The EN base list has the same omission — tracked as its own spec-gap ticket; the EN additions here close the EN gap too.)*
 
 ## Tier-2 — complete AR vocabulary (clinician authors, follows)
 
