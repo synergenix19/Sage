@@ -77,11 +77,33 @@ class DistressParse:
 #   - bare number as the whole/near-whole reply: "7", "0", "10"
 #   - "N/10": "7/10"
 #   - "N out of 10": "7 out of 10"
-#   - "(maybe )(a )N": "a 7", "maybe a 7"
-#   - "(a )<verbal-number zero..ten>": "seven", "a seven", "maybe a seven"
+#   - "(LEAD-IN )(a )N": "a 7", "maybe a 7", "it's 3", "about a 4"
+#   - "(LEAD-IN )(a )<verbal-number zero..ten>": "seven", "a seven",
+#     "maybe a seven", "about a seven"
+#
+# LEAD-IN is a CLOSED, enumerated set, not a free word class: it's, its,
+# i'd say, id say, about, around, like, maybe, probably, i think. There is
+# no \w+ (or any other open-ended token) anywhere in the prefix -- every
+# accepted lead-in is spelled out literally in _LEAD_IN_ALT below. This is
+# what lets the prefix be widened (natural low-distress answers like "it's
+# a 4" or "about a 3" now parse instead of over-escalating to the reask/
+# fail-to-higher path) WITHOUT reopening the dead-leg-to-ER hole: the
+# number must still be the last thing in the reply (the $ terminal anchor,
+# unchanged below). A lead-in followed by a non-terminal number ("it's been
+# 3 days since I slept", "about 4 of them are watching me") still does not
+# parse, because the digit there is not immediately followed by end-of-
+# string. See test_parse_distress_broadened_lead_in_adversarial_twin for
+# the paired proof, one per lead-in.
 #
 # A trailing "." "!" or "," is tolerated (people punctuate short replies);
 # nothing else is. Case-insensitive for the verbal-number forms.
+#
+# KNOWN LIMITATION (v1, pinned): a trailing self-assessment tail after the
+# number ("it's about a 3, I'm okay") also fails to parse, same as any
+# other non-terminal case, and falls through to reask. A general trailing
+# tail is deliberately NOT accepted, because that would resurrect the
+# dead-leg case through the back door. See
+# test_parse_distress_trailing_self_assessment_does_not_parse.
 
 _VERBAL_NUMBERS = {
     "zero": 0,
@@ -99,6 +121,15 @@ _VERBAL_NUMBERS = {
 
 _TRAILING_PUNCT = r"\s*[.,!]?\s*"
 
+# Closed, enumerated lead-in set (Task: broaden accepted lead-ins, keep the
+# terminal anchor). No \w+ / open-ended token anywhere here: every accepted
+# lead-in is a literal in this alternation. Order does not matter for
+# correctness (none of these are ambiguous prefixes of each other in a way
+# that changes match/no-match; regex backtracking tries every alternative).
+_LEAD_IN_ALT = (
+    r"it's|its|i'd say|id say|about|around|like|maybe|probably|i think"
+)
+
 # "7/10"
 _RE_FRACTION = re.compile(r"^\s*(\d{1,2})\s*/\s*10" + _TRAILING_PUNCT + r"$")
 
@@ -107,14 +138,21 @@ _RE_OUT_OF_10 = re.compile(
     r"^\s*(\d{1,2})\s+out\s+of\s+10" + _TRAILING_PUNCT + r"$", re.IGNORECASE
 )
 
-# "7", "a 7", "maybe a 7", "maybe 7"
+# "7", "a 7", "it's a 7", "it's 7", "about a 7", "maybe a 7", "maybe 7", ...
+# LEAD-IN is optional and, when present, must be one of _LEAD_IN_ALT; "a" is
+# separately optional. The number stays TERMINAL: this is still fully
+# anchored ^...$, so a lead-in followed by a non-terminal digit ("it's been
+# 3 days...") does not parse (the $ never lines up).
 _RE_BARE_DIGIT = re.compile(
-    r"^\s*(?:maybe\s+)?(?:a\s+)?(\d{1,2})" + _TRAILING_PUNCT + r"$", re.IGNORECASE
+    r"^\s*(?:(?:" + _LEAD_IN_ALT + r")\s+)?(?:a\s+)?(\d{1,2})" + _TRAILING_PUNCT + r"$",
+    re.IGNORECASE,
 )
 
-# "seven", "a seven", "maybe a seven", "maybe seven"
+# "seven", "a seven", "it's a seven", "about a seven", "maybe a seven", ...
+# Same broadened-but-terminal-anchored prefix as _RE_BARE_DIGIT, applied to
+# the verbal-number form (Task condition: both forms ride the same prefix).
 _RE_VERBAL = re.compile(
-    r"^\s*(?:maybe\s+)?(?:a\s+)?("
+    r"^\s*(?:(?:" + _LEAD_IN_ALT + r")\s+)?(?:a\s+)?("
     + "|".join(_VERBAL_NUMBERS)
     + r")"
     + _TRAILING_PUNCT
@@ -160,6 +198,18 @@ def _extract_score(text: str) -> Optional[int]:
 # fail-safe direction. There is no symmetric risk of a false positive
 # routing someone to a WORSE outcome, so strictness is not required here
 # the way it is for the numeric parse.
+#
+# INTERIM: this phrase list is a first cut, not clinician-final. Like the
+# CF (clinical_flag) phrase-class rules in clinical_flag_patterns.json, it
+# is expected to grow as real transcripts surface phrasing this list
+# doesn't yet cover, and that expansion belongs in the same ratification
+# packet as the CF rules, not decided unilaterally here. A phrase this list
+# MISSES still fails SAFE, not silently: the resolver's fail-to-higher
+# default (see resolve_hr_branch) and the separate always-on crisis screen
+# both sit upstream/parallel to this function, so a gap here degrades to
+# over-escalation (a missed match here still gets caught by a later reask
+# or the crisis screen), never to a genuine risk being routed "lower" on
+# the strength of this list alone.
 _RISK_LANGUAGE_PHRASES = (
     "they're outside right now",
     "they are outside right now",

@@ -80,6 +80,85 @@ def test_must_not_parse_count_is_four() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Broadened lead-in set (terminal anchor kept -- the safety property)
+# ---------------------------------------------------------------------------
+#
+# Closed, enumerated lead-in set (no \w+ anywhere in the prefix): it's, its,
+# i'd say, id say, about, around, like, maybe, probably, i think. Each entry
+# gets its own must-PARSE fixture below, and every broadened lead-in gets an
+# adversarial must-NOT-parse twin proving the terminal $-anchor still blocks
+# a non-terminal number (the actual safety property, unaffected by widening
+# the prefix).
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("it's a 3", 3),
+        ("it's 3", 3),
+        ("its 4", 4),
+        ("i'd say 7", 7),
+        ("id say 5", 5),
+        ("about a 4", 4),
+        ("around a 5", 5),
+        ("like a 6", 6),
+        ("maybe a 7", 7),
+        ("probably a 2", 2),
+        ("i think a 8", 8),
+    ],
+)
+def test_parse_distress_broadened_lead_in_must_parse(text: str, expected: int) -> None:
+    result = parse_distress(text)
+    assert result.score == expected, f"{text!r} should parse to {expected}, got {result.score}"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "it's been 3 days since I slept",
+        "its been 3 days since I slept",
+        "i'd say about 4 people",
+        "id say about 4 people",
+        "about 4 of them are watching me",
+        "around 5 voices",
+        "like 6 people showed up",
+        "maybe 7 people know",
+        "probably 2 hours left",
+        "i think 3 of them are following me",
+    ],
+)
+def test_parse_distress_broadened_lead_in_adversarial_twin(text: str) -> None:
+    """Adversarial twin for every broadened lead-in (proof the broadening
+    cost nothing): the number is not terminal in any of these, so the
+    $-anchor must still reject them -- exactly the "3 of them outside"
+    dead-leg-to-ER control, just with a wider set of lead-ins to test it
+    against."""
+    result = parse_distress(text)
+    assert result.score is None, (
+        f"{text!r} must NOT parse (terminal-anchor control); got {result.score}"
+    )
+
+
+def test_parse_distress_verbal_number_with_broadened_prefix() -> None:
+    """"about a seven" (word-number + broadened prefix): confirms the
+    verbal-number path rides the same broadened prefix as the bare-digit
+    path, not a separately-maintained copy."""
+    result = parse_distress("about a seven")
+    assert result.score == 7
+
+
+def test_parse_distress_trailing_self_assessment_does_not_parse() -> None:
+    """PINNED KNOWN LIMITATION (v1): a trailing self-assessment tail after
+    the number ("I'm okay") breaks the terminal anchor, so this does NOT
+    parse and falls through to reask. A general trailing tail is forbidden
+    here because it would resurrect the "3 of them outside" dead-leg
+    through the back door; a closed benign-tail set ("I'm okay", "I guess")
+    is a possible v2 only if probe data shows it's common enough to justify
+    the added surface. The re-ask covers this case in v1."""
+    result = parse_distress("it's about a 3, I'm okay")
+    assert result.score is None
+
+
+# ---------------------------------------------------------------------------
 # risk_language
 # ---------------------------------------------------------------------------
 
