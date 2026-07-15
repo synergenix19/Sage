@@ -6,7 +6,9 @@
     "families": "Five clinician-approved compulsion families: checking, counting/magic/undoing, scrupulosity, rereading/redoing, contamination/reassurance/symmetry.",
     "match": "case-insensitive substring, consistent with CF-005 and ipv_preempt keyword matching. Keyed on the compulsive ACTION or ritual (check, count, tap, wash, realign, reread, repeat-until, reassurance-seeking, magical undoing), NOT on repetition or looping alone, which ordinary worry/rumination legitimately owns (worry_time target_presentations include loop/cycle phrasings).",
     "language": "English-first. message_en is the matched text (for Arabic sessions this is the translated English). Khaleeji/MSA expansion is tracked debt, consistent with CF-005.",
-    "precision": "Verified against tests/fixtures/routing_eval bulk corpus: matches all 9 iatrogenic cases plus 1 further id_oos OCD disclosure (all expected ABSTAIN), with ZERO in_scope matches (no legitimate worry/rumination case is vetoed). A false-positive veto that drops a real worry case is a defined failure."
+    "precision": "Verified against tests/fixtures/routing_eval bulk corpus: matches all 9 iatrogenic cases plus 1 further id_oos OCD disclosure (all expected ABSTAIN), with ZERO in_scope matches (no legitimate worry/rumination case is vetoed). A false-positive veto that drops a real worry case is a defined failure.",
+    "arabic": "INTERIM native Arabic layer (#330, 2026-07-16): action-keyed compulsion renderings (checking lock/gas/door, hand-washing rituals). Keyed on the compulsive ACTION, NOT on looping/repetition (ordinary worry owns that) to avoid iatrogenic FP. Safety-floor, NOT coverage. Dialect/scrupulosity/devotional-adjacent forms are the DUAL-CLINICIAN Tier-2 follow-up. Fires against raw input via safety_text(state) (skill_select), per the language contract.",
+    "clinical_signoff": "AR interim: DUAL-CLINICIAN tick pending (#330); ships under safety exception with the code fix (pass-raw)."
   },
   "patterns": [
     "so i check",
@@ -58,6 +60,15 @@
     "realign every",
     "until i realign",
     "line them up perfectly",
-    "feels wrong until it"
+    "feels wrong until it",
+    "أتأكد من القفل",
+    "أتأكد من الغاز",
+    "أتأكد من الباب",
+    "أظل أتأكد",
+    "أتأكد مرات ومرات",
+    "لازم أتأكد من",
+    "أغسل يدي عشرات المرات",
+    "أظل أغسل يدي",
+    "أغسل يدي مرات ومرات"
   ]
 }
