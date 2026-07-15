@@ -55,6 +55,8 @@ import sys
 from pathlib import Path
 from typing import Callable, Iterable
 
+import numpy as np
+
 # MODE is pinned from the env BEFORE importing skill_select, because skill_select reads the
 # module constant SKILL_ROUTING_V2 at import time to decide the Tier-2 anchor surface
 # (include_exemplars) — a V2 run MUST embed target_presentations as exemplars, so the env has to
@@ -163,6 +165,29 @@ def load_en_bulk_records(
     return en, dropped
 
 
+# ------------------------------------------------------------------- real-model guard
+def _ensure_real_cpu_model() -> None:
+    """Refuse to report routes from anything but the real BGE-M3 on CPU.
+
+    Two silent traps this closes (both bit the #311 replay): (1) the conftest zero-vector STUB
+    for non-@slow tests — every cosine is 0.0, so routing collapses to keyword/threshold and a
+    green run means nothing; (2) device nondeterminism — ANE/MPS flips near-threshold margins
+    (the box_breathing<->dbt_tipp decision is ±0.004-0.007), so scores must come from device="cpu"
+    to match the Azure UAE prod target. Pin CPU when we own the load; refuse a stub either way.
+    """
+    if ss._embed_model is None:
+        from sentence_transformers import SentenceTransformer
+        ss._embed_model = SentenceTransformer(
+            "BAAI/bge-m3", local_files_only=True, revision=ss._BGE_M3_REVISION, device="cpu")
+    # canary: the zero-vector stub encodes everything to all-zeros; the real model never does.
+    canary = np.asarray(ss._embed_model.encode(["i feel calm"], normalize_embeddings=True))
+    if not np.any(np.abs(canary) > 1e-6):
+        raise SystemExit(
+            "routing_eval: BGE-M3 is a zero-vector STUB (all-zero embeddings) — refusing to report "
+            "routes. Real routing needs the actual model; under pytest mark the test @pytest.mark.slow."
+        )
+
+
 # ------------------------------------------------------------------- candidate surface
 def _prepare_candidate_surface(exclude_skills: frozenset[str]) -> None:
     """Load the live anchor index FOR THE CURRENT MODE, then remove `exclude_skills` from the
@@ -174,6 +199,7 @@ def _prepare_candidate_surface(exclude_skills: frozenset[str]) -> None:
     are untouched. max-over-anchors is per-skill, so dropping one skill's anchors leaves every
     other skill's score bit-identical; it only removes the excluded skill as a candidate.
     Idempotent."""
+    _ensure_real_cpu_model()     # pin CPU + refuse the zero-vector stub before any scoring
     ss._ensure_semantic_ready()  # builds for the current mode (include_exemplars=SKILL_ROUTING_V2)
     if not exclude_skills:
         return
