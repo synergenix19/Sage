@@ -17,8 +17,11 @@ And the **must-NOT-fire boundary** — these deliberately do NOT route to high-r
 1. **Mania "I have so much energy" — a known recall gap.** This bare phrase is a literal substring of the benign control "I have so much energy today after the gym," so no keyword can catch the bare phrase without also firing on someone who's just energized. We chose **precision over recall**: the phrase only fires when it co-occurs with another mania marker (e.g. "...and I haven't slept in days"). **Confirm this trade is acceptable**, or tell us to accept the false-positives on bare energy language.
 2. **Dissociation at the referral tier.** "Nothing feels real" spans panic-adjacent derealization (lower acuity) to psychotic dissociation (high). The doc routes all dissociation to referral. The false-positive cost is a referral surfaced to a panicking user; the false-negative is a dissociating-from-psychosis user handed grounding. **Confirm dissociation belongs at the referral tier** (our default, per doc), or specify a lower tier for a subset.
 
-## One ruling
-Same as above item 2 phrased as the decision: **does dissociation route to professional referral, yes/no?** Default per doc = yes.
+## One ruling (blocker-with-default — the doc has already answered; you are ratifying or amending it)
+The doc's §HR section names dissociation as one of its three high-risk classes with 11 triggers — so **the default is: dissociation routes to professional referral, per the doc.** You are not deciding this fresh. The genuine question is whether you want to **amend** the doc's answer — e.g. split panic-derealization to a lower tier — not to re-derive settled content. **Ratify the doc's default, or specify the amendment.**
+
+## What happens between your ratification and Stage 2 (sign knowing this)
+On flip, all five high-risk classes route to the **existing referral, which is LLM-rendered** — the doc grades this as non-conforming to §HR: it has no fixed standardized copy and does not ask the distress-0-10 question. You are ratifying **detection into an imperfect terminal.** This is a deliberate, honest trade: the contraindicated-skill harm (breathing to a manic user, grounding to a dissociating user) stops *immediately*, and delivery conformance — the doc's fixed §2 message + the §1 distress question — follows in **Stage 2, a committed build immediately behind this one.** You sign the detection now; the terminal upgrade is already scheduled, not aspirational.
 
 ## Scope / what this does NOT cover (stated, not hidden)
 - **Arabic: zero coverage.** These are English triggers; Khaleeji renderings + Arabic must-NOT-fire controls go to the AR probe. This ships English-first with the AR gap on the record (same pattern as the B1 medical guard).
@@ -27,3 +30,6 @@ Same as above item 2 phrased as the decision: **does dissociation route to profe
 
 ## On your approval we (engineering) then:
 flip CF-007/008/009 to `active:true`, add your sign-off (`approved_by`), reconcile the signed-fields manifest, and set `SAGE_HIGH_RISK_DETECTION=true` in prod — with a live post-flip verification of the four drives, exactly as B1 was verified.
+
+## Second ask (unblocks the Arabic measurement, routed here so it lands in one conversation)
+The Arabic/Khaleeji coverage for these HR triggers — and for the medical red-flag, venting, and unsigned SK-AR rules — is **zero** today, and the plan to measure it (the AR conformance probe) has one hard dependency only you can supply: **who is the native-Khaleeji validator?** Corpus labels are clinical assertions, so the validator must be clinically credentialed and a native Gulf-Arabic speaker; engineering cannot source or assess that credential. **Please name the validator.** No validator, no Arabic corpus, no probe — this is the single blocker on the entire AR measurement track, so naming them now starts it.
