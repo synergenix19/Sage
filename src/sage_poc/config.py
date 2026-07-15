@@ -270,6 +270,11 @@ EMBED_CACHE_ENABLED: bool = os.getenv("SAGE_EMBED_CACHE_ENABLED", "true").lower(
 # controls are green (see plan Task 6). Not frozen; touches no signed field.
 MEDICAL_REDFLAG_GUARD_ENABLED: bool = os.getenv("SAGE_MEDICAL_REDFLAG_GUARD", "false").lower() == "true"
 
+# HR-1 Stage 1: gates mania_disclosure / dissociation_disclosure HR-class
+# routing (psychotic_disclosure routing is unconditional and unaffected by
+# this flag; see safety/hr_disclosure.py). Default OFF.
+HIGH_RISK_DETECTION_ENABLED: bool = os.getenv("SAGE_HIGH_RISK_DETECTION", "false").lower() == "true"
+
 # Q1-terminal default: the MEDICAL guard wording (doc lines 62/81/131 / Section 6):
 # "prompt to seek in-person/medical/emergency evaluation; treat as a possible medical
 # emergency." NOT doc L1477 (that is the psychiatric-crisis line rule, a different guard).

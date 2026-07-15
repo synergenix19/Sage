@@ -616,8 +616,15 @@ async def skill_select_node(state: SageState) -> dict:
     # Post-crisis auto-select above takes precedence.
     # delivered guard prevents re-selection loop (flag_immutable_within_session keeps the flag
     # for the full session; without this guard, psychotic_referral would re-select every turn).
+    #
+    # HR-1 Stage 1 Task 3: hr_disclosure_present broadens this to mania_disclosure and
+    # dissociation_disclosure (gated behind HIGH_RISK_DETECTION_ENABLED); psychotic_disclosure
+    # always fires. skill_match_method stays "psychotic_disclosure_auto_select" for all three —
+    # renaming is Stage 2 scope.
+    from sage_poc import config  # noqa: PLC0415
+    from sage_poc.safety.hr_disclosure import hr_disclosure_present  # noqa: PLC0415
     if (
-        "psychotic_disclosure" in (state.get("clinical_flags") or [])
+        hr_disclosure_present(state.get("clinical_flags") or [], flag_enabled=config.HIGH_RISK_DETECTION_ENABLED)
         and not state.get("psychotic_referral_delivered")
     ):
         skill_id = "psychotic_referral"
