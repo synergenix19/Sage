@@ -68,16 +68,30 @@ Gate: `tests/test_tipp_reachability_311.py` — 24 passed, 4 xfailed(strict).
 
 **Q1 — stop_technique `'spiraling'` scope.** On *"I'm spiraling emotionally and it's escalating by
 the second — give me something I can do with **cold water** or my body to bring it down now"*, the
-keyword `'spiraling'` routes to STOP (impulse-interruption) even though cold water is TIPP's own
-Temperature component. Should `'spiraling'` (emotional escalation) belong to STOP, to dbt_tipp, or
-neither (leave to semantic)?
+keyword `'spiraling'` routes to STOP even though cold water is TIPP's own Temperature component.
+
+Doc language side-by-side:
+| STOP owns | TIPP owns |
+|---|---|
+| "Four-step **pre-response interruption** protocol" — Stop *before you act* on an urge (semantic_description) | "**cold water** to activate the dive reflex", "shock your system into calming down" (spec L194) |
+| impulse-to-act: "urge to storm out", "about to react" | acute physiological flooding: "bring the intensity down", "emotions at a ten" |
+
+**Proposed default (minimal cut):** remove bare `'spiraling'` from stop_technique; keep its
+impulse-to-act phrases. Rationale: `'spiraling'` conflates *emotional escalation* (TIPP) with
+*impulse-to-act* (STOP); a cold-water request routed to STOP delays the physiological intervention
+the user explicitly asked for. **Tick to confirm, or rule `'spiraling'` stays with STOP.**
 
 **Q2 — C1 acute-overlap tiebreak** (signed `2026-06-13-overwhelm-routing-c1-conflict`). It forces
-`grounding` ahead of `dbt_tipp` on any co-match, on the rationale that grounding is contraindication-
-free under unscreened delivery. On *"my panic is peaking and I feel like I'm losing control of how
-intense this is"* both match (grounding via `panic`, TIPP via `losing control`) → grounding wins.
-For messages explicitly about **intensity/overwhelm** (not dissociation), is gentler-first still the
-intended rule, or should TIPP lead? **Changing this is a clinical call; flagged, not touched.**
+`grounding` ahead of `dbt_tipp` on any co-match. On *"my panic is peaking and I feel like I'm losing
+control of how intense this is"* both match (grounding via `panic`, TIPP via `losing control`) →
+grounding wins.
+
+**Proposed default: no change (preserve the signed ordering).** Gentler-first is plausibly a
+*deliberate contraindication-avoidance* rule — TIPP carries cardiac/pregnancy caveats under
+unscreened autonomous delivery, grounding carries none — so the safe default is to keep it. But this
+is a **ruling on the principle**, not the case: *when acute-flooding language matches both grounding
+and TIPP, which should win — and is gentler-first your intended rule?* Your answer settles c4 and
+pre-answers the next co-match dispute. **Changing this is a clinical call; flagged, not touched.**
 
 ## Separate findings (NOT bundled here)
 
@@ -90,7 +104,15 @@ intended rule, or should TIPP lead? **Changing this is a clinical call; flagged,
 
 ## On merge
 
-Merge gated on Q-independent ticks above. Q1/Q2 do **not** block this PR (register probes are fixed);
-they ride as follow-ups. On merge: driven verification, v2-register write-back, #321 dbt_tipp
-single-source rides after, and the SG-2 dbt_tipp caveat converts latent → live (the payoff — it now
-protects a reachable skill).
+Merge gated on the two ticks above (grounding removals + dbt_tipp additions). Q1/Q2 do **not** block
+this PR (register probes are fixed); they ride as follow-ups.
+
+**Driven verification (post-tick, live graph) must cover, beyond p1/p2:** one Arabic probe per moved
+overwhelm phrase (`مشاعري أقوى من قدرتي`, `مشاعري أقوى مني`, `مشاعري فوق طاقتي`). The 3 AR phrases are
+the least-exercised part of the delta, and byte-level keyword matching against Arabic morphology
+(prefix-attached pronouns, tā-marbūṭa variants) is exactly where a static list silently misses — the
+offline gate's tokenization may not be prod-faithful for AR even where it is for EN. Same drive session.
+
+Then: v2-register write-back, #321 dbt_tipp single-source rides after, and the SG-2 dbt_tipp caveat
+converts latent → live (the payoff — it now protects a *reachable* skill, closing the arc that began
+when the transcript drive found SG-2 inert).
