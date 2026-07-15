@@ -235,3 +235,65 @@ def test_reproducible_across_fresh_interpreter_processes_different_hash_seeds():
     ).stdout.strip()
     assert out_a == out_b
     assert out_a in HR_DISTRESS_QUESTION_POOL
+
+
+# ---------------------------------------------------------------------------
+# Slot-3 (higher-severity 999 redirect): §3's "now, not soon" IS the branch's
+# clinical meaning. Every variant must carry a now-class urgency marker AND must
+# NOT soften with a deferral term. This guards the exact drift the persona pass
+# introduced ("as soon as you can" wearing warm clothes) and is the template for
+# the crisis/medical voice-pass: warmth erodes urgency one synonym at a time, so
+# the closed-set assertion is the durable fix, not the copy edit. (§3 forbids the
+# "see someone soon" register for this branch specifically; slot-4 legitimately
+# uses "soon", which is why this asserts only on HR_REDIRECT_HIGHER_POOL.)
+_NOW_MARKERS = ("now", "right away", "don't wait", "dont wait", "straight to")
+_SOFT_DEFERRAL = ("as soon as you can", "when you can", "soon", "at some point", "in the next")
+
+
+@pytest.mark.parametrize("variant", HR_REDIRECT_HIGHER_POOL)
+def test_slot3_higher_severity_carries_now_urgency(variant):
+    low = variant.lower()
+    assert any(m in low for m in _NOW_MARKERS), (
+        f"slot-3 (999) variant lacks a now-class urgency marker: {variant!r}"
+    )
+
+
+@pytest.mark.parametrize("variant", HR_REDIRECT_HIGHER_POOL)
+def test_slot3_higher_severity_has_no_soft_deferral(variant):
+    low = variant.lower()
+    hits = [s for s in _SOFT_DEFERRAL if s in low]
+    assert not hits, (
+        f"slot-3 (999) variant softens urgency with {hits}: {variant!r} -- "
+        "doc §3 forbids the 'see someone soon' register for the higher-severity branch"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Closed-pool-by-signature: adding OR editing a variant changes its pool hash and
+# fails here, until the pinned hash is regenerated AND the new/edited variant is
+# re-ratified by the clinician. active-implies-signed applied to copy: no unsigned
+# string reaches a user silently. When the clinician ratifies edits, recompute
+# these hashes and re-pin (the regeneration itself is the record that a re-sign
+# happened).
+import hashlib
+
+
+def _pool_hash(pool):
+    return hashlib.sha256("\x00".join(pool).encode("utf-8")).hexdigest()
+
+
+_PINNED_POOL_HASHES = {
+    "distress_question": "95ffe9b9b1ec166520839653bb63f09dcbf018c834a340b289b5b72ff3d079ff",
+    "supportive_message": "81bd5718825ad49a99d5bb0fc0394ec2432bae1f2a3435a9712d6b8afcec2769",
+    "redirect_higher": "1f751c8d9c00f391c3fc41a80a146ad432fa35dda82976e36e78f413d1e00d1c",
+    "redirect_lower": "1d965790aed12a5f0ac8ca6ae3f5a78eff97443e2533bd3bb448ab2488842eb8",
+    "reask": "c341457a8ac5967f3654d55cc424b45cc6669d16a0b608286ddcc029df1b506f",
+}
+
+
+@pytest.mark.parametrize("key,pool", list(_ALL_POOLS.items()))
+def test_pool_closed_by_signature(key, pool):
+    assert _pool_hash(pool) == _PINNED_POOL_HASHES[key], (
+        f"pool {key!r} changed -- a variant was added or edited. Re-ratify the pool "
+        "with the clinician, then regenerate + re-pin the hash (closed-pool-by-signature)."
+    )

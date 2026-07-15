@@ -76,8 +76,8 @@ HR_REDIRECT_HIGHER_POOL: tuple[str, ...] = (
     "Please call {{crisis_emergency}} right now, or get to your nearest emergency "
     "department. This needs help in person, right away, and I want you safe.",
     "{{first_name}}, I think this needs more help than I can give right now. "
-    "Please call {{crisis_emergency}}, or go to the nearest emergency room as "
-    "soon as you can.",
+    "Please call {{crisis_emergency}}, or go to the nearest emergency room right "
+    "away.",
     "This is serious enough that I want you to get help in person now. Call "
     "{{crisis_emergency}}, or head to your nearest ER, please don't wait on this.",
     "Right now, the safest step is calling {{crisis_emergency}} or going "
