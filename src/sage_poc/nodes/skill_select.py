@@ -739,7 +739,7 @@ async def skill_select_node(state: SageState) -> dict:
     from sage_poc.state import safety_text  # noqa: PLC0415
     # Language contract (#330): read RAW input via safety_text(), not translated message_en — the
     # AR compulsion bypass was a translated-path detection drift. First consumer of the accessor.
-    if is_ocd_compulsion(safety_text(state)):
+    if is_ocd_compulsion(state.get("message_en")):  # DEMO violation
         return {
             **stale_offer_clear,
             "active_skill_id": None,
