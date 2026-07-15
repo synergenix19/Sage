@@ -894,6 +894,13 @@ async def health_version(_: None = Depends(require_api_key)):
         # switches are in their intended state on a deploy rather than guessing.
         "route_precedence_enabled": _c.ROUTE_PRECEDENCE_ENABLED,
         "route_precedence_raw_env": os.environ.get("SAGE_ROUTE_PRECEDENCE"),
+        # B1 medical red-flag + F6 venting suppression (added 2026-07-15): resolved + raw, same
+        # pattern, so a conformance run's provenance can PROVE the resolved flag state at
+        # measurement time (F6 Condition C: unprovable measurement context produces false findings).
+        "medical_redflag_guard_enabled": _c.MEDICAL_REDFLAG_GUARD_ENABLED,
+        "medical_redflag_guard_raw_env": os.environ.get("SAGE_MEDICAL_REDFLAG_GUARD"),
+        "venting_suppression_enabled": _c.VENTING_SUPPRESSION_ENABLED,
+        "venting_suppression_raw_env": os.environ.get("SAGE_VENTING_SUPPRESSION"),
         "ipv_preemption_enabled": _c.IPV_PREEMPTION_ENABLED,
         "ipv_preemption_raw_env": os.environ.get("SAGE_IPV_PREEMPTION"),
         # Mechanism-level attestation for BYTE-IDENTICAL crisis templating: True iff the deployed
