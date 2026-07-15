@@ -188,3 +188,58 @@ def test_medical_referral_uses_998_not_999_lead():
     assert "998" in txt, "medical referral must give the UAE ambulance number (998)"
     if "999" in txt:
         assert txt.index("998") < txt.index("999"), "998 (ambulance) must lead 999 in the medical terminal"
+
+
+# --- Gate 4: audit-columns flip blocker ---
+# medical_response already calls write_session_audit({**state, "gate_path":"medical",
+# "medical_flags":[...], ...}), but _build_session_audit_row had no gate_path/medical_flags
+# columns, so those fields were written-then-dropped before ever reaching the row that gets
+# persisted. These tests pin the row builder directly (not write_session_audit's input state),
+# mirroring the crisis_tier / precedence conditional-inclusion convention: the columns are
+# included ONLY when a medical turn fired, so a flag-OFF / non-medical row stays
+# byte-identical to master (Check B).
+
+def _audit_state(**kwargs) -> dict:
+    defaults = {
+        "session_id": "test-session-b1-gate4",
+        "turn_number": 1,
+        "path": ["safety_check", "medical_response", "output_gate"],
+        "primary_intent": "general_chat",
+        "secondary_intent": None,
+        "intent_confidence": 0.9,
+        "active_skill_id": None,
+        "active_step_id": None,
+        "skill_match_method": None,
+        "knowledge_passages": [],
+        "knowledge_abstain": False,
+        "knowledge_source": "",
+        "crisis_state": "none",
+        "crisis_flags": [],
+        "clinical_flags": [],
+        "engagement": 7,
+        "emotional_intensity": 4,
+        "model_version": "claude-sonnet-4-6",
+        "latency_ms": None,
+        "user_id": None,
+    }
+    return {**defaults, **kwargs}
+
+
+def test_build_session_audit_row_records_medical_flags_and_gate_path():
+    from sage_poc.audit import _build_session_audit_row
+    state = _audit_state(medical_flags=["crushing"], gate_path="medical")
+
+    row = _build_session_audit_row(state)
+
+    assert row["gate_path"] == "medical"
+    assert row["medical_flags"] == ["crushing"]
+
+
+def test_build_session_audit_row_omits_medical_columns_when_not_medical():
+    from sage_poc.audit import _build_session_audit_row
+    state = _audit_state()  # no medical_flags, no gate_path -> non-medical turn
+
+    row = _build_session_audit_row(state)
+
+    assert "gate_path" not in row
+    assert "medical_flags" not in row
