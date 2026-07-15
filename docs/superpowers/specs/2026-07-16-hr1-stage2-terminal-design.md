@@ -38,3 +38,30 @@ Stage 1 routes all HR classes to the existing LLM-rendered `psychotic_referral`.
 - Where the distress-answer parse + risk-language phrase-class live.
 - Audit column for the distress answer + branch (migration).
 - Flag gate: same `HIGH_RISK_DETECTION_ENABLED`, or a distinct Stage-2 flag so the terminal upgrade can flip independently of detection.
+
+---
+
+## RESOLVED (2026-07-16, PO) — final shape, supersedes the "Open" section above
+
+### Dedicated node, not a skill — and WHY it's architecturally right (not just mechanically forced)
+The skill schema's inability to branch on parsed reply content is a **feature, not a limitation**. Skills are clinician-authored therapeutic content whose progression rides bounded numeric signals (intensity/engagement/resistance) precisely so clinicians author them safely without engineering. The HR protocol branches on a **parsed user value with an emergency-services consequence** — that is a **safety-control decision, and safety-control decisions live in nodes** (Cardinal Rule 1: nodes are control decisions; the arch doc's §2.2 "criteria_eval is not a node" states the same principle). The doc said it first: "fundamentally different shape from every other category, including crisis" → different shape, different layer. A skill that could branch on arbitrary reply content would be a hole in the schema's safety story.
+
+### Architecture: no deviation, reuse maximised
+- Dedicated 2-step node `high_risk_response` at `_route_after_safety`, **modeled on `medical_response`** (entry-clear of any in-progress skill, own audit row, deterministic copy, → END bypassing output_gate).
+- Reuses: `select_crisis_resources()`/`CRISIS_CONFIG` (higher-severity branch), the LangGraph checkpointer (two-turn persistence via `active_step_id`), the audit conditional-column pattern, `safety_check`-runs-every-turn (Requirement 3 free — crisis returned first in `_route_after_safety`, so SI on turn 2 wins by graph shape: invariant by construction).
+- **HR becomes the 4th safety terminal** (crisis, medical, HR, + low_confidence path). Node-catalogue entry in `docs/SageAI_architecture_current.md` rides the Stage 2 merge as a proposed addition (living-ref, human sign-off) — and closes the currently-missing `medical_response` entry in the same edit.
+- Migration of HR out of the skill layer (Stage 1's `psychotic_referral`) is the doc's own "no skill here" claim made structural. Gated `SAGE_HIGH_RISK_TERMINAL` (strict-parse idiom, distinct from `SAGE_HIGH_RISK_DETECTION`); OFF = Stage-1 behavior.
+
+### The two-turn flow (deterministic, exact)
+- **T1:** fixed-copy §1 distress question. Set `active_step_id="hr_await_distress"` (checkpoint-persisted); entry-clear any in-progress skill.
+- **T2 reply:** `safety_check` runs first (crisis pierces → crisis_response if SI). Then, in the HR node:
+  1. **Risk/agitation language screens FIRST** (phrase-class, deterministic) → higher-severity branch immediately. Never re-ask someone who already gave §3 evidence in words ("they're outside right now").
+  2. Else parse for 0–10 (numeric + verbal forms). Clean → branch on score (high → higher-severity; low → see-a-doctor).
+  3. Neither → **one** fixed-copy gentle re-ask; set `active_step_id="hr_reask"`.
+- **T3 reply:** parse again. Clean → branch. Otherwise → **default to higher-severity**. Terminal. **No third ask under any input.**
+
+### Scope guard (reworded to what it always meant)
+**"One question, asked at most twice; two branch evaluations, ever."** Enforced by the step counter — a third question is **unrepresentable** (the node has exactly steps {await_distress, reask}; after reask, any input terminates), not merely prohibited.
+
+### Non-answer default (into the packet, done)
+Risk-language → higher-severity immediately (bypasses re-ask); else one re-ask, then fail to higher-severity. Blocker-with-default in the clinician packet.
