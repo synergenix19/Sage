@@ -3,6 +3,7 @@
   "rules": [
     {
       "rule_id": "CF-001",
+      "approved_by": "clinical_lead",
       "version": "1.0.0",
       "authored_by": "sage_clinics",
       "effective_date": "2026-05-21",
@@ -22,6 +23,7 @@
     },
     {
       "rule_id": "CF-002",
+      "approved_by": "clinical_lead",
       "version": "1.0.0",
       "authored_by": "sage_clinics",
       "effective_date": "2026-05-21",
@@ -40,6 +42,7 @@
     },
     {
       "rule_id": "CF-003",
+      "approved_by": "clinical_lead",
       "version": "1.0.0",
       "authored_by": "sage_clinics",
       "effective_date": "2026-05-21",
@@ -58,6 +61,7 @@
     },
     {
       "rule_id": "CF-004",
+      "approved_by": "clinical_lead",
       "version": "1.0.0",
       "authored_by": "sage_clinics",
       "effective_date": "2026-05-21",

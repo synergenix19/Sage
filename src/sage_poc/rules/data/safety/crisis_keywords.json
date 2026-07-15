@@ -3,6 +3,7 @@
   "rules": [
     {
       "rule_id": "SK-EN-001",
+      "approved_by": "clinical_lead",
       "version": "1.0.0",
       "authored_by": "sage_clinics",
       "effective_date": "2026-05-21",
@@ -44,6 +45,7 @@
     },
     {
       "rule_id": "SK-AZ-001",
+      "approved_by": "clinical_lead",
       "version": "1.0.0",
       "authored_by": "sage_clinics",
       "effective_date": "2026-05-21",
@@ -77,6 +79,7 @@
     },
     {
       "rule_id": "SK-AR-001",
+      "approved_by": "clinical_lead",
       "version": "1.0.0",
       "authored_by": "sage_clinics",
       "effective_date": "2026-05-21",
@@ -120,6 +123,7 @@
     },
     {
       "rule_id": "SK-EN-003",
+      "approved_by": "clinical_lead",
       "version": "1.0.0",
       "category": "safety",
       "authored_by": "sage_clinics",
@@ -151,6 +155,7 @@
     },
     {
       "rule_id": "SK-EN-004",
+      "approved_by": "clinical_lead",
       "version": "1.0.0",
       "category": "safety",
       "authored_by": "sage_clinics",
@@ -184,6 +189,7 @@
     },
     {
       "rule_id": "CK-CH-001",
+      "approved_by": "clinical_lead",
       "version": "1.0.0",
       "authored_by": "sage_clinics",
       "approved_by": null,
@@ -214,6 +220,7 @@
     },
     {
       "rule_id": "CK-CH-002",
+      "approved_by": "clinical_lead",
       "version": "1.0.0",
       "authored_by": "sage_clinics",
       "approved_by": null,
@@ -235,6 +242,7 @@
     },
     {
       "rule_id": "SK-EN-006",
+      "approved_by": "clinical_lead",
       "version": "1.0.0",
       "authored_by": "sage_clinics",
       "approved_by": null,
