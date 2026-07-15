@@ -17,6 +17,7 @@ class SageState(TypedDict):
     s3_score: Optional[float]    # advisory BGE-M3 cosine similarity; 0 recall adds at 0.8059 per CRADLE sweep
     clinical_flags: list[str]   # substance_use, trauma_indicator, eating_concern, medication_mention
     new_clinical_flags_turn: list[str]  # flags detected THIS turn only; reset each turn in _build_state()
+    medical_flags: list[str]    # E3 medical red-flag channel read by safety_precedence._medical_fired; empty until B1 (medical red-flag screen) writes it. Declared now so B1's write survives the node->node seam (would otherwise be dropped like SG-2's step_mandatory_caveat).
     third_party_crisis: bool    # user is concerned about someone else's safety, not their own
 
     crisis_state: str              # "none" | "active" | "monitoring" | "resolved"
@@ -59,6 +60,7 @@ class SageState(TypedDict):
     active_step_id: Optional[str]      # step the NEXT turn will start from
     executed_step_id: Optional[str]    # step whose instruction was used THIS turn (for audit)
     step_instruction: Optional[str]
+    step_mandatory_caveat: str         # SG-2: executed step's contraindication caveat, written by skill_executor and read by output_gate to deliver VERBATIM. MUST be a declared channel — LangGraph drops undeclared keys between nodes (fixed 2026-07-15; the node->node seam that silently no-op'd SG-2 for all skills). Empty for non-safety steps.
     rule_fired: Optional[bool]         # True when a step_policy rule override replaced the default step instruction; reset each turn
     prev_step_id: Optional[str]        # step executed on the PREVIOUS turn; persists via LangGraph checkpoint for continuation detection
     prev_primary_intent: Optional[Intent]  # primary_intent of the PREVIOUS turn; persists via checkpoint (absent from _build_state, not reset). Used to detect a CONSECUTIVE info_request ("lookup mode") so the composer switches info_request from the question-close base to the statement-bridge repeat variant. An intervening non-info_request turn resets it, restoring the question-close (re-triage after a context switch).

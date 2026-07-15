@@ -71,6 +71,14 @@ jobs:
         if: steps.detect.outputs.code == 'true'
         run: pip install -e ".[dev]"
 
+      - name: Static — SageState channel contract (no undeclared node->node channels)
+        # Fails the build if any key written by a node and read by another is not a declared
+        # SageState channel — LangGraph silently drops undeclared keys (the SG-2 node->node seam,
+        # 4th instance of the "components green, seam broken" class). Structural enforcement so
+        # this failure mode is impossible, not merely tested.
+        if: steps.detect.outputs.code == 'true'
+        run: python scripts/check_state_channels.py
+
       - name: Run curated deterministic safety-surface suites
         if: steps.detect.outputs.code == 'true'
         env:
@@ -98,6 +106,8 @@ jobs:
             tests/test_v2_crisis_guardrail.py
             tests/test_skill_matching_rules.py
             tests/test_skill_executor.py
+            tests/test_state_channel_survival.py
+            tests/test_server_helpers.py
             tests/test_schema_conformance.py
             tests/test_intent_route_node.py
             tests/test_engagement_templates.py
