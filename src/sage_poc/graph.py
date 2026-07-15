@@ -191,9 +191,22 @@ def _route_after_safety(state: SageState) -> str:
     # gated on HIGH_RISK_TERMINAL_ENABLED (kill-switch) so this whole block is inert when OFF,
     # keeping this function byte-identical to today (Check B) -- HR disclosures still route
     # via the Stage-1 path (_route_after_intent -> skill_select -> psychotic_referral).
+    # Task 4 fix: one-shot guard, mirroring Stage 1's psychotic_referral_delivered
+    # (_route_after_intent below, skill_select.py ~L626-627). clinical_flags is
+    # flag-immutable-within-session (safety_check.py accumulates, never drops a
+    # flag once set), so without this guard EVERY later turn in the session would
+    # re-enter high_risk_response and re-ask the §1 distress question after the
+    # protocol already delivered its terminal branch. hr_referral_delivered is set
+    # by high_risk_response._deliver_branch only on an actual "higher"/"lower"
+    # delivery, never on the re-ask, so mid-protocol turns are unaffected (the
+    # RE-ENTRY branch below, keyed on hr_terminal_step, is intentionally left
+    # unguarded). CLINICAL/PRODUCT CALL DEFERRED: whether a genuinely NEW HR
+    # presentation later in the session should re-trigger after a delivered
+    # referral is currently one-shot per session (matches Stage 1); revisit is a
+    # clinician call, not decided here.
     if _cfg.HIGH_RISK_TERMINAL_ENABLED and hr_disclosure_present(
         state.get("clinical_flags") or [], flag_enabled=_cfg.HIGH_RISK_DETECTION_ENABLED
-    ):
+    ) and not state.get("hr_referral_delivered"):
         return "high_risk"
     # Re-entry (turn 2+ of the deterministic 2-3 turn protocol): a persisted hr_terminal_step
     # means high_risk_response is mid-protocol and this turn's message is the pending

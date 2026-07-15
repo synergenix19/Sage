@@ -465,3 +465,127 @@ async def test_finding_3_crisis_clears_hr_markers_no_stale_resume(monkeypatch):
     assert turn3.get("gate_path") != "high_risk"
     assert "high_risk_response" not in turn3.get("path", [])
     assert turn3.get("hr_terminal_step") is None
+
+
+# ---------------------------------------------------------------------------
+# Task 4 fix: hr_referral_delivered one-shot guard on the HR ENTRY branch.
+#
+# clinical_flags is flag-immutable-within-session (safety_check.py accumulates
+# via `all_clinical = list(set(new_clinical_flags + extra + persisted_non_computed))`,
+# never drops a flag once set). Before this fix, _route_after_safety's HR ENTRY
+# check (`HIGH_RISK_TERMINAL_ENABLED and hr_disclosure_present(...)`) had no
+# delivered-guard, so ANY later turn in the session re-entered high_risk_response
+# and re-asked the §1 distress question, even long after the protocol delivered
+# its terminal branch and cleared hr_terminal_step. Mirrors Stage 1's
+# psychotic_referral_delivered one-shot pattern (graph.py _route_after_intent
+# ~L242-243, skill_select.py ~L626-627).
+# ---------------------------------------------------------------------------
+
+async def test_full_graph_no_refire_after_delivered_referral(monkeypatch):
+    """The re-fire this fix prevents: entry -> "8" (delivers "higher", clears
+    hr_terminal_step, sets hr_referral_delivered) -> a later BENIGN turn must NOT
+    re-enter high_risk_response, even though clinical_flags still carries
+    psychotic_disclosure from turn 1 (session-persistent, never cleared)."""
+    from tests.test_hr_crisis_precedence import _stub_intent_and_responder_llms
+
+    monkeypatch.setattr(_cfg, "HIGH_RISK_TERMINAL_ENABLED", True)
+    _stub_intent_and_responder_llms(monkeypatch)
+
+    app = build_graph(MemorySaver())
+    cfg = {"configurable": {"thread_id": "hr4-refire-guard-benign"}}
+
+    turn1 = await app.ainvoke({"raw_message": "I hear voices in my head", "path": []}, config=cfg)
+    assert turn1.get("gate_path") == "high_risk"
+
+    turn2 = await app.ainvoke({"raw_message": "8", "path": []}, config=cfg)
+    assert turn2.get("gate_path") == "high_risk"
+    assert turn2.get("hr_branch") == "higher"
+    assert turn2.get("hr_terminal_step") is None
+    assert turn2.get("hr_referral_delivered") is True
+
+    # gate_path is a per-turn field, reset to None every turn by production's
+    # server_helpers._build_state before ainvoke; these full-graph tests bypass
+    # _build_state and invoke the compiled graph directly, so the reset is done
+    # explicitly here too -- otherwise a prior turn's "high_risk" would carry
+    # forward through the checkpoint on any turn that doesn't itself set
+    # gate_path (an artifact of the minimal test harness, not the routing logic).
+    turn3 = await app.ainvoke(
+        {"raw_message": "thanks, that helps a bit", "path": [], "gate_path": None}, config=cfg,
+    )
+    assert turn3.get("gate_path") != "high_risk"
+    assert "high_risk_response" not in turn3.get("path", [])
+    # The re-fire this guard prevents: the distress question must not be re-asked.
+    assert turn3.get("response_en") != _cfg.HR_DISTRESS_QUESTION
+    assert turn3.get("hr_terminal_step") is None
+
+
+async def test_full_graph_mid_protocol_reentry_unaffected_by_guard(monkeypatch):
+    """Mid-protocol re-entry (turn 2, via hr_terminal_step, BEFORE delivery) must
+    still reach the terminal: hr_referral_delivered is not yet set at that point,
+    so the new guard must not block the re-entry branch. Also pins that
+    hr_referral_delivered is absent/False on the entry turn and only flips True
+    on the delivery turn."""
+    monkeypatch.setattr(_cfg, "HIGH_RISK_TERMINAL_ENABLED", True)
+    app = build_graph(MemorySaver())
+    cfg = {"configurable": {"thread_id": "hr4-mid-protocol-unaffected"}}
+
+    turn1 = await app.ainvoke({"raw_message": "I hear voices in my head", "path": []}, config=cfg)
+    assert turn1.get("gate_path") == "high_risk"
+    assert turn1.get("hr_terminal_step") == "await_distress"
+    assert not turn1.get("hr_referral_delivered")
+
+    turn2 = await app.ainvoke({"raw_message": "8", "path": []}, config=cfg)
+    assert turn2.get("gate_path") == "high_risk"
+    assert "high_risk_response" in turn2.get("path", [])
+    assert turn2.get("hr_branch") == "higher"
+    assert turn2.get("hr_referral_delivered") is True
+
+
+async def test_full_graph_one_shot_session_scoped_even_on_fresh_hr_flag_turn(monkeypatch):
+    """Session-scoped one-shot (matches Stage 1's psychotic_referral one-shot):
+    once delivered, even a turn whose OWN message text repeats an HR disclosure
+    phrase must not re-enter high_risk_response within the same session."""
+    from tests.test_hr_crisis_precedence import _stub_intent_and_responder_llms
+
+    monkeypatch.setattr(_cfg, "HIGH_RISK_TERMINAL_ENABLED", True)
+    _stub_intent_and_responder_llms(monkeypatch)
+
+    app = build_graph(MemorySaver())
+    cfg = {"configurable": {"thread_id": "hr4-one-shot-fresh-flag-turn"}}
+
+    turn1 = await app.ainvoke({"raw_message": "I hear voices in my head", "path": []}, config=cfg)
+    assert turn1.get("gate_path") == "high_risk"
+
+    turn2 = await app.ainvoke({"raw_message": "3", "path": []}, config=cfg)
+    assert turn2.get("gate_path") == "high_risk"
+    assert turn2.get("hr_branch") == "lower"
+    assert turn2.get("hr_referral_delivered") is True
+
+    # gate_path per-turn reset, same rationale as the sibling test above.
+    turn3 = await app.ainvoke(
+        {"raw_message": "I hear voices in my head", "path": [], "gate_path": None}, config=cfg,
+    )
+    assert turn3.get("gate_path") != "high_risk"
+    assert "high_risk_response" not in turn3.get("path", [])
+
+
+def test_hr_entry_guarded_by_referral_delivered(monkeypatch):
+    """Direct _route_after_safety unit coverage of the new guard: HR ENTRY must
+    NOT route to high_risk when hr_referral_delivered is already True, even with
+    a disclosure flag present."""
+    monkeypatch.setattr(_cfg, "HIGH_RISK_TERMINAL_ENABLED", True)
+    state = _safety_state(
+        clinical_flags=["psychotic_disclosure"], hr_referral_delivered=True,
+    )
+    assert _route_after_safety(state) == "safe"
+
+
+def test_hr_reentry_unaffected_by_referral_delivered_guard(monkeypatch):
+    """The mid-protocol RE-ENTRY branch (hr_terminal_step) is unguarded by design:
+    it must still route to high_risk even if hr_referral_delivered happens to be
+    truthy in state (defensive; in practice it is False/absent at that point)."""
+    monkeypatch.setattr(_cfg, "HIGH_RISK_TERMINAL_ENABLED", True)
+    state = _safety_state(
+        clinical_flags=[], hr_terminal_step="reask", hr_referral_delivered=True,
+    )
+    assert _route_after_safety(state) == "high_risk"

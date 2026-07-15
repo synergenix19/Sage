@@ -53,6 +53,25 @@ def _deliver_branch(branch: str, parse: DistressParse, path: list, latency_ms) -
     protocol the same way once a branch is resolved). Clears hr_terminal_step and
     hr_escalate_regardless on every delivery (Finding 1: the mania-behavior-underway
     carry-in is per-protocol-instance, not per-session).
+
+    Sets hr_referral_delivered (Task 4 fix): one-shot marker consumed by
+    _route_after_safety's HR ENTRY guard, mirroring Stage 1's
+    psychotic_referral_delivered. Without it, clinical_flags' session-lifetime
+    persistence re-fires the ENTRY branch on every later turn and re-asks the
+    distress question -- this is set only here, on an actual delivery, never on
+    the re-ask (mid-protocol, not yet delivered).
+
+    Also sets psychotic_referral_delivered (same value, True): Stage 1's OWN
+    independent one-shot guard (_route_after_intent / skill_select.py's
+    psychotic_disclosure auto-select) is unconditional on HIGH_RISK_TERMINAL_ENABLED
+    and reads that separate flag, not hr_referral_delivered. Closing only the
+    _route_after_safety ENTRY branch left this second, parallel entry point
+    unguarded: once this Stage 2 delivery routes a later benign turn to "safe",
+    it falls through to intent_route, whose Stage 1 check would fire the
+    psychotic_referral SKILL all over again on the very next turn (same symptom,
+    different node) because psychotic_referral_delivered was never set by this
+    path. This turn's Stage 2 delivery IS the referral for the same underlying
+    disclosure, so it must satisfy both one-shot guards.
     """
     if branch == "higher":
         text = f"{_cfg.HR_SUPPORTIVE_MESSAGE} {_compose_higher_redirect()}"
@@ -69,6 +88,8 @@ def _deliver_branch(branch: str, parse: DistressParse, path: list, latency_ms) -
         "hr_escalate_regardless": False,
         "hr_branch": branch,
         "hr_distress_score": parse.score,
+        "hr_referral_delivered": True,
+        "psychotic_referral_delivered": True,
     }
 
 
