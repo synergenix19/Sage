@@ -257,3 +257,211 @@ async def test_reask_clean_score_routes_lower():
     assert result["hr_distress_score"] == 3
     assert result["hr_terminal_step"] is None
     assert result["hr_escalate_regardless"] is False
+
+
+# ---------------------------------------------------------------------------
+# Task 4: routing (entry + re-entry, gated) + crisis clears the marker.
+#
+# high_risk_response is the 3rd member of the SAFETY-EXIT class (crisis_response,
+# medical_response, high_risk_response): routed from _route_after_safety, straight
+# to END, bypassing output_gate. Wired exactly like medical_response (graph.py).
+# Ratified precedence order is crisis > medical > hr (BOT BEHAVIOUR / v7.1 table).
+#
+# "voices in my head" / "i hear voices" is a CF-006 pattern (active=true, live in
+# prod, unconditional), so these tests fire psychotic_disclosure WITHOUT needing
+# tests/test_hr_crisis_precedence.py's _force_activate_hr_rules helper -- unlike
+# the CF-009 phrase set ("people are following me...") used in tests/test_hr_routing.py,
+# which requires force-activation.
+# ---------------------------------------------------------------------------
+
+from langgraph.checkpoint.memory import MemorySaver
+
+from sage_poc.graph import _route_after_safety, build_graph
+from sage_poc import config as _cfg
+
+
+def _safety_state(**overrides) -> dict:
+    base = {
+        "is_safe": True,
+        "crisis_state": "none",
+        "medical_flags": [],
+        "crisis_tier": None,
+        "clinical_flags": [],
+        "hr_terminal_step": None,
+    }
+    base.update(overrides)
+    return base
+
+
+# --- Direct _route_after_safety unit tests (mirrors test_medical_redflag_guard.py's
+#     _routed() helper): precise, discriminating coverage of the router logic itself,
+#     independent of the full graph / monitoring-window behaviour exercised below. ---
+
+def test_hr_entry_routes_when_terminal_on_and_disclosure_present(monkeypatch):
+    monkeypatch.setattr(_cfg, "HIGH_RISK_TERMINAL_ENABLED", True)
+    state = _safety_state(clinical_flags=["psychotic_disclosure"])
+    assert _route_after_safety(state) == "high_risk"
+
+
+def test_hr_entry_off_when_terminal_flag_off(monkeypatch):
+    # Terminal kill-switch OFF: even with HIGH_RISK_DETECTION_ENABLED on and a gated HR
+    # disclosure present, routing must NOT go to high_risk_response -- falls through to
+    # "safe" (the Stage-1 path in _route_after_intent picks it up from there, unchanged).
+    monkeypatch.setattr(_cfg, "HIGH_RISK_TERMINAL_ENABLED", False)
+    monkeypatch.setattr(_cfg, "HIGH_RISK_DETECTION_ENABLED", True)
+    state = _safety_state(clinical_flags=["mania_disclosure"])
+    assert _route_after_safety(state) == "safe"
+
+
+def test_hr_reentry_routes_when_terminal_step_set(monkeypatch):
+    monkeypatch.setattr(_cfg, "HIGH_RISK_TERMINAL_ENABLED", True)
+    state = _safety_state(clinical_flags=[], hr_terminal_step="await_distress")
+    assert _route_after_safety(state) == "high_risk"
+
+
+def test_hr_reentry_off_when_terminal_flag_off(monkeypatch):
+    monkeypatch.setattr(_cfg, "HIGH_RISK_TERMINAL_ENABLED", False)
+    state = _safety_state(clinical_flags=[], hr_terminal_step="reask")
+    assert _route_after_safety(state) == "safe"
+
+
+def test_crisis_wins_over_hr_entry(monkeypatch):
+    monkeypatch.setattr(_cfg, "HIGH_RISK_TERMINAL_ENABLED", True)
+    state = _safety_state(is_safe=False, clinical_flags=["psychotic_disclosure"])
+    assert _route_after_safety(state) == "crisis"
+
+
+def test_crisis_wins_over_hr_reentry(monkeypatch):
+    # The critical "mid-protocol SI turn goes to crisis, not back to HR" ordering
+    # (Finding 3's routing half): a persisted hr_terminal_step must NOT override a
+    # fresh unsafe turn -- crisis is checked before either HR branch.
+    monkeypatch.setattr(_cfg, "HIGH_RISK_TERMINAL_ENABLED", True)
+    state = _safety_state(is_safe=False, hr_terminal_step="await_distress")
+    assert _route_after_safety(state) == "crisis"
+
+
+def test_medical_wins_over_hr(monkeypatch):
+    # Ratified order crisis > medical > hr: HR is checked strictly after medical.
+    monkeypatch.setattr(_cfg, "HIGH_RISK_TERMINAL_ENABLED", True)
+    monkeypatch.setattr(_cfg, "MEDICAL_REDFLAG_GUARD_ENABLED", True)
+    state = _safety_state(medical_flags=["crushing"], clinical_flags=["psychotic_disclosure"])
+    assert _route_after_safety(state) == "medical"
+
+
+def test_hr_off_byte_identical_default(monkeypatch):
+    monkeypatch.setattr(_cfg, "HIGH_RISK_TERMINAL_ENABLED", False)
+    monkeypatch.setattr(_cfg, "HIGH_RISK_DETECTION_ENABLED", False)
+    state = _safety_state(clinical_flags=["psychotic_disclosure"], hr_terminal_step="await_distress")
+    # psychotic_disclosure normally always routes (flag_enabled irrelevant to it), but the
+    # HIGH_RISK_TERMINAL_ENABLED kill-switch gates the entire Task-4 block -- OFF must be
+    # byte-identical to pre-Task-4 behaviour regardless of clinical_flags/hr_terminal_step.
+    assert _route_after_safety(state) == "safe"
+
+
+# --- Full-graph tests (real compiled app.ainvoke, checkpointed, no network) ---
+
+async def test_full_graph_flag_on_entry_then_score_delivers_higher(monkeypatch):
+    monkeypatch.setattr(_cfg, "HIGH_RISK_TERMINAL_ENABLED", True)
+    app = build_graph(MemorySaver())
+    cfg = {"configurable": {"thread_id": "hr4-entry-then-higher"}}
+
+    turn1 = await app.ainvoke(
+        {"raw_message": "I hear voices in my head", "path": []}, config=cfg,
+    )
+    assert turn1.get("gate_path") == "high_risk"
+    assert turn1.get("hr_terminal_step") == "await_distress"
+    assert "high_risk_response" in turn1.get("path", [])
+    assert "hr_branch" not in turn1
+
+    turn2 = await app.ainvoke({"raw_message": "8", "path": []}, config=cfg)
+    assert turn2.get("gate_path") == "high_risk"
+    assert turn2.get("hr_branch") == "higher"
+    assert turn2.get("hr_distress_score") == 8
+    assert turn2.get("hr_terminal_step") is None
+
+
+async def test_full_graph_in_progress_skill_cleared_on_hr_entry(monkeypatch):
+    monkeypatch.setattr(_cfg, "HIGH_RISK_TERMINAL_ENABLED", True)
+    app = build_graph(MemorySaver())
+    result = await app.ainvoke(
+        {
+            "raw_message": "I hear voices in my head",
+            "path": [],
+            "active_skill_id": "box_breathing",
+            "active_step_id": "step_2",
+            "offered_skill_ids": ["box_breathing"],
+        },
+        config={"configurable": {"thread_id": "hr4-skill-cleared"}},
+    )
+    assert result.get("gate_path") == "high_risk"
+    assert result.get("active_skill_id") is None
+    assert result.get("active_step_id") is None
+    assert result.get("offered_skill_ids") is None
+
+
+async def test_full_graph_flag_off_routes_stage1_psychotic_referral(monkeypatch):
+    # Flag OFF: the Task-4 block in _route_after_safety is entirely skipped, so this HR
+    # disclosure must still reach the LIVE Stage-1 path (_route_after_intent -> skill_select
+    # -> psychotic_referral auto-select), never high_risk_response.
+    from tests.test_hr_crisis_precedence import _stub_intent_and_responder_llms
+
+    monkeypatch.setattr(_cfg, "HIGH_RISK_TERMINAL_ENABLED", False)
+    _stub_intent_and_responder_llms(monkeypatch)
+
+    app = build_graph(MemorySaver())
+    result = await app.ainvoke(
+        {"raw_message": "I hear voices in my head", "path": []},
+        config={"configurable": {"thread_id": "hr4-flag-off-stage1"}},
+    )
+    assert result.get("gate_path") != "high_risk"
+    assert "high_risk_response" not in result.get("path", [])
+    assert result.get("skill_match_method") == "psychotic_disclosure_auto_select"
+    assert result.get("completed_skill_id") == "psychotic_referral"
+    assert result.get("psychotic_referral_delivered") is True
+
+
+async def test_finding_3_crisis_clears_hr_markers_no_stale_resume(monkeypatch):
+    """The 3-turn crisis-clears-state test (REQUIRED, blocks flip). The active-resumable
+    bug's 4th appearance: a stateful thing (hr_terminal_step / hr_escalate_regardless) must
+    not leave a resumable marker behind when a higher-precedence path (crisis) pierces it.
+
+    Turn 1: HR entry (asks distress) -> turn 2: SI reply -> crisis pierces (gate_path ==
+    "crisis"), never HR, even though hr_terminal_step=="await_distress" was persisted from
+    turn 1 -- proving the crisis check is senior to the HR re-entry check. The DECISIVE
+    assertion is turn 2's own returned state: hr_terminal_step and hr_escalate_regardless
+    are cleared (the SG-2 reset added to _crisis_response_node), not merely inert this turn.
+    Turn 3 (benign) then confirms no resumption end-to-end. Note: crisis_state becomes
+    "monitoring" after turn 2, so turn 3 is actually routed by _route_after_safety's separate
+    monitoring branch (which does not consult hr_terminal_step at all) -- an independent,
+    correct guard that would mask a stale-marker bug on this specific next turn regardless.
+    Turn 2's direct channel assertions are therefore what actually proves the fix; turn 3
+    documents the full observable behaviour the brief asks for.
+    """
+    from tests.test_hr_crisis_precedence import _stub_intent_and_responder_llms
+
+    monkeypatch.setattr(_cfg, "HIGH_RISK_TERMINAL_ENABLED", True)
+    _stub_intent_and_responder_llms(monkeypatch)
+
+    app = build_graph(MemorySaver())
+    cfg = {"configurable": {"thread_id": "hr4-finding3"}}
+
+    turn1 = await app.ainvoke({"raw_message": "I hear voices in my head", "path": []}, config=cfg)
+    assert turn1.get("gate_path") == "high_risk"
+    assert turn1.get("hr_terminal_step") == "await_distress"
+
+    turn2 = await app.ainvoke(
+        {"raw_message": "nothing feels real and I want to die", "path": []}, config=cfg,
+    )
+    assert turn2.get("is_safe") is False
+    assert turn2.get("gate_path") == "crisis"
+    assert "crisis_response" in turn2.get("path", [])
+    # SG-2 reset: BOTH HR channels cleared by the crisis turn.
+    assert turn2.get("hr_terminal_step") is None
+    assert turn2.get("hr_escalate_regardless") is False
+
+    turn3 = await app.ainvoke(
+        {"raw_message": "thank you, I'm okay now", "path": []}, config=cfg,
+    )
+    assert turn3.get("gate_path") != "high_risk"
+    assert "high_risk_response" not in turn3.get("path", [])
+    assert turn3.get("hr_terminal_step") is None

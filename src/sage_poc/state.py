@@ -60,6 +60,8 @@ class SageState(TypedDict):
     active_step_id: Optional[str]      # step the NEXT turn will start from
     hr_terminal_step: Optional[str]    # HR-1 Stage 2: high_risk_response's own 2-3 turn step machinery ("await_distress" | "reask" | None); persists via checkpoint like active_step_id. Declared channel (LangGraph drops undeclared keys between nodes -- the SG-2 bug).
     hr_escalate_regardless: bool       # HR-1 Stage 2 Finding 1: mania_behavior_underway(message_en) computed at HR entry, persisted across the protocol so a later low numeric distress score can never mask risky-behavior-already-underway evidence (resolve_hr_branch ORs this in). Declared channel, same reason as hr_terminal_step.
+    hr_branch: Optional[str]           # HR-1 Stage 2 Task 3: "higher" | "lower", set the turn high_risk_response resolves the distress branch. Task 3's node-level tests called the node directly and never caught that this was undeclared -- LangGraph silently dropped it between nodes (found by Task 4's full-graph wiring, the same SG-2 seam class). Declared channel, per-turn (only present on the delivery turn).
+    hr_distress_score: Optional[int]   # HR-1 Stage 2 Task 3: parsed 0-10 distress score on the delivery turn; same undeclared-channel gap as hr_branch above, same fix.
     executed_step_id: Optional[str]    # step whose instruction was used THIS turn (for audit)
     step_instruction: Optional[str]
     step_mandatory_caveat: str         # SG-2: executed step's contraindication caveat, written by skill_executor and read by output_gate to deliver VERBATIM. MUST be a declared channel — LangGraph drops undeclared keys between nodes (fixed 2026-07-15; the node->node seam that silently no-op'd SG-2 for all skills). Empty for non-safety steps.
@@ -93,7 +95,7 @@ class SageState(TypedDict):
     knowledge_query_searched: str   # query actually searched (post-normalization)
     knowledge_top_similarity: float | None  # best cosine sim in the returned pack; drives abstain
 
-    gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak", "crisis", "medical"]]
+    gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak", "crisis", "medical", "high_risk"]]
 
     response_en: Optional[str]
     response: Optional[str]
