@@ -273,11 +273,14 @@ MEDICAL_REDFLAG_GUARD_ENABLED: bool = os.getenv("SAGE_MEDICAL_REDFLAG_GUARD", "f
 # Q1-terminal default: the MEDICAL guard wording (doc lines 62/81/131 / Section 6):
 # "prompt to seek in-person/medical/emergency evaluation; treat as a possible medical
 # emergency." NOT doc L1477 (that is the psychiatric-crisis line rule, a different guard).
-# NUMBER (reality-verified 2026-07-15, per the doc's own "verify before launch" instruction):
-# lead with 998 = UAE AMBULANCE. 999 is UAE POLICE and must NOT lead a medical/cardiac
+# NUMBER: lead with 998 = UAE AMBULANCE. 999 is UAE POLICE and must NOT lead a medical/cardiac
 # emergency (the earlier "999" default was inherited from the psychiatric-crisis Resources
 # table, where police co-response is appropriate). The crisis pathway's 999 is unchanged;
 # this is the MEDICAL terminal only. Regression-guarded by test_medical_referral_uses_998.
+# PROVENANCE (do not overclaim): 998=ambulance / 999=police are the standard published UAE
+# emergency numbers (PO-sourced + flagged 2026-07-15). A documented verification record —
+# dial-test or cited authority, per the GL-1 crisis-number precedent — is a PRE-FLIP gate,
+# tracked in the crisis/medical numbers verification ticket. Do not flip on the comment alone.
 # Single blocking parameter, pending clinician ratification of wording.
 MEDICAL_REFERRAL_TEXT: str = os.getenv(
     "SAGE_MEDICAL_REFERRAL_TEXT",
