@@ -159,6 +159,7 @@ def _build_state(req: _RequestLike) -> dict:
         "engagement":          7,
         "executed_step_id":   None,
         "step_instruction":   None,
+        "step_mandatory_caveat": "",   # SG-2: reset per-turn like executed_step_id/step_instruction. Now that it's a declared (persisted) channel, skill_executor sets it fresh when a caveated step runs; resetting here prevents a stale caveat from a prior skill turn being pinned onto a later non-skill turn.
         "rule_fired":         None,
         "escalation_triggered": None,
         "gate_path":          None,
