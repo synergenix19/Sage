@@ -10,6 +10,22 @@
 > Translated text (`message_en`) exists for therapeutic processing and LLM rendering only, and is
 > NEVER a safety-detection input.**
 
+**Companion invariant (V, 2026-07-16, safety-relay sign-off — same architecture at the next level):**
+
+> **Safety DETECTION is layered and recall-biased — deterministic keywords for unambiguous meaning,
+> semantic match for phrasing variance — because neither layer alone survives real bilingual language
+> (#205: "ما عاد عندي رغبة أكمل" carries crisis meaning with zero crisis keywords; the #311 TIPP fix
+> added keywords onto a ±0.007 semantic margin). Safety RESPONSE is deterministic ONLY — verbatim
+> clinician-signed text and spec-defined answer-routing, no LLM discretion in any safety consequence.**
+
+Semantic breadth in detection, deterministic fidelity in response — Cardinal Rule 4 stated for the
+paraphrase-rich domain this product serves. Corollary for screens/guards (e.g. #338's L58/L101
+question): the *trigger* casts a wide recall-biased net (a false-positive only asks one gentle
+question — cheap), but once fired, the wording and answer-routing are strictly deterministic, and any
+**ambiguous answer routes conservatively** (unclear discriminator → red-flag-quality → guard), else the
+blindness just moves one turn downstream. Reached for again on #338's siblings, the venting detector,
+and every guard Tier-2 authoring touches.
+
 This rule was implicit in v7's language-flow design (Node 1 = MARBERT + lexicon on the original
 Arabic), but was never stated as a constraint — which is why it drifted. An unstated invariant
 can't be enforced.
