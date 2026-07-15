@@ -3,6 +3,26 @@
 **Companion to** `2026-07-15-270-unsigned-active-safety-rules.md`. **All 16 are `active` in prod without sign-off.**
 **Headline recommendation: RATIFY all 16** — every one implements a BOT BEHAVIOUR-mandated safety detection; **deactivating any opens a live safety gap** (do-not-bulk-deactivate applies to the *deactivate* option, not the review). The clinician's actual task is confirming the trigger *patterns* per rule (pattern lists provided separately); the *disposition* is ratify. **3 caveats flagged below need attention during that review.**
 
+---
+
+## ★ FINAL RECOMMENDATION (approve / reject / edit this)
+
+> **RATIFY and sign all 16 rules as active. Deactivate none.**
+>
+> **Why (BOT BEHAVIOUR + best practice):** all 16 are *detection* rules for behaviors the doc mandates a response to — suicidal ideation, self-harm/means, harm-to-others, command-hallucination (the doc's High-Risk presentation), third-party crisis, and clinical flags. The doc requires detecting these; the rules do it. The #270 problem is **not that they run — it's that they run *unsigned***. The fix is to **sign them**, not remove them. Deactivating any of these removes live safety detection and creates the exact gap the doc forbids. So the correct disposition is uniform: **ratify.**
+>
+> **Two of the sixteen carry a real clinical judgment (not a rubber-stamp) — weigh these, don't just approve:**
+> - **SK-EN-006** deliberately **over-detects** self-harm variants (no negation check). Over-detection means some benign users get routed to the crisis path — a real (if fail-safe) trade-off. **Confirm the false-positive tolerance is clinically acceptable**, or amend the threshold.
+> - **SK-AR-001/003, SK-AZ-001/002, CK-CH-002** are **unsigned Arabic/Arabizi safety in the language we cannot yet measure** (0 AR corpus). Ratify the patterns now (they are the *only* AR safety detection — deactivating leaves Arabic users with none), but **their end-to-end validation is owed and routes into the AR probe.**
+>
+> **One rider (not a blocker to signing):** **SK-EN-001** has a known negation-recall gap (misses ~5/6 SI-with-negation). **Ratify it now** (it catches the rest) **and open an amendment** to add negation handling — signing it records the known limitation rather than leaving it silent.
+>
+> **Everything else (SK-EN-003/004/005/HTO-001, CK-CH-001, CF-001..004) is a clean ratify** — sign as-is.
+>
+> **Clinician action:** approve this recommendation in one pass (ratify all 16 + the SK-EN-001 amendment + the AR-validation follow-up), or edit any single row. **Do not defer** — every day these run unsigned is a day live safety routing has no clinical authority behind it.
+
+---
+
 | Rule | Detects | BOT BEHAVIOUR requirement it implements | Recommendation | Note for the clinician |
 |---|---|---|---|---|
 | **SK-EN-001** | Core English explicit SI | Crisis protocol (Suicidal Ideation) | **RATIFY** | ⚠️ **Known negation-recall gap** (5/6 SI-with-negation missed). Ratify the rule (load-bearing) **and open an amend**: add negation handling. Do not deactivate. |
