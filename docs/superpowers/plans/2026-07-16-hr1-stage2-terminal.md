@@ -78,7 +78,7 @@
 - [ ] **Step 1: Write failing node tests** (call the node directly with constructed state):
   - `hr_terminal_step=None` (entry): returns the distress question, sets `hr_terminal_step="await_distress"`, clears `active_skill_id`/`active_step_id`/`offered_skill_ids`, `gate_path="high_risk"`, audit fields present. At entry it computes `mania_behavior_underway(message_en)` and persists `hr_escalate_regardless`.
   - **Finding 1 case:** entry on "I've been spending loads of money and I feel unstoppable" → `hr_escalate_regardless=True` persisted; then `="await_distress"` + reply **"2"** → **higher** redirect (mania behavior escalates regardless of the low score), `hr_branch="higher"`, NOT "lower".
-  - `hr_terminal_step="await_distress"` + reply "7" (no escalate_regardless) → returns supportive message + lower redirect, `hr_terminal_step=None`, `hr_branch="lower"`, `hr_distress_score=7`.
+  - `hr_terminal_step="await_distress"` + reply "4" (no escalate_regardless) → returns supportive message + lower redirect, `hr_terminal_step=None`, `hr_branch="lower"`, `hr_distress_score=4`. (Boundary: "7" → **higher**, since `HR_HIGH_FLOOR=7` is inclusive — add that as an explicit boundary test.)
   - `="await_distress"` + reply "9" → higher redirect, `hr_branch="higher"`.
   - `="await_distress"` + reply "they're outside right now" → higher redirect (no re-ask), `hr_branch="higher"`.
   - `="await_distress"` + reply "who told you that" (non-answer) → re-ask copy, `hr_terminal_step="reask"`.
@@ -114,7 +114,15 @@
 
 - [ ] **Step 1: Write failing audit test** — when `state.get("hr_branch")` set, `_build_session_audit_row` adds `hr_distress_score`, `hr_branch`; when absent, row is byte-identical to before (conditional block pattern like medical_flags at audit.py:163-169).
 - [ ] **Step 2: Run — expect FAIL.**
-- [ ] **Step 3: Implement.** Migration 013: `ADD COLUMN IF NOT EXISTS hr_distress_score int; ... hr_branch text;` (header notes it is the deploy gate before the flag flip). Conditional audit block. Arch doc: add `high_risk_response` to §2.1 node catalogue (4th safety terminal; medical_response-patterned; 2-step; own audit; bypasses output_gate), close the missing `medical_response` entry, bump node count. Mark as proposed addition pending human sign-off.
+- [ ] **Step 3: Implement.** Migration 013: `ADD COLUMN IF NOT EXISTS hr_distress_score int; ... hr_branch text;` (header notes it is the deploy gate before the flag flip). Conditional audit block.
+
+  **Arch doc (§2.1/§2.2) — introduce the SAFETY-EXIT TERMINAL CLASS, do NOT just bump a node count.** State the class CONTRACT once: routed from `_route_after_safety`; goes straight to `END`; bypasses `output_gate`; writes its own audit row; clears skill state (`active_skill_id`/`active_step_id`/`offered_skill_ids`) on entry; uses fixed/templated (deterministic) copy; holds a precedence rank (`crisis > medical > hr`). List its three members against that contract: `crisis_response`, `medical_response`, `high_risk_response`. Distinguish it from the ~8-stage processing pipeline (which exits via `output_gate`). Future safety terminals build against this documented contract, not by imitation of the nearest neighbour — that is the difference between a pattern and a class.
+
+  **BOUNDARY — state explicitly (do not let the class blur into an exemption):** the `output_gate` bypass is **licensed by the copy being deterministic/templated, NOT by being safety-related.** Any future terminal whose response is LLM-rendered does NOT inherit the bypass — it goes through the gate. The bypass is a property of templated copy.
+
+  **Log the altitude correction (conformance):** Stage 1 routed HR at the *post-intent* altitude (`_route_after_intent` → skill layer) — a temporary non-conformance, since a protocol the doc ranks *with crisis* was sitting below `intent_route`, so intent classification ran on HR turns it had no business classifying. Stage 2 doesn't just upgrade the terminal, it **corrects HR's rank** to the pre-intent safety-exit altitude. Record this as a line in the conformance matrix.
+
+  Mark all arch-doc edits as proposed additions pending human sign-off (living ref).
 - [ ] **Step 4: Run — expect PASS.**
 - [ ] **Step 5: Commit** `feat(hr): 013 audit columns + node-catalogue entry`.
 
