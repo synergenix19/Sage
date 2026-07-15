@@ -55,3 +55,11 @@ Root cause of the v1 stale snapshot was NOT a bad reading; it was a remediation 
 - **#312** — §6c reopen (claimed "rehomed + shipped", measured still 4/5 deviating). Red test = the abstaining §6c corpus variants.
 - **#313** — build Arabic Layer-1 corpus + AR disposition pass (target 2026-07-28). AR disposition currently UNMEASURED, not faked.
 - **#227** (`f915e3d`) — house-method write-back rule: any PR closing a matrix-tracked deviation updates its register row in the same PR (living register, not point-in-time audit); CONFORMS only on driven/instrument evidence, never a code-read.
+
+## SG-2 firing — VERIFIED LIVE (2026-07-15, prod 5b33a0e), register updated
+
+The SG-2 mechanism (#298) was found INERT for ALL skills (node→node channel drop: `step_mandatory_caveat` undeclared → LangGraph dropped it → gate no-op'd). Root cause caught by the LIVE browser test, not unit tests; fixed by declaring the channel + static gate (#319, on master via 5b33a0e). Firing then verified live:
+- **SG-2 / box_breathing → CONFORMS.** Live driven EN + AR: the clinician-approved caveat fires **verbatim, exactly once, before the technique** (EN `occurrences:1`, caveat idx < instruction idx; AR translated, once, before technique). box_breathing is single-source (caveat only in `mandatory_caveat`). Transcripts: `memory/assets/2026-07-15-box-breathing-caveat-{EN,AR}-*.png`.
+- **SG-2 / dbt_tipp → GAP (L71).** Caveat fires but **duplicates** (L188 lives 3× — `mandatory_caveat` + `technique_description`; LLM paraphrase + gate verbatim; idempotency misses the paraphrase). Violates doc L71 (don't repeat a cleared screen) / L200 / OR-3. Closer = **#321** (single-source: strip from `technique_description`). Also gated on H1.
+- **AR-routing divergence (box_breathing→grounding): NOT systematic** — 2/2 live AR probes routed correctly; low severity, **#322** (does not queue beside #311).
+- **Content-audit rule (generalized from the triple-sourced string):** mandatory safety copy lives in exactly one field (the gate's `mandatory_caveat`), nowhere the LLM renders from; idempotency guard = belt, single-sourcing = suspenders. Applied to the 7 pending sibling caveats at authoring time.
