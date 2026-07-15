@@ -1,3 +1,9 @@
+# ✅ RESOLVED 2026-07-15 — clinician approved; all 16 signed (PR #323)
+
+Disposition: **RATIFY all 16** (per the final recommendation below). Sign-off recorded as `approved_by` on each rule; loader UNAPPROVED-ACTIVE warnings now 0. **Riders tracked:** SK-EN-001 negation amendment (`tickets/2026-07-15-sk-en-001-negation-amendment.md`); AR/Arabizi rules' end-to-end validation → AR probe (`drafts/2026-07-15-probe-design-requirements.md`). Structural gate: active-implies-signed CI (`tickets/2026-07-15-active-implies-signed-ci-gate.md`).
+
+---
+
 # GOV-270 — per-rule approval sheet for clinical lead (ratify / amend / deactivate)
 
 **Companion to** `2026-07-15-270-unsigned-active-safety-rules.md`. **All 16 are `active` in prod without sign-off.**
