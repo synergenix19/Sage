@@ -316,42 +316,12 @@ if _hr_terminal_raw is not None and _hr_terminal_raw.strip().lower() not in ("tr
         "only 'true' enables.", _hr_terminal_raw,
     )
 
-# §HR fixed copy (verbatim from the design doc's "Fixed copy" section) — SINGLE-SOURCED,
-# never LLM-rendered. The high_risk_response node reads these literals directly (like
-# crisis_copy templates); it does not ask an LLM to paraphrase them. No em dashes: the
-# doc's own text uses one in the lower-redirect line, but project convention forbids em
-# dashes in any copy that reaches the LLM/user, so it is rewritten here with a comma.
-
-# Step 0 — the one question (§1). Also reused verbatim as the body of the single re-ask.
-HR_DISTRESS_QUESTION = "On a scale of 0 to 10, how distressing is this for you right now?"
-
-# Step 1 supportive message (§2), sent once alongside the branch redirect below.
-HR_SUPPORTIVE_MESSAGE = (
-    "Thank you for telling me what's going on for you. What you're describing "
-    "sounds really difficult, and I want to make sure you get support from "
-    "someone who can help properly with this."
-)
-
-# Step 1 redirect (§3), higher-severity branch (score high / agitation / risk-underway /
-# non-answer default after the re-ask). This is a LEAD-IN only — it does not hardcode the
-# 999/ER resource list. The node composes the actual resources from
-# select_crisis_resources()/CRISIS_CONFIG (same UAE directory the crisis pathway uses),
-# so the resource set stays single-sourced and never duplicated here.
-HR_REDIRECT_HIGHER_LEAD = "What you're describing needs to be looked at right away."
-
-# Step 1 redirect (§3), lower-severity branch (score low, no risk language). Doc text used
-# an em dash before "they're the right people"; rewritten with a comma per convention.
-HR_REDIRECT_LOWER = (
-    "This is something a doctor or mental health professional should look at with "
-    "you soon, they're the right people to help make sense of what's happening and "
-    "figure out the best support."
-)
-
-# Single gentle re-ask (T2, when neither risk language nor a clean 0-10 answer was given).
-# Content-neutral: it does not probe the experience itself, it only repeats the one
-# question so the branch can still be resolved on T3. Never asked a third time (the node's
-# step machinery makes a third ask unrepresentable).
-HR_REASK = (
-    "It's okay. Just so I can point you to the right support: "
-    "on a scale of 0 to 10, how distressing is this for you right now?"
-)
+# §HR fixed copy (verbatim from the design doc's "Fixed copy" section) has moved to
+# src/sage_poc/safety/hr_copy.py: each single string below is now a POOL of
+# clinician-ratifiable variants (HR_DISTRESS_QUESTION_POOL, HR_SUPPORTIVE_MESSAGE_POOL,
+# HR_REDIRECT_HIGHER_POOL, HR_REDIRECT_LOWER_POOL, HR_REASK_POOL), picked
+# deterministically per (session_id, slot_key) by hr_copy.pick_hr_variant -- still
+# SINGLE-SOURCED, still never LLM-rendered, no runtime randomness. The pools are marked
+# DRAFT pending clinician ratification (mirrors CF-007/008/009's active:false/unsigned
+# convention); SAGE_HIGH_RISK_TERMINAL stays default-OFF until sign-off. The
+# high_risk_response node reads from hr_copy, not from literals here.

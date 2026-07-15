@@ -44,58 +44,22 @@ def test_unset_defaults_off_after_reload(monkeypatch):
     assert config.HIGH_RISK_TERMINAL_ENABLED is False
 
 
-# --- §HR fixed copy (verbatim) ---
+# --- §HR fixed copy ---
+#
+# Task 6 (HR-1 Stage 2): each single fixed string above was replaced by a DRAFT pool
+# of clinician-ratifiable variants (src/sage_poc/safety/hr_copy.py), picked
+# deterministically per (session_id, slot_key). The pool-content assertions (anchors,
+# em-dash check, reproducibility, name-only personalization) now live in
+# tests/test_hr_copy_variants.py; this file keeps only the "config still wires the
+# crisis pathway" check and the node/routing behavior tests below (branch selection
+# logic, unaffected by the copy-source swap).
 
-def test_distress_question_verbatim_anchor():
-    assert config.HR_DISTRESS_QUESTION == (
-        "On a scale of 0 to 10, how distressing is this for you right now?"
-    )
-    assert "0 to 10" in config.HR_DISTRESS_QUESTION
-
-
-def test_supportive_message_verbatim():
-    assert config.HR_SUPPORTIVE_MESSAGE == (
-        "Thank you for telling me what's going on for you. What you're describing "
-        "sounds really difficult, and I want to make sure you get support from "
-        "someone who can help properly with this."
-    )
-
-
-def test_lower_redirect_contains_see_a_doctor_anchor():
-    assert "doctor or mental health professional" in config.HR_REDIRECT_LOWER
-
-
-def test_reask_is_gentle_and_content_neutral():
-    # Single re-ask: still carries the 0-10 question, does not probe the experience
-    # itself (no "why", "what happened", "tell me more").
-    assert "0 to 10" in config.HR_REASK
-    for probing_phrase in ("why", "what happened", "tell me more"):
-        assert probing_phrase not in config.HR_REASK.lower()
-
-
-def test_no_em_dashes_in_any_copy_constant():
-    # Project convention: em dashes never appear in copy that reaches the LLM/user.
-    for name in (
-        "HR_DISTRESS_QUESTION",
-        "HR_SUPPORTIVE_MESSAGE",
-        "HR_REDIRECT_LOWER",
-        "HR_REASK",
-    ):
-        value = getattr(config, name)
-        assert "—" not in value, f"{name} contains an em dash"
-
-
-def test_higher_redirect_not_hardcoded_composes_from_crisis_pathway():
+def test_higher_redirect_composes_from_crisis_pathway():
     # The 999/ER branch must NOT duplicate a literal resource list in config;
     # it composes from select_crisis_resources()/CRISIS_CONFIG (single-sourced
     # crisis directory), same as the rest of the crisis pathway.
     assert hasattr(config, "select_crisis_resources")
     assert hasattr(config, "CRISIS_CONFIG")
-    if hasattr(config, "HR_REDIRECT_HIGHER_LEAD"):
-        assert "—" not in config.HR_REDIRECT_HIGHER_LEAD
-        # A lead-in template must not itself contain a resource number/link —
-        # those come exclusively from the crisis pathway.
-        assert "999" not in config.HR_REDIRECT_HIGHER_LEAD
 
 
 # ---------------------------------------------------------------------------
@@ -515,7 +479,14 @@ async def test_full_graph_no_refire_after_delivered_referral(monkeypatch):
     assert turn3.get("gate_path") != "high_risk"
     assert "high_risk_response" not in turn3.get("path", [])
     # The re-fire this guard prevents: the distress question must not be re-asked.
-    assert turn3.get("response_en") != _cfg.HR_DISTRESS_QUESTION
+    # Task 6: HR_DISTRESS_QUESTION is now a pool (safety/hr_copy.py); no state carries
+    # a first_name in this harness, so any re-ask would have to be one of the pool's
+    # name-free variants -- turn3's response must not be any of them.
+    from sage_poc.safety.hr_copy import HR_DISTRESS_QUESTION_POOL
+    _name_free_distress_variants = {
+        v for v in HR_DISTRESS_QUESTION_POOL if "{{first_name}}" not in v
+    }
+    assert turn3.get("response_en") not in _name_free_distress_variants
     assert turn3.get("hr_terminal_step") is None
 
 

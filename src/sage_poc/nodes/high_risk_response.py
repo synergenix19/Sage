@@ -14,6 +14,12 @@ Pure-deterministic (design doc Requirement 1): no evaluate_completion_criteria, 
 call anywhere on this path. Every branch is resolved by hr_distress.parse_distress /
 resolve_hr_branch / mania_behavior_underway.
 
+Copy source: each slot (distress question, supportive message, higher/lower redirect,
+re-ask) is a DRAFT pool of clinician-ratifiable variants (safety/hr_copy.py), picked
+deterministically per (session_id, slot_key) by pick_hr_variant -- still a pure literal
+lookup, no runtime randomness, no LLM. See hr_copy.py's module docstring for the
+ratification-pending status.
+
 No em dashes (project convention for anything that could reach an LLM prompt or
 user-facing string).
 """
@@ -24,6 +30,15 @@ import time
 from sage_poc.state import SageState
 from sage_poc import config as _cfg
 from sage_poc.audit import write_session_audit
+from sage_poc.crisis_copy import resolve_crisis_placeholders
+from sage_poc.safety.hr_copy import (
+    HR_DISTRESS_QUESTION_POOL,
+    HR_REASK_POOL,
+    HR_REDIRECT_HIGHER_POOL,
+    HR_REDIRECT_LOWER_POOL,
+    HR_SUPPORTIVE_MESSAGE_POOL,
+    pick_hr_variant,
+)
 from sage_poc.safety.hr_distress import (
     DistressParse,
     mania_behavior_underway,
@@ -34,20 +49,45 @@ from sage_poc.safety.hr_distress import (
 _log = logging.getLogger(__name__)
 
 
-def _compose_higher_redirect() -> str:
-    """Step 1 redirect, higher-severity branch: the fixed lead-in + the SAME UAE
+def _first_name(state: SageState) -> str | None:
+    """Name-only personalization source (§5): the user's therapeutic_profile, the
+    one profile-shaped dict already carried in state. No live write path populates
+    first_name into it today, so in practice pick_hr_variant always falls back to the
+    name-free pool variants right now; wiring it here is what makes a future profile
+    write "just work" without touching this node again."""
+    profile = state.get("therapeutic_profile") or {}
+    return profile.get("first_name") or None
+
+
+def _pick(pool: tuple[str, ...], state: SageState, slot_key: str) -> str:
+    """Deterministic pool pick (session_id + slot_key), then {{crisis_*}} resolution.
+    {{first_name}} is resolved inside pick_hr_variant itself (never picks a name-
+    bearing variant when no name is available); {{crisis_*}} resolves the same way as
+    every other crisis string in the codebase (crisis_copy.resolve_crisis_placeholders).
+    """
+    variant = pick_hr_variant(
+        pool, state.get("session_id"), slot_key, first_name=_first_name(state),
+    )
+    return resolve_crisis_placeholders(variant)
+
+
+def _compose_higher_redirect(state: SageState) -> str:
+    """Step 1 redirect, higher-severity branch: a pool-picked lead-in + the SAME UAE
     resource directory the crisis pathway uses, composed via select_crisis_resources()
     (immediate_danger=True -> leads with 999/emergency, matching the doc's "999/ER now"
     framing). Never a literal resource list in this module (single-sourced in config.py).
     """
+    lead = _pick(HR_REDIRECT_HIGHER_POOL, state, "redirect_higher")
     resources = _cfg.select_crisis_resources(immediate_danger=True)
     resource_line = "; ".join(
         f"{r['name']}: {r['number']} ({r['hours']})" for r in resources
     )
-    return f"{_cfg.HR_REDIRECT_HIGHER_LEAD} {resource_line}"
+    return f"{lead} {resource_line}"
 
 
-def _deliver_branch(branch: str, parse: DistressParse, path: list, latency_ms) -> dict:
+def _deliver_branch(
+    branch: str, parse: DistressParse, path: list, latency_ms, state: SageState,
+) -> dict:
     """Build the terminal-delivery return dict for a resolved "higher"/"lower" branch.
     Shared by the await_distress branch turn and the reask turn (both terminate the
     protocol the same way once a branch is resolved). Clears hr_terminal_step and
@@ -73,10 +113,11 @@ def _deliver_branch(branch: str, parse: DistressParse, path: list, latency_ms) -
     path. This turn's Stage 2 delivery IS the referral for the same underlying
     disclosure, so it must satisfy both one-shot guards.
     """
+    supportive = _pick(HR_SUPPORTIVE_MESSAGE_POOL, state, "supportive_message")
     if branch == "higher":
-        text = f"{_cfg.HR_SUPPORTIVE_MESSAGE} {_compose_higher_redirect()}"
+        text = f"{supportive} {_compose_higher_redirect(state)}"
     else:
-        text = f"{_cfg.HR_SUPPORTIVE_MESSAGE} {_cfg.HR_REDIRECT_LOWER}"
+        text = f"{supportive} {_pick(HR_REDIRECT_LOWER_POOL, state, 'redirect_lower')}"
 
     return {
         "response": text,
@@ -129,9 +170,10 @@ async def high_risk_response_node(state: SageState) -> dict:
         # user here, and persist it across the two-turn protocol so a later low numeric
         # score can never mask it.
         escalate_regardless = mania_behavior_underway(message_en)
+        question = _pick(HR_DISTRESS_QUESTION_POOL, state, "distress_question")
         update = {
-            "response": _cfg.HR_DISTRESS_QUESTION,
-            "response_en": _cfg.HR_DISTRESS_QUESTION,
+            "response": question,
+            "response_en": question,
             "gate_path": "high_risk",
             "path": path,
             "latency_ms": latency_ms,
@@ -153,9 +195,10 @@ async def high_risk_response_node(state: SageState) -> dict:
             escalate_regardless=state.get("hr_escalate_regardless", False),
         )
         if branch == "reask":
+            reask_text = _pick(HR_REASK_POOL, state, "reask")
             update = {
-                "response": _cfg.HR_REASK,
-                "response_en": _cfg.HR_REASK,
+                "response": reask_text,
+                "response_en": reask_text,
                 "gate_path": "high_risk",
                 "path": path,
                 "latency_ms": latency_ms,
@@ -166,7 +209,7 @@ async def high_risk_response_node(state: SageState) -> dict:
             _write_hr_audit(state, update, path, latency_ms)
             return update
 
-        update = _deliver_branch(branch, parse, path, latency_ms)
+        update = _deliver_branch(branch, parse, path, latency_ms, state)
         _write_hr_audit(state, update, path, latency_ms)
         return update
 
@@ -179,6 +222,6 @@ async def high_risk_response_node(state: SageState) -> dict:
         parse, is_reask=True,
         escalate_regardless=state.get("hr_escalate_regardless", False),
     )
-    update = _deliver_branch(branch, parse, path, latency_ms)
+    update = _deliver_branch(branch, parse, path, latency_ms, state)
     _write_hr_audit(state, update, path, latency_ms)
     return update
