@@ -55,6 +55,17 @@ exceptions are allowlisted **with a ticket** (never a bare reason). Armed by a b
 before declaring live (a gate never seen blocking isn't armed).
 
 This is one facet of the standing umbrella: **bilingual parity is an architectural invariant, not a
-per-file property.** Its three gates — the phrase-file parity gate (#329), this raw-input gate
-(#330), and the AR eval corpus (#313, behavioral) — converge on a single claim the DPIA and clinical
-review will look for: *every safety mechanism is verified equivalent in both languages.*
+per-file property** — and, as the #337/CR-0 audits showed, the drift is from the spec in *both*
+languages, not only Arabic.
+
+**End-state claim (the sentence the DPIA and clinical governance consume):**
+
+> Every safety detector is (1) **spec-complete in EN** [#337 / CR-0 spec-conformance audits],
+> (2) **parity-complete in AR** [the armed parity gate, #329], and (3) **behaviorally verified
+> equivalent in both** [prod drives + the standing suite, #328].
+
+Three checkable properties, three enforcement mechanisms, one sentence. When all three stand the claim
+is **auditable rather than aspirational** — the form the clinical-governance story has been converging
+on since the first EN-only file surfaced. (Note: property (1) subsumes not just phrase coverage but
+implemented *mechanisms* — e.g. the L58/L101 quality-check screen, #338, an SG-2-class gap where the
+spec assumes a screening question the keyword-only guard never built.)
