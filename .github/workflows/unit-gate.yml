@@ -125,6 +125,14 @@ jobs:
             tests/test_crisis_availability_consistency.py
             tests/test_crisis_config_cross_stack.py
             tests/test_sg2_caveat_firing.py
+            tests/test_safety_copy_urgency.py
+            tests/test_rules_safety_hr.py
+            tests/test_hr_distress_parse.py
+            tests/test_hr_copy_variants.py
+            tests/test_hr_terminal.py
+            tests/test_hr_crisis_precedence.py
+            tests/test_hr_routing.py
+            tests/test_hr_audit.py
           "
           # test_crisis_availability_consistency.py (H4): fail-closed guard that no crisis-copy
           # string asserts 24/7 / "24 hours" / "متاح كل وقت" adjacent to the 8am-8pm National line.
