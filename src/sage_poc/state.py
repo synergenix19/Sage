@@ -58,6 +58,11 @@ class SageState(TypedDict):
     active_skill_id: Optional[str]
     completed_skill_id: Optional[str]  # set on skill_complete turn for audit attribution; reset to None each turn via _build_state
     active_step_id: Optional[str]      # step the NEXT turn will start from
+    hr_terminal_step: Optional[str]    # HR-1 Stage 2: high_risk_response's own 2-3 turn step machinery ("await_distress" | "reask" | None); persists via checkpoint like active_step_id. Declared channel (LangGraph drops undeclared keys between nodes -- the SG-2 bug).
+    hr_escalate_regardless: bool       # HR-1 Stage 2 Finding 1: mania_behavior_underway(message_en) computed at HR entry, persisted across the protocol so a later low numeric distress score can never mask risky-behavior-already-underway evidence (resolve_hr_branch ORs this in). Declared channel, same reason as hr_terminal_step.
+    hr_branch: Optional[str]           # HR-1 Stage 2 Task 3: "higher" | "lower", set the turn high_risk_response resolves the distress branch. Task 3's node-level tests called the node directly and never caught that this was undeclared -- LangGraph silently dropped it between nodes (found by Task 4's full-graph wiring, the same SG-2 seam class). Declared channel, per-turn (only present on the delivery turn).
+    hr_distress_score: Optional[int]   # HR-1 Stage 2 Task 3: parsed 0-10 distress score on the delivery turn; same undeclared-channel gap as hr_branch above, same fix.
+    hr_referral_delivered: Optional[bool]  # HR-1 Stage 2 Task 4 fix: True once high_risk_response delivers a terminal branch ("higher"/"lower"); persists via checkpoint for the session. One-shot guard on _route_after_safety's HR ENTRY check, mirroring Stage 1's psychotic_referral_delivered -- without it, clinical_flags' session-lifetime persistence (never cleared) re-fires the ENTRY branch and re-asks the distress question on every later turn. Declared channel (LangGraph drops undeclared keys between nodes, the SG-2 bug class).
     executed_step_id: Optional[str]    # step whose instruction was used THIS turn (for audit)
     step_instruction: Optional[str]
     step_mandatory_caveat: str         # SG-2: executed step's contraindication caveat, written by skill_executor and read by output_gate to deliver VERBATIM. MUST be a declared channel — LangGraph drops undeclared keys between nodes (fixed 2026-07-15; the node->node seam that silently no-op'd SG-2 for all skills). Empty for non-safety steps.
@@ -91,7 +96,7 @@ class SageState(TypedDict):
     knowledge_query_searched: str   # query actually searched (post-normalization)
     knowledge_top_similarity: float | None  # best cosine sim in the returned pack; drives abstain
 
-    gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak", "crisis", "medical"]]
+    gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak", "crisis", "medical", "high_risk"]]
 
     response_en: Optional[str]
     response: Optional[str]
@@ -122,3 +127,18 @@ class SageState(TypedDict):
     banned_opener_correction: Optional[str]
     banned_opener_violation: bool          # True if banned opener persisted after retry AND passed through to user (no fallback)
     banned_opener_fallback_used: bool      # True when _VETTED_FALLBACK_RESPONSE substituted after exhausted retry
+
+
+def safety_text(state: SageState) -> str:
+    """The text every safety-critical detector MUST read: the RAW user input in its original
+    language, NEVER the translated message_en.
+
+    Language contract (ADR 2026-07-16): crisis lexicon, clinical flags, vetoes, red-flag guards,
+    and contraindication triggers operate on raw input; message_en exists for therapeutic
+    processing / LLM rendering only, and is never a safety-detection input. Routing a safety
+    decision through the translator makes recall hostage to translation quality on distress-register
+    Khaleeji — the #329 (medical red-flag) and #330 (OCD-compulsion) live prod bypasses. Detectors
+    call this accessor so the safe path is the ONLY path and new detectors inherit raw by
+    construction. Enforced by scripts/check_safety_reads_raw.py.
+    """
+    return state.get("raw_message") or ""

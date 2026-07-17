@@ -15,6 +15,7 @@ from sage_poc.nodes.skill_executor import skill_executor_node
 from sage_poc.nodes.freeflow_respond import freeflow_respond_node
 from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
 from sage_poc.nodes.medical_response import medical_response_node
+from sage_poc.nodes.high_risk_response import high_risk_response_node
 from sage_poc.config import CRISIS_LINE_UAE, CRISIS_CONFIG
 from sage_poc.nodes.output_gate import output_gate_node
 from sage_poc.config import AUDIT_LOG_ENABLED
@@ -152,6 +153,14 @@ async def _crisis_response_node(state: SageState) -> dict:
         # Without this, the stale-check gap is measured from the pre-crisis turn,
         # potentially under-counting by the duration of the crisis turn itself.
         "last_turn_at": datetime.now(timezone.utc).isoformat(),
+        # HR-1 Stage 2 Task 4 (SG-2 reset): crisis piercing a mid-protocol high_risk_response
+        # must leave NO stale marker on EITHER HR channel. Without this, a later turn that
+        # re-reads a leftover hr_terminal_step ("await_distress"/"reask") would silently
+        # reinterpret that turn's message as the pending distress reply instead of asking
+        # fresh (the active-resumable bug's 4th appearance -- see medical_response.py's
+        # active_skill_id precedent and _route_after_safety's HR re-entry check below).
+        "hr_terminal_step": None,
+        "hr_escalate_regardless": False,
     }
 
 
@@ -173,6 +182,40 @@ def _route_after_safety(state: SageState) -> str:
         return "crisis"
     if _cfg.MEDICAL_REDFLAG_GUARD_ENABLED and state.get("medical_flags"):
         return "medical"
+    # HR-1 Stage 2 Task 4: safety-exit altitude routing for high_risk_response, the 3rd
+    # member of the SAFETY-EXIT class (crisis_response, medical_response, high_risk_response) --
+    # routed here, straight to END, bypassing output_gate. Ratified precedence order is
+    # crisis > medical > hr (BOT BEHAVIOUR / v7.1 precedence table), so both branches below
+    # are placed AFTER the crisis and medical checks above: crisis and medical still return
+    # first even when an HR disclosure/in-progress protocol also fired this turn. Both are
+    # gated on HIGH_RISK_TERMINAL_ENABLED (kill-switch) so this whole block is inert when OFF,
+    # keeping this function byte-identical to today (Check B) -- HR disclosures still route
+    # via the Stage-1 path (_route_after_intent -> skill_select -> psychotic_referral).
+    # Task 4 fix: one-shot guard, mirroring Stage 1's psychotic_referral_delivered
+    # (_route_after_intent below, skill_select.py ~L626-627). clinical_flags is
+    # flag-immutable-within-session (safety_check.py accumulates, never drops a
+    # flag once set), so without this guard EVERY later turn in the session would
+    # re-enter high_risk_response and re-ask the §1 distress question after the
+    # protocol already delivered its terminal branch. hr_referral_delivered is set
+    # by high_risk_response._deliver_branch only on an actual "higher"/"lower"
+    # delivery, never on the re-ask, so mid-protocol turns are unaffected (the
+    # RE-ENTRY branch below, keyed on hr_terminal_step, is intentionally left
+    # unguarded). CLINICAL/PRODUCT CALL DEFERRED: whether a genuinely NEW HR
+    # presentation later in the session should re-trigger after a delivered
+    # referral is currently one-shot per session (matches Stage 1); revisit is a
+    # clinician call, not decided here.
+    if _cfg.HIGH_RISK_TERMINAL_ENABLED and hr_disclosure_present(
+        state.get("clinical_flags") or [], flag_enabled=_cfg.HIGH_RISK_DETECTION_ENABLED
+    ) and not state.get("hr_referral_delivered"):
+        return "high_risk"
+    # Re-entry (turn 2+ of the deterministic 2-3 turn protocol): a persisted hr_terminal_step
+    # means high_risk_response is mid-protocol and this turn's message is the pending
+    # distress reply / re-ask reply. Checked AFTER "if not state['is_safe']: return 'crisis'"
+    # above, so a mid-protocol SI turn still pierces to crisis, never back to HR (Finding 3) --
+    # and _crisis_response_node clears hr_terminal_step/hr_escalate_regardless on that pierce,
+    # so a later turn never silently resumes a stale await_distress/reask step.
+    if _cfg.HIGH_RISK_TERMINAL_ENABLED and state.get("hr_terminal_step"):
+        return "high_risk"
     return "safe"
 
 
@@ -332,6 +375,7 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     graph.add_node("output_gate", output_gate_node)
     graph.add_node("crisis_response", _crisis_response_node)
     graph.add_node("medical_response", medical_response_node)
+    graph.add_node("high_risk_response", high_risk_response_node)
 
     graph.set_entry_point("safety_check")
 
@@ -339,9 +383,11 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
         "safe": "intent_route",
         "crisis": "crisis_response",
         "medical": "medical_response",
+        "high_risk": "high_risk_response",
     })
     graph.add_edge("crisis_response", END)
     graph.add_edge("medical_response", END)
+    graph.add_edge("high_risk_response", END)
 
     graph.add_conditional_edges("intent_route", _route_after_intent, {
         "skill_select": "skill_select",

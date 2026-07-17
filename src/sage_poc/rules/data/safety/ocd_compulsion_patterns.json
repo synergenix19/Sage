@@ -6,7 +6,9 @@
     "families": "Five clinician-approved compulsion families: checking, counting/magic/undoing, scrupulosity, rereading/redoing, contamination/reassurance/symmetry.",
     "match": "case-insensitive substring, consistent with CF-005 and ipv_preempt keyword matching. Keyed on the compulsive ACTION or ritual (check, count, tap, wash, realign, reread, repeat-until, reassurance-seeking, magical undoing), NOT on repetition or looping alone, which ordinary worry/rumination legitimately owns (worry_time target_presentations include loop/cycle phrasings).",
     "language": "English-first. message_en is the matched text (for Arabic sessions this is the translated English). Khaleeji/MSA expansion is tracked debt, consistent with CF-005.",
-    "precision": "Verified against tests/fixtures/routing_eval bulk corpus: matches all 9 iatrogenic cases plus 1 further id_oos OCD disclosure (all expected ABSTAIN), with ZERO in_scope matches (no legitimate worry/rumination case is vetoed). A false-positive veto that drops a real worry case is a defined failure."
+    "precision": "Verified against tests/fixtures/routing_eval bulk corpus: matches all 9 iatrogenic cases plus 1 further id_oos OCD disclosure (all expected ABSTAIN), with ZERO in_scope matches (no legitimate worry/rumination case is vetoed). A false-positive veto that drops a real worry case is a defined failure.",
+    "arabic": "PENDING (#330): native Arabic compulsion patterns are dual-clinician-gated and land in a SEPARATE tick-gated PR. This code branch ships the pass-raw plumbing (safety_text) only — it does NOT close the AR bypass until the AR patterns tick (an EN-only list reading raw Arabic matches nothing).",
+    "clinical_signoff": "EN: as before. AR interim: dual-clinician tick pending, separate PR (#330)."
   },
   "patterns": [
     "so i check",

@@ -32,11 +32,13 @@ COMPULSION_PATTERNS: tuple[str, ...] = tuple(_data["patterns"])
 _NORMALIZED: tuple[str, ...] = tuple(p.lower() for p in COMPULSION_PATTERNS)
 
 
-def is_ocd_compulsion(text: str) -> bool:
-    """True when `text` contains an OCD-compulsion pattern (case-insensitive substring).
+def is_ocd_compulsion(*texts: str) -> bool:
+    """True when ANY provided text contains an OCD-compulsion pattern (case-insensitive substring).
 
-    Deterministic, no model call, no LLM. Matched against message_en (the translated English for
-    Arabic sessions). Empty/None -> False.
+    Deterministic, no model call, no LLM. LANGUAGE CONTRACT: safety detection reads the RAW input,
+    not only the translated message_en — callers pass (message_en, raw_message) so an Arabic
+    compulsion matches the native AR patterns directly instead of riding a lossy translation (the
+    #330 live bypass root cause). Empty/None args are ignored; no args -> False.
     """
-    normalized = (text or "").lower()
-    return any(phrase in normalized for phrase in _NORMALIZED)
+    hay = " \n ".join(t for t in texts if t).lower()
+    return any(phrase in hay for phrase in _NORMALIZED)
