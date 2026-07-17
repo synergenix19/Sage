@@ -79,6 +79,13 @@ jobs:
         if: steps.detect.outputs.code == 'true'
         run: python scripts/check_state_channels.py
 
+      - name: Static — safety detectors read RAW input (language contract)
+        # Fails the build if a safety detector call passes translated message_en without raw. Root
+        # class of #329/#330 (AR safety bypasses via the translation path). ADR 2026-07-16. Allowlist
+        # entries carry tickets (EXEMPT pattern) so transitional debt stays visible, not silent.
+        if: steps.detect.outputs.code == 'true'
+        run: python scripts/check_safety_reads_raw.py
+
       - name: Run curated deterministic safety-surface suites
         if: steps.detect.outputs.code == 'true'
         env:
@@ -125,6 +132,16 @@ jobs:
             tests/test_crisis_availability_consistency.py
             tests/test_crisis_config_cross_stack.py
             tests/test_sg2_caveat_firing.py
+            tests/test_ocd_compulsion_raw_path.py
+            tests/test_safety_reads_raw.py
+            tests/test_safety_copy_urgency.py
+            tests/test_rules_safety_hr.py
+            tests/test_hr_distress_parse.py
+            tests/test_hr_copy_variants.py
+            tests/test_hr_terminal.py
+            tests/test_hr_crisis_precedence.py
+            tests/test_hr_routing.py
+            tests/test_hr_audit.py
           "
           # test_crisis_availability_consistency.py (H4): fail-closed guard that no crisis-copy
           # string asserts 24/7 / "24 hours" / "متاح كل وقت" adjacent to the 8am-8pm National line.
