@@ -120,3 +120,22 @@ probabilistic prod nudge to shave 1/4 toward 0/4 trades a deploy for a marginal 
 the Node-8 deterministic rule eliminates. One interim was worth it to pull a ruled-over-the-line
 string off the floor; a second is not. The fix batches into Stage-2 (deterministic), seeded by your
 answer to (b). Tracked in `2026-07-17-hr-content-neutrality-deterministic-node8.md`.
+
+### Eng recommendation on the two-part ask (approve / edit / reject)
+
+**(a) Does "feeling like [feared content]" clear §5?**
+Recommendation: **RULE IT OVER THE LINE** (consistent with your paranoia#1 ruling). Measured against
+§5's own example the same way: the clause still states the feared content as real in the second person;
+the "feeling like" prefix modifies the framing but does not mark it as the user's *account* the way
+"what you're describing" does. Same side of the line, a step milder — not a different category.
+→ ☐ approve (over the line)  ☐ edit  ☐ reject (it clears §5, "feeling like" is sufficient marking)
+
+**(b) The preferred neutral frame (Stage-2 deterministic copy-pool seed).**
+Recommendation: **standardise the pool's opening on "What you're describing…" / "The experience
+you're describing…"** (the frame that won 3/4, unambiguously account-side), with the hard invariant:
+**the supportive message never takes the user's feared content as its subject and never restates it as
+occurring.** That invariant is what the Node-8 check enforces deterministically.
+→ ☐ approve (adopt as the seed)  ☐ edit (your preferred wording: __________)  ☐ reject
+
+*Scope note: this is the ONLY open clinician decision on HR-1 Stage 1. #1 and #3 are already ruled
+(EDIT / ENDORSED above); everything else is eng/Stage-2 build work, not a Vee approval.*
