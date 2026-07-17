@@ -1,5 +1,17 @@
 # To Vee — two lines, the only human dependency left on the D1 flip path
 
+## ✅ BOTH CONFIRMED (Vee, 2026-07-17, relayed via user)
+- **Line 1 CONFIRMED:** the exact comma-swap bytes are approved as the served question. This CLOSES the
+  "pending comma-swap confirm" open line item on the sign-off record (2026-07-17-d1-vee-signoff-V.md) and the
+  dark-deploy record's control-#6 note. The manifest-pinned `d1_screen_question_en` bytes are now fully
+  clinician-confirmed — no open item remains on them.
+- **Line 2 CONFIRMED:** the RULING 3 gate-split is approved as stated (shadow reads fire-volume +
+  disclosure-population; post-flip monitored-enforce reads answer-class distribution), thresholds unchanged.
+- **Consequence:** the FLIP now has ZERO remaining human dependencies. It proceeds on shadow's self-reading
+  fire-volume criteria (N=40 or 14-day cap, 2026-07-17-d1-shadow-window-criteria.md) once serve/resume lands
+  and its GATE 0 addendum is on the record.
+
+
 **Out today (not "before flip" abstractly): the shadow window is accruing, serve/resume is days not weeks,
 and these two confirms are the last human gate on the flip.** Neither blocks the shadow window (running now,
 serves nothing, reads no answer rows). Both block the FLIP.

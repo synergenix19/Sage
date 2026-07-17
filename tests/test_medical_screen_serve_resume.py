@@ -83,6 +83,18 @@ def test_safety_check_consumes_pending_into_answering_signal():
     assert ms.consume_pending_screen({"screen_pending": False}) == {}   # no-op when nothing pending
 
 
+# ── constraint 3: the ENFORCE audit row is #160 alert-or-fail (rides migration 015 in the same PR) ──
+def test_enforce_audit_row_failure_is_loud():
+    # an induced write failure on the enforce audit row (screen_asked/answer_class/branch_taken) must RAISE
+    # ScreenAuditError, never be swallowed — a contraindication decision with no record is the PDPL exposure.
+    def _boom(_row):
+        raise RuntimeError("db down")
+    row = {"screen_asked": True, "screen_answer_class": "contraindication_disclosed",
+           "screen_branch_taken": "grounding"}
+    with pytest.raises(ms.ScreenAuditError):
+        ms.write_screen_audit(row, _boom)
+
+
 # ── constraint 2: the terminal emit serves the SIGNED bytes, hash-matched to the manifest ──
 def test_served_bytes_hash_match_manifest():
     served = ms.screen_question("en")
