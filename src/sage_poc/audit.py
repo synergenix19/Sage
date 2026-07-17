@@ -167,6 +167,14 @@ def _build_session_audit_row(state: SageState) -> dict:
     if state.get("medical_flags"):
         row["gate_path"] = state.get("gate_path")
         row["medical_flags"] = state.get("medical_flags")
+    # HR-1 Stage 2 high_risk_response audit (flag-gated, same discipline as tiering/
+    # precedence/medical above): included ONLY when a distress branch actually resolved
+    # this turn (hr_branch set by _deliver_branch), so a flag-OFF / non-HR / mid-protocol
+    # (T1 entry, or the T2 reask before a branch resolves) row stays byte-identical to
+    # master. Migration 013 is the flag-flip deploy gate for SAGE_HIGH_RISK_TERMINAL.
+    if state.get("hr_branch"):
+        row["hr_branch"] = state.get("hr_branch")
+        row["hr_distress_score"] = state.get("hr_distress_score")
     return row
 
 
