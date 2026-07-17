@@ -215,28 +215,51 @@ async def test_full_graph_red_drive_reaches_psychotic_referral_flag_on(drive, mo
     assert result.get("psychotic_referral_delivered") is True, drive
 
 
-@pytest.mark.parametrize("drive", _HR_RED_DRIVES)
+# RATIFIED 2026-07-17: CF-007/008/009 are now active=true on disk. That splits the flag's
+# gating: psychosis-variant phrases fire `psychotic_disclosure`, which ALWAYS routes to the
+# referral (flag-independent, the live psychosis path); mania/dissociation fire their flags
+# but only route when SAGE_HIGH_RISK_DETECTION is ON. So with the flag OFF post-ratification:
+_HR_PSYCHOSIS_DRIVES = [
+    "People are following me and watching me",
+    "I think people are reading my thoughts",
+]
+_HR_MANIA_DISSOC_DRIVES = [
+    "I haven't slept for days but I feel amazing and unstoppable",
+    "I feel completely detached from reality, nothing feels real",
+]
+
+
+@pytest.mark.parametrize("drive", _HR_PSYCHOSIS_DRIVES)
 @pytest.mark.asyncio
-async def test_full_graph_red_drive_gets_current_offer_flag_off(drive, monkeypatch):
-    """Flag OFF -- and CF-007/008/009 NOT force-activated, i.e. today's actual shipped
-    rule set (active=false) -- reproduces the real pre-HR-1 baseline exactly: none of
-    the four drives reach the referral. This is what "proves the gate": Task 1-3's
-    detection+routing is what closes the gap, not some other side effect of this test
-    file. Each drive still gets whatever the existing graph does for it today (an
-    offer, general_chat freeflow, etc.) -- this test only pins that it is NOT the
-    referral, not what the alternative is.
-    """
+async def test_flag_off_psychosis_variants_route_to_referral(drive, monkeypatch):
+    """Post-ratification: psychosis-variant phrases (CF-009, active) route to the referral
+    even with the flag OFF -- psychotic_disclosure is the live psychosis path, not flag-gated.
+    This is the paranoia fix landing (a 'people are following me' user now gets the referral,
+    not a mood_check_in offer)."""
     monkeypatch.setattr(config, "HIGH_RISK_DETECTION_ENABLED", False)
     _stub_intent_and_responder_llms(monkeypatch)
-
     from sage_poc.graph import build_graph
-    app = build_graph()
-    result = await app.ainvoke(
+    result = await build_graph().ainvoke(
         {"raw_message": drive, "path": []},
-        config={"configurable": {"thread_id": f"hr4-red-off-{hash(drive)}"}},
+        config={"configurable": {"thread_id": f"hr4-psy-off-{hash(drive)}"}},
     )
+    assert (result.get("skill_match_method") == "psychotic_disclosure_auto_select"
+            or result.get("completed_skill_id") == "psychotic_referral"), drive
 
-    assert result.get("skill_match_method") != "psychotic_disclosure_auto_select", drive
+
+@pytest.mark.parametrize("drive", _HR_MANIA_DISSOC_DRIVES)
+@pytest.mark.asyncio
+async def test_flag_off_mania_dissociation_stay_gated(drive, monkeypatch):
+    """Post-ratification but flag OFF: mania/dissociation fire their flags but do NOT route
+    to the referral -- SAGE_HIGH_RISK_DETECTION gates their routing. They stay at today's
+    behavior until the flag flips."""
+    monkeypatch.setattr(config, "HIGH_RISK_DETECTION_ENABLED", False)
+    _stub_intent_and_responder_llms(monkeypatch)
+    from sage_poc.graph import build_graph
+    result = await build_graph().ainvoke(
+        {"raw_message": drive, "path": []},
+        config={"configurable": {"thread_id": f"hr4-md-off-{hash(drive)}"}},
+    )
     assert result.get("completed_skill_id") != "psychotic_referral", drive
     assert not result.get("psychotic_referral_delivered"), drive
 
