@@ -6,6 +6,11 @@
 
 **Normative source:** `scratchpad/bot_behaviour_full.md` (the full docx re-extraction — the prior plaintext was table-stripped; see `governance/2026-07-17-bot-behaviour-source-integrity.md`). Design: `specs/2026-07-17-p0b-delivery-format-design.md`.
 
+## Cold-start handoff notes (read first if you're picking this up fresh)
+- **Task 1 is DONE and intentionally RED** (`tests/test_delivery_format.py`). Do not treat it as a failure to fix by any means available — it turns green only when the executor honors `delivery_format` for `video` (Task 4).
+- **Where the behavior actually changes:** the founding test's discriminator is `step_instruction`, which the executor sets **before any LLM render**. So the seam is the **schema field + executor consult** (Tasks 2–4), NOT the render/LLM layer. The `llm_call_failed`/fallback log in the red run is **incidental** (no API key in that run) — do NOT chase it as if it were the seam; it does not affect the discriminator.
+- **Config/persistence guardrail is untouched by P0b** and must stay so: nothing here reads or writes the therapeutic-profile persistence path, and no P0b flag belongs near it. `SAGE_DELIVERY_FORMAT` is the only flag this branch adds.
+
 ## Global Constraints
 - **Enum (6 shipped, proposed-pending-ratification):** `video`, `visual_then_guided`, `guided_conversation`, `instructional`, `single_message`, `info_resource`. `visual` deferred (no library skill); `staged_iterative` pending the sharpened clinician call (expected collapse). NOT ratified — ships DRAFT like the CF rules.
 - **Axis enforcement, both halves, structural:** `delivery_format` is executor-only; NO routing/skill_select/intent_route module may import it (a test asserts this). The override may read presentation→format; nothing may read format→routing.
