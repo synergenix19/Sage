@@ -25,9 +25,9 @@ The consult's question is a **disposition** question — does the doc prescribe 
 
 **`{sleep_hygiene}` / `instructional_set.py` is kept** — it is the *correct* delivery-format derivation (P0b will consume it), just not the consult's scope.
 
-## Where the code changes (two sites, one logical fix)
-- **`skill_select.py` info_request branch (586-595):** before returning the KB-bound result, run the existing keyword/semantic matching; if the top match is in `INSTRUCTIONAL_SKILLS`, select it (set `active_skill_id` + a `skill_match_method` like `"info_request_instructional_match"`). If no instructional match, return the KB-bound result unchanged (today's behavior).
-- **`graph.py` `_route_after_skill_select` (345-346):** the `if primary_intent == "info_request": return "knowledge_retrieve"` currently precedes the `active_skill_id → skill_executor` check, so a selected skill would still be sent to KB. Reorder/condition so that an info_request for which an instructional skill was selected routes to `skill_executor`; an info_request with NO skill selected routes to `knowledge_retrieve` (unchanged). Key on the new `skill_match_method` (or a dedicated signal), not on `active_skill_id` alone (a pre-existing active skill must not change this).
+## Where the code changes (two sites, one logical fix) — as SHIPPED (supersedes the "instructional" naming above)
+- **`skill_select.py` info_request branch:** gated on `config.INFO_REQUEST_CONSULT_ENABLED`; when ON, before returning the KB-bound result, run the existing keyword/semantic matching; if the top match is in `INFO_REQUEST_SKILL_CONSULT_SET`, select it (set `active_skill_id` + `skill_match_method = "info_request_skill_consult"`). No match (or flag OFF) → the KB-bound result unchanged (today's behavior).
+- **`graph.py` `_route_after_skill_select`:** condition the `if primary_intent == "info_request": return "knowledge_retrieve"` so an info_request for which a consult skill was selected (`skill_match_method == "info_request_skill_consult"`) routes to `skill_executor`; otherwise `knowledge_retrieve` (unchanged). Keyed on `skill_match_method`, not `active_skill_id` alone.
 
 ## Scope boundaries (from the characterization)
 - **Mechanism A ONLY.** Not Mechanism B (7/30 `general_chat` → freeflow; folds later into the skill_suppression ruling's `_route_after_intent` territory). Not the §4a/§7c semantic-description gap.
