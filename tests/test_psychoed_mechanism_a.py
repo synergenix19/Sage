@@ -213,18 +213,27 @@ def _stub_info_request_intent_and_responder(monkeypatch):
     )
 
 
-# Honest recovery record (per-category, not fudged):
-#   §1f (psychoed_anxiety, keyword+semantic) and §6d (assertive_communication /
-#   psychoed_anxiety family) recover cleanly -- every drive's top match lands inside
-#   INFO_REQUEST_SKILL_CONSULT_SET.
-#   §3c (psychoed_depression) and S2c (grief_loss / psychoed_depression) recover
-#   PARTIALLY -- some paraphrases' top semantic match is a nearby but out-of-family skill
-#   (or below the routing threshold), which is a matching-content question for the
-#   clinician packet (design doc's §4a/§7c precedent), not a routing defect this fix owns.
-#   This test asserts the observed split per category rather than forcing every drive
-#   green, per the task's instruction not to fudge a category that isn't clean.
+# Honest recovery record (per-category, MEASURED against the real graph + real BGE-M3
+# embeddings -- not the design doc's a priori estimate, which guessed §3c/S2c would BOTH
+# be partial. Actual: 19/20.
+#   §1f (psychoed_anxiety), §6d (assertive_communication/psychoed_anxiety family), and
+#   S2c (grief_loss/psychoed_depression family) recover FULLY (5/5 each) -- every drive's
+#   top match lands inside INFO_REQUEST_SKILL_CONSULT_SET.
+#   §3c (psychoed_depression) recovers PARTIALLY (4/5). The one miss --
+#   "Why can't I just snap out of feeling low" -- top-matches behavioral_activation
+#   (semantic score 0.549), a real, clinically-adjacent skill that is simply outside the
+#   consult set, not a routing failure: the consult mechanism ran, found a match, and
+#   correctly declined to select it because it isn't in INFO_REQUEST_SKILL_CONSULT_SET.
+#   This is a matching-CONTENT question for the clinician packet (the design doc's
+#   §4a/§7c precedent: "a clinical content question routed to the packet, do not rewrite
+#   semantic_description to satisfy the router"), not a defect this routing fix owns.
+#   This test pins the MEASURED split per category rather than forcing every drive green
+#   or reproducing the doc's un-verified guess, per the task's instruction not to fudge a
+#   category that isn't clean.
 
-_EXPECTED_FULL_RECOVERY = {"§1f", "§6d"}
+_EXPECTED_FULL_RECOVERY = {"§1f", "§6d", "S2c"}
+# The one known, investigated, non-fudged miss in the partial category (§3c).
+_KNOWN_CONTENT_GAP_DRIVE = "Why can't I just snap out of feeling low"
 
 
 @pytest.mark.slow
@@ -259,12 +268,17 @@ async def test_full_graph_red_drives_reach_consult_skill_or_report_gap(monkeypat
                 f"{[(d, ok) for d, ok in outcomes if not ok]}"
             )
         else:
-            # §3c / S2c: partial recovery expected (content/matching gap, not a routing
-            # defect). Assert at least one drive recovers -- the routing mechanism itself
-            # must be proven live for this category -- without claiming a clean sweep.
-            assert recovered >= 1, (
-                f"{spec_id} expected PARTIAL recovery (>=1/{total}), got {recovered}/{total} -- "
-                f"the consult mechanism itself may not be reaching this category at all"
+            # §3c: partial recovery, pinned to the MEASURED 4/5 (not a loose ">=1" floor)
+            # so a further regression is caught, and the one known miss is the investigated
+            # content gap, not a different/new failure.
+            assert recovered == total - 1, (
+                f"{spec_id} expected PARTIAL recovery (4/5, the investigated content gap), "
+                f"got {recovered}/{total}: {[(d, ok) for d, ok in outcomes if not ok]}"
+            )
+            missed = [d for d, ok in outcomes if not ok]
+            assert missed == [_KNOWN_CONTENT_GAP_DRIVE], (
+                f"{spec_id}'s miss changed from the investigated content gap -- "
+                f"now missing {missed}, investigate before accepting"
             )
 
     total_recovered = sum(1 for outcomes in per_category.values() for _, ok in outcomes if ok)
