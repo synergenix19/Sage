@@ -128,6 +128,13 @@ class SageState(TypedDict):
     banned_opener_violation: bool          # True if banned opener persisted after retry AND passed through to user (no fallback)
     banned_opener_fallback_used: bool      # True when _VETTED_FALLBACK_RESPONSE substituted after exhausted retry
 
+    # D1 medical screen (#338) — declared channels (LangGraph drops undeclared keys; declare-before-write,
+    # the state-channel lesson). ACCEPTANCE: a contraindication decision must be traceable to its rule +
+    # answer for the PDPL right-to-object story. Written by the screen wiring; empty for non-screen turns.
+    screen_asked: bool                     # the D1 discriminating question was asked this turn
+    screen_answer_class: Optional[str]     # clear_no | red_flag | yes | unclear | no_answer
+    screen_branch_taken: Optional[str]     # proceed | medical_guard | grounding (the deterministic route)
+
 
 def safety_text(state: SageState) -> str:
     """The text every safety-critical detector MUST read: the RAW user input in its original

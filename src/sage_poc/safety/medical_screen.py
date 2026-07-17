@@ -1,0 +1,105 @@
+"""D1 — medical screening question (#338), deterministic core.
+
+Spec L58/L101 discriminating quality-check for the AMBIGUOUS middle: a physical-symptom mention WITHOUT
+an already-firing red-flag keyword. Architecture (V-signed 2026-07-17): conversational question (rendered
+in flow, LLM), DETERMINISTIC consequence (this module). Language-contract: the trigger reads RAW input.
+
+FAIL-SAFE INVARIANT: the screen routes AWAY, never CLEARS. Only `clear_no` proceeds; only a red-flag-quality
+answer escalates; EVERY other class (and any unrecognised class) defaults to the contraindication-free skill
+(grounding). See docs/superpowers/governance/2026-07-17-d1-screening-question-build-spec.md.
+"""
+from __future__ import annotations
+
+from sage_poc.safety.medical_redflag import detect_medical_redflag
+
+
+# ── trigger (layered, recall-biased): physical symptom mentioned WITHOUT a red-flag keyword ──
+# Recall-biased keyword net for the core; a BGE-M3 physical-symptom anchor tier is the integration
+# addition (cast wider still — a false trigger only asks one gentle question). Reads RAW input.
+_PHYS_TERMS = (
+    "chest", "breath", "breathe", "breathing", "heart", "dizzy", "dizz", "faint", "numb", "tingl",
+    "pain", "pressure", "tight", "palpitation", "pound", "racing", "weak", "in my body", "my body",
+    "صدر", "تنفّس", "تنفس", "قلب", "دوخ", "خدر", "تنميل", "ألم", "ضغط", "نبض", "جسمي",
+)
+
+
+def is_physical_symptom_ambiguous(*texts: str) -> bool:
+    """True when a physical symptom is mentioned but NO red-flag keyword already fired. That is the
+    ambiguous middle the screen exists for; an explicit red-flag goes straight to the medical guard."""
+    hay = " ".join(t for t in texts if t).lower()
+    if not hay.strip():
+        return False
+    if detect_medical_redflag(hay):
+        return False  # explicit red-flag → guard, not the screen
+    return any(term in hay for term in _PHYS_TERMS)
+
+
+# ── deterministic answer classifier ──
+_RED_FLAG_ANSWER_MARKERS = (
+    "spreading to my arm", "spreading to my jaw", "spreading to my back", "to my arm", "to my jaw",
+    "one side", "one-sided", "numbness", "real trouble breathing", "can't breathe at all",
+    "sharp", "crushing", "stabbing", "searing", "passed out",
+)
+_CLEAR_NO_MARKERS = (
+    "same as always", "nothing different", "not different", "feels the same", "just my usual",
+    "just anxiety", "like usual", "the usual",
+)
+_UNCLEAR_MARKERS = ("both", "not sure", "don't know", "dont know", "idk", "hard to say", "no idea")
+_YES_MARKERS = ("yes", "yeah", "yep", "kind of", "kinda", "a bit different", "little different",
+                "seems different", "feels different", "bit off", "maybe")
+
+
+def classify_screen_answer(text: str) -> str:
+    """Map a user's answer to the screen into exactly one class:
+    clear_no | red_flag | yes | unclear | no_answer. Order matters: red-flag quality wins over any
+    surface 'no'/'yeah'; a plain negation-of-difference is clear_no; hedge/both/unknown is unclear."""
+    t = (text or "").strip().lower()
+    if not t:
+        return "no_answer"
+    if detect_medical_redflag(t) or any(m in t for m in _RED_FLAG_ANSWER_MARKERS):
+        return "red_flag"
+    if any(m in t for m in _CLEAR_NO_MARKERS) or t in ("no", "nope", "nah") or t.startswith(("no,", "no ", "nope")):
+        return "clear_no"
+    if any(m in t for m in _UNCLEAR_MARKERS):
+        return "unclear"
+    if any(m in t for m in _YES_MARKERS):
+        return "yes"
+    return "no_answer"  # topic-change / non-answer
+
+
+# ── branch table + FAIL-SAFE default ──
+_ROUTES = {"clear_no": "proceed", "red_flag": "medical_guard"}
+
+
+def route_screen_answer(answer_class: str) -> str:
+    """clear_no → proceed with the offered skill; red_flag → medical guard (998); EVERYTHING ELSE →
+    grounding. The `.get(..., 'grounding')` default IS the fail-safe: an unmapped/unknown class can
+    never reach 'proceed'. The screen routes away, never clears."""
+    return _ROUTES.get(answer_class, "grounding")
+
+
+# ── placeholder guard: the QUESTION text is unservable until Vee's signed bytes land ──
+class UnsignedScreenError(RuntimeError):
+    """Raised when the screen question is requested before its wording is clinician-signed. The mechanism
+    is inert (routes to grounding fail-safe by default) until this lifts — a half-built screen must never
+    serve an unsigned question."""
+
+
+# Populated ONLY from signed_clinical_fields.json on Vee's tick (per-language). Empty = unsigned = unservable.
+# Per-language fail-safe: until an entry exists for a language, that language gets grounding-only for
+# acute-overwhelm (no screen in a language whose answers/question aren't signed).
+_SIGNED_QUESTIONS: dict[str, str] = {}
+
+
+def is_screen_ready(lang: str) -> bool:
+    """True iff the screen question for `lang` is signed and servable."""
+    return lang in _SIGNED_QUESTIONS
+
+
+def screen_question(lang: str) -> str:
+    if lang not in _SIGNED_QUESTIONS:
+        raise UnsignedScreenError(
+            f"D1 screen question for lang={lang!r} is unsigned — unservable until Vee ticks the signed "
+            f"bytes (#338, signed_clinical_fields.json). AR holds grounding-only until its own tick."
+        )
+    return _SIGNED_QUESTIONS[lang]
