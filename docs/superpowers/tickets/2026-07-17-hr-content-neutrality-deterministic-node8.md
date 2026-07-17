@@ -53,8 +53,22 @@ as its subject and never restates it as occurring.** Both the "feeling like [con
 "experiencing [content] happening to you" frames are ruled §5 misses (paranoia#1 + the 1/4 residual) —
 the Node-8 check must reject BOTH. This is no longer blocked on a clinician answer; it is the spec.
 
-**Separability note (worth weighing when Stage-2 is scheduled):** the Node-8 content-neutrality CHECK
-is a guard on the EXISTING psychotic_referral output — it does NOT depend on the two-turn distress
-terminal (the A7-blocked part). So the deterministic §5 fix could potentially land AHEAD of the full
-paired Stage-2 unit, shortening the window the ~1/4 ruled drift stays live. Decide at scheduling
-whether to pull the neutrality guard forward or keep it in the batch; do not assume it must wait on A7.
+**✅ DECISION (2026-07-17): DECOUPLED FROM A7, PROMOTED to the next deterministic piece.** The Node-8
+content-neutrality CHECK is a guard on the EXISTING psychotic_referral output — it does NOT depend on
+the two-turn distress terminal (the A7-blocked part). The premise that justified batching ("the
+deterministic fix can't land until Stage-2") is therefore false, and what is on the other side is the
+permanent fix for a clinician-RULED, live §5 miss (~1/4 of paranoia terminals). So the acceptance
+window shrinks to match: build this as its own unit, ahead of the A7-blocked distress machinery.
+
+**Sequence (do NOT reorder):** (1) loader-gate audit [DONE 2026-07-17, see
+`2026-07-17-loader-gate-audit-findings.md`] → (2) build this Node-8 guard against Vee's ratified seed
+with REJECT/ACCEPT fixtures → (3) confirm those fixtures actually FIRE under the gate (the Node-8 PR is
+likely the first app-code PR to exercise the #350 gate fix — fold in that tripwire check) → (4) live =
+residual zeroed by construction. Rest of Stage-2 stays A7-gated.
+
+**Test spec (the upgrade over the interim — verified as ELIMINATION, not sampled reduction):** write
+these fixtures BEFORE wiring. REJECT: paranoia#1's "experiencing [content]" frame AND the 1/4 "feeling
+like [content]" frame (both ruled §5 misses). ACCEPT: the clean "what you're describing" frame. The
+gate rejecting both ruled frames + passing the clean one IS the regression proof the accepted residual
+is zeroed. Anchor on the behavior (does the guard reject/accept), never on a copy string
+(see the medical-guard stale-prose-assertion finding in the audit — the failure mode of prose asserts).
