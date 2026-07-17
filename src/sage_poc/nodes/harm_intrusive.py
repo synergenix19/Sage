@@ -41,11 +41,14 @@ HARM_INTRUSIVE_PATTERNS: tuple[str, ...] = tuple(_data["patterns"])
 _NORMALIZED: tuple[str, ...] = tuple(p.lower() for p in HARM_INTRUSIVE_PATTERNS)
 
 
-def is_harm_intrusive(message_en: str) -> bool:
-    """True when `message_en` contains a harm-intrusive pattern (case-insensitive substring).
+def is_harm_intrusive(*texts: str) -> bool:
+    """True when ANY provided text contains a harm-intrusive pattern (case-insensitive substring).
 
-    Deterministic, no model call, no LLM. Matched against message_en (the translated English for
-    Arabic sessions). Empty/None -> False.
+    Deterministic, no model call, no LLM. LANGUAGE CONTRACT: safety detection reads the RAW input,
+    not only the translated message_en — callers pass (message_en, raw_message). Today the Arabic
+    patterns are absent (translation currently catches the AR ego-dystonic disclosure), so this
+    change makes the raw path AVAILABLE for the clinician-authored AR patterns (#330, harm_intrusive
+    standard cadence) without waiting on a second code change. Empty/None ignored; no args -> False.
     """
-    normalized = (message_en or "").lower()
-    return any(phrase in normalized for phrase in _NORMALIZED)
+    hay = " \n ".join(t for t in texts if t).lower()
+    return any(phrase in hay for phrase in _NORMALIZED)

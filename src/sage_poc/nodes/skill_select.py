@@ -790,6 +790,10 @@ async def skill_select_node(state: SageState) -> dict:
     # (the prod hotfix surface) and V2 behave identically. Subordinate to the crisis + psychotic
     # auto-selects above (active intent is CRISIS, intercepted at Node 1). Carries no user-facing text.
     from sage_poc.nodes.harm_intrusive import is_harm_intrusive  # noqa: PLC0415
+    # LANGUAGE-CONTRACT DEBT (#330): still reads translated message_en, not raw. Left unchanged on
+    # this branch — translation currently catches the AR ego-dystonic disclosure, and switching to
+    # raw before AR patterns exist would REGRESS that coverage. Conformed to safety_text() when the
+    # harm_intrusive AR-pattern ticket lands. Allowlisted in check_safety_reads_raw.py with #330.
     if is_harm_intrusive(state.get("message_en")):
         return {
             **stale_offer_clear,
@@ -810,7 +814,10 @@ async def skill_select_node(state: SageState) -> dict:
     # SKILL_ROUTING_V2, so V1 (the prod hotfix surface) and V2 behave identically. Subordinate to the
     # crisis + psychotic auto-selects above (a crisis still escalates). Carries no user-facing text.
     from sage_poc.nodes.ocd_compulsion import is_ocd_compulsion  # noqa: PLC0415
-    if is_ocd_compulsion(state.get("message_en")):
+    from sage_poc.state import safety_text  # noqa: PLC0415
+    # Language contract (#330): read RAW input via safety_text(), not translated message_en — the
+    # AR compulsion bypass was a translated-path detection drift. First consumer of the accessor.
+    if is_ocd_compulsion(safety_text(state)):
         return {
             **stale_offer_clear,
             "active_skill_id": None,

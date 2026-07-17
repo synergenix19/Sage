@@ -199,7 +199,9 @@ Library: `langdetect`. Two overrides applied before the library result is truste
 
 Both directions use `get_translator()` (gpt-4o-mini by default, overridable via `SAGE_TRANSLATOR_MODEL`).
 
-**Arabic → English (input translation):** Called in `safety_check_node` when `lang == "ar"`. Prompt: *"Translate the following text to English. Return ONLY the translation, nothing else."* The translated English is stored as `message_en` and used for all downstream processing (safety rules, intent routing, skill matching).
+**Arabic → English (input translation):** Called in `safety_check_node` when `lang == "ar"`. Prompt: *"Translate the following text to English. Return ONLY the translation, nothing else."* The translated English is stored as `message_en` and used for downstream **therapeutic processing** (intent routing, skill matching, LLM rendering).
+
+> **LANGUAGE CONTRACT (invariant, ADR 2026-07-16-safety-detection-reads-raw):** safety-critical detection — crisis lexicon, clinical flags, iatrogenic vetoes, red-flag guards, contraindication triggers — reads the **raw** input in its original language via `state.safety_text(state)`, **never** `message_en`. Translation is for therapeutic processing only; it is never a safety-detection input. Routing safety through the translator makes recall hostage to translation quality on distress-register Khaleeji (the #329 medical-red-flag and #330 OCD-compulsion live bypasses). Enforced by `scripts/check_safety_reads_raw.py` (required CI).
 
 **English → Arabic (output translation):** Called in `output_gate_node` when `detected_language == "ar"`. Prompt: *"You are translating warm, supportive messages from a wellness companion named Sage. Translate to informal Gulf Arabic (Khaleeji dialect). Preserve emotional warmth and conversational tone. Avoid formal or clinical Arabic. Return only the translation."*
 
