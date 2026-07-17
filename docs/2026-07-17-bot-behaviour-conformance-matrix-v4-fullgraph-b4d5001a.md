@@ -91,6 +91,13 @@ Cheapest conformance gains; the failing variant is the target.
 
 ## Framework-to-master (co-equal deliverable, not cleanup)
 The full-graph runner lands on master with this doc so the next re-run is reproducible and the number
-is not branch-trapped. STILL OUTSTANDING: the isolation matrices v2/v3 + the register (#311/#312/#313
-row-tracking) live on `cdai/bot-behaviour-routing-conformance-spec`, unmerged — merging that branch is
-the remaining framework-to-master step so master carries the register, not just the runner + latest number.
+is not branch-trapped. **RESOLVED IN THIS PR:** the provenance chain is co-located on master —
+- v2 register (`2026-07-14-...-matrix-v2.md`, extracted from `origin/docs/bot-behaviour-conformance`) — STAMPED superseded-for-headline (10/34 isolation over-counts, do NOT quote); its register rows **#311/#312/#313/#322 now resolve on master**.
+- v3 + full-graph 7/36 (`2026-07-15-...`, extracted from `origin/cdai/bot-behaviour-routing-conformance-spec`) — STAMPED superseded-by-v4.
+- routing-conformance design spec (`2026-07-14-...-routing-conformance-design.md`).
+
+Note (branch-hygiene, not blocking): the source branches (`docs/bot-behaviour-conformance`,
+`cdai/bot-behaviour-routing-conformance-spec`) are now 100+ commits behind master and carry stale CODE;
+only their DOC artifacts were extracted — the branches themselves should NOT be merged (they predate
+HR-1/psychoed/medical and would revert them). The wave branches (`fix/bot-behaviour-wave1/wave2`) are
+already MERGED into master.
