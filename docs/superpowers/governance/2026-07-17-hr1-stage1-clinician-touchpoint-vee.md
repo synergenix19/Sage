@@ -139,3 +139,15 @@ occurring.** That invariant is what the Node-8 check enforces deterministically.
 
 *Scope note: this is the ONLY open clinician decision on HR-1 Stage 1. #1 and #3 are already ruled
 (EDIT / ENDORSED above); everything else is eng/Stage-2 build work, not a Vee approval.*
+
+### ✅ APPROVED (Vee, 2026-07-17) — both parts as recommended
+- **(a) APPROVED: over the §5 line.** "feeling like [feared content]" is the same drift as paranoia#1,
+  milder — a ruled §5 miss, not a cleared frame.
+- **(b) APPROVED: seed = "What you're describing…" / "The experience you're describing…"** with the
+  hard invariant: the supportive message never takes the feared content as its subject and never
+  restates it as occurring. This is the ratified Stage-2 deterministic copy-pool seed + Node-8 rule spec.
+
+**Consequence logged (not buried):** a RULED §5 drift now sits live at ~1/4 of paranoia terminals
+until the Stage-2 deterministic fix lands. This is a DELIBERATE, clinician-informed risk acceptance
+(no second probabilistic nudge — diminishing returns; only Node-8 zeroes it), NOT an unnoticed gap.
+Tracked as a known-accepted residual in the baseline + Node-8 ticket.
