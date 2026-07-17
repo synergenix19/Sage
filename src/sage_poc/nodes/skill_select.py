@@ -15,6 +15,7 @@ from sage_poc.skills.keyword_matcher import match_skill_keywords
 from sage_poc.resilience import EMBEDDING_TIMEOUT_SECONDS
 from sage_poc.observability import stage_timer
 from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP, SEMANTIC_EXCLUSION_WORDS
+from sage_poc.skills.info_request_consult_set import INFO_REQUEST_SKILL_CONSULT_SET
 from sage_poc.rules import engine as rules_engine
 from sage_poc.config import (
     SKILL_RUNNER_UP_MIN, SKILL_RUNNER_UP_MARGIN, SKILL_OFFER_COOLDOWN_TURNS,
@@ -578,6 +579,56 @@ def _resolve_entry(
     }
 
 
+async def _consult_top_match(state: SageState) -> str | None:
+    """Identify the single top-ranked skill for THIS message via the SAME Tier-1 keyword
+    + Tier-2 semantic matching the non-info_request path below uses (match_skill_keywords,
+    the C1 acute-overlap tiebreak, the reranker keyword-veto gated on SKILL_RERANK_ENABLED,
+    the semantic exclusion guard, _semantic_match_with_runner_up) -- called via the exact
+    same helpers, not reimplemented, so the two paths can never diverge on WHAT counts as a
+    match. Returns None on any no-match / ABSTAIN / exclusion outcome; the info_request
+    consult treats every such outcome as "no match" (fail-open input).
+
+    Deliberately does NOT include the IPV coaching-confrontation filter or the offer/
+    consent resolution (_resolve_entry) — the info_request branch runs BEFORE those
+    checks are computed in skill_select_node today, and the consult's contract (design
+    doc "Where the code changes") is SELECT the top match directly, not offer it.
+    """
+    message_en = state["message_en"].lower()
+    raw_message = (state.get("raw_message") or "").lower()
+    detected_language = state.get("detected_language") or "en"
+
+    kw_matches: dict[str, int] = match_skill_keywords(message_en, raw_message, detected_language)
+    if kw_matches:
+        ranked_kw = sorted(kw_matches.items(), key=lambda x: x[1], reverse=True)
+        candidates = [sid for sid, _ in ranked_kw]
+        # C1 acute-overlap tiebreak (mirrors the non-info_request Tier-1 block below).
+        if (
+            candidates and candidates[0] == "dbt_tipp"
+            and {"grounding_5_4_3_2_1", "dbt_tipp"} <= kw_matches.keys()
+        ):
+            candidates.remove("grounding_5_4_3_2_1")
+            candidates.insert(0, "grounding_5_4_3_2_1")
+        if _rerank_enabled() and _keyword_rerank_veto(candidates, state["message_en"], detected_language):
+            return None
+        return candidates[0]
+
+    if _SEMANTIC_EXCLUSION_RE.search(message_en):
+        return None
+
+    profile = state.get("therapeutic_profile") or {}
+    profile_context = profile.get("summary", "") or "" if isinstance(profile, dict) else ""
+    try:
+        semantic_skill, _score, _runner_up = await asyncio.wait_for(
+            asyncio.to_thread(
+                _semantic_match_with_runner_up, state["message_en"], profile_context, detected_language
+            ),
+            timeout=EMBEDDING_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError:
+        return None
+    return semantic_skill
+
+
 async def skill_select_node(state: SageState) -> dict:
     # Info requests go directly to knowledge_retrieve. If a skill is currently active,
     # don't clear active_skill_id — the executor exclusively owns that field's lifecycle.
@@ -592,6 +643,24 @@ async def skill_select_node(state: SageState) -> dict:
         if not state.get("active_skill_id"):
             result["active_skill_id"] = None
             result["active_step_id"] = None
+            # Psychoed Mechanism-A consult (2026-07-17 design doc): BEFORE force-routing to
+            # knowledge_retrieve, consult the SAME keyword+semantic matching the
+            # non-info_request path uses. A top match inside INFO_REQUEST_SKILL_CONSULT_SET
+            # (the doc-derived disposition set -- see info_request_consult_set.py's axis
+            # note) is SELECTED directly. This is a skill-matching CONSULT, not an intent
+            # reclassification: primary_intent stays "info_request"; _route_after_skill_select
+            # keys the skill_executor diversion on skill_match_method, not this intent. No
+            # match, or a match outside the set (an experiential skill, e.g. box_breathing)
+            # -> falls through to the KB-bound result below, UNCHANGED — fail-open by
+            # construction (design doc Property 1), only reachable from a clean (no
+            # pre-existing active skill) state so an incidental info_request mid-skill can
+            # never hijack the active skill.
+            top_match = await _consult_top_match(state)
+            if top_match is not None and top_match in INFO_REQUEST_SKILL_CONSULT_SET:
+                skill = _SKILLS[top_match]
+                result["active_skill_id"] = top_match
+                result["active_step_id"] = skill.steps[0].step_id
+                result["skill_match_method"] = "info_request_skill_consult"
         return result
 
     # Post-crisis auto-select bypasses keyword and semantic matching

@@ -342,7 +342,15 @@ def _route_after_skill_select(state: SageState) -> str:
         return "low_confidence"
     # info_request routes to knowledge_retrieve regardless of active skill — the
     # skill_select node preserves active_skill_id, so the skill survives this turn.
+    # Psychoed Mechanism-A (2026-07-17 design doc): EXCEPT when skill_select's
+    # info_request consult SELECTED a skill this turn (skill_match_method ==
+    # "info_request_skill_consult") — that turn routes to skill_executor instead. Keyed
+    # on skill_match_method, NOT active_skill_id alone: a pre-existing active_skill_id
+    # (preserved by skill_select for the "resume next turn" case) must not, by itself,
+    # change this turn's KB routing — only a consult SELECTED THIS turn does.
     if state.get("primary_intent") == "info_request":
+        if state.get("skill_match_method") == "info_request_skill_consult":
+            return "skill_executor"
         return "knowledge_retrieve"
     if state.get("active_skill_id"):
         return "skill_executor"
