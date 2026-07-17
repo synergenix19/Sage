@@ -113,6 +113,8 @@ jobs:
             tests/test_skill_select.py
             tests/test_skill_select_offer.py
             tests/test_skill_select_psychotic.py
+            tests/test_psychotic_referral_skill.py
+            tests/test_rules_safety_psychotic.py
             tests/test_v2_flag_off_byte_identical.py
             tests/test_v2_per_route_thresholds.py
             tests/test_v2_abstain.py
