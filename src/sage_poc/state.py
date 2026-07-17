@@ -144,7 +144,12 @@ class SageState(TypedDict):
     # PER-SESSION (persist across turns via the checkpointer — NOT reset per-turn, unlike the directives
     # above). A clear_no once → never re-screened this session; a not-cleared answer → never re-offered TIPP.
     session_screen_answer: Optional[str]   # the session's settled screen answer class; None = not yet screened
-    screen_pending: bool                   # a screen question was asked and this turn's message is its answer
+    screen_pending: bool                   # a screen question was asked; set on the emit turn, consumed next turn
+    screen_held_skill: Optional[str]       # PER-SESSION: the contraindicated skill held while the screen is
+                                           # pending; resumed on a clear_no answer, cleared on any release
+    answering_screen: bool                 # PER-TURN: set by consume_pending_screen at graph entry when a
+                                           # screen was pending; the structural guarantee the hold outlives
+                                           # exactly one turn (screen_pending cleared the same turn)
 
 
 def safety_text(state: SageState) -> str:

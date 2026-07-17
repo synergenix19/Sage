@@ -32,6 +32,7 @@ from sage_poc.rules import engine as rules_engine
 from sage_poc.nodes.post_crisis_classifier import evaluate_s7
 from sage_poc.safety.s3_semantic import check_s3, check_s3_bilingual, S3_THRESHOLD
 from sage_poc.safety.medical_redflag import detect_medical_redflag
+from sage_poc.safety.medical_screen import consume_pending_screen
 
 _log = logging.getLogger(__name__)
 
@@ -288,6 +289,11 @@ async def safety_check_node(state: SageState) -> dict:
     return {
         **tier_update,
         **precedence_update,
+        # #338 D1: consume a persisted screen_pending at graph entry → per-turn answering_screen + clear
+        # pending THIS turn. Runs unconditionally every turn (empty dict when nothing pending, so a
+        # non-screen turn is byte-identical). This is the structural guarantee that a held screen outlives
+        # exactly one turn regardless of how this turn routes (crisis short-circuit here, veto, or answer).
+        **consume_pending_screen(state),
         "detected_language": lang,
         "message_en": message_en,
         "is_safe": len(new_crisis_flags) == 0,

@@ -152,8 +152,21 @@ class ScreenAuditError(RuntimeError):
     Never swallow it."""
 
 
+def consume_pending_screen(state: dict) -> dict:
+    """GRAPH-ENTRY consumption (safety_check calls this first, every turn). A persisted `screen_pending`
+    becomes a per-turn `answering_screen` signal AND `screen_pending` is cleared the SAME turn. This is the
+    structural guarantee behind the property that the hold outlives EXACTLY one turn: whatever route turn N+1
+    takes (crisis short-circuit, veto early-return, or a normal answer), screen_pending is already False by
+    the time that route runs, so it can never persist into turn N+2. Returns a state-update dict (empty when
+    nothing is pending, so a non-screen turn is byte-identical)."""
+    if state.get("screen_pending"):
+        return {"answering_screen": True, "screen_pending": False}
+    return {}
+
+
 def decide_screen(routed_skill: str, state: dict) -> dict:
-    """Session-persistent injection decision. Returns {action, [session_screen_answer], [audit]}.
+    """Session-persistent injection decision. Returns {action, [session_screen_answer], [resume_skill],
+    [screen_held_skill], [audit]}.
 
     action ∈ ask_screen | proceed | reroute_grounding | to_medical_guard | abandon_crisis.
 
@@ -163,7 +176,9 @@ def decide_screen(routed_skill: str, state: dict) -> dict:
         proceed on every later contraindicated routing without re-asking; any not-cleared prior → grounding.
     """
     crisis = (not state.get("is_safe", True)) or bool(state.get("crisis_flags"))
-    pending = bool(state.get("screen_pending"))
+    # the answer turn is signalled by the graph-consumed `answering_screen`; `screen_pending` kept for
+    # back-compat with direct unit callers that pre-date the consumption step.
+    pending = bool(state.get("answering_screen") or state.get("screen_pending"))
     contraindicated = routed_skill in CONTRAINDICATED_SKILLS
 
     if crisis and (pending or contraindicated):
@@ -174,8 +189,11 @@ def decide_screen(routed_skill: str, state: dict) -> dict:
     if pending:
         cls = classify_screen_answer(state.get("raw_message", ""))
         route = route_screen_answer(cls)
-        return {"action": _ACTION_FOR_ROUTE[route], "session_screen_answer": cls,
-                "audit": {"screen_asked": False, "screen_answer_class": cls, "screen_branch_taken": route}}
+        d = {"action": _ACTION_FOR_ROUTE[route], "session_screen_answer": cls,
+             "audit": {"screen_asked": False, "screen_answer_class": cls, "screen_branch_taken": route}}
+        if route == "proceed":                            # clear_no → RESUME the skill held at ask time
+            d["resume_skill"] = state.get("screen_held_skill")
+        return d
 
     # non-contraindicated skill never screens
     if not contraindicated:
@@ -187,7 +205,7 @@ def decide_screen(routed_skill: str, state: dict) -> dict:
         return {"action": "proceed"}                 # cleared this session; no re-ask
     if prior is not None:
         return {"action": "reroute_grounding"}        # screened, not cleared → grounding (fail-safe); no re-ask
-    return {"action": "ask_screen",                    # never screened this session → ask
+    return {"action": "ask_screen", "screen_held_skill": routed_skill,   # HOLD the skill for resume
             "audit": {"screen_asked": True, "screen_answer_class": None, "screen_branch_taken": None}}
 
 
@@ -218,7 +236,7 @@ def apply_screen_at_route(state: dict, result: dict) -> dict:
     if not enforce and not shadow:
         return result  # ── identity: both-off path writes nothing ──
 
-    pending = bool(state.get("screen_pending"))
+    pending = bool(state.get("answering_screen") or state.get("screen_pending"))
     resolved = result.get("active_skill_id") or (result.get("offered_skill_ids") or [None])[0]
     if not pending and resolved not in CONTRAINDICATED_SKILLS:
         return result  # not a screen situation (covers every veto result: resolved is None)
@@ -247,20 +265,26 @@ def apply_screen_at_route(state: dict, result: dict) -> dict:
 
     if action == "ask_screen":
         try:
-            out["screen_question_text"] = screen_question(lang)   # signed → serve it
-            out.update({"active_skill_id": None, "offered_skill_ids": None, "screen_pending": True})
+            out["screen_question_text"] = screen_question(lang)   # signed → serve it (verbatim bytes)
+            out.update({"active_skill_id": None, "offered_skill_ids": None, "screen_pending": True,
+                        "screen_held_skill": d.get("screen_held_skill")})   # HOLD for resume
             return out
         except UnsignedScreenError:
             action = "reroute_grounding"  # unsigned → per-language fail-safe default
 
     if action == "proceed":
         out["screen_pending"] = False
+        rs = d.get("resume_skill")
+        if rs:                                            # clear_no answer → RESUME the held skill
+            out.update({"active_skill_id": rs, "active_step_id": None, "screen_held_skill": None})
         return out
     if action == "to_medical_guard":
         out.update({"active_skill_id": None, "offered_skill_ids": None, "screen_pending": False,
+                    "screen_held_skill": None,
                     "medical_flags": list(state.get("medical_flags") or []) + ["screen_red_flag"]})
         return out
-    # reroute_grounding / abandon_crisis → fail-safe (grounding, or nothing for crisis; crisis path owns it)
+    # reroute_grounding / abandon_crisis → fail-safe (grounding, or nothing for crisis; crisis path owns it).
+    # Hold released either way: screen_held_skill cleared so a released hold can't leak into a later turn.
     out.update({"active_skill_id": None if action == "abandon_crisis" else "grounding_5_4_3_2_1",
-                "offered_skill_ids": None, "screen_pending": False})
+                "offered_skill_ids": None, "screen_pending": False, "screen_held_skill": None})
     return out

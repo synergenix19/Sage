@@ -15,6 +15,7 @@ from sage_poc.nodes.skill_executor import skill_executor_node
 from sage_poc.nodes.freeflow_respond import freeflow_respond_node
 from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
 from sage_poc.nodes.medical_response import medical_response_node
+from sage_poc.nodes.screen_response import screen_response_node
 from sage_poc.nodes.high_risk_response import high_risk_response_node
 from sage_poc.config import CRISIS_LINE_UAE, CRISIS_CONFIG
 from sage_poc.nodes.output_gate import output_gate_node
@@ -332,6 +333,13 @@ def _route_after_skill_select(state: SageState) -> str:
     # skill_executor route would be dead — the reference OCD family uses the KB path below.
     if state.get("containment_directive"):
         return "knowledge_retrieve"
+    # #338 D1: a SERVED screen question is terminal for this turn. apply_screen_at_route (enforce path) set
+    # screen_question_text + active_skill_id=None on an ask_screen decision; the question IS this turn's
+    # output. Below containment (crisis > vetoes > containment > screen > routing), above skill routing.
+    # Flag-gated upstream: screen_question_text is only ever set when SAGE_D1_SCREEN (enforce) is on, so this
+    # branch is unreachable with the flag off and the graph is byte-identical to master.
+    if state.get("screen_question_text"):
+        return "screen_response"
     # V2 reranker ABSTAIN (below-τ semantic OR keyword-veto) → Node 3 low_confidence_respond, NOT
     # freeflow (Cardinal Rule 5). The clinician's −4.7pp recall acceptance rests on lost cases being
     # recoverable soft-abstains that land in Node 3's empathic clarification, and the signed
@@ -389,6 +397,7 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     graph.add_node("crisis_response", _crisis_response_node)
     graph.add_node("medical_response", medical_response_node)
     graph.add_node("high_risk_response", high_risk_response_node)
+    graph.add_node("screen_response", screen_response_node)  # #338 D1 terminal (enforce path)
 
     graph.set_entry_point("safety_check")
 
@@ -417,7 +426,9 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
         "knowledge_retrieve": "knowledge_retrieve",
         "low_confidence": "low_confidence_respond",
         "freeflow": "freeflow_respond",
+        "screen_response": "screen_response",   # #338 D1: served screen question → terminal
     })
+    graph.add_edge("screen_response", END)
     graph.add_edge("knowledge_retrieve", "freeflow_respond")
 
     graph.add_conditional_edges("skill_executor", _route_after_skill_executor, {
