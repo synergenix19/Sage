@@ -167,3 +167,53 @@ def write_screen_audit(row: dict, writer) -> None:
         raise ScreenAuditError(
             f"D1 screen audit write FAILED — contraindication decision with no record (PDPL exposure): {exc}"
         ) from exc
+
+
+# ── call-site: skill_select post-processor (FLAG-GATED, byte-identical when off) ──────────────
+def apply_screen_at_route(state: dict, result: dict) -> dict:
+    """Post-process a skill_select routing result. THE FLAG BOUNDARY: when SAGE_D1_SCREEN is off this is
+    IDENTITY — decide_screen is never called, no channel is touched, `result` is returned unchanged.
+
+    Positioned AFTER the safety vetoes in skill_select, so it respects the supremacy chain by construction:
+    crisis > vetoes > containment > screen > routing. A veto result (active_skill_id=None) is never a
+    contraindicated-skill situation, so no screen is asked and no screen state is written.
+    """
+    from sage_poc import config  # read at call time so the flag is honoured/monkeypatchable
+    if not config.D1_SCREEN_ENABLED:
+        return result  # ── identity: the off-path writes nothing ──
+
+    pending = bool(state.get("screen_pending"))
+    resolved = result.get("active_skill_id") or (result.get("offered_skill_ids") or [None])[0]
+    if not pending and resolved not in CONTRAINDICATED_SKILLS:
+        return result  # not a screen situation (covers every veto result: resolved is None)
+
+    lang = (state.get("detected_language") or "en").lower()
+    d = decide_screen(resolved or "", state)
+    action = d["action"]
+    audit = d.get("audit", {})
+    out = dict(result)
+    for k in ("screen_asked", "screen_answer_class", "screen_branch_taken"):
+        if audit.get(k) is not None:
+            out[k] = audit[k]
+    if "session_screen_answer" in d:
+        out["session_screen_answer"] = d["session_screen_answer"]
+
+    if action == "ask_screen":
+        try:
+            out["screen_question_text"] = screen_question(lang)   # signed → serve it
+            out.update({"active_skill_id": None, "offered_skill_ids": None, "screen_pending": True})
+            return out
+        except UnsignedScreenError:
+            action = "reroute_grounding"  # unsigned → per-language fail-safe default
+
+    if action == "proceed":
+        out["screen_pending"] = False
+        return out
+    if action == "to_medical_guard":
+        out.update({"active_skill_id": None, "offered_skill_ids": None, "screen_pending": False,
+                    "medical_flags": list(state.get("medical_flags") or []) + ["screen_red_flag"]})
+        return out
+    # reroute_grounding / abandon_crisis → fail-safe (grounding, or nothing for crisis; crisis path owns it)
+    out.update({"active_skill_id": None if action == "abandon_crisis" else "grounding_5_4_3_2_1",
+                "offered_skill_ids": None, "screen_pending": False})
+    return out

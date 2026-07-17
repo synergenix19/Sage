@@ -296,6 +296,7 @@ MEDICAL_REFERRAL_TEXT: str = os.getenv(
 )
 # F6 venting-suppression authority. Default OFF; changes live routing (Routing-SF-2).
 VENTING_SUPPRESSION_ENABLED: bool = os.getenv("SAGE_VENTING_SUPPRESSION", "false").lower() == "true"
+D1_SCREEN_ENABLED: bool = os.getenv("SAGE_D1_SCREEN", "false").lower() == "true"  # #338 medical screen; default-OFF (flag-off == identity routing)
 
 # HR-1 Stage 2 (docs/superpowers/specs/2026-07-16-hr1-stage2-terminal-design.md):
 # migrates HR delivery out of the LLM-rendered psychotic_referral skill into a
