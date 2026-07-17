@@ -348,6 +348,11 @@ def _route_after_skill_select(state: SageState) -> str:
     # on skill_match_method, NOT active_skill_id alone: a pre-existing active_skill_id
     # (preserved by skill_select for the "resume next turn" case) must not, by itself,
     # change this turn's KB routing — only a consult SELECTED THIS turn does.
+    # FLAG-GATED upstream: skill_select_node only ever sets skill_match_method to
+    # "info_request_skill_consult" when config.INFO_REQUEST_CONSULT_ENABLED is True
+    # (default OFF). No code change needed here — this branch is already keyed on that
+    # exact string, so with the flag OFF it is unreachable and this function returns
+    # "knowledge_retrieve" for info_request exactly as before the consult existed.
     if state.get("primary_intent") == "info_request":
         if state.get("skill_match_method") == "info_request_skill_consult":
             return "skill_executor"

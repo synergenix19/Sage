@@ -325,3 +325,23 @@ if _hr_terminal_raw is not None and _hr_terminal_raw.strip().lower() not in ("tr
 # DRAFT pending clinician ratification (mirrors CF-007/008/009's active:false/unsigned
 # convention); SAGE_HIGH_RISK_TERMINAL stays default-OFF until sign-off. The
 # high_risk_response node reads from hr_copy, not from literals here.
+
+# Psychoed Mechanism-A (docs/superpowers/specs/2026-07-17-psychoed-mechanism-a-design.md):
+# gates skill_select.py's info_request-branch consult (keyword+semantic matching against
+# INFO_REQUEST_SKILL_CONSULT_SET before the KB short-circuit). KILL-SWITCH, DEFAULT OFF,
+# same inverted strict parse as ROUTE_PRECEDENCE_ENABLED above: only a LITERAL "true"
+# enables; unset / empty / whitespace / garbage -> OFF (survives the Railway empty-string
+# env-injection bug). OFF must be byte-identical to today's info_request -> knowledge_retrieve
+# path: the consult matching never runs, no skill is ever selected via
+# "info_request_skill_consult", so graph.py's _route_after_skill_select diversion to
+# skill_executor is unreachable. Flip is governed: clinician sign-off on the consult set's
+# disposition scoping (INFO_REQUEST_SKILL_CONSULT_SET) per the design doc.
+_info_request_consult_raw = os.getenv("SAGE_INFO_REQUEST_CONSULT")
+INFO_REQUEST_CONSULT_ENABLED = (
+    _info_request_consult_raw is not None and _info_request_consult_raw.strip().lower() == "true"
+)
+if _info_request_consult_raw is not None and _info_request_consult_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_INFO_REQUEST_CONSULT unexpected value %r — applying safe default (consult OFF); "
+        "only 'true' enables.", _info_request_consult_raw,
+    )

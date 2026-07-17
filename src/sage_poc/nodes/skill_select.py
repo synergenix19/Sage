@@ -655,12 +655,21 @@ async def skill_select_node(state: SageState) -> dict:
             # construction (design doc Property 1), only reachable from a clean (no
             # pre-existing active skill) state so an incidental info_request mid-skill can
             # never hijack the active skill.
-            top_match = await _consult_top_match(state)
-            if top_match is not None and top_match in INFO_REQUEST_SKILL_CONSULT_SET:
-                skill = _SKILLS[top_match]
-                result["active_skill_id"] = top_match
-                result["active_step_id"] = skill.steps[0].step_id
-                result["skill_match_method"] = "info_request_skill_consult"
+            #
+            # KILL-SWITCH: config.INFO_REQUEST_CONSULT_ENABLED, default OFF. Local import
+            # (not module-level) so monkeypatch.setattr(config, ...) in tests takes effect —
+            # mirrors the psychotic_disclosure HR flag read further down this file. OFF skips
+            # the matching call entirely: no keyword/semantic work runs, no skill is ever
+            # selected via this path, result stays the KB-bound dict below — byte-identical
+            # to the pre-consult info_request -> knowledge_retrieve behavior.
+            from sage_poc import config  # noqa: PLC0415
+            if config.INFO_REQUEST_CONSULT_ENABLED:
+                top_match = await _consult_top_match(state)
+                if top_match is not None and top_match in INFO_REQUEST_SKILL_CONSULT_SET:
+                    skill = _SKILLS[top_match]
+                    result["active_skill_id"] = top_match
+                    result["active_step_id"] = skill.steps[0].step_id
+                    result["skill_match_method"] = "info_request_skill_consult"
         return result
 
     # Post-crisis auto-select bypasses keyword and semantic matching
