@@ -45,4 +45,16 @@ runs. The 1/4 residual is the exact failure mode the deterministic copy pool mus
 **Design rule for the pool:** the standardized supportive message must use the account-frame by
 construction and must NEVER interpolate or restate the user's feared content. The Node-8 check rejects
 any HR-terminal output whose subject clause states the feared content as real (the deterministic
-equivalent of the §5 line). **Blocked on Vee's answer to touchpoint ask (b)** for the ratified seed frame.
+equivalent of the §5 line).
+
+**✅ SEED RATIFIED (Vee, 2026-07-17):** the pool opens on **"What you're describing…" / "The experience
+you're describing…"** with the hard invariant: **the supportive message never takes the feared content
+as its subject and never restates it as occurring.** Both the "feeling like [content]" and the
+"experiencing [content] happening to you" frames are ruled §5 misses (paranoia#1 + the 1/4 residual) —
+the Node-8 check must reject BOTH. This is no longer blocked on a clinician answer; it is the spec.
+
+**Separability note (worth weighing when Stage-2 is scheduled):** the Node-8 content-neutrality CHECK
+is a guard on the EXISTING psychotic_referral output — it does NOT depend on the two-turn distress
+terminal (the A7-blocked part). So the deterministic §5 fix could potentially land AHEAD of the full
+paired Stage-2 unit, shortening the window the ~1/4 ruled drift stays live. Decide at scheduling
+whether to pull the neutrality guard forward or keep it in the batch; do not assume it must wait on A7.
