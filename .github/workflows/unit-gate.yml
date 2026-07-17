@@ -147,6 +147,7 @@ jobs:
             tests/test_medical_screen_serve_resume.py
             tests/test_screen_response_node.py
             tests/test_screen_serve_resume_graph.py
+            tests/test_health_version_d1_readback.py
             tests/test_medical_redflag_ar_329.py
             tests/test_safety_language_parity.py
             tests/test_ocd_compulsion_raw_path.py

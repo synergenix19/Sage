@@ -903,6 +903,13 @@ async def health_version(_: None = Depends(require_api_key)):
         "venting_suppression_raw_env": os.environ.get("SAGE_VENTING_SUPPRESSION"),
         "ipv_preemption_enabled": _c.IPV_PREEMPTION_ENABLED,
         "ipv_preemption_raw_env": os.environ.get("SAGE_IPV_PREEMPTION"),
+        # D1 medical screen (#338): BOTH flags, resolved + raw, same pattern. So a deploy smoke can VERIFY
+        # (not infer) the flag state — enforce OFF / shadow ON during the shadow window; enforce ON at flip.
+        # The endpoint is the truth of what the deployed process's config actually reads.
+        "d1_screen_enabled": _c.D1_SCREEN_ENABLED,
+        "d1_screen_raw_env": os.environ.get("SAGE_D1_SCREEN"),
+        "d1_screen_shadow": _c.D1_SCREEN_SHADOW,
+        "d1_screen_shadow_raw_env": os.environ.get("SAGE_D1_SCREEN_SHADOW"),
         # Mechanism-level attestation for BYTE-IDENTICAL crisis templating: True iff the deployed
         # crisis source carries {{crisis_}} placeholders. Distinguishes a real templated deploy from
         # a stale-literal one when the build_sha above is a lying label (see deploy-control doc).
