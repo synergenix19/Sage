@@ -137,10 +137,11 @@ def test_hr_patterns_contain_no_em_dash():
 
 
 # ── Psychosis (15) — CF-009 variant expansion ────────────────────────────────
-# Doc §HR.0 labels this list "(14)" but it actually holds 15 phrases; the count
-# is verified BY NAME against the bullet list, not the header. Items 1-4, 6-15 are
-# new (CF-009, force-activated above); item 5 ("I hear voices") already existed
-# pre-extension and is covered by the live, signed CF-006, loaded as-is (see _load_hr_rules).
+# Doc §HR.0 lists these as an unnumbered bullet line (no count in the doc); an
+# earlier internal count of OURS said 14 and dropped one. Verified BY NAME against
+# the bullet list. Items 1-4, 6-15 are new (CF-009, force-activated above); item 5
+# ("I hear voices") already existed pre-extension and is covered by the live, signed
+# CF-006, loaded as-is (see _load_hr_rules).
 
 def test_psychosis_01_people_following_me():
     assert "psychotic_disclosure" in _flags("people are following me everywhere I go")
@@ -182,8 +183,8 @@ def test_psychosis_13_dont_know_whats_real():
     assert "psychotic_disclosure" in _flags("I don't know what's real anymore")
 
 def test_psychosis_14_everyone_against_me():
-    # Doc §HR.0 psychosis item 14. The doc header miscounts the list as "(14)" but it
-    # holds 15 phrases; this one was dropped in the first pass (verified by-name, not by count).
+    # Doc §HR.0 psychosis item 14 of 15 (the doc's bullet list is unnumbered; OUR earlier
+    # internal count said 14 and dropped this phrase). Restored; verified by-name.
     assert "psychotic_disclosure" in _flags("I think everyone is against me")
 
 def test_psychosis_15_detached_from_reality():
