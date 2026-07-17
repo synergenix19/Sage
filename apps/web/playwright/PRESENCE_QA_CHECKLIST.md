@@ -134,3 +134,18 @@ This checklist documents manual verification steps for the presence indicator (b
   
   ```
 
+---
+
+## Crisis render + reload (regression check for #191 — in-band-signaling sentinel leak)
+
+Executable scenario (the exact shape that failed in prod 2026-07-08, verified fixed):
+
+1. Open a conversation **WITH prior history** (or send a normal turn, then reload so `initialMessages` is populated).
+2. Send an **EN** crisis disclosure → red card pinned (`role="alert"`), single frame (no typewriter), `tel:` tap-target live, reply NOT shown as a plain transcript bubble, waiting state indistinguishable from a normal turn.
+3. Switch to **AR**, send an AR crisis disclosure → same, RTL card, card now shows the **latest** (AR) disclosure.
+4. **Reload the page** → assert: (a) `[[CRISIS_DETECTED]]` appears **nowhere** (visual + ctrl-F / inspect for the literal string), (b) crisis replies still hidden from the transcript, (c) exactly one pinned card = the **latest** disclosure, (d) `tel:` still live.
+
+- [ ] EN crisis  [ ] AR crisis  [ ] reload: zero sentinel nodes  [ ] latest card pinned  [ ] replies hidden  [ ] tel: live
+
+> Related open issue #205 (separate, backend): a follow-up crisis turn can persist as `role='ai'` and render the helpline in prose with no card — watch for a crisis response appearing as a normal bubble.
+
