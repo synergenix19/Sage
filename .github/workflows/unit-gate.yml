@@ -142,6 +142,7 @@ jobs:
             tests/test_medical_redflag_ar_329.py
             tests/test_safety_language_parity.py
             tests/test_ocd_compulsion_raw_path.py
+            tests/test_ocd_compulsion_ar_330.py
             tests/test_safety_reads_raw.py
             tests/test_safety_copy_urgency.py
             tests/test_rules_safety_hr.py
