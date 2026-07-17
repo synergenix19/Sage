@@ -87,17 +87,18 @@ def _any_hr_flag(text_en: str) -> list[str]:
 
 # ── Gating: the new rules ship inactive and unsigned; CF-006 stays live ──────
 
-def test_hr_rules_ship_inactive_and_unsigned_on_disk():
-    """CRITICAL gating (Task 1 brief): CF-007/008/009 must be active=false and carry
-    no approved_by key in the real file until clinician ratification. This is the
-    forcing function that keeps this branch's unsigned content from going live by
-    accident; do not flip it without a ratification record."""
+def test_hr_rules_active_and_signed_on_disk():
+    """RATIFIED 2026-07-17 (clinician, consolidated approval sheet A1): CF-007/008/009 are
+    now active=true + approved_by=clinical_lead. This was previously the inverse guard
+    (must ship inactive+unsigned UNTIL a ratification record); the ratification record now
+    exists, the activation map was re-signed under clinical-lead authority, so the guard
+    flips to enforcing the ratified-active state. Do NOT deactivate without a record."""
     raw = json.loads(_RULES_PATH.read_text(encoding="utf-8"))
     by_id = {r["rule_id"]: r for r in raw["rules"]}
     for rule_id in _FORCE_ACTIVE_IDS:
         rule = by_id[rule_id]
-        assert rule["active"] is False, f"{rule_id} must ship active=false pending ratification"
-        assert "approved_by" not in rule, f"{rule_id} must omit approved_by until signed off"
+        assert rule["active"] is True, f"{rule_id} must be active=true (ratified 2026-07-17)"
+        assert rule["approved_by"] == "clinical_lead", f"{rule_id} must carry clinical_lead sign-off"
 
 
 def test_cf006_ships_live_and_signed_on_disk():

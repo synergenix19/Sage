@@ -65,10 +65,10 @@
     {
       "id": "safety_rule_activation_map",
       "selector": "safeactive:src/sage_poc/rules/data/safety/crisis_keywords.json,src/sage_poc/rules/data/safety/passive_si_patterns.json,src/sage_poc/rules/data/safety/clinical_flag_patterns.json",
-      "sha256": "a6d8be1174e89297a8e3ede8463ad4801b8bb20cd03e08dfce1fea0515f6d501",
-      "signed_by": "safety lane / engineering (HR-1 Stage 1 inactive-add); activation-state baseline: safety lane (crisis sprint) + clinical lead 2026-07-13",
-      "signed_date": "2026-07-16",
-      "signoff": "The {rule_id: active} map across all safety rule files (born from the #218 clobber: any active-flag flip OR new safety rule fails CI until re-signed here; a silent deactivation of a signed crisis control is the exact incident this pins against). RE-SIGNED 2026-07-16 (HR-1 Stage 1, PR #325): records the ADDITION of three INACTIVE rules to clinical_flag_patterns.json (CF-007 mania_disclosure, CF-008 dissociation_disclosure, CF-009 psychotic_disclosure variants), all active:false + unsigned, staged pre-ratification and double-locked (SAGE_HIGH_RISK_DETECTION OFF). NO active control changed: every prior entry incl. CF-006 is unchanged; this is a pure activation-state addition, behavior-neutral. This map pins ACTIVATION state only (see v2_scope), so this is an ENGINEERING re-sign on that basis. CLINICAL approval of these rules' content AND their activation is the SEPARATE HR-1 clinician ratification (docs/superpowers/governance/2026-07-15-hr1-clinician-ratification-packet.md); when that flips them active:true this map changes again and MUST be re-signed WITH the clinical lead. The 2026-07-13 clinical-lead baseline protection (no silent deactivation of active crisis controls) is intact."
+      "sha256": "09bd5d1f847b4a08b84da89908fd45fa13cbe2c57794063b818e698878a567b2",
+      "signed_by": "clinical lead (HR-1 ratification 2026-07-17, consolidated approval sheet A1) + safety lane",
+      "signed_date": "2026-07-17",
+      "signoff": "The {rule_id: active} map across all safety rule files (born from the #218 clobber). RE-SIGNED 2026-07-17 UNDER CLINICAL-LEAD AUTHORITY (HR-1 ratification, consolidated approval sheet A1): CF-007 (mania_disclosure), CF-008 (dissociation_disclosure), CF-009 (psychotic_disclosure variants) flipped active:true + approved_by:clinical_lead. This is the atomic-flip re-sign the 2026-07-16 (PR #325) entry required ('when that flips them active:true this map changes again and MUST be re-signed WITH the clinical lead') -- now satisfied. CF-006 and every prior active crisis control unchanged. The routing flip (SAGE_HIGH_RISK_DETECTION=true) is a coordinated prod env change at deploy, verified live post-flip (B1 pattern). Prior baseline: safety lane (crisis sprint) + clinical lead 2026-07-13."
     }
   ]
 }
