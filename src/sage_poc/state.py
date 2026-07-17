@@ -127,3 +127,18 @@ class SageState(TypedDict):
     banned_opener_correction: Optional[str]
     banned_opener_violation: bool          # True if banned opener persisted after retry AND passed through to user (no fallback)
     banned_opener_fallback_used: bool      # True when _VETTED_FALLBACK_RESPONSE substituted after exhausted retry
+
+
+def safety_text(state: SageState) -> str:
+    """The text every safety-critical detector MUST read: the RAW user input in its original
+    language, NEVER the translated message_en.
+
+    Language contract (ADR 2026-07-16): crisis lexicon, clinical flags, vetoes, red-flag guards,
+    and contraindication triggers operate on raw input; message_en exists for therapeutic
+    processing / LLM rendering only, and is never a safety-detection input. Routing a safety
+    decision through the translator makes recall hostage to translation quality on distress-register
+    Khaleeji — the #329 (medical red-flag) and #330 (OCD-compulsion) live prod bypasses. Detectors
+    call this accessor so the safe path is the ONLY path and new detectors inherit raw by
+    construction. Enforced by scripts/check_safety_reads_raw.py.
+    """
+    return state.get("raw_message") or ""
