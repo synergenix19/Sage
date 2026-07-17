@@ -4,9 +4,14 @@ Spec L58/L101 discriminating quality-check for the AMBIGUOUS middle: a physical-
 an already-firing red-flag keyword. Architecture (V-signed 2026-07-17): conversational question (rendered
 in flow, LLM), DETERMINISTIC consequence (this module). Language-contract: the trigger reads RAW input.
 
+The question asks BOTH halves: the L101 acute symptom-QUALITY differentiation (panic vs emergency → 998) AND
+the L194 CONTRAINDICATION disclosure (chronic heart condition / pregnancy → grounding, a routing fact not an
+emergency). A clear_no on quality is NOT a clear on contraindications — a disclosed condition wins over it.
+
 FAIL-SAFE INVARIANT: the screen routes AWAY, never CLEARS. Only `clear_no` proceeds; only a red-flag-quality
-answer escalates; EVERY other class (and any unrecognised class) defaults to the contraindication-free skill
-(grounding). See docs/superpowers/governance/2026-07-17-d1-screening-question-build-spec.md.
+answer escalates to the guard; a disclosed contraindication and EVERY other class (and any unrecognised
+class) default to the contraindication-free skill (grounding).
+See docs/superpowers/governance/2026-07-17-d1-screening-question-build-spec.md.
 """
 from __future__ import annotations
 
@@ -40,6 +45,15 @@ _RED_FLAG_ANSWER_MARKERS = (
     "one side", "one-sided", "numbness", "real trouble breathing", "can't breathe at all",
     "sharp", "crushing", "stabbing", "searing", "passed out",
 )
+# L194 contraindications: a disclosed CHRONIC/STABLE condition (heart / pregnancy). A routing fact, not an
+# emergency, so it routes to grounding, NOT the 998 guard. Specific CONDITION phrases only (never bare
+# "heart", which is a symptom word in the trigger) so a symptom mention like "my heart is racing" does not
+# over-match. Reads RAW input (the answer is the user's own words).
+_CONTRAINDICATION_MARKERS = (
+    "heart condition", "heart problem", "heart disease", "cardiac", "pacemaker", "angina", "arrhythmia",
+    "pregnant", "pregnancy",
+    "مرض في القلب", "مرض القلب", "مشكلة في القلب", "مشكلة بالقلب", "مشاكل القلب", "حامل", "الحمل",
+)
 _CLEAR_NO_MARKERS = (
     "same as always", "nothing different", "not different", "feels the same", "just my usual",
     "just anxiety", "like usual", "the usual",
@@ -51,13 +65,18 @@ _YES_MARKERS = ("yes", "yeah", "yep", "kind of", "kinda", "a bit different", "li
 
 def classify_screen_answer(text: str) -> str:
     """Map a user's answer to the screen into exactly one class:
-    clear_no | red_flag | yes | unclear | no_answer. Order matters: red-flag quality wins over any
-    surface 'no'/'yeah'; a plain negation-of-difference is clear_no; hedge/both/unknown is unclear."""
+    clear_no | red_flag | contraindication_disclosed | yes | unclear | no_answer. Order matters:
+    red-flag ACUTE quality wins over everything (emergency); a disclosed chronic condition
+    (heart/pregnancy) is next and MUST win over any surface 'no' (else "same as always, but I have a heart
+    condition" collapses to clear_no and proceeds to TIPP); then plain negation-of-difference is clear_no;
+    hedge/both/unknown is unclear. Reads the user's raw answer."""
     t = (text or "").strip().lower()
     if not t:
         return "no_answer"
     if detect_medical_redflag(t) or any(m in t for m in _RED_FLAG_ANSWER_MARKERS):
         return "red_flag"
+    if any(m in t for m in _CONTRAINDICATION_MARKERS):
+        return "contraindication_disclosed"     # L194: routes AWAY (grounding), never proceeds — beats clear_no
     if any(m in t for m in _CLEAR_NO_MARKERS) or t in ("no", "nope", "nah") or t.startswith(("no,", "no ", "nope")):
         return "clear_no"
     if any(m in t for m in _UNCLEAR_MARKERS):
@@ -72,9 +91,11 @@ _ROUTES = {"clear_no": "proceed", "red_flag": "medical_guard"}
 
 
 def route_screen_answer(answer_class: str) -> str:
-    """clear_no → proceed with the offered skill; red_flag → medical guard (998); EVERYTHING ELSE →
-    grounding. The `.get(..., 'grounding')` default IS the fail-safe: an unmapped/unknown class can
-    never reach 'proceed'. The screen routes away, never clears."""
+    """clear_no → proceed with the offered skill; red_flag → medical guard (998); contraindication_disclosed
+    (L194 chronic heart/pregnancy) → grounding, a routing fact not an emergency; EVERYTHING ELSE → grounding.
+    The `.get(..., 'grounding')` default IS the fail-safe: an unmapped/unknown class can never reach
+    'proceed'. contraindication_disclosed rides that default BY DESIGN — it is deliberately absent from
+    _ROUTES so it can never acquire a 'proceed' path by edit. The screen routes away, never clears."""
     return _ROUTES.get(answer_class, "grounding")
 
 

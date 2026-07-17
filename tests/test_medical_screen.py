@@ -26,6 +26,38 @@ def test_classify_screen_answer(text, expect):
     assert ms.classify_screen_answer(text) == expect
 
 
+# ── L194 contraindication half: the disclosed-condition class (heart/pregnancy → grounding, NOT 998) ──
+@pytest.mark.parametrize("text,expect", [
+    # THE failure case: symptom-quality is clear_no, but a contraindication is disclosed. The disclosure
+    # MUST win over clear_no — else a known-cardiac user on an ordinary panic day proceeds to TIPP ice-water.
+    ("no, it feels the same as always, but I do have a heart condition", "contraindication_disclosed"),
+    ("nothing different really, though I'm pregnant", "contraindication_disclosed"),
+    ("i have a cardiac condition", "contraindication_disclosed"),
+    ("just so you know I have a pacemaker", "contraindication_disclosed"),
+    ("i'm about 12 weeks pregnant", "contraindication_disclosed"),
+    ("عندي مرض في القلب", "contraindication_disclosed"),
+    ("أنا حامل", "contraindication_disclosed"),
+    # red-flag ACUTE quality still wins over a disclosed chronic condition → emergency, not routing-fact.
+    ("i have a heart condition and now crushing pain spreading to my arm", "red_flag"),
+])
+def test_classify_contraindication_disclosed(text, expect):
+    assert ms.classify_screen_answer(text) == expect
+
+
+@pytest.mark.parametrize("text", [
+    "no, same as always",                       # plain clear_no, no disclosure → must NOT over-match
+    "my heart is racing a little",              # a SYMPTOM mention, not a disclosed condition
+    "i feel anxious about my heart rate",       # 'heart' present, no condition disclosed
+])
+def test_contraindication_class_does_not_overmatch(text):
+    assert ms.classify_screen_answer(text) != "contraindication_disclosed"
+
+
+def test_contraindication_disclosed_routes_grounding_not_guard():
+    # A stable disclosed condition is a ROUTING FACT, not an emergency: grounding, never 998.
+    assert ms.route_screen_answer("contraindication_disclosed") == "grounding"
+
+
 # ── branch table + FAIL-SAFE: away-never-clears ──
 @pytest.mark.parametrize("cls,route", [
     ("clear_no", "proceed"),
@@ -45,7 +77,8 @@ def test_failsafe_unknown_class_routes_grounding():
 
 def test_screen_only_clears_on_clear_no():
     # The invariant, stated as a property: 'proceed' is reachable ONLY from clear_no.
-    proceeders = [c for c in ("clear_no", "red_flag", "yes", "unclear", "no_answer")
+    proceeders = [c for c in ("clear_no", "red_flag", "yes", "unclear", "no_answer",
+                              "contraindication_disclosed")
                   if ms.route_screen_answer(c) == "proceed"]
     assert proceeders == ["clear_no"]
 
