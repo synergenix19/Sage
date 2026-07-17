@@ -1,8 +1,56 @@
 # D1 medical screen — SHADOW dark-deploy record (#338)
 
-**Status: PREPARED, HELD at the lock chain on enumerated blockers (below). Artifact verified-deployable.**
-Deploy authorized by user 2026-07-17 (explicit go + enumerated constraints). One-writer-to-prod: this record
-is the claim.
+**Status: DEPLOYED 2026-07-17. Code live at 4529d3e0 (flag-off identity VERIFIED); shadow window OPENING
+(SAGE_D1_SCREEN_SHADOW=true set, redeploy in flight).** Deploy authorized by user 2026-07-17 (explicit go +
+full-access grant). One-writer-to-prod: this record is the claim.
+
+## Execution log (2026-07-17)
+- Blockers cleared: prod was at b4d5001a = master-tip (HR-1 #348 already live → D1 deploy purely additive,
+  B2 gone); prod SHA read via /health/version with `x-sage-api-key` (B1); PR #346 merged green (CI:
+  Safety-surface + Ferry both pass) → deploy SHA **4529d3e0752fc8d44752cdb7e3653aea9aa5e183** (B3).
+- Control #6 clinical-surface diff: 8/8 signed fields match; only signed files changing are the two NEW D1
+  artifacts (d1_screen_question_en, d1_screen_branch_table), signed Vee 2026-07-17, comma-swap-confirm noted
+  pending (before flip, not before this deploy). No silent signed-field change.
+- deploy_prod.sh: stale lock reclaimed, ancestry gate passed, cache-bust set (RAILWAY_GIT_COMMIT_SHA=4529d3e0,
+  SAGE_BUILD_SHA deleted → derives from ARG).
+- Migration 014 applied to prod + verified: session_audit now carries screen_shadow_{action,answer_class,branch}.
+- railway up from worktree@4529d3e0. Four concurrent deploys (var-mutation-triggered redeploys + the up) all
+  pinned to 4529d3e0; latest (3fa29f40) won, others REMOVED. Serving SHA verified 4529d3e0 (cache-bust
+  confirmed: b4d5001a→4529d3e0, source now ARG-derived SAGE_BUILD_SHA per Dockerfile).
+- **Flag-off behavioral verification (prod smoke, 4529d3e0):** tier-a safety 4/4 must-pass (crisis EN/AR,
+  helpline 800-4673, derealization hold, precedence proxy), tier-c regression flag-readbacks correct. Only
+  FAIL is tier_b_auth (report-only, frontend storage-state absent). Flag-off = identity CONFIRMED.
+- Shadow flag flipped: SAGE_D1_SCREEN_SHADOW=true, enforce (SAGE_D1_SCREEN) stays unset=OFF. Redeploy
+  bf0d483c landed SUCCESS (same SHA 4529d3e0, flag set); shadow window OPEN.
+
+## Shadow window — OPENING STATE + first fire-volume read (VERIFIED LIVE 2026-07-17)
+**D1 shadow behavioral pair, driven on prod 4529d3e0 with shadow ON:**
+- **(i) acute-overwhelm TIPP turn** (session d1-shadow-verify-tipp-01): served response does NOT contain the
+  screen question → **route-identity holds behaviorally**; audit row `active_skill_id=dbt_tipp` (route
+  unchanged, as a normal TIPP turn) with **`screen_shadow_action=ask_screen`** (answer_class/branch NULL, a
+  would-fire turn). The shadow observation **persisted through the full graph seam** (skill_select →
+  output_gate → audit) — the SG-2 seam verified LIVE, not just unit-green.
+- **(ii) non-screen turn** (session d1-shadow-verify-plain-01): `active_skill_id=None`,
+  `screen_shadow_action=None` → **byte-identical to master** (no shadow columns written).
+- **FIRST FIRE-VOLUME READ:** `ask_screen: 1` (the window's first observation, the synthetic probe). Real
+  traffic accrues from here; the shadow-window gate reads fire-volume / would-fire rate as it fills.
+
+**Opening state:** code 4529d3e0 live · migration 014 applied (screen_shadow_* columns present) · shadow ON,
+enforce OFF · flag-off identity verified (prod smoke 4/4 must-pass safety, regression readbacks correct) ·
+shadow route-identity verified both directions live · PDPL closed (anonymised class+route) · deploy lock
+expired naturally · worktree cleaned.
+
+## Rollback (held)
+`SAGE_D1_SCREEN_SHADOW=0` (or unset) → proven identity. No code rollback needed (flag-gated).
+
+## Follow-ups (named, not silent)
+- **/health/version shadow-flag readback:** `d1_screen_shadow` is NOT surfaced on /health/version, so there is
+  no flag-drift readback probe (verified behaviorally via the audit row instead). Add it next deploy (matches
+  the health-flag-readback pattern) so the flag state is machine-checkable.
+- **Enforce-flip migration:** the enforce audit columns (screen_asked/answer_class/branch_taken) are NOT yet
+  migrated — that is the enforce-flip gate, built when serve/resume lands (deliberately excluded from 014).
+- **Post-deploy record commit:** this record + fire-volume updates ride a follow-up PR (PR #346 already
+  merged); the deploy itself is complete and verified independent of where this doc lands.
 
 ## What deploys
 The D1 silent-shadow artifact on `cdai/d1-medical-screen`, merged with `origin/master` (b4d5001a), verified
