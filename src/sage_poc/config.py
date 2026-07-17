@@ -270,6 +270,11 @@ EMBED_CACHE_ENABLED: bool = os.getenv("SAGE_EMBED_CACHE_ENABLED", "true").lower(
 # controls are green (see plan Task 6). Not frozen; touches no signed field.
 MEDICAL_REDFLAG_GUARD_ENABLED: bool = os.getenv("SAGE_MEDICAL_REDFLAG_GUARD", "false").lower() == "true"
 
+# HR-1 Stage 1: gates mania_disclosure / dissociation_disclosure HR-class
+# routing (psychotic_disclosure routing is unconditional and unaffected by
+# this flag; see safety/hr_disclosure.py). Default OFF.
+HIGH_RISK_DETECTION_ENABLED: bool = os.getenv("SAGE_HIGH_RISK_DETECTION", "false").lower() == "true"
+
 # Q1-terminal default: the MEDICAL guard wording (doc lines 62/81/131 / Section 6):
 # "prompt to seek in-person/medical/emergency evaluation; treat as a possible medical
 # emergency." NOT doc L1477 (that is the psychiatric-crisis line rule, a different guard).
@@ -291,3 +296,32 @@ MEDICAL_REFERRAL_TEXT: str = os.getenv(
 )
 # F6 venting-suppression authority. Default OFF; changes live routing (Routing-SF-2).
 VENTING_SUPPRESSION_ENABLED: bool = os.getenv("SAGE_VENTING_SUPPRESSION", "false").lower() == "true"
+
+# HR-1 Stage 2 (docs/superpowers/specs/2026-07-16-hr1-stage2-terminal-design.md):
+# migrates HR delivery out of the LLM-rendered psychotic_referral skill into a
+# dedicated deterministic two-turn node (high_risk_response). KILL-SWITCH, DEFAULT
+# OFF, same inverted strict parse as ROUTE_PRECEDENCE_ENABLED above: only a LITERAL
+# "true" enables; unset / empty / whitespace / garbage -> OFF. Distinct from
+# HIGH_RISK_DETECTION_ENABLED (Stage 1, gates which HR classes route here at all) so
+# the Stage-2 delivery upgrade can flip independently of Stage-1 detection. OFF =
+# Stage-1 behavior (byte-identical). Flip is governed: clinician sign-off on the
+# §HR fixed copy below + the two-turn state-machine design.
+_hr_terminal_raw = os.getenv("SAGE_HIGH_RISK_TERMINAL")
+HIGH_RISK_TERMINAL_ENABLED = (
+    _hr_terminal_raw is not None and _hr_terminal_raw.strip().lower() == "true"
+)
+if _hr_terminal_raw is not None and _hr_terminal_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_HIGH_RISK_TERMINAL unexpected value %r — applying safe default (terminal OFF); "
+        "only 'true' enables.", _hr_terminal_raw,
+    )
+
+# §HR fixed copy (verbatim from the design doc's "Fixed copy" section) has moved to
+# src/sage_poc/safety/hr_copy.py: each single string below is now a POOL of
+# clinician-ratifiable variants (HR_DISTRESS_QUESTION_POOL, HR_SUPPORTIVE_MESSAGE_POOL,
+# HR_REDIRECT_HIGHER_POOL, HR_REDIRECT_LOWER_POOL, HR_REASK_POOL), picked
+# deterministically per (session_id, slot_key) by hr_copy.pick_hr_variant -- still
+# SINGLE-SOURCED, still never LLM-rendered, no runtime randomness. The pools are marked
+# DRAFT pending clinician ratification (mirrors CF-007/008/009's active:false/unsigned
+# convention); SAGE_HIGH_RISK_TERMINAL stays default-OFF until sign-off. The
+# high_risk_response node reads from hr_copy, not from literals here.
