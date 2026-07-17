@@ -140,6 +140,7 @@ jobs:
             tests/test_crisis_config_cross_stack.py
             tests/test_sg2_caveat_firing.py
             tests/test_medical_screen.py
+            tests/test_medical_screen_wiring.py
             tests/test_medical_redflag_ar_329.py
             tests/test_safety_language_parity.py
             tests/test_ocd_compulsion_raw_path.py

@@ -131,9 +131,13 @@ class SageState(TypedDict):
     # D1 medical screen (#338) — declared channels (LangGraph drops undeclared keys; declare-before-write,
     # the state-channel lesson). ACCEPTANCE: a contraindication decision must be traceable to its rule +
     # answer for the PDPL right-to-object story. Written by the screen wiring; empty for non-screen turns.
-    screen_asked: bool                     # the D1 discriminating question was asked this turn
-    screen_answer_class: Optional[str]     # clear_no | red_flag | yes | unclear | no_answer
-    screen_branch_taken: Optional[str]     # proceed | medical_guard | grounding (the deterministic route)
+    screen_asked: bool                     # the D1 discriminating question was asked this turn (per-turn)
+    screen_answer_class: Optional[str]     # clear_no | red_flag | yes | unclear | no_answer (per-turn audit)
+    screen_branch_taken: Optional[str]     # proceed | medical_guard | grounding | abandoned_crisis (per-turn)
+    # PER-SESSION (persist across turns via the checkpointer — NOT reset per-turn, unlike the directives
+    # above). A clear_no once → never re-screened this session; a not-cleared answer → never re-offered TIPP.
+    session_screen_answer: Optional[str]   # the session's settled screen answer class; None = not yet screened
+    screen_pending: bool                   # a screen question was asked and this turn's message is its answer
 
 
 def safety_text(state: SageState) -> str:

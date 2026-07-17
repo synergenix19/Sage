@@ -103,3 +103,67 @@ def screen_question(lang: str) -> str:
             f"bytes (#338, signed_clinical_fields.json). AR holds grounding-only until its own tick."
         )
     return _SIGNED_QUESTIONS[lang]
+
+
+# ── wiring: the injection decision (skill_select calls this) ──────────────────────────────
+# Acute skills with physical contraindications (spec L194). Extend as future skills are flagged.
+CONTRAINDICATED_SKILLS = frozenset({"dbt_tipp"})
+
+_ACTION_FOR_ROUTE = {"proceed": "proceed", "medical_guard": "to_medical_guard", "grounding": "reroute_grounding"}
+
+
+class ScreenAuditError(RuntimeError):
+    """Raised when the screen audit row cannot be written. #160 alert-or-fail: a swallowed screen_asked
+    write is a contraindication decision with NO record — the PDPL exposure the D-item exists to close.
+    Never swallow it."""
+
+
+def decide_screen(routed_skill: str, state: dict) -> dict:
+    """Session-persistent injection decision. Returns {action, [session_screen_answer], [audit]}.
+
+    action ∈ ask_screen | proceed | reroute_grounding | to_medical_guard | abandon_crisis.
+
+    (2) CRISIS SUPREMACY (defense-in-depth): crisis this turn abandons the screen — the answer is never
+        classified as unclear→grounding; the crisis path owns it, abandonment is audited.
+    (1) SESSION-PERSISTENT: `session_screen_answer` persists across turns (per-session). clear_no once →
+        proceed on every later contraindicated routing without re-asking; any not-cleared prior → grounding.
+    """
+    crisis = (not state.get("is_safe", True)) or bool(state.get("crisis_flags"))
+    pending = bool(state.get("screen_pending"))
+    contraindicated = routed_skill in CONTRAINDICATED_SKILLS
+
+    if crisis and (pending or contraindicated):
+        return {"action": "abandon_crisis",
+                "audit": {"screen_asked": False, "screen_answer_class": None, "screen_branch_taken": "abandoned_crisis"}}
+
+    # answering a pending screen (this turn's raw text is the answer)
+    if pending:
+        cls = classify_screen_answer(state.get("raw_message", ""))
+        route = route_screen_answer(cls)
+        return {"action": _ACTION_FOR_ROUTE[route], "session_screen_answer": cls,
+                "audit": {"screen_asked": False, "screen_answer_class": cls, "screen_branch_taken": route}}
+
+    # non-contraindicated skill never screens
+    if not contraindicated:
+        return {"action": "proceed"}
+
+    # fresh routing to a contraindicated skill — honour the session-persistent prior answer
+    prior = state.get("session_screen_answer")
+    if prior == "clear_no":
+        return {"action": "proceed"}                 # cleared this session; no re-ask
+    if prior is not None:
+        return {"action": "reroute_grounding"}        # screened, not cleared → grounding (fail-safe); no re-ask
+    return {"action": "ask_screen",                    # never screened this session → ask
+            "audit": {"screen_asked": True, "screen_answer_class": None, "screen_branch_taken": None}}
+
+
+def write_screen_audit(row: dict, writer) -> None:
+    """Write the screen audit row (screen_asked / screen_answer_class / screen_branch_taken) via `writer`.
+    #160 alert-or-fail: on any failure, raise ScreenAuditError — never swallow. A contraindication decision
+    that isn't recorded cannot be defended under the PDPL right-to-object."""
+    try:
+        writer(row)
+    except Exception as exc:  # noqa: BLE001 — deliberately loud
+        raise ScreenAuditError(
+            f"D1 screen audit write FAILED — contraindication decision with no record (PDPL exposure): {exc}"
+        ) from exc
