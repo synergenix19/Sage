@@ -1,0 +1,63 @@
+# Clinician Sign-off — Batched Relay (2026-07-10)
+
+**One relay, every open decision.** Clinician turnaround is the only clock on this thread we don't control, so it is paid **once** here rather than per item. Ordered by urgency; each item is **tick / edit / reject**; evidence files linked. Route: same channel as prior copy sign-offs; PO relays.
+
+> **STATUS — clinical sign-off APPROVED by Vee, 2026-07-10** (batch doc-verified against BOT BEHAVIOUR.docx by a 4-agent QA pass; no safety defects; 4 accuracy fixes applied pre-approval).
+> - **ITEM 1 (OF-1 15 blurbs):** clinically approved → matrix rows move PARTIAL → CONFORMS-content (CONFORMS pending driven transcript).
+> - **ITEM 2 (Wave-2 5 collapsed scripts):** clinically approved → clear to re-author the 5 skills.
+> - **ITEM 0 (H4 crisis composition):** clinical accuracy of the doc's list confirmed. The **live-value change stays gated** — reversing GL-1 + verify-before-launch + the crisis-freeze lift are PO/operational decisions, not clinical-only. Not cleared to deploy by this approval alone.
+> - **ITEM 3 (H3 ST-6 target):** confirm whether Vee's approval filled this blank or it remains open.
+
+---
+
+## ⚠️ ITEM 0 — URGENT (latency has a safety cost): crisis-resource composition (H4)
+
+**Why this is first and urgent:** the live crisis card currently shows a **single** number (`800 46342`, labelled 24/7) that appears **nowhere** in the doc's canonical crisis table, and the doc's *primary* line is **8am–8pm, not 24/7**. A user in distress at 02:00 could be shown a number whose hours don't hold. The structure to fix this is built and value-preserving (PR #288); it is inert until this composition is ruled.
+
+**Doc's canonical 5-entry table** (BOT BEHAVIOUR L2130–2146; doc flags *"verify before launch"*):
+
+| Resource | Number | Hours (per doc) | Scope |
+|---|---|---|---|
+| Emergency | 999 | — | immediate danger |
+| National Mental Support Line | 800-HOPE (800-4673) | 8am–8pm daily | national (primary) |
+| Abu Dhabi 24/7 crisis line (800-SAKINA) | 800-725462 | 24/7, psychological first aid | regional |
+| Dubai Health Authority | 800 111 | 24/7 | regional |
+| Sharjah Child & Youth | 800 51115 | 9am–5pm Mon–Fri | youth |
+| Nearest ER | — | out-of-hours / danger | fallback |
+
+**Decisions needed (PO + clinical lead):**
+1. ☐ Adopt this 5-entry composition  ☐ edit: ____________  ☐ keep current single `800 46342`
+2. ⚠ This **REVERSES GL-1** (2026-07-09 ruling: `800 46342` + 24/7 correct/final). ☐ reversal confirmed intentional (doc is normative)  ☐ no — keep GL-1
+3. **Verify-before-launch** (doc L2130 — numbers/hours can change): ☐ each number + hours verified current  ☐ verification call needed first
+
+Full evidence: `docs/2026-07-10-section-H-clinician-queries.md` §H4. Frontend `crisis-config.ts` must mirror any change (separate consumer).
+
+---
+
+## ITEM 0b — 🔴 URGENT: crisis-copy "false 24/7" ripple (blocks the H4 value deploy)
+Adopting the 8am–8pm National primary makes 4 files assert a now-FALSE "MoHAP Counselling Line / available 24 hours" next to the `800-4673` number: **`psychotic_referral.json` (a CRISIS referral — worst case)**, `clinical_flag_adaptations.json`, `L0_persona.json` (label), `third_party_guidance.json` (label). Two fixes: (1) **eng/config** — replace the hardcoded "MoHAP" labels with `{{crisis_label}}` (now resolves to the correct service) — deterministic, no clinician needed; (2) **clinical** — `psychotic_referral` is a **crisis** referral. **RULED (PO 2026-07-10): use the doc's crisis composition — lead with 999 (the doc's 24/7 immediate-danger lead) + the resource list, numbers exactly as the doc; do NOT hardcode the 8am–8pm National as a lone/24-7 line.** This BLOCKS the H4 value deploy: shipping "call 800-4673, 24/7" is false-and-unsafe. (Also flagged: the single-source `{{crisis_hours}}` injects English "8am–8pm daily" into Arabic copy — an i18n limitation to note.)
+
+## ITEM 1 — Offer blurbs, 15 skills (OF-1)
+Tick/edit each: current blurb beside its doc source. Until ticked these matrix rows are PARTIAL.
+→ `docs/2026-07-10-OF-1-blurb-signoff-packet.md`
+
+## ITEM 2 — Collapsed video-skill copy, 5 skills (Wave-2) — EN [Vee-APPROVED]
+New all-at-once delivery scripts (H2 ruling): box breathing, PMR, mindfulness meditation, body scan, safe-place visualization. Tick/edit each proposed script.
+→ `docs/2026-07-10-wave2-collapsed-copy-packet.md`
+
+## ITEM 2b — Wave-2 collapsed copy, ARABIC translation (the Wave-2 re-land gate)
+AR equivalents of the approved EN scripts. Wave-2 re-lands only when EN **and** AR are both signed. Cross-cutting items were **checked against the doc — 2 of 3 are doc-governed, not clinician judgment**: (1) **gender** — DOC SILENT; real gap, build gender-adaptive (not masculine-default); (2) **safe-place Islamic framing** — DOC RESOLVES: do NOT default-add (L1697 "never assume faith"), stays opt-in via cultural_override; (3) **mindfulness back-off** — DOC-SUPPORTED (L126/L144), keep it. So the clinician's AR asks are per-script translation ticks + the gender-adaptive direction.
+→ `docs/2026-07-10-wave2-collapsed-copy-AR-signoff.md`
+
+## ITEM 3 — ST-6 ceiling human-support target (H3)
+A genuine blank: when High-tier TIPP shows no improvement, what concrete non-crisis resource is offered? Doc specifies none.
+→ `docs/2026-07-10-section-H-clinician-queries.md` §H3
+
+---
+
+## DECISION-RECORD — clinician ACKNOWLEDGE (not tick): L4 human-handoff deferral
+The audit found the skills' `escalation_matrix` **L4** ("human handoff — 3+ crises/30d, or explicit human request") is **read by no runtime code and has no enforcer anywhere** — 27 skill files assert a safety capability that isn't built. Ruling: **L4 human-handoff automation is DEFERRED** — no live call routing in the POC. The **OR-7 response floor is implemented instead** (user asks for a human → acknowledge + the verified resource list, which *are* humans, + no skill loop — a deterministic script on the new resources). The **3+ crises/30d automated trigger** revisits at the same beyond-demo exposure gate as **D4(a)** (and shares the #232 cross-session-state mechanism family). The truth-in-code PR marks L4 **NOT_IMPLEMENTED per this record**, so the string stops lying and the deferral is auditable. **Clinician: please acknowledge** — the escalation_matrix is clinician-authored content whose L4 tier is now formally not enforced.
+
+## Already answered (recorded, no action)
+- **H1** — TIPP psychoed opener filled ("…don't push yourself beyond what feels safe") → **shipped** (PR #280).
+- **H2** — Format=Video all-at-once delivery rule **ticked** → Wave-2 engineering built (PR #284).
