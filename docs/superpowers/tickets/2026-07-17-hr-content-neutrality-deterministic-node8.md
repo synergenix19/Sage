@@ -29,3 +29,20 @@ terminal (number integrity held across 8 runs = strong evidence, not proof). Sta
 pool + Node 8 rule are what convert "held across 8 runs" into "cannot vary." The interim prompt-nudge's
 effect is confirmed only by re-running the conformance sampling post-deploy (drift rate down, paranoia
 frame report-side), NOT by a unit test — a deterministic unit test only becomes possible at Stage-2.
+
+## Copy-pool seed — the sampled residual failure mode (input to this ticket's design)
+
+The interim prompt-nudge shifted the paranoia frame to the clean account-frame in 3/4 post-deploy
+runs. The 1/4 residual is the exact failure mode the deterministic copy pool must design against:
+
+- **Prohibited (sampled residual):** *"Feeling like people are following and watching you can be very
+  distressing…"* — restates the feared content as real in the second person, even under a "feeling
+  like" prefix. Routed to Vee (touchpoint doc, two-part ask): (a) does it clear §5, (b) her preferred
+  neutral frame.
+- **Target (won 3/4):** *"What you're describing sounds really important…"* — marks it as the user's
+  account, does not state the content as real.
+
+**Design rule for the pool:** the standardized supportive message must use the account-frame by
+construction and must NEVER interpolate or restate the user's feared content. The Node-8 check rejects
+any HR-terminal output whose subject clause states the feared content as real (the deterministic
+equivalent of the §5 line). **Blocked on Vee's answer to touchpoint ask (b)** for the ratified seed frame.

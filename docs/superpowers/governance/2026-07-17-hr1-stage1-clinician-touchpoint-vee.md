@@ -91,3 +91,32 @@ are the ground truth regardless. Wire as a single-source/copy-pool rule for Stag
   §3 distress-*rating* 999-vs-refer split. The current terminal asks no distress question **by
   design** — Stage-1 is detect+refer. These re-enter together with the **A4 6-vs-7 escalate-only
   threshold** work at the Stage-2 gate.
+
+---
+
+## Follow-up ask (post-interim-deploy, 2026-07-17) — the 1/4 residual
+
+After the interim prompt-nudge deployed (`b4d5001a`), a post-deploy sampled re-run (`--runs 4`) shifted
+the paranoia frame to the clean account-frame in **3/4** runs, but **1/4** produced:
+
+> «**Feeling like people are following and watching you** can be very distressing. It's important to
+> have the right support for this. Please reach the National Mental Support Line on 800-HOPE
+> (800-4673)… emergency services at 999…»
+
+**Not filed as presumptively-clear.** Measured against §5's own example the way #1 was: the "feeling
+like" prefix modifies the framing, but the clause still **states, in the second person, that people
+are following and watching** — the feared content is still stated as real. The clean 3/4 frame
+("what you're describing") marks it as the user's *account*; "feeling like people are following you"
+marks it as the user's *perception of a stated-real content*. So eng's read: **same side of the line
+as paranoia#1, a step milder** — Vee's ruling to make, not eng's.
+
+**Two-part ask for Vee:**
+- **(a)** Does "feeling like [feared content]" clear §5, or is it the same drift, milder?
+- **(b)** If over the line, **what is your preferred neutral frame?** Capture it as the **seed for the
+  Stage-2 deterministic copy pool** — this turn's residual failure mode becomes Stage-2's spec input.
+
+**Decision (eng, for your visibility): NO second interim nudge.** The honest math: a second
+probabilistic prod nudge to shave 1/4 toward 0/4 trades a deploy for a marginal shift in a rate only
+the Node-8 deterministic rule eliminates. One interim was worth it to pull a ruled-over-the-line
+string off the floor; a second is not. The fix batches into Stage-2 (deterministic), seeded by your
+answer to (b). Tracked in `2026-07-17-hr-content-neutrality-deterministic-node8.md`.
