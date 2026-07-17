@@ -19,11 +19,24 @@ changed that honesty note to `"INTERIM native Arabic layer…"`. **The test drif
 ungated** — had it been in the gate, #329 would have been forced to update it or been blocked. This is
 the silent-failure class exactly, on the highest-stakes terminal.
 - Root cause is also an **assert-on-PROSE** test (anchored on a copy string, the drift-prone pattern
-  the standing rule forbids). Fix = re-anchor `test_honesty_notes_ship_verbatim` on BEHAVIOR (the guard
-  fires on cardiac + passes raw+message_en, which the file's other 20 tests already assert), or delete
-  it if fully redundant — clinician/owner call on a safety test, do not silently string-swap.
-- **Sequence:** re-anchor/fix the red test FIRST, then add the file to the gate. Gating it red would
-  deadlock; string-swapping it green repeats the prose-assert anti-pattern.
+  the standing rule forbids).
+- **STEP ZERO (do NOT skip): confirm the current honesty note is CORRECT before re-anchoring.** The
+  string `"INTERIM native Arabic layer…"` is a **shipped user-facing honesty disclosure about the
+  system's Arabic capability, on the 998 medical terminal.** Re-anchoring the test to #329's wording
+  without confirming the wording is accurate/clinician-acceptable = making the test pass while possibly
+  **blessing an inaccurate safety disclosure** — the same failure as string-swapping it green, one level
+  up. So: verify the note's content is right (quick clinician/PO confirm, since it is a shipped claim
+  about clinical capability), THEN anchor.
+- **Re-anchor on BEHAVIOR, correctly defined.** For an honesty-disclosure test, "behavior" = **assert
+  the note ACCURATELY REFLECTS the system's actual Arabic state**, NOT that the note equals this literal
+  string. Write it so a future capability change (INTERIM → full native Arabic) updates the note AND the
+  test together by construction — the string-equality version drifts red again the moment the note
+  changes and lands you right back here. (Or delete the test if the other 20 behavioral tests fully
+  cover the guard — clinician/owner call on a safety test.)
+- **Sequence — ATOMIC, one PR.** re-anchor to green → confirm BOTH medical tests green in venv (stub
+  env) → add both to the gate **in the same PR.** Do NOT split fix-the-test and gate-the-test across
+  PRs: that reintroduces a fixed-but-ungated window where the medical loader can drift again silently —
+  which is the whole lesson of this audit. Close that window in one move for the 998 terminal.
 
 ### 🟢 P1 — three ungated deterministic safety tests, GREEN under the gate stub, safe to gate now
 Verified pass under the gate's offline env:
