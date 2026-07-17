@@ -23,7 +23,14 @@ no record.)
 > message content** — an acceptable PDPL basis for contraindication-decision traceability under right-to-object,
 > to write in prod (incl. shadow)?
 
-▢ confirmed ▢ needs change: ______
+## Disposition: ✅ APPROVED (compliance, 2026-07-17, relayed via user)
+Approved to write in prod including shadow. Basis: the row stores **anonymised class + route only, no message
+content** — consistent with the anonymised-data posture already in force. The `screen_answer_class` values are
+a fixed enum (`clear_no | red_flag | contraindication_disclosed | yes | unclear | no_answer`), never free text;
+`screen_branch_taken` is a route label. No message content, no free text, at any point.
 
-*Blocks: the first prod audit-row write (shadow). Not the code, not GATE 0, not Vee's clinical ticks — those
-proceed in parallel.*
+**Standing guardrail this locks:** the audit writer must NEVER be extended to persist the user's raw answer
+text or any free-text field — doing so would exceed this PDPL basis. The class-not-content boundary is the
+approval boundary. (Enforced in code by the writer taking only the three enum/label fields.)
+
+*No longer blocks the first shadow row write. The shadow window may write from its first turn.*

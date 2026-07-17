@@ -73,8 +73,52 @@ condition is a routing fact, not an emergency.
 tests run with `PYTHONPATH=$PWD/src` and a pre-flight assert that `sage_poc.__file__` starts with the worktree
 `src/` before any result is trusted.
 
+## ADDENDUM 2026-07-17 (2) — SILENT shadow surface (the driveable dark-deploy artifact)
+
+**Why silent, not serve-but-don't-enforce:** a safety screen cannot be shadowed by letting the harm through.
+Serving-without-enforcing would knowingly route a heart-condition discloser to TIPP ice-water during the
+window — the exact harm D1 exists to prevent. So shadow is **route-identity by construction**: it observes the
+would-be decision and writes it to the audit, and does **not** move the served route.
+
+**The invariant, driven both directions (7 shadow tests, 65 total green):**
+- **ROUTE-IDENTITY, byte-for-byte** — `test_shadow_route_identity_on_contraindicated`: strip the
+  `screen_shadow_*` observation keys and what remains is **identical to the flag-off output**; TIPP is still
+  the routed skill; `screen_pending` / `screen_question_text` never set. Even with a session prior that would
+  reroute (`test_shadow_observation_matches_decide_screen`), the served `active_skill_id` stays `dbt_tipp`
+  while `screen_shadow_action == reroute_grounding` is recorded.
+- **PRECEDENCE** — `test_enforce_wins_over_shadow`: both flags on → enforce path (route moves), and the enforce
+  path writes **no** shadow observation.
+- **BOTH-OFF IDENTITY preserved** — `test_both_off_is_identity_no_shadow_keys`: neither flag → byte-identical,
+  no shadow keys leak. (The original `test_flag_off_is_byte_identical` still holds — enforce-off + shadow-off.)
+- **NOT-A-SCREEN cases** — veto result and non-contraindicated skill in shadow → identity, no observation.
+
+**Seam wired, not just unit-green (the SG-2 lesson):** the `screen_shadow_*` keys are **declared SageState
+channels** (else LangGraph drops them between skill_select and output_gate), **per-turn reset** in
+`_build_state` (else a prior screen turn's observation leaks onto a later non-screen audit row — the same seam
+on the audit surface; the existing `screen_asked` group was reset in the same pass), and **read by
+`_build_session_audit_row`** so the observation actually persists. The audit block is flag-gated exactly like
+tiering/precedence/medical/HR: a non-screen row stays byte-identical to master, and the `screen_shadow_*`
+column migration is the `SAGE_D1_SCREEN_SHADOW` flip deploy gate. Red-verified both directions
+(`test_medical_screen_audit.py`, block-disabled → shadow rows fail; restored → green). `check_state_channels`,
+`check_signed_fields`, parity, reads-raw all green.
+
+**HONEST RULING 3 SPLIT (named, not a silent cut):** silent shadow measures **FIRE-VOLUME** only. The
+answer-class distribution criteria (`unclear < 20%`, `contraindication_disclosed` rate) require the question
+*served and answered*, which silent shadow by definition does not do. Therefore:
+- **Shadow-window gate:** trigger fire-rate / would-fire volume (measurable now, route-identity).
+- **Post-flip monitored-enforce gate:** the answer-class distribution criteria (measurable only once serving
+  is live, with the fail-safe actually protecting users). This is where the user's "post-flip monitoring
+  against the [criteria]" lands. RULING 3's thresholds are unchanged; only *which gate reads which row* is
+  made explicit.
+
+**Not built here (honest scope):** the **serve/resume render path** (enforce-time: emit the signed question
+via a terminal node, hold the skill, resume it on a clear_no answer). It is needed for the FLIP, not for the
+shadow window — silent shadow never serves. It is the next increment before flip.
+
 ## Verdict
-Every branch provable without signed content is driven and green (**50** + regression, zero delta). Both
-clinical halves (L101 quality + L194 contraindication) covered. GATE 0's isolated drive is **complete**. Next:
-A1/A2 → Vee (dual-coverage named in the packet); flag-dark deploy through the lock chain; shadow with
-pre-registered flip criteria + PDPL line closed before the first prod row; end-to-end drive in shadow; flip.
+Every branch provable without signed content is driven and green (**65** + regression, zero delta). Both
+clinical halves covered; EN question signed & pinned; silent-shadow surface is route-identity byte-for-byte
+with its seam declared+reset+persisted. GATE 0's isolated drive is **complete** through the dark-deploy
+artifact. Next: build serve/resume (for flip) → dark deploy (flag-dark) through the lock chain → shadow window
+(fire-volume gate) → flip → post-flip monitored-enforce (answer-distribution gate). PDPL line **closed**
+(approved 2026-07-17, anonymised class+route).

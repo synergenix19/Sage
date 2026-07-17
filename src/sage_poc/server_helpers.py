@@ -190,6 +190,15 @@ def _build_state(req: _RequestLike) -> dict:
         "offer_response":          None,
         "offer_choice_skill_id":   None,
         "stall_detected":          None,   # per-turn; set in intent_route
+        # #338 D1 screen per-turn audit fields — reset each turn so a prior screen turn's class/branch/shadow
+        # observation cannot leak onto a later non-screen turn's audit row (the SG-2 seam class, applied to
+        # the audit surface). session_screen_answer and screen_pending are per-SESSION and deliberately absent.
+        "screen_asked":            False,
+        "screen_answer_class":     None,
+        "screen_branch_taken":     None,
+        "screen_shadow_action":    None,
+        "screen_shadow_answer_class": None,
+        "screen_shadow_branch":    None,
         # Set from request — needed by tools and summary persistence
         "session_id": req.session_id,
         "user_id":    req.user_id,

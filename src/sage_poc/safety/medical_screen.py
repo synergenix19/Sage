@@ -213,8 +213,10 @@ def apply_screen_at_route(state: dict, result: dict) -> dict:
     contraindicated-skill situation, so no screen is asked and no screen state is written.
     """
     from sage_poc import config  # read at call time so the flag is honoured/monkeypatchable
-    if not config.D1_SCREEN_ENABLED:
-        return result  # ── identity: the off-path writes nothing ──
+    enforce = config.D1_SCREEN_ENABLED
+    shadow = config.D1_SCREEN_SHADOW
+    if not enforce and not shadow:
+        return result  # ── identity: both-off path writes nothing ──
 
     pending = bool(state.get("screen_pending"))
     resolved = result.get("active_skill_id") or (result.get("offered_skill_ids") or [None])[0]
@@ -224,6 +226,17 @@ def apply_screen_at_route(state: dict, result: dict) -> dict:
     lang = (state.get("detected_language") or "en").lower()
     d = decide_screen(resolved or "", state)
     action = d["action"]
+
+    # ── SHADOW (enforce off): observe the would-be decision, DO NOT alter the served route. Route-identity
+    # by construction — copy `result` untouched and add ONLY screen_shadow_* observation keys. Enforce wins:
+    # this branch is skipped entirely when D1_SCREEN_ENABLED is on. ──
+    if not enforce:
+        a = d.get("audit", {})
+        obs = dict(result)
+        obs["screen_shadow_action"] = action
+        obs["screen_shadow_answer_class"] = a.get("screen_answer_class")
+        obs["screen_shadow_branch"] = a.get("screen_branch_taken")
+        return obs
     audit = d.get("audit", {})
     out = dict(result)
     for k in ("screen_asked", "screen_answer_class", "screen_branch_taken"):

@@ -142,6 +142,8 @@ jobs:
             tests/test_medical_screen.py
             tests/test_medical_screen_wiring.py
             tests/test_medical_screen_callsite.py
+            tests/test_medical_screen_shadow.py
+            tests/test_medical_screen_audit.py
             tests/test_medical_redflag_ar_329.py
             tests/test_safety_language_parity.py
             tests/test_ocd_compulsion_raw_path.py
