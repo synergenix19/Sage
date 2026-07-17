@@ -94,3 +94,19 @@ Three consecutive deploys produced the same evidence about the CLI surface — t
 - **LOADED GUN — `railway redeploy --from-source`:** re-deploys the *currently-pinned* commit, NOT the branch HEAD. Observed re-deploying `d27987f` three times while master was far ahead. Its failure mode is silently reverting a live fix; never use it while a hotfix is load-bearing. Deploy a **named SHA** instead.
 - **BROKEN HELPER — `use-railway/scripts/railway-api.sh`:** reads `.user.token`, which the CLI leaves `null` (the real token is `.user.accessToken`), so its GraphQL polling returns `null` every poll. Use `railway deployment list` for status, not the API helper.
 - **Provenance consequence (fixed this turn):** because `railway up` cannot set `RAILWAY_GIT_COMMIT_SHA`, `/health/version.build_sha` now falls back `SAGE_BUILD_SHA → RAILWAY_GIT_COMMIT_SHA → "unknown"` (loud, never blank) and reports `build_sha_source`. The durable class-fix is to stop deploying by manual upload: a named-SHA git-integration deploy re-points the source off the stale pin and makes `RAILWAY_GIT_COMMIT_SHA` truthful, closing both the `--from-source` gun and the lying-SHA in one motion.
+
+## GATE 0 — new-safety-mechanism pre-deploy step (standing, added 2026-07-17)
+
+Before any NEW safety mechanism ships (screen, veto, guard, detector), it clears **GATE 0** — the
+layer-attribution + red-verify rules composed into a pre-deploy gate:
+1. **Code-review** the mechanism (the deterministic consequence especially — where a bug is dangerous).
+2. **Drive every branch** end-to-end on staging/shadow, not just isolated tests: each route taken,
+   the fail-safe default reached, re-entry semantics (per-session state) exercised, crisis-supremacy
+   over the mechanism exercised.
+3. **Markers asserted, not echoes** (the #338/#342 harness lesson): a probe that greens on a surface
+   token while the behaviour is wrong is a lie in the suite.
+4. **Audit written-and-read-back** (#160 alert-or-fail): the mechanism's decision record is present.
+5. **Bilingual + flow-aware** (the parity + flow-assumption lessons): every language's flow driven;
+   any language whose signed content isn't ready holds the fail-safe default (grounding), verified by
+   driving a turn in that language.
+"No go-live on an unverified safety path; don't sign green you haven't driven." Procedure, not vigilance.

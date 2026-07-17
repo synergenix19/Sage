@@ -937,8 +937,9 @@ async def skill_select_node(state: SageState) -> dict:
                     "skill_match_method": None, "semantic_score": None, "skill_select_abstained": True,
                     "path": state["path"] + ["skill_select", "keyword_rerank_veto"]}
         # resolve result must win the merge: offer results set offered_skill_ids themselves
-        return {**stale_offer_clear,
-                **_resolve_entry(state, candidates, method="keyword", semantic_score=None)}
+        from sage_poc.safety.medical_screen import apply_screen_at_route  # noqa: PLC0415
+        return apply_screen_at_route(state, {**stale_offer_clear,
+                **_resolve_entry(state, candidates, method="keyword", semantic_score=None)})
 
     # Pre-Tier-2 exclusion guard: words with no therapeutic skill match in this registry.
     # Prevents BGE-M3 from routing somatic/physiological disclosures (appetite loss, food
@@ -1002,8 +1003,11 @@ async def skill_select_node(state: SageState) -> dict:
                 return _ipv_suppressed_return(stale_offer_clear)
             candidates = _filtered
         # resolve result must win the merge: offer results set offered_skill_ids themselves
-        return {**stale_offer_clear,
-                **_resolve_entry(state, candidates, method="semantic", semantic_score=round(score, 4))}
+        from sage_poc.safety.medical_screen import apply_screen_at_route  # noqa: PLC0415
+        # D1 screen (#338) — flag-gated, byte-identical when off; positioned AFTER the vetoes above, so the
+        # supremacy chain holds (a veto turn returned earlier and never reaches here).
+        return apply_screen_at_route(state, {**stale_offer_clear,
+                **_resolve_entry(state, candidates, method="semantic", semantic_score=round(score, 4))})
 
     return {
         **stale_offer_clear,

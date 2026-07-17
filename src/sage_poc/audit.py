@@ -175,6 +175,20 @@ def _build_session_audit_row(state: SageState) -> dict:
     if state.get("hr_branch"):
         row["hr_branch"] = state.get("hr_branch")
         row["hr_distress_score"] = state.get("hr_distress_score")
+    # #338 D1 SILENT shadow observation (flag-gated, same discipline as tiering/precedence/medical/HR
+    # above): included ONLY when the screen shadow-fired this turn (screen_shadow_action set), so a
+    # flag-OFF / non-screen row stays byte-identical to master. PDPL-approved 2026-07-17: anonymised
+    # class + route ONLY, never message content or free text — the writer takes exactly these fields.
+    # Migration for the screen_shadow_* columns is the SAGE_D1_SCREEN_SHADOW flip deploy gate.
+    if state.get("screen_shadow_action"):
+        row["screen_shadow_action"] = state.get("screen_shadow_action")
+        row["screen_shadow_answer_class"] = state.get("screen_shadow_answer_class")
+        row["screen_shadow_branch"] = state.get("screen_shadow_branch")
+    # #338 D1 ENFORCE audit fields — same flag-gated discipline; included only on a real screen turn.
+    if state.get("screen_asked") or state.get("screen_branch_taken"):
+        row["screen_asked"] = bool(state.get("screen_asked"))
+        row["screen_answer_class"] = state.get("screen_answer_class")
+        row["screen_branch_taken"] = state.get("screen_branch_taken")
     return row
 
 
