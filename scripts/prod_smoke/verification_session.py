@@ -119,15 +119,29 @@ def item3_routing_dod():
 
 
 def item4_bb_caveat_order():
-    print("== 4. box_breathing AR caveat ordering (dangling ⚠️) ==")
-    s = sid("bb-ar")
-    chat(s, "أنا قلقان بشأن العرض بكرة، ساعدني أهدأ"); time.sleep(2.5)
-    r2 = chat(s, "إيه من فضلك علمني تنفس الصندوق"); time.sleep(3)
-    low = r2.lower()
-    caveat_i = min([low.find(n) for n in ["ربو", "قلب"] if n in low] or [-1])
-    tech_i = min([low.find(n) for n in ["شهيق", "زفير", "1", "٤"] if n in low] or [-1])
-    ok = caveat_i != -1 and (tech_i == -1 or caveat_i < tech_i)
-    record("bb-AR", "caveat precedes technique", ok, r2[:90])
+    # STRUCTURAL bilingual ordering: caveat-precedes-technique on the ENTRY turn. FLOW-AWARE: AR
+    # bypasses the R1 offer (signed 2026-06-13 Arabic-exclusion gate) and DIRECT-ENTERS box_breathing
+    # on turn 1 — so the caveat fires there, not on a later "accept" turn (that was the run #001
+    # false-fail, #342). Assert on the rendered output of the entry turn, per language.
+    print("== 4. box_breathing caveat ordering (bilingual, entry turn) ==")
+
+    def caveat_before_technique(resp, caveat_words, tech_words):
+        low = resp.lower()
+        c = min([low.find(w) for w in caveat_words if w in low] or [-1])
+        t = min([low.find(w) for w in tech_words if w in low] or [-1])
+        return c != -1 and (t == -1 or c < t)
+
+    # AR: entry turn is turn 1 (direct-entry). Caveat words = asthma/breathing/heart; technique = inhale/exhale/count.
+    sa = sid("bb-ar"); r_ar = chat(sa, "أنا قلقان بشأن العرض بكرة، ساعدني أهدأ"); time.sleep(3)
+    record("bb-AR", "caveat precedes technique (entry turn, AR)",
+           caveat_before_technique(r_ar, ["ربو", "قلب", "حالة تنفس"], ["شهيق", "زفير", "احتفظ", "1", "٤"]), r_ar[:90])
+
+    # EN: R1 offer flow -> entry is the accept turn (turn 2).
+    se = sid("bb-en"); chat(se, "I'm really anxious about my presentation tomorrow, help me calm down"); time.sleep(2.5)
+    r_en = chat(se, "yes please walk me through box breathing"); time.sleep(3)
+    record("bb-EN", "caveat precedes technique (entry turn, EN)",
+           caveat_before_technique(r_en, ["asthma", "breathing condition", "heart condition"],
+                                   ["breathe in", "inhale", "exhale", "hold", "four", "1,"]), r_en[:90])
 
 
 def item5_sg2_caveat():
