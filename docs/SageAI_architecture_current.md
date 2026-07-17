@@ -1,7 +1,7 @@
 # SageAI Architecture — Current State
 
 **Document type:** Living codebase reference  
-**Last updated:** 2026-06-12 (R1 consent-gated skill entry via skill_matching rules category; R3 engage-then-bridge in L2_general_chat v1.3.0; R5 criteria_hold_budget; see docs/superpowers/plans/2026-06-12-engagement-r1-r3-r5.md). Prior: 2026-05-31 (Phase 1: L2 unmatched-disclosure template; embedding field audit; open items GRIEF-SKILL, TIER2-DUALIDX, L2-AUTHORITY, EMOTIONS-FIELD added)  
+**Last updated:** 2026-07-16 (HR-1 Stage 2 Task 5, **approved 2026-07-16 (PO sign-off)**: introduces the SAFETY-EXIT TERMINAL CLASS §2.1.1 — contract + `crisis_response`/`medical_response`/`high_risk_response` members table + output_gate-bypass boundary; closes the prior undocumented-`medical_response` gap; logs the HR routing-altitude correction; node count 9→11; see docs/superpowers/specs/2026-07-16-hr1-stage2-terminal-design.md). Prior: 2026-06-12 (R1 consent-gated skill entry via skill_matching rules category; R3 engage-then-bridge in L2_general_chat v1.3.0; R5 criteria_hold_budget; see docs/superpowers/plans/2026-06-12-engagement-r1-r3-r5.md). Prior: 2026-05-31 (Phase 1: L2 unmatched-disclosure template; embedding field audit; open items GRIEF-SKILL, TIER2-DUALIDX, L2-AUTHORITY, EMOTIONS-FIELD added)  
 **Supersedes:** `SageAI_v7_FINAL_COMPLETE.docx` and `docs/v7.1-post-crisis-state-addendum.md` for all code-level claims  
 **Ground truth path:** `sage-poc/`
 
@@ -9,7 +9,7 @@
 
 ## 1. Overview
 
-SageAI is an English-first therapeutic wellness companion with Arabic delivery via translation. It handles both languages but is not natively bilingual — skill logic is authored in English; Arabic replies are produced by translating the English response via the output_gate pipeline. See §3 (Language Pipeline) for the full translation architecture. It routes each user turn through a deterministic 9-node graph, selecting from 20 structured therapeutic skills or falling back to evidence-informed freeflow conversation. Crisis detection, clinical flag tracking, and post-crisis state management run on every turn ahead of any response generation.
+SageAI is an English-first therapeutic wellness companion with Arabic delivery via translation. It handles both languages but is not natively bilingual — skill logic is authored in English; Arabic replies are produced by translating the English response via the output_gate pipeline. See §3 (Language Pipeline) for the full translation architecture. It routes each user turn through a deterministic 11-node graph, selecting from 20 structured therapeutic skills or falling back to evidence-informed freeflow conversation. Crisis detection, clinical flag tracking, and post-crisis state management run on every turn ahead of any response generation. Three of the 11 nodes (`crisis_response`, `medical_response`, `high_risk_response`) are not part of the ~8-stage processing pipeline at all — they form a distinct **SAFETY-EXIT TERMINAL CLASS** with its own contract; see §2.1. *(Node-count and class documentation below: approved 2026-07-16, PO sign-off — see §2.1.)*
 
 ### 1.1 What changed from v7 FINAL / v7.1 addendum
 
@@ -17,7 +17,7 @@ The v7 FINAL document and v7.1 addendum described a 8-node graph with 13 skills,
 
 | Area | v7 FINAL / v7.1 | Current (2026-05-30) |
 |---|---|---|
-| Graph nodes | 8 nodes | **9 nodes** — `knowledge_retrieve` added |
+| Graph nodes | 8 nodes | **11 nodes** — `knowledge_retrieve` added; `medical_response` (B1) and `high_risk_response` (HR-1 Stage 2, §2.1) join `crisis_response` as the SAFETY-EXIT TERMINAL CLASS |
 | Skill count | 13 | **20** (7 new in Gitex sprint: psychoed_anxiety/depression/stress, values_clarification, assertive_communication, self_compassion_break, mindfulness_body_scan) |
 | Safety layer | S1 lexicon only (S3 planned) | **S1 + S3 OR-fusion live** (`S3_THRESHOLD=0.8059`, 48-phrase corpus) |
 | Crisis state | Bool flag `crisis_occurred_this_session` (v7); replaced by `crisis_state` enum (v7.1) | **v7.1 state machine live** + S7 classifier live (`post_crisis_classifier.py`) |
@@ -42,7 +42,7 @@ The v7.1 addendum (`docs/v7.1-post-crisis-state-addendum.md`) remains accurate f
 
 ### 2.1 Node Catalogue and Design Notes
 
-The graph has 9 nodes. They are not structurally uniform — understanding what makes each one distinct matters when debugging, adding behaviour, or reading traces.
+The graph has 11 nodes. They are not structurally uniform — understanding what makes each one distinct matters when debugging, adding behaviour, or reading traces. Eight of the eleven (`safety_check` through `low_confidence_respond` below) form the ~8-stage processing pipeline: they exit via `output_gate` (or feed a node that does). The remaining three (`crisis_response`, `medical_response`, `high_risk_response`) do not — they form a separate **SAFETY-EXIT TERMINAL CLASS**, documented in §2.1.1 below (approved 2026-07-16, PO sign-off).
 
 | Node | Implementation | Role |
 |---|---|---|
@@ -53,8 +53,10 @@ The graph has 9 nodes. They are not structurally uniform — understanding what 
 | `skill_executor` | `nodes/skill_executor.py` | Step execution, step_policy evaluation, LLM criteria eval, escalation detection, resistance scoring |
 | `freeflow_respond` | `nodes/freeflow_respond.py` | 6-layer prompt composition, LLM response with optional `knowledge_lookup` tool loop, prior context retrieval |
 | `output_gate` | `nodes/output_gate.py` | Cultural output validation, identity substitution, banned opener retry, format check, Arabic translation, audit |
-| `crisis_response` | `graph.py` (inline `_crisis_response_node`) | Deterministic rule-based crisis protocol, sets `crisis_state="monitoring"`, bypasses output_gate |
 | `low_confidence_respond` | `nodes/low_confidence_respond.py` | Clarification request when `intent_confidence < 0.6` |
+| `crisis_response` *(safety-exit terminal)* | `graph.py` (inline `_crisis_response_node`) | Deterministic rule-based crisis protocol, sets `crisis_state="monitoring"`, bypasses output_gate |
+| `medical_response` *(safety-exit terminal)* | `nodes/medical_response.py` | Deterministic B1 medical red-flag referral, static text, bypasses output_gate |
+| `high_risk_response` *(safety-exit terminal)* | `nodes/high_risk_response.py` | Deterministic HR-1 Stage 2 two-turn distress-branch protocol (psychosis/mania/dissociation), bypasses output_gate; flag-gated on `SAGE_HIGH_RISK_TERMINAL` |
 
 **What makes each node distinctive:**
 
@@ -72,9 +74,48 @@ The graph has 9 nodes. They are not structurally uniform — understanding what 
 
 **`output_gate` — NOT a response generator.** This is a transformation and audit node. It does not call the LLM for content. It validates, substitutes, translates, and logs. Every non-crisis response flows through it. It is the only node that writes the LangGraph checkpoint `last_turn_at` timestamp, persists session summaries, and fires the clinician review queue. It can route back to `freeflow_respond` exactly once (for a banned opener retry).
 
-**`crisis_response` — the exception to every rule.** This is the only node defined inline in `graph.py` rather than in the `nodes/` directory. It behaves differently from all other nodes in four ways: (1) it routes directly to `END`, bypassing `output_gate` entirely; (2) it calls `write_session_audit` directly via `asyncio.create_task` (other nodes rely on output_gate to do this); (3) it sets `last_turn_at` directly (normally output_gate's responsibility); (4) it is the only node that transitions `crisis_state` from `"none"` or `"resolved"` to `"monitoring"`. Its response is purely deterministic — the crisis hotline text comes from a rules engine `crisis_content` evaluation with a hard-coded fallback, never from an LLM. `crisis_state → "resolved"` can also be set by `skill_executor` (on `post_crisis_check_in` L1 exit or skill completion); `crisis_response` only sets it to `"monitoring"`.
+**`low_confidence_respond` — the lightest node, and NOT a safety-exit terminal.** Generates a single clarification request using `get_responder()` + `resilient_stream` with a simple hardcoded `_SYSTEM` prompt ("ask ONE gentle, open-ended clarifying question, maximum 2 sentences"). It does NOT use the 6-layer prompt composition system — no L0-L5 template, no history, no clinical context. It is easy to mistake for a fourth terminal because its copy is short and simple, but it routes through `output_gate` for validation and audit like a normal pipeline node (see §2.1.1's boundary note below) — it does not bypass the gate, does not clear skill state on entry, and holds no precedence rank.
 
-**`low_confidence_respond` — the lightest node.** Generates a single clarification request using `get_responder()` + `resilient_stream` with a simple hardcoded `_SYSTEM` prompt ("ask ONE gentle, open-ended clarifying question, maximum 2 sentences"). It does NOT use the 6-layer prompt composition system — no L0-L5 template, no history, no clinical context. It routes directly to `output_gate` for validation and audit, same as `freeflow_respond`.
+**`crisis_response`, `medical_response`, `high_risk_response` — the SAFETY-EXIT TERMINAL CLASS.** These three share a documented contract instead of each independently reinventing "exit early, skip the gate." See §2.1.1.
+
+### 2.1.1 The SAFETY-EXIT TERMINAL CLASS (approved 2026-07-16, PO sign-off)
+
+> **Living-ref note:** this subsection is a proposed addition to the architecture doc (Task 5 of the HR-1 Stage 2 plan). It formalizes a pattern that already exists in code (`crisis_response` since v7.1; `medical_response` since B1) and extends it to a third member (`high_risk_response`, HR-1 Stage 2). It has not yet been ratified as a binding contract by human sign-off — treat it as the current best description of the pattern, not yet a rule CI enforces.
+
+Three nodes exit the graph by a different door than everything else. Instead of documenting each in isolation and leaving future authors to imitate whichever one they read most recently, the shared shape is a named **class** with a **contract**, stated once here.
+
+**The CONTRACT.** A node is a member of the SAFETY-EXIT TERMINAL CLASS if and only if it satisfies all of the following:
+
+1. **Routed from `_route_after_safety`** (`graph.py`) — never reached from any other router. This is the pre-intent altitude: these nodes resolve before `intent_route` ever classifies the turn.
+2. **Goes straight to `END`**, not to any other node.
+3. **Bypasses `output_gate`** — no cultural validation, no banned-opener check, no LLM-mediated translation pass.
+4. **Writes its own audit row** via `write_session_audit` / `asyncio.create_task`, because bypassing `output_gate` also bypasses the normal audit-write point (§8.5). An unaudited safety-exit turn is the single most consequential kind of turn to lose.
+5. **Clears skill state on entry** — `active_skill_id`, `active_step_id`, and `offered_skill_ids` are all set to `None`, so an in-progress skill cannot silently resume on the next turn after a safety exit.
+6. **Uses fixed / templated (deterministic) copy.** No LLM call renders any part of the response. This property is what licenses item 3 — see the BOUNDARY below.
+7. **Holds a precedence rank.** When more than one safety condition fires on the same turn, rank decides which one wins: **`crisis > medical > hr`**. `_route_after_safety` checks crisis first, medical second, HR third, so a higher-ranked condition always returns before a lower-ranked one is even evaluated.
+
+**The three members, against the contract:**
+
+| Contract item | `crisis_response` | `medical_response` | `high_risk_response` |
+|---|---|---|---|
+| Routed from `_route_after_safety` | Yes | Yes | Yes |
+| → `END` directly | Yes | Yes | Yes |
+| Bypasses `output_gate` | Yes | Yes | Yes |
+| Writes own audit row | Yes (`graph.py` inline) | Yes (`medical_response.py`) | Yes (`high_risk_response.py`) |
+| Clears skill state on entry | Yes | Yes | Yes |
+| Deterministic / templated copy | Yes — rules-engine `crisis_content` text, hard-coded fallback | Yes — static `MEDICAL_REFERRAL_TEXT` | Yes — fixed §1/§3 copy composed with `select_crisis_resources()`; no `evaluate_completion_criteria`, no LLM call anywhere on this path |
+| Precedence rank | 1 (highest) | 2 | 3 |
+| Turn span | 1 turn | 1 turn | **2–3 turns**, stateful via `hr_terminal_step` (`await_distress` → optional `reask` → delivery) |
+| Flag-gated | No (unconditional since v7.1) | No (unconditional since B1) | **Yes — `SAGE_HIGH_RISK_TERMINAL`.** OFF = Stage-1 behaviour (HR disclosures route through the post-intent skill layer instead; see the altitude-correction note below) |
+| Also sets/clears | `crisis_state` (`"none"`/`"resolved"` → `"monitoring"`); the only node that does | — | `hr_terminal_step`, `hr_escalate_regardless`, `hr_referral_delivered`, `hr_branch`, `hr_distress_score` |
+
+`crisis_response` additionally: is the only node defined inline in `graph.py` rather than in `nodes/`; is the only node that transitions `crisis_state` from `"none"` or `"resolved"` to `"monitoring"` (`crisis_state → "resolved"` is set elsewhere, by `skill_executor`, on `post_crisis_check_in` L1 exit or skill completion).
+
+`high_risk_response` additionally: is the only member that is not resolved in a single turn. T1 asks the one distress question; a reply that doesn't parse gets exactly one re-ask (T2); a T3 reply that still doesn't parse fails to the higher-severity branch by default. "One question, asked at most twice; two branch evaluations, ever" — enforced by the step counter, not merely by convention, so a third question is unrepresentable.
+
+**The BOUNDARY (do not let the class blur into a blanket safety exemption):** the `output_gate` bypass is **licensed by the copy being deterministic/templated, not by being safety-related.** It is tempting to read the class as "safety nodes skip the gate" — that is the wrong generalization. The correct one is narrower: *templated-copy nodes skip the gate; LLM-rendered nodes do not, regardless of how safety-critical their subject matter is.* A future terminal whose response is LLM-rendered — even one handling an equally severe safety condition — does **not** inherit the bypass. It must go through `output_gate` like any other node that produces LLM content, because the gate's cultural-validation and banned-opener checks exist precisely for content that wasn't hand-authored and reviewed in advance. **Stated as a rule: any terminal whose response involves runtime generation forfeits the bypass and routes through `output_gate`; there is no exemption by virtue of being safety-related.** This is also why `low_confidence_respond` is explicitly **not** a class member (see its entry above): its copy is LLM-generated, so it goes through the gate even though it is short, simple, and adjacent to the safety-exit nodes in the routing graph.
+
+**Conformance note — altitude correction (logged here per the HR-1 Stage 2 design doc's RESOLVED section):** HR-1 Stage 1 routed HR disclosures at the *post-intent* altitude — `_route_after_intent` → `skill_select` → `psychotic_referral` (a skill-layer auto-select gated on the `psychotic_disclosure` clinical flag). That was a temporary non-conformance: the architecture doc ranks HR *with* crisis conceptually, yet the Stage-1 routing sat below `intent_route`, so intent classification ran on HR turns it had no clinical business classifying. HR-1 Stage 2 does not just add a new terminal node — it **corrects HR's routing rank** to the pre-intent safety-exit altitude (item 1 of the contract above), closing that gap. This is a routing-altitude correction, not a new capability.
 
 ### 2.2 `criteria_eval` — called inside skill_executor, not a graph node
 
@@ -85,9 +126,12 @@ The graph has 9 nodes. They are not structurally uniform — understanding what 
 ### 2.2 Routing Graph
 
 ```
-safety_check
-  ├── safe  → intent_route
-  └── crisis → crisis_response → END
+safety_check                                          [SAFETY-EXIT TERMINAL CLASS, §2.1.1]
+  ├── safe        → intent_route
+  ├── crisis      → crisis_response      → END   (precedence rank 1)
+  ├── medical     → medical_response     → END   (precedence rank 2)
+  └── high_risk   → high_risk_response   → END   (precedence rank 3; flag-gated SAGE_HIGH_RISK_TERMINAL;
+                                                    2-3 turn protocol via hr_terminal_step)
 
 intent_route
   ├── skill_select  → (see below)
@@ -119,6 +163,8 @@ output_gate
 |---|---|
 | S1 or S3 fires (is_safe=False) | `crisis_response` regardless of crisis_state |
 | `crisis_state == "monitoring"` AND `s7_result == "NEW_CRISIS"` | `crisis_response` |
+| Safe, `SAGE_MEDICAL_REDFLAG_GUARD` ON, `medical_flags` set *(§2.1.1)* | `medical_response` (precedence rank 2, checked after crisis) |
+| Safe, not medical, `SAGE_HIGH_RISK_TERMINAL` ON, HR disclosure present and not yet delivered, or mid-protocol (`hr_terminal_step` set) *(§2.1.1)* | `high_risk_response` (precedence rank 3, checked after crisis and medical) |
 | `crisis_state == "monitoring"` AND safe | `intent_route` → forced to `skill_select` (bypasses confidence gate) |
 | `offered_skill_ids` set AND `offer_response == "accept"` | `skill_select` (offer promotion; bypasses confidence gate, same precedent as monitoring) |
 | Tier 1/Tier 2 match, `acute_direct_entry` rule NOT fired | `freeflow_respond` with `L2_skill_offer` (consent offer turn; `active_skill_id` stays `None`) |
@@ -153,7 +199,9 @@ Library: `langdetect`. Two overrides applied before the library result is truste
 
 Both directions use `get_translator()` (gpt-4o-mini by default, overridable via `SAGE_TRANSLATOR_MODEL`).
 
-**Arabic → English (input translation):** Called in `safety_check_node` when `lang == "ar"`. Prompt: *"Translate the following text to English. Return ONLY the translation, nothing else."* The translated English is stored as `message_en` and used for all downstream processing (safety rules, intent routing, skill matching).
+**Arabic → English (input translation):** Called in `safety_check_node` when `lang == "ar"`. Prompt: *"Translate the following text to English. Return ONLY the translation, nothing else."* The translated English is stored as `message_en` and used for downstream **therapeutic processing** (intent routing, skill matching, LLM rendering).
+
+> **LANGUAGE CONTRACT (invariant, ADR 2026-07-16-safety-detection-reads-raw):** safety-critical detection — crisis lexicon, clinical flags, iatrogenic vetoes, red-flag guards, contraindication triggers — reads the **raw** input in its original language via `state.safety_text(state)`, **never** `message_en`. Translation is for therapeutic processing only; it is never a safety-detection input. Routing safety through the translator makes recall hostage to translation quality on distress-register Khaleeji (the #329 medical-red-flag and #330 OCD-compulsion live bypasses). Enforced by `scripts/check_safety_reads_raw.py` (required CI).
 
 **English → Arabic (output translation):** Called in `output_gate_node` when `detected_language == "ar"`. Prompt: *"You are translating warm, supportive messages from a wellness companion named Sage. Translate to informal Gulf Arabic (Khaleeji dialect). Preserve emotional warmth and conversational tone. Avoid formal or clinical Arabic. Return only the translation."*
 
