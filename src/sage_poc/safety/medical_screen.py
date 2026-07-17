@@ -106,10 +106,23 @@ class UnsignedScreenError(RuntimeError):
     serve an unsigned question."""
 
 
-# Populated ONLY from signed_clinical_fields.json on Vee's tick (per-language). Empty = unsigned = unservable.
-# Per-language fail-safe: until an entry exists for a language, that language gets grounding-only for
-# acute-overwhelm (no screen in a language whose answers/question aren't signed).
-_SIGNED_QUESTIONS: dict[str, str] = {}
+# The SIGNED question text is the source of truth and is pinned in signed_clinical_fields.json (pyconst
+# selector) — CI fails if these bytes drift without a new sign-off. Two clinical beats: L101 acute
+# symptom-QUALITY (→ 998 on a red-flag) + L194 CONTRAINDICATION disclosure (→ grounding, a routing fact).
+# No em-dash (standing rule: content that can mirror into LLM output uses commas) — comma-swapped pre-freeze
+# on the clinical lead's disposition (2026-07-17-d1-vee-signoff-V.md).
+SCREEN_QUESTION_EN = (
+    "Before we try this one, a quick check first: does anything about how this feels seem different from "
+    "your usual anxiety? Like a sharp or crushing pain rather than tightness, pain spreading to your arm, "
+    "jaw, or back, real trouble breathing rather than shallow breathing, or numbness or weakness on one "
+    "side? And is there anything like a heart condition, or a pregnancy, that I should know about before "
+    "we try it?"
+)
+
+# Per-language fail-safe: only languages with a SIGNED question are servable; every other language gets
+# grounding-only for acute-overwhelm (no screen in a language whose question/answers aren't signed).
+# AR is deliberately ABSENT — it holds grounding-only until its own separate clinical tick.
+_SIGNED_QUESTIONS: dict[str, str] = {"en": SCREEN_QUESTION_EN}
 
 
 def is_screen_ready(lang: str) -> bool:

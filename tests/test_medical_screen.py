@@ -99,10 +99,19 @@ def test_trigger_does_not_fire_when_redflag_already_present():
     assert not ms.is_physical_symptom_ambiguous("i have crushing chest pain spreading to my arm")
 
 
-# ── placeholder guard: question is UNSERVABLE until Vee's signed bytes land ──
-def test_question_unservable_until_signed():
-    with pytest.raises(ms.UnsignedScreenError):
-        ms.screen_question("en")
+# ── post sign-off (Vee 2026-07-17): EN signed & servable; AR still unsigned (grounding-only) ──
+def test_en_question_servable_after_signoff():
+    assert ms.is_screen_ready("en") is True
+    q = ms.screen_question("en")
+    # both clinical beats present in the SIGNED bytes: L101 acute-quality + L194 contraindication
+    assert "different from your usual anxiety" in q          # L101 beat
+    assert "heart condition" in q and "pregnancy" in q       # L194 beat
+    assert "—" not in q                                      # no em-dash (standing rule; comma-swapped pre-freeze)
 
-def test_is_screen_ready_false_before_signoff():
-    assert ms.is_screen_ready("en") is False
+def test_en_question_is_exact_signed_bytes():
+    assert ms.screen_question("en") == ms.SCREEN_QUESTION_EN  # served value IS the signed constant
+
+def test_ar_still_unsigned_grounding_only():
+    assert ms.is_screen_ready("ar") is False
+    with pytest.raises(ms.UnsignedScreenError):
+        ms.screen_question("ar")

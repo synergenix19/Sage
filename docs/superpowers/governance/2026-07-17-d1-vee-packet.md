@@ -15,15 +15,17 @@ you deferred comes back to you honestly once shadow proves the screen. **Recomme
 > that dual coverage. This also *promotes the spec's own SG-2 caveat* ("heart condition → skip those steps")
 > from delivery-side self-screen to routing-side gate — D1's whole purpose.
 
-## RULING 1 — A1 question wording, **two beats** (approve / edit tone)
-> *"Before we try this one — quick check first: does anything about how this feels seem different from your
+## RULING 1 — A1 question wording, **two beats** — ✅ APPROVED (comma-swap applied pre-freeze)
+> *"Before we try this one, a quick check first: does anything about how this feels seem different from your
 > usual anxiety? Like a sharp or crushing pain rather than tightness, pain spreading to your arm, jaw, or
 > back, real trouble breathing rather than shallow breathing, or numbness or weakness on one side?*
 > *And is there anything like a heart condition, or a pregnancy, that I should know about before we try it?"*
 
 Beat 1 = spec L101 acute-quality markers (→ 998 if red-flag). Beat 2 = spec **L194 contraindication**
-disclosure (→ grounding, a routing fact not an emergency). **Edit tone freely; both clinical payloads stay —
-the L194 beat is the half that closes the gap.**  ▢ approve ▢ edit: ______
+disclosure (→ grounding, a routing fact not an emergency). **Approved as drafted**, with an eng-applied
+pre-freeze convention fix: the original em-dash ("Before we try this one — quick check") → comma, per the
+standing no-em-dash-in-mirrorable-content rule, clinical-lead dispositioned. These are the frozen signed
+bytes (`_SIGNED_QUESTIONS["en"]`, pinned).  ✅ approved
 
 ## RULING 2 — A2 branch table + fail-safe (approve / edit)
 Safe-by-construction — **routes away, never clears** (GATE 0 proved `proceed` reachable only from clear_no):

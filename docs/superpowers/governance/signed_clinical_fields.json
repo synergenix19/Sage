@@ -47,6 +47,22 @@
       "signoff": "clinician-approval-queue item 2 Group A; activated #244/aef9499; RESTORED 2026-07-13 after #218 stale-base clobber reverted it to active:false (see 2026-07-13 harm-to-others finding)"
     },
     {
+      "id": "d1_screen_question_en",
+      "selector": "pyconst:sage_poc.safety.medical_screen:_SIGNED_QUESTIONS:en",
+      "sha256": "cc2e2b83a9087b5a605473803835635fe47ca302a22bfad57edd6a2cd5442aa6",
+      "signed_by": "Vee (clinical lead)",
+      "signed_date": "2026-07-17",
+      "signoff": "D1 medical screen A1 (#338) — the served EN screening question, RULING 1 approved as drafted with an eng-applied pre-freeze convention fix (em-dash -> comma per the standing no-em-dash-in-mirrorable-content rule, clinical-lead dispositioned). Two clinical beats certified: L101 acute symptom-quality (-> 998 on red-flag) + L194 contraindication disclosure (heart/pregnancy -> grounding). AR deliberately absent (grounding-only until its own tick). Primary record: docs/superpowers/governance/2026-07-17-d1-vee-signoff-V.md"
+    },
+    {
+      "id": "d1_screen_branch_table",
+      "selector": "pyconst:sage_poc.safety.medical_screen:_ROUTES",
+      "sha256": "a67e3c9abaabf3c58f92862002e0f48fa7d2b1c771010c6cd0e557ff11542f05",
+      "signed_by": "Vee (clinical lead)",
+      "signed_date": "2026-07-17",
+      "signoff": "D1 medical screen A2 (#338) — the deterministic branch table {clear_no: proceed, red_flag: medical_guard}. RULING 2 approved. The fail-safe is structural: every other class (contraindication_disclosed, yes, unclear, no_answer, and any unknown class) routes to grounding via the .get(...,'grounding') default and is deliberately ABSENT from this map, so 'proceed' is reachable ONLY from clear_no and no class can acquire a proceed path by edit without changing this pinned hash. Primary record: docs/superpowers/governance/2026-07-17-d1-vee-signoff-V.md"
+    },
+    {
       "id": "safety_rule_activation_map",
       "selector": "safeactive:src/sage_poc/rules/data/safety/crisis_keywords.json,src/sage_poc/rules/data/safety/passive_si_patterns.json,src/sage_poc/rules/data/safety/clinical_flag_patterns.json",
       "sha256": "a6d8be1174e89297a8e3ede8463ad4801b8bb20cd03e08dfce1fea0515f6d501",
