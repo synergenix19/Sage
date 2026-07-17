@@ -37,3 +37,12 @@ The consult's question is a **disposition** question — does the doc prescribe 
 - **Red tests = the 23 Mechanism-A drives verbatim** → reach the prescribed instructional skill (assert skill selected + routed to skill_executor, not KB/freeflow), for the categories whose skill would-match (§1f/§6d fully; §3c/S2c/§7c where they match). Where the matching gap blocks (§4a/§7c), the test asserts the *routing* now reaches skill_select-matching (the KB short-circuit no longer diverts them) even if the match itself is the packet's content gap — separate the routing win from the content gap in the assertions.
 - **Must-stay-KB/freeflow controls (the guard fixtures):** the 4 characterization controls (topic-mention-without-request, e.g. "I'm so tired today" as chat) + genuine info-requests ("what's the crisis helpline number?") → route to KB/freeflow exactly as today. This is the over-pull guard; it is a REQUIRED fixture set, not an afterthought.
 - OFF/unchanged paths: non-info_request routing byte-identical; the existing info_request→KB path byte-identical when no instructional match.
+
+## Measured recovery (with flag-state provenance — our own acceptance numbers get the instrument standard too)
+Measured full-graph against the real graph + real BGE-M3 embeddings, **flag-ON in test** (`INFO_REQUEST_CONSULT_ENABLED=True`); default is OFF, so this is the recovery that arrives ONLY after the clinician confirms the consult set and we flip:
+- **§1f, §6d, S2c → 5/5 each (FULL).** Beat the a-priori estimate (which guessed §3c/S2c both partial).
+- **§3c → 4/5 (PARTIAL).** The one miss is an investigated content gap (a drive's phrasing matches a different library skill) — routed to the clinician packet's third-ask, same class as §4a/§7c.
+- **Net: ~3.8 of 4 in-scope categories; 7/36 → ~11/36 EN conformance, pending the consult-set confirmation.**
+- §4a (Mechanism B) and §7c (matching gap) not addressed here by design.
+
+Tests pin these EXACT per-category numbers (not floors), so the record survives a lost subagent report.
