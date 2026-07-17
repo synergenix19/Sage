@@ -79,6 +79,13 @@ jobs:
         if: steps.detect.outputs.code == 'true'
         run: python scripts/check_state_channels.py
 
+      - name: Static — safety trigger-file language parity (no EN-only safety lists)
+        # Fails the build if a safety trigger file carries English triggers but no Arabic coverage
+        # (bilingual product). Root class of #329 (a live AR medical red-flag bypass) and #330.
+        # EXEMPT entries carry a tracking ticket, so debt stays visible while the gate stays green —
+        # the never-disarm principle with a workable escape valve.
+        if: steps.detect.outputs.code == 'true'
+        run: python scripts/check_safety_language_parity.py
       - name: Static — safety detectors read RAW input (language contract)
         # Fails the build if a safety detector call passes translated message_en without raw. Root
         # class of #329/#330 (AR safety bypasses via the translation path). ADR 2026-07-16. Allowlist
@@ -132,6 +139,8 @@ jobs:
             tests/test_crisis_availability_consistency.py
             tests/test_crisis_config_cross_stack.py
             tests/test_sg2_caveat_firing.py
+            tests/test_medical_redflag_ar_329.py
+            tests/test_safety_language_parity.py
             tests/test_ocd_compulsion_raw_path.py
             tests/test_ocd_compulsion_ar_330.py
             tests/test_safety_reads_raw.py
