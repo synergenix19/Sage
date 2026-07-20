@@ -14,14 +14,20 @@ contradiction underneath it. Recommendations below are aligned to the BOT BEHAVI
 - The §HR dissociation-11 list is DIFFERENT, more clinical phrasing ("I lose chunks of time", "I feel
   completely numb and absent", "I don't know where I am sometimes") — a heavier register than §1c "feels unreal".
 
-## Ruling 1 — MECHANISM: §1c context-guard, not a CF-008 keyword extension
-Rec: **implement the §1c anxiety-pathway guard as a deterministic check** (a §1c utterance carrying
-derealization/dissociation signs → escalate to referral), NOT extend CF-008. Two doc-aligned reasons:
-(1) CF-008 is the §HR-11 list verbatim — its value is that it audits 1:1 against the source; extending it
-buries §1c phrases in the §HR rule. (2) A flat keyword can't read context, and the phrase's meaning here
-IS contextual (primary dissociation vs a panic symptom) — the guard can condition on the §1c anxiety
-context, a keyword can't. Same routing outcome, doc-faithful, better mechanism. CF-008 extension = fallback.
-→ ☐ approve §1c guard (rec)  ☐ prefer CF-008 extension  ☐ discuss
+## Ruling 1 — MECHANISM: a NEW Node-1 clinical flag routed at the safety altitude (doc + architecture)
+Rec: **add a new derealization clinical-flag rule at Node 1 (safety_check, reading RAW input per the
+language contract), SEPARATE from CF-008, and route it at the SAFETY altitude — before intent_route.**
+NOT extend CF-008, NOT a post-intent guard. Why this is the aligned answer on BOTH axes:
+- **Doc:** CF-008 is the §HR-11 list verbatim (1:1 auditable against source); a new flag keeps that intact.
+- **Architecture:** deterministic clinical-flag detection lives at Node 1 (`clinical_flag_patterns.json`,
+  raw input). And the §1c over-escalation is the SAME bug HR-1 Stage 2 fixed — a safety-class disposition
+  routed BELOW `intent_route`, so the LLM classifies a turn it has "no clinical business classifying"
+  (arch doc line 118, the HR routing-altitude correction). Routing the flag at the safety altitude means
+  the LLM never sees the derealization turn → the §1c crisis-FP is fixed by ALTITUDE, and this CLOSES the
+  live Cardinal-Rule-4 violation deterministically (same as HR-1), rather than papering it with a
+  probabilistic guard. A flat keyword also can't read context (primary dissociation vs panic symptom) —
+  a Node-1 rule + precedence can.
+→ ☐ approve new Node-1 flag @ safety altitude (rec)  ☐ prefer CF-008 extension  ☐ discuss
 
 ## Ruling 2 — TERMINAL: the softer anxiety-track referral, NOT the HR terminal
 In Ruling 1 you said "HR referral." On the doc: these phrases are §1c (anxiety), and the §1c guard says
@@ -51,11 +57,20 @@ correction — either way the losing side gets a correction note (DQ-3). Which g
 - §HR-11 clinical dissociation triggers → HR terminal (unchanged).
 → ☐ confirm split  ☐ edit
 
-## Implementation consequence of each mechanism (so you see the cost)
-- **§1c guard (rec):** anxiety-track guard + a small deterministic anxiety-referral; NO CF-008 change, NO
-  safety-manifest re-sign. Both-direction fixtures: derealization → anxiety referral; pure-panic → skill.
-- **CF-008 extension (fallback):** signed safety-rule change + manifest re-sign; routes to HR terminal
-  (heavier); same both-direction fixtures.
+## Architecture consequence of your TERMINAL choice (Ruling 2) — the two are coupled
+The graph has a SAFETY-EXIT TERMINAL CLASS (crisis > medical > hr, precedence-ranked, pre-intent
+altitude). Its bypass of the output_gate is licensed by TEMPLATED (deterministic) copy, NOT by being
+safety-related (arch doc §2.1.1) — any terminal with runtime-GENERATED copy forfeits the bypass. So:
+- **If you route derealization to a referral with STANDARDIZED copy** (the doc's warm "escalate to
+  professional support" message), it fits the class as a lightweight terminal at precedence rank 4
+  (below crisis/medical/hr — the softer tier), pre-intent, templated. This is the cleanest arch fit and
+  it's the mechanism that closes the Rule-4 violation. It needs a small clinician-authored standardized
+  message (does not exist deterministically today — only as LLM skill-guard text).
+- **If you route it to the existing HR terminal**, that's heavier (distress-question + 2-3 turn protocol)
+  and semantically wrong for anxiety-derealization (the §HR-11 register), and it over-elevates severity.
+- Either way: NO CF-008 change (new flag), so NO §HR manifest re-sign of CF-008; the new flag itself is a
+  signed safety rule. Both-direction fixtures: derealization → referral; pure-panic → skill.
 
-No code until you rule 1–3. Then: build Part A → gate → RE-MEASURE §1c → design Part B (the veto) on the
-updated matrix. The panic-derealization conflict is filed as DQ-3 so the losing side gets corrected in the source.
+No code until you rule 1–3. Then: build Part A (Node-1 flag + safety-altitude route + templated referral)
+→ gate → RE-MEASURE §1c → design Part B (the veto for pure-panic residual) on the updated matrix. The
+panic-derealization conflict is DQ-3 so the losing side gets corrected in the source.

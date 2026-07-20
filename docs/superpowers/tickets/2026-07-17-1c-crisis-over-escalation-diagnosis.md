@@ -72,6 +72,19 @@ Then the veto's "no HR flag" condition actually fires for them. This part is mor
   NOT HR" — keyword can't read context. **Ratify-the-strings ask: `2026-07-18-cf008-dissociation-ratify-list-vee.md`.**
   Part A fixtures BOTH directions: bare dissociation → HR referral AND panic-context/idiom → §1c skill track
   (over-catch guard — expanding CF-008 widens HR routing, same shape as §1c on a different node). See [[feedback_regression_by_improvement]].
+  **ARCHITECTURE-ALIGNED DESIGN (per SageAI_architecture_current.md §2.1.1 + line-118 altitude note):** the §1c
+  over-escalation is the SAME bug class HR-1 Stage 2 corrected — a safety-class disposition routed BELOW
+  `intent_route`, so the LLM classifies a turn it has no clinical business classifying. Aligned fix =
+  (a) NEW Node-1 clinical-flag rule (derealization; `clinical_flag_patterns.json`, reads RAW input per the
+  language contract; SEPARATE from CF-008 so §HR-11 stays verbatim), (b) route it at the SAFETY altitude
+  (before intent_route) so the LLM never decides it → **closes the live Cardinal-Rule-4 violation
+  deterministically**, not with a probabilistic guard, (c) terminal = a lightweight referral with
+  TEMPLATED copy (the safety-exit bypass is licensed by templated copy, not by being safety-related — a
+  runtime-generated referral forfeits the bypass) at precedence rank 4 (crisis>medical>hr>derealization,
+  the softer tier). This SUBSUMES most of Part B: once derealization is caught at Node 1 and routed
+  pre-intent, that §1c FP never reaches intent_route. Part B's veto then only handles the PURE-panic
+  residual ("can't breathe" with no derealization flag). Mechanism/terminal are Vee's ruling (severity) +
+  arch (altitude/class) — ask: 2026-07-18-cf008-dissociation-ratify-list-vee.md.
 
 **Part B — the deterministic somatic veto (FIVE-way precondition).** Downgrades intent=crisis→grounding
 ONLY when: intent=crisis AND safety_check clean AND **no HR flag** AND **no medical red-flag** AND clean
