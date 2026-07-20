@@ -1,5 +1,32 @@
 # D1 — one ruling: re-scope the shadow gate to the measured base rate (#338)
 
+## ✅ RULED: (c) APPROVED — Vee (clinical lead), 2026-07-20 (relayed via coordinator)
+Re-scope approved. Transcription of Vee's stated reasoning (record precedes the flip, GL-1):
+- **The hold's reason has expired.** The bot-behaviour document tiers acute overwhelm to TIPP (L69) and notes
+  the cardiac/pregnancy contraindications (L194). Grounding-first was never the document's position — it was a
+  hold since 2026-06-13 for ONE stated reason: no contraindication screen existed. That reason is now gone.
+  Keeping the hold once a verified screen exists permanently withholds the document's own indicated
+  intervention rather than asking one warm question — over-caution presenting as safety.
+- **The screening principle is satisfied in the direction that matters.** Routes away, never clears; both
+  halves covered (L101 red-flags + L194 contraindications) — the "robust screen" the C1 revisit-trigger named.
+- **The asymmetry makes a small sample acceptable (inverse of the usual case).** Worst case of flipping thin =
+  someone gets grounding instead of resumed TIPP = today's behaviour = the downside of being wrong is the
+  status quo. Worst case of NOT flipping = the contraindication question keeps not being asked while the SG-2
+  delivery-side caveat relies on users self-screening mid-exercise. Every day dark, the risk stays live.
+- **The honesty clause makes it defensible not convenient.** (c) doesn't lower the bar; it moves answer-class
+  measurement to the only window where answers exist, reports descriptively until n supports, and keeps the
+  two absolute halts (crisis mishandled, screen decision unrecorded). The C1 revisit will state exactly what
+  the evidence establishes (mechanism live on every branch, zero halts) and what it does not (statistical
+  confidence in the answer distribution). No overclaim.
+- Alternatives rejected: recalibrate-to-8–10 = near-tautological number; extend-six-weeks = max dark, min gain.
+
+**Consequence:** the shadow gate is re-scoped to *mechanism-proven-live + zero-breach*. That condition is MET.
+The flip proceeds on the frozen checklist. Operational/product go: coordinator (this session). Primary record:
+this file. Flip record to follow: `2026-07-20-d1-enforce-flip-record.md`.
+
+---
+
+
 **For: Vee (clinical) + PO (product). One decision. Approve / reject / edit.** Nothing changes the screen's
 behaviour or its signed content — this is only about *what evidence must accrue before the screen goes live*.
 
