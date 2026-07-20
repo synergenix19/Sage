@@ -138,6 +138,11 @@ class SageState(TypedDict):
     # enforce is off. Written by apply_screen_at_route, READ by _build_session_audit_row -> the per-turn audit
     # row. DECLARED here so LangGraph does not drop them between skill_select and output_gate (the SG-2 seam
     # class). Anonymised class+route only (PDPL-approved 2026-07-17); no message content ever.
+    screen_question_text: Optional[str]        # PER-TURN: the signed screen question, set by apply_screen_at_route
+                                               # on an ask_screen decision and READ by _route_after_skill_select
+                                               # (routes to screen_response) + the terminal. DECLARED because it
+                                               # crosses skill_select -> router; the 2026-07-20 enforce-flip
+                                               # incident was this exact drop (undeclared -> served freeflow).
     screen_shadow_action: Optional[str]        # ask_screen | proceed | reroute_grounding | to_medical_guard | abandon_crisis
     screen_shadow_answer_class: Optional[str]  # the would-be answer class (None on a fire/ask turn)
     screen_shadow_branch: Optional[str]        # the would-be branch (None on a fire/ask turn)

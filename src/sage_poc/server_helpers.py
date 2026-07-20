@@ -196,6 +196,8 @@ def _build_state(req: _RequestLike) -> dict:
         "screen_asked":            False,
         "screen_answer_class":     None,
         "screen_branch_taken":     None,
+        "screen_question_text":    None,   # per-turn: only present on the emit turn
+        "answering_screen":        False,  # per-turn: set by consume_pending_screen at graph entry
         "screen_shadow_action":    None,
         "screen_shadow_answer_class": None,
         "screen_shadow_branch":    None,
