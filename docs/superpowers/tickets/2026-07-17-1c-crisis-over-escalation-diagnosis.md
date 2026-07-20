@@ -62,6 +62,16 @@ that phrasing is NOT caught by HR-1 → falls through to intent_route→crisis (
 FPs). This is an **HR-1 dissociation RECALL gap** (under-catch), the safety-positive direction. Fix =
 add the missing dissociation phrasings to CF-008 so they route to HR referral (Vee's intended route).
 Then the veto's "no HR flag" condition actually fires for them. This part is more important than the veto.
+  **A ships ALONE and FIRST (priority inverted — live safety-terminal under-catch, the dominant direction).
+  Sequence: A (signed strings) → gate → RE-MEASURE §1c → then design B against the UPDATED matrix** (once
+  "everything feels unreal"→HR referral, one §1c FP disappears by construction; don't build B's fixtures on
+  a stale matrix). ENUMERATION FINDING: strings are NOT eng's to author — CF-008 = the §HR dissociation-11
+  list VERBATIM; "everything feels unreal"/"i feel disconnected from my body" live in the §1c list, so
+  adding them EXTENDS the verbatim §HR table (clinical authorship, Vee signs). Real §1c-vs-HR tension: the
+  HR-1 design controls "panic-derealization ('everything felt unreal DURING the panic attack') routes §1c
+  NOT HR" — keyword can't read context. **Ratify-the-strings ask: `2026-07-18-cf008-dissociation-ratify-list-vee.md`.**
+  Part A fixtures BOTH directions: bare dissociation → HR referral AND panic-context/idiom → §1c skill track
+  (over-catch guard — expanding CF-008 widens HR routing, same shape as §1c on a different node). See [[feedback_regression_by_improvement]].
 
 **Part B — the deterministic somatic veto (FIVE-way precondition).** Downgrades intent=crisis→grounding
 ONLY when: intent=crisis AND safety_check clean AND **no HR flag** AND **no medical red-flag** AND clean
