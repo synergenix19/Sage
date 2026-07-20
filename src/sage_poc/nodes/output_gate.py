@@ -139,6 +139,56 @@ def _pin_ocd_referral(text: str, abstain_referral: str | None, lang: str) -> str
     return text
 
 
+# ── HR §5 content-neutrality gate (Node 8) — Vee-ratified seed 2026-07-18 ────────────────────────
+# The psychotic-referral terminal is LLM-composed, so a §5 drift (stating the feared content as FACT:
+# "you're experiencing [content]", "feeling like [content]") can be sampled (1/4 post-interim). Unlike
+# the interim prompt-nudge (probabilistic reduction), this deterministic gate makes it ELIMINATION:
+# the referral MUST open with a ratified account-frame; if not, it drifted -> replace with the signed
+# templated fallback. ALLOWLIST (require a neutral frame) not denylist (enumerate bad frames) — allowlist
+# makes "cannot vary" a property. SCOPED to the HR referral terminal ONLY: applying §5 globally would
+# false-reject legitimate reflective statements in the anxiety/low-mood tracks (reflecting a user's
+# account back is a core therapeutic move) — the same over-catch shape, at Node 8. On reject the gate
+# NEVER regenerates (latency/loop risk) and NEVER fails open/empty; it emits the fixed signed fallback.
+# Rejections are returned so the caller audit-logs them — the drift RATE is the metric that says whether
+# the upstream prompt is still degrading.
+_HR_NEUTRAL_FRAMES_EN = (
+    "what you're describing", "what you've shared", "the experience you're describing",
+    "what you're going through", "what you're sharing", "you're describing",
+)
+_HR_NEUTRAL_FRAMES_AR = ("ما تصفه", "اللي تصفه", "اللي تشاركه", "اللي تحس فيه", "أسمعك")
+
+
+def _hr_neutral_fallback(lang: str) -> str:
+    """Signed templated fallback = the psychotic_referral terminal's OWN ratified account-frame copy
+    (reused, not newly authored), single-sourcing the helpline via CRISIS_CONFIG so a GL reversal can
+    never desync it. Vee ratified this seed frame + the never-restate-content invariant 2026-07-18."""
+    from sage_poc.config import CRISIS_CONFIG as _cc
+    num, hrs, emg = _cc["number"], _cc["hours"], _cc["emergency"]
+    if lang == "ar":
+        return (f"ما تصفه مهم وتحتاج فيه دعم من متخصص يقدر يساعدك بشكل صحيح. تقدر تتواصل مع خط الدعم "
+                f"النفسي الوطني على {num} (مجاني، {hrs}). وإذا احتجت مساعدة خارج هذي الأوقات، اتصل "
+                f"بخدمات الطوارئ {emg}. ما أنت لوحدك في هذا.")
+    return (f"What you're describing sounds really important, and it's something to talk through with a "
+            f"mental health professional who can give you the right kind of support. In the UAE, you can "
+            f"reach the National Mental Support Line on {num} (free, {hrs}). If you need someone outside "
+            f"those hours, call emergency services {emg}. You don't have to navigate this alone.")
+
+
+def _enforce_hr_neutrality(text: str, is_hr_referral: bool, lang: str) -> tuple[str, bool]:
+    """Node-8 deterministic §5 content-neutrality on the HR/psychotic-referral terminal ONLY. Returns
+    (text, rejected). If the referral output does not carry a ratified account-frame (allowlist), it has
+    drifted to stating the feared content as fact -> replace with the signed templated fallback and flag
+    the rejection for the audit row. Byte-identical no-op when clean or off-scope. NEVER fails open,
+    NEVER emits nothing (the fallback is a complete signed message)."""
+    if not is_hr_referral or not text:
+        return text, False
+    frames = _HR_NEUTRAL_FRAMES_AR if lang == "ar" else _HR_NEUTRAL_FRAMES_EN
+    low = text.lower()
+    if any(f in low for f in frames):
+        return text, False  # account-framed -> clean, unchanged
+    return _hr_neutral_fallback(lang), True  # drifted -> signed templated fallback
+
+
 _OPENER_REWRITE_DISTRESS_CEILING = 9  # severe distress (9-10/10) -> suppress rewrite (pass through);
 # the lexicon is the primary sensitive-content gate, this is a wording-independent backstop for the top of the scale
 
