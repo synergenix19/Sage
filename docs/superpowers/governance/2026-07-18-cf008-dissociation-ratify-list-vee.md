@@ -50,6 +50,16 @@ Rec: **panic-with-derealization → anxiety-track referral (doc wins); correct t
 correction — either way the losing side gets a correction note (DQ-3). Which governs?
 → ☐ referral, doc wins (rec)  ☐ grounding skill, correct the doc  ☐ edit
 
+## Plain note on HOW your boundary gets enforced (so you draw it where a lexicon can hold it)
+A Node-1 rule implements your line as a **flat lexicon on raw input — it cannot read context.** So the
+mechanism itself CANNOT tell "everything feels unreal" (bare, → new terminal) from "everything felt unreal
+during the panic attack" (panic-context, → §1c). Wherever you draw the line, **the two sides have to be
+separable by STRING, not by meaning-in-context.** The present-tense bare phrase and the past-tense
+panic-qualified phrase happen to be string-separable — but if you place any pair on opposite sides that a
+keyword can't tell apart, the boundary is unenforceable and the both-direction fixture (below) is the only
+thing holding it. Tell us if any pair you rule is context-dependent, so we flag it as a detection gap
+rather than pretend a lexicon enforces it.
+
 ## Ruling 4 — confirm the clean split (so the fixtures are right)
 - §1c pure panic, NO derealization ("can't breathe", "racing heart", "out of control") → grounding skill
   (this is the ONLY §1c→skill case; it's Part B's veto target).

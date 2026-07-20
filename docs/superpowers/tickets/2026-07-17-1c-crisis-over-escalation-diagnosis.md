@@ -85,6 +85,14 @@ Then the veto's "no HR flag" condition actually fires for them. This part is mor
   pre-intent, that §1c FP never reaches intent_route. Part B's veto then only handles the PURE-panic
   residual ("can't breathe" with no derealization flag). Mechanism/terminal are Vee's ruling (severity) +
   arch (altitude/class) — ask: 2026-07-18-cf008-dissociation-ratify-list-vee.md.
+  **NEW-TERMINAL CHECKLIST FROM BIRTH (a 4th user-facing safety terminal inherits the full contract):**
+  templated copy (licenses the output_gate bypass — runtime-generated forfeits it), SIGNED clinical copy
+  (signed_clinical_fields manifest), Arabic parity (safety-language-parity + reads-raw CI), and its LOADER
+  TEST GATED IN THE REQUIRED GATE ON DAY ONE — non-negotiable: the loader-gate audit found the medical
+  terminal's loader test ungated + live-red (the silent-failure class). Add the new terminal's loader test
+  to unit-gate CANDIDATES in the SAME PR that creates the file (cheapest moment; prevents the 5th instance).
+  Both-direction fixtures are the ONLY enforcement of Vee's panic-context boundary (a Node-1 lexicon reads
+  raw input, can't read context) — not a formality.
 
 **Part B — the deterministic somatic veto (FIVE-way precondition).** Downgrades intent=crisis→grounding
 ONLY when: intent=crisis AND safety_check clean AND **no HR flag** AND **no medical red-flag** AND clean
