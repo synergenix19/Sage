@@ -27,10 +27,24 @@ dissociation, 'losing it', 'can't breathe') — those are new_skill targets for 
 failing utterances are *exactly* those named symptoms ("can't breathe", dissociation "feels unreal").
 So this is LLM instruction-non-compliance, not a missing rule. Adding more prompt text is the weak fix.
 
-## Architectural note
-This brushes Cardinal Rule 4 (the LLM never decides whether/how safety fires). `intent=crisis` is an
-LLM deciding crisis routing. It exists as a legitimate BACKSTOP for "explicit harm language safety_check
-may have missed" (the prompt says so) — so it cannot be blanket-removed.
+## SEVERITY: HIGH — the rendered copy is the FULL crisis card (resolved, was the open sub-question)
+Both §1c utterances render, VERBATIM: *"I'm really concerned about what you've shared. Please reach out
+for support NOW. In the UAE: National Mental Support Line 800-HOPE (800-4673)… or emergency services:
+999. You don't have to face this alone."* (helpline + 999 + "now" framing). A panic / "can't breathe"
+user is told they are in an emergency and handed 999 — **iatrogenic for panic specifically**, and the
+crying-wolf erosion of the crisis path. Note: `crisis_state=monitoring` (softer tier LABEL) but the
+CONTENT is the full 999 card — the tier name does not soften what the user reads. **§1c is URGENT, not queue-able.**
+
+## Architectural framing — this is a LIVE Cardinal-Rule-4 VIOLATION being CORRECTED, not FP reduction
+Cardinal Rule 4: the LLM never decides whether/how a safety path fires. `intent=crisis` routing
+(graph.py:226) is the LLM deciding whether the crisis path fires — a live violation. The
+`intent=crisis` net is a legitimate BACKSTOP for "explicit harm safety_check missed" (the prompt says
+so) so it cannot be blanket-removed, but the DECISION must move onto a deterministic node. So the fix is
+**closing an architectural conformance gap (bringing an out-of-spec path back into spec)**, not merely a
+tweak to reduce false-positives. Frame the clinical ask on that basis — it is the stronger justification.
+(More prompt text is NOT a fix: the instruction already exists and the model ignores it ~40% of the
+time; that leaves a probabilistic guard on a crisis-routing decision — the §5 "reduction not
+elimination" trap. Deterministic or nothing.)
 
 ## The delicate constraint (guard the false-negative direction HARDEST)
 intent_route's crisis is the only net for real harm that the deterministic safety_check misses. A fix
@@ -54,13 +68,23 @@ matters most is NOT "does §1c stop escalating" — it is "did anything that sho
 1. **Clinician sign-off** — narrowing what routes crisis is a clinical call (same class as the A2/A4
    rulings). You do not narrow crisis routing without the clinical authority signing that the
    now-excluded utterances genuinely aren't crisis.
-2. **Reject/accept fixtures** — assert the 2 §1c utterances no longer route crisis AND assert
-   explicit-harm-that-safety_check-misses STILL routes crisis (the false-negative direction, guarded hardest).
+2. **Reject/accept fixtures — THREE directions, false-negative guarded hardest:**
+   - somatic-only ("can't breathe", "feels unreal") → downgrades to new_skill (the FP fix);
+   - explicit-harm-that-safety_check-misses → STILL routes crisis (the backstop must survive);
+   - **CO-OCCURRENCE / mixed case ("I can't breathe and I want it to stop") → STILL routes crisis.**
+     This is the utterance most likely to break a naive veto and the one where a false-negative is most
+     costly — guard it explicitly. A veto that downgrades a mixed somatic+harm utterance is the exact
+     failure that nicks true recall while chasing the FP.
 3. **Gated before live.**
 
-## Open sub-question for the fix session
-Confirm what the user actually SEES on the monitoring path — the full crisis card, or a softer
-"monitoring" response — to calibrate severity. (crisis_response ran; exact rendered copy not captured here.)
+## Veto FAIL-DIRECTION (safety-critical, specify in the design)
+The veto conditions are doing safety work, so the fail-direction must be explicit: **any uncertainty —
+mixed somatic+harm, unrecognized phrasing, classifier disagreement — FAILS TOWARD KEEPING CRISIS, never
+toward downgrade.** The veto fires ONLY on a clean, confident, somatic-ONLY match with zero harm-lexicon
+tokens. A veto that fires on ambiguity is precisely how you nick true recall. Narrow by construction.
 
 **Do NOT batch with S2a.** S2a (over-routing to skill where presence prescribed) is the benign direction
 (no safety weight) — it batches with the 4/5 cheap-gains. §1c stands alone as its own safety-reviewed change.
+
+**NEXT: Vee touchpoint with the phrase sets** (`2026-07-18-1c-somatic-vs-harm-clinician-touchpoint-vee.md`)
+before any code — the somatic-vs-harm boundary is Vee's line to draw.
