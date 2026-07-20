@@ -53,7 +53,30 @@ that only intent_route catches. Crisis recall ≥95% is the hard KPI and dominat
 a fix that nicks true-crisis recall is strictly WORSE than the current over-escalation. The fixture that
 matters most is NOT "does §1c stop escalating" — it is "did anything that should reach crisis stop reaching it."
 
-## Fix options (for the clinician-signed fix session — NOT written here)
+## RULED FIX DESIGN (Vee 2026-07-18) — THREE parts, not one veto. Ordering matters.
+
+**Part A — CF-008 dissociation pattern expansion (SIGNED safety-rule change; land FIRST or together).**
+VERIFIED GAP: CF-008 does NOT match "everything feels unreal" or "i feel disconnected from my body"
+(it has "nothing feels real" / "the world doesn't feel real" but not these). So a dissociating user with
+that phrasing is NOT caught by HR-1 → falls through to intent_route→crisis (this IS one of the two §1c
+FPs). This is an **HR-1 dissociation RECALL gap** (under-catch), the safety-positive direction. Fix =
+add the missing dissociation phrasings to CF-008 so they route to HR referral (Vee's intended route).
+Then the veto's "no HR flag" condition actually fires for them. This part is more important than the veto.
+
+**Part B — the deterministic somatic veto (FIVE-way precondition).** Downgrades intent=crisis→grounding
+ONLY when: intent=crisis AND safety_check clean AND **no HR flag** AND **no medical red-flag** AND clean
+somatic-ONLY match (NARROWED set: panic, hyperventilation/"can't breathe", racing heart, "losing it/my
+mind", "out of control" — dissociation REMOVED per Ruling 1) AND zero harm tokens. Fails toward crisis
+on any ambiguity. "can't breathe" / "going to die" downgrade ONLY past the medical-red-flag check.
+
+**Part C — doc queries (source hygiene)** — see `2026-07-18-bot-behaviour-doc-queries.md`: DQ-1 (§1c
+Fear list and HR dissociation list carry the same phrases), DQ-2 ("Make it stop" in both §1c and passive-SI).
+
+**Knowing residual §1c misses (accepted, recall dominates):** "I can't take this / can't do this
+anymore" → stays crisis (in §1c list but passive-SI-adjacent); "Make it stop" → stays crisis (harm-set).
+So §1c PARTLY recovers: pure-panic downgrades, dissociation→HR referral, overwhelm/"make it stop"→crisis.
+
+## (superseded by the RULED design above) Original fix options
 - **(a) Prompt-strengthen** (few-shot the §1c somatic phrases as new_skill). Probabilistic — reduces the
   rate, does not eliminate it (same class as the §5 neutrality prompt-nudge). Weak on its own.
 - **(b) Deterministic somatic-vs-harm veto** post-intent_route: if `intent=crisis` AND safety_check is
