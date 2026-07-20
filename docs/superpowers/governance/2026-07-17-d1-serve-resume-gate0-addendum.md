@@ -1,5 +1,23 @@
 # D1 serve/resume — GATE 0 addendum (#338)
 
+## ⚠️ CORRECTION 2026-07-20 — this addendum OVERCLAIMED; read this first
+The claims below of "DRIVEN" and "proven" for the serve→answer path were **WRONG when written**, and the
+2026-07-20 enforce-flip incident proved it (`2026-07-17-d1-enforce-flip-incident.md` — filed 2026-07-20).
+What was actually driven at the time: the mechanism in UNIT tests (state constructed inline) and ONE graph
+test that drove *crisis-mid-hold* — a deterministic bypass. **The serve→answer path was NEVER driven on the
+compiled graph.** `screen_question_text` was undeclared, LangGraph dropped it skill_select→router, and the
+screen never served — invisible to every test here because each bypassed the channel-transport layer (the
+test-harness/runtime boundary rule, now in `docs/ARCHITECTURE_BOUNDARIES.md`).
+
+**Corrected status (2026-07-20 fix):** `screen_question_text` declared; the answer-turn seam closed;
+`check_state_channels` hardened to catch helper-module writes (this class now fails CI); and
+`test_flip_probe_branches_on_compiled_graph` added — serve→answer for the flip probe's exact branches on the
+COMPILED graph via the real `_build_state` contract (it fails without the fix). "Proven" below now means what
+that test and the live re-probe assert. The word carries the project's weight only if corrected when it was
+wrong; this is that correction, on the record, not a supplement.
+
+---
+
 Evidence against the pre-registered acceptance list (2026-07-17-d1-serve-resume-gate0-acceptance.md). Every
 branch driven by a named fixture. Flag-gated behind SAGE_D1_SCREEN (enforce), default-OFF; shadow/off paths
 byte-identical (the enforce router branch is unreachable with the flag off — screen_question_text is never

@@ -133,3 +133,33 @@ The v7 spec defined a three-layer OR-fusion safety check: S1 (lexicon) + S2 (MAR
 ### Cross-session contamination risk (historical note)
 
 The 2026-05-22 doc identified a risk of stale message carryover. The `key={activeSession.id}` fix on `ChatFadeIn` in the Next.js route (Fix B) prevents this. The LangGraph checkpointer keying on `session_id` as `thread_id` provides an additional server-side boundary. Consider this resolved at the current POC scope.
+
+## The test-harness / runtime boundary (harness must mirror the runtime)
+
+**Rule:** *A test that constructs the state it asserts on cannot verify the state's transport.* Any mechanism
+whose correctness depends on a framework boundary (a LangGraph channel merge, a JSON→prompt render, a
+serialize→deserialize hop) MUST be driven ACROSS that boundary, on the compiled artifact — or it is untested,
+regardless of test count.
+
+**Why this is an architecture boundary, not a testing footnote:** the runtime has seams the unit test does not
+reproduce. When the harness constructs state directly and asserts on it, it silently stubs out the exact
+transport layer where the bug lives. Every green test then attests to logic that is correct in a world the
+runtime is not.
+
+**Three incarnations (this class recurs — it is the shape, not the instance):**
+1. **Fixtures scoring synthetic candidates** — the eval harness scored hand-built candidates, not the ones the
+   real generator produced; the metric was green on inputs the system never emits.
+2. **The re-verdict driver missing a veto** — the driver reconstructed the decision state without the veto
+   layer the runtime applies, so it verdicted a path the runtime cannot reach.
+3. **D1 unit tests bypassing the channel layer (2026-07-20)** — `screen_question_text` was set inline in the
+   test dict and asserted on directly; the one graph test drove crisis-mid-hold, never serve→answer. The
+   undeclared-channel drop (skill_select→router) was invisible to every test and shipped to prod, caught only
+   by the live behavioral probe. Fix: declare the channel, harden `check_state_channels` to see helper-module
+   writes, and add `test_flip_probe_branches_on_compiled_graph` — the same branch list as the live probe,
+   driven on the compiled graph via the real `_build_state` per-turn contract. When the automated test and the
+   live probe assert the same things across the same boundary, a green suite finally means what the probe means.
+
+**Operationally:** for any channel/seam-dependent mechanism, the acceptance test builds its input through the
+real per-turn contract (`_build_state`), invokes the **compiled** graph (`build_graph(checkpointer=...)`), and
+asserts on the state the runtime produces — not a state the test authored. `check_state_channels` is the static
+half of this rule; the compiled-graph drive is the dynamic half. Neither alone is sufficient.
