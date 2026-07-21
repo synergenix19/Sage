@@ -91,6 +91,20 @@ async def test_flip_probe_branches_on_compiled_graph(monkeypatch):
     assert ar.get("response") != ms.SCREEN_QUESTION_EN
     assert not ar.get("screen_pending")
 
+    # CRISIS-IN-ANSWER through the NEW seam (re-driven, NOT inherited from the old crisis-mid-hold test):
+    # the answer turn now routes to skill_select, but a crisis answer must STILL short-circuit at safety_check
+    # BEFORE reaching the new skill_select handler. Confirms crisis supremacy survives the seam change AND the
+    # one-turn-hold property holds on the crisis path (pending consumed at entry, released this turn).
+    cfg = {"configurable": {"thread_id": "flip-graph-crisis-answer"}}
+    c1 = await app.ainvoke(_turn(_OVERWHELM), config=cfg)
+    assert c1.get("screen_pending") is True                    # screen served turn 1
+    c2 = await app.ainvoke(_turn("honestly I just want to end it all"), config=cfg)
+    assert c2.get("gate_path") == "crisis"                     # crisis supremacy
+    assert "crisis_response" in c2.get("path", [])
+    assert "skill_select" not in c2.get("path", [])            # short-circuited BEFORE the new seam
+    assert c2.get("answering_screen") is True                  # pending consumed at graph entry
+    assert c2.get("screen_pending") is False                   # hold released this turn (property, crisis path)
+
 
 @pytest.mark.asyncio
 async def test_crisis_mid_hold_releases_in_one_turn(monkeypatch):
