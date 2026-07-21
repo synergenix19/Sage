@@ -64,3 +64,15 @@ exactly why it's surfaced here before the flip rather than discovered from audit
 **After your rulings:** Decision 1 → build the Node-1 flag + anxiety referral (loader test gated day one,
 both-direction fixtures). Decision 2 → wire Node-8 per A or B, flag-gated, rejections audit-logged, flip.
 The Node-8 flip is the last thing standing between the ruled §5 drift and its elimination.
+
+---
+
+## ✅ RULED (Vee, clinical lead, 2026-07-21)
+- **Decision 2 → OPTION A.** Accept the template swap: the psychosis referral is ONE deterministic,
+  signed message. §5-neutrality guaranteed by construction; aligns with the safety-exit templated-copy
+  class. Wire the Node-8 gate flag-gated + audit-logged; the fallback template is the ratified message.
+- **Decision 1 → APPROVE ALL FOUR** (1a Node-1 flag @ safety altitude; 1b anxiety-track referral;
+  1c doc wins → panic-derealization to anxiety referral + CORRECT the HR-1 design control; 1d ratify the
+  strings). **1c is the KEYSTONE** — the doc-vs-design conflict resolution everything else hinges on.
+  → Build §1c Part A: Node-1 derealization flag (raw input) → anxiety-track referral; correct the design
+  control (DQ-3); both-direction fixtures; loader test gated day one.

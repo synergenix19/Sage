@@ -914,6 +914,16 @@ async def output_gate_node(state: SageState) -> dict:
     final_response = _pin_mood_anchor(final_response, state.get("executed_step_id"), lang)
     final_response = _pin_ocd_referral(final_response, state.get("abstain_referral"), lang)  # #218
 
+    # Node-8 §5 content-neutrality gate on the HR/psychotic-referral terminal (Vee Option A 2026-07-21).
+    # Flag-gated; scoped to the HR referral only (skill_match_method marker); replaces a non-account-framed
+    # output with the signed fallback and audit-logs the rejection (the drift RATE is the metric).
+    _hr_neutrality_rejected = False
+    if _cfg.HR_NEUTRALITY_GATE_ENABLED and state.get("skill_match_method") == "psychotic_disclosure_auto_select":
+        final_response, _hr_neutrality_rejected = _enforce_hr_neutrality(final_response, True, lang)
+        if _hr_neutrality_rejected:
+            _log.warning("[output_gate] HR §5 neutrality gate: non-account-framed referral replaced "
+                         "with signed fallback (session=%s)", session_id)
+
     if AUDIT_LOG_ENABLED:
         audit = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -924,6 +934,7 @@ async def output_gate_node(state: SageState) -> dict:
             "primary_intent": state.get("primary_intent"),
             "active_skill": state.get("active_skill_id") or state.get("completed_skill_id"),
             "skill_match_method": state.get("skill_match_method"),
+            "hr_neutrality_rejected": _hr_neutrality_rejected,  # Node-8 §5 gate fired (drift-rate metric)
             "prepass_rule_id": state.get("prepass_rule_id"),  # v7.2 Node-2 keyword pre-pass provenance
             "semantic_score": state.get("semantic_score"),
             "executed_step": state.get("executed_step_id"),
@@ -1017,7 +1028,8 @@ async def output_gate_node(state: SageState) -> dict:
             if not t.cancelled() and t.exception() else None
         )
 
-    _audit_task = asyncio.create_task(write_session_audit({**state, "path": path, "gate_path": gate_path or "standard"}))
+    _audit_task = asyncio.create_task(write_session_audit(
+        {**state, "path": path, "gate_path": gate_path or "standard", "hr_neutrality_rejected": _hr_neutrality_rejected}))
     _audit_task.add_done_callback(
         lambda t: _log.warning("[output_gate] session audit error: %s", t.exception())
         if not t.cancelled() and t.exception() else None
@@ -1028,6 +1040,7 @@ async def output_gate_node(state: SageState) -> dict:
         "response_en": response_en,
         "gate_path": gate_path or "standard",
         "path": path,
+        "hr_neutrality_rejected": _hr_neutrality_rejected,  # declared channel (Node-8 §5 gate; SG-2 rule)
         "turn_count": next_turn,
         # Persist THIS turn's intent as next turn's prev, for consecutive-info_request
         # ("lookup mode") detection in the composer. Mirrors prev_step_id: lives in

@@ -70,6 +70,7 @@ class SageState(TypedDict):
     prev_step_id: Optional[str]        # step executed on the PREVIOUS turn; persists via LangGraph checkpoint for continuation detection
     prev_primary_intent: Optional[Intent]  # primary_intent of the PREVIOUS turn; persists via checkpoint (absent from _build_state, not reset). Used to detect a CONSECUTIVE info_request ("lookup mode") so the composer switches info_request from the question-close base to the statement-bridge repeat variant. An intervening non-info_request turn resets it, restoring the question-close (re-triage after a context switch).
     skill_match_method: Optional[str]   # "keyword" | "semantic" | "post_crisis_auto_select" | "psychotic_disclosure_auto_select" | "info_request_skill_consult" | None
+    hr_neutrality_rejected: Optional[bool]  # Node-8 §5 gate: True when output_gate replaced a non-account-framed HR-referral output with the signed fallback (Vee Option A). Audit-logged so the drift RATE is visible. Declared channel (LangGraph drops undeclared keys between nodes -- the SG-2 bug class).
     semantic_score: Optional[float]     # cosine similarity if semantic match
     offered_skill_ids: Optional[list[str]]  # R1: 1-2 skills offered, pending accept/decline; persists via checkpoint; cleared on accept (skill_select), decline/ignore (intent_route), crisis (crisis_response), stale gap
     last_offer_turn: Optional[int]           # D3: turn_count when the last skill offer was made; used by offer cooldown in skill_select

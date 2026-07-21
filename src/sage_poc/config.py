@@ -274,6 +274,10 @@ MEDICAL_REDFLAG_GUARD_ENABLED: bool = os.getenv("SAGE_MEDICAL_REDFLAG_GUARD", "f
 # routing (psychotic_disclosure routing is unconditional and unaffected by
 # this flag; see safety/hr_disclosure.py). Default OFF.
 HIGH_RISK_DETECTION_ENABLED: bool = os.getenv("SAGE_HIGH_RISK_DETECTION", "false").lower() == "true"
+# Node-8 §5 content-neutrality gate on the HR/psychotic-referral terminal (Vee ruled Option A 2026-07-21:
+# accept the template swap -> the referral is one deterministic signed message). Default OFF, inert until
+# flip. ON -> output_gate replaces a non-account-framed HR-referral output with the signed fallback.
+HR_NEUTRALITY_GATE_ENABLED: bool = os.getenv("SAGE_HR_NEUTRALITY_GATE", "false").lower() == "true"
 
 # Q1-terminal default: the MEDICAL guard wording (doc lines 62/81/131 / Section 6):
 # "prompt to seek in-person/medical/emergency evaluation; treat as a possible medical
