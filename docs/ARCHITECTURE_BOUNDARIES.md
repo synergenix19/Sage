@@ -163,3 +163,28 @@ runtime is not.
 real per-turn contract (`_build_state`), invokes the **compiled** graph (`build_graph(checkpointer=...)`), and
 asserts on the state the runtime produces — not a state the test authored. `check_state_channels` is the static
 half of this rule; the compiled-graph drive is the dynamic half. Neither alone is sufficient.
+
+## Dark verification must run at PROD FLAG PARITY (a dark drive at different flags proves a config that isn't shipping)
+
+**Rule (standing property of the dark-drive procedure):** a dark verification is only valid against
+**prod-representative flag state.** The dark drive MUST snapshot prod's flag set and run against it. A dark
+drive with different flags than prod verifies a *configuration that is not shipping* — and its "proven"
+carries the same overclaim the word carried in the 2026-07-20 incident.
+
+**Incarnation (2026-07-21 re-flip #2):** the D1 dark compiled-graph drive ran with
+`MEDICAL_REDFLAG_GUARD_ENABLED` **off** (test default); prod has it **on**. An explicit-keyword red-flag
+answer that prod catches at the SAFETY layer (`medical_response`, 998) instead fell through to the screen's
+own `medical_guard` branch in the dark drive. The dark drive passed `[4]`; the live probe diverged. No user
+was harmed (halt-first posture, zero exposure), but the dark drive's green was against a config prod doesn't
+run. Fix: the enforce-graph test helper now sets `MEDICAL_REDFLAG_GUARD_ENABLED=True` to mirror prod; the
+standing procedure is to mirror the full prod flag posture, not just the flag under test.
+
+**Corollary — assert OUTCOMES, not ROUTES, where supremacy layers can pre-empt.** When more than one layer can
+satisfy a safety property (a red-flag answer's 998 can arrive via the safety-layer guard OR the screen's own
+backstop, depending on flag state), the acceptance assertion must check the **outcome** (998 delivered), not a
+specific **route** (a particular `screen_branch_taken`). Asserting the route couples the test to a config-
+dependent implementation path and produces a false red when a *stronger* path pre-empts. This is a small
+generalization of the layer-attribution rule: attribute the guarantee to the property, and drive each layer's
+own path with a case that actually reaches it (the subtle-red-flag case keeps the screen's backstop driven even
+when the safety layer would otherwise pre-empt every obvious test — else that branch rots undriven, the
+"disarmed by never being exercised" pattern).
