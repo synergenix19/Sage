@@ -69,6 +69,22 @@
       "signed_by": "clinical lead (HR-1 ratification 2026-07-17, consolidated approval sheet A1) + safety lane",
       "signed_date": "2026-07-17",
       "signoff": "The {rule_id: active} map across all safety rule files (born from the #218 clobber). RE-SIGNED 2026-07-17 UNDER CLINICAL-LEAD AUTHORITY (HR-1 ratification, consolidated approval sheet A1): CF-007 (mania_disclosure), CF-008 (dissociation_disclosure), CF-009 (psychotic_disclosure variants) flipped active:true + approved_by:clinical_lead. This is the atomic-flip re-sign the 2026-07-16 (PR #325) entry required ('when that flips them active:true this map changes again and MUST be re-signed WITH the clinical lead') -- now satisfied. CF-006 and every prior active crisis control unchanged. The routing flip (SAGE_HIGH_RISK_DETECTION=true) is a coordinated prod env change at deploy, verified live post-flip (B1 pattern). Prior baseline: safety lane (crisis sprint) + clinical lead 2026-07-13."
+    },
+    {
+      "id": "hr_neutrality_fallback_en",
+      "selector": "pyconst:sage_poc.nodes.output_gate:_HR_NEUTRAL_FALLBACK_TEMPLATE_EN",
+      "sha256": "de5e724b935d9930d2090a6e771dfd7b0a139fbaaa96eb1a0e60e9bd7a5eaa1f",
+      "signed_by": "clinical lead (Vee) — §5 seed ratification",
+      "signed_date": "2026-07-21",
+      "signoff": "HR §5 neutrality fallback template — the ONE message the psychosis referral shows when the Node-8 gate is on (Vee Option A 2026-07-21). VERBATIM from psychotic_referral example[0] (drift-guarded by test_hr_neutral_fallback_is_ratified_source_verbatim). Integrity = this pin; ACCURACY = Vee's §5 seed ratification 2026-07-18 (the account-frame + never-restate-content invariant), NOT a fresh eng sign-off."
+    },
+    {
+      "id": "hr_neutrality_fallback_ar",
+      "selector": "pyconst:sage_poc.nodes.output_gate:_HR_NEUTRAL_FALLBACK_TEMPLATE_AR",
+      "sha256": "9a5c836f44a21815952a1c5aaac776cdf4c6347b04e94d3fcb13210eaedc8ca4",
+      "signed_by": "clinical lead (Vee) — §5 seed ratification",
+      "signed_date": "2026-07-21",
+      "signoff": "HR §5 neutrality fallback template — the ONE message the psychosis referral shows when the Node-8 gate is on (Vee Option A 2026-07-21). VERBATIM from psychotic_referral example[3] (drift-guarded by test_hr_neutral_fallback_is_ratified_source_verbatim). Integrity = this pin; ACCURACY = Vee's §5 seed ratification 2026-07-18 (the account-frame + never-restate-content invariant), NOT a fresh eng sign-off."
     }
   ]
 }

@@ -158,20 +158,34 @@ _HR_NEUTRAL_FRAMES_EN = (
 _HR_NEUTRAL_FRAMES_AR = ("ما تصفه", "اللي تصفه", "اللي تشاركه", "اللي تحس فيه", "أسمعك")
 
 
+# The fallback TEMPLATES are the psychotic_referral terminal's ratified account-frame examples[0]/[3]
+# VERBATIM (with the {{crisis_*}} placeholders), so the "signed" copy has a single source (the skill)
+# and cannot drift into a hand-typed paraphrase. test_hr_neutral_fallback_is_ratified_source_verbatim
+# fails CI if either diverges from the skill example -- integrity tied to Vee's ratified SOURCE, not a
+# hash snapshot. The helpline single-sources from CRISIS_CONFIG at render so a GL reversal can't desync
+# it. Vee ratified this seed frame + the never-restate-content invariant 2026-07-18/21 (Option A).
+_HR_NEUTRAL_FALLBACK_TEMPLATE_EN = (
+    "What you're describing sounds really important, and it's something to talk through with a mental "
+    "health professional who can give you the right kind of support. In the UAE, you can reach the "
+    "{{crisis_label}} on {{crisis_number}} (free, {{crisis_hours}}). If you need someone outside those "
+    "hours, call emergency services {{crisis_emergency}}. You don't have to navigate this alone."
+)
+_HR_NEUTRAL_FALLBACK_TEMPLATE_AR = (
+    "ما تصفه مهم وتحتاج فيه دعم من متخصص يقدر يساعدك بشكل صحيح. تقدر تتواصل مع خط الدعم النفسي الوطني "
+    "على {{crisis_number}} (مجاني، {{crisis_hours}}). وإذا احتجت مساعدة خارج هذي الأوقات، اتصل بخدمات "
+    "الطوارئ {{crisis_emergency}}. ما أنت لوحدك في هذا."
+)
+
+
 def _hr_neutral_fallback(lang: str) -> str:
-    """Signed templated fallback = the psychotic_referral terminal's OWN ratified account-frame copy
-    (reused, not newly authored), single-sourcing the helpline via CRISIS_CONFIG so a GL reversal can
-    never desync it. Vee ratified this seed frame + the never-restate-content invariant 2026-07-18."""
+    """Signed templated fallback = the ratified template above, single-sourcing the helpline via
+    CRISIS_CONFIG. Verbatim from psychotic_referral example[0]/[3]; Vee seed ratification 2026-07-18/21."""
     from sage_poc.config import CRISIS_CONFIG as _cc
-    num, hrs, emg = _cc["number"], _cc["hours"], _cc["emergency"]
-    if lang == "ar":
-        return (f"ما تصفه مهم وتحتاج فيه دعم من متخصص يقدر يساعدك بشكل صحيح. تقدر تتواصل مع خط الدعم "
-                f"النفسي الوطني على {num} (مجاني، {hrs}). وإذا احتجت مساعدة خارج هذي الأوقات، اتصل "
-                f"بخدمات الطوارئ {emg}. ما أنت لوحدك في هذا.")
-    return (f"What you're describing sounds really important, and it's something to talk through with a "
-            f"mental health professional who can give you the right kind of support. In the UAE, you can "
-            f"reach the National Mental Support Line on {num} (free, {hrs}). If you need someone outside "
-            f"those hours, call emergency services {emg}. You don't have to navigate this alone.")
+    t = _HR_NEUTRAL_FALLBACK_TEMPLATE_AR if lang == "ar" else _HR_NEUTRAL_FALLBACK_TEMPLATE_EN
+    return (t.replace("{{crisis_label}}", _cc.get("label", _cc["number"]))
+             .replace("{{crisis_number}}", _cc["number"])
+             .replace("{{crisis_hours}}", _cc["hours"])
+             .replace("{{crisis_emergency}}", _cc["emergency"]))
 
 
 def _enforce_hr_neutrality(text: str, is_hr_referral: bool, lang: str) -> tuple[str, bool]:

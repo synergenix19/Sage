@@ -130,3 +130,17 @@ async def test_output_gate_no_op_off_hr_path(monkeypatch):
                                        skill_match_method="keyword", clinical_flags=[], completed_skill_id="box_breathing"))
     assert result["hr_neutrality_rejected"] is False
     assert "box breathing" in result["response"].lower()
+
+
+def test_hr_neutral_fallback_is_ratified_source_verbatim():
+    """Integrity tied to the SOURCE, not a hash snapshot: the fallback templates MUST be the
+    psychotic_referral ratified account-frame examples[0]/[3] VERBATIM. Fails CI the moment the fallback
+    drifts from Vee's ratified copy (the medical-P0 lesson: protect the ACCURATE string, tie it to source)."""
+    import json
+    from sage_poc.nodes.output_gate import (_HR_NEUTRAL_FALLBACK_TEMPLATE_EN, _HR_NEUTRAL_FALLBACK_TEMPLATE_AR,
+                                            _hr_neutral_fallback)
+    ex = json.load(open("src/sage_poc/skills/psychotic_referral.json"))["steps"][0]["examples"]
+    assert _HR_NEUTRAL_FALLBACK_TEMPLATE_EN == ex[0], "EN fallback drifted from ratified example[0]"
+    assert _HR_NEUTRAL_FALLBACK_TEMPLATE_AR == ex[3], "AR fallback drifted from ratified example[3]"
+    # and the rendered fallback is that template with the single-sourced helpline
+    assert "{{" not in _hr_neutral_fallback("en") and "{{" not in _hr_neutral_fallback("ar")
