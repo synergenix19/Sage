@@ -61,3 +61,15 @@ Clean 8/8 → flip STAYS, monitored-enforce window opens under its honesty claus
 - Enable motion: SAGE_D1_SCREEN=true → one redeploy → 3-part gate (SUCCESS/all-REMOVED + 8/8 + 10/10) → the
   10/10 IS acceptance → flip STAYS → monitored-enforce opens. Residual-window acceptance + halt meaning per
   the pre-fire section above.
+
+## ✅ ENABLE ACCEPTED 2026-07-21 — D1 LIVE (enforce), flip STAYS
+- Gate part 1: CONVERGED (00d34017 SUCCESS, all-prior-REMOVED, one non-removed).
+- Gate part 2: /health enforce=true 8/8.
+- Gate part 3 (ACCEPTANCE): serve-path uniformity **10/10** fresh /chat sessions served the signed question
+  live on the converged fleet. Enforce audit rows (screen_asked) writing via migration 015.
+- No stateful acceptance probe (retired). Code correctness pre-proven (compiled-graph test green on deployed
+  bytes + dark drive); the 10/10 proved the converged fleet serves that code. Complete and quiet.
+- **D1 is LIVE in enforce mode.** SAGE_D1_SCREEN=true, shadow left true (enforce wins). Halt lever
+  SAGE_D1_SCREEN=0 armed. Monitored-enforce window OPENS under its honesty clause (descriptive answer-class,
+  zero-tolerance halts armed). Fifth attempt; the redesign (retire stateful probe, trust offline+bytes+10/10)
+  ended the cycle in one clean motion.
