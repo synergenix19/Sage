@@ -188,3 +188,35 @@ generalization of the layer-attribution rule: attribute the guarantee to the pro
 own path with a case that actually reaches it (the subtle-red-flag case keeps the screen's backstop driven even
 when the safety layer would otherwise pre-empt every obvious test — else that branch rots undriven, the
 "disarmed by never being exercised" pattern).
+
+## Serve-path enables do NOT ride rolling flag-flips probed during rollout (convergence-gate the enable)
+
+**Rule:** a feature flag whose flip changes the SERVED response (a serve-path / clinical-behavior change) must
+be enabled as a **convergence-gated** motion — the acceptance probe runs ONLY after the fleet is fully
+converged to single-version-enabled (deployment fully SUCCESS, all prior deployments REMOVED, AND serve-path
+uniformity verified by driving the served behavior via `/chat` N times with all N consistent). `/health`
+readback convergence is necessary but NOT sufficient — `/health` and `/chat` can route to different replicas
+during a rolling deploy.
+
+**Why (the distinction that matters):** for a **byte-identical** change, a rolling deploy's transient mix of
+old+new replicas is invisible and harmless — old and new serve identically. That is why every dark deploy in
+this arc worked. But a **serve-path enable** is the one change where old and new replicas serve *clinically
+different* responses, so the rolling window is a period where prod is genuinely two systems at once: some
+users get the screen, some don't, non-deterministically by load-balancer luck. Any acceptance probe fired into
+that window measures a **superposition**, not a system. That is both un-probeable AND an undesirable production
+state for a clinical change, independent of whether the probe can see it.
+
+**Citation — the D1 three-halt pattern (2026-07-20/21):** attempt 1 caught a real code bug (channel drop);
+attempts 2 and 3 were NOT the mechanism failing — they were the probe failing to observe a sound mechanism
+because it ran against a non-uniform, mid-transition fleet (attempt 2: dark/live flag-parity; attempt 3:
+replica non-uniformity, `[4b]` screen-backstop passing LIVE while `[1]` serve failed — impossible under uniform
+enforce). The lesson: three procedure patches to the same underlying fact = the flip *mechanism* is wrong for
+this class of change, not the probe. Halt-first posture held every time; zero exposure.
+
+**The mechanism (this codebase):** all 31 feature enables are runtime env flags (no committed-per-env enable),
+so the enable stays a runtime flag (convention), but the flip is restructured as a gated PROCEDURE:
+set the flag → single redeploy → **hard precondition: fully SUCCESS + all-prior-REMOVED + serve-path uniformity
+(N/N served)** → only then the acceptance probe → halt lever on any real miss. Convergence is a precondition of
+the probe, not something the probe tolerates. The enable + SHA + convergence evidence is the recorded deploy
+artifact. (True committed-in-SHA enable is heavier and breaks the flag convention; session-stickiness / canary
+is overkill for a 4.5%-base-rate route. The convergence-gated flag flip is the right-sized fix.)
