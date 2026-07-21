@@ -630,6 +630,18 @@ async def _consult_top_match(state: SageState) -> str | None:
 
 
 async def skill_select_node(state: SageState) -> dict:
+    # #338 D1 ANSWER TURN: when this turn answers a pending screen (answering_screen was set by
+    # consume_pending_screen at graph entry, only ever in enforce mode), classify + route the answer
+    # DETERMINISTICALLY before any skill matching. The answer ("no, same as always") usually matches no
+    # skill and would otherwise fall through to freeflow UNCLASSIFIED — the 2026-07-20 enforce-flip seam.
+    # apply_screen_at_route reads answering_screen: clear_no resumes the held skill, disclosure/evaded ->
+    # grounding, red_flag -> 998, crisis -> abandon. Flag-off never reaches here (answering_screen requires a
+    # prior enforce-mode ask_screen), so this is byte-identical to master with the flag off.
+    if state.get("answering_screen"):
+        from sage_poc.safety.medical_screen import apply_screen_at_route  # noqa: PLC0415
+        return apply_screen_at_route(state, {"active_skill_id": None, "offered_skill_ids": None,
+                                             "skill_match_method": None, "semantic_score": None,
+                                             "path": state["path"] + ["skill_select"]})
     # Info requests go directly to knowledge_retrieve. If a skill is currently active,
     # don't clear active_skill_id — the executor exclusively owns that field's lifecycle.
     # Preserving it lets _route_after_skill_select still reach knowledge_retrieve while

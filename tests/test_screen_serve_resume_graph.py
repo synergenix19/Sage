@@ -23,6 +23,89 @@ def test_router_sends_served_question_to_screen_terminal():
     assert _route_after_skill_select({}) == "freeflow"
 
 
+async def _stub_intent(state):
+    # deterministic: route acute-overwhelm to skill_select without the classifier LLM (new_skill → skill_select)
+    return {"primary_intent": "new_skill", "intent_confidence": 0.95, "emotional_intensity": 9,
+            "path": state["path"] + ["intent_route"]}
+
+
+def _enforce_graph(monkeypatch):
+    monkeypatch.setattr(config, "D1_SCREEN_ENABLED", True)
+    monkeypatch.setattr(config, "D1_SCREEN_SHADOW", False)
+    import sage_poc.graph as g
+    monkeypatch.setattr(g, "intent_route_node", _stub_intent)
+    from langgraph.checkpoint.memory import InMemorySaver
+    return g.build_graph(checkpointer=InMemorySaver())
+
+
+_OVERWHELM = "I'm so overwhelmed I can't calm down, my emotions are too intense"
+
+
+def _turn(msg):
+    # Build the turn input via the REAL per-turn contract (server_helpers._build_state) so every field a node
+    # reads is present AND the per-turn screen channels are reset exactly as production resets them — the
+    # channel-leak that would otherwise re-route turn 2 to screen_response is a harness artifact, not a runtime
+    # bug (the server resets these every turn; the test must too).
+    import types
+    from sage_poc.server_helpers import _build_state
+    req = types.SimpleNamespace(messages=[types.SimpleNamespace(role="user", content=msg)],
+                                session_id="t", user_id=None)
+    return _build_state(req)
+
+
+@pytest.mark.asyncio
+async def test_flip_probe_branches_on_compiled_graph(monkeypatch):
+    """The 2026-07-20 incident's missing test: drive the flip probe's exact branches THROUGH THE COMPILED
+    GRAPH (the only place the screen_question_text channel-drop manifested). Serve is asserted on the served
+    response; each answer branch on screen_branch_taken (set in skill_select, survives downstream) — audit
+    not prose, per the incident lesson."""
+    app = _enforce_graph(monkeypatch)
+
+    # turn 1: acute-overwhelm → the SIGNED question is SERVED (the transport that broke, now driven live)
+    r1 = await app.ainvoke(_turn(_OVERWHELM), config={"configurable": {"thread_id": "flip-graph-serve"}})
+    assert r1.get("gate_path") == "screen"
+    assert r1.get("response") == ms.SCREEN_QUESTION_EN
+    assert r1.get("screen_pending") is True and r1.get("screen_held_skill") == "dbt_tipp"
+
+    # each branch: fresh thread, turn1 serve, turn2 answer → assert the branch classification
+    cases = {
+        "clear_no":  ("no, it's the same as always", "proceed"),
+        "contra":    ("actually I have a heart condition", "grounding"),
+        "redflag":   ("it's a sharp crushing pain spreading to my arm", "medical_guard"),
+        "evaded":    ("anyway, my week at work has been really busy", "grounding"),
+    }
+    for name, (answer, expect_branch) in cases.items():
+        cfg = {"configurable": {"thread_id": f"flip-graph-{name}"}}
+        s1 = await app.ainvoke(_turn(_OVERWHELM), config=cfg)
+        assert s1.get("screen_pending") is True, f"{name}: screen not served on turn 1"
+        s2 = await app.ainvoke(_turn(answer), config=cfg)
+        assert s2.get("screen_branch_taken") == expect_branch, f"{name}: got {s2.get('screen_branch_taken')}"
+        assert s2.get("screen_pending") is False, f"{name}: hold not released"
+    # clear_no resumes the held skill; contra/evaded route away (never the held TIPP)
+    # (asserted via screen_branch_taken above; proceed==resume, grounding==routed-away)
+
+    # AR acute-overwhelm → NO screen served (AR question unsigned → grounding-only, per-language fail-safe)
+    ar = await app.ainvoke(_turn("أنا منهار تماماً ولا أستطيع أن أهدأ ومشاعري شديدة جداً"),
+                           config={"configurable": {"thread_id": "flip-graph-ar"}})
+    assert ar.get("gate_path") != "screen"
+    assert ar.get("response") != ms.SCREEN_QUESTION_EN
+    assert not ar.get("screen_pending")
+
+    # CRISIS-IN-ANSWER through the NEW seam (re-driven, NOT inherited from the old crisis-mid-hold test):
+    # the answer turn now routes to skill_select, but a crisis answer must STILL short-circuit at safety_check
+    # BEFORE reaching the new skill_select handler. Confirms crisis supremacy survives the seam change AND the
+    # one-turn-hold property holds on the crisis path (pending consumed at entry, released this turn).
+    cfg = {"configurable": {"thread_id": "flip-graph-crisis-answer"}}
+    c1 = await app.ainvoke(_turn(_OVERWHELM), config=cfg)
+    assert c1.get("screen_pending") is True                    # screen served turn 1
+    c2 = await app.ainvoke(_turn("honestly I just want to end it all"), config=cfg)
+    assert c2.get("gate_path") == "crisis"                     # crisis supremacy
+    assert "crisis_response" in c2.get("path", [])
+    assert "skill_select" not in c2.get("path", [])            # short-circuited BEFORE the new seam
+    assert c2.get("answering_screen") is True                  # pending consumed at graph entry
+    assert c2.get("screen_pending") is False                   # hold released this turn (property, crisis path)
+
+
 @pytest.mark.asyncio
 async def test_crisis_mid_hold_releases_in_one_turn(monkeypatch):
     """PROPERTY through the crisis-bypass path: a crisis on the pending turn routes to crisis (supremacy)

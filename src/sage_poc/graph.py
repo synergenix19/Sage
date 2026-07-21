@@ -226,6 +226,12 @@ def _route_after_intent(state: SageState) -> str:
 
     if intent == "crisis":
         return "crisis"
+    # #338 D1 ANSWER TURN: a turn answering a pending screen must reach skill_select so its answering_screen
+    # handler classifies+routes the answer, REGARDLESS of intent (the answer usually reads as general_chat and
+    # would otherwise go to freeflow unclassified — the 2026-07-20 seam). Below crisis (crisis supremacy), above
+    # all intent routing. answering_screen is only ever set in enforce mode, so flag-off is byte-identical.
+    if state.get("answering_screen"):
+        return "skill_select"
     if intent == "scope_refusal":
         return "gate"
     if intent == "jailbreak":
