@@ -29,3 +29,24 @@ Clean 8/8 → flip STAYS, monitored-enforce window opens under its honesty claus
 
 ## Execution log
 (appended below as it runs)
+
+## Execution result (attempt #4) — HALTED on probe SESSION-REUSE, mechanism SOUND
+- **Three-part gate PASSED:** converged (all-prior-REMOVED), /health enforce 8/8, **serve-path uniformity
+  10/10 fresh /chat sessions served the signed question.** The gate worked — the fleet was single-version.
+- **Acceptance probe went red on [1][2][3][4b][5]** → halted per the pre-fire commitment (SAGE_D1_SCREEN=0),
+  then investigated (not "wait for convergence" — the gate had already converged).
+- **Airtight diagnosis: probe SESSION-REUSE.** The probe's fixed `reflip-*` session_ids were reused across
+  attempts 2/3/4; the audit shows 3–6 turns of history per session with prior `screen_answer_class` set
+  (clear_no / contraindication_disclosed / red_flag / no_answer). On attempt 4, turn 1 hit a session that had
+  ALREADY answered the screen in a prior attempt, so the mechanism CORRECTLY applied session-persistence
+  (do not re-screen an already-answered session) → no serve → the probe misread it as a serve failure.
+  `reflip-redflag-subtle` even shows `branch=medical_guard` from a PRIOR attempt — proof the screen's backstop
+  worked. Combined with gate-3's 10/10 fresh serve, the mechanism is SOUND; the probe used dirty sessions.
+- **Fix:** probe now uses UNIQUE session_ids per run (RUN_ID nonce). Gate-3 already used fresh unique sessions,
+  which is exactly why it passed — the acceptance probe must too. **Standing probe rule: every live probe run
+  uses fresh session_ids; a checkpointer-backed graph carries per-session state across runs.**
+- **Impact:** zero real users (query pending confirm on rollback). The gate's 10/10 fresh serve is the
+  strongest live proof yet that the mechanism serves correctly on a converged fleet.
+- **Pattern (4 halts):** #1 real code bug (channel drop); #2 probe-assertion + dark/live flag-parity; #3
+  replica non-uniformity (fixed by this gate); #4 probe session-reuse. Mechanism sound since 37fed748; the
+  probe/procedure needed successive hardening. Halt-first held every time; zero exposure.
