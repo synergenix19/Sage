@@ -26,13 +26,20 @@ path: all 31 enables are runtime flags with no committed-per-env mechanism, so t
      **10 times against fresh sessions**; ALL 10 must serve the signed question (byte-hash match to the
      manifest). Any non-serve = a replica still enforce-off = NOT converged → wait, do not probe. This is the
      `/health`-vs-`/chat` gap that halted attempt 3, promoted to a precondition.
-3. **Only after the gate holds: run the acceptance probe** (the corrected 8-check live probe: [1] serve
-   byte-hash · [2] clear_no→resume · [3] contra→grounding · [4a] explicit→998-via-either-path ·
-   [4b] subtle→screen medical_guard · [5] evaded→grounding · [6] AR no-screen · [7] crisis-in-answer), cited
-   individually. Because the fleet is single-version, the probe now measures ONE system.
-4. **Halt lever on any real miss:** `SAGE_D1_SCREEN=0` → rollback redeploy → converge to enforce=false. Same
-   held posture. "Real miss" now means an actual branch defect, not a superposition artifact (the gate removed
-   those).
+3. **The 10/10 serve-uniformity IS the acceptance — NO separate stateful live probe (retired 2026-07-21).**
+   Branch correctness is proven by two quieter instruments BEFORE the enable, not re-driven live through a
+   checkpointer-backed fleet (see ARCHITECTURE_BOUNDARIES "a stateful live acceptance probe is the wrong final
+   gate"). Those two pre-enable confirmations:
+   - **Compiled-graph test green on the deployed bytes:** `test_screen_serve_resume_graph.py` drives all 8
+     branches (serve byte-hash · clear_no→resume · contra→grounding · explicit→998-via-either ·
+     subtle→screen medical_guard · evaded→grounding · AR no-screen · crisis-in-answer), fresh checkpointer per
+     run, deterministic, at prod flag-parity — confirmed byte-identical to the deployed SHA.
+   - **Dark drive on the deployed bytes** (already banked for 37fed748).
+   The live gate then proves the CONVERGED FLEET runs that correct code on the serve path: the 10/10
+   fresh-session serve-uniformity. Code correct (offline+bytes) + fleet serves it (10/10) = complete.
+4. **Halt lever armed as always:** `SAGE_D1_SCREEN=0` → rollback → enforce=false. A real problem now surfaces
+   as a **serve-uniformity miss** (a replica not serving) at the gate, or a **monitored-enforce anomaly**
+   after — NOT a session-state artifact. The stateful-probe false-halt class is retired with the probe.
 
 ## The residual window (named honestly, not eliminated)
 Setting the flag triggers ONE rolling restart; during it, old (enforce-off) and new (enforce-on) replicas

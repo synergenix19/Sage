@@ -220,3 +220,33 @@ set the flag → single redeploy → **hard precondition: fully SUCCESS + all-pr
 the probe, not something the probe tolerates. The enable + SHA + convergence evidence is the recorded deploy
 artifact. (True committed-in-SHA enable is heavier and breaks the flag convention; session-stickiness / canary
 is overkill for a 4.5%-base-rate route. The convergence-gated flag flip is the right-sized fix.)
+
+## A stateful live acceptance probe is the WRONG final gate for a serve-path change (retired 2026-07-21)
+
+**Rule:** do NOT gate a serve-path enable on a full live acceptance probe that drives multi-turn branches
+against a checkpointer-backed fleet. Branch correctness and live convergence are TWO different properties,
+proven by two different instruments; conflating them imports checkpointer/session state into the safety
+verdict, where it manifests as false halts.
+
+- **Branch correctness is a property of the CODE** — proven deterministically OFFLINE (the compiled-graph
+  test, fresh checkpointer per run, all branches) AND on the DEPLOYED BYTES (the dark drive, byte-identity to
+  the prod SHA + prod-representative flags). Quiet, deterministic, repeatable.
+- **Live convergence is a property of the FLEET** — proven by the convergence gate's **serve-path uniformity**
+  (N fresh `/chat` sessions all serve the signed question), which exercises the serve path live on every
+  converged replica. Quiet, stateless (fresh sessions).
+
+Together these answer the whole question — the code is correct, and the converged fleet runs that correct code
+live. A separate full live acceptance probe RE-drives branches the offline test already covers, but through the
+single most stateful surface they can hide in (stale checkpoints, session-persistence interactions,
+history-length effects), and adds no verification the mechanism needs.
+
+**Citation — the D1 four-halt pattern (2026-07-20/21):** attempt 1 = one REAL defect (channel drop), caught by
+the dark-drive class of check. Attempts 2/3/4 = three FALSE halts, each from the live probe's interaction with
+production STATE (dark/live flag-parity, replica timing, session-reuse) — never a mechanism bug; the mechanism
+was sound from 37fed748. That is not the halt-first posture working well; it is the posture rescuing a gate
+design that keeps generating false positives. The posture held (zero exposure); the GATE was wrong. Retire it.
+
+**Corollary (session hygiene, where a live drive IS used):** any live drive against a checkpointer-backed
+graph MUST use fresh session_ids per run — a reused thread carries per-session state across runs and produces
+artifacts. The convergence gate's serve-uniformity drive already does this (fresh sessions); that is why it
+passed clean while the reused-session acceptance probe went red on the same fleet.

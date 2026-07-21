@@ -50,3 +50,14 @@ Clean 8/8 → flip STAYS, monitored-enforce window opens under its honesty claus
 - **Pattern (4 halts):** #1 real code bug (channel drop); #2 probe-assertion + dark/live flag-parity; #3
   replica non-uniformity (fixed by this gate); #4 probe session-reuse. Mechanism sound since 37fed748; the
   probe/procedure needed successive hardening. Halt-first held every time; zero exposure.
+
+## RECONCILIATION CONFIRMED + probe RETIRED (2026-07-21) — attempt #5 procedure
+- (a) src/ byte-identical 37fed748..HEAD (only tests/docs since deploy) → compiled-graph test drives the
+  DEPLOYED mechanism bytes; asserts all 8 branches 1:1 with the retired live probe.
+- (b) compiled-graph test GREEN on those bytes; fresh InMemorySaver per run (deterministic, no stale state).
+- Live acceptance probe RETIRED (ARCHITECTURE_BOUNDARIES). New gate = code-correct (offline test + dark drive
+  on deployed bytes) + fleet-serves-it (convergence gate 10/10 serve-uniformity as ACCEPTANCE). No stateful
+  live probe. Halt surfaces as a serve-uniformity miss or monitored-enforce anomaly.
+- Enable motion: SAGE_D1_SCREEN=true → one redeploy → 3-part gate (SUCCESS/all-REMOVED + 8/8 + 10/10) → the
+  10/10 IS acceptance → flip STAYS → monitored-enforce opens. Residual-window acceptance + halt meaning per
+  the pre-fire section above.
