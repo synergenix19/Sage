@@ -32,6 +32,13 @@ async def _stub_intent(state):
 def _enforce_graph(monkeypatch):
     monkeypatch.setattr(config, "D1_SCREEN_ENABLED", True)
     monkeypatch.setattr(config, "D1_SCREEN_SHADOW", False)
+    # PROD-FLAG-PARITY (2026-07-21 re-flip #2 root cause): a dark verification is only valid against
+    # prod-representative flag state. The re-flip diverged from the dark drive because the dark env had
+    # MEDICAL_REDFLAG_GUARD_ENABLED OFF while prod has it ON — so an explicit-keyword red-flag answer that
+    # prod catches at the SAFETY layer (medical_response) instead fell through to the screen's own branch in
+    # the dark drive. Mirror prod here so dark and live agree. See docs/ARCHITECTURE_BOUNDARIES.md
+    # (dark/live flag-parity rule).
+    monkeypatch.setattr(config, "MEDICAL_REDFLAG_GUARD_ENABLED", True)
     import sage_poc.graph as g
     monkeypatch.setattr(g, "intent_route_node", _stub_intent)
     from langgraph.checkpoint.memory import InMemorySaver
@@ -67,12 +74,17 @@ async def test_flip_probe_branches_on_compiled_graph(monkeypatch):
     assert r1.get("response") == ms.SCREEN_QUESTION_EN
     assert r1.get("screen_pending") is True and r1.get("screen_held_skill") == "dbt_tipp"
 
-    # each branch: fresh thread, turn1 serve, turn2 answer → assert the branch classification
+    # answer branches that route THROUGH the screen's own classification (turn1 serve, turn2 answer)
     cases = {
         "clear_no":  ("no, it's the same as always", "proceed"),
         "contra":    ("actually I have a heart condition", "grounding"),
-        "redflag":   ("it's a sharp crushing pain spreading to my arm", "medical_guard"),
         "evaded":    ("anyway, my week at work has been really busy", "grounding"),
+        # #2 SUBTLE red-flag reaching the SCREEN's OWN backstop: passes the safety-layer keyword guard
+        # (detect_medical_redflag misses "sharp" alone) but trips the screen's red-flag markers -> the screen
+        # is the safety net here, not the keyword guard. Empirically chosen (driven, not guessed). This keeps
+        # the screen's medical_guard branch DRIVEN even with the prod guard ON (else it rots undriven -- the
+        # "disarmed by never being exercised" pattern the incident exposed).
+        "redflag_subtle": ("it feels really sharp, not like my usual anxiety", "medical_guard"),
     }
     for name, (answer, expect_branch) in cases.items():
         cfg = {"configurable": {"thread_id": f"flip-graph-{name}"}}
@@ -81,6 +93,19 @@ async def test_flip_probe_branches_on_compiled_graph(monkeypatch):
         s2 = await app.ainvoke(_turn(answer), config=cfg)
         assert s2.get("screen_branch_taken") == expect_branch, f"{name}: got {s2.get('screen_branch_taken')}"
         assert s2.get("screen_pending") is False, f"{name}: hold not released"
+
+    # #1 EXPLICIT-keyword red-flag → 998 delivered via EITHER path (assert the OUTCOME, not the route: with
+    # supremacy layers, the path legitimately depends on flag state). With the prod guard ON the SAFETY layer
+    # catches it (gate=medical, medical_response) BEFORE the screen classifies — a stronger path than the
+    # screen's own backstop. The safety property is "a red-flag answer delivers the 998 guard", not "via the
+    # screen branch specifically".
+    cfg = {"configurable": {"thread_id": "flip-graph-redflag-explicit"}}
+    await app.ainvoke(_turn(_OVERWHELM), config=cfg)
+    rf = await app.ainvoke(_turn("it's a sharp crushing pain spreading to my arm"), config=cfg)
+    delivered_998 = rf.get("gate_path") == "medical" or rf.get("screen_branch_taken") == "medical_guard"
+    assert delivered_998, f"red_flag explicit: 998 not delivered via either path (gate={rf.get('gate_path')}, branch={rf.get('screen_branch_taken')})"
+    assert rf.get("screen_pending") is False
+
     # clear_no resumes the held skill; contra/evaded route away (never the held TIPP)
     # (asserted via screen_branch_taken above; proceed==resume, grounding==routed-away)
 

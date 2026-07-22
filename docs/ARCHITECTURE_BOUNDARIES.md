@@ -163,3 +163,90 @@ runtime is not.
 real per-turn contract (`_build_state`), invokes the **compiled** graph (`build_graph(checkpointer=...)`), and
 asserts on the state the runtime produces — not a state the test authored. `check_state_channels` is the static
 half of this rule; the compiled-graph drive is the dynamic half. Neither alone is sufficient.
+
+## Dark verification must run at PROD FLAG PARITY (a dark drive at different flags proves a config that isn't shipping)
+
+**Rule (standing property of the dark-drive procedure):** a dark verification is only valid against
+**prod-representative flag state.** The dark drive MUST snapshot prod's flag set and run against it. A dark
+drive with different flags than prod verifies a *configuration that is not shipping* — and its "proven"
+carries the same overclaim the word carried in the 2026-07-20 incident.
+
+**Incarnation (2026-07-21 re-flip #2):** the D1 dark compiled-graph drive ran with
+`MEDICAL_REDFLAG_GUARD_ENABLED` **off** (test default); prod has it **on**. An explicit-keyword red-flag
+answer that prod catches at the SAFETY layer (`medical_response`, 998) instead fell through to the screen's
+own `medical_guard` branch in the dark drive. The dark drive passed `[4]`; the live probe diverged. No user
+was harmed (halt-first posture, zero exposure), but the dark drive's green was against a config prod doesn't
+run. Fix: the enforce-graph test helper now sets `MEDICAL_REDFLAG_GUARD_ENABLED=True` to mirror prod; the
+standing procedure is to mirror the full prod flag posture, not just the flag under test.
+
+**Corollary — assert OUTCOMES, not ROUTES, where supremacy layers can pre-empt.** When more than one layer can
+satisfy a safety property (a red-flag answer's 998 can arrive via the safety-layer guard OR the screen's own
+backstop, depending on flag state), the acceptance assertion must check the **outcome** (998 delivered), not a
+specific **route** (a particular `screen_branch_taken`). Asserting the route couples the test to a config-
+dependent implementation path and produces a false red when a *stronger* path pre-empts. This is a small
+generalization of the layer-attribution rule: attribute the guarantee to the property, and drive each layer's
+own path with a case that actually reaches it (the subtle-red-flag case keeps the screen's backstop driven even
+when the safety layer would otherwise pre-empt every obvious test — else that branch rots undriven, the
+"disarmed by never being exercised" pattern).
+
+## Serve-path enables do NOT ride rolling flag-flips probed during rollout (convergence-gate the enable)
+
+**Rule:** a feature flag whose flip changes the SERVED response (a serve-path / clinical-behavior change) must
+be enabled as a **convergence-gated** motion — the acceptance probe runs ONLY after the fleet is fully
+converged to single-version-enabled (deployment fully SUCCESS, all prior deployments REMOVED, AND serve-path
+uniformity verified by driving the served behavior via `/chat` N times with all N consistent). `/health`
+readback convergence is necessary but NOT sufficient — `/health` and `/chat` can route to different replicas
+during a rolling deploy.
+
+**Why (the distinction that matters):** for a **byte-identical** change, a rolling deploy's transient mix of
+old+new replicas is invisible and harmless — old and new serve identically. That is why every dark deploy in
+this arc worked. But a **serve-path enable** is the one change where old and new replicas serve *clinically
+different* responses, so the rolling window is a period where prod is genuinely two systems at once: some
+users get the screen, some don't, non-deterministically by load-balancer luck. Any acceptance probe fired into
+that window measures a **superposition**, not a system. That is both un-probeable AND an undesirable production
+state for a clinical change, independent of whether the probe can see it.
+
+**Citation — the D1 three-halt pattern (2026-07-20/21):** attempt 1 caught a real code bug (channel drop);
+attempts 2 and 3 were NOT the mechanism failing — they were the probe failing to observe a sound mechanism
+because it ran against a non-uniform, mid-transition fleet (attempt 2: dark/live flag-parity; attempt 3:
+replica non-uniformity, `[4b]` screen-backstop passing LIVE while `[1]` serve failed — impossible under uniform
+enforce). The lesson: three procedure patches to the same underlying fact = the flip *mechanism* is wrong for
+this class of change, not the probe. Halt-first posture held every time; zero exposure.
+
+**The mechanism (this codebase):** all 31 feature enables are runtime env flags (no committed-per-env enable),
+so the enable stays a runtime flag (convention), but the flip is restructured as a gated PROCEDURE:
+set the flag → single redeploy → **hard precondition: fully SUCCESS + all-prior-REMOVED + serve-path uniformity
+(N/N served)** → only then the acceptance probe → halt lever on any real miss. Convergence is a precondition of
+the probe, not something the probe tolerates. The enable + SHA + convergence evidence is the recorded deploy
+artifact. (True committed-in-SHA enable is heavier and breaks the flag convention; session-stickiness / canary
+is overkill for a 4.5%-base-rate route. The convergence-gated flag flip is the right-sized fix.)
+
+## A stateful live acceptance probe is the WRONG final gate for a serve-path change (retired 2026-07-21)
+
+**Rule:** do NOT gate a serve-path enable on a full live acceptance probe that drives multi-turn branches
+against a checkpointer-backed fleet. Branch correctness and live convergence are TWO different properties,
+proven by two different instruments; conflating them imports checkpointer/session state into the safety
+verdict, where it manifests as false halts.
+
+- **Branch correctness is a property of the CODE** — proven deterministically OFFLINE (the compiled-graph
+  test, fresh checkpointer per run, all branches) AND on the DEPLOYED BYTES (the dark drive, byte-identity to
+  the prod SHA + prod-representative flags). Quiet, deterministic, repeatable.
+- **Live convergence is a property of the FLEET** — proven by the convergence gate's **serve-path uniformity**
+  (N fresh `/chat` sessions all serve the signed question), which exercises the serve path live on every
+  converged replica. Quiet, stateless (fresh sessions).
+
+Together these answer the whole question — the code is correct, and the converged fleet runs that correct code
+live. A separate full live acceptance probe RE-drives branches the offline test already covers, but through the
+single most stateful surface they can hide in (stale checkpoints, session-persistence interactions,
+history-length effects), and adds no verification the mechanism needs.
+
+**Citation — the D1 four-halt pattern (2026-07-20/21):** attempt 1 = one REAL defect (channel drop), caught by
+the dark-drive class of check. Attempts 2/3/4 = three FALSE halts, each from the live probe's interaction with
+production STATE (dark/live flag-parity, replica timing, session-reuse) — never a mechanism bug; the mechanism
+was sound from 37fed748. That is not the halt-first posture working well; it is the posture rescuing a gate
+design that keeps generating false positives. The posture held (zero exposure); the GATE was wrong. Retire it.
+
+**Corollary (session hygiene, where a live drive IS used):** any live drive against a checkpointer-backed
+graph MUST use fresh session_ids per run — a reused thread carries per-session state across runs and produces
+artifacts. The convergence gate's serve-uniformity drive already does this (fresh sessions); that is why it
+passed clean while the reused-session acceptance probe went red on the same fleet.
