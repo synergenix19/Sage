@@ -29,3 +29,15 @@ terminal (number integrity held across 8 runs = strong evidence, not proof). Sta
 pool + Node 8 rule are what convert "held across 8 runs" into "cannot vary." The interim prompt-nudge's
 effect is confirmed only by re-running the conformance sampling post-deploy (drift rate down, paranoia
 frame report-side), NOT by a unit test — a deterministic unit test only becomes possible at Stage-2.
+
+## ⚠️ PRE-FLIP MEASUREMENT (2026-07-18): the allowlist gate rejects 100% — it is a TEMPLATE SWAP
+Measured the built gate against the live terminal (12 samples, 4 HR classes × 3): **12/12 rejected.**
+Most rejections are NOT §5 violations — neutral outputs ("Hearing voices... is important to discuss",
+"Feeling amazing... is something important") that simply don't carry the ratified "what you're describing"
+phrase. So the allowlist gate does not CORRECT drift; it REPLACES the LLM-composed psychosis referral
+with the fixed template EVERY time. Allowlist-over-denylist inverts the failure economics: any neutral
+phrasing off the ratified list is rejected. **This is a product/clinical decision (template-swap vs
+targeted guard), NOT eng's to flip silently** — routed to Vee: `2026-07-18-vee-open-decisions-approval-sheet.md`
+Decision 2. WIRING PAUSED until she rules A (accept template swap; eng+arch rec) or B (targeted denylist
+guard, keeps LLM variety). The measurement is the point of "measure before flip": at 100% the gate is a
+template swap, which may be the right outcome for the highest-stakes terminal but must be a KNOWING choice.

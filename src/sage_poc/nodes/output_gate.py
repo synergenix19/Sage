@@ -139,6 +139,70 @@ def _pin_ocd_referral(text: str, abstain_referral: str | None, lang: str) -> str
     return text
 
 
+# ── HR §5 content-neutrality gate (Node 8) — Vee-ratified seed 2026-07-18 ────────────────────────
+# The psychotic-referral terminal is LLM-composed, so a §5 drift (stating the feared content as FACT:
+# "you're experiencing [content]", "feeling like [content]") can be sampled (1/4 post-interim). Unlike
+# the interim prompt-nudge (probabilistic reduction), this deterministic gate makes it ELIMINATION:
+# the referral MUST open with a ratified account-frame; if not, it drifted -> replace with the signed
+# templated fallback. ALLOWLIST (require a neutral frame) not denylist (enumerate bad frames) — allowlist
+# makes "cannot vary" a property. SCOPED to the HR referral terminal ONLY: applying §5 globally would
+# false-reject legitimate reflective statements in the anxiety/low-mood tracks (reflecting a user's
+# account back is a core therapeutic move) — the same over-catch shape, at Node 8. On reject the gate
+# NEVER regenerates (latency/loop risk) and NEVER fails open/empty; it emits the fixed signed fallback.
+# Rejections are returned so the caller audit-logs them — the drift RATE is the metric that says whether
+# the upstream prompt is still degrading.
+_HR_NEUTRAL_FRAMES_EN = (
+    "what you're describing", "what you've shared", "the experience you're describing",
+    "what you're going through", "what you're sharing", "you're describing",
+)
+_HR_NEUTRAL_FRAMES_AR = ("ما تصفه", "اللي تصفه", "اللي تشاركه", "اللي تحس فيه", "أسمعك")
+
+
+# The fallback TEMPLATES are the psychotic_referral terminal's ratified account-frame examples[0]/[3]
+# VERBATIM (with the {{crisis_*}} placeholders), so the "signed" copy has a single source (the skill)
+# and cannot drift into a hand-typed paraphrase. test_hr_neutral_fallback_is_ratified_source_verbatim
+# fails CI if either diverges from the skill example -- integrity tied to Vee's ratified SOURCE, not a
+# hash snapshot. The helpline single-sources from CRISIS_CONFIG at render so a GL reversal can't desync
+# it. Vee ratified this seed frame + the never-restate-content invariant 2026-07-18/21 (Option A).
+_HR_NEUTRAL_FALLBACK_TEMPLATE_EN = (
+    "What you're describing sounds really important, and it's something to talk through with a mental "
+    "health professional who can give you the right kind of support. In the UAE, you can reach the "
+    "{{crisis_label}} on {{crisis_number}} (free, {{crisis_hours}}). If you need someone outside those "
+    "hours, call emergency services {{crisis_emergency}}. You don't have to navigate this alone."
+)
+_HR_NEUTRAL_FALLBACK_TEMPLATE_AR = (
+    "ما تصفه مهم وتحتاج فيه دعم من متخصص يقدر يساعدك بشكل صحيح. تقدر تتواصل مع خط الدعم النفسي الوطني "
+    "على {{crisis_number}} (مجاني، {{crisis_hours}}). وإذا احتجت مساعدة خارج هذي الأوقات، اتصل بخدمات "
+    "الطوارئ {{crisis_emergency}}. ما أنت لوحدك في هذا."
+)
+
+
+def _hr_neutral_fallback(lang: str) -> str:
+    """Signed templated fallback = the ratified template above, single-sourcing the helpline via
+    CRISIS_CONFIG. Verbatim from psychotic_referral example[0]/[3]; Vee seed ratification 2026-07-18/21."""
+    from sage_poc.config import CRISIS_CONFIG as _cc
+    t = _HR_NEUTRAL_FALLBACK_TEMPLATE_AR if lang == "ar" else _HR_NEUTRAL_FALLBACK_TEMPLATE_EN
+    return (t.replace("{{crisis_label}}", _cc.get("label", _cc["number"]))
+             .replace("{{crisis_number}}", _cc["number"])
+             .replace("{{crisis_hours}}", _cc["hours"])
+             .replace("{{crisis_emergency}}", _cc["emergency"]))
+
+
+def _enforce_hr_neutrality(text: str, is_hr_referral: bool, lang: str) -> tuple[str, bool]:
+    """Node-8 deterministic §5 content-neutrality on the HR/psychotic-referral terminal ONLY. Returns
+    (text, rejected). If the referral output does not carry a ratified account-frame (allowlist), it has
+    drifted to stating the feared content as fact -> replace with the signed templated fallback and flag
+    the rejection for the audit row. Byte-identical no-op when clean or off-scope. NEVER fails open,
+    NEVER emits nothing (the fallback is a complete signed message)."""
+    if not is_hr_referral or not text:
+        return text, False
+    frames = _HR_NEUTRAL_FRAMES_AR if lang == "ar" else _HR_NEUTRAL_FRAMES_EN
+    low = text.lower()
+    if any(f in low for f in frames):
+        return text, False  # account-framed -> clean, unchanged
+    return _hr_neutral_fallback(lang), True  # drifted -> signed templated fallback
+
+
 _OPENER_REWRITE_DISTRESS_CEILING = 9  # severe distress (9-10/10) -> suppress rewrite (pass through);
 # the lexicon is the primary sensitive-content gate, this is a wording-independent backstop for the top of the scale
 
@@ -864,6 +928,16 @@ async def output_gate_node(state: SageState) -> dict:
     final_response = _pin_mood_anchor(final_response, state.get("executed_step_id"), lang)
     final_response = _pin_ocd_referral(final_response, state.get("abstain_referral"), lang)  # #218
 
+    # Node-8 §5 content-neutrality gate on the HR/psychotic-referral terminal (Vee Option A 2026-07-21).
+    # Flag-gated; scoped to the HR referral only (skill_match_method marker); replaces a non-account-framed
+    # output with the signed fallback and audit-logs the rejection (the drift RATE is the metric).
+    _hr_neutrality_rejected = False
+    if _cfg.HR_NEUTRALITY_GATE_ENABLED and state.get("skill_match_method") == "psychotic_disclosure_auto_select":
+        final_response, _hr_neutrality_rejected = _enforce_hr_neutrality(final_response, True, lang)
+        if _hr_neutrality_rejected:
+            _log.warning("[output_gate] HR §5 neutrality gate: non-account-framed referral replaced "
+                         "with signed fallback (session=%s)", session_id)
+
     if AUDIT_LOG_ENABLED:
         audit = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -874,6 +948,7 @@ async def output_gate_node(state: SageState) -> dict:
             "primary_intent": state.get("primary_intent"),
             "active_skill": state.get("active_skill_id") or state.get("completed_skill_id"),
             "skill_match_method": state.get("skill_match_method"),
+            "hr_neutrality_rejected": _hr_neutrality_rejected,  # Node-8 §5 gate fired (drift-rate metric)
             "prepass_rule_id": state.get("prepass_rule_id"),  # v7.2 Node-2 keyword pre-pass provenance
             "semantic_score": state.get("semantic_score"),
             "executed_step": state.get("executed_step_id"),
@@ -967,7 +1042,8 @@ async def output_gate_node(state: SageState) -> dict:
             if not t.cancelled() and t.exception() else None
         )
 
-    _audit_task = asyncio.create_task(write_session_audit({**state, "path": path, "gate_path": gate_path or "standard"}))
+    _audit_task = asyncio.create_task(write_session_audit(
+        {**state, "path": path, "gate_path": gate_path or "standard", "hr_neutrality_rejected": _hr_neutrality_rejected}))
     _audit_task.add_done_callback(
         lambda t: _log.warning("[output_gate] session audit error: %s", t.exception())
         if not t.cancelled() and t.exception() else None
@@ -978,6 +1054,7 @@ async def output_gate_node(state: SageState) -> dict:
         "response_en": response_en,
         "gate_path": gate_path or "standard",
         "path": path,
+        "hr_neutrality_rejected": _hr_neutrality_rejected,  # declared channel (Node-8 §5 gate; SG-2 rule)
         "turn_count": next_turn,
         # Persist THIS turn's intent as next turn's prev, for consecutive-info_request
         # ("lookup mode") detection in the composer. Mirrors prev_step_id: lives in
