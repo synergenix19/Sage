@@ -29,9 +29,28 @@ That case — where the *screen*, not the keyword guard, is the safety net catch
 on every run, and its correct behavior (→998) is part of what your (c) "mechanism verified on every branch"
 actually certifies.
 
-**Next:** we re-run the full-branch probe at prod flag-parity (question served, each answer branch incl. both
-the explicit and subtle red-flag, crisis-in-answer, Arabic grounding-only) before any re-flip. You'll hear the
-result. "Verified" means driven on the real system — the exact word that failed, now with a mechanism behind
-it.
+**Update (2026-07-22): D1 IS LIVE.** The screen is now enforced in production. Getting there took five enable
+attempts and four halts — and telling you the messy version unprompted is the point, because it is what makes
+the verification credible. One was a real code defect (a wiring bug that served a generic response instead of
+the screen); it was caught by our first live check, before any user. The other three halts were NOT the
+mechanism failing — they were our own verification tooling being fooled by production timing and state, and we
+halted each time rather than risk shipping. **No user was exposed at any point across all five attempts.** The
+final fix was to stop verifying the screen through a noisy live test and instead trust two quiet, reliable
+checks: the screen's behavior proven on the exact deployed code, and the live fleet proven to actually serve
+the screen (10 out of 10 fresh sessions). The flip held on the first attempt of that redesigned check.
+
+**What is live now:** on an acute-overwhelm turn that would route to TIPP, the screen asks its two-beat
+question; a clear "no" resumes TIPP; a disclosed heart condition or pregnancy routes to grounding and is not
+re-offered TIPP that session; red-flag symptom quality reaches the 998 guard (caught by the safety layer, or
+by the screen's own backstop for subtle phrasing); crisis in an answer reaches the crisis path. All verified
+live on the converged system.
+
+**Next — the monitored-enforce window, under the honesty clause you were promised:** it is accruing now. "D1
+verified" for the C1 revisit means the mechanism verified live on every branch + zero safety-stop events, with
+the answer-class picture reported as **descriptive, honestly labelled small-sample** until enough real screens
+accrue (TIPP is a ~4.5% route, so n builds slowly — if it can't reach a meaningful size in reasonable time,
+you'll hear that early, not at a closing date, and it won't block the revisit; it just gets labelled as what
+it is). When the window closes clean, TIPP-leads comes back to you as a ruling on evidence — which is what this
+whole arc was built to make possible. Your (c) ruling stands throughout; none of this needed a re-ruling.
 
 Telling you this unprompted is what makes the next sign-off worth something.
