@@ -73,18 +73,18 @@
     {
       "id": "hr_neutrality_fallback_en",
       "selector": "pyconst:sage_poc.nodes.output_gate:_HR_NEUTRAL_FALLBACK_TEMPLATE_EN",
-      "sha256": "de5e724b935d9930d2090a6e771dfd7b0a139fbaaa96eb1a0e60e9bd7a5eaa1f",
-      "signed_by": "clinical lead (Vee) — §5 seed ratification",
-      "signed_date": "2026-07-21",
-      "signoff": "HR §5 neutrality fallback template — the ONE message the psychosis referral shows when the Node-8 gate is on (Vee Option A 2026-07-21). VERBATIM from psychotic_referral example[0] (drift-guarded by test_hr_neutral_fallback_is_ratified_source_verbatim). Integrity = this pin; ACCURACY = Vee's §5 seed ratification 2026-07-18 (the account-frame + never-restate-content invariant), NOT a fresh eng sign-off."
+      "sha256": "316d18e0beea5d3ed4e764571dd41b27a78d259d0387d947993835423b22a19f",
+      "signed_by": "clinical lead (Vee) — hours+24/7 wording ratification",
+      "signed_date": "2026-07-22",
+      "signoff": "HR §5 neutrality fallback template — the ONE message the psychosis referral shows when the Node-8 gate is on. VERBATIM from psychotic_referral example[0] (drift-guarded by test_hr_neutral_fallback_is_ratified_source_verbatim). Integrity = this pin; ACCURACY = Vee's re-authored wording ratification 2026-07-22 (2026-07-22-hr-referral-template-hours-vee.md): pairs the 24/7 Abu Dhabi line 800-SAKINA (800-725462) alongside the 8am-8pm National line so a 3am referral is not a dead-end, keeping the account-frame + never-restate-content invariant. Capability change (added a 24/7 resource) re-signed, not carried from the §5 seed."
     },
     {
       "id": "hr_neutrality_fallback_ar",
       "selector": "pyconst:sage_poc.nodes.output_gate:_HR_NEUTRAL_FALLBACK_TEMPLATE_AR",
-      "sha256": "9a5c836f44a21815952a1c5aaac776cdf4c6347b04e94d3fcb13210eaedc8ca4",
-      "signed_by": "clinical lead (Vee) — §5 seed ratification",
-      "signed_date": "2026-07-21",
-      "signoff": "HR §5 neutrality fallback template — the ONE message the psychosis referral shows when the Node-8 gate is on (Vee Option A 2026-07-21). VERBATIM from psychotic_referral example[3] (drift-guarded by test_hr_neutral_fallback_is_ratified_source_verbatim). Integrity = this pin; ACCURACY = Vee's §5 seed ratification 2026-07-18 (the account-frame + never-restate-content invariant), NOT a fresh eng sign-off."
+      "sha256": "58e1fb57b8821b90f656d12db0faf8e54b1cc0ced9443f4b64cc62294c5346cb",
+      "signed_by": "clinical lead (Vee) — hours+24/7 wording ratification",
+      "signed_date": "2026-07-22",
+      "signoff": "HR §5 neutrality fallback template (Arabic) — the ONE message the psychosis referral shows when the Node-8 gate is on. VERBATIM from psychotic_referral example[3] (drift-guarded by test_hr_neutral_fallback_is_ratified_source_verbatim). Integrity = this pin; ACCURACY = Vee's re-authored wording ratification 2026-07-22 (2026-07-22-hr-referral-template-hours-vee.md): localizes the National-line hours to Khaleeji Arabic AND pairs the 24/7 Abu Dhabi line 800-SAKINA (800-725462) so a 3am referral is not a dead-end, keeping the account-frame + never-restate-content invariant. Latin mnemonic kept (digits authoritative). Capability change (localized hours + added a 24/7 resource) re-signed, not carried from the §5 seed."
     }
   ]
 }
