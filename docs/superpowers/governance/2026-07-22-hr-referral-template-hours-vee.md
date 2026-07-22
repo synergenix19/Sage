@@ -34,3 +34,34 @@ maps to 4673 on a keypad; أمل doesn't). Confirm alongside the above so the te
 
 **On approval:** re-render the signed fallback template (still verbatim from the ratified psychotic_referral
 copy), re-pin (signed_clinical_fields, provenance = this ratification), re-verify live. The gate stays on.
+
+---
+
+## ✅ RULED (Vee, 2026-07-21): Item 2 approved · Item 1 approved (as ONE re-authored routing block) · Item 3 keep-English (HOPE + SAKINA, digits authoritative)
+
+## Proposed RE-AUTHORED template (one unit, both languages) — approve / edit / reject the WORDING
+Eng-drafted for your ratification (you author the clinical copy; digits are ground truth, mnemonics ride
+alongside in English). Preserves the §5 account-frame + never-restate-content invariant you ratified. The
+hours line is now ROUTING, not a dead-end: national line by day, SAKINA any hour, 999 for danger.
+
+**EN:**
+> «What you're describing sounds really important, and it's something to talk through with a mental health
+> professional who can give you the right kind of support. In the UAE, you can reach the National Mental
+> Support Line on **800-HOPE (800-4673)**, free, 8am–8pm daily; and at any hour, day or night, the Abu
+> Dhabi support line **800-SAKINA (800-725462)** is available free, 24/7. If you or someone else is in
+> immediate danger, call emergency services on **999**. You don't have to navigate this alone.»
+
+**AR (Khaleeji; hours + routing localized; mnemonics kept Latin, digits authoritative):**
+> «ما تصفه مهم وتحتاج فيه دعم من متخصص يقدر يساعدك بشكل صحيح. في الإمارات، تقدر تتواصل مع خط الدعم النفسي
+> الوطني على **800-HOPE (800-4673)**، مجاناً، من الساعة ٨ الصبح إلى ٨ المسا يومياً؛ وفي أي وقت، ليل أو نهار،
+> خط سكينة في أبوظبي **800-SAKINA (800-725462)** متوفر مجاناً على مدار الساعة. وإذا كنت أنت أو أي شخص ثاني
+> في خطر مباشر، اتصل بخدمات الطوارئ على **999**. ما أنت لوحدك في هذا.»
+
+→ ☐ approve wording (EN+AR)  ☐ edit (mark changes)  ☐ reject
+
+## On approval (eng)
+Update BOTH `psychotic_referral` example[0]/[3] AND the Node-8 fallback template constants to this
+re-authored copy (keeps them equal so the source-verbatim drift-guard stays intact), single-source the
+national-line digits via CRISIS_CONFIG, add SAKINA (a new signed entry). Re-pin
+`hr_neutrality_fallback_en/ar` (provenance = this ratification). Re-verify live (template swap still fires,
+now carries the 24/7 pairing + Arabic hours), gate stays on. Rollback unchanged = SAGE_HR_NEUTRALITY_GATE=false.
