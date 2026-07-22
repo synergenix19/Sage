@@ -65,3 +65,14 @@ re-authored copy (keeps them equal so the source-verbatim drift-guard stays inta
 national-line digits via CRISIS_CONFIG, add SAKINA (a new signed entry). Re-pin
 `hr_neutrality_fallback_en/ar` (provenance = this ratification). Re-verify live (template swap still fires,
 now carries the 24/7 pairing + Arabic hours), gate stays on. Rollback unchanged = SAGE_HR_NEUTRALITY_GATE=false.
+
+---
+
+## ✅ SHIPPED 2026-07-22 (PR #359, prod SHA 1f687c57)
+Vee ratified the re-authored wording (all three asks). Implemented: `psychotic_referral` example[0]/[3] +
+Node-8 fallback constants set from the same strings (drift-guard intact); re-pinned + RE-SIGNED
+`hr_neutrality_fallback_en/ar` (capability change — added a 24/7 resource + localized hours — so re-signed,
+not carried from the §5 seed). Deployed via `deploy_prod.sh production 1f687c57` (lock→ancestry→cache-bust→
+`railway up`). **Verified LIVE:** EN + AR referral render 800-SAKINA (800-725462) 24/7 + Khaleeji hours;
+crisis precedence holds (psychosis+active-harm → crisis card, no SAKINA leak); H4 availability guard confirms
+"24/7" binds to SAKINA not the 8am-8pm National line. Gate stays ON. The 3am dead-end is closed.
