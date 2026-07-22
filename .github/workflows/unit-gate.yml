@@ -150,6 +150,7 @@ jobs:
             tests/test_health_version_d1_readback.py
             tests/test_hr_neutrality_gate.py
             tests/test_medical_redflag_ar_329.py
+            tests/test_medical_redflag_guard.py
             tests/test_safety_language_parity.py
             tests/test_ocd_compulsion_raw_path.py
             tests/test_ocd_compulsion_ar_330.py
