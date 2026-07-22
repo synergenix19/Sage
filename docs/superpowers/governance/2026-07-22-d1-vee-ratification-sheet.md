@@ -1,5 +1,13 @@
 # To Vee — nothing blocks D1 (it's live under your rulings). Two things are genuinely yours to decide.
 
+## ✅ RULED — Vee (clinical lead), 2026-07-22 (relayed via coordinator)
+- **Decision A: RATIFIED — keep the veto/containment-mid-hold deferral, monitored.** The flag+psychoed
+  side-effect gap on a single pending turn (route safety intact) is clinically acceptable to defer; the fix
+  (veto-marker signal) moves up only if monitoring shows the case is not rare. This converts an implicit
+  engineering hold into a clinician-ratified deferral.
+- **Decision B: RULED — keep Arabic on grounding-only; open the AR sign-off track AFTER the EN
+  monitored-enforce window closes clean.** AR builds on a verified EN screen, not in parallel.
+
 **D1 is live and needs no approval to keep running.** These two are decisions we've held implicitly on
 engineering judgment; they belong to you. Neither is urgent; both are approve/reject/edit.
 

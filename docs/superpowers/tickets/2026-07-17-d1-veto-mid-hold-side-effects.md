@@ -1,6 +1,9 @@
 # Ticket — D1 veto/containment-mid-hold: flag + containment SIDE-EFFECTS (not route safety) (#338)
 
-**Priority: deferred, monitored. Moves up if monitoring shows the case is not rare.**
+**Priority: deferred, monitored — CLINICIAN-RATIFIED (Vee, 2026-07-22). Moves up only if monitoring shows the
+case is not rare.** The deferral is no longer an engineering assumption; the clinical lead ruled the
+flag+psychoed side-effect gap on a single pending turn (route safety intact) acceptable to defer. Record:
+2026-07-22-d1-vee-ratification-sheet.md (Decision A).
 
 ## The precise boundary (safe, not silent)
 When a screen is pending (question emitted, TIPP held) and the user's NEXT turn discloses veto-matching or
