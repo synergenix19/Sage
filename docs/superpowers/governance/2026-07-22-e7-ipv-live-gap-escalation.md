@@ -29,21 +29,25 @@ worry_time shape): the iatrogenic response here is coaching a potential abuse vi
 the abuser. **Redundancy does NOT hold for the coercive-control/fear cases; do not read "physical abuse caught"
 as "E7 covered."**
 
-## The ask (clinician signature, live evidence attached — same shape as the iatrogenic escalation that got a
-## same-day answer)
-E7 is **mechanism-built, recall 100/100, authorized 07-05, never countersigned, currently OFF**. The gap above
-is what the OFF state costs an IPV discloser. Two things are yours:
+## The ask — ONE tick. A ratification of something already authorized, not a new decision.
+E7 was **built, recall-gated (100% positives / 100% precision), and PO-authorized on 2026-07-05.** It never
+went live for ONE reason: the authorization's own stated precondition — file the durable clinician launch
+sign-off — was never closed. The route is correct, measured, and authorized; the only missing artifact is your
+signature on the launch. **You are not re-deciding the route. You are closing the obligation left open, so a
+built-and-authorized safety route can stop being dark.**
 
-- ▢ **Vee (clinical) — file the durable E7 launch sign-off** (the missing 07-05 obligation): approve enabling
-  the IPV pre-emption route in production. On sign, engineering flips `SAGE_IPV_PREEMPTION=true` through the
-  convergence-gated enable (the D1 procedure), with a behavioral probe confirming coercive-control cases now
-  route to the relationship-safety referral instead of assertiveness coaching.  ▢ approve ▢ hold ▢ edit: ___
-- ▢ **PO — confirm the launch attestation** as a countersigned artifact (the 07-05 was PO-relayed, not
-  countersigned).  ▢ confirm ▢ edit: ___
+> ▢ **Ratify E7 go-live as authorized 2026-07-05.**
+> (On this tick, engineering flips `SAGE_IPV_PREEMPTION=true` through the convergence-gated enable, with a
+> behavioral probe confirming coercive-control cases now route to the relationship-safety referral instead of
+> assertiveness coaching. Instant kill-switch retained.)
 
-**Urgency: high, and measured.** A demonstrated iatrogenic response to a coercive-control discloser is live in
-prod right now, on the population E7 exists to protect. The fix is a signature away; it has been for 17 days
-because the obligation was never closed.
+No options to weigh — the transcripts above are the whole argument. **Why it can't wait for the normal queue:**
+a demonstrated iatrogenic response to a coercive-control discloser (DESC assertiveness coaching, no flag, no
+referral) is live in production right now, on the exact population E7 exists to protect, and has been for 17
+days because a signature nobody chased was left open. Thirty-second tick; the evidence does the work.
+
+*(Bundle with the other clinician items in front of her this sitting where timing allows — per the standing
+one-sitting discipline.)*
 
 ## Records
 E7 authorization (2026-07-05-e7-b0-production-golive-authorization.md, still-open obligation §24); E7
