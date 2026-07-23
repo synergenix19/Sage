@@ -230,6 +230,15 @@ async def main():
         prov["deploy_window_serving_vs_desired"] = [{"var": k, "serving": sv, "desired": dv} for k, sv, dv in deploy_window]
     t0 = time.time()
     corpus = [json.loads(l) for l in open(args.corpus) if l.strip()]
+    # DRAFT-CORPUS GUARD: an un-ratified corpus (any row `draft: true`) must NOT yield a normative number.
+    # A run measured against a draft inherits the draft's errors as truth (same failure as an unsigned trigger
+    # table). We still run (the drafter needs a provisional read) but stamp the output NON-NORMATIVE so no
+    # number can be quietly published pre-ratification. Enforced here, not by operator memory.
+    corpus_draft = any(r.get("draft") for r in corpus)
+    if corpus_draft:
+        prov["corpus_draft"] = True
+        prov["NORMATIVE"] = False
+        print("⚠️  DRAFT CORPUS — output stamped NON-NORMATIVE; do NOT publish this number pre-ratification", flush=True)
     app = build_graph(MemorySaver())
 
     # INSTRUMENT FIDELITY: prod warms BGE-M3 at server startup. build_graph() does not, so without
@@ -277,6 +286,11 @@ async def main():
 
     with open(args.out, "w") as f:
         f.write("# Conformance re-run — FULL-GRAPH, EN\n\n")
+        if corpus_draft:
+            f.write("> **⛔ DRAFT CORPUS — NOT NORMATIVE. This number was measured against an un-ratified "
+                    "corpus (rows carry `draft: true`) and MUST NOT be published or quoted as conformance, "
+                    "even informally, until Vee's mapping sign-off + native-Khaleeji dialect review. It is a "
+                    "provisional drafter's read only.**\n\n")
         if faults:
             f.write(f"> **⚠️ RUN VOID: {faults} instrument fault(s) — a partial matrix is not data. "
                     f"Do NOT write back to the register. First fault: {errors[0]}**\n\n")
