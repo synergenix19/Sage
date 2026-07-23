@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-23 · **Status:** DESIGN APPROVED section-by-section in brainstorm session; awaiting written-spec review
 **Source of truth:** BOT BEHAVIOUR clinician doc — all table-derived content cites `bot_behaviour_full.md` (NOT the stripped `.txt`; 2026-07-17 source-integrity rule)
-**Companions:** `../governance/2026-07-04-bot-behaviour-content-inventory.md` · `../plans/2026-07-04-bot-behaviour-ingestion-plan.md` · `2026-07-23-psychoed-consult-golive-verification.md` (Mechanism-A record, PR#362)
+**Companions:** `../governance/2026-07-04-bot-behaviour-content-inventory.md` · `../plans/2026-07-04-bot-behaviour-ingestion-plan.md` · `../governance/2026-07-23-psychoed-consult-golive-verification.md` (Mechanism-A record, PR#362)
 
 ---
 
@@ -12,7 +12,7 @@ On 2026-07-23 (same day as this design), `SAGE_INFO_REQUEST_CONSULT=true` went l
 
 **Mechanism-A is routing-level conformance. This design is the doc-complete capability.** None of the doc's psychoed substance exists in prod: no ratified block library (40 blocks), no menu-first/answer-first delivery shapes, no personally-framed safety weave, no PSY-WEAVE-1, no verbatim serving, no diagnosis-guard split. Matrix-green ≠ doc-complete (green proves it flows, not that it is correct/complete).
 
-**Migration rule (binding):** the Node-4 psychoed resolver (this design) supersedes Mechanism-A consult routing **per category, at each category's flag flip** — the two mechanisms must never both claim the same utterance class. Until a category flips, Mechanism-A behavior stands for it. On flip, the consult-set entry for that category is retired in the same change. §4a remains Mechanism-B territory (out of this design's scope); §7c moves from "matching gap" to this design's answer-first KB category (ruled amendment, §9).
+**Migration rule (binding):** the Node-4 psychoed resolver (this design) supersedes Mechanism-A consult routing **per category, at each category's flag flip** — the two mechanisms must never both claim the same utterance class. Until a category flips, Mechanism-A behavior stands for it. On flip, the consult-set entry for that category is retired in the same change (the consult set lives in `info_request_consult_set.py`, per the go-live record — that file is where retirement happens). §4a remains Mechanism-B territory (out of this design's scope); §7c moves from "matching gap" to this design's answer-first KB category (ruled amendment, §9).
 
 **Live-exposure note (filed with the P0, §9):** S2c conforming-live means grief traffic is actively invited today, while the reunification-ideation phenotype has ZERO Node-1 coverage (verified 2026-07-23: `crisis_keywords.json`, `passive_si_patterns.json`, `crisis_phrases.json` — EN and AR) and Mechanism-A carries no safety weave. Node 1 screens every turn as normal, but the compounded exposure raises the P0's urgency.
 
@@ -219,7 +219,7 @@ Trigger-table collision audit · single-source check on shared scripts · source
 
 | ID | Family | Gate |
 |---|---|---|
-| **F1** | Recognition — TWO sets per the earned E7 rule: wiring fixtures from the trigger tables (verify data read) + **independently-authored naturalistic paraphrases** (measure real recall; never fixture=pattern tautology). Precision negatives from neighboring categories (§3c vs 3a, §7c vs 7a/7b, §1f vs 1a–1e). | tracked baseline, clinician-set bar |
+| **F1** | Recognition — TWO sets per the fixture-independence rule (now BINDING on every detection route: `docs/ARCHITECTURE_BOUNDARIES.md`, "detection recall … independent of the detector's pattern source", PR#361): wiring fixtures from the trigger tables (verify data read; NEVER quoted as recall) + **independently-authored naturalistic paraphrases** (the only set recall claims may cite). Precision negatives from neighboring categories (§3c vs 3a, §7c vs 7a/7b, §1f vs 1a–1e). | tracked baseline, clinician-set bar |
 | **F2** | Collision — every declared resolution path (grief-context→S2c, absent→§3c, scripted-clarify). | green required |
 | **F3** | Classifiers — A: lexicon + structural signals, ambiguity→acute, **including mixed-pull turns** ("what is anxiety? I can't breathe right now" — recognition and precedence pulling opposite directions); B: row-type mapping, outcome-2 fail-to-personal. | green required |
 | **F4** | PSY-WEAVE-1 — clear-no incl. natural phrasings, clear-yes, ambiguous, deflection, contradiction-guard ("no, but…"), weave-pending precedence (trigger-phrase reply → crisis, not serve). Authored per language: the EN set gates EN flips; the AR set gates the AR flag. | **100% hard gate** |

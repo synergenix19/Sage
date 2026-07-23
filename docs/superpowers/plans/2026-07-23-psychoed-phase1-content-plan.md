@@ -613,7 +613,8 @@ Run: `for f in data/psychoed/blocks/en/*/*.json; do python3 -c "import json,sys;
 
 - [ ] **Step 1:** Write the notes file with these verbatim requirements (each cites its spec section):
   - **Rule-6 carry-forward evaluation mechanic (review addition 2):** carry-forward writes per-article-family `prior_exposure`; step-policy rule 6 evaluates per-skill. The skip works ONLY if, for a given skill, rule 6's condition reads the counter of the family its `kb_ref` points to — i.e. the evaluation is `prior_exposure[family_of(skill.kb_ref)] >= threshold`, not `prior_exposure[skill_id]`. Wire rule 6 against the `kb_ref`-resolved family counter or it reads a counter that never increments (spec §4.4 + schema extension 7).
-  - Mechanism-A retirement: each category flip retires its consult-set entry in the same change (spec §0).
+  - Mechanism-A retirement: each category flip retires its consult-set entry in the same change (spec §0). The consult set lives in `info_request_consult_set.py` (go-live record, PR#362) — that is the retirement file.
+  - F1 naturalistic-set seed: the §3c paraphrase variant that routes to `presence_only` (the go-live record's single-variant near-miss) goes into the F1 naturalistic fixtures — it is a real-world phrasing the trigger tables must catch, already observed live.
   - State channel keys, exact list (spec §4.2) — declare before build, `check_state_channels.py` + graph test.
   - PSY-WEAVE-1 precedence: evaluates before resolver matching on weave-pending turns (spec §2.1 step 1).
   - Node-8 hash-mismatch failure path: block → re-serve pinned → neutral referral on fetch-fail; never emit unverified (spec §6.2).
