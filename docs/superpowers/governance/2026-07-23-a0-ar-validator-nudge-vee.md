@@ -19,10 +19,26 @@ come back ruled; A0's answer has not.**
 - If 07-28 slips, the entire second measurement axis slips with it — indefinitely, since there is no other
   path to an AR conformance number.
 
-## What is needed from you
-**Just the validator's name** (or "use <X>", or "I'll validate the first batch myself"). That single line lets
-the corpus build proceed against a real sign-off path. No re-decision of anything else is being asked.
+## Recommendation (eng, for your one-tick approve / edit / reject)
 
-→ AR corpus validator: __________________________  (or ☐ I will validate batch 1)
+A0 has been read as "name one person who validates the whole AR corpus." That fuses **two different jobs**,
+and separating them is what unblocks you now:
 
-**This note exists so the blocker is named and dated, not assumed handled.** Relay today.
+- **Clinical-intent validation** — is each AR utterance's presentation → disposition mapping clinically
+  correct? This is **language-independent**: it is the same mapping you already ratified for the EN layer-1
+  corpus. **This is yours.**
+- **Dialect-fidelity validation** — is the Khaleeji natural (not MSA, not translated-sounding)? This needs a
+  **native Khaleeji speaker**, and it is the only part that actually requires one.
+
+**Recommended:** approve these as two roles so neither waits on the other. The corpus is built to the EN
+layer-1 spec and professionally translated to Khaleeji; **you sign the clinical intent** (as you did for EN);
+a **native-Khaleeji reviewer does the dialect pass** (PO assigns from the CDA clinical pool). Your immediate
+action shrinks to ratifying a mapping you've effectively already approved once — no dependency on sourcing a
+single bilingual clinician who can do both, and **07-28 stays live**.
+
+→ ☐ **approve — split the role: I sign clinical intent, PO assigns the native dialect reviewer** *(recommended)*
+→ ☐ approve — I'll validate the full AR corpus myself, batched as it's built
+→ ☐ edit — different validator / approach: ______________________________
+→ ☐ reject — #313 cannot hit 07-28; re-baseline the date (AR stays 0/180 until then)
+
+**This note exists so the blocker is named and dated, not assumed handled. One tick unblocks it. Relay today.**
