@@ -250,3 +250,34 @@ design that keeps generating false positives. The posture held (zero exposure); 
 graph MUST use fresh session_ids per run — a reused thread carries per-session state across runs and produces
 artifacts. The convergence gate's serve-uniformity drive already does this (fresh sessions); that is why it
 passed clean while the reused-session acceptance probe went red on the same fleet.
+
+## A detection recall number is meaningless unless its fixtures are independent of the detector's pattern source
+
+**Rule:** any safety-route recall claim MUST cite **naturalistic / paraphrased** fixtures, independent of the
+patterns the detector matches on. **Verbatim-fixture recall — a fixture whose utterances ARE the detector's own
+pattern strings — measures the detector against itself: a tautology, not a measurement.** It reports ~100%
+regardless of real-world coverage. This is the paraphrase-variant rule already in force for harm-gate cases,
+now binding on **every** detection route by name: no recall figure enters a go/no-go packet, a ratification
+ask, or a deploy gate unless its corpus is independent of the pattern source and reflects how real users
+phrase the disclosure.
+
+**Why:** substring/keyword detectors (CF-005 family, E7, the OCD/harm lexicons) match fixed strings. If the
+recall corpus is built from those same strings, recall is 1.0 by construction and tells you nothing about the
+naturalistic disclosures the route exists to catch. The gap between the two is the entire safety question.
+
+**Citation — E7 §6a IPV (2026-07-22):** E7 was ratified for go-live on a "100/100 recall" that was measured on
+`ipv_e7_recall.json`, whose 19 utterances are the 19 verbatim §6a sentences `_matches_expansion` substring-
+matches. Enabled on prod, E7 fired on **none** of three naturalistic coercive-control paraphrases (probe
+measured: matcher True on the fixture sentence, False on every paraphrase). The tautology was invisible in the
+packet and cost a clinician signature obtained on a false premise (corrected same day,
+`2026-07-22-e7-premise-correction-to-vee.md`). Same class as Clinical-Flag Detection Gap #65 (keyword tier, no
+semantic matching, naturalistic disclosures miss). **The recall rule that existed for harm-gate cases was not
+applied to E7; it now applies to all detection routes.**
+
+**Operational corollary (deploy-storm, 2026-07-22):** a live-verify is only valid against a *converged* fleet.
+The conformance runner's `serving == desired` guard protects measurement from a mid-transition fleet, but the
+same stale-window exposure applies to **every** live check — live-verifies, conformance probes, any step-3
+readback. During a rolling deploy `/health` and `/chat` can hit different replicas (see the serve-path
+convergence rule above). **Any live-verify MUST confirm `serving == desired` before trusting its own reading**,
+the same discipline the runner enforces — otherwise it may measure a superposition and record a stale result as
+current.
