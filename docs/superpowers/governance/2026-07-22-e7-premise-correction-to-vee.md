@@ -46,3 +46,5 @@ packet before it reached you. The correction is mine to carry, not yours to have
 E7 post-enable outcome + root cause (`2026-07-22-e7-ipv-live-gap-escalation.md`, ⛔ POST-ENABLE OUTCOME
 section); precedent (`2026-07-07-v1-comparator-correction.md`); the earned rule
 (`ARCHITECTURE_BOUNDARIES.md` — recall fixtures must be independent of the detector's pattern source).
+
+<!-- e7 correction landed independently of D1; see PR #361 -->
