@@ -42,3 +42,16 @@ single bilingual clinician who can do both, and **07-28 stays live**.
 → ☐ reject — #313 cannot hit 07-28; re-baseline the date (AR stays 0/180 until then)
 
 **This note exists so the blocker is named and dated, not assumed handled. One tick unblocks it. Relay today.**
+
+---
+
+## ✅ RULED (Vee, 2026-07-23): APPROVED — split the role
+Recommended option approved: **Vee signs the clinical intent** (the AR presentation→disposition mapping,
+language-independent, already ratified for EN); **PO assigns a native-Khaleeji reviewer** for the dialect pass.
+A0 is CLOSED. #313 is UNBLOCKED — the AR corpus build proceeds against this sign-off path; 07-28 stays live.
+
+**Now-live workflow for #313:**
+1. Eng: build the AR layer-1 corpus to the EN spec (36 cats × 5), professionally translated to Khaleeji.
+2. Vee: sign the clinical-intent mapping (batched as built).
+3. Native-Khaleeji reviewer (PO-assigned): dialect-fidelity pass.
+4. Guarded runner measures the AR axis (currently 0/180) — the second measurement axis opens.
