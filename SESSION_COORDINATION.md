@@ -20,6 +20,8 @@
 
 ## Open governance items
 
+- **E7 clinician-correction docs landed on master INDEPENDENTLY (2026-07-22, PR #361) — courtesy note to the D1 stream owner.** The Vee premise-correction, the live IPV-gap escalation, and the `ARCHITECTURE_BOUNDARIES` recall-fixture-independence rule were authored on `cdai/d1-serve-resume-fix` (commit `27ee6bf9`, local-only) alongside the D1 work. They were extracted to master via #361 so a clinician correction is not visibility-gated on D1's merge schedule. **When D1 merges, git resolves the identical E7-doc content cleanly (or as a trivial docs conflict) — those changes are already reviewed on master, not unreviewed changes riding your merge.**
+
 - **MM live-while-unsigned escalation — RESOLVED 2026-07-07: INTENDED (reconciled).** The reconciled RESOLUTION in `docs/superpowers/governance/2026-07-07-mm-registration-live-in-prod-escalation.md` supersedes BOTH #145 and #146 (cites both, erases neither). Rollback prepared-but-UNARMED. `approved_by` deliberately null (honest).
 - **#131 — LANDED (`8ab2169`) + deployed; code-complete, NOT a pending PR.** (Earlier "pending #131" records were stale — corrected.) The entry-screen holds live; referral renders softly pending #144.
 - **Operative remaining gate = CMS/clinician sign-off of the referral PHRASING** (the deployed #131 text + the #144 example). **#144** (referral-example phrasing) is clinician-gated, DO NOT MERGE. Escalated priority, Lane 3.
