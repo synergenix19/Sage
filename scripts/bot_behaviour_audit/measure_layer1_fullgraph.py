@@ -99,19 +99,42 @@ def _fetch_prod_env(service):
     return None
 
 
-def _flag_parity(prod_env):
-    """(verdict, resolved_local_flags, diffs) — verdict in {VERIFIED, MISMATCH, UNVERIFIED}. prod_env is
-    the SERVING flag state where available (see _fetch_serving_flags), else DESIRED (railway). Only the
-    subset of parity vars prod_env actually reports is compared — a partial readback never invents a pass
-    for an unreported var (it is simply not asserted, and that gap is surfaced by the caller)."""
-    mapping = _config_sage_vars()
+def _flag_parity(serving, desired):
+    """(verdict, resolved_local_flags, diffs, unverified) — verdict in
+    {VERIFIED, VERIFIED_PARTIAL, MISMATCH, UNVERIFIED}.
+
+    Asserts EVERY config var config.py reads — not just the subset the /health readback happens to expose
+    (the 2026-07-23 cosine confound: SAGE_COSINE_ABSTAIN_THRESHOLD is not in the 8 *_raw_env flags, so the
+    old serving-only guard passed VERIFIED while two runs differed on it). For each config var the effective
+    PROD value is resolved as: SERVING readback if present (authoritative running state), else railway
+    DESIRED if present, else — WHEN DESIRED IS AVAILABLE — the config default (railway is prod's only env
+    source, so a var it does not set runs the default). A var reachable by NEITHER source (serving-only, no
+    railway) is UNVERIFIED: default-vs-railway-set is unknowable, so it is surfaced, never silently passed.
+    """
+    mapping = _config_sage_vars()  # {SAGE_VAR: default_literal_or_None}
     local = _resolve(os.environ, mapping)
-    if prod_env is None:
-        return "UNVERIFIED", local, []
-    # compare only vars the source reports; resolve missing local via config default
-    reported = {k: prod_env[k] for k in mapping if k in prod_env}
-    diffs = [(k, local[k], reported[k]) for k in sorted(reported) if local[k] != reported[k]]
-    return ("MISMATCH" if diffs else "VERIFIED"), local, diffs
+    serving = serving or {}
+    desired = desired or {}
+    if not serving and not desired:
+        return "UNVERIFIED", local, [], sorted(mapping)
+    diffs, unverified = [], []
+    for k, default in sorted(mapping.items()):
+        if k in serving:
+            prod_v = serving[k]
+        elif k in desired:
+            prod_v = desired[k]
+        elif desired:
+            # railway (desired) IS available and does not set k -> prod runs the config default
+            prod_v = default
+        else:
+            # serving-only, k not in the readback -> cannot tell default from railway-set
+            unverified.append(k)
+            continue
+        prod_resolved = prod_v if prod_v is not None else default
+        if local[k] != prod_resolved:
+            diffs.append((k, local[k], prod_resolved))
+    verdict = "MISMATCH" if diffs else ("VERIFIED_PARTIAL" if unverified else "VERIFIED")
+    return verdict, local, diffs, unverified
 
 from sage_poc import config as _c
 from sage_poc.graph import build_graph
@@ -189,9 +212,10 @@ async def main():
     # cross-check the two so a mid-deploy prod (serving != desired) is caught, not silently measured.
     serving = None if args.no_parity_check else _fetch_serving_flags(args.prod_health_url, args.prod_api_key)
     desired = None if args.no_parity_check else _fetch_prod_env(args.prod_service)
-    parity_source = "serving(/health/version)" if serving else ("desired(railway)" if desired else "none")
-    prod_env = serving or desired
-    parity, resolved_flags, flag_diffs = _flag_parity(prod_env)
+    parity_source = ("serving(/health/version)+desired(railway)" if serving and desired
+                     else "serving(/health/version)" if serving
+                     else "desired(railway)" if desired else "none")
+    parity, resolved_flags, flag_diffs, unverified_vars = _flag_parity(serving, desired)
 
     # deploy-window detector: serving vs desired divergence on any parity var == prod is transitioning
     deploy_window = []
@@ -216,6 +240,10 @@ async def main():
         sys.exit(3)
     if parity == "UNVERIFIED":
         print("⚠️  flag parity UNVERIFIED (prod flag state unavailable) — output stamped UNVERIFIED", flush=True)
+    if unverified_vars:
+        print(f"⚠️  flag parity VERIFIED_PARTIAL — {len(unverified_vars)} config var(s) reachable by neither the\n"
+              f"    /health readback nor railway (desired unavailable), so NOT asserted: {unverified_vars}\n"
+              "    (not a bare VERIFIED; provide railway access or widen the readback for full coverage)", flush=True)
 
     prov = {
         "sha": args.sha,
@@ -226,6 +254,8 @@ async def main():
     }
     if flag_diffs:
         prov["flag_diffs_vs_prod"] = [{"var": k, "local": lv, "prod": pv} for k, lv, pv in flag_diffs]
+    if unverified_vars:
+        prov["flag_parity_unverified_vars"] = unverified_vars
     if deploy_window:
         prov["deploy_window_serving_vs_desired"] = [{"var": k, "serving": sv, "desired": dv} for k, sv, dv in deploy_window]
     t0 = time.time()
