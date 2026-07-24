@@ -31,16 +31,17 @@ def test_infra_vars_are_excluded_from_parity():
 
 
 def test_unavailable_prod_env_is_unverified_not_a_false_pass():
-    verdict, local, diffs = mlf._flag_parity(None)
+    verdict, local, diffs, unverified = mlf._flag_parity(None, None)
     assert verdict == "UNVERIFIED"
     assert diffs == []
+    assert unverified  # every config var is unverified when neither source is available
 
 
 def test_prod_flag_the_run_lacks_is_a_mismatch(monkeypatch):
     """The exact 07-22 failure: prod has SAGE_D1_SCREEN=true, the run does not set it (resolves default)."""
     monkeypatch.delenv("SAGE_D1_SCREEN", raising=False)
-    prod_env = {"SAGE_D1_SCREEN": "true"}
-    verdict, local, diffs = mlf._flag_parity(prod_env)
+    desired = {"SAGE_D1_SCREEN": "true"}
+    verdict, local, diffs, unverified = mlf._flag_parity(None, desired)
     assert verdict == "MISMATCH"
     d1 = [d for d in diffs if d[0] == "SAGE_D1_SCREEN"]
     assert d1 and d1[0][2] == "true" and d1[0][1] != "true"
@@ -62,5 +63,39 @@ def test_matching_config_is_verified(monkeypatch):
     # build a prod_env that resolves identically to the current process for every parity var
     prod_env = {k: (os.environ[k] if os.environ.get(k) is not None else d)
                 for k, d in varmap.items() if (os.environ.get(k) is not None or d is not None)}
-    verdict, local, diffs = mlf._flag_parity(prod_env)
-    assert verdict == "VERIFIED", f"unexpected diffs: {diffs}"
+    verdict, local, diffs, unverified = mlf._flag_parity(None, prod_env)
+    assert verdict == "VERIFIED", f"unexpected diffs: {diffs} / unverified: {unverified}"
+
+
+def test_var_absent_from_readback_is_asserted_via_desired(monkeypatch):
+    """The cosine confound (2026-07-23): SAGE_COSINE_ABSTAIN_THRESHOLD is NOT in the /health *_raw_env
+    readback, so the old guard (serving-only) passed VERIFIED while the run's value differed from prod.
+    Full-config guard must fall back to railway DESIRED and catch it as MISMATCH — the whole ticket."""
+    monkeypatch.setenv("SAGE_COSINE_ABSTAIN_THRESHOLD", "0.0")  # the off-prod run value
+    serving = {"SAGE_D1_SCREEN": "true"}                         # readback: cosine NOT among the 8 flags
+    desired = {"SAGE_COSINE_ABSTAIN_THRESHOLD": "0.42", "SAGE_D1_SCREEN": "true"}  # railway has prod value
+    monkeypatch.setenv("SAGE_D1_SCREEN", "true")                 # so D1 matches; cosine is the only diff
+    verdict, local, diffs, unverified = mlf._flag_parity(serving, desired)
+    assert verdict == "MISMATCH", f"cosine confound must be caught; got {verdict}"
+    cos = [d for d in diffs if d[0] == "SAGE_COSINE_ABSTAIN_THRESHOLD"]
+    assert cos and cos[0][1] == "0.0" and cos[0][2] == "0.42"
+
+
+def test_serving_only_var_absent_from_readback_is_unverified_not_silent_pass(monkeypatch):
+    """serving readback available but railway (desired) unreachable: a var not in the readback cannot be
+    confirmed (default vs railway-set is unknown), so it is UNVERIFIED — never a silent VERIFIED."""
+    monkeypatch.setenv("SAGE_D1_SCREEN", "true")
+    serving = {"SAGE_D1_SCREEN": "true"}  # matches; nothing to mismatch
+    verdict, local, diffs, unverified = mlf._flag_parity(serving, None)
+    assert "SAGE_COSINE_ABSTAIN_THRESHOLD" in unverified
+    assert verdict == "VERIFIED_PARTIAL", f"serving-only coverage gap must not read as bare VERIFIED; got {verdict}"
+
+
+def test_desired_present_absent_var_uses_config_default_not_unverified(monkeypatch):
+    """When railway DESIRED is available and does not set a var, prod runs the config default — so the var
+    is fully checkable (local-default vs prod-default), NOT unverified. Full coverage, no false gap."""
+    varmap = mlf._config_sage_vars()
+    prod_env = {k: (os.environ[k] if os.environ.get(k) is not None else d)
+                for k, d in varmap.items() if (os.environ.get(k) is not None or d is not None)}
+    verdict, local, diffs, unverified = mlf._flag_parity(None, prod_env)
+    assert unverified == [], f"desired present => no unverified vars; got {unverified}"
