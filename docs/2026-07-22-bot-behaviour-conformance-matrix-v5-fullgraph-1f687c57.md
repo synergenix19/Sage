@@ -1,3 +1,9 @@
+<!-- SUPERSEDED 2026-07-23 by docs/2026-07-23-bot-behaviour-conformance-v5-reconciled-baseline-1f687c57.md.
+     This run (8/36) is retained as the record. Per the reconciliation, it is the PROD-FAITHFUL v5 baseline
+     (SAGE_COSINE_ABSTAIN_THRESHOLD=0.42 matches prod; all other flags match). The competing 6/36 run ran
+     off-prod (cosine 0.0). Read the reconciled doc for the joint conclusion + the parity-guard coverage gap
+     that let two different configs both pass VERIFIED. Original text below, unchanged. -->
+
 # Conformance re-run — FULL-GRAPH, EN
 
 ## Provenance

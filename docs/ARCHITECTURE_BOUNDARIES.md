@@ -281,3 +281,22 @@ readback. During a rolling deploy `/health` and `/chat` can hit different replic
 convergence rule above). **Any live-verify MUST confirm `serving == desired` before trusting its own reading**,
 the same discipline the runner enforces — otherwise it may measure a superposition and record a stale result as
 current.
+
+## An instrument's noise floor must be characterized before its readings gate a decision
+
+**Rule:** a measurement whose run-to-run variance is unknown cannot support a regression, neutrality, or
+acceptance claim — the reading might be signal or might be inside the noise band. Any number that gates a
+decision (a drift gate, a build's acceptance, a go/no-go) must FIRST have its instrument's noise floor
+published: N≥3 repeat runs at a **fixed, fully-specified input**, per-cell stability, the variance band named.
+And "fixed input" means fixed CONFIG, not just fixed SHA — an uncontrolled config var (see the cosine-threshold
+confound below) invalidates a same-SHA comparison as surely as a code change would.
+
+**Citation — four-for-four this month, one root (a number used before its instrument's properties were
+known):** (1) E7 recall measured against its own pattern strings (tautology, not a measurement); (2) the
+conformance "8→7→6 trend" read off single runs (refuted by a same-SHA run landing 8/36); (3) the E7
+ratification pressed on that recall number without asking what corpus produced it; (4) two v5 runs both passing
+the flag-parity guard as VERIFIED while differing on `SAGE_COSINE_ABSTAIN_THRESHOLD` (0.0 vs prod 0.42) —
+because the guard asserted parity only on the 8 vars `/health` exposes, not the ~19 it does not. The instrument
+itself had an uncharacterized property (partial readback coverage), and its "VERIFIED" was trusted past what it
+covered. The variance-characterization run (fixed prod config, N≥3) operationalizes this rule for the
+conformance instrument; the parity-guard coverage fix closes the property gap that hid confound #4.

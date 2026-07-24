@@ -1,4 +1,11 @@
-# Conformance re-run — FULL-GRAPH, EN — **v5, PRE-PART-A BASELINE**
+<!-- SUPERSEDED + HEADLINE RETRACTED 2026-07-23 by
+     docs/2026-07-23-bot-behaviour-conformance-v5-reconciled-baseline-1f687c57.md.
+     The "regression / NOT conformance-neutral" headline of THIS doc is RETRACTED: (1) a same-SHA run disagreed
+     on exactly the cells called regressions; (2) this run was OFF-PROD — SAGE_COSINE_ABSTAIN_THRESHOLD=0.0
+     (KB abstain gate fail-open) vs prod 0.42 — so it was never a valid prod baseline. Not a baseline; kept as
+     the record of the retracted claim. Prod-faithful v5 = the 8/36 run. Original text below, unchanged. -->
+
+# Conformance re-run — FULL-GRAPH, EN — **v5, PRE-PART-A BASELINE**  ⚠️ SUPERSEDED / HEADLINE RETRACTED — see reconciled doc
 
 **This is the explicit pre-Part-A baseline.** Part A (the next build) removes a §1c crisis-false-positive by
 construction; v5 is the clean "before" that makes Part A's delta attributable rather than reconstructed. Run
