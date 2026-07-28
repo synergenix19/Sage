@@ -8,6 +8,8 @@ from sage_poc.skills.keyword_matcher import ranked_skill_matches
 from sage_poc.conversation_stall import detect_stall
 from sage_poc.nodes.self_reference_detect import detect_self_reference
 from sage_poc.nodes.venting_detect import detect_venting
+from sage_poc.nodes.panic_override import should_ground_over_crisis
+from sage_poc import config as _cfg
 
 # SINGLE-POINT-OF-FAILURE WARNING: The general_chat classification below is the sole
 # gate preventing bare emotional words ("stressed", "depressed", "anxious", "I feel sad")
@@ -168,6 +170,14 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
         # whether a skill gets imposed — same detection-without-authority class as B1).
         "venting_detected": detect_venting(
             state.get("message_en", ""), state.get("raw_message", ""), state.get("detected_language", "en")
+        ),
+        # Part A (Vee-signed 2026-07-28) — deterministic panic-grounding override. Stamped here (code
+        # decides), honoured by _route_after_intent. Flag-gated kill-switch; OFF -> always False (byte-
+        # identical). Fires only when safety_check was CLEAN and this turn's crisis is a panic over-escalation
+        # with no harm-adjacency -> restore the deterministic clean verdict instead of the LLM's crisis.
+        "panic_grounding_override": (
+            _cfg.PANIC_GROUNDING_OVERRIDE_ENABLED
+            and should_ground_over_crisis({**state, "primary_intent": primary_intent})
         ),
     }
     # v7.2 Node-2 keyword pre-pass (rules-first, Cardinal Rule 5). Deterministic skill-trigger match

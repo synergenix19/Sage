@@ -236,6 +236,14 @@ def _route_after_intent(state: SageState) -> str:
     confidence = state.get("intent_confidence", 1.0)
 
     if intent == "crisis":
+        # Part A (Vee-signed 2026-07-28): deterministic panic-grounding override. When safety_check CLEARED
+        # this turn but intent_route re-flagged a clear panic disclosure (no harm-adjacency) as crisis, restore
+        # the deterministic verdict -> grounding via skill_select instead of crisis_response. Flag-gated: the
+        # stamp is False when OFF, so this is byte-identical when disabled. Fires only on a safety_check-clean
+        # turn, so it can NEVER suppress a crisis the deterministic tier caught (that path never reaches here as
+        # intent=='crisis' with panic_grounding_override True — crisis_flags being set makes the override False).
+        if state.get("panic_grounding_override"):
+            return "skill_select"
         return "crisis"
     # #338 D1 ANSWER TURN: a turn answering a pending screen must reach skill_select so its answering_screen
     # handler classifies+routes the answer, REGARDLESS of intent (the answer usually reads as general_chat and
