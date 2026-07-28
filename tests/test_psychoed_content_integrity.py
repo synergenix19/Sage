@@ -167,3 +167,58 @@ def test_shared_scripts_present_and_single_sourced():
 def test_no_undeclared_collisions():
     from scripts.psychoed_ingest import audit_collisions
     assert audit_collisions.undeclared_collisions() == []
+
+
+def _write_fixture_trigger_tables(tmp_path):
+    t1 = tmp_path / "zx.json"
+    t1.write_text(json.dumps({
+        "category": "zx",
+        "rows": [{"row_id": "zx-t1", "phrases": ["I feel bad."]}],
+    }))
+    t2 = tmp_path / "zy.json"
+    t2.write_text(json.dumps({
+        "category": "zy",
+        "rows": [{"row_id": "zy-t1", "phrases": ["I feel bad today."]}],
+    }))
+    return [t1, t2]
+
+
+def test_subsumption_collision_caught_when_undeclared(tmp_path, monkeypatch):
+    from scripts.psychoed_ingest import audit_collisions
+
+    fixtures = _write_fixture_trigger_tables(tmp_path)
+    monkeypatch.setattr(schemas, "iter_psychoed_files", lambda kind: fixtures)
+    monkeypatch.setattr(audit_collisions, "COLLISION_TABLE", tmp_path / "collision_table.json")
+
+    assert audit_collisions.subsumption_pairs() == [{
+        "short_phrase": "i feel bad",
+        "short_categories": ["zx"],
+        "long_phrase": "i feel bad today",
+        "long_categories": ["zy"],
+    }]
+    assert audit_collisions.undeclared_collisions() == ["i feel bad"]
+
+
+def test_subsumption_collision_passes_when_declared(tmp_path, monkeypatch):
+    from scripts.psychoed_ingest import audit_collisions
+
+    fixtures = _write_fixture_trigger_tables(tmp_path)
+    collision_table = tmp_path / "collision_table.json"
+    collision_table.write_text(json.dumps({
+        "note": "test fixture",
+        "subsumption_rule": "test rule",
+        "collisions": [],
+        "subsumption_collisions": [
+            {
+                "short_phrase": "I feel bad.",
+                "long_phrase": "I feel bad today.",
+                "categories": ["zx", "zy"],
+                "resolution": {"winner": "zy", "loser": "zx"},
+            }
+        ],
+    }))
+
+    monkeypatch.setattr(schemas, "iter_psychoed_files", lambda kind: fixtures)
+    monkeypatch.setattr(audit_collisions, "COLLISION_TABLE", collision_table)
+
+    assert audit_collisions.undeclared_collisions() == []

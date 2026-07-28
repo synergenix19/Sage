@@ -1,5 +1,6 @@
 {
   "note": "Deterministic collision resolutions. Mechanisms allowed: declared session context, scripted clarifying question. NEVER embedding-similarity tie-break. Safe-before-disambiguated: both phrasings personally framed, both categories carry the weave, fail-to-personal means the safety check fires on either branch.",
+  "subsumption_rule": "longest-exact-match wins iff the winning category's guard posture is equal-or-stronger (weave dominance); otherwise pending clinician.",
   "collisions": [
     {
       "phrase": "Why do I feel numb?",
@@ -21,6 +22,30 @@
       },
       "safe_before_disambiguation": false,
       "packet_note": "guard postures differ across the colliding categories; doc offers no disambiguation; scripted clarifying question is the likely ratified resolution (spec 5.2 mechanism b)"
+    }
+  ],
+  "subsumption_collisions": [
+    {
+      "short_phrase": "Why do I feel like this?",
+      "long_phrase": "Why do I feel like this for no reason?",
+      "categories": ["3c", "4b"],
+      "resolution": {
+        "winner": "3c",
+        "loser": "4b",
+        "rationale": "long-form utterance winner 3c (3c carries the weave — fail-toward-weave holds); short-form exact match is 4b"
+      },
+      "packet_note": "engineering-deterministic subsumption resolution; clinician to ratify the rule (packet ask 3)"
+    },
+    {
+      "short_phrase": "I want to become more confident.",
+      "long_phrase": "I want to become more confident socially.",
+      "categories": ["6d", "7c"],
+      "resolution": {
+        "winner": "7c",
+        "loser": "6d",
+        "rationale": "long-form winner 7c, short-form 6d (equal weave-less posture)"
+      },
+      "packet_note": "engineering-deterministic subsumption resolution; clinician to ratify the rule (packet ask 3)"
     }
   ]
 }
