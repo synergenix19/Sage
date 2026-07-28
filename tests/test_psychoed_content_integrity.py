@@ -162,3 +162,8 @@ def test_shared_scripts_present_and_single_sourced():
     for name, text in d["scripts"].items():
         probe = text[:60]
         assert probe not in corpus, f"{name} duplicated into content ({probe!r})"
+
+
+def test_no_undeclared_collisions():
+    from scripts.psychoed_ingest import audit_collisions
+    assert audit_collisions.undeclared_collisions() == []
