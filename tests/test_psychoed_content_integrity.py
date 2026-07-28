@@ -31,6 +31,7 @@ COVERAGE = {
     "4b": ["4b-b1", "4b-b2", "4b-b3", "4b-b4", "4b-b5", "4b-b6", "4b-b7"],
     "6d": ["6d-b1", "6d-b2", "6d-b3", "6d-b4", "6d-b5", "6d-b6"],
     "7c": ["7c-b1", "7c-b2", "7c-b3", "7c-b4", "7c-b5", "7c-b6", "7c-b7"],
+    "s2c": ["s2c-b1", "s2c-b2", "s2c-b3", "s2c-b4", "s2c-b5", "s2c-b6", "s2c-b7", "s2c-b8"],
 }
 
 
@@ -143,3 +144,9 @@ def test_bridge_map_null_block_id_requires_condition(tmp_path):
         ],
     )
     assert schemas.validate_manifest(p_ok) == []
+
+
+def test_block_guard_only_on_s2c_b8():
+    guarded = [p.stem for p in schemas.iter_psychoed_files("block")
+               if "block_guard" in json.loads(p.read_text())["psychoed"]]
+    assert guarded == ["s2c-b8"]
