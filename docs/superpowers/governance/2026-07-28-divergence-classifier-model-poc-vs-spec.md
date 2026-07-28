@@ -22,6 +22,19 @@ protocol applies (never silent), plus a full distributional re-baseline under th
 instrument-parity standing rule. Budgeting a "swap the model id" migration is the
 failure mode this entry exists to prevent.
 
+## Seed-honor / provider-echo visibility (recorded 2026-07-28, per Q-b review)
+
+Verified from installed client source (langchain-openai 1.2.1): response metadata is
+built from a fixed key set and does NOT propagate OpenRouter's upstream `provider`
+field. Therefore, as deployed today: the `classifier_provider` audit column resolves
+via the pin value (or null when unpinned), not from a response echo; and seed-honor
+is observable ONLY via `system_fingerprint` when the provider returns one
+(normalized to null, never fabricated, when absent). Consequence for baselines: the
+determinism claim rests on the provider pin + N-sampling, with `system_fingerprint`
+as corroboration where present — not on the seed request alone. The metadata path is
+wired and takes precedence automatically if a future client version surfaces the
+provider echo.
+
 ## Scope note
 
 The determinism pins landing now (seed, provider pin, context-hash audit) reduce
