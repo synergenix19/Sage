@@ -39,3 +39,4 @@ P2 Task 9: complete (e2590959; kb_ref schema additive, 28/28 skills load)
 P2 Task 10: complete (16a9af8d..cc981b39; HIGH plan-gap fixed: backstop gated active-skill + Classifier A per spec §2.1/§2.2)
 P2 Task 11: in progress (6482155f..1f96fec1; checkpoint: mismatch branch correct, corruption hole fixed, EN entry gate added; REVIEW: Medium menu-after-weave AR path open; Low compose_turn1 exception→server handler, triage at final review)
 INCIDENT: T11 reviewer popped pre-existing s3_semantic stash + reset --hard destroyed uncommitted ledger (this reconstruction); stashes verified intact; ledger committed from now on
+P2 Task 11: complete (commits 6482155f..a463f394; checkpoint fixes: corruption chain, EN entry gates x2, menu-after-weave AR fall-through; Low compose_turn1-exception noted for final triage; INCIDENT recovered, no-stash-pop rule standing)
