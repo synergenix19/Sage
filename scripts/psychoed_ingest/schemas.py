@@ -17,6 +17,7 @@ CATEGORIES = ("1f", "3c", "4b", "6d", "7c", "s2c")
 DELIVERY_SHAPES = ("menu_first", "answer_first")
 ROW_ROUTES = ("standard", "direct_diagnostic", "formal_diagnosis")
 FRAMINGS = ("personal", "abstract")
+ROW_PROVENANCES = ("doc_table", "inferred")
 
 def _load(path: Path):
     return json.loads(Path(path).read_text())
@@ -77,11 +78,13 @@ def validate_trigger_table(path) -> list[str]:
     _req(d, ("category", "language", "rows", "source_citation"), errs)
     seen: set[str] = set()
     for r in d.get("rows", []):
-        _req(r, ("row_id", "type", "framing", "route", "phrases"), errs, "row.")
+        _req(r, ("row_id", "type", "framing", "route", "phrases", "row_provenance"), errs, "row.")
         if r.get("framing") not in FRAMINGS:
             errs.append(f"{r.get('row_id')}: bad framing")
         if r.get("route") not in ROW_ROUTES:
             errs.append(f"{r.get('row_id')}: bad route")
+        if r.get("row_provenance") not in ROW_PROVENANCES:
+            errs.append(f"{r.get('row_id')}: bad row_provenance")
         for ph in r.get("phrases", []):
             if ph.lower() in seen:
                 errs.append(f"duplicate phrase within table: {ph}")

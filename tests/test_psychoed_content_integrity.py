@@ -44,6 +44,23 @@ def test_trigger_tables_valid():
         assert schemas.validate_trigger_table(p) == [], p
 
 
+def test_trigger_table_rows_carry_valid_provenance():
+    paths = schemas.iter_psychoed_files("trigger_table")
+    assert paths, "no trigger tables"
+    for p in paths:
+        d = json.loads(p.read_text())
+        for r in d.get("rows", []):
+            assert r.get("row_provenance") in schemas.ROW_PROVENANCES, (p, r.get("row_id"))
+
+
+def test_1f_trigger_rows_are_all_inferred():
+    p = Path("data/psychoed/trigger_tables/en/1f.json")
+    d = json.loads(p.read_text())
+    assert d["rows"], "1f trigger table has no rows"
+    for r in d["rows"]:
+        assert r["row_provenance"] == "inferred", r["row_id"]
+
+
 def test_coverage_registry_matches_disk():
     on_disk = {p.stem for p in schemas.iter_psychoed_files("block")}
     declared = {b for blocks in COVERAGE.values() for b in blocks}
