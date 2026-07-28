@@ -47,6 +47,53 @@ def test_step_mandatory_caveat_survives_the_node_to_node_seam():
     )
 
 
+def test_classifier_context_hash_survives_the_node_to_node_seam():
+    """Classifier provenance (SAGE_AUDIT_CLASSIFIER_PROVENANCE): intent_route writes
+    classifier_context_hash / classifier_provider; output_gate's write_session_audit reads
+    them for the audit row. Same seam class as SG-2: if either key is not a declared
+    SageState channel, LangGraph drops it in the merge and the audit silently records
+    NULL provenance — components green, seam broken. Reading into declared fields proves
+    the DOWNSTREAM node observed the values after the merge."""
+    hash_sentinel = "f" * 64
+    provider_sentinel = "PROVENANCE-PROVIDER-SENTINEL"
+    fingerprint_sentinel = "fp_PROVENANCE-SENTINEL"
+
+    def writer(state):
+        return {
+            "classifier_context_hash": hash_sentinel,
+            "classifier_provider": provider_sentinel,
+            "classifier_system_fingerprint": fingerprint_sentinel,
+        }
+
+    def reader(state):
+        return {
+            "step_instruction": state.get("classifier_context_hash"),
+            "conversation_summary": state.get("classifier_provider"),
+            "knowledge_source": state.get("classifier_system_fingerprint"),
+        }
+
+    g = StateGraph(SageState)
+    g.add_node("writer", writer)
+    g.add_node("reader", reader)
+    g.add_edge(START, "writer")
+    g.add_edge("writer", "reader")
+    g.add_edge("reader", END)
+    out = g.compile().invoke({})
+
+    assert out.get("step_instruction") == hash_sentinel, (
+        "classifier_context_hash was DROPPED between nodes — declare it in the SageState "
+        "TypedDict (LangGraph drops undeclared keys; the SG-2 seam class)."
+    )
+    assert out.get("conversation_summary") == provider_sentinel, (
+        "classifier_provider was DROPPED between nodes — declare it in the SageState "
+        "TypedDict (LangGraph drops undeclared keys; the SG-2 seam class)."
+    )
+    assert out.get("knowledge_source") == fingerprint_sentinel, (
+        "classifier_system_fingerprint was DROPPED between nodes — declare it in the "
+        "SageState TypedDict (LangGraph drops undeclared keys; the SG-2 seam class)."
+    )
+
+
 def _graph_edges() -> set[tuple[str, str]]:
     from sage_poc.graph import build_graph
     drawable = build_graph(None).get_graph()

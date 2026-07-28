@@ -45,6 +45,14 @@ except ValueError:
 OPENROUTER_PROVIDER_PIN: str | None = (
     os.getenv("SAGE_OPENROUTER_PROVIDER_PIN", "").strip() or None
 )
+# Classifier provenance in the session-audit row (finding consequence 3, PDPL
+# auditability): ON -> the row gains classifier_model / classifier_provider /
+# classifier_seed / classifier_context_hash (conditional-column discipline, migration
+# 012 style; migration 016 is the flag-flip deploy gate). Default OFF: flag-OFF rows
+# are byte-identical to today (asserted by test_audit_classifier_provenance.py).
+AUDIT_CLASSIFIER_PROVENANCE_ENABLED: bool = (
+    os.getenv("SAGE_AUDIT_CLASSIFIER_PROVENANCE", "false").lower() == "true"
+)
 
 # UAE crisis helpline — the SINGLE source for every crisis-copy site. Crisis-copy files carry
 # {{crisis_*}} placeholders (not literals), resolved from this dict at load (crisis_copy.py); the

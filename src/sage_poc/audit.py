@@ -1,6 +1,7 @@
 import logging
 import os
 import httpx
+from sage_poc import config as _cfg
 from sage_poc.state import SageState
 
 logger = logging.getLogger(__name__)
@@ -189,6 +190,27 @@ def _build_session_audit_row(state: SageState) -> dict:
         row["screen_asked"] = bool(state.get("screen_asked"))
         row["screen_answer_class"] = state.get("screen_answer_class")
         row["screen_branch_taken"] = state.get("screen_branch_taken")
+    # Classifier provenance (flag-gated, same discipline as tiering/precedence/medical/HR/screen
+    # above; Node-2 bistability finding 2026-07-28, consequence 3 — PDPL auditability): included
+    # ONLY when SAGE_AUDIT_CLASSIFIER_PROVENANCE is ON, so a flag-OFF row stays byte-identical to
+    # master. Records what is needed to RECONSTRUCT a classifier decision: the model + upstream
+    # provider + seed actually in force, and the sha256 of the exact assembled classifier prompt
+    # (which embeds stochastic temp-0.7 responder history — the identified bistability cause).
+    # Migration 016 is the flag-flip deploy gate. Provider chain: intent_route's captured response
+    # metadata (via the classifier_provider channel, already pin-fallback-resolved), else the pin,
+    # else NULL. Columns may be NULL when the flag is ON but the turn bypassed intent_route
+    # (e.g. crisis short-circuit) — a NULL hash on a non-classifier turn is correct provenance.
+    if _cfg.AUDIT_CLASSIFIER_PROVENANCE_ENABLED:
+        row["classifier_model"] = _cfg.CLASSIFIER_MODEL
+        row["classifier_provider"] = (
+            state.get("classifier_provider") or _cfg.OPENROUTER_PROVIDER_PIN or None
+        )
+        row["classifier_seed"] = _cfg.CLASSIFIER_SEED
+        row["classifier_context_hash"] = state.get("classifier_context_hash")
+        # Q-b: what came BACK, alongside the requested seed above — system_fingerprint
+        # identifies the backend configuration that served the call (seed HONOR signal).
+        # NULL when the provider exposes none; never fabricated.
+        row["classifier_system_fingerprint"] = state.get("classifier_system_fingerprint")
     return row
 
 

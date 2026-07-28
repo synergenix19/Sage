@@ -190,6 +190,12 @@ def _build_state(req: _RequestLike) -> dict:
         "offer_response":          None,
         "offer_choice_skill_id":   None,
         "stall_detected":          None,   # per-turn; set in intent_route
+        # Classifier provenance (SAGE_AUDIT_CLASSIFIER_PROVENANCE) — per-turn reset so a prior
+        # turn's hash/provider can never be pinned onto a later turn's audit row (SG-2 stale-value
+        # discipline, same as step_mandatory_caveat above). intent_route re-stamps when the flag is ON.
+        "classifier_context_hash": None,
+        "classifier_provider":     None,
+        "classifier_system_fingerprint": None,
         # #338 D1 screen per-turn audit fields — reset each turn so a prior screen turn's class/branch/shadow
         # observation cannot leak onto a later non-screen turn's audit row (the SG-2 seam class, applied to
         # the audit surface). session_screen_answer and screen_pending are per-SESSION and deliberately absent.
