@@ -28,6 +28,7 @@ def test_block_source_citation(path):
 COVERAGE = {
     "1f": ["1f-b1", "1f-b2", "1f-b3", "1f-b4", "1f-b5"],
     "3c": ["3c-b1", "3c-b2", "3c-b3", "3c-b4", "3c-b5", "3c-b6", "3c-b7"],
+    "4b": ["4b-b1", "4b-b2", "4b-b3", "4b-b4", "4b-b5", "4b-b6", "4b-b7"],
 }
 
 
