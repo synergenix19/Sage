@@ -1,8 +1,13 @@
-# Decision Request — Instrument Parity as a Mechanical Rule (Follow-up 1, APPROVED direction)
+# STANDING RULE — Instrument Parity, Mechanical (Follow-up 1, SIGNED 2026-07-28)
 
-Date: 2026-07-28. Approved in direction by reviewer; this records the mechanical
-form for implementation sign-off. Origin: parity incident
-`2026-07-28-parity-incident-q6-artifact.md` (kept OPEN as a near-miss record).
+**SIGNED by reviewer 2026-07-28** in the mechanical shape below (helper-only
+invocation, refuse-on-gap, refuse-on-deploy-window, CI-grep enforcement, provenance
+stamped on artifacts; coverage-hole PR as ordered prerequisite).
+
+**Rationale document:** `2026-07-28-parity-incident-q6-artifact.md` (the near-miss
+incident, kept OPEN). This rule carries its own justification: a non-parity harness
+produced a clinically alarming readout indistinguishable from a real one and
+consumed a full escalation cycle; next time the readout may not be an artifact.
 
 ## The rule (mechanical, not procedural)
 

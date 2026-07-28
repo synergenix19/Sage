@@ -27,27 +27,38 @@ characterization got exactly this difference wrong.
 | SAGE_HR_NEUTRALITY_GATE | safety | pairs with HIGH_RISK_DETECTION |
 | SAGE_VENTING_SUPPRESSION | safety | needs confirm: suppression semantics |
 | SAGE_ROUTE_PRECEDENCE | safety | precedence ordering of safety routes |
-| SAGE_D1_SCREEN | needs ruling | screen is safety-adjacent; shadow sibling is feature |
+| SAGE_D1_SCREEN | safety (PRESUMED, ruling 2026-07-28) | screens on risk content → gates harm; clinical sign-off decides whether current behavior is safe ON |
 | SAGE_D1_SCREEN_SHADOW | feature | shadow measurement only |
-| SAGE_IPV_PREEMPTION | needs ruling | currently false in prod (reverted stream) |
+| SAGE_IPV_PREEMPTION | safety (PRESUMED, ruling 2026-07-28) | preempts on risk content; currently false in prod (reverted stream); clinical sign-off decides |
 | SAGE_INFO_REQUEST_CONSULT | feature | psychoed Mechanism-A |
-| SAGE_HIGH_RISK_TERMINAL | needs ruling | built, off; Stage-2 terminal |
+| SAGE_HIGH_RISK_TERMINAL | safety (PRESUMED, ruling 2026-07-28) | terminates on risk content; clinical sign-off decides |
 | SAGE_D5_ACUITY_GATE | feature (parked) | inert by decision |
 | SAGE_SKILL_OFFER_COOLDOWN | feature | |
 | SAGE_NATIVE_ARABIC_SHADOW | feature | shadow only, never served |
 | SAGE_SKILL_MEDIA_ENABLED | feature | server response-header layer |
 | SAGE_EMBED_CACHE | feature (perf) | |
-| SAGE_AUDIT_LOG | needs ruling | audit is a PDPL surface; OFF-by-default is itself questionable |
+| SAGE_AUDIT_LOG | **safety (RULED 2026-07-28)** | arguably not a flag at all: the runtime audit trail is a compliance commitment (PDPL traceability, right-to-object), not a feature, and every register row's evidentiary value depends on it. If it remains a flag operationally: default ON, recorded-rationale required for any OFF, and an OFF state must be LOUDLY visible in /health/version |
 | SAGE_MODALITY_REQUEST_ROUTING (planned) | feature | re-plan draft |
 
 Register to be completed mechanically: the parity runner's config regex enumerates
 every `SAGE_*` getenv; any flag absent from this table fails the register check
 (same pattern as signed_clinical_fields).
 
-## Asks
+## Rulings received (2026-07-28)
 
-1. Ratify the two-class taxonomy.
-2. Rule on the four "needs ruling" rows; confirm the rest.
+- Taxonomy ENDORSED. `SAGE_AUDIT_LOG` ruled safety-class (see row). D1_SCREEN /
+  IPV_PREEMPTION / HIGH_RISK_TERMINAL: architectural PRESUMPTION safety-class
+  (anything that screens, preempts, or terminates on risk content gates harm);
+  whether each guard's CURRENT behavior is safe to have ON is a clinical ruling —
+  presumption stated, clinical sign-off decides. **Deadline rule:** these three must
+  not sit unresolved past the taxonomy's sign-off — an undecided safety flag is de
+  facto feature-class, which is the failure mode this taxonomy exists to prevent.
+
+## Asks (remaining)
+
+1. Ratify the two-class taxonomy (endorsed; formal joint sign-off pending).
+2. Clinical rulings on D1_SCREEN / IPV_PREEMPTION / HIGH_RISK_TERMINAL current
+   behavior, before taxonomy sign-off completes; confirm the rest.
 3. Approve implementation shape: class lives next to the flag definition in
    `config.py`; a CI check asserts every flag declares a class and that
    safety-class defaults are ON; the disable-override rationale is a required
