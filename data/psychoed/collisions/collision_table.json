@@ -32,7 +32,7 @@
       "resolution": {
         "winner": "3c",
         "loser": "4b",
-        "rationale": "long-form utterance winner 3c (3c carries the weave — fail-toward-weave holds); short-form exact match is 4b"
+        "rationale": "long-form utterance winner 3c (3c carries the weave, fail-toward-weave holds); short-form exact match is 4b"
       },
       "packet_note": "engineering-deterministic subsumption resolution; clinician to ratify the rule (packet ask 3)"
     },

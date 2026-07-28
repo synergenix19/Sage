@@ -9,7 +9,7 @@
 
 ## How to read this packet
 
-This is **one packet, everything by name** (spec §9). It enumerates every artifact produced by the Phase-1 content build — 40 blocks, 18 pathway scripts, 4 shared single-sourced scripts, 6 trigger tables (31 rows), 1 collision table, 1 PSY-WEAVE-1 data file — and routes each to a clinical ruling. Nothing points at a file to be opened elsewhere; the content is reproduced here.
+This is **one packet, everything by name** (spec §9). It enumerates every artifact produced by the Phase-1 content build — 40 blocks, 18 pathway scripts, 4 shared single-sourced scripts, 6 trigger tables (31 rows), 1 collision table, 1 PSY-WEAVE-1 data file — and routes each to a clinical ruling. **Block content is NOT reproduced here** — the 40 blocks carry title + per-block scrub classification only (ask-section 1a). The 18 pathway scripts and 4 shared scripts ARE reproduced in full (ask-sections 1c, 2b) since their full text is itself the signable artifact. Ratification is against the pinned artifacts at this branch (`docs/psychoed-pathways-design`) @ `a13c2718` — no `data/` changes have landed after that pin.
 
 Each of the 12 ask-sections below carries a **ruling line**: `☐ approve ☐ edit ☐ reject`. Sub-items that need their own adjudication (inferred rows, pending collisions, design-added extensions) carry their own ruling lines.
 
@@ -25,15 +25,16 @@ Each of the 12 ask-sections below carries a **ruling line**: `☐ approve ☐ ed
 
 **What is being ratified:** the verbatim copy of all 40 KB-article blocks and all 18 pathway scripts as the signable artifacts (the verbatim pin and Node-8 hash gate will anchor on exactly these strings, §6.2).
 
-**Scrub-diff summary (mechanically verified this assembly):** every block is scrub-only — letters identical to `bot_behaviour_full.md`, the only changes being em-dash (—) → comma or → period+capital. **60 dash sites across the 40 blocks: 58 → comma, 2 → period+capital.** No block contains any non-dash edit.
+**Scrub-diff summary (mechanically verified this assembly):** every block is scrub-only — letters identical to `bot_behaviour_full.md`, the only changes being em-dash (—) → comma or → period+capital. **60 dash sites across the 40 blocks: 58 → comma, 2 → period+capital** (1f-b3, 6d-b2 — see transform-variant notes below). No block contains any non-dash edit. **Across the 18 pathway scripts, a further 8 dash sites: 6 → comma, 2 → period+capital** (§3c framing / F3c, §6d framing / F6d — see ask-section 1b for the per-script breakdown). **Combined across the 40 blocks + 18 scripts: 68 dash sites total, 64 → comma, 4 → period+capital.**
 
 **Transform-variant notes (period+capital sites — these read differently from the comma default, called out for explicit review):**
 - **1f-b3** — dash site 2 (`'…just in your head' — they're your body…'`) scrubs to **period + capital** (`…'just in your head'. They're your body…`); dash site 1 (`slows down —`) scrubs to comma. *(Controller-flagged.)*
 - **6d-b2** — dash site 3 (`…fixed personality trait — most people shift…`) scrubs to **period + capital** (`…a fixed personality trait. Most people shift…`); dash sites 1–2 scrub to comma. **NOTE: this is a THIRD period+capital site found during assembly, beyond the two the controller pre-named. Surfaced here for the same explicit review as 1f-b3.**
 - **§3c framing statement** (a script, see below) — dash site 1 (`…what's going on — low mood…`) scrubs to **period + capital** (`…what's going on. Low mood…`); dash site 2 (`…might help — but I'm not able…`) scrubs to comma. *(Controller-flagged.)*
+- **§6d framing statement (F6d)** (a script, see below) — its one dash site (`…to want to understand — assertiveness isn't…`) scrubs to **period + capital** (`…to want to understand. Assertiveness isn't…`), not comma as the ask-section 1b table previously stated. **NOTE: this is a FOURTH period+capital site, found during final-review verification against `bot_behaviour_full.md` line 1606, beyond the three previously named (1f-b3, 6d-b2, §3c framing). Surfaced here for the same explicit review.**
 
 **Ruling — all 40 blocks + 18 scripts as verbatim signable artifacts (scrub-only, letters-identical):** ☐ approve ☐ edit ☐ reject
-**Ruling — the 3 period+capital transform sites specifically (1f-b3, 6d-b2, §3c framing):** ☐ approve ☐ edit ☐ reject
+**Ruling — the 4 period+capital transform sites specifically (1f-b3, 6d-b2, §3c framing, §6d framing):** ☐ approve ☐ edit ☐ reject
 
 ### 1a — The 40 blocks by ID + title (scrub diff per block)
 
@@ -112,7 +113,7 @@ All 18 are **verbatim-in-doc, scrub-only.** Three per category: framing statemen
 | 1f | F1f — scrub-only (1 dash → comma) | M1f — scrub-only (1 dash → comma) | C1f — verbatim (0 dashes) |
 | 3c | F3c — scrub-only (2 dashes: **1 → period+capital**, 1 → comma) | M3c — verbatim (0 dashes) | C3c — verbatim (0 dashes) |
 | 4b | F4b — scrub-only (1 dash → comma) | M4b — verbatim (0 dashes) | C4b — verbatim (0 dashes) |
-| 6d | F6d — scrub-only (1 dash → comma) | M6d — verbatim (0 dashes) | C6d — verbatim (0 dashes) |
+| 6d | F6d — scrub-only (1 dash → **period+capital**) | M6d — verbatim (0 dashes) | C6d — verbatim (0 dashes) |
 | 7c | F7c — scrub-only (1 dash → comma) | M7c — verbatim (0 dashes) | C7c — scrub-only (1 dash → comma) |
 | s2c | Fs2c — verbatim (0 dashes) | Ms2c — verbatim (0 dashes) | Cs2c — verbatim (0 dashes) |
 
@@ -466,7 +467,7 @@ Every item flagged `pending: clinician` during the build run, collected here. Ea
 | 12-l | **AR validator unnamed**: first domino for the entire AR chain; AR clock does not start until named. | §10 | PENDING (blocking AR) |
 | 12-m | **F1 naturalistic-recall bar unset**: clinical sets it (per category or global); §7.3 flip precondition dangles without it. | §11 | PENDING (blocking flip) |
 | 12-n | **Classifier A structural thresholds** are engineering placeholders (fragmentation ≥3<12chars; N/10 with N≥7); clinical sets values. | §7 | PENDING |
-| 12-o | **Third period+capital transform site (6d-b2)** found during assembly beyond the two the controller pre-named (1f-b3, §3c framing). Surfaced for the same explicit review. | §1 | FLAGGED |
+| 12-o | **Fourth period+capital transform site (§6d framing statement, F6d)** found during final-review verification against `bot_behaviour_full.md` line 1606, beyond the three previously identified (1f-b3, 6d-b2, §3c framing — 6d-b2 was itself the third, found during assembly beyond the two the controller pre-named). Four sites total. Surfaced for the same explicit review. | §1 | FLAGGED |
 
 **Recorded decisions (not open — logged for visibility, spec §10 deviations register):**
 - Weave-pending session expiry: pending state does NOT survive session exit (a stale flag crisis-routing a next-day "good morning" is the worse failure). Safety-adjacent recorded decision.

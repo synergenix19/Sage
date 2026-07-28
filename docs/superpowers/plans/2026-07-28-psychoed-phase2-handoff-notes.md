@@ -38,7 +38,7 @@ Refer to go-live record PR#362 for the current consult-set structure and per-cat
 
 The §3c paraphrase variant that routed to `presence_only` (identified in the Phase 1 go-live record as a single-variant near-miss) is a **mandatory F1 fixture**. This phrasing was observed live and must be caught by the trigger tables.
 
-**F1 commitment:** Include this as a naturalistic test case asserting that the phrase produces `presence_only` routing or equivalent.
+**F1 commitment:** Include this as a naturalistic test case asserting that the phrase is CAUGHT by the trigger tables and routes to the 3c psychoed serve, not to `presence_only` — `presence_only` is the near-miss failure this seed exists to prevent.
 
 
 ### 4. State Channel Keys — Exact List (§4.2)
@@ -65,13 +65,13 @@ The PSY-WEAVE-1 evaluator runs **before resolver matching on weave-pending turns
 
 ### 6. Node-8 Hash-Mismatch Failure Path (§6.2)
 
-When Node-8 (pinned-card server) cannot verify block fetch:
+When Node-8 (`output_gate`) cannot verify block fetch:
 
 ```
-block → re-serve pinned → neutral referral on fetch-fail
+block → re-serve pinned signed artifact → neutral referral on fetch-fail
 ```
 
-Never emit an unverified block to the user. The failure path is deterministic: pinned card + neutral referral template (no block content).
+Never emit an unverified block to the user. The failure path is deterministic: re-serve the pinned SIGNED ARTIFACT (spec §6.2) plus a neutral referral template (no unverified block content). This is unrelated to the crisis pinned-card UI — Node-8 is `output_gate`, not a card-rendering node.
 
 
 ### 7. Shared-Scripts Constants Module (Task 9 Interface)
@@ -207,6 +207,24 @@ These seeds ensure the F1 fixture suite covers both observed naturalistic varian
 - Phase 3: Assert that blocks in manifest and blocks on disk are identical sets
 - This prevents silent data drift (blocks indexed but not on disk, or vice versa)
 
+
+### Addition 9: Weave Contradiction-Marker Matching is Substring, Not Word-Boundary
+
+**Source:** `data/psychoed/weave/psy_weave_1.en.json` (`contradiction_markers`) + final-review pass.
+
+The current evaluator semantics match contradiction markers (`but`, `sometimes`, `kind of`, `maybe`, `a little`, `not really`) as **raw substrings** against the normalized reply. This means `"but"` also hits inside `"doubt"` and `"nobody"` — a false-positive contradiction hit that fails the turn closed to crisis. This is **safe** (fail-closed-to-crisis is the correct direction on ambiguity) **but noisy** (more crisis-path escalations than the marker list intends).
+
+**Phase 2 action:** Move to word-boundary matching (e.g. `\bbut\b`) for the contradiction markers. Because this changes matching behavior on live data, **clinician re-ratifies the marker patterns at the point of that change** — this is not a silent engineering tightening.
+
+
+### Addition 10: Phase-3 Test — Guards↔`safety_weave` Implication is Unpinned
+
+**Source:** manifest audit across all 6 categories, final-review pass.
+
+Today, every category where `safety_weave: true` (3c, s2c) also carries `safety_weave_script`-consuming guards in its `guards` list, and this holds consistently across all 6 manifests — but **nothing asserts it**. The relationship (weave-on categories carry the weave guard) is currently true by inspection only, not by test.
+
+**Phase 3 action:** Add a test asserting the implication `safety_weave: true → guards` includes the weave-consuming guard, for every manifest. This pins a currently-true-but-unenforced invariant before Phase 3's fixture harness lands, so a future category addition or edit can't silently decouple weave scope from its guard.
+
 ---
 
 ## III. Implementation Checkpoints
@@ -224,6 +242,8 @@ These seeds ensure the F1 fixture suite covers both observed naturalistic varian
 - [ ] s2c-b8 block_guard: append behavior uses single-sourced note text (no duplication)
 - [ ] F1 fixtures: includes §3c paraphrase + two subsumption long-forms
 - [ ] Test suite: block-disk cross-check is subset-only (Phase 3 will tighten)
+- [ ] Contradiction markers noted as substring (not word-boundary) matching; Phase 2 tightens with clinician re-ratification
+- [ ] Phase-3 test noted for guards↔safety_weave implication (unpinned invariant)
 
 ### Open Questions for Phase 2 Owner
 

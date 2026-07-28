@@ -34,7 +34,7 @@ scripts/psychoed_ingest/
   audit_collisions.py                                # collision-set computation + declared-resolution check
 scripts/extract_bot_behaviour_full.sh                # docx → full-fidelity markdown
 tests/test_psychoed_content_integrity.py             # all Phase 1 CI checks
-docs/superpowers/governance/2026-07-23-psychoed-signoff-packet.md
+docs/superpowers/governance/2026-07-28-psychoed-signoff-packet.md  # (dated at assembly, not at plan-authoring)
 ```
 
 ---
@@ -607,7 +607,7 @@ def test_manifest_scripts_complete():
 
 ### Task 13: Sign-off packet assembly
 
-**Files:** Create `docs/superpowers/governance/2026-07-23-psychoed-signoff-packet.md`.
+**Files:** Create `docs/superpowers/governance/2026-07-28-psychoed-signoff-packet.md`.
 
 - [ ] **Step 1:** Generate the doc→artifact diff material: for each of the 6 categories, a section listing every block ID + title, and the em-dash scrub diff produced by:
 
@@ -633,7 +633,7 @@ Run: `for f in data/psychoed/blocks/en/*/*.json; do python3 -c "import json,sys;
 
 ### Task 14: Phase 2 handoff notes (binding requirements carried forward)
 
-**Files:** Create `docs/superpowers/plans/2026-07-23-psychoed-phase2-handoff-notes.md`.
+**Files:** Create `docs/superpowers/plans/2026-07-28-psychoed-phase2-handoff-notes.md`.
 
 - [ ] **Step 1:** Write the notes file with these verbatim requirements (each cites its spec section):
   - **Rule-6 carry-forward evaluation mechanic (review addition 2):** carry-forward writes per-article-family `prior_exposure`; step-policy rule 6 evaluates per-skill. The skip works ONLY if, for a given skill, rule 6's condition reads the counter of the family its `kb_ref` points to — i.e. the evaluation is `prior_exposure[family_of(skill.kb_ref)] >= threshold`, not `prior_exposure[skill_id]`. Wire rule 6 against the `kb_ref`-resolved family counter or it reads a counter that never increments (spec §4.4 + schema extension 7).

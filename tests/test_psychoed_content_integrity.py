@@ -265,3 +265,13 @@ def test_manifest_scripts_complete():
         d = json.loads(p.read_text())
         for f in ("framing_statement", "menu_offer", "check_in"):
             assert d[f].strip() and "<VERBATIM" not in d[f], f"{p.stem}.{f} untranscribed"
+
+
+def test_source_file_hash_matches_pinned_sha():
+    import hashlib
+    actual = hashlib.sha256(Path(schemas.SOURCE_FILE).read_bytes()).hexdigest()
+    assert actual == schemas.SOURCE_SHA, (
+        f"{schemas.SOURCE_FILE} hash changed since SOURCE_SHA was pinned "
+        f"({actual} != {schemas.SOURCE_SHA}) — ratified source moved underneath "
+        f"already-signed artifacts, STOP and reconcile, do not silently re-transcribe"
+    )

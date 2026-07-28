@@ -13,6 +13,11 @@ from sage_poc.skill_ids import SKILL_REGISTRY
 
 EM_DASHES = ("—", "–")
 SOURCE_FILE = "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md"
+# Drift guard: SHA-256 of SOURCE_FILE at the time this constant was pinned (2026-07-28
+# final review). tests/test_psychoed_content_integrity.py asserts the file's current
+# hash still matches this value; a mismatch means the ratified source moved underneath
+# already-signed artifacts and must STOP, not be silently re-transcribed.
+SOURCE_SHA = "03ae4ea559075a151fe66a3cc6403ed8be2570444387f9aedbe24f5bad71b7f1"
 CATEGORIES = ("1f", "3c", "4b", "6d", "7c", "s2c")
 DELIVERY_SHAPES = ("menu_first", "answer_first")
 ROW_ROUTES = ("standard", "direct_diagnostic", "formal_diagnosis")
