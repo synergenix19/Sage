@@ -30,6 +30,7 @@ COVERAGE = {
     "3c": ["3c-b1", "3c-b2", "3c-b3", "3c-b4", "3c-b5", "3c-b6", "3c-b7"],
     "4b": ["4b-b1", "4b-b2", "4b-b3", "4b-b4", "4b-b5", "4b-b6", "4b-b7"],
     "6d": ["6d-b1", "6d-b2", "6d-b3", "6d-b4", "6d-b5", "6d-b6"],
+    "7c": ["7c-b1", "7c-b2", "7c-b3", "7c-b4", "7c-b5", "7c-b6", "7c-b7"],
 }
 
 
@@ -114,6 +115,30 @@ def test_bridge_map_null_skill_id_requires_doc_target_and_status(tmp_path):
                 "doc_target": "Worry Tree",
                 "offer": "optional",
                 "status": "pending_clinician_no_registry_skill",
+            }
+        ],
+    )
+    assert schemas.validate_manifest(p_ok) == []
+
+
+def test_bridge_map_null_block_id_requires_condition(tmp_path):
+    p = _write_manifest(
+        tmp_path,
+        bridge_map=[
+            {"block_id": None, "skill_id": "assertive_communication", "offer": "optional"}
+        ],
+    )
+    errs = schemas.validate_manifest(p)
+    assert any("condition" in e for e in errs), errs
+
+    p_ok = _write_manifest(
+        tmp_path,
+        bridge_map=[
+            {
+                "block_id": None,
+                "skill_id": "assertive_communication",
+                "offer": "optional",
+                "condition": "specific_person_or_message",
             }
         ],
     )

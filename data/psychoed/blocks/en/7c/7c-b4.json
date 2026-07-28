@@ -1,0 +1,19 @@
+{
+  "article_id": "7c-b4",
+  "language": "en",
+  "title": "How to maintain friendships over time",
+  "content": "Friendships that last usually aren't kept up through big gestures, but through small, low-effort, regular contact, a quick check-in message, remembering an important date, reaching out sometimes rather than always waiting to be reached out to. Consistency matters more than intensity.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "7c",
+    "article_family": "how_do_i_connect",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "How to maintain friendships over time",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "7c – HOW DO I CONNECT, §3 Content Library, item 4"
+    }
+  }
+}

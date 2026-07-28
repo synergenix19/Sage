@@ -61,6 +61,10 @@ def validate_manifest(path) -> list[str]:
         _req(b, ("block_id", "skill_id", "offer"), errs, "bridge_map.")
         if b.get("offer") != "optional":
             errs.append("bridge offers are optional-not-automatic (spec §3.2)")
+        if b.get("block_id") is None:
+            cond = b.get("condition")
+            if not isinstance(cond, str) or not cond.strip():
+                errs.append("bridge_map entries with null block_id require a non-empty condition string")
         if b.get("skill_id") is not None:
             if b.get("skill_id") not in SKILL_REGISTRY:
                 errs.append(f"bridge_map skill_id not in registry: {b.get('skill_id')}")

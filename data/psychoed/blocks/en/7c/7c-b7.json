@@ -1,0 +1,19 @@
+{
+  "article_id": "7c-b7",
+  "language": "en",
+  "title": "Connecting with family specifically",
+  "content": "Family relationships often benefit from the same small, consistent gestures as friendships, regular low-key contact, showing interest in their life, initiating rather than only responding, but they can also carry more history and complexity. If there's specific tension involved, that might be worth addressing directly rather than only trying to build more general connection.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "7c",
+    "article_family": "how_do_i_connect",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "Connecting with family specifically",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "7c – HOW DO I CONNECT, §3 Content Library, item 7"
+    }
+  }
+}
