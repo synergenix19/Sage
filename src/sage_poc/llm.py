@@ -3,6 +3,7 @@ from functools import lru_cache
 import httpx
 from langchain_openai import ChatOpenAI
 
+from sage_poc import config as _cfg
 from sage_poc.config import (
     OPENROUTER_API_KEY,
     OPENROUTER_BASE_URL,
@@ -47,7 +48,20 @@ _LLM_CONFIGS: dict[str, tuple[str, float, int]] = {
 
 
 @lru_cache(maxsize=None)
-def _make_llm(model: str, temperature: float, max_tokens: int) -> ChatOpenAI:
+def _make_llm(
+    model: str,
+    temperature: float,
+    max_tokens: int,
+    seed: int | None = None,
+) -> ChatOpenAI:
+    # Node-2 determinism pin (2026-07-28 bistability finding): seed is passed ONLY
+    # when configured — an unset SAGE_CLASSIFIER_SEED must produce a request payload
+    # byte-identical to today (langchain-openai 1.2.1 excludes a None seed from
+    # _default_params entirely; ChatOpenAI accepts seed= natively, verified against
+    # the installed version, so no model_kwargs fallback is needed).
+    extra: dict = {}
+    if seed is not None:
+        extra["seed"] = seed
     return ChatOpenAI(
         model=model,
         openai_api_key=OPENROUTER_API_KEY,
@@ -56,13 +70,14 @@ def _make_llm(model: str, temperature: float, max_tokens: int) -> ChatOpenAI:
         max_tokens=max_tokens,
         default_headers=_HEADERS,
         http_async_client=_ASYNC_HTTP_CLIENT,
+        **extra,
     )
 
 
 def get_classifier() -> ChatOpenAI:
     """Fast, low-temperature model for intent classification and safety routing."""
     model, temp, max_tokens = _LLM_CONFIGS["classifier"]
-    return _make_llm(model, temp, max_tokens)
+    return _make_llm(model, temp, max_tokens, seed=_cfg.CLASSIFIER_SEED)
 
 
 def get_responder() -> ChatOpenAI:
@@ -74,7 +89,7 @@ def get_responder() -> ChatOpenAI:
 def get_translator() -> ChatOpenAI:
     """Fast model for Arabic ↔ English translation."""
     model, temp, max_tokens = _LLM_CONFIGS["translator"]
-    return _make_llm(model, temp, max_tokens)
+    return _make_llm(model, temp, max_tokens, seed=_cfg.CLASSIFIER_SEED)
 
 
 def get_fallback_responder() -> ChatOpenAI:
@@ -86,7 +101,7 @@ def get_fallback_responder() -> ChatOpenAI:
 def get_fallback_classifier() -> ChatOpenAI:
     """Fallback model for intent classification when primary is unavailable."""
     model, temp, max_tokens = _LLM_CONFIGS["fallback_classifier"]
-    return _make_llm(model, temp, max_tokens)
+    return _make_llm(model, temp, max_tokens, seed=_cfg.CLASSIFIER_SEED)
 
 
 def get_resistance_model() -> ChatOpenAI:

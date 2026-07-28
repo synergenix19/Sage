@@ -22,6 +22,23 @@ RESISTANCE_MODEL = os.getenv("SAGE_RESISTANCE_MODEL", CLASSIFIER_MODEL)
 # Default ON — crisis activations must leave an audit trail unless explicitly disabled.
 AUDIT_LOG_ENABLED = os.getenv("SAGE_AUDIT_LOG", "true").lower() == "true"
 
+# Node-2 determinism pins (bistability finding 2026-07-28,
+# docs/superpowers/governance/2026-07-28-node2-intent-bistability-finding.md).
+# DARK by default: unset/empty/unparseable -> None -> the constructor sends
+# NOTHING extra (request payload byte-identical to today). Applies ONLY to the
+# classifier family (classifier, fallback_classifier, translator); the responder
+# family's temp-0.7 stochasticity is deliberate and is never pinned.
+_classifier_seed_raw = os.getenv("SAGE_CLASSIFIER_SEED")
+CLASSIFIER_SEED: int | None
+try:
+    CLASSIFIER_SEED = int(_classifier_seed_raw) if _classifier_seed_raw else None
+except ValueError:
+    _log.warning(
+        "SAGE_CLASSIFIER_SEED unexpected value %r — applying safe default (no seed sent).",
+        _classifier_seed_raw,
+    )
+    CLASSIFIER_SEED = None
+
 # UAE crisis helpline — the SINGLE source for every crisis-copy site. Crisis-copy files carry
 # {{crisis_*}} placeholders (not literals), resolved from this dict at load (crisis_copy.py); the
 # graph/output_gate Python fail-safes read it directly. Change a value HERE and every surface
