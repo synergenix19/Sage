@@ -247,6 +247,13 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
     # appended by knowledge_retrieve for this turn -- do NOT append them again here.
     from sage_poc import config  # noqa: PLC0415 — local import so monkeypatch.setattr(config, ...) takes effect
     if config.PSYCHOED_PATHWAYS_ENABLED:
+        # Defensive invariant (reviewer Medium finding, controller-adjudicated 2026-07-28): this
+        # branch needs no language gate of its own. A psychoed_serve payload cannot be CREATED on
+        # a non-English turn post-FIX-2 -- its only two constructors, skill_select's resolver and
+        # knowledge_retrieve's outcome-2 backstop, both gate entry on detected_language == "en".
+        # Asserted here rather than silently trusted: the menu-after-weave branch below is the
+        # counter-example this fix closes -- PSY-WEAVE-1's weave evaluation is correctly language-
+        # UNgated, so THAT branch can reach here on an AR turn even though this one cannot.
         serve_payload = state.get("psychoed_serve")
         if serve_payload:
             from sage_poc.psychoed import serve as psy_serve  # noqa: PLC0415
@@ -265,22 +272,40 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
                 "path": (state.get("path") or []) + ["freeflow_respond"],
             }
         if state.get("skill_match_method") == "psychoed_menu_after_weave":
-            category = state.get("psychoed_active_category")
-            if category is not None:
-                from sage_poc.psychoed import store as psy_store  # noqa: PLC0415
-                manifest = psy_store.manifest(category)
-                return {
-                    "response_en": manifest["menu_offer"],  # verbatim, framing-less re-offer
-                    "psychoed_menu_offered": True,
-                    "path": (state.get("path") or []) + ["freeflow_respond"],
-                }
-            # Defensive: a PSY-WEAVE-1 clear-negative with no recorded active category should not
-            # happen per skill_select's own psychoed_active_category lifecycle, but this must never
-            # crash and must never invent copy -- fall through to the normal LLM freeflow path below.
-            _log.warning(
-                "[freeflow] psychoed_menu_after_weave with no psychoed_active_category set; "
-                "falling through to normal freeflow"
-            )
+            # Third English-ratified-copy path (reviewer Medium finding, controller-adjudicated
+            # 2026-07-28; spec §3.7). Unlike psychoed_serve above, PSY-WEAVE-1's weave evaluation
+            # (skill_select, order item 1) is correctly language-UNgated -- it's a live safety
+            # check on the PREVIOUS turn's serve, and starving it on an AR reply would be fail-
+            # open, not fail-closed. That means a clear-negative reply CAN set
+            # psychoed_menu_after_weave on a non-English turn even after FIX 2's entry gates. The
+            # verbatim manifest menu_offer is EN-ratified copy, though: serving it raw (or a
+            # downstream machine-translation of it) is exactly the "ungraded machine-translated
+            # clinical copy" spec §3.7 rules out until AR ships under its own faithfulness-graded
+            # flag. Fall through to the normal LLM freeflow path instead -- the LLM handles the AR
+            # user conversationally, with no ratified-copy claim.
+            if (state.get("detected_language") or "en") != "en":
+                _log.info(
+                    "[freeflow] psychoed_menu_after_weave on a non-English turn; falling through "
+                    "to normal freeflow (spec §3.7: EN ratified copy must not be machine-translated out)"
+                )
+            else:
+                category = state.get("psychoed_active_category")
+                if category is not None:
+                    from sage_poc.psychoed import store as psy_store  # noqa: PLC0415
+                    manifest = psy_store.manifest(category)
+                    return {
+                        "response_en": manifest["menu_offer"],  # verbatim, framing-less re-offer
+                        "psychoed_menu_offered": True,
+                        "path": (state.get("path") or []) + ["freeflow_respond"],
+                    }
+                # Defensive: a PSY-WEAVE-1 clear-negative with no recorded active category should
+                # not happen per skill_select's own psychoed_active_category lifecycle, but this
+                # must never crash and must never invent copy -- fall through to the normal LLM
+                # freeflow path below.
+                _log.warning(
+                    "[freeflow] psychoed_menu_after_weave with no psychoed_active_category set; "
+                    "falling through to normal freeflow"
+                )
 
     if llm is None:
         llm = get_responder()

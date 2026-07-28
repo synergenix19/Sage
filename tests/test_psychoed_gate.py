@@ -142,6 +142,39 @@ def test_freeflow_menu_after_weave_no_category_falls_through_to_llm(monkeypatch,
                for r in caplog.records)
 
 
+# ── (c2) freeflow: menu-after-weave falls through on a non-English turn (reviewer Medium,
+# controller-adjudicated) -- third EN-ratified-copy path, previously ungated ─────────────────
+
+def test_freeflow_menu_after_weave_non_english_falls_through_to_llm(monkeypatch, caplog):
+    """PSY-WEAVE-1's weave evaluation is correctly language-UNgated (skill_select), so a
+    clear-negative reply CAN set psychoed_menu_after_weave on an AR turn even after FIX 2's entry
+    gates. The verbatim manifest menu_offer is EN-ratified copy though -- must not be served raw
+    (or machine-translated) to an AR user. Must fall through to the LLM instead, INFO logged.
+
+    Uses a real llm.ainvoke stub (not a patched tool-loop shortcut) and asserts it was actually
+    called -- the path under test is empty-tools (no user_id/session_id, Node 6 already ran this
+    turn per _ff_state's path), so _invoke_with_tool_loop calls resilient_invoke, which calls
+    llm.ainvoke(messages) directly."""
+    monkeypatch.setattr(config, "PSYCHOED_PATHWAYS_ENABLED", True)
+    state = _ff_state(skill_match_method="psychoed_menu_after_weave",
+                       psychoed_active_category=_CATEGORY, detected_language="ar")
+
+    mock_msg = MagicMock()
+    mock_msg.content = "مرحبا، كيف تشعر اليوم؟"
+    mock_llm = MagicMock()
+    mock_llm.ainvoke = AsyncMock(return_value=mock_msg)
+
+    with caplog.at_level(logging.INFO, logger="sage_poc.nodes.freeflow_respond"):
+        with patch("sage_poc.nodes.freeflow_respond._get_prior_context", AsyncMock(return_value="")):
+            result = asyncio.run(freeflow_respond_node(state, llm=mock_llm))
+
+    mock_llm.ainvoke.assert_called()  # LLM path DID run -- not the psychoed menu shortcut
+    assert result["response_en"] == "مرحبا، كيف تشعر اليوم؟"
+    assert result["response_en"] != _MANIFEST["menu_offer"]  # never the raw EN menu on an AR turn
+    assert any("psychoed_menu_after_weave" in r.message and "non-English turn" in r.message
+               for r in caplog.records)
+
+
 # ── (d) gate: pass -- unaltered serve reaches response untouched, all 7 audit fields present ─
 
 @pytest.mark.asyncio
