@@ -2,6 +2,8 @@
 
 **Phase 1 content complete.** These notes carry forward the binding requirements for Phase 2 implementation, adding execution-discovered refinements from the Phase 1 controller review.
 
+**Filename note:** the Phase 1 content plan (`2026-07-23-psychoed-phase1-content-plan.md`, Task 14) named this file `2026-07-23-psychoed-phase2-handoff-notes.md`. It was actually authored 2026-07-28, so it is filed under that date; the file is not renamed to match the earlier reference.
+
 ---
 
 ## I. Binding Requirements (Spec-Referenced)
@@ -41,7 +43,14 @@ The §3c paraphrase variant that routed to `presence_only` (identified in the Ph
 
 ### 4. State Channel Keys — Exact List (§4.2)
 
-Declare the full set of SageState keys before build. These must be enumerated:
+Declare the full set of SageState keys before build. Spec §4.2 enumerates 10 keys across two lifetimes, verbatim:
+
+- **Per-turn (reset every turn):** `psychoed_serve`
+- **Pathway-scoped (persist while active):** `psychoed_active_category`, `psychoed_delivery_shape`, `psychoed_blocks_served`, `psychoed_menu_offered`, `psychoed_weave_fired`, `psychoed_weave_pending`, `psychoed_matched_row_id`, `psychoed_collision_path`, `psychoed_framing`
+
+**Audit-before-clear:** pathway-scoped keys clear on exit (new skill activation, safety-route firing, explicit close) — audit-feeding facts persist to `session_audit` BEFORE clearing.
+
+**Never-disarm:** nothing in this channel is readable by upstream safety nodes; one-way dependency by construction.
 
 - In code: `check_state_channels.py`
 - In graph test suite: assert state shape at each node transition
@@ -67,7 +76,7 @@ Never emit an unverified block to the user. The failure path is deterministic: p
 
 ### 7. Shared-Scripts Constants Module (Task 9 Interface)
 
-The Phase 2 constants module loads all keys from `shared_scripts.en.json` verbatim. This is the interface boundary: import the scripts as declared in the data file, do not synthesize or override.
+The Phase 2 constants module loads all four keys from `shared_scripts.en.json` verbatim: `diagnosis_guard_stage1`, `diagnosis_guard_stage2`, `safety_weave_script`, `human_referral_close`. This is the interface boundary: import the scripts as declared in the data file, do not synthesize or override.
 
 ---
 
@@ -105,7 +114,7 @@ This ordering ensures the most specific (contradiction) signals override general
 
 **Status:** `human_referral_close` is currently marked `PENDING-CLINICIAN`.
 
-**Phase 2 requirement:** The constants module must load the four script keys verbatim but **MUST fail loudly (build-time check)** if any script value still starts with `"PENDING-CLINICIAN"` when its consuming template is enabled.
+**Phase 2 requirement:** The constants module must load the four script keys verbatim — `diagnosis_guard_stage1`, `diagnosis_guard_stage2`, `safety_weave_script`, `human_referral_close` — but **MUST fail loudly (build-time check)** if any script value still starts with `"PENDING-CLINICIAN"` when its consuming template is enabled.
 
 - No template may ship rendering a pending script.
 - If a template references `human_referral_close` and its value is pending, the build fails with a clear error.
@@ -129,30 +138,27 @@ The Node-4 resolver must implement **subsumption-aware** collision handling. The
 **Implementation:** Node-4's resolver references `collision_table.json` to determine winner precedence on ambiguous routing.
 
 
-### Addition 5: Bridge Schema — Dual Forms for Continuation Template
+### Addition 5: Bridge Schema — Three Forms Phase 2 Must Consume
 
-**Source:** spec §7c; identified in Phase 1 trigger-table audits.
+**Source:** `data/psychoed/manifests/4b.json`, `1f.json`, `7c.json`; identified in Phase 1 trigger-table audits.
 
-The bridge schema has **TWO consumable forms**:
+The bridge schema has **THREE consumable forms**, distinguished by which of `block_id` / `skill_id` is set:
 
-1. **Block-level bridges** (primary)
-   - `block_id` is set
-   - References a block in the primary store
-   
-2. **Condition-level bridges** (interim/pending)
-   - `block_id` is null
-   - Contains a `condition` string (e.g., *"specific_person_or_message → assertive_communication"*)
+1. **Block-level, with `skill_id` set** (primary/ordinary case)
+   - `block_id` is set AND `skill_id` is set
+   - Example: `4b-b6` carries two such entries — `box_breathing` and `grounding_5_4_3_2_1` (both `doc_route: "1a"`)
+
+2. **Block-level, with `skill_id` NULL** (missing-skill case, not condition-level)
+   - `block_id` is set (the block itself exists and resolves fine) but `skill_id` is null
+   - Example: `1f-b4` → `doc_target: "Worry Tree"`, `skill_id: null`, `status: "pending_clinician_no_registry_skill"` — the block resolves; there is simply no `worry_tree` skill in the registry to bridge to (`worry_time` is a different technique)
+   - **Render NO offer** until either a `worry_tree` skill exists or clinical designates an existing alternative (packet ask 12-a). The remediation here is a **missing SKILL**, not a missing block — do not treat this as an incomplete-block problem.
+
+3. **Condition-level** (interim/pending, no block at all)
+   - `block_id` is null; a `condition` string stands in for a block reference
+   - The only instance in the current manifests: `7c`'s bridge — `block_id: null`, `condition: "specific_person_or_message"`, `skill_id: "assertive_communication"` (`doc_route: "6c"`)
    - Represents a pending capability, not yet resolvable to a block
 
-**Phase 2 continuation template must consume both.** Example from §7c:
-
-- `specific_person_or_message` → `assertive_communication` (condition-level bridge, pending block resolution)
-
-**Special case: Null-skill_id bridges**
-
-- 1f-b4 `worry_tree` currently has null-skill_id bridges (condition-level, no block)
-- **Render NO offer** until the block is resolved (do not surface incomplete bridges to the user)
-- Phase 2 resolve by: either repoint to a block or remove the bridge
+**Phase 2 continuation template must consume all three.** Do not conflate form 2 and form 3: 1f-b4 is a block-level bridge with a missing skill (`block_id` present), NOT a condition-level bridge — only 7c's entry is condition-level.
 
 ---
 
@@ -181,8 +187,10 @@ The serve template appends the note sentence. **Critical:** that sentence ALSO e
    
 2. **Two subsumption long-forms** as F1 cases
    - Assert the declared winners from `collision_table.json`
-   - One case for each subsumption pair
-   - Example: if *"I can't breathe"* subsumes *"I feel like I can't get air"*, include both as F1 cases asserting the winner behavior
+   - One case for each subsumption pair — the two real pairs in the table:
+     - *"Why do I feel like this?"* (short) subsumed by *"Why do I feel like this for no reason?"* (long) — categories `3c`/`4b`, declared winner **3c** (weave-carrying category wins, fail-toward-weave)
+     - *"I want to become more confident."* (short) subsumed by *"I want to become more confident socially."* (long) — categories `6d`/`7c`, declared winner **7c** (long-form wins; both weave-less)
+   - Include both members of each pair as F1 cases asserting the winner behavior
 
 These seeds ensure the F1 fixture suite covers both observed naturalistic variants and declared subsumption precedence.
 
@@ -211,8 +219,8 @@ These seeds ensure the F1 fixture suite covers both observed naturalistic varian
 - [ ] PSY-WEAVE-1 evaluator implemented from `evaluation_semantics` (not prose)
 - [ ] Build gate: pending `human_referral_close` scripts fail the build if template is enabled
 - [ ] Node-4 resolver: subsumption-aware, references `collision_table.json`
-- [ ] Bridge schema: continuation template consumes both block-level and condition-level forms
-- [ ] Null-skill_id bridges: template renders no offer (blocks Phase 2 category enables)
+- [ ] Bridge schema: continuation template consumes all three forms (block-level+skill, block-level+null-skill, condition-level)
+- [ ] Null-skill_id bridges (e.g. 1f-b4): template renders no offer (blocks Phase 2 category enables)
 - [ ] s2c-b8 block_guard: append behavior uses single-sourced note text (no duplication)
 - [ ] F1 fixtures: includes §3c paraphrase + two subsumption long-forms
 - [ ] Test suite: block-disk cross-check is subset-only (Phase 3 will tighten)
@@ -222,7 +230,6 @@ These seeds ensure the F1 fixture suite covers both observed naturalistic varian
 1. **PSY-WEAVE-1 threshold vs. binary:** Does the evaluator return pass/fail (binary) or a confidence score? The `evaluation_semantics` field should clarify.
 2. **Collision-table pending entries:** Which subsumption pairs are still marked pending? These block category flips until resolved.
 3. **Null-skill_id bridges:** Is 1f-b4 `worry_tree` the only null-skill_id case, or are there others?
-4. **State-channel keys:** Enumerate the full list (from §4.2 spec) at Phase 2 startup; gate the build on this list.
 
 ---
 
