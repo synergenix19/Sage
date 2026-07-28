@@ -3,13 +3,13 @@
 **Packet status: DRAFT-FOR-CLINICAL**
 **Assembly date: 2026-07-28** · **Design spec:** `docs/superpowers/specs/2026-07-23-psychoeducation-pathways-design.md` (§9 Governance records)
 **Ratified source:** `docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md`
-**Artifacts pinned at:** this branch (`docs/psychoed-pathways-design`) @ `a13c2718`
+**Artifacts pinned at:** this branch (`docs/psychoed-pathways-design`) @ `7ef710ad`
 
 ---
 
 ## How to read this packet
 
-This is **one packet, everything by name** (spec §9). It enumerates every artifact produced by the Phase-1 content build — 40 blocks, 18 pathway scripts, 4 shared single-sourced scripts, 6 trigger tables (31 rows), 1 collision table, 1 PSY-WEAVE-1 data file — and routes each to a clinical ruling. **Block content is NOT reproduced here** — the 40 blocks carry title + per-block scrub classification only (ask-section 1a). The 18 pathway scripts and 4 shared scripts ARE reproduced in full (ask-sections 1c, 2b) since their full text is itself the signable artifact. Ratification is against the pinned artifacts at this branch (`docs/psychoed-pathways-design`) @ `969c802e` (supersedes the original assembly pin `a13c2718`; the only post-`a13c2718` `data/` change is one metadata-only scrub edit — an em dash → comma inside `collision_table.json`'s `subsumption_collisions[0].resolution.rationale`, landed in `969c802e`, no resolution semantics changed).
+This is **one packet, everything by name** (spec §9). It enumerates every artifact produced by the Phase-1 content build — 40 blocks, 18 pathway scripts, 4 shared single-sourced scripts, 6 trigger tables (31 rows), 1 collision table, 1 PSY-WEAVE-1 data file — and routes each to a clinical ruling. **Block content is NOT reproduced here** — the 40 blocks carry title + per-block scrub classification only (ask-section 1a). The 18 pathway scripts and 4 shared scripts ARE reproduced in full (ask-sections 1c, 2b) since their full text is itself the signable artifact. Ratification is against the pinned artifacts at this branch (`docs/psychoed-pathways-design`) @ `eb2a4ff8` (supersedes the original assembly pin `7ef710ad`; the only post-`7ef710ad` `data/` change is one metadata-only scrub edit — an em dash → comma inside `collision_table.json`'s `subsumption_collisions[0].resolution.rationale`, landed in `eb2a4ff8`, no resolution semantics changed).
 
 Each of the 12 ask-sections below carries a **ruling line**: `☐ approve ☐ edit ☐ reject`. Sub-items that need their own adjudication (inferred rows, pending collisions, design-added extensions) carry their own ruling lines.
 
@@ -481,7 +481,7 @@ Every item flagged `pending: clinician` during the build run, collected here. Ea
 
 ## Sign-off
 
-**Packet status: DRAFT-FOR-CLINICAL** · EN-only · artifacts pinned at this branch @ `a13c2718`.
+**Packet status: DRAFT-FOR-CLINICAL** · EN-only · artifacts pinned at this branch @ `7ef710ad`.
 No category flips until its asks above are signed (standing rule). S2c additionally gated on the reunification-ideation P0. AR gated on ask-section 10.
 
 Clinician: ______________________________  Date: ____________
