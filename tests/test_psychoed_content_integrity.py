@@ -243,3 +243,25 @@ def test_weave_data_shape_and_fail_closed_examples():
     for bad in ["kind of", "sometimes", "not really but...", "no, but sometimes",
                 "actually, what is anxiety?"]:
         assert not is_clear_negative(bad), bad
+
+
+FULL_MAP = {
+    "1f": 5, "3c": 7, "4b": 7, "6d": 6, "7c": 7, "s2c": 8,
+}
+
+def test_full_coverage_by_name():
+    for cat, n in FULL_MAP.items():
+        blocks = COVERAGE.get(cat, [])
+        assert len(blocks) == n, f"{cat}: {len(blocks)}/{n} blocks declared"
+        expected = [f"{cat}-b{i}" for i in range(1, n + 1)]
+        assert blocks == expected, f"{cat}: IDs must be {expected}"
+    manifests = {p.stem for p in schemas.iter_psychoed_files("manifest")}
+    tables = {p.stem for p in schemas.iter_psychoed_files("trigger_table")}
+    assert manifests == set(FULL_MAP), f"manifests: {manifests}"
+    assert tables == set(FULL_MAP), f"trigger tables: {tables}"
+
+def test_manifest_scripts_complete():
+    for p in schemas.iter_psychoed_files("manifest"):
+        d = json.loads(p.read_text())
+        for f in ("framing_statement", "menu_offer", "check_in"):
+            assert d[f].strip() and "<VERBATIM" not in d[f], f"{p.stem}.{f} untranscribed"
