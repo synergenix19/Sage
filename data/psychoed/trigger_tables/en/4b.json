@@ -1,0 +1,79 @@
+{
+  "category": "4b",
+  "language": "en",
+  "rows": [
+    {
+      "row_id": "4b-t1",
+      "type": "General why-questions",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "Why do I feel like this?",
+        "Why do I react like this?",
+        "I don't understand my reactions.",
+        "I don't understand my emotions.",
+        "Why do I keep responding like this?"
+      ]
+    },
+    {
+      "row_id": "4b-t2",
+      "type": "Intensity / control",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "Why am I so emotional?",
+        "Why can't I control my emotions?",
+        "Why do my emotions feel so intense?",
+        "Why do I feel so strongly?",
+        "Why do I feel so overwhelmed?"
+      ]
+    },
+    {
+      "row_id": "4b-t3",
+      "type": "Specific reaction patterns",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "Why do I get upset so easily?",
+        "Why do I cry so easily?",
+        "Why do I get angry so quickly?",
+        "Why do I overreact?",
+        "Why can't I let things go?",
+        "Why do I get triggered so easily?",
+        "Why do I shut down?",
+        "Why do I avoid things?",
+        "Why do I always get defensive?"
+      ]
+    },
+    {
+      "row_id": "4b-t4",
+      "type": "Comparison to others",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "Why do I react differently to other people?",
+        "Why can't I cope like everyone else?"
+      ]
+    },
+    {
+      "row_id": "4b-t5",
+      "type": "Body-first reactions",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "Why does my body react before I can think?",
+        "Why does this affect me so much?"
+      ]
+    }
+  ],
+  "provenance_note": "Doc §4b §0 Trigger Words/Recognition is a real Type|Examples pipe table; all 5 rows transcribed with Type verbatim. All rows are first-person 'why do I' / 'I don't understand my' phrasing, unambiguously personal framing, so all row_provenance = doc_table (no framing judgment call needed, unlike 3c-t4). No diagnosis-seeking phrase found in this section; all rows route standard.",
+  "source_citation": {
+    "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+    "section": "4b – UNDERSTANDING EMOTIONS, §0 Trigger Words / Recognition"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "article_id": "6d-b2",
+  "language": "en",
+  "title": "The four communication styles (assertive vs. aggressive vs. passive vs. passive-aggressive)",
+  "content": "There are roughly four styles: passive (going along with others, avoiding conflict, often at your own cost), aggressive (getting your needs met at others' expense, sometimes through anger or force), passive-aggressive (indirect resistance, sarcasm, silent treatment, when direct expression feels too risky), and assertive (clearly expressing your needs while still respecting the other person). None of these is a fixed personality trait. Most people shift between styles depending on the situation and who they're with.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "6d",
+    "article_family": "understanding_assertiveness",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "The four communication styles (assertive vs. aggressive vs. passive vs. passive-aggressive)",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "6d – UNDERSTANDING ASSERTIVENESS, §3 Content Library, item 2"
+    }
+  }
+}

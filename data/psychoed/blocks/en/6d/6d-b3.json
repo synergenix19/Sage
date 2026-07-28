@@ -1,0 +1,19 @@
+{
+  "article_id": "6d-b3",
+  "language": "en",
+  "title": "Why people-pleasing or conflict-avoidance patterns develop",
+  "content": "Patterns like these are usually learned, often early, from environments where speaking up felt risky, wasn't modeled, or wasn't safe. It made sense as a strategy at the time. The pattern can outlast its usefulness though, showing up even in situations where speaking up now would actually be safe and effective.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "6d",
+    "article_family": "understanding_assertiveness",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "Why people-pleasing or conflict-avoidance patterns develop",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "6d – UNDERSTANDING ASSERTIVENESS, §3 Content Library, item 3"
+    }
+  }
+}

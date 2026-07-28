@@ -1,0 +1,13 @@
+{
+  "category": "s2c",
+  "delivery_shape": "answer_first",
+  "safety_weave": true,
+  "framing_statement": "Grief can feel really confusing, especially because it doesn't behave the way people expect. Let's start with what you're asking, and I can go deeper into anything else that would help.",
+  "menu_offer": "Want to go deeper into any of this? I can walk through: what grief actually is, why it comes in waves, the truth behind the 'stages' of grief, whether there's a right way to do it, the physical and cognitive symptoms, grief-related guilt, grief-related anger, or how long it typically lasts.",
+  "check_in": "Does that help make more sense of it? Want to explore another angle, or is there something going on for you right now that would help to talk through?",
+  "blocks": ["s2c-b1", "s2c-b2", "s2c-b3", "s2c-b4", "s2c-b5", "s2c-b6", "s2c-b7", "s2c-b8"],
+  "bridge_map": [],
+  "guards": ["acute_distress", "diagnosis_guard", "crisis_override", "safety_weave"],
+  "flip_gate_note": "S2c serve OFF until reunification-ideation lexicon lands (spec §5.7); independent P0 clock",
+  "source_citation": {"file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md", "section": "S2c – UNDERSTANDING GRIEF"}
+}

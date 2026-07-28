@@ -1,0 +1,19 @@
+{
+  "article_id": "7c-b6",
+  "language": "en",
+  "title": "Belonging / community",
+  "content": "A sense of belonging often comes less from having many friends and more from finding spaces built around something you already care about, a hobby, a cause, a shared interest, where connection happens naturally as a byproduct of showing up regularly, rather than being the explicit goal.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "7c",
+    "article_family": "how_do_i_connect",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "Belonging / community",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "7c – HOW DO I CONNECT, §3 Content Library, item 6"
+    }
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "category": "3c",
+  "language": "en",
+  "rows": [
+    {
+      "row_id": "3c-t1",
+      "type": "Direct diagnostic questions",
+      "framing": "personal",
+      "route": "direct_diagnostic",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "I think I might be depressed.",
+        "Could I have depression?",
+        "How do I know if I'm depressed?",
+        "Is this depression or just stress?"
+      ]
+    },
+    {
+      "row_id": "3c-t2",
+      "type": "Abstract/academic questions",
+      "framing": "abstract",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "What is depression?",
+        "Can you explain depression?",
+        "What's the difference between feeling sad and being depressed?"
+      ]
+    },
+    {
+      "row_id": "3c-t3",
+      "type": "Symptom-confusion questions",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "Why am I so low?",
+        "Why can't I just snap out of it?",
+        "Why do I have no motivation?",
+        "Why don't I enjoy anything anymore?",
+        "Why am I always so tired?",
+        "Why do I feel empty?",
+        "Why do I feel numb?",
+        "Why can't I get out of bed?",
+        "Why do I keep withdrawing from people?",
+        "Why does everything feel so hard?",
+        "Why do I feel hopeless?",
+        "Why do I feel like this for no reason?",
+        "Why do I feel like I've lost myself?",
+        "Why does depression affect motivation?",
+        "Why do I have no energy?",
+        "Why do I feel disconnected from everything?"
+      ]
+    },
+    {
+      "row_id": "3c-t4",
+      "type": "General understanding-seeking",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "inferred",
+      "phrases": [
+        "I want to understand depression.",
+        "I want to understand my symptoms.",
+        "What's happening to me?"
+      ]
+    },
+    {
+      "row_id": "3c-t5",
+      "type": "formal_diagnosis_request",
+      "framing": "personal",
+      "route": "formal_diagnosis",
+      "row_provenance": "inferred",
+      "phrases": [
+        "do I have depression"
+      ]
+    }
+  ],
+  "provenance_note": "Doc §3c §0 Trigger Words/Recognition is a real Type|Examples pipe table (rows 1-3 direct); row 4 (General understanding-seeking) kept doc_table Type but framing marked inferred (mixed self- vs topic-facing phrasing, not obvious from Type name alone). Row 5 (formal_diagnosis_request) is not in the recognition table at all; sourced from §7 Guard's formal-diagnosis bullet, same pattern as 1f-t3.",
+  "source_citation": {
+    "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+    "section": "3c – UNDERSTANDING DEPRESSION, §0 Trigger Words / Recognition (rows 1-4) + §7 Guard, formal diagnosis (row 5)"
+  }
+}

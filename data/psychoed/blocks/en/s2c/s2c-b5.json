@@ -1,0 +1,19 @@
+{
+  "article_id": "s2c-b5",
+  "language": "en",
+  "title": "Physical and cognitive symptoms of grief",
+  "content": "Grief isn't purely emotional, it commonly comes with physical symptoms like fatigue, appetite changes, or a heavy feeling in the chest, and cognitive effects like trouble concentrating, forgetfulness, or feeling foggy. These are normal parts of how the body and mind process a major loss, not separate problems.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "s2c",
+    "article_family": "understanding_grief",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "Physical and cognitive symptoms of grief",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "S2c – UNDERSTANDING GRIEF, §3 Content Library, item 5"
+    }
+  }
+}
