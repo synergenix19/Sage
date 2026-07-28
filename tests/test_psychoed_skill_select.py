@@ -195,3 +195,79 @@ async def test_flag_off_no_psychoed_keys_in_return(monkeypatch):
 
     psychoed_keys = [k for k in result if k.startswith("psychoed_")]
     assert psychoed_keys == [], f"psychoed keys leaked with the flag off: {psychoed_keys}"
+
+
+# ─────── Controller checkpoint fix: pathway-clear at psychotic auto-select + offer-accept ───────
+#
+# Concern 3 from the original report was adjudicated a real gap: psychotic_disclosure_auto_select
+# and the R1 offer-accept promotion both ACTIVATE a non-psychoed skill and were missing the
+# _psychoed_pathway_clear(state) spread. Both sites are below the Task-8 top block (this fires
+# regardless of PSYCHOED_PATHWAYS_ENABLED -- pathway-clear-on-exit cleans up a pathway persisted
+# from an EARLIER turn, independent of whether the flag is on THIS turn), so these two tests do
+# not enable the flag; they only set the pre-existing psychoed pathway state directly, mirroring
+# how a real mid-flight pathway would arrive via the checkpointer.
+
+_ACTIVE_PATHWAY_STATE = dict(
+    psychoed_active_category="1f",
+    psychoed_delivery_shape="menu_first",
+    psychoed_menu_offered=True,
+    psychoed_weave_fired=True,
+    psychoed_weave_pending=True,
+    psychoed_matched_row_id="1f-t1",
+    psychoed_collision_path="default_winner",
+    psychoed_framing="abstract",
+)
+
+
+def _assert_pathway_cleared(result: dict) -> None:
+    assert result["psychoed_active_category"] is None
+    assert result["psychoed_delivery_shape"] is None
+    assert result["psychoed_menu_offered"] is False
+    assert result["psychoed_weave_fired"] is False
+    assert result["psychoed_weave_pending"] is False
+    assert result["psychoed_matched_row_id"] is None
+    assert result["psychoed_collision_path"] is None
+    assert result["psychoed_framing"] is None
+    # Survivors: never touched by _psychoed_pathway_clear, so absent from this turn's state
+    # UPDATE -- LangGraph leaves an undeclared-in-this-return channel unchanged on merge, which
+    # is exactly the "survive" contract for blocks_served/family_exposures.
+    assert "psychoed_blocks_served" not in result
+    assert "psychoed_family_exposures" not in result
+
+
+@pytest.mark.asyncio
+async def test_psychotic_disclosure_auto_select_clears_active_pathway():
+    """A mid-flight psychoed pathway must not leak into an HR referral flow: psychotic_disclosure
+    always routes (HR-1 Stage 1), regardless of HIGH_RISK_DETECTION_ENABLED, and must clear the
+    pathway on the way in."""
+    state = _ss_state(
+        message_en="voices are telling me things",
+        clinical_flags=["psychotic_disclosure"],
+        **_ACTIVE_PATHWAY_STATE,
+    )
+
+    result = await skill_select_node(state)
+
+    assert result["active_skill_id"] == "psychotic_referral"
+    assert result["skill_match_method"] == "psychotic_disclosure_auto_select"
+    _assert_pathway_cleared(result)
+
+
+@pytest.mark.asyncio
+async def test_offer_accept_clears_active_pathway():
+    """Accepting an offered (non-psychoed) skill exits the pathway -- without this, a stale
+    psychoed_active_category would re-arm the resolver's menu-context scoping the moment the
+    accepted skill completes."""
+    state = _ss_state(
+        message_en="yes let's do that",
+        offered_skill_ids=["box_breathing"],
+        offer_response="accept",
+        offer_choice_skill_id="box_breathing",
+        **_ACTIVE_PATHWAY_STATE,
+    )
+
+    result = await skill_select_node(state)
+
+    assert result["active_skill_id"] == "box_breathing"
+    assert result["skill_match_method"] == "offer_accept"
+    _assert_pathway_cleared(result)

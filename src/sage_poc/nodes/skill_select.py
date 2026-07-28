@@ -853,6 +853,7 @@ async def skill_select_node(state: SageState) -> dict:
             "skill_match_method": "psychotic_disclosure_auto_select",
             "semantic_score": None,
             "path": state["path"] + ["skill_select"],
+            **_psychoed_pathway_clear(state),  # Task 8 gap 1: non-psychoed skill activation (HR referral)
         }
 
     # E7 §6a IPV pre-emption (flag-gated SAGE_IPV_PREEMPTION). When domestic_situation is set, the §6
@@ -909,6 +910,7 @@ async def skill_select_node(state: SageState) -> dict:
                 "skill_match_method": "offer_accept",
                 "semantic_score": None,
                 "path": state["path"] + ["skill_select", "offer_promoted"],
+                **_psychoed_pathway_clear(state),  # Task 8 gap 1: accepting an offer exits the pathway
             }
         # Stale checkpoint after a skill rename: no offered id resolves to a known
         # skill. Clear the offer (via the returned dict, not a local rebind) and
