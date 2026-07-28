@@ -222,3 +222,24 @@ def test_subsumption_collision_passes_when_declared(tmp_path, monkeypatch):
     monkeypatch.setattr(audit_collisions, "COLLISION_TABLE", collision_table)
 
     assert audit_collisions.undeclared_collisions() == []
+
+
+def test_weave_data_shape_and_fail_closed_examples():
+    d = json.loads(Path("data/psychoed/weave/psy_weave_1.en.json").read_text())
+    assert d["status"] == "draft-pending-clinician"
+    assert d["clear_negative_patterns"] and d["contradiction_markers"]
+    assert d["evaluation_semantics"]["default"] == "fail_closed_to_crisis"
+    import re
+    def is_clear_negative(reply: str) -> bool:
+        norm = re.sub(r"[^\w\s']", "", reply.lower()).strip()
+        if any(m in norm for m in d["contradiction_markers"]):
+            return False
+        return any(re.fullmatch(p, norm) for p in d["clear_negative_patterns"])
+    # natural clear negatives MUST pass (spec §6.1 false-crisis cost)
+    for ok in ["No", "no, nothing like that", "No, alhamdulillah", "no I haven't, why?",
+               "no thank god"]:
+        assert is_clear_negative(ok), ok
+    # everything else fails closed
+    for bad in ["kind of", "sometimes", "not really but...", "no, but sometimes",
+                "actually, what is anxiety?"]:
+        assert not is_clear_negative(bad), bad
