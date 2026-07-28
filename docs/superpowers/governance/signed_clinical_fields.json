@@ -65,10 +65,10 @@
     {
       "id": "safety_rule_activation_map",
       "selector": "safeactive:src/sage_poc/rules/data/safety/crisis_keywords.json,src/sage_poc/rules/data/safety/passive_si_patterns.json,src/sage_poc/rules/data/safety/clinical_flag_patterns.json",
-      "sha256": "09bd5d1f847b4a08b84da89908fd45fa13cbe2c57794063b818e698878a567b2",
-      "signed_by": "clinical lead (HR-1 ratification 2026-07-17, consolidated approval sheet A1) + safety lane",
-      "signed_date": "2026-07-17",
-      "signoff": "The {rule_id: active} map across all safety rule files (born from the #218 clobber). RE-SIGNED 2026-07-17 UNDER CLINICAL-LEAD AUTHORITY (HR-1 ratification, consolidated approval sheet A1): CF-007 (mania_disclosure), CF-008 (dissociation_disclosure), CF-009 (psychotic_disclosure variants) flipped active:true + approved_by:clinical_lead. This is the atomic-flip re-sign the 2026-07-16 (PR #325) entry required ('when that flips them active:true this map changes again and MUST be re-signed WITH the clinical lead') -- now satisfied. CF-006 and every prior active crisis control unchanged. The routing flip (SAGE_HIGH_RISK_DETECTION=true) is a coordinated prod env change at deploy, verified live post-flip (B1 pattern). Prior baseline: safety lane (crisis sprint) + clinical lead 2026-07-13."
+      "sha256": "b6858394c871dafc082b9f29015f6e030de752bbf91fe1bbd0e3a9e8ba539c7c",
+      "signed_by": "clinical lead (§1c Part A ratification, Vee 2026-07-21, approval sheet 1a-1d) + prior HR-1 2026-07-17",
+      "signed_date": "2026-07-28",
+      "signoff": "The {rule_id: active} map across all safety rule files (born from the #218 clobber). RE-SIGNED 2026-07-28 UNDER CLINICAL-LEAD AUTHORITY (§1c Part A, Vee RULED 1a-1d 2026-07-21, 2026-07-18-vee-open-decisions-approval-sheet.md): CF-010 (derealization) added active:true + approved_by:clinical_lead — Vee ratified the mechanism (1a) and the strings (1d). Its ROUTING is separately gated by DEREALIZATION_DETECTION_ENABLED (default OFF, inert until the terminal copy 2026-07-28-1c-anxiety-referral-copy-for-vee.md is signed + flipped), so activating the rule does NOT change served behaviour. Prior RE-SIGN 2026-07-17 (HR-1 A1): CF-007/008/009 active:true (unchanged here). CF-006 and every prior active crisis control unchanged."
     },
     {
       "id": "hr_neutrality_fallback_en",

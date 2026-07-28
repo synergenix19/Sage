@@ -219,6 +219,27 @@
       "language": "any",
       "modifiers": [],
       "action": {"type": "clinical_flag", "flag_id": "psychotic_disclosure"}
+    },
+    {
+      "rule_id": "CF-010",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "effective_date": "2026-07-28",
+      "active": true,
+      "approved_by": "clinical_lead",
+      "approved_date": "2026-07-21",
+      "description": "§1c anxiety-track derealization disclosure (Vee RULED 1a-1d 2026-07-21, 2026-07-18-vee-open-decisions-approval-sheet.md). SEPARATE from CF-008 dissociation so the §HR-11 psychosis register stays verbatim/auditable; this is the softer ANXIETY register: present-tense active derealization in an anxiety context routes to the anxiety-track referral, NOT the psychosis referral and NOT the crisis card (closes the §1c intent_route over-escalation deterministically, Cardinal Rule 4). Strings are Vee-ratified (1d) and STRING-SEPARABLE because a Node-1 lexicon reads raw input with no context: present-tense 'everything feels unreal' fires; past/situational 'everything felt unreal DURING the panic attack' does NOT (stays a §1c control -> grounding); grief-shock 'it doesn't feel real' does NOT (no CF-010 pattern matches it -> presence); psychosis-context 'nothing feels real'/'detached from reality' is CF-008/CF-009 -> HR, and precedence (hr > derealization) resolves any overlap in HR's favour. Routing is gated by DEREALIZATION_DETECTION_ENABLED and stays INERT until the terminal copy is Vee-signed + flipped (2026-07-28-1c-anxiety-referral-copy-for-vee.md). AR patterns are INTERIM DRAFT pending the same native-Khaleeji review as the #313 AR corpus batch-1; the EN strings carry the ratification. Known limitation: keyword-only detection; semantic tier deferred.",
+      "category": "safety",
+      "match_type": "keyword",
+      "patterns": [
+        "everything feels unreal",
+        "i feel disconnected from my body",
+        "كل شي يبين لي مو حقيقي",
+        "أحس إني منفصل عن جسمي"
+      ],
+      "language": "any",
+      "modifiers": [],
+      "action": {"type": "clinical_flag", "flag_id": "derealization"}
     }
   ]
 }
