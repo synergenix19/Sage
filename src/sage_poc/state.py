@@ -186,6 +186,14 @@ class SageState(TypedDict):
     psychoed_collision_path: Optional[str]
     psychoed_framing: Optional[str]
     psychoed_family_exposures: list[str]
+    psychoed_weave_escalation: bool  # PER-TURN (Task 8): True for exactly the turn PSY-WEAVE-1
+                                     # (weave.evaluate) classifies a weave-pending reply as anything
+                                     # other than a clear negative (fail-closed-to-crisis). Consumed by
+                                     # _route_after_skill_select (-> crisis_response, TOP priority) and
+                                     # reset to False by _crisis_response_node's return, AFTER the
+                                     # escalation is persisted to the session audit (persist-before-clear).
+                                     # Declared because it crosses skill_select -> router -> crisis_response
+                                     # (the SG-2 seam class: LangGraph drops undeclared keys between nodes).
 
 
 def safety_text(state: SageState) -> str:

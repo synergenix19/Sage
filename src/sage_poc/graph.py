@@ -10,7 +10,7 @@ from sage_poc.state import SageState
 from sage_poc.nodes.safety_check import safety_check_node
 from sage_poc.nodes.intent_route import intent_route_node
 from sage_poc.nodes.low_confidence_respond import low_confidence_respond_node
-from sage_poc.nodes.skill_select import skill_select_node
+from sage_poc.nodes.skill_select import skill_select_node, _psychoed_pathway_clear
 from sage_poc.nodes.skill_executor import skill_executor_node
 from sage_poc.nodes.freeflow_respond import freeflow_respond_node
 from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
@@ -73,6 +73,11 @@ async def _crisis_response_node(state: SageState) -> dict:
     # complete on the one path with the tightest budget — traceability admits no per-path exception
     # (verified 2026-07-08: crisis turns had latency_ms=NULL, 0/18, vs 56/56 non-crisis).
     _tsa = state.get("turn_started_at")
+    # Psychoed Task 8 escalation exit: a PSY-WEAVE-1 escalation must persist its psychoed facts to
+    # the audit row BEFORE the pathway state is cleared below (persist-before-clear, at the code
+    # level, in that order). The psychoed_* facts are already in state, so **state already carries
+    # them into the audit dict; this only patches on the disposition marker.
+    _weave_escalation = bool(state.get("psychoed_weave_escalation"))
     _audit_task = asyncio.create_task(write_session_audit({
         **state,
         "path": path,
@@ -80,6 +85,7 @@ async def _crisis_response_node(state: SageState) -> dict:
         "crisis_state": "monitoring",
         "re_escalation_within_monitoring": is_reescalation,
         "latency_ms": int((time.monotonic() - _tsa) * 1000) if _tsa is not None else state.get("latency_ms"),
+        **({"psychoed_weave_state": "escalated"} if _weave_escalation else {}),
     }))
     _audit_task.add_done_callback(
         lambda t: _log.warning("[crisis_response] session audit error: %s", t.exception())
@@ -164,6 +170,13 @@ async def _crisis_response_node(state: SageState) -> dict:
         # active_skill_id precedent and _route_after_safety's HR re-entry check below).
         "hr_terminal_step": None,
         "hr_escalate_regardless": False,
+        # Psychoed Task 8 escalation exit: ONLY when this turn is a PSY-WEAVE-1 escalation, AFTER
+        # the audit above has persisted the psychoed facts, clear the pathway (survivors:
+        # psychoed_blocks_served / psychoed_family_exposures) and reset the escalation flag so it
+        # does not leak into the next turn. Scoped to the escalation case per the plan amendment —
+        # an ordinary (non-weave) crisis intercept is out of this task's scope.
+        **(_psychoed_pathway_clear(state) if _weave_escalation else {}),
+        **({"psychoed_weave_escalation": False} if _weave_escalation else {}),
     }
 
 
@@ -345,6 +358,12 @@ def _route_after_intent(state: SageState) -> str:
 
 
 def _route_after_skill_select(state: SageState) -> str:
+    # Psychoed Task 8, TOP priority: PSY-WEAVE-1 escalated a weave-pending reply to crisis. This
+    # must win over every other branch below (containment, screen, abstain, info_request, active
+    # skill) — a live safety escalation is never allowed to be shadowed by a routing decision.
+    # skill_select_node sets this only under PSYCHOED_PATHWAYS_ENABLED, so flag-off is unreachable.
+    if state.get("psychoed_weave_escalation"):
+        return "crisis_response"
     # Phase-2 T3: a fired containment directive routes to the containment pathway —
     # knowledge_retrieve seeds the family KB, then the existing knowledge_retrieve→freeflow edge
     # composes the L3/L4 template (validate→psychoeducate→differentiate→refer→engage). Checked
@@ -357,6 +376,12 @@ def _route_after_skill_select(state: SageState) -> str:
     # The guided-skill (skill_id) variant is deferred: T2 sets active_skill_id=None, so a
     # skill_executor route would be dead — the reference OCD family uses the KB path below.
     if state.get("containment_directive"):
+        return "knowledge_retrieve"
+    # Psychoed Task 8: a resolver serve, or the deferred menu-after-weave continuation, routes to
+    # knowledge_retrieve the same way an info_request does — the composer renders the psychoed
+    # payload / menu there. skill_select_node sets these only under PSYCHOED_PATHWAYS_ENABLED, so
+    # flag-off is unreachable and this branch never fires with the flag off.
+    if state.get("psychoed_serve") or state.get("skill_match_method") == "psychoed_menu_after_weave":
         return "knowledge_retrieve"
     # #338 D1: a SERVED screen question is terminal for this turn. apply_screen_at_route (enforce path) set
     # screen_question_text + active_skill_id=None on an ask_screen decision; the question IS this turn's
@@ -455,6 +480,7 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
         "low_confidence": "low_confidence_respond",
         "freeflow": "freeflow_respond",
         "screen_response": "screen_response",   # #338 D1: served screen question → terminal
+        "crisis_response": "crisis_response",   # Psychoed Task 8: PSY-WEAVE-1 escalation
     })
     graph.add_edge("screen_response", END)
     graph.add_edge("knowledge_retrieve", "freeflow_respond")
