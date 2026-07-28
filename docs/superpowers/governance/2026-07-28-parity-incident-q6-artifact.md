@@ -1,7 +1,17 @@
 # Parity Incident — False Q6 "Prod Harm" Escalation from a Non-Parity Instrument
 
 Date: 2026-07-28. Class: measurement-parity failure (process incident, no prod user
-impact identified). Status: OPEN pending rerun readout + DF-2 code read.
+impact identified). Status: **OPEN — kept open by reviewer decision as a NEAR-MISS
+record, not filed as resolved.** Framing (reviewer, 2026-07-28): the escalation was
+right on the evidence as it stood and would be made again on the same readout; the
+subject of this incident is that a non-parity harness produced a clinically alarming
+readout INDISTINGUISHABLE from a real one and consumed a full escalation cycle. Next
+time the readout may not be an artifact. That cost is why follow-up 1 is mechanical,
+not procedural. Rerun: complete (medical_response fires; Q6 closed as prod concern).
+DF-2: closed, not-a-defect (deliberate V1 `_CLUSTER_ARGMAX_FLOOR=0.42`,
+skill_select.py:47,357-372; V2 workstream owns the designed fix). Follow-ups 2 and 4
+elevated to decision requests: `2026-07-28-instrument-parity-standing-rule.md`,
+`2026-07-28-flag-class-taxonomy-decision-request.md`.
 
 ## What happened
 
