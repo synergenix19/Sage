@@ -1,3 +1,9 @@
+<!-- ✅ SIGNED-OFF — Vee (clinical lead), 2026-07-28. All three approved AS RECOMMENDED:
+     (1) §1c-A force-ground set approved as proposed;
+     (2) §1c-B always-escalate protection approved as proposed (never-regress gate);
+     (3) deference dial = CONSERVATIVE — defer to escalation on any harm hint.
+     Engineering may now TDD the guard against this signed definition. §1c-B no-regression is the ship gate. -->
+
 # To Vee — one boundary ruling: may the deterministic guard hold, when the LLM overrides a CLEAR crisis-tier verdict? (2026-07-28)
 
 **This is not "should we suppress crisis escalation on panic."** That would rightly alarm any clinician, and it

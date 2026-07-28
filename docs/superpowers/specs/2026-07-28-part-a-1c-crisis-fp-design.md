@@ -61,6 +61,20 @@ memory). The guard's conservatism (how readily it defers) is the clinical dial. 
 This fix **does not touch safety_check's crisis recall.** The GL-0 problem (crisis recall ~37% vs ≥95%) is
 **neither helped nor harmed** by Part A. Part A removes `intent_route` false-positives only.
 
+## BUILT + MEASURED (2026-07-28, flag SAGE_PANIC_GROUNDING_OVERRIDE, default OFF)
+Implemented as Option B (deterministic predicate `should_ground_over_crisis`, stamped by intent_route, honoured
+by `_route_after_intent`; channel declared; kill-switch flag; unit tests 7/7). Measured full-graph at prod config:
+- **§1c acceptance MET: escalate_crisis 2 → 0.** Both former escalators now ground (flag ON); no other §1c case
+  newly escalates. §1c is a STABLE cell, so this is single-run attributable (variance doc).
+- **§1c-B regression from Part A: ZERO.** The override force-grounds NONE of the §1c-B cases (unit test: all
+  return False; full-graph: outcomes byte-identical flag ON vs OFF). The ship gate holds.
+- **One §1c-B fixture exposed a PRE-EXISTING gap** (not Part A): *"…can't keep going like this"* (panic +
+  passive-SI) is classified new_skill by the LLM and grounds flag ON **and OFF** — the override correctly
+  defers on it. Filed separately (`2026-07-28-passive-si-intent-route-gap.md`); belongs to GL-0/passive-SI, not
+  Part A. Regression-by-improvement check confirmed: Part A changes no §1c-B outcome.
+
 ## Sequence
-Vee rules the §1c-A/§1c-B boundary (evidence-first sheet) → TDD the guard (Option B) against the signed
-definition → acceptance read on stable §1c cells + §1c-B no-regression → merge on crisis-path deploy discipline.
+Vee rules the §1c-A/§1c-B boundary (SIGNED 2026-07-28) → TDD the guard (Option B) against the signed
+definition (DONE) → acceptance read on stable §1c cells + §1c-B no-regression (DONE, clean) → shadow/enable on
+crisis-path deploy discipline (flag default OFF; enable via the convergence-gated procedure with a post-enable
+behavioral probe, kill-switch = flag→0).
