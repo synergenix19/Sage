@@ -326,6 +326,24 @@ if _hr_terminal_raw is not None and _hr_terminal_raw.strip().lower() not in ("tr
         "only 'true' enables.", _hr_terminal_raw,
     )
 
+# §1c Part A (Vee RULED 2026-07-21, docs/superpowers/governance/2026-07-18-vee-open-decisions-approval-sheet.md):
+# a Node-1 derealization clinical flag (CF-010, flag_id=derealization) routed at the SAFETY altitude (before
+# intent_route, so the LLM never decides it — the Rule-4 closure of the §1c crisis over-escalation) to a NEW
+# safety-exit terminal: the softer ANXIETY-TRACK referral (1b), reserved OFF the §HR-11 psychosis register.
+# Precedence rank 4: crisis > medical > hr > derealization. KILL-SWITCH, DEFAULT OFF, strict literal-"true"
+# parse (same as HIGH_RISK_TERMINAL). OFF => the derealization flag still SETS (CF-010 active) but routes
+# nowhere = byte-identical to today; the mechanism is inert until the terminal copy is Vee-signed + flipped
+# (2026-07-28-1c-anxiety-referral-copy-for-vee.md). Distinct from HIGH_RISK_DETECTION so it flips independently.
+_derealization_raw = os.getenv("SAGE_DEREALIZATION_DETECTION")
+DEREALIZATION_DETECTION_ENABLED = (
+    _derealization_raw is not None and _derealization_raw.strip().lower() == "true"
+)
+if _derealization_raw is not None and _derealization_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_DEREALIZATION_DETECTION unexpected value %r — applying safe default (OFF); "
+        "only 'true' enables.", _derealization_raw,
+    )
+
 # §HR fixed copy (verbatim from the design doc's "Fixed copy" section) has moved to
 # src/sage_poc/safety/hr_copy.py: each single string below is now a POOL of
 # clinician-ratifiable variants (HR_DISTRESS_QUESTION_POOL, HR_SUPPORTIVE_MESSAGE_POOL,

@@ -17,11 +17,13 @@ from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
 from sage_poc.nodes.medical_response import medical_response_node
 from sage_poc.nodes.screen_response import screen_response_node
 from sage_poc.nodes.high_risk_response import high_risk_response_node
+from sage_poc.nodes.derealization_response import derealization_response_node
 from sage_poc.config import CRISIS_LINE_UAE, CRISIS_CONFIG
 from sage_poc.nodes.output_gate import output_gate_node
 from sage_poc.config import AUDIT_LOG_ENABLED
 from sage_poc.audit import write_session_audit
 from sage_poc.safety.hr_disclosure import hr_disclosure_present
+from sage_poc.safety.derealization_disclosure import derealization_disclosure_present
 
 _log = logging.getLogger(__name__)
 
@@ -217,6 +219,15 @@ def _route_after_safety(state: SageState) -> str:
     # so a later turn never silently resumes a stale await_distress/reask step.
     if _cfg.HIGH_RISK_TERMINAL_ENABLED and state.get("hr_terminal_step"):
         return "high_risk"
+    # §1c Part A: 4th SAFETY-EXIT member (derealization_response), rank 4 — placed AFTER the crisis,
+    # medical, and hr checks above so those still win on a multi-hit turn (precedence
+    # crisis > medical > hr > derealization). Gated on DEREALIZATION_DETECTION_ENABLED so this block
+    # is inert when OFF (byte-identical). One-shot guard mirrors hr_referral_delivered: clinical_flags
+    # persist for the session, so without it the referral would re-fire every later turn.
+    if _cfg.DEREALIZATION_DETECTION_ENABLED and derealization_disclosure_present(
+        state.get("clinical_flags") or [], flag_enabled=_cfg.DEREALIZATION_DETECTION_ENABLED
+    ) and not state.get("derealization_referral_delivered"):
+        return "derealization"
     return "safe"
 
 
@@ -403,6 +414,7 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     graph.add_node("crisis_response", _crisis_response_node)
     graph.add_node("medical_response", medical_response_node)
     graph.add_node("high_risk_response", high_risk_response_node)
+    graph.add_node("derealization_response", derealization_response_node)  # §1c Part A anxiety-track terminal
     graph.add_node("screen_response", screen_response_node)  # #338 D1 terminal (enforce path)
 
     graph.set_entry_point("safety_check")
@@ -412,10 +424,12 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
         "crisis": "crisis_response",
         "medical": "medical_response",
         "high_risk": "high_risk_response",
+        "derealization": "derealization_response",
     })
     graph.add_edge("crisis_response", END)
     graph.add_edge("medical_response", END)
     graph.add_edge("high_risk_response", END)
+    graph.add_edge("derealization_response", END)
 
     graph.add_conditional_edges("intent_route", _route_after_intent, {
         "skill_select": "skill_select",
