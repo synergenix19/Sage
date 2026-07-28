@@ -185,6 +185,59 @@ async def test_outcome2_does_not_fire_when_result_abstains(monkeypatch):
     assert result["knowledge_abstain"] is True
 
 
+@pytest.mark.asyncio
+async def test_outcome2_suppressed_mid_active_skill(monkeypatch):
+    """Reviewer finding (HIGH, controller-adjudicated): spec §2.1 item 2 requires mid-skill
+    suppression parity with the resolver -- a backstop firing while a skill is already active
+    would set psychoed_weave_pending and feed the user's NEXT skill-continuation reply into the
+    weave evaluator (spurious crisis-escalation risk). active_skill_id set -> no backstop, but
+    the L4 quarantine still strips the psychoed passage and normal RAG continues unaffected."""
+    monkeypatch.setattr(config, "PSYCHOED_PATHWAYS_ENABLED", True)
+    from sage_poc.knowledge.models import KnowledgePassage, KnowledgeResult
+
+    top = KnowledgePassage(text="depression content leaked into RAG", source_id="3c-b4",
+                            citation="", relevance_score=0.91)
+    mock_result = KnowledgeResult(passages=[top], abstain=False)
+    mock_repo = MagicMock()
+    mock_repo.retrieve = AsyncMock(return_value=mock_result)
+    state = _kr_state(active_skill_id="box_breathing")
+
+    with patch("sage_poc.nodes.knowledge_retrieve.PostgresKnowledgeRepository", return_value=mock_repo):
+        with patch("sage_poc.nodes.knowledge_retrieve._get_pool", return_value=MagicMock()):
+            result = await knowledge_retrieve_node(state)
+
+    psychoed_keys = [k for k in result if k.startswith("psychoed_")]
+    assert psychoed_keys == [], f"backstop must not fire mid-active-skill: {psychoed_keys}"
+    # L4 quarantine is unchanged -- still strips the psychoed passage even though the
+    # backstop is suppressed.
+    assert result["knowledge_passages"] == []
+
+
+@pytest.mark.asyncio
+async def test_outcome2_suppressed_on_acute_distress(monkeypatch):
+    """Reviewer finding (HIGH, controller-adjudicated): spec §2.2 requires outcome-2 to run the
+    IDENTICAL Classifier A check as outcome-1 -- no emission path may skip it. An acute-distress
+    message co-occurring with a psychoed-id top passage must not get a backstop serve (fail-to-
+    acute takes precedence), but the passage is still quarantined out of knowledge_passages."""
+    monkeypatch.setattr(config, "PSYCHOED_PATHWAYS_ENABLED", True)
+    from sage_poc.knowledge.models import KnowledgePassage, KnowledgeResult
+
+    top = KnowledgePassage(text="depression content leaked into RAG", source_id="3c-b4",
+                            citation="", relevance_score=0.91)
+    mock_result = KnowledgeResult(passages=[top], abstain=False)
+    mock_repo = MagicMock()
+    mock_repo.retrieve = AsyncMock(return_value=mock_result)
+    state = _kr_state(message_en="I can't breathe right now what is anxiety")
+
+    with patch("sage_poc.nodes.knowledge_retrieve.PostgresKnowledgeRepository", return_value=mock_repo):
+        with patch("sage_poc.nodes.knowledge_retrieve._get_pool", return_value=MagicMock()):
+            result = await knowledge_retrieve_node(state)
+
+    psychoed_keys = [k for k in result if k.startswith("psychoed_")]
+    assert psychoed_keys == [], f"backstop must not fire on acute distress: {psychoed_keys}"
+    assert result["knowledge_passages"] == []
+
+
 # ─────────────────────────── (d) L4 quarantine only (psychoed block ranked 2nd) ───────────────────────────
 
 @pytest.mark.asyncio

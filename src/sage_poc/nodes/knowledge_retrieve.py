@@ -17,6 +17,8 @@ default OFF -> node body below is byte-identical to pre-Task-10 behavior):
     psychoed store can collide on ids because both were seeded from the same source
     articles. Rather than let a psychoed article surface as an anonymous RAG passage, this
     builds a fail-to-personal backstop serve payload for it (classifiers.FRAMING_FALLBACK).
+    Gated on mid-skill suppression (spec §2.1 item 2) and Classifier A (spec §2.2: runs the
+    identical acute-distress check as outcome-1 -- no emission path skips the classifiers).
   - L4 quarantine: regardless of which outcome fired (or neither), any passage whose
     source_id is a known psychoed block id is stripped from knowledge_passages. This is
     the actual safety property -- ratified psychoed copy must never reach LLM synthesis
@@ -118,8 +120,21 @@ async def knowledge_retrieve_node(state: SageState) -> dict:
 
         block_ids = psy_store.block_ids()
 
-        # Outcome-2: semantic backstop, fail-to-personal (spec §2.2).
-        if not result.abstain and passages and passages[0]["source_id"] in block_ids:
+        # Outcome-2: semantic backstop, fail-to-personal (spec §2.2). Gated on BOTH:
+        #   - mid-skill suppression parity with the resolver (spec §2.1 item 2) -- a skill
+        #     already in progress must never be pre-empted by an unsolicited backstop serve,
+        #     which would also set psychoed_weave_pending and hijack the user's NEXT
+        #     skill-continuation reply into the weave evaluator (spurious escalation risk).
+        #   - Classifier A parity (spec §2.2: "runs the identical Classifier A + Classifier B
+        #     checks as outcome 1... no emission path skips the classifiers") -- an acute-
+        #     distress message must fail-to-acute here exactly as it does for outcome-1.
+        if (
+            not state.get("active_skill_id")
+            and not psy_cls.acute_distress(state, state.get("message_en") or "")
+            and not result.abstain
+            and passages
+            and passages[0]["source_id"] in block_ids
+        ):
             article_id = passages[0]["source_id"]
             category = psy_store.category_of(article_id)
             manifest = psy_store.manifest(category)
