@@ -6,9 +6,7 @@
   "menu_offer": "Want to go deeper into any of this? I can walk through: what depression actually is, why 'snap out of it' doesn't work, why it hits motivation and energy, why things can feel numb, how it's different from ordinary sadness, why it can happen with no clear reason, or why reaching out for support is worth it.",
   "check_in": "Does that help make sense of things? Want to explore another topic, or is there something else on your mind?",
   "blocks": ["3c-b1", "3c-b2", "3c-b3", "3c-b4", "3c-b5", "3c-b6", "3c-b7"],
-  "bridge_map": [
-    {"block_id": "3c-b3", "skill_id": "behavioral_activation", "offer": "optional"}
-  ],
+  "bridge_map": [],
   "guards": ["acute_distress", "diagnosis_guard", "crisis_override", "safety_weave"],
   "source_citation": {"file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md", "section": "3c – UNDERSTANDING DEPRESSION"}
 }
