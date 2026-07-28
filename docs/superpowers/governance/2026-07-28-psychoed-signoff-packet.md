@@ -3,7 +3,7 @@
 **Packet status: DRAFT-FOR-CLINICAL**
 **Assembly date: 2026-07-28** · **Design spec:** `docs/superpowers/specs/2026-07-23-psychoeducation-pathways-design.md` (§9 Governance records)
 **Ratified source:** `docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md`
-**Artifacts pinned at:** this branch (`docs/psychoed-pathways-design`) @ `__PIN_SHA__`
+**Artifacts pinned at:** this branch (`docs/psychoed-pathways-design`) @ `a13c2718`
 
 ---
 
@@ -480,7 +480,7 @@ Every item flagged `pending: clinician` during the build run, collected here. Ea
 
 ## Sign-off
 
-**Packet status: DRAFT-FOR-CLINICAL** · EN-only · artifacts pinned at this branch @ `__PIN_SHA__`.
+**Packet status: DRAFT-FOR-CLINICAL** · EN-only · artifacts pinned at this branch @ `a13c2718`.
 No category flips until its asks above are signed (standing rule). S2c additionally gated on the reunification-ideation P0. AR gated on ask-section 10.
 
 Clinician: ______________________________  Date: ____________
