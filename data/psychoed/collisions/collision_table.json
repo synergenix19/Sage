@@ -1,0 +1,26 @@
+{
+  "note": "Deterministic collision resolutions. Mechanisms allowed: declared session context, scripted clarifying question. NEVER embedding-similarity tie-break. Safe-before-disambiguated: both phrasings personally framed, both categories carry the weave, fail-to-personal means the safety check fires on either branch.",
+  "collisions": [
+    {
+      "phrase": "Why do I feel numb?",
+      "categories": ["3c", "s2c"],
+      "resolution": {
+        "context_signal": "grief_disclosure_or_recent_s2_pathway",
+        "context_winner": "s2c",
+        "default_winner": "3c"
+      },
+      "safe_before_disambiguation": true
+    },
+    {
+      "phrase": "What's happening to me?",
+      "categories": ["1f", "3c"],
+      "resolution": {
+        "pending": "clinician",
+        "interim_default_winner": "3c",
+        "interim_rationale": "fail-toward-weave: 3c carries the personally-framed safety weave and 1f does not; safe-before-disambiguated holds only if the weave-carrying category wins while ratification is pending"
+      },
+      "safe_before_disambiguation": false,
+      "packet_note": "guard postures differ across the colliding categories; doc offers no disambiguation; scripted clarifying question is the likely ratified resolution (spec 5.2 mechanism b)"
+    }
+  ]
+}
