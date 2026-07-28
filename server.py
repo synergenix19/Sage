@@ -910,6 +910,26 @@ async def health_version(_: None = Depends(require_api_key)):
         "d1_screen_raw_env": os.environ.get("SAGE_D1_SCREEN"),
         "d1_screen_shadow": _c.D1_SCREEN_SHADOW,
         "d1_screen_shadow_raw_env": os.environ.get("SAGE_D1_SCREEN_SHADOW"),
+        # Parity refuse-on-gap prerequisite (signed instrument-parity rule): the three
+        # previously-documented readback coverage holes, resolved + raw, same pattern as the
+        # kill-switches above. Resolved value = what the RUNNING process's config module holds
+        # (what actually fires), never a request-time env re-parse that could drift from it.
+        "info_request_consult_enabled": _c.INFO_REQUEST_CONSULT_ENABLED,
+        "info_request_consult_raw_env": os.environ.get("SAGE_INFO_REQUEST_CONSULT"),
+        "high_risk_detection_enabled": _c.HIGH_RISK_DETECTION_ENABLED,
+        "high_risk_detection_raw_env": os.environ.get("SAGE_HIGH_RISK_DETECTION"),
+        "hr_neutrality_gate_enabled": _c.HR_NEUTRALITY_GATE_ENABLED,
+        "hr_neutrality_gate_raw_env": os.environ.get("SAGE_HR_NEUTRALITY_GATE"),
+        # Node-2 determinism pins + audit provenance flag (bistability finding 2026-07-28):
+        # resolved + raw, same pattern. classifier_seed / openrouter_provider_pin report the
+        # RESOLVED module values (int-or-null / string-or-null — unset is null, never fabricated)
+        # so a conformance run can assert the exact pin state the serving process classifies with.
+        "classifier_seed": _c.CLASSIFIER_SEED,
+        "classifier_seed_raw_env": os.environ.get("SAGE_CLASSIFIER_SEED"),
+        "openrouter_provider_pin": _c.OPENROUTER_PROVIDER_PIN,
+        "openrouter_provider_pin_raw_env": os.environ.get("SAGE_OPENROUTER_PROVIDER_PIN"),
+        "audit_classifier_provenance_enabled": _c.AUDIT_CLASSIFIER_PROVENANCE_ENABLED,
+        "audit_classifier_provenance_raw_env": os.environ.get("SAGE_AUDIT_CLASSIFIER_PROVENANCE"),
         # Mechanism-level attestation for BYTE-IDENTICAL crisis templating: True iff the deployed
         # crisis source carries {{crisis_}} placeholders. Distinguishes a real templated deploy from
         # a stale-literal one when the build_sha above is a lying label (see deploy-control doc).
