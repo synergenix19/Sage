@@ -1,42 +1,48 @@
-# §1c anxiety-track referral — terminal copy for Vee's ratification (2026-07-28)
+# §1c anxiety-track referral — terminal copy for Vee (2026-07-28)
 
-Part A builds the Node-1 derealization flag (1a) → **anxiety-track referral** (1b), routed at safety altitude,
-rank 4 (crisis > medical > HR > derealization). The mechanism, the strings (1d), and the terminal *type* are
-already ruled. **This is the one thing not yet signed: the terminal's copy text.** Per the safety-exit
-templated-copy discipline, the terminal renders ONE deterministic signed message; it ships flag-gated OFF /
-inert until you ratify this copy (same as HR-1 / Node-8). No LLM composes this terminal.
+Part A: Node-1 derealization flag (1a) → **anxiety-track referral** (1b), safety altitude, rank 4. Mechanism,
+strings (1d), terminal type are ruled; the copy is the one unsigned piece. It renders ONE deterministic signed
+message (no LLM); ships flag-gated OFF / inert until you ratify this, it is pinned, and flipped.
 
-## Design intent (why it reads the way it does)
-- **Anxiety-track, not HR:** softer than the psychosis referral, reserved off the §HR-11 register (your 1b).
-  Derealization is normalised as an intense-anxiety experience, not framed as a psychiatric-risk disclosure.
-- **Account-frame preserved** ("what you're describing"), the §5 neutrality invariant you ratified — the
-  experience is attributed to the person's perception, never stated as fact-in-world.
-- **Refer, not coach** (your 1c, doc wins): it points to professional support, it does NOT hand a grounding
-  skill (that was the design-control error DQ-3 corrects at source in the same change).
-- **Helpline block single-sourced** from the ratified crisis-resource copy (800-HOPE by day, 800-SAKINA 24/7,
-  999 danger) — byte-identical to the HR referral's block so the two cannot drift.
+## Final recommendation (aligned to the BOT BEHAVIOUR doc + single source of numbers)
 
-## Proposed copy — approve / edit / reject
+**Register/resources: National line + SAKINA 24/7, NO 999.** This is doc-grounded, not a preference:
+- §1c L151: dissociation / panic-with-derealization → "**escalate to referral** rather than presenting the
+  standard tools" — the see-someone-soon tier.
+- L1830 reserves "**emergency services (999)**" for the crisis/danger tier and states it is for "now, **not
+  'see someone soon.'**"
+- This terminal is reached ONLY when the turn is not a crisis (precedence crisis > … > derealization), so
+  active danger is already handled by the crisis path. Putting 999 here renders the crisis-tier resource on a
+  referral-tier message — the §1c over-escalation shape, in copy form.
 
-**EN:**
+**Numbers: single-sourced.** Every phone number is a `{{...}}` placeholder resolved from the ONE source
+(`CRISIS_CONFIG` / `CRISIS_RESOURCES`); SAKINA is now `{{crisis_alt_24_7}}`, not a literal. You ratify the
+TEMPLATE; the digits cannot drift from the crisis card.
+
+## The copy (recommended version)
+
+**EN template:**
 > «What you're describing — feeling like things around you aren't real, or feeling disconnected from
 > yourself — can happen when anxiety becomes very intense. It's real, it's more common than you'd think, and
 > it's something a mental health professional can help you understand and work through. In the UAE, you can
-> reach the National Mental Support Line on **800-HOPE (800-4673)**, free, 8am–8pm daily; and at any hour, day
-> or night, the Abu Dhabi support line **800-SAKINA (800-725462)** is available free, 24/7. If you or someone
-> else is in immediate danger, call emergency services on **999**. You don't have to navigate this alone.»
+> reach the `{{crisis_label}}` on `{{crisis_number}}`, free, `{{crisis_hours}}`; and at any hour, day or night,
+> the Abu Dhabi support line `{{crisis_alt_24_7}}` is available free, 24/7. You don't have to navigate this
+> alone.»
 
-**AR (Khaleeji):**
-> «اللي تصفه — إنك تحس إن الأشياء حولك مو حقيقية، أو تحس إنك منفصل عن نفسك — ممكن يصير لما القلق يصير شديد
-> جداً. هذا شي حقيقي، وأكثر انتشاراً مما تتوقع، ومتخصص نفسي يقدر يساعدك تفهمه وتتجاوزه. في الإمارات، تقدر
-> تتواصل مع خط الدعم النفسي الوطني على **800-HOPE (800-4673)**، مجاناً، من الساعة ٨ الصبح إلى ٨ المسا يومياً؛
-> وفي أي وقت، ليل أو نهار، خط سكينة في أبوظبي **800-SAKINA (800-725462)** متوفر مجاناً على مدار الساعة. وإذا
-> كنت أنت أو أي شخص ثاني في خطر مباشر، اتصل بخدمات الطوارئ على **999**. ما أنت لوحدك في هذا.»
+**EN resolved (what the user sees):**
+> «…you can reach the National Mental Support Line on 800-HOPE (800-4673), free, 8am–8pm daily; and at any
+> hour, day or night, the Abu Dhabi support line 800-SAKINA (800-725462) is available free, 24/7. You don't
+> have to navigate this alone.»
 
-→ ☐ approve (EN+AR) ☐ edit (mark changes) ☐ reject
+**AR** — the Khaleeji parallel, same placeholders, hours localised (`safety/derealization_copy.py`).
+
+## Your call — two ticks
+
+→ **Wording** ☐ approve (EN+AR) ☐ edit
+→ **Resources** ☐ approve (National + SAKINA 24/7, no 999 — recommended, doc L151/L1830) ☐ add 999 back ☐ edit
 
 ## On approval (eng)
-Pin `derealization_referral_en/ar` in `signed_clinical_fields.json` (provenance = this ratification + your
-1a–1d 2026-07-21 rulings); the terminal renders it verbatim; flip the flag on; guarded re-measure of the §1c
-rows vs the v5 11/36 baseline. Until then the flag stays OFF and the mechanism is inert (loader test +
-both-direction fixtures gated day one regardless, per the from-birth checklist).
+Pin `derealization_referral_en/ar` (provenance = this ratification + your 1a–1d), deploy the inert mechanism,
+flip `SAGE_DEREALIZATION_DETECTION=true` **alone**, guarded re-measure of the §1c rows vs v5's 11/36. Then the
+#0-class veto three-shapes ask (separate). Follow-up: migrate the HR referral's still-literal SAKINA to
+`{{crisis_alt_24_7}}` too (needs an HR re-sign, tracked separately).
