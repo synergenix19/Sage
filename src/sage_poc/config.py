@@ -177,6 +177,21 @@ if _precedence_raw is not None and _precedence_raw.strip().lower() not in ("true
         "only 'true' enables.", _precedence_raw,
     )
 
+# Part A — §1c panic-grounding override (Vee-signed 2026-07-28). KILL-SWITCH, DEFAULT OFF, same strict
+# parse: only a LITERAL "true" enables. OFF is byte-identical (intent_route crisis routes to crisis as
+# today). ON -> when safety_check is CLEAN but intent_route re-flags a clear panic disclosure (no harm) as
+# crisis, the deterministic override force-grounds it, restoring the deterministic tier's clean verdict.
+# Fires only on a safety_check-clean turn, so it can never suppress a crisis the deterministic tier caught.
+_panic_override_raw = os.getenv("SAGE_PANIC_GROUNDING_OVERRIDE")
+PANIC_GROUNDING_OVERRIDE_ENABLED = (
+    _panic_override_raw is not None and _panic_override_raw.strip().lower() == "true"
+)
+if _panic_override_raw is not None and _panic_override_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_PANIC_GROUNDING_OVERRIDE unexpected value %r — applying safe default (override OFF); "
+        "only 'true' enables.", _panic_override_raw,
+    )
+
 # E7 — BOT BEHAVIOUR §6a coercive-control / relationship-safety pre-emption. KILL-SWITCH, DEFAULT
 # OFF, same inverted strict parse as ROUTE_PRECEDENCE: only a LITERAL "true" enables; unset / empty /
 # whitespace / garbage -> OFF. OFF is byte-identical v7 — only the approved CF-005 domestic_situation

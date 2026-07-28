@@ -157,6 +157,10 @@ class SageState(TypedDict):
     answering_screen: bool                 # PER-TURN: set by consume_pending_screen at graph entry when a
                                            # screen was pending; the structural guarantee the hold outlives
                                            # exactly one turn (screen_pending cleared the same turn)
+    panic_grounding_override: bool         # PER-TURN (Part A): set by intent_route when the deterministic
+                                           # panic-grounding override applies (safety_check clean + clear panic
+                                           # + no harm + intent=crisis). Declared channel so _route_after_intent
+                                           # reads it (SG-2: undeclared keys are dropped between nodes).
 
 
 def safety_text(state: SageState) -> str:
