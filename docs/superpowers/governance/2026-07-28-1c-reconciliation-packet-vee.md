@@ -34,6 +34,27 @@ grounding. Runtime precedence preempts these when the HR flag matches, but the s
 So the clean remediation is: **panic_override keeps PURE-PANIC terms only (breathing / heart / dizzy / panic
 attack) and drops everything owned by CF-007/008/009/010.** One scoping edit closes all four overlaps at once.
 
+### Evidence annex — the full territory the sweep captured (mechanical check, not manual review)
+The disposition-ownership check extracted panic_override's actual `_PANIC_TERMS` and found it overlaps **all
+four high-risk flag families — every one an `hr_referral` disposition**, not just derealization:
+
+| HR flag family | its disposition | terms panic_override's surface shares |
+|---|---|---|
+| CF-010 derealization | anxiety-track referral | `unreal` (⊂ "everything feels unreal") |
+| CF-008 dissociation (§HR-11) | HR referral | `detached`, `outside my body`, `watching myself` |
+| CF-009 psychosis | HR referral | `detached` (⊂ "i feel detached from reality") |
+| CF-007 mania | HR referral | `thoughts are racing` |
+
+**Why this is a disposition risk, not just a copy overlap.** panic_override force-grounds only on a CLEAN
+safety_check turn — i.e. precisely when the HR keyword detector did NOT fire (a recall miss). So an HR-class
+presentation phrased so the HR lexicon misses it but panic_override's surface catches it — a mania disclosure
+*"my heart's racing and I feel unstoppable,"* a psychosis-adjacent *"I feel detached and something's
+watching"* — would be handed a **grounding exercise**. That is the doc's **§HR no-skill rule** AND **L151's
+grounding-intensifies contraindication** violated in one move, under a sheet that presented itself as a panic
+mechanism. So item 1's confirm is a **correction, not a courtesy**: what the 07-28 sheet *authorized* (force-
+ground panic when clean) and what the code *does* (force-ground anything in a surface spanning the whole HR
+lexicon) differ; "pure-panic only" aligns the code to what you actually signed.
+
 ---
 
 ## 2. panic_override's downgrade precondition — a cardiac finding (your call)
