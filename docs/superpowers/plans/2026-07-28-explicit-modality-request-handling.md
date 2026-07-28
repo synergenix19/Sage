@@ -71,6 +71,16 @@ follow-up-1 instrument rule; blocked on that helper landing), and record per-fix
 outcome DISTRIBUTIONS (offer-rate, per-surface mechanism counts) as the baseline.
 Distributional stability of the fixtures themselves is part of the readout.
 
+**Baseline artifact header block (template-setting — first artifact under the new
+instrument regime, will be cited as the pattern):** full resolved flag set, build
+SHA, classifier model + provider + requested seed + seed-honor signal
+(system_fingerprint or provider equivalent, null if unexposed), N per fixture,
+per-trajectory frequencies. `SAGE_AUDIT_CLASSIFIER_PROVENANCE` must be ON for the
+run (register ruling): an unrecorded-provenance baseline fails the signed
+instrument-parity rule. Sequencing: pins branch lands → architecture review vs
+Q-a/Q-b → deploy owner activates pins + provenance in the evidence environment →
+parity helper confirms via readback → baseline runs.
+
 ## Phase 1 — Detector (one task)
 
 `matching.detect_explicit_modality_request(message_en, raw_message, lang) ->
