@@ -88,6 +88,15 @@ class Skill(BaseModel):
                     "null = unbounded (current behavior). Clinical holds stay senior (no forced "
                     "advance); this only bounds re-probing. Clinician-ownable per skill.",
     )
+    kb_ref: str | None = Field(
+        default=None,
+        description="Optional link from this skill to a psychoed article/family id "
+                    "(data/psychoed/**), used by skill_executor._psychoed_family_exposure "
+                    "to compute family-exposure carry-forward (Phase 2 §4.4 as amended). "
+                    "Additive field: no skill JSON currently sets it (kb_ref additions to "
+                    "skill JSONs are packet-pending, ask 9) -- absence means the carry-forward "
+                    "term is 0 for that skill, never an error.",
+    )
 
     @field_validator("cultural_overrides", mode="before")
     @classmethod
