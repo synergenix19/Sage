@@ -73,6 +73,20 @@ by `_route_after_intent`; channel declared; kill-switch flag; unit tests 7/7). M
   defers on it. Filed separately (`2026-07-28-passive-si-intent-route-gap.md`); belongs to GL-0/passive-SI, not
   Part A. Regression-by-improvement check confirmed: Part A changes no §1c-B outcome.
 
+## Complementary with #369 (parallel §1c Part A — derealization → anxiety referral) — MEASURED
+A parallel session shipped #369: a Node-1 **derealization** flag (CF-010) routing derealization disclosures to
+an anxiety-track referral at the SAFETY altitude (`_route_after_safety`), precedence crisis > medical > hr >
+derealization. Mine fires one altitude later (`_route_after_intent`). They **compose, they do not conflict** —
+verified with BOTH flags ON:
+- "everything feels unreal and I can't take this" (derealization) → **derealization_response** (#369 wins at
+  safety altitude — the anxiety referral it is signed for).
+- "I feel like I'm going to die and can't breathe" (pure panic) → **grounding** (my override, at intent).
+- "panic attack and I don't want to be here" (§1c-B) → **crisis** (supremacy holds).
+
+Full precedence order after rebase: crisis > medical > hr > derealization (#369) > panic-grounding (#370). The
+two mechanisms partition §1c by presentation (derealization → referral; pure-panic over-escalation → grounding);
+both fix the crisis FP, on disjoint slices, with a clean altitude ordering. Rebased clean (no code conflict).
+
 ## Sequence
 Vee rules the §1c-A/§1c-B boundary (SIGNED 2026-07-28) → TDD the guard (Option B) against the signed
 definition (DONE) → acceptance read on stable §1c cells + §1c-B no-regression (DONE, clean) → shadow/enable on
