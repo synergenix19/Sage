@@ -85,6 +85,22 @@
       "signed_by": "clinical lead (Vee) — hours+24/7 wording ratification",
       "signed_date": "2026-07-22",
       "signoff": "HR §5 neutrality fallback template (Arabic) — the ONE message the psychosis referral shows when the Node-8 gate is on. VERBATIM from psychotic_referral example[3] (drift-guarded by test_hr_neutral_fallback_is_ratified_source_verbatim). Integrity = this pin; ACCURACY = Vee's re-authored wording ratification 2026-07-22 (2026-07-22-hr-referral-template-hours-vee.md): localizes the National-line hours to Khaleeji Arabic AND pairs the 24/7 Abu Dhabi line 800-SAKINA (800-725462) so a 3am referral is not a dead-end, keeping the account-frame + never-restate-content invariant. Latin mnemonic kept (digits authoritative). Capability change (localized hours + added a 24/7 resource) re-signed, not carried from the §5 seed."
+    },
+    {
+      "id": "derealization_referral_en",
+      "selector": "pyconst:sage_poc.safety.derealization_copy:DEREALIZATION_REFERRAL_EN",
+      "sha256": "dca7d07d661c03b8abbca79731796f63c31fa49f801159a871e4541eaeb3c79c",
+      "signed_by": "clinical lead (Vee) — §1c anxiety-track referral copy ratification",
+      "signed_date": "2026-07-28",
+      "signoff": "§1c anxiety-track derealization referral — the ONE deterministic message the CF-010 derealization terminal renders. Vee RULED 1a-1d (2026-07-21) + copy wording + resource set (2026-07-28, 2026-07-28-1c-anxiety-referral-copy-for-vee.md). Integrity = this pin (all phone numbers are {{crisis_*}} placeholders, NO literals, single-sourced from CRISIS_CONFIG/CRISIS_RESOURCES). Resource set = National line + SAKINA 24/7, NO 999 — the see-someone referral tier per BOT BEHAVIOUR §1c L151 ('escalate to referral'); 999 is reserved for the crisis/danger tier (L1830) and this terminal is reached only when NOT a crisis. Account-frame preserved."
+    },
+    {
+      "id": "derealization_referral_ar",
+      "selector": "pyconst:sage_poc.safety.derealization_copy:DEREALIZATION_REFERRAL_AR",
+      "sha256": "b7edd01bfc074c90c60aa37095c0d1dc3a4408aaacbc7d7e477fc1cc3f217963",
+      "signed_by": "clinical lead (Vee) — §1c anxiety-track referral copy ratification",
+      "signed_date": "2026-07-28",
+      "signoff": "§1c anxiety-track derealization referral (Arabic Khaleeji) — the ONE deterministic message the CF-010 terminal renders in AR. Vee RULED 1a-1d (2026-07-21) + wording + resource set (2026-07-28). Integrity = this pin; numbers are {{crisis_*}} placeholders (no literals). Resource set = National + SAKINA 24/7, no 999 (doc L151/L1830). AR strings interim pending native review (#313); EN carries the ratification. Account-frame preserved (ما تصفه)."
     }
   ]
 }
