@@ -150,3 +150,15 @@ def test_block_guard_only_on_s2c_b8():
     guarded = [p.stem for p in schemas.iter_psychoed_files("block")
                if "block_guard" in json.loads(p.read_text())["psychoed"]]
     assert guarded == ["s2c-b8"]
+
+
+def test_shared_scripts_present_and_single_sourced():
+    d = json.loads(Path("data/psychoed/shared/shared_scripts.en.json").read_text())
+    assert set(d["scripts"].keys()) == {"diagnosis_guard_stage1", "diagnosis_guard_stage2",
+                                        "safety_weave_script", "human_referral_close"}
+    # Single-source: no shared-script sentence may appear inside any block/manifest (#321 class).
+    corpus = " ".join(p.read_text() for p in schemas.iter_psychoed_files("block"))
+    corpus += " ".join(p.read_text() for p in schemas.iter_psychoed_files("manifest"))
+    for name, text in d["scripts"].items():
+        probe = text[:60]
+        assert probe not in corpus, f"{name} duplicated into content ({probe!r})"

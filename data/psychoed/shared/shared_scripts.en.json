@@ -1,0 +1,29 @@
+{
+  "language": "en",
+  "status": "ratified-source-pending-packet-signature",
+  "scripts": {
+    "diagnosis_guard_stage1": "I can't diagnose, that needs a proper evaluation from a doctor or mental health professional who can ask the right questions and rule other things out. What I can do is explain what it generally involves, so you've got a clearer picture going into that conversation if you decide to have it. Want me to walk through that?",
+    "diagnosis_guard_stage2": "I really can't say either way, I'm only seeing a slice of what you're dealing with, and a diagnosis needs a full picture that a professional is trained to assess. What I've noticed is [reflect back the specific pattern they've described], that might be worth bringing to a doctor or therapist directly, since they can actually tell you what's going on.",
+    "safety_weave_script": "When you're describing feeling this [hopeless / numb / empty, reflect their own word], I want to check something: have you had any thoughts of hurting yourself, or not wanting to be here?",
+    "human_referral_close": "Reaching out for support, a doctor, a therapist, or someone you trust, isn't a sign of weakness or failure; it's the same thing you'd do for any other health issue that isn't resolving on its own. Depression is one of the most treatable mental health conditions, and most people who get support see real improvement, even if it takes some trial and error to find what works."
+  },
+  "source_citations": {
+    "diagnosis_guard_stage1": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "1f – UNDERSTANDING ANXIETY, §5 Guard, formal-diagnosis bullet, opening script"
+    },
+    "diagnosis_guard_stage2": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "1f – UNDERSTANDING ANXIETY, §5 Guard, formal-diagnosis bullet, push-further script"
+    },
+    "safety_weave_script": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "3c – UNDERSTANDING DEPRESSION, §3 Safety Check (woven), quoted script"
+    },
+    "human_referral_close": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "3c – UNDERSTANDING DEPRESSION, §4 Content Library, item 7 (Why seeking help is worth it) — used per task-9-brief fallback rule: the guard family's recurring \"user explicitly asks for a human/professional\" bullet (31 occurrences) states the behavior in prose only (\"don't redirect back into the bot flow\") with no quoted bot-voice script attached anywhere in the doc; this is the only quoted seeking-help/referral bot-voice sentence available, so it is used as the single-sourced close per the brief's explicit fallback instruction, not composed."
+    }
+  },
+  "notes": "Single-sourced per #321 pattern (see project_conformance_rerun_2026_07_14.md). human_referral_close duplicates the source sentence formerly inlined in 3c-b7's content field; 3c-b7 now carries a uses_shared pointer instead so the text lives in exactly one place (see shared_scripts single-source test)."
+}
