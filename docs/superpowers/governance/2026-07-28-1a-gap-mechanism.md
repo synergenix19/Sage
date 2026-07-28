@@ -163,3 +163,64 @@ written. Amendment direction (for review, not self-approved):
 The screen-design clinical questions
 (`2026-07-28-1a-screen-design-clinical-questions.md`) remain valid under every branch:
 screening gates delivery wherever detection lives.
+
+## Rerun addendum (2026-07-28, corrected serving flag set)
+
+Rerun at detached 1f687c57 under the readback-verified flag set (medical guard,
+venting suppression, route precedence, D1 screen all ON). 0 faults. Supersedes run 1
+on every point of difference.
+
+**Q6 CLOSED:** the cardiac probe path is `[safety_check, medical_response]`,
+gate_path=medical, deterministic 998 template, no skill offer, turn never reaches
+intent_route. Prod behavior is safe as designed. The run-1 PMR-over-chest-pain
+readout was the non-parity artifact the incident record describes.
+
+**The user-visible defect REPRODUCES under corrected flags, via a different
+mechanism.** Turn deltas:
+
+- Turn 1 unchanged (general_chat, skill_select bypassed, no context captured).
+- Turn 2 intent FLIPPED between runs on identical input at confidence 0.9 both
+  times: run 1 `info_request` (Mechanism-A consult, psychoed_anxiety ACTIVATED,
+  lecture); rerun `new_skill` (Tier-2 `default_offer`, consent OFFER of
+  [psychoed_anxiety, worry_time], nothing activated).
+- Turn 3 rerun: `info_request` (0.8) → pending offer cleared as `offer_ignored` →
+  info_request early-return → knowledge_retrieve abstain → freeflow ("I don't have
+  specific exercises to share directly here..."). No Tier-1 offer.
+
+**Synthesis (replaces the single-mechanism branch-(d) conclusion):** the invariant
+across both trajectories is the DEFECT, not the mechanism. An explicit exercise
+request produced no §1a Tier-1 offer via three distinct request-dropping surfaces
+now observed:
+
+1. Branch (d): active-psychoed absorption (`skill_continuation` → executor
+   exploration step) — run 1, and the signature matching the live transcript.
+2. Branch (c'): explicit request classified `info_request` → skill_select
+   early-return → knowledge path abstains → freeflow — rerun turn 3.
+3. Offer-reply surface: an explicit exercise ask while an offer was pending was
+   classified `offer_ignored` rather than matched to the pending candidates —
+   rerun turn 3, same turn as (2).
+
+Plus DF-1 (ordering): when offers DO fire they are semantic-ranked
+([psychoed_anxiety, worry_time]; PMR in the counterfactual), not the §1a first-line
+pair.
+
+**Measurement implication (binding for any re-plan):** the turn-2 intent boundary is
+bistable at confidence 0.9 on identical input. Single-run characterizations of
+LLM-classified turns sample one trajectory from a distribution; any fix verification
+must run N-sample distributional measurements per fixture, and mechanism claims must
+be stated per-trajectory.
+
+**DF-2 DISPOSITION — closed, not a defect:** the below-τ offer (0.437 < 0.4593) is
+`_CLUSTER_ARGMAX_FLOOR = 0.42` within-cluster argmax, documented deliberate V1
+behavior (`skill_select.py:47,357-372`: "trust relative ordering rather than
+absolute threshold gating"; "Flag-off: V1's 0.42 floor routes the winner regardless
+of threshold"). The V2 semantic-routing workstream (flag-off, blocked on G6
+HarnessConfig re-gate) is the designed fix for below-τ over-routes ("kills the
+below-τ over-route", line 364-366). No standalone defect PR; cross-referenced to the
+V2 record.
+
+**Instrument note:** the committed characterize_1a_gap.py still carries the run-1
+three-flag default block; it must be converted to readback-derived flags (incident
+follow-up 2) before any further use. The rerun applied the corrected set via
+exported env; rerun script copy (with D1 channel readout) is uncommitted in
+../sage-poc-1a-rerun.
