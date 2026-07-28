@@ -23,3 +23,78 @@ def test_block_no_em_dashes(path):
 def test_block_source_citation(path):
     d = json.loads(path.read_text())
     assert d["psychoed"]["source_citation"]["file"] == schemas.SOURCE_FILE
+
+
+COVERAGE = {
+    "1f": ["1f-b1", "1f-b2", "1f-b3", "1f-b4", "1f-b5"],
+}
+
+
+def test_manifests_valid():
+    paths = schemas.iter_psychoed_files("manifest")
+    assert paths, "no manifests"
+    for p in paths:
+        assert schemas.validate_manifest(p) == [], p
+
+
+def test_trigger_tables_valid():
+    paths = schemas.iter_psychoed_files("trigger_table")
+    assert paths, "no trigger tables"
+    for p in paths:
+        assert schemas.validate_trigger_table(p) == [], p
+
+
+def test_coverage_registry_matches_disk():
+    on_disk = {p.stem for p in schemas.iter_psychoed_files("block")}
+    declared = {b for blocks in COVERAGE.values() for b in blocks}
+    assert declared <= on_disk, f"declared but missing: {declared - on_disk}"
+
+
+def _write_manifest(tmp_path, **overrides):
+    base = {
+        "category": "1f",
+        "delivery_shape": "menu_first",
+        "safety_weave": False,
+        "framing_statement": "Framing.",
+        "menu_offer": "Menu.",
+        "check_in": "Check in.",
+        "blocks": ["1f-b1"],
+        "bridge_map": [{"block_id": "1f-b1", "skill_id": "box_breathing", "offer": "optional"}],
+        "source_citation": {"file": schemas.SOURCE_FILE, "section": "1f"},
+    }
+    base.update(overrides)
+    p = tmp_path / "manifest.json"
+    p.write_text(json.dumps(base))
+    return p
+
+
+def test_bridge_map_skill_id_must_be_in_registry(tmp_path):
+    p = _write_manifest(
+        tmp_path,
+        bridge_map=[{"block_id": "1f-b1", "skill_id": "worry_tree", "offer": "optional"}],
+    )
+    errs = schemas.validate_manifest(p)
+    assert any("registry" in e for e in errs), errs
+
+
+def test_bridge_map_null_skill_id_requires_doc_target_and_status(tmp_path):
+    p = _write_manifest(
+        tmp_path,
+        bridge_map=[{"block_id": "1f-b4", "skill_id": None, "offer": "optional"}],
+    )
+    errs = schemas.validate_manifest(p)
+    assert any("doc_target" in e or "status" in e for e in errs), errs
+
+    p_ok = _write_manifest(
+        tmp_path,
+        bridge_map=[
+            {
+                "block_id": "1f-b4",
+                "skill_id": None,
+                "doc_target": "Worry Tree",
+                "offer": "optional",
+                "status": "pending_clinician_no_registry_skill",
+            }
+        ],
+    )
+    assert schemas.validate_manifest(p_ok) == []

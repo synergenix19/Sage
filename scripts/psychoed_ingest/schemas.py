@@ -3,6 +3,14 @@ Hand-rolled (no new deps). Each validate_* returns [] when valid, else error str
 from pathlib import Path
 import json
 
+# SKILL_REGISTRY lives in src/sage_poc — importable here because pytest's own
+# pythonpath config (pyproject.toml [tool.pytest.ini_options] pythonpath = ["src", "."])
+# puts "src" on sys.path for the whole test session before this module is ever imported
+# (schemas.py is only ever reached via tests/test_psychoed_content_integrity.py today).
+# No extra sys.path surgery needed here; if schemas.py is later invoked outside pytest,
+# this import will need `sys.path.insert(0, "src")` first.
+from sage_poc.skill_ids import SKILL_REGISTRY
+
 EM_DASHES = ("—", "–")
 SOURCE_FILE = "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md"
 CATEGORIES = ("1f", "3c", "4b", "6d", "7c", "s2c")
@@ -52,6 +60,11 @@ def validate_manifest(path) -> list[str]:
         _req(b, ("block_id", "skill_id", "offer"), errs, "bridge_map.")
         if b.get("offer") != "optional":
             errs.append("bridge offers are optional-not-automatic (spec §3.2)")
+        if b.get("skill_id") is not None:
+            if b.get("skill_id") not in SKILL_REGISTRY:
+                errs.append(f"bridge_map skill_id not in registry: {b.get('skill_id')}")
+        else:
+            _req(b, ("doc_target", "status"), errs, "bridge_map.")
     for field in ("framing_statement", "menu_offer", "check_in"):
         for ch in EM_DASHES:
             if ch in d.get(field, ""):
