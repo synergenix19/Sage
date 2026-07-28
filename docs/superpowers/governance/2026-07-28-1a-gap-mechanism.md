@@ -55,14 +55,37 @@ Finding: confirms the v2/M2 amendment. A breadcrumb writer living only in
 must run on the disclosure turn's actual path (intent_route or a shared post-intent
 seam), using the single `matching.match_symptom_presentation` surface.
 
-## Q4 — Do the matrix v5 §1a presence_only runs share this signature? (PENDING)
+## Q4 — Do the matrix v5 §1a presence_only runs share this signature? (ANSWERED 2026-07-28)
 
-Not yet cross-checked (v5 run artifacts untouched by the instrument). Material nuance:
-matrix v5 §1a rows predate or straddle the psychoed flip (2026-07-23), so the v5
-presence_only runs may exhibit the COLD mechanism (request with no active skill,
-zero candidates) rather than branch (d) absorption. Both mechanisms are plausibly
-real in prod today. Q4 decides whether the cold-context binder remains necessary
-alongside the branch-(d) fix, and must be answered before the plan is re-scoped.
+Per-run mechanism is NOT recoverable from stored v5 artifacts (the full-graph
+instrument persists only aggregate Counters; per-turn intent/path is fetched and
+discarded, `measure_layer1_fullgraph.py:184-189,277-306`; no per-run output file
+exists on disk). It IS answerable by construction, three ways:
+
+1. **Absorption was architecturally impossible in the v5 harness:** each corpus
+   utterance runs in a fresh thread as a single turn; no skill can be active.
+2. **Consult was OFF:** both v5 runs record `SAGE_INFO_REQUEST_CONSULT=None` (=OFF);
+   the flip landed 2026-07-23, after the v5 §1a rows.
+3. **The v5 §1a corpus never tests the request behavior at all:** its five cases are
+   single-turn bare-affect disclosures ("I feel a bit anxious", ...), not exercise
+   requests. Their presence_only outcomes are the `general_chat` gate working on bare
+   emotional words, i.e. the intent-SPOF guard BY DESIGN, in tension with §1a's
+   expected flow but deliberate.
+
+Consequences:
+- **Baseline validity (measurement-validity statement for any future packet):** the
+  v5 §1a "2/5 baseline" measures a different corpus (bare-affect) under a different
+  mechanism regime (pre-flip, absorption-impossible) than the observed gap (explicit
+  request absorbed mid-psychoed, post-flip, multi-turn). A before/after delta against
+  it is uninterpretable. Any fix needs a NEW multi-turn request-conformance fixture
+  family as its baseline; v5 §1a is not a comparator.
+- **Two distinct classes, only one is a defect:** (i) bare-affect presence_only =
+  deliberate SPOF guard, conformance-vs-spec tension to be adjudicated, not patched;
+  (ii) branch-(d) absorption = the live defect this workstream addresses.
+- **Readback coverage hole (systemic):** `SAGE_INFO_REQUEST_CONSULT` is not among the
+  `/health/version` raw_env fields, so the v5 parity stamp could not assert it; the
+  same hole enabled this memo's own Q6 parity failure (below). Remediation belongs
+  with the parity incident record.
 
 ## Q5 — Is Tier 2 functional and correctly thresholded? (RT-4/S-4)
 
@@ -85,23 +108,39 @@ Two defects observed instead:
   served. Requires a code read of `_semantic_match_with_runner_up` -> `_resolve_entry`
   to confirm; if confirmed, this is a standalone defect PR independent of this plan.
 
-## Q6 — Does a medical-guard pathway fire on cardiac red-flags? (BLOCKING)
+## Q6 — Does a medical-guard pathway fire on cardiac red-flags? (CORRECTED 2026-07-28)
 
-Evidence: probe "i have crushing chest pain and it's spreading to my arm" (separate
-thread): `medical_flags=["crushing","spread_arm"]` were DETECTED and written to state;
-`MEDICAL_REDFLAG_GUARD_ENABLED=false` (config default, mirrored from prod parity); no
-medical route in path; `gate_path=standard`. The graph SERVED a relaxation-exercise
-offer (PMR) on the same turn. Medical urgency appeared only as unguaranteed LLM copy.
+**The original finding in this section was an instrument artifact and is WITHDRAWN as
+a prod claim.** The first characterization run's "prod parity" flag set was
+hand-derived from a memory summary of flag DELTAS and treated as the full set; it
+omitted `SAGE_MEDICAL_REDFLAG_GUARD` (and `SAGE_VENTING_SUPPRESSION`,
+`SAGE_ROUTE_PRECEDENCE`, `SAGE_D1_SCREEN`), all of which the authed prod serving
+readback (`GET /health/version`, verified live 2026-07-28) reports as
+`true`/`raw_env="true"` at serving SHA 1f687c57. Primary sources agreeing: serving
+readback, Railway prod variables, matrix-v4 as-live flag record, and
+`ARCHITECTURE_BOUNDARIES.md:175` ("off (test default); prod has it on"); the E1-E7
+approval records ON as the intended production state.
 
-Finding: **BLOCKING, escalated in its own right.** The §1a universal red-flag override
-exists in code as a built-but-disabled guard, and prod parity has it OFF. A user
-reporting textbook cardiac-emergency descriptors receives a self-guided relaxation
-offer from the deterministic layer, with medical advice left to LLM discretion. This
-outranks the presence_only gap in clinical severity (importance over tractability).
-Whether to enable `MEDICAL_REDFLAG_GUARD` is a clinical/product decision with its own
-verification (the flag's OFF state may be deliberate and recorded somewhere; primary
-record must be checked before any flip). The binder plan's `diverted` branch is BLOCKED
-until this is resolved (v3 already encodes that consequence).
+What the probe actually demonstrated: the graph's behavior WITH THE GUARD OFF, which
+is the local-test default, not prod. The observed "PMR offer served over crushing
+chest pain" is therefore a statement about a non-prod configuration. A rerun of both
+probe and 3-turn transcript under the corrected serving flag set is in flight; its
+readout supersedes the first run's on every point of difference.
+
+Residual REAL findings from this thread:
+- **Parity incident (process):** a characterization instrument escalated a false
+  BLOCKING prod-harm claim because its flag set bypassed the runner's
+  derive-from-readback discipline. Recorded as its own incident:
+  `2026-07-28-parity-incident-q6-artifact.md`. This is the second documented instance
+  of the guard-off-by-default trap producing a false full-graph readout (first:
+  `2026-07-21-d1-reflip-attempt2-halt.md`).
+- **Fail-open default (design):** a clinical safety guard whose config default is
+  `false` makes every naively-parameterized local instrument measure a guard-less
+  system. Remediation options (readback-derived flags mandatory for instruments;
+  and/or flipping the code default) belong in the incident record's follow-ups.
+- **DF-2 stands as a code question** (below-threshold candidate served via
+  `default_offer`) — observed under guard-off; whether any prod path can reach it
+  needs the code read; reported inside the parity incident record, per review.
 
 ## Gate outcome
 
@@ -117,8 +156,9 @@ written. Amendment direction (for review, not self-approved):
    plan, not bolted on.
 2. **Cold-context binder:** contingent on Q4 evidence from the v5 §1a artifacts.
 3. **DF-2 threshold-enforcement read:** immediate, small, independent.
-4. **Q6 escalation:** clinical decision request re MEDICAL_REDFLAG_GUARD, with the
-   primary record of why it is OFF located first.
+4. **Q6 disposition (corrected):** no clinical escalation; the guard is ON in prod
+   (serving-readback verified). The process incident and its follow-ups live in
+   `2026-07-28-parity-incident-q6-artifact.md`.
 
 The screen-design clinical questions
 (`2026-07-28-1a-screen-design-clinical-questions.md`) remain valid under every branch:
