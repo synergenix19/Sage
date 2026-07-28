@@ -958,9 +958,27 @@ async def output_gate_node(state: SageState) -> dict:
                 "emitted_hash=%s session=%s",
                 _psychoed_block_id, _emitted_hash, session_id,
             )
-            _category = _psychoed_turn.get("category")
+            # Mechanical fallback chain (controller checkpoint fix, plan-level gap): category =
+            # the payload's own category, else the turn's psychoed_active_category. Both current
+            # payload constructors (skill_select's resolver hit, knowledge_retrieve's outcome-2
+            # backstop) always set "category" on the payload, so both being missing here is
+            # unreachable by construction -- but "never emit unverified psychoed copy" must hold
+            # MECHANICALLY, not by convention, so the chain still resolves a category (an always-
+            # enabled store category, never invented text) even if that invariant were ever
+            # violated upstream.
+            _category = _psychoed_turn.get("category") or state.get("psychoed_active_category")
             if _category:
                 final_response = psy_store.manifest(_category)["check_in"]
+            else:
+                _log.critical(
+                    "psychoed_integrity_incident kind=corruption_no_category block_id=%s "
+                    "recomputed_hash=None emitted_hash=%s session=%s",
+                    _psychoed_block_id, _emitted_hash, session_id,
+                )
+                _fallback_category = (
+                    sorted(_cfg.PSYCHOED_CATEGORIES)[0] if _cfg.PSYCHOED_CATEGORIES else "1f"
+                )
+                final_response = psy_store.manifest(_fallback_category)["check_in"]
             psychoed_gate_action = "fallback"
         else:
             _recomputed_hash = psy_store.block_sha256(_psychoed_block_id)

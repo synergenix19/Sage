@@ -197,6 +197,48 @@ async def test_flag_off_no_psychoed_keys_in_return(monkeypatch):
     assert psychoed_keys == [], f"psychoed keys leaked with the flag off: {psychoed_keys}"
 
 
+# ─────── Controller checkpoint fix: EN-only pathway entry (spec §3.7/§7.3) ───────
+#
+# Concern 1 from Task 11's report was adjudicated a real (plan-level) gap: psychoed AR copy ships
+# only once faithfulness-graded under its own future flag, so pathway ENTRY (the resolver) must
+# not fire on a non-English turn -- a downstream translate-out of the EN block would otherwise
+# serve ungraded machine-translated clinical copy. The weave-pending evaluation (order item 1)
+# stays language-UNgated: it is a live safety check on a PREVIOUS turn's serve, and translate-in
+# already normalizes any reply into message_en -- starving it would be fail-open, not fail-closed.
+
+@pytest.mark.asyncio
+async def test_resolver_does_not_fire_on_non_english_turn(monkeypatch):
+    """An exact EN trigger phrase in message_en ('What is anxiety?') must not fire the resolver
+    when detected_language is 'ar' -- entry is EN-only until AR ships under its own flag."""
+    _enable_psychoed(monkeypatch)
+    state = _ss_state(message_en="What is anxiety?", detected_language="ar")
+
+    result = await skill_select_node(state)
+
+    assert "psychoed_serve" not in result
+    assert result.get("skill_match_method") != "psychoed_resolver"
+    assert "psychoed_active_category" not in result
+
+
+@pytest.mark.asyncio
+async def test_weave_pending_still_evaluates_on_non_english_reply(monkeypatch):
+    """The EN-only entry gate must NOT starve a pending weave: an AR turn whose message_en is a
+    clear-negative reply still reaches the deferred-menu continuation (the proceed path), exactly
+    as the EN case does -- the weave-pending check (order item 1) runs before, and independently
+    of, the resolver's new language gate (order item 3)."""
+    _enable_psychoed(monkeypatch)
+    state = _ss_state(
+        message_en="no, nothing like that", detected_language="ar",
+        psychoed_weave_pending=True, psychoed_active_category="1f",
+    )
+
+    result = await skill_select_node(state)
+
+    assert result["psychoed_weave_pending"] is False
+    assert result["skill_match_method"] == "psychoed_menu_after_weave"
+    assert "psychoed_weave_escalation" not in result
+
+
 # ─────── Controller checkpoint fix: pathway-clear at psychotic auto-select + offer-accept ───────
 #
 # Concern 3 from the original report was adjudicated a real gap: psychotic_disclosure_auto_select

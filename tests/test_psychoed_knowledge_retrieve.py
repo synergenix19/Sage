@@ -238,6 +238,32 @@ async def test_outcome2_suppressed_on_acute_distress(monkeypatch):
     assert result["knowledge_passages"] == []
 
 
+@pytest.mark.asyncio
+async def test_outcome2_suppressed_on_non_english_turn(monkeypatch):
+    """Controller checkpoint fix (spec §3.7/§7.3): EN-only pathway entry applies to the outcome-2
+    backstop too -- an AR turn whose top RAG passage happens to be a psychoed block must not get
+    an unsolicited backstop serve (a downstream translate-out of the EN block would be ungraded
+    machine-translated clinical copy). Quarantine still strips the passage regardless of language."""
+    monkeypatch.setattr(config, "PSYCHOED_PATHWAYS_ENABLED", True)
+    from sage_poc.knowledge.models import KnowledgePassage, KnowledgeResult
+
+    top = KnowledgePassage(text="depression content leaked into RAG", source_id="3c-b4",
+                            citation="", relevance_score=0.91)
+    mock_result = KnowledgeResult(passages=[top], abstain=False)
+    mock_repo = MagicMock()
+    mock_repo.retrieve = AsyncMock(return_value=mock_result)
+    state = _kr_state(detected_language="ar", raw_message="ما هو الاكتئاب")
+
+    with patch("sage_poc.nodes.knowledge_retrieve.PostgresKnowledgeRepository", return_value=mock_repo):
+        with patch("sage_poc.nodes.knowledge_retrieve._get_pool", return_value=MagicMock()):
+            result = await knowledge_retrieve_node(state)
+
+    psychoed_keys = [k for k in result if k.startswith("psychoed_")]
+    assert psychoed_keys == [], f"backstop must not fire on a non-English turn: {psychoed_keys}"
+    # L4 quarantine is unchanged -- still strips the psychoed passage regardless of language.
+    assert result["knowledge_passages"] == []
+
+
 # ─────────────────────────── (d) L4 quarantine only (psychoed block ranked 2nd) ───────────────────────────
 
 @pytest.mark.asyncio

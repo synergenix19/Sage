@@ -216,6 +216,51 @@ async def test_gate_corruption_drops_to_manifest_check_in(monkeypatch, caplog):
     assert row["psychoed_gate_action"] == "fallback"
 
 
+# ── (a2) gate: corruption + no category anywhere -- mechanical fallback chain ────────────────
+# Controller checkpoint fix: the corruption branch used to pass final_response through UNCHANGED
+# when the payload's own category AND psychoed_active_category were both missing, violating
+# "never emit unverified psychoed copy." Unreachable by construction (both payload constructors
+# always set "category"), but the invariant must hold mechanically anyway.
+
+@pytest.mark.asyncio
+async def test_gate_corruption_no_category_anywhere_falls_to_enabled_default(monkeypatch, caplog):
+    monkeypatch.setattr(config, "PSYCHOED_PATHWAYS_ENABLED", True)
+    # sorted({"3c", "4b"})[0] == "3c" -- deliberately NOT "1f", so this distinguishes the
+    # "sorted-first ENABLED category" branch from the "no categories enabled -> 1f" branch below.
+    monkeypatch.setattr(config, "PSYCHOED_CATEGORIES", frozenset({"3c", "4b"}))
+    corrupt_payload = {"block_id": "9z-b9", "route": "standard", "framing": "abstract", "weave_due": False}
+    state = _og_state(response_en="whatever the model produced for a since-deleted block",
+                       psychoed_serve=corrupt_payload, psychoed_active_category=None)
+
+    with caplog.at_level(logging.CRITICAL, logger="sage_poc.nodes.output_gate"):
+        result, write_calls = await _run_gate(state)
+
+    assert result["response"] == store.manifest("3c")["check_in"]
+    assert result["response"] != state["response_en"]  # never the unverified/tampered text
+    assert any("psychoed_integrity_incident" in r.message and "kind=corruption_no_category" in r.message
+               for r in caplog.records)
+    row = _build_session_audit_row(write_calls[0])
+    assert row["psychoed_gate_action"] == "fallback"
+
+
+@pytest.mark.asyncio
+async def test_gate_corruption_no_category_no_enabled_categories_falls_to_1f(monkeypatch, caplog):
+    """When no category can be resolved AND no category is enabled, the fallback strips to the
+    manifest check_in of "1f" -- an always-present store category, never invented text."""
+    monkeypatch.setattr(config, "PSYCHOED_PATHWAYS_ENABLED", True)
+    monkeypatch.setattr(config, "PSYCHOED_CATEGORIES", frozenset())
+    corrupt_payload = {"block_id": "9z-b9", "route": "standard", "framing": "abstract", "weave_due": False}
+    state = _og_state(response_en="whatever the model produced for a since-deleted block",
+                       psychoed_serve=corrupt_payload, psychoed_active_category=None)
+
+    with caplog.at_level(logging.CRITICAL, logger="sage_poc.nodes.output_gate"):
+        result, write_calls = await _run_gate(state)
+
+    assert result["response"] == store.manifest("1f")["check_in"]
+    row = _build_session_audit_row(write_calls[0])
+    assert row["psychoed_gate_action"] == "fallback"
+
+
 # ── (g) gate: flag OFF -- no psychoed audit keys, no gate execution ──────────────────────────
 
 @pytest.mark.asyncio

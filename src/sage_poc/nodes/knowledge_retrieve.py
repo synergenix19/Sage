@@ -128,8 +128,16 @@ async def knowledge_retrieve_node(state: SageState) -> dict:
         #   - Classifier A parity (spec §2.2: "runs the identical Classifier A + Classifier B
         #     checks as outcome 1... no emission path skips the classifiers") -- an acute-
         #     distress message must fail-to-acute here exactly as it does for outcome-1.
+        #   - EN-only pathway entry (controller checkpoint fix, spec §3.7/§7.3): same gate as
+        #     skill_select's resolver -- AR psychoed copy ships only once faithfulness-graded
+        #     under its own future flag, so an unsolicited backstop serve must not fire on a
+        #     non-English turn either (a downstream translate-out of the EN block would be
+        #     ungraded machine-translated clinical copy). Quarantine below stays language-UNgated
+        #     (ratified psychoed copy must never reach LLM synthesis via knowledge_passages,
+        #     regardless of language).
         if (
             not state.get("active_skill_id")
+            and (state.get("detected_language") or "en") == "en"
             and not psy_cls.acute_distress(state, state.get("message_en") or "")
             and not result.abstain
             and passages

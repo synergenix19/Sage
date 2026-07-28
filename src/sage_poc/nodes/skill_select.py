@@ -718,8 +718,15 @@ async def skill_select_node(state: SageState) -> dict:
         else:
             weave_cleared = False
 
-        # (2) Active-skill suppression stands.
-        if not state.get("active_skill_id"):
+        # (2) Active-skill suppression stands. EN-only pathway entry (controller checkpoint fix,
+        # spec §3.7/§7.3): psychoed AR copy ships only once faithfulness-graded under its own
+        # future flag -- until then, entry via the resolver must not fire on a non-English turn,
+        # or a downstream translate-out of the EN block would serve ungraded machine-translated
+        # clinical copy. Scoped to ENTRY only: the weave-pending evaluation above (1) and this
+        # active-skill check stay language-UNgated -- translate-in already normalizes any reply
+        # into message_en, so a pending weave (a live safety check on a PREVIOUS turn's serve)
+        # must still evaluate on an AR reply; starving it here would be a fail-open, not fail-closed.
+        if not state.get("active_skill_id") and (state.get("detected_language") or "en") == "en":
             hit = psy_resolver.resolve(
                 state.get("message_en") or "",
                 active_category=state.get("psychoed_active_category"),
