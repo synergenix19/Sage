@@ -27,11 +27,34 @@ recall number that can clear the ≥95% external-launch bar. Every day it waits,
 and sub-half-floor crisis recall stays live for existing users.  ▢ scheduled: ____  ▢ edit: ____
 
 ## The companion number that must never be papered over
-**AR conformance is 0/180 — UNMEASURED.** The latest bot-behaviour conformance figure (EN 8/36 strictly-conform,
-v4 full-graph) is **English-only**; no ratified Khaleeji corpus exists. In a Gulf-Arabic-first product, quoting
-the EN figure without the AR-unmeasured caveat is an inflated-and-unverified number. Building the AR corpus
-(Probe #1) is a parallel dependency the PO/clinical roadmap should schedule alongside — the EN number cannot
-stand in for the product's actual (Arabic-first) population.
+**AR conformance is 0/180 — UNMEASURED.** The latest bot-behaviour conformance figure (EN **10/36** strictly-
+conform, full prod config, noise-floor characterized — supersedes the earlier 8/36, which was a config artifact;
+see `2026-07-28-conformance-variance-characterization-1f687c57.md`) is **English-only**; no ratified Khaleeji
+corpus exists. In a Gulf-Arabic-first product, quoting the EN figure without the AR-unmeasured caveat is an
+inflated-and-unverified number. Building the AR corpus (Probe #1) is a parallel dependency the PO/clinical
+roadmap should schedule alongside — the EN number cannot stand in for the product's actual (Arabic-first)
+population.
+
+## Third launch-relevant item — the §6a/§6b coercive-control guard is implemented NOWHERE
+This is not a measurement gap like the two above; it is a **live, measured behavioural gap** on the surface
+that opens to users. The BOT BEHAVIOUR document mandates a coercive-control / unsafe-reaction guard (§6a/§6b):
+a discloser of coercive control must be routed to relationship-safety resources, **not** coached in
+assertiveness (§6a line 943 is explicit that assertiveness coaching in an unsafe dynamic can increase risk).
+**Production does not implement it.** What catches abuse today is CF-005 `domestic_situation`, which catches
+explicit **physical-abuse** phrasing and **misses coercive control** — the presentation class §6a's own
+recognition table centers on. E7 was built to close this, was enabled on prod 2026-07-22, **fired on ZERO
+naturalistic coercive-control cases** (it matches 19 verbatim §6a sentences by substring; real users
+paraphrase), and was reverted same-session. So:
+- The demonstrated **iatrogenic case is live**: a "controlling boyfriend" discloser is coached the DESC
+  assertiveness method — the exact §6a failure mode — with no flag and no referral.
+- The fix is a **real detection tier** (semantic, or clinician-authored paraphrase patterns) with a
+  **naturalistic** recall number, its own clinical sign-off — not a flag flip.
+- This belongs on the launch board **alongside GL-0 and AR**, not filed as "E7 held OFF." It is the same class
+  as GL-0 (a mandated safety route with sub-floor real-language recall), scoped to IPV/coercive-control.
+
+Records: `2026-07-22-e7-premise-correction-to-vee.md`, `2026-07-22-e7-ipv-live-gap-escalation.md`
+(⛔ POST-ENABLE OUTCOME), `project_e7_verbatim_match_gap` (memory). Same detection-architecture class as
+Clinical-Flag Detection Gap #65.
 
 ## Records
 GL-0 designation (2026-07-04-bot-behaviour-ingestion-plan.md §1); Exp 4.2 relay
