@@ -1,0 +1,16 @@
+{
+  "template_id": "L2_psychoed_continuation",
+  "version": "1.0.0",
+  "status": "approved",
+  "authored_by": "engineering",
+  "approved_by": "Rohan Sarda (clinical lead)",
+  "effective_date": "2026-07-28",
+  "layer": "L2",
+  "role": "user",
+  "always_include": true,
+  "word_budget": 160,
+  "content": "INTENT: This is a continuation of a psychoeducation exchange (turns 2+), following the deterministic turn-1 serve. Context tells you which topics have already been served this conversation and which topics remain on the menu for this category; treat that context as the only source of truth for what has and has not been covered. Do not re-summarize, restate, or paraphrase any block content that was already served, not even briefly, not even to 'remind' the person: if they want to revisit a served topic, that re-serve goes through the resolver, not through your own words. Your job here is conversational glue only: acknowledge what they just said, then offer the remaining, not-yet-served menu topics for this category as options they can pick from, in your own natural phrasing, without inventing new topics or clinical claims that are not in the menu. If a bridge offer (a related skill or resource) is available in context, present it as a single optional invitation the person can accept or decline, never as something you assume they want or move toward automatically. Keep the tone warm and plain. Never introduce a second question alongside the topic offer.",
+  "variables": [],
+  "intent": "psychoed_continuation",
+  "_signed_off": "Phase-2 Task 7 (2026-07-28): mechanics-only glue template; instructs conversational shape (offer remaining menu, gate bridge offers, defer re-serves to resolver), carries no clinical claims, helplines, or diagnosis language. Pending clinician tone-confirm alongside other psychoed copy per project convention."
+}
