@@ -42,8 +42,22 @@ offer state exists after the turn.
   misreading, but §1a's own design notes weigh against added friction on an
   explicit ask, and it burns a turn in the tier where momentum matters.
 
-## Ask
+## Reoffer semantics of `offer_released_modality_request` (BINDING, per architecture sign-off)
 
-Approve Option A (or select an alternative). One-branch change either way; the
-consumer-3 task implements whichever is signed. Both-direction guards regardless of
-choice: genuine ignores still release; genuine declines still never re-offer.
+A released offer was neither taken nor declined. Therefore: released skills do NOT
+enter `declined_skills`, and remain fully eligible for natural reoffer later in the
+session. Release must never quietly become decline — otherwise a user who once asked
+for a breathing exercise makes psychoed unreachable for the rest of the session.
+Tested both directions: release → later reoffer possible; explicit decline → still
+never reoffered.
+
+**Audit:** `offer_released_modality_request` joins `session_audit.path` exactly like
+its lifecycle siblings (`offer_ignored`, `offer_declined`, `offer_promoted`), so
+trajectory-(3) fixes are directly measurable in the matrix re-run.
+
+## Status
+
+**Architecture: SIGNED 2026-07-28 (Option A, with the reoffer semantics above).**
+Clinical: pending Vee (this addendum ships in her packet). One-branch change if she
+selects an alternative. Both-direction guards regardless of choice: genuine ignores
+still release; genuine declines still never re-offer.

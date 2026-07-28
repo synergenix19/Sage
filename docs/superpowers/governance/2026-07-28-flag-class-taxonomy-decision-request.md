@@ -39,6 +39,7 @@ characterization got exactly this difference wrong.
 | SAGE_EMBED_CACHE | feature (perf) | |
 | SAGE_AUDIT_LOG | **safety (RULED 2026-07-28)** | arguably not a flag at all: the runtime audit trail is a compliance commitment (PDPL traceability, right-to-object), not a feature, and every register row's evidentiary value depends on it. If it remains a flag operationally: default ON, recorded-rationale required for any OFF, and an OFF state must be LOUDLY visible in /health/version |
 | SAGE_MODALITY_REQUEST_ROUTING (planned) | feature | re-plan draft |
+| SAGE_AUDIT_CLASSIFIER_PROVENANCE (in flight) | **safety on activation** (ruling 2026-07-28) | new audit surface; dark period is STAGED ROLLOUT, not a feature-class default. Must be ON before the Phase 0 baseline runs — an unrecorded-provenance baseline fails the signed instrument-parity rule |
 
 Register to be completed mechanically: the parity runner's config regex enumerates
 every `SAGE_*` getenv; any flag absent from this table fails the register check
