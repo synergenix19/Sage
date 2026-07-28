@@ -1,0 +1,52 @@
+{
+  "_meta": {
+    "purpose": "Single reconciliation point for WHICH safety mechanism owns WHICH utterance class. Born from the 2026-07-28 §1c conflict: two parallel sessions built CF-010 (derealization->referral) and panic_override (derealization->ground) against the same doc section, each clinician-signed, neither aware of the other, caught only at the flip line. This registry + scripts/check_disposition_ownership.py is the THIRD refusal-property (after the conformance flag-parity guard and the draft-corpus guard): sign-off prep REFUSES un-reconciled disposition overlap, so a colliding mechanism is caught BEFORE a clinician is asked to sign it.",
+    "how_it_works": "Each safety mechanism declares its pattern SOURCE + its DISPOSITION. The check extracts the real patterns from source and flags any two mechanisms whose match sets overlap (one pattern is a substring of the other -> some utterance matches both) AND whose dispositions differ. Every such overlap MUST appear in resolved_overlaps (a precedence/scoping resolution) or pending_conflicts (a tracked, unresolved conflict). An UNDECLARED cross-disposition overlap FAILS the check.",
+    "how_to_update": "Adding/editing a safety mechanism's patterns: (1) if it introduces a cross-disposition overlap, add it to resolved_overlaps with the precedence/scoping resolution and the sign-off ref, OR to pending_conflicts if it needs clinician reconciliation; (2) a new mechanism must be added to `mechanisms`. Never merge an undeclared overlap."
+  },
+  "mechanisms": [
+    {"id": "crisis_lexicon",       "source": "rules/data/safety/crisis_keywords.json",        "disposition": "crisis",                  "note": "S1 deterministic crisis authority"},
+    {"id": "psychotic_disclosure", "source": "clinical_flag_patterns.json:flag_id=psychotic_disclosure", "disposition": "hr_referral",     "note": "CF-006/CF-009 psychosis -> psychotic_referral"},
+    {"id": "mania_disclosure",     "source": "clinical_flag_patterns.json:flag_id=mania_disclosure",     "disposition": "hr_referral",     "note": "CF-007"},
+    {"id": "dissociation_disclosure","source": "clinical_flag_patterns.json:flag_id=dissociation_disclosure","disposition": "hr_referral", "note": "CF-008 §HR-11 register"},
+    {"id": "derealization",        "source": "clinical_flag_patterns.json:flag_id=derealization",        "disposition": "derealization_referral", "note": "CF-010 §1c anxiety-track referral (Vee 1a-1d 07-21, doc L151)"},
+    {"id": "panic_ground",         "source": "nodes/panic_override.py:_PANIC_TERMS",          "disposition": "panic_ground",            "note": "§1c-A panic-grounding override (Vee 07-28); flag SAGE_PANIC_GROUNDING_OVERRIDE"}
+  ],
+  "resolved_overlaps": [
+    {"a": "derealization", "b": "dissociation_disclosure", "resolution": "precedence hr > derealization (safety_precedence SAFETY_ROUTE_ORDER); a psychosis-context dissociation resolves to hr_referral, an anxiety-context derealization to the derealization terminal. String sets are also kept disjoint by design.", "signed": "Vee 1a 2026-07-21"}
+  ],
+  "pending_conflicts": [
+    {
+      "a": "derealization",
+      "b": "panic_ground",
+      "issue": "OPPOSITE disposition on the same derealization utterance ('everything feels unreal'): derealization->referral (CF-010) vs panic_ground->ground (panic_override). panic_override's _PANIC_TERMS swept the derealization terms that CF-010 owns. Force-grounding derealization runs against doc §1c L151 (grounding intensifies dissociation -> refer).",
+      "status": "PENDING Vee reconciliation — 2026-07-28-1c-reconciliation-packet-vee.md item 1",
+      "recommendation": "derealization stays REFERRAL (CF-010, doc L151); panic_override drops the derealization terms.",
+      "both_flags_off": true
+    },
+    {
+      "a": "dissociation_disclosure",
+      "b": "panic_ground",
+      "issue": "panic_override's _PANIC_TERMS also swept CF-008 §HR-11 dissociation terms (detached / outside my body / watching myself), which are hr_referral, not grounding. Runtime precedence (HR fires at safety_check altitude) preempts panic_override IF the HR flag matched the turn, but the term-sweep is the same scope-creep as the derealization case and should not stand as a claim.",
+      "status": "PENDING — same panic_override scope reconciliation (packet item 1, broadened)",
+      "recommendation": "panic_override keeps PURE-PANIC terms only (breathing/heart/dizzy/panic attack); drops all dissociation/derealization/psychosis/mania terms owned by CF-007/008/009/010.",
+      "both_flags_off": true
+    },
+    {
+      "a": "panic_ground",
+      "b": "psychotic_disclosure",
+      "issue": "panic_override swept 'detached' (CF-009 'i feel detached from reality' -> hr_referral).",
+      "status": "PENDING — same panic_override scope reconciliation (packet item 1, broadened)",
+      "recommendation": "panic_override drops psychosis-adjacent terms; pure panic only.",
+      "both_flags_off": true
+    },
+    {
+      "a": "mania_disclosure",
+      "b": "panic_ground",
+      "issue": "panic_override swept 'thoughts are racing' (overlaps CF-007 mania -> hr_referral).",
+      "status": "PENDING — same panic_override scope reconciliation (packet item 1, broadened)",
+      "recommendation": "panic_override drops mania-adjacent terms; pure panic only.",
+      "both_flags_off": true
+    }
+  ]
+}
