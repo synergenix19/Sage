@@ -64,11 +64,21 @@ SRC="docs/superpowers/specs/bot-behaviour-oracle/BOT_BEHAVIOUR_ratified_source.d
 OUT="docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md"
 shasum -a 256 -c docs/superpowers/specs/bot-behaviour-oracle/BOT_BEHAVIOUR_ratified_source.sha256 \
   || { echo "FATAL: pinned docx hash mismatch — chain root moved"; exit 1; }
+# Equivalence check vs the 2026-07-17 fingerprint: DEFAULT-wrap gfm must be exactly 4661 lines.
+# (The record's 4661 was default wrap; canonical output below uses --wrap=none. See
+#  2026-07-28-source-fingerprint-erratum.md for the full reconciliation.)
+TMP=$(mktemp)
+pandoc "$SRC" -f docx -t gfm -o "$TMP"
+DW=$(wc -l < "$TMP"); rm -f "$TMP"
+[ "$DW" -eq 4661 ] || { echo "FATAL: default-wrap fingerprint $DW != 4661 — chain-root drift, STOP"; exit 1; }
 pandoc "$SRC" -f docx -t gfm --wrap=none -o "$OUT"
-LINES=$(wc -l < "$OUT")
-echo "lines: $LINES (expected ~4661; hundreds off = STOP)"
-SKILL_TABLES=$(grep -c 'Skill.*Format\|Format.*Offer' "$OUT" || true)
-echo "skill/format table headers: $SKILL_TABLES (expected 27; wrong = STOP)"
+# Table population (erratum-verified): 61 pipe tables + 1 raw-HTML table (§6b merged-cell
+# recognition-phrase table) = 62 total; 26 Skill/Format pipe headers (+ the §6b HTML table
+# = the 07-17 record's probable 27 — inference, recorded in the erratum).
+PIPE=$(grep -cE '^\|[-| ]+\|$' "$OUT"); HTML=$(grep -c '<table' "$OUT")
+[ "$PIPE" -eq 61 ] && [ "$HTML" -eq 1 ] || { echo "FATAL: table population ${PIPE}pipe+${HTML}html != 61+1"; exit 1; }
+SF=$(grep -c 'Skill\*\*.*Format\*\*' "$OUT")
+[ "$SF" -eq 26 ] || { echo "FATAL: Skill/Format headers $SF != 26"; exit 1; }
 for probe in 'Why does grief come in waves' 'Trigger Words / Recognition'; do
   grep -q "$probe" "$OUT" || { echo "FATAL: probe missing: $probe"; exit 1; }
 done
@@ -84,7 +94,7 @@ shasum -a 256 "$OUT"
 - [ ] **Step 2: Run it**
 
 Run: `bash scripts/extract_bot_behaviour_full.sh`
-Expected: hash check OK; line count ~4,661; 27 skill/format tables; all six §0 probes pass; SHA-256 of the output printed. If pandoc is missing: `brew install pandoc` first. **Line count off by hundreds or table count wrong: STOP — do not transcribe; escalate the fingerprint mismatch (version drift at the chain root).** Record the output SHA-256 + pandoc version in the commit message.
+Expected: hash check OK; default-wrap equivalence = 4,661 exactly; table population 61 pipe + 1 HTML; 26 Skill/Format headers; all six §0 probes pass; SHA-256 of the output printed. If pandoc is missing: `brew install pandoc` first. **Any FATAL: STOP — do not transcribe; escalate (chain-root drift or extraction-path change).** Record the output SHA-256 + pandoc version in the commit message. Commit the erratum file `2026-07-28-source-fingerprint-erratum.md` alongside if not already committed.
 
 - [ ] **Step 3: Manually verify the six §0 trigger tables render as markdown tables**
 
