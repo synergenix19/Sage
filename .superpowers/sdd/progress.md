@@ -18,3 +18,4 @@ Task 11: complete (commit 227a2414, review clean; weave data draft w/ evaluation
 Task 12: complete (commit 3b2ec3d2, review clean; Minor: block-disk cross-check subset-only, rogue block-only category tolerated — final-review triage)
 Task 13: complete (commits a13c2718..f953672f, review clean; packet enumerates 40+18+4+31 by name, 12 asks, 3rd period+capital site 6d-b2 self-found; Lane-3 clock STARTED)
 Task 14: complete (commits 5197afd2..5291bc1b, re-review RESOLVED all 5; handoff notes carry verbatim keys, corrected 3-form bridge taxonomy)
+Final review: READY FOR MERGE after fix wave 969c802e + pin re-stamp bb5829cd (138 tests green; 68 dash sites = 64 comma / 4 period+capital, all 4 read-differently sites enumerated for clinical)
