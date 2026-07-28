@@ -53,15 +53,22 @@ def _make_llm(
     temperature: float,
     max_tokens: int,
     seed: int | None = None,
+    provider_pin: str | None = None,
 ) -> ChatOpenAI:
-    # Node-2 determinism pin (2026-07-28 bistability finding): seed is passed ONLY
-    # when configured — an unset SAGE_CLASSIFIER_SEED must produce a request payload
-    # byte-identical to today (langchain-openai 1.2.1 excludes a None seed from
-    # _default_params entirely; ChatOpenAI accepts seed= natively, verified against
-    # the installed version, so no model_kwargs fallback is needed).
+    # Node-2 determinism pins (2026-07-28 bistability finding): seed / provider block
+    # are passed ONLY when configured — unset SAGE_CLASSIFIER_SEED /
+    # SAGE_OPENROUTER_PROVIDER_PIN must produce a request payload byte-identical to
+    # today (langchain-openai 1.2.1 excludes a None seed/extra_body from
+    # _default_params entirely; ChatOpenAI accepts seed= and extra_body= natively,
+    # verified against the installed version, so no model_kwargs fallback is needed).
+    # provider_pin is a plain string (not the dict) so lru_cache keys stay hashable.
     extra: dict = {}
     if seed is not None:
         extra["seed"] = seed
+    if provider_pin is not None:
+        extra["extra_body"] = {
+            "provider": {"order": [provider_pin], "allow_fallbacks": False}
+        }
     return ChatOpenAI(
         model=model,
         openai_api_key=OPENROUTER_API_KEY,
@@ -77,7 +84,8 @@ def _make_llm(
 def get_classifier() -> ChatOpenAI:
     """Fast, low-temperature model for intent classification and safety routing."""
     model, temp, max_tokens = _LLM_CONFIGS["classifier"]
-    return _make_llm(model, temp, max_tokens, seed=_cfg.CLASSIFIER_SEED)
+    return _make_llm(model, temp, max_tokens, seed=_cfg.CLASSIFIER_SEED,
+                     provider_pin=_cfg.OPENROUTER_PROVIDER_PIN)
 
 
 def get_responder() -> ChatOpenAI:
@@ -89,7 +97,8 @@ def get_responder() -> ChatOpenAI:
 def get_translator() -> ChatOpenAI:
     """Fast model for Arabic ↔ English translation."""
     model, temp, max_tokens = _LLM_CONFIGS["translator"]
-    return _make_llm(model, temp, max_tokens, seed=_cfg.CLASSIFIER_SEED)
+    return _make_llm(model, temp, max_tokens, seed=_cfg.CLASSIFIER_SEED,
+                     provider_pin=_cfg.OPENROUTER_PROVIDER_PIN)
 
 
 def get_fallback_responder() -> ChatOpenAI:
@@ -101,7 +110,8 @@ def get_fallback_responder() -> ChatOpenAI:
 def get_fallback_classifier() -> ChatOpenAI:
     """Fallback model for intent classification when primary is unavailable."""
     model, temp, max_tokens = _LLM_CONFIGS["fallback_classifier"]
-    return _make_llm(model, temp, max_tokens, seed=_cfg.CLASSIFIER_SEED)
+    return _make_llm(model, temp, max_tokens, seed=_cfg.CLASSIFIER_SEED,
+                     provider_pin=_cfg.OPENROUTER_PROVIDER_PIN)
 
 
 def get_resistance_model() -> ChatOpenAI:

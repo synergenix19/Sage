@@ -38,6 +38,13 @@ except ValueError:
         _classifier_seed_raw,
     )
     CLASSIFIER_SEED = None
+# OpenRouter provider pin (e.g. "openai"): when set, classifier-family calls carry
+# OpenRouter provider routing {"provider": {"order": [pin], "allow_fallbacks": false}}
+# so gpt-4o-mini cannot be silently routed across upstream providers between runs
+# (provider-level nondeterminism, finding cause 2). Unset/empty -> no provider block.
+OPENROUTER_PROVIDER_PIN: str | None = (
+    os.getenv("SAGE_OPENROUTER_PROVIDER_PIN", "").strip() or None
+)
 
 # UAE crisis helpline — the SINGLE source for every crisis-copy site. Crisis-copy files carry
 # {{crisis_*}} placeholders (not literals), resolved from this dict at load (crisis_copy.py); the

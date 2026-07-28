@@ -114,3 +114,64 @@ def test_responder_family_never_receives_seed(monkeypatch):
         llm = getter()
         assert llm.seed is None, f"{getter.__name__} must never be seeded"
         assert "seed" not in llm._default_params
+
+
+# ---------------------------------------------------------------------------
+# SAGE_OPENROUTER_PROVIDER_PIN — env parsing (config.py)
+# ---------------------------------------------------------------------------
+
+def test_provider_pin_defaults_to_none_when_unset(monkeypatch, _restore_config):
+    _reload_config_with(monkeypatch, SAGE_OPENROUTER_PROVIDER_PIN=None)
+    assert cfg.OPENROUTER_PROVIDER_PIN is None
+
+
+def test_provider_pin_parses_string_when_set(monkeypatch, _restore_config):
+    _reload_config_with(monkeypatch, SAGE_OPENROUTER_PROVIDER_PIN="openai")
+    assert cfg.OPENROUTER_PROVIDER_PIN == "openai"
+
+
+def test_provider_pin_empty_string_is_none(monkeypatch, _restore_config):
+    """Railway empty-string env-injection shape: '' must behave exactly like unset."""
+    _reload_config_with(monkeypatch, SAGE_OPENROUTER_PROVIDER_PIN="  ")
+    assert cfg.OPENROUTER_PROVIDER_PIN is None
+
+
+# ---------------------------------------------------------------------------
+# Provider-pin pass-through — constructors (llm.py)
+# ---------------------------------------------------------------------------
+
+_EXPECTED_PROVIDER_BLOCK = {"provider": {"order": ["openai"], "allow_fallbacks": False}}
+
+
+def test_classifier_family_receives_provider_pin_when_configured(monkeypatch):
+    monkeypatch.setattr(cfg, "OPENROUTER_PROVIDER_PIN", "openai")
+    llm_mod.reset_singletons()
+    for getter in (llm_mod.get_classifier, llm_mod.get_fallback_classifier,
+                   llm_mod.get_translator):
+        llm = getter()
+        assert llm.extra_body == _EXPECTED_PROVIDER_BLOCK, (
+            f"{getter.__name__} did not receive the OpenRouter provider routing block"
+        )
+        assert llm._default_params.get("extra_body") == _EXPECTED_PROVIDER_BLOCK
+
+
+def test_provider_block_omitted_entirely_when_unset(monkeypatch):
+    monkeypatch.setattr(cfg, "OPENROUTER_PROVIDER_PIN", None)
+    llm_mod.reset_singletons()
+    for getter in (llm_mod.get_classifier, llm_mod.get_fallback_classifier,
+                   llm_mod.get_translator):
+        llm = getter()
+        assert llm.extra_body is None
+        assert "extra_body" not in llm._default_params, (
+            f"{getter.__name__}: unset pin must not appear in request params at all "
+            "(dark default = byte-identical request payload)"
+        )
+
+
+def test_responder_family_never_receives_provider_pin(monkeypatch):
+    monkeypatch.setattr(cfg, "OPENROUTER_PROVIDER_PIN", "openai")
+    llm_mod.reset_singletons()
+    for getter in (llm_mod.get_responder, llm_mod.get_fallback_responder):
+        llm = getter()
+        assert llm.extra_body is None, f"{getter.__name__} must never be provider-pinned"
+        assert "extra_body" not in llm._default_params
