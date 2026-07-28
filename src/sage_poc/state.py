@@ -170,6 +170,23 @@ class SageState(TypedDict):
                                            # + no harm + intent=crisis). Declared channel so _route_after_intent
                                            # reads it (SG-2: undeclared keys are dropped between nodes).
 
+    # --- Psychoed pathway channel (spec 2026-07-23 §4.2; Phase 2). ---
+    # psychoed_serve is PER-TURN: reset each turn in _build_state(). All others are
+    # pathway-scoped (cleared on pathway exit by skill_select/output_gate, after audit
+    # persist) except psychoed_family_exposures which is session-scoped (carry-forward,
+    # schema-extension follow-up to spec §10 item 7).
+    psychoed_serve: Optional[dict]
+    psychoed_active_category: Optional[str]
+    psychoed_delivery_shape: Optional[str]
+    psychoed_blocks_served: list[str]
+    psychoed_menu_offered: bool
+    psychoed_weave_fired: bool
+    psychoed_weave_pending: bool
+    psychoed_matched_row_id: Optional[str]
+    psychoed_collision_path: Optional[str]
+    psychoed_framing: Optional[str]
+    psychoed_family_exposures: list[str]
+
 
 def safety_text(state: SageState) -> str:
     """The text every safety-critical detector MUST read: the RAW user input in its original

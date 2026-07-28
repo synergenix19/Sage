@@ -29,3 +29,13 @@ def test_invalid_category_rejected(monkeypatch):
     cfg = _reload_config(monkeypatch, SAGE_PSYCHOED_PATHWAYS="true",
                          SAGE_PSYCHOED_CATEGORIES="1f,bogus")
     assert cfg.PSYCHOED_CATEGORIES == frozenset({"1f"})  # bogus dropped with a warning, never served
+
+
+def test_psychoed_channels_declared():
+    from sage_poc.state import SageState
+    keys = SageState.__annotations__
+    for k in ("psychoed_serve", "psychoed_active_category", "psychoed_delivery_shape",
+              "psychoed_blocks_served", "psychoed_menu_offered", "psychoed_weave_fired",
+              "psychoed_weave_pending", "psychoed_matched_row_id", "psychoed_collision_path",
+              "psychoed_framing", "psychoed_family_exposures"):
+        assert k in keys, f"undeclared channel: {k}"
