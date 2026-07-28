@@ -238,6 +238,50 @@ def _build_llm_tools(state: SageState, user_id, session_id) -> list:
 
 
 async def freeflow_respond_node(state: SageState, llm=None) -> dict:
+    # Psychoed no-LLM serve transit (spec §4.1; Phase 2 Task 11; flag-gated, default OFF -> this
+    # whole block is skipped and the function is byte-identical to pre-Task-11 behavior). Node 4
+    # (skill_select) or Node 6 (knowledge_retrieve) already resolved a deterministic psychoed_serve
+    # payload -- ratified copy, composed by serve.compose_turn1 from the in-process store. Never
+    # route this through the LLM (Cardinal Rule: the model does not decide whether ratified copy
+    # fires, and it must not paraphrase it either). blocks_served/family_exposures were already
+    # appended by knowledge_retrieve for this turn -- do NOT append them again here.
+    from sage_poc import config  # noqa: PLC0415 — local import so monkeypatch.setattr(config, ...) takes effect
+    if config.PSYCHOED_PATHWAYS_ENABLED:
+        serve_payload = state.get("psychoed_serve")
+        if serve_payload:
+            from sage_poc.psychoed import serve as psy_serve  # noqa: PLC0415
+            out = psy_serve.compose_turn1(serve_payload)
+            return {
+                "response_en": out["text"],
+                "psychoed_menu_offered": out["menu_offered"],
+                # Wiring choice (Task 11 / Node-8 audit): enrich the payload IN STATE with the
+                # template_version compose_turn1 just resolved -- mirrors knowledge_retrieve's own
+                # content_hash enrichment one node earlier (same "payload is in state, patch it
+                # cleanly" pattern). compose_turn1 is the only caller of the templates file, so this
+                # is the first point template_version is known; Node-8's audit then reads it
+                # straight off state["psychoed_serve"]["template_version"] rather than threading a
+                # brand-new channel through the graph for a single audit-only fact.
+                "psychoed_serve": {**serve_payload, "template_version": out["template_version"]},
+                "path": (state.get("path") or []) + ["freeflow_respond"],
+            }
+        if state.get("skill_match_method") == "psychoed_menu_after_weave":
+            category = state.get("psychoed_active_category")
+            if category is not None:
+                from sage_poc.psychoed import store as psy_store  # noqa: PLC0415
+                manifest = psy_store.manifest(category)
+                return {
+                    "response_en": manifest["menu_offer"],  # verbatim, framing-less re-offer
+                    "psychoed_menu_offered": True,
+                    "path": (state.get("path") or []) + ["freeflow_respond"],
+                }
+            # Defensive: a PSY-WEAVE-1 clear-negative with no recorded active category should not
+            # happen per skill_select's own psychoed_active_category lifecycle, but this must never
+            # crash and must never invent copy -- fall through to the normal LLM freeflow path below.
+            _log.warning(
+                "[freeflow] psychoed_menu_after_weave with no psychoed_active_category set; "
+                "falling through to normal freeflow"
+            )
+
     if llm is None:
         llm = get_responder()
     fallback_llm = get_fallback_responder()

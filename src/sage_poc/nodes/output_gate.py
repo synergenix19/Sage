@@ -14,7 +14,7 @@ from sage_poc.config import AUDIT_LOG_ENABLED, CRISIS_LINE_UAE, CRISIS_CONFIG, C
 from sage_poc.llm import get_classifier
 from sage_poc.rules import engine as rules_engine
 from sage_poc.prompts.summarizer import summarise_history
-from sage_poc.audit import write_session_audit, write_identity_substitution_audit
+from sage_poc.audit import write_session_audit, write_identity_substitution_audit, derive_psychoed_weave_state
 
 _log = logging.getLogger(__name__)
 
@@ -929,6 +929,64 @@ async def output_gate_node(state: SageState) -> dict:
             _log.warning("[output_gate] HR §5 neutrality gate: non-account-framed referral replaced "
                          "with signed fallback (session=%s)", session_id)
 
+    # ── Psychoed verbatim hash gate (Node-8; spec §6.2 refinement; Phase 2 Task 11) ────────────
+    # Placed immediately after the HR §5 neutrality gate: same Node-8 discretion-elimination
+    # discipline (the LLM/pipeline renders language, it does NOT decide whether ratified copy
+    # survives verbatim). A psychoed_serve turn carrying a block_id emitted ratified copy from the
+    # in-process store this turn -- recompute the block's sha256 and confirm its content is a
+    # verbatim substring of final_response.
+    #   PASS       -> no-op.
+    #   MISMATCH   -> the emitted text drifted from the ratified block (upstream corruption,
+    #                 translation, or a pinning bug) -- BLOCK the emission and re-serve the pinned
+    #                 recomposition from the store (never patch or paraphrase the drifted text).
+    #   CORRUPTION -> the block_id itself is no longer in the store (data loss, not merely a text
+    #                 drift) -- drop ALL psychoed copy. A post-hoc "normal freeflow" result does
+    #                 not exist to fall back to, so serve only the manifest's own already-pinned
+    #                 check_in question (spec §6.2 refinement of the generic "neutral referral
+    #                 template": the store is in-process, so a fetch-fail here IS data corruption,
+    #                 and the fallback must itself be already-ratified copy, never composed text).
+    # Flag-gated; a turn with no psychoed_serve block_id never reaches either branch below.
+    psychoed_gate_action: str | None = None
+    _psychoed_turn = state.get("psychoed_serve") or {}
+    _psychoed_block_id = _psychoed_turn.get("block_id")
+    if _cfg.PSYCHOED_PATHWAYS_ENABLED and _psychoed_block_id:
+        from sage_poc.psychoed import store as psy_store, serve as psy_serve  # noqa: PLC0415
+        if _psychoed_block_id not in psy_store.block_ids():
+            _emitted_hash = hashlib.sha256(final_response.encode()).hexdigest()[:16]
+            _log.error(
+                "psychoed_integrity_incident kind=corruption block_id=%s recomputed_hash=None "
+                "emitted_hash=%s session=%s",
+                _psychoed_block_id, _emitted_hash, session_id,
+            )
+            _category = _psychoed_turn.get("category")
+            if _category:
+                final_response = psy_store.manifest(_category)["check_in"]
+            psychoed_gate_action = "fallback"
+        else:
+            _recomputed_hash = psy_store.block_sha256(_psychoed_block_id)
+            _block_content = psy_store.get_block(_psychoed_block_id)["content"]
+            if _block_content in final_response:
+                psychoed_gate_action = "pass"
+            else:
+                _emitted_hash = hashlib.sha256(final_response.encode()).hexdigest()[:16]
+                _log.error(
+                    "psychoed_integrity_incident kind=mismatch block_id=%s recomputed_hash=%s "
+                    "emitted_hash=%s session=%s",
+                    _psychoed_block_id, _recomputed_hash, _emitted_hash, session_id,
+                )
+                final_response = psy_serve.compose_turn1(_psychoed_turn)["text"]
+                psychoed_gate_action = "reserved"
+
+    _psychoed_audit_present = bool(
+        _psychoed_turn
+        or state.get("psychoed_matched_row_id") is not None
+        or state.get("psychoed_collision_path") is not None
+        or state.get("psychoed_framing") is not None
+        or state.get("psychoed_weave_pending")
+        or state.get("psychoed_weave_fired")
+        or psychoed_gate_action is not None
+    )
+
     if AUDIT_LOG_ENABLED:
         audit = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -967,6 +1025,14 @@ async def output_gate_node(state: SageState) -> dict:
             ),
             "banned_opener_violation": banned_opener_violation,
         }
+        if _psychoed_audit_present:
+            audit["psychoed_block_ids"] = [_psychoed_block_id] if _psychoed_block_id else []
+            audit["psychoed_matched_row_id"] = state.get("psychoed_matched_row_id")
+            audit["psychoed_collision_path"] = state.get("psychoed_collision_path")
+            audit["psychoed_framing"] = state.get("psychoed_framing")
+            audit["psychoed_weave_state"] = derive_psychoed_weave_state(state)
+            audit["psychoed_template_version"] = _psychoed_turn.get("template_version")
+            audit["psychoed_gate_action"] = psychoed_gate_action
         _log.info("[output_gate] AUDIT %s", json.dumps(audit))
 
         if state.get("clinical_flags"):
@@ -1034,7 +1100,8 @@ async def output_gate_node(state: SageState) -> dict:
         )
 
     _audit_task = asyncio.create_task(write_session_audit(
-        {**state, "path": path, "gate_path": gate_path or "standard", "hr_neutrality_rejected": _hr_neutrality_rejected}))
+        {**state, "path": path, "gate_path": gate_path or "standard", "hr_neutrality_rejected": _hr_neutrality_rejected,
+         "psychoed_gate_action": psychoed_gate_action}))
     _audit_task.add_done_callback(
         lambda t: _log.warning("[output_gate] session audit error: %s", t.exception())
         if not t.cancelled() and t.exception() else None
