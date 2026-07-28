@@ -135,10 +135,16 @@ async def _invoke_once(
     node: str,
     *,
     is_fallback: bool = False,
+    meta_out: dict | None = None,
 ) -> str:
     response_msg = await asyncio.wait_for(
         llm.ainvoke(messages), timeout=LLM_TIMEOUT_SECONDS
     )
+    if meta_out is not None:
+        try:
+            meta_out.update(getattr(response_msg, "response_metadata", None) or {})
+        except Exception:  # metadata capture must never fail the call
+            pass
     logger.info(
         '{"event": "llm_call", "node": "%s", "model": "%s", "is_fallback": %s, "status": "success"}',
         node,
@@ -157,8 +163,16 @@ async def resilient_invoke(
     node: str,
     language: str = "en",
     fallback_llm: Any | None = None,
+    meta_out: dict | None = None,
 ) -> str:
-    """Call llm.ainvoke() with timeout, retry, circuit breaker, and fallback."""
+    """Call llm.ainvoke() with timeout, retry, circuit breaker, and fallback.
+
+    meta_out (optional, backward-compatible): a caller-supplied dict populated with the
+    successful response's `response_metadata` — primary or the (equally pinned) fallback
+    LLM (classifier provenance audit, SAGE_AUDIT_CLASSIFIER_PROVENANCE). Left untouched
+    when the STATIC fallback copy is served (no LLM call succeeded), so an empty dict
+    signals "no LLM metadata captured". Never affects control flow.
+    """
     key = _circuit_key_from_model(
         getattr(llm, "model_name", "unknown"),
         getattr(llm, "openai_api_base", ""),
@@ -174,7 +188,7 @@ async def resilient_invoke(
         if fallback_llm is not None:
             try:
                 return await _invoke_once(
-                    fallback_llm, messages, node, is_fallback=True
+                    fallback_llm, messages, node, is_fallback=True, meta_out=meta_out
                 )
             except Exception:
                 pass
@@ -197,6 +211,11 @@ async def resilient_invoke(
                 latency_ms,
                 int(LLM_TIMEOUT_SECONDS * 1000),
             )
+            if meta_out is not None:
+                try:
+                    meta_out.update(getattr(response_msg, "response_metadata", None) or {})
+                except Exception:  # metadata capture must never fail the call
+                    pass
             return response_msg.content.strip()
         except Exception as exc:
             if not _is_retryable(exc):
@@ -222,7 +241,7 @@ async def resilient_invoke(
     if fallback_llm is not None:
         try:
             return await _invoke_once(
-                fallback_llm, messages, node, is_fallback=True
+                fallback_llm, messages, node, is_fallback=True, meta_out=meta_out
             )
         except Exception as fb_exc:
             logger.error(

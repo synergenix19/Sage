@@ -157,6 +157,14 @@ class SageState(TypedDict):
     answering_screen: bool                 # PER-TURN: set by consume_pending_screen at graph entry when a
                                            # screen was pending; the structural guarantee the hold outlives
                                            # exactly one turn (screen_pending cleared the same turn)
+    # Classifier provenance (SAGE_AUDIT_CLASSIFIER_PROVENANCE, default OFF — Node-2 bistability finding
+    # 2026-07-28). PER-TURN, reset in _build_state. Written by intent_route ONLY when the flag is ON
+    # (flag-OFF state update is byte-identical to today), read by audit._build_session_audit_row.
+    # MUST be declared channels: LangGraph drops undeclared keys between nodes (the SG-2 seam class),
+    # which here would silently record NULL provenance while every component test stays green.
+    classifier_context_hash: Optional[str]  # sha256 hex of the exact assembled classifier prompt messages, computed in intent_route immediately before invocation
+    classifier_provider: Optional[str]      # upstream provider: response metadata "provider" if OpenRouter returns it, else the SAGE_OPENROUTER_PROVIDER_PIN value, else None
+    classifier_system_fingerprint: Optional[str]  # Q-b (seed HONOR, not seed request): system_fingerprint echoed by the provider, or None when absent/empty — the only available signal of the backend config that served the call; a requested seed proves intent, this records what came BACK
     panic_grounding_override: bool         # PER-TURN (Part A): set by intent_route when the deterministic
                                            # panic-grounding override applies (safety_check clean + clear panic
                                            # + no harm + intent=crisis). Declared channel so _route_after_intent

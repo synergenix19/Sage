@@ -1,3 +1,4 @@
+import hashlib
 import json
 import re
 from sage_poc.state import SageState
@@ -123,6 +124,18 @@ def _safe_int(value, default: int) -> int:
         return default
 
 
+def _classifier_context_hash(messages: list[dict]) -> str:
+    """sha256 hex over a canonical JSON serialization of the EXACT assembled classifier
+    prompt messages. Deterministic (sort_keys + compact separators + ensure_ascii=False)
+    so the same assembled context always hashes identically — this is the audit key that
+    makes a classifier decision reconstructable despite the prompt embedding stochastic
+    temp-0.7 responder history (bistability finding cause 1)."""
+    canonical = json.dumps(
+        messages, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 async def intent_route_node(state: SageState, llm=None) -> dict:
     if llm is None:
         llm = get_classifier()
@@ -132,8 +145,16 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
         {"role": "system", "content": INTENT_SYSTEM},
         {"role": "user", "content": build_intent_prompt(state)},
     ]
+    # Classifier provenance (SAGE_AUDIT_CLASSIFIER_PROVENANCE, default OFF): hash the
+    # exact assembled messages IMMEDIATELY before invocation, and capture the response
+    # metadata via meta_out. Flag OFF -> neither computed nor written; this node's state
+    # update is byte-identical to today (dark).
+    _provenance_on = _cfg.AUDIT_CLASSIFIER_PROVENANCE_ENABLED
+    _ctx_hash = _classifier_context_hash(messages) if _provenance_on else None
+    _meta: dict = {}
     raw = await resilient_invoke(
-        llm, messages, node="intent_route", fallback_llm=fallback_llm
+        llm, messages, node="intent_route", fallback_llm=fallback_llm,
+        meta_out=_meta if _provenance_on else None,
     )
 
     match = re.search(r'\{.*\}', raw, re.DOTALL)
@@ -180,6 +201,23 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
             and should_ground_over_crisis({**state, "primary_intent": primary_intent})
         ),
     }
+    if _provenance_on:
+        # DECLARED channels (classifier_context_hash / classifier_provider in SageState;
+        # LangGraph drops undeclared keys — the SG-2 seam class). Read by
+        # audit._build_session_audit_row on the output_gate turn-close. Provider chain:
+        # OpenRouter's top-level "provider" response field if the client surfaces it,
+        # else the configured pin, else None. NOTE: langchain-openai's hardcoded
+        # "model_provider": "openai" metadata key is the API SHAPE, not the upstream
+        # provider — deliberately not consulted.
+        result["classifier_context_hash"] = _ctx_hash
+        result["classifier_provider"] = (
+            _meta.get("provider") or _cfg.OPENROUTER_PROVIDER_PIN or None
+        )
+        # Q-b (seed honor, not seed request): a requested seed proves intent; only the
+        # response tells us what backend served the call. system_fingerprint is the sole
+        # honor signal the OpenAI-family response exposes. langchain-openai defaults a
+        # missing fingerprint to "" — normalized to None (recorded null, never fabricated).
+        result["classifier_system_fingerprint"] = _meta.get("system_fingerprint") or None
     # v7.2 Node-2 keyword pre-pass (rules-first, Cardinal Rule 5). Deterministic skill-trigger match
     # emitting a routing HINT only — the classifier above still owns primary_intent + engagement/
     # intensity. _route_after_intent redirects a would-be-freeflow general_chat turn to skill_select
