@@ -13,6 +13,14 @@ retrieval or citations, and the audit trail on consult turns is faithful and com
 matrix baseline was measured with consult prompts carrying no KB context and is not at risk from any
 option below except where explicitly gated.
 
+## Recommendation (engineering; the ruling is yours)
+
+| Rec | Basis | Your call |
+|---|---|---|
+| **Option 1 — C1 interim, cards-only** | The inconsistency is live TODAY on a citation-bearing surface (RFQ commitment), and Phase-2 per-category flips are gated on the (unsigned) Phase-1 packet + fixture gates — timeline not short. C1 adds **zero new clinical content**: the cards are the same top-3 passages the KB path would have shown for the same question, same ABSTAIN floor, and the conversational reply you signed is **byte-untouched** (no evidence enters the prompt). Built inert (default-OFF flag), flipped only on this ruling, and **self-retiring**: each Phase-2 category flip replaces its C1 retrieval cards with the signed kb_ref cards in the same change, mirroring the consult-set retirement you already ratified. Reversible at any moment by flag. | ______ |
+
+If you judge the Phase-2 packet signature to be imminent, **Option 2 is equally sound and cheaper** — the only cost is the inconsistency persisting until each category flips.
+
 ## The ruling
 
 **Should a psychoed consult turn carry Further Reading cards?**
