@@ -912,6 +912,12 @@ async def skill_select_node(state: SageState) -> dict:
     # never diverge (single-sourced from skill JSON target_presentations). Identical logic to before.
     kw_matches: dict[str, int] = match_skill_keywords(message_en, raw_message, detected_language)
 
+    from sage_poc.skills.keyword_matcher import _kwdbg as _kwdbg_ss  # TEMPORARY DIAGNOSTIC — REVERT
+    _kwdbg_ss("skill_select.tier1", message_en, raw_message,
+              primary_intent=state.get("primary_intent"), kw_matches=kw_matches,
+              rerank_enabled=_rerank_enabled(), v2_enabled=_v2_enabled(),
+              clinical_flags=state.get("clinical_flags"))
+
     if kw_matches:
         ranked_kw = sorted(kw_matches.items(), key=lambda x: x[1], reverse=True)
         candidates = [sid for sid, _ in ranked_kw]

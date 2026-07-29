@@ -227,6 +227,10 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
     )
     result["prepass_matched"] = _prepass
     result["prepass_rule_id"] = "prepass_kw_v1" if _prepass else None
+    from sage_poc.skills.keyword_matcher import _kwdbg as _kwdbg_ir  # TEMPORARY DIAGNOSTIC — REVERT
+    _kwdbg_ir("intent_route.prepass", state.get("message_en", ""), state.get("raw_message", ""),
+              primary_intent=result.get("primary_intent"), prepass_matched=_prepass,
+              detected_language=state.get("detected_language", "en"))
     offered = state.get("offered_skill_ids") or []
     if offered:
         offer_response = data.get("offer_response")
