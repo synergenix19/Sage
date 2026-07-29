@@ -57,12 +57,39 @@ DEFAULT_N = 10
 # Aggregation (pure — unit-tested with synthetic records)
 # ---------------------------------------------------------------------------
 
+# BOT BEHAVIOUR §1a Tier-1 first-line pair (spec offer table). The spec-conformance
+# column counts ONLY these; the offer-rate/first-line delta is itself the DF-1
+# ordering evidence (semantic rank serving psychoed/worry_time/PMR, never the pair).
+FIRST_LINE_PAIR = frozenset({"box_breathing", "grounding_5_4_3_2_1"})
+
+# Path marker skill_select emits when a pending offer is genuinely promoted to the
+# active skill (skill_select.py: path + ["skill_select", "offer_promoted"],
+# skill_match_method "offer_accept"). Activation WITHOUT this marker (psychoed
+# absorption via skill_executor, info_request_skill_consult, auto-selects) is not
+# offer-derived and never spec-conformant here.
+OFFER_PROMOTED_MARKER = "offer_promoted"
+
+
 def _offered(rec: dict) -> bool:
     """Did the turn end with a skill offered/active/completed? (completion markers
     included — the measure_layer1_fullgraph instrument correction: in-turn-completing
     skills clear active_skill_id by END.)"""
     return bool(rec.get("offered_skill_ids")) or bool(rec.get("active_skill_id")) \
         or bool(rec.get("completed_skill_id"))
+
+
+def _first_line_offered(rec: dict) -> bool:
+    """Spec-conformance test for the final/request turn: the §1a Tier-1 pair was
+    OFFERED (offered_skill_ids intersects the pair), or a pair skill was ACTIVATED
+    through a genuinely offer-derived path (offer_promoted marker). Psychoed
+    absorption, semantic offers of other skills, and knowledge-path responses all
+    count 0 even when offer-rate counts them."""
+    if FIRST_LINE_PAIR & set(rec.get("offered_skill_ids") or []):
+        return True
+    if OFFER_PROMOTED_MARKER in (rec.get("path") or []):
+        activated = rec.get("active_skill_id") or rec.get("completed_skill_id")
+        return activated in FIRST_LINE_PAIR
+    return False
 
 
 def mechanism_signature(rec: dict) -> str:
@@ -81,9 +108,11 @@ def aggregate_case(fixture_result: dict) -> dict:
     mech = collections.Counter(mechanism_signature(r) for r in finals)
     traj = collections.Counter(trajectory_signature(s["records"]) for s in samples)
     offer_rate = sum(_offered(r) for r in finals) / n if n else 0.0
+    first_line_rate = sum(_first_line_offered(r) for r in finals) / n if n else 0.0
     return {
         "n": n,
         "offer_rate": offer_rate,
+        "first_line_offer_rate": first_line_rate,
         "mechanism_counts": dict(mech.most_common()),
         "mechanism_flip_rate": (1 - mech.most_common(1)[0][1] / n) if n else 0.0,
         "trajectory_freqs": dict(traj.most_common()),
@@ -129,16 +158,22 @@ def _fmt_rate(x: float) -> str:
 def render_body(per_case: dict) -> str:
     lines = [
         "## Per-fixture outcome distributions", "",
-        "Offer-rate = fraction of samples whose FINAL (request) turn ends with a skill "
-        "offered/active/completed. Flip-rate = fraction of samples off the modal outcome "
-        "(mechanism = final-turn intent+path signature; trajectory = full session).", "",
-        "| case | surface | n | offer-rate | mech flip-rate | traj flip-rate | degraded turns | modal mechanism |",
-        "|---|---|---|---|---|---|---|---|",
+        "Offer-rate = fraction of samples whose FINAL (request) turn ends with ANY skill "
+        "offered/active/completed. First-line rate = spec-conformance column: the BOT "
+        "BEHAVIOUR §1a Tier-1 pair {box_breathing, grounding_5_4_3_2_1} offered, or a "
+        "pair skill activated via the offer_promoted path; psychoed absorption, other-skill "
+        "semantic offers, and knowledge-path responses count 0 here even when offer-rate "
+        "counts them — the offer-rate/first-line DELTA is the DF-1 ordering evidence. "
+        "Flip-rate = fraction of samples off the modal outcome (mechanism = final-turn "
+        "intent+path signature; trajectory = full session).", "",
+        "| case | surface | n | offer-rate | first-line rate | mech flip-rate | traj flip-rate | degraded turns | modal mechanism |",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
     for cid, agg in per_case.items():
         modal = next(iter(agg["mechanism_counts"]), "-")
         lines.append(
             f"| {cid} | {agg.get('surface', '?')} | {agg['n']} | {_fmt_rate(agg['offer_rate'])} "
+            f"| {_fmt_rate(agg['first_line_offer_rate'])} "
             f"| {_fmt_rate(agg['mechanism_flip_rate'])} | {_fmt_rate(agg['trajectory_flip_rate'])} "
             f"| {agg['degraded_turn_count']} | `{modal}` |")
     lines.append("")
@@ -147,7 +182,9 @@ def render_body(per_case: dict) -> str:
         exp = (agg.get("spec_expectation") or {}).get("expected")
         if exp:
             lines += [f"- **spec_expectation:** {exp}", ""]
-        lines += [f"- offer-rate: **{_fmt_rate(agg['offer_rate'])}** over n={agg['n']}",
+        lines += [f"- offer-rate: **{_fmt_rate(agg['offer_rate'])}** | first-line offer-rate "
+                  f"(§1a Tier-1 pair, spec-conformant): **{_fmt_rate(agg['first_line_offer_rate'])}** "
+                  f"over n={agg['n']}",
                   f"- mechanism flip-rate: {_fmt_rate(agg['mechanism_flip_rate'])} | "
                   f"trajectory flip-rate: {_fmt_rate(agg['trajectory_flip_rate'])}",
                   "", "Mechanism counts (final turn, intent+path signature):", ""]
@@ -226,8 +263,8 @@ async def _amain(args) -> int:
         if args.json:
             per_case[cid]["_raw_samples"] = result["samples"]
         print(f"[{time.time()-t0:.0f}s] {cid} n={args.n} offer-rate="
-              f"{agg['offer_rate']:.2f} mech-flip={agg['mechanism_flip_rate']:.2f}",
-              flush=True)
+              f"{agg['offer_rate']:.2f} first-line={agg['first_line_offer_rate']:.2f} "
+              f"mech-flip={agg['mechanism_flip_rate']:.2f}", flush=True)
 
     header = ge.header_block(derived, readback, n_per_fixture=args.n,
                              degraded_turn_count=degraded_total,

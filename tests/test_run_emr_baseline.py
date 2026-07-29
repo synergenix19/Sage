@@ -88,6 +88,65 @@ def test_trajectory_frequencies_cover_all_samples():
     assert len(agg["trajectory_freqs"]) == 2  # modal trajectory + the flip
 
 
+_PATH_ABSORB = ["safety_check", "intent_route", "skill_executor", "freeflow_respond"]
+_PATH_PROMOTED = ["safety_check", "intent_route", "skill_select", "offer_promoted",
+                  "skill_respond"]
+
+
+def _three_mechanism_result():
+    """Coordinator-specified fabricated set: absorption / first-line offer / KB abstain."""
+    absorption = _rec(2, "skill_continuation", 0.9, _PATH_ABSORB,
+                      active="psychoed_anxiety", method="info_request_skill_consult")
+    first_line = _rec(2, "new_skill", 0.9, _PATH_OFFER,
+                      offered=["box_breathing"], method="keyword")
+    kb_abstain = _rec(2, "info_request", 0.8,
+                      ["safety_check", "intent_route", "offer_ignored", "skill_select",
+                       "knowledge_retrieve", "freeflow_respond"])
+    return {"n": 3, "turns": 2,
+            "samples": [_sample(0, absorption), _sample(1, first_line),
+                        _sample(2, kb_abstain)],
+            "degraded_turn_count": 0}
+
+
+def test_first_line_column_vs_offer_rate_on_the_three_mechanisms():
+    """absorption -> offer=1/conformant=0; first-line offer -> 1/1; KB abstain -> 0/0.
+    The offer-rate/first-line DELTA is the DF-1 ordering evidence."""
+    agg = rb.aggregate_case(_three_mechanism_result())
+    assert agg["offer_rate"] == pytest.approx(2 / 3)          # absorption + offer count
+    assert agg["first_line_offer_rate"] == pytest.approx(1 / 3)  # ONLY the §1a pair offer
+
+
+def test_first_line_counts_pair_activation_only_via_offer_promoted_path():
+    pair_promoted = _rec(2, "new_skill", 0.9, _PATH_PROMOTED,
+                         active="box_breathing", method="offer_accept")
+    pair_absorbed = _rec(2, "skill_continuation", 0.9, _PATH_ABSORB,
+                         active="box_breathing", method="info_request_skill_consult")
+    other_promoted = _rec(2, "new_skill", 0.9, _PATH_PROMOTED,
+                          active="worry_time", method="offer_accept")
+    res = {"n": 3, "turns": 2, "degraded_turn_count": 0,
+           "samples": [_sample(0, pair_promoted), _sample(1, pair_absorbed),
+                       _sample(2, other_promoted)]}
+    agg = rb.aggregate_case(res)
+    # ONLY the offer_promoted activation of a pair skill is spec-conformant:
+    # a pair skill reached WITHOUT the offer path is not, another skill promoted is not
+    assert agg["offer_rate"] == pytest.approx(1.0)
+    assert agg["first_line_offer_rate"] == pytest.approx(1 / 3)
+
+
+def test_first_line_pair_is_the_spec_tier1_pair():
+    assert rb.FIRST_LINE_PAIR == {"box_breathing", "grounding_5_4_3_2_1"}
+
+
+def test_semantic_offer_of_other_skills_counts_zero_in_first_line_column():
+    other_offer = _rec(2, "new_skill", 0.9, _PATH_OFFER,
+                       offered=["psychoed_anxiety", "worry_time"], method="semantic_offer")
+    res = {"n": 1, "turns": 2, "degraded_turn_count": 0,
+           "samples": [_sample(0, other_offer)]}
+    agg = rb.aggregate_case(res)
+    assert agg["offer_rate"] == 1.0
+    assert agg["first_line_offer_rate"] == 0.0
+
+
 def test_stable_fixture_has_zero_flip_rate():
     res = _fixture_result()
     stable_final = _rec(2, "new_skill", 0.9, _PATH_OFFER,
@@ -150,6 +209,8 @@ def test_baseline_md_carries_header_then_distributions(tmp_path):
     text = out.read_text()
     assert text.index("feedfacebeef") < text.index("EMR-S1-000"), "header must precede results"
     assert "offer-rate" in text.lower()
+    assert "first-line" in text.lower()      # spec-conformance column present
+    assert "box_breathing" in text           # the §1a pair is named in the metric key
     assert "0.75" in text
     assert "flip-rate" in text.lower()
     assert "new_skill|" in text          # mechanism keyed on intent+path signature
