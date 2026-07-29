@@ -56,11 +56,12 @@ amendment's change (`sha256: aa31d27f6d4dc3801dc79c03aae9ab92621a7acb42518d97cc5
 git blob `c342ad98`). **The recovered copy is the UNSIGNED template** — all 18 "Your call" cells
 blank. The SIGNED instance (Vee's actual B1 ruling) was NOT FOUND in the repo, any local tree, or
 reachable mail (search blocked: insufficient mailbox scopes); its in-repo attestation is the go-live
-record only. **Owner resolves before signing, one of:**
-- ☐ signed instance exists (mail/message/hard copy) → pin it: `location: ______ · sha256: ______`
-- ☐ no signed instance exists → the flip gate's evidence is a secondhand attestation over an
-  unsigned template. That is a **clinical-governance finding**; it goes in front of the PO signature
-  (rule on it explicitly), not behind it.
+record only. **RESOLVED 2026-07-29 — owner confirmation:** the PO confirmed (in-session, 2026-07-29)
+that Vee approved B1 before the 2026-07-23 flip; the signed instance exists out-of-repo. The
+no-signed-instance branch (clinical-governance finding) is CLOSED. **Remaining mechanical step, with
+the PO signature:** pin the instance (`location: ______ · sha256: ______`) or, preferred, land a
+retroactive two-line-confirm transcription (`2026-07-29-consult-b1-confirm-V.md`, the
+`d1-vee-two-line-confirm` pattern) so the ruling is in-repo like every other Vee ruling.
 
 **Template rule going forward:** every amendment record MUST carry a location+hash pin for any
 sign-off artifact that lives outside the repo — and a sign-off artifact must never ride only an
@@ -105,8 +106,18 @@ restated NOW, before Phase 2 lands:
 > The ABSTAIN similarity floor applies **only** to `provenance = retrieval`; kb_ref cards cannot
 > abstain because they are signed — that is the audit-clean property being bought.
 
-Phase-2 implementation gate: the audit-row provenance field and the widened invariant land **with**
-the first kb_ref card emission, not after.
+**Extended one notch (2026-07-29 review of the C1 ruling):** the audit row also records **retrieval
+purpose (`evidence` | `cards_only`)** alongside source provenance. Rationale: an interim C1 turn has
+non-empty `knowledge_passage_ids` while the reply is grounded in signed skill content, not the
+passages — without the purpose field, every consult-turn audit record between C1 flip and Phase-2
+retirement is a forensic ambiguity (reads as evidence-grounded generation). The union invariant's
+disjointness assumption additionally requires that a category's consult-set entry and its C1 fan-out
+predicate retire **in the same change** (Phase-2 handoff §0 convention, stated here explicitly): no
+turn may emit retrieval cards and kb_ref cards together.
+
+Phase-2 implementation gate: the audit-row provenance + purpose fields and the widened invariant land
+**with** the first kb_ref card emission, not after; the purpose field lands earlier if C1 ships (with
+the C1 flip, not after it).
 
 ## Scope invariants (held)
 

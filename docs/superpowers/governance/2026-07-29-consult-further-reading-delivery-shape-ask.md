@@ -28,6 +28,23 @@ If you judge the Phase-2 packet signature to be imminent, **Option 2 is equally 
 - ☐ **Yes, and before Phase-2 category flips** → we ship **C1 only**: retrieval runs in parallel to
   populate the cards and the audit row; **the composed reply is untouched** (no evidence enters the
   prompt). Cards obey the existing ABSTAIN floor — weak evidence means no cards, never weak cards.
+  **Three conditions are part of this ruling, not implementation detail:**
+  1. **Label mandate — the cards must not claim grounding they don't have.** On a C1 turn the reply
+     is grounded in your signed skill content and the cards in retrieval; rendering them as
+     "Sources" would assert the reply was generated from those passages — a faithfulness
+     misrepresentation on the exact surface the Scoping-Brief citation commitment covers, worse
+     than no cards. The ruling mandates the **"Further Reading"** label (related KB material, not
+     provenance of the reply). The frontend already renders this label; this ruling pins it, and
+     the C1 build carries a fixture asserting the label key so it cannot drift to "Sources".
+  2. **Audit purpose discriminator** — on C1 turns `knowledge_passage_ids` becomes non-empty
+     without evidence-grounded generation, the same false inference as (1) recreated in the audit
+     trail. The audit row therefore records **retrieval purpose (`evidence` | `cards_only`)**
+     alongside source provenance (`retrieval` | `kb_ref`); C1 turns stamp `cards_only`. No future
+     auditor can read non-empty passage IDs as grounding.
+  3. **Same-change retirement coupling** — a category's consult-set entry and its C1 fan-out
+     predicate retire **in the same change** (riding the Phase-2 handoff §0 convention), so no
+     turn can ever emit retrieval cards and kb_ref cards together; the invariant's disjointness
+     assumption holds throughout the transition.
 - ☐ **Yes, but Phase-2 timing is fine** → no interim build. Phase 2's signed `kb_ref` pointers become
   the card source (deterministic, signed, no retrieval call), landing per category as each pathway
   flips.
