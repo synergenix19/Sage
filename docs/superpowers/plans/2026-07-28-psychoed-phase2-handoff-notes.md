@@ -279,5 +279,127 @@ Today, every category where `safety_weave: true` (3c, s2c) also carries `safety_
 
 ---
 
+## VI. As-built deltas (Phase 2 execution, 2026-07-29)
+
+Phase 2 (Tasks 1–13) is now built. The following are execution-discovered facts that
+diverge from, or refine, the plan above — surfaced here for the Phase 3/4 owner, not
+re-litigated against the binding requirements in Section I.
+
+1. **`psychoed_family_exposures` channel replaces the dead `techniques_used` read.**
+   `therapeutic_profile["techniques_used"]` has no writer anywhere in the codebase and no
+   DB column (`postgres_repository.py:16-40`) — `prior_exposure` via that path was always
+   0, everywhere, not just for psychoed. Task 9 added `_psychoed_family_exposure(state,
+   skill)` (`skill_executor.py`), folded in additively via `max()` so the dead read stays
+   harmless while the live family-carry-forward channel takes over. This is a seam finding
+   that reaches beyond psychoed's own scope.
+
+2. **`psychoed_weave_escalation` channel + the `skill_select`→`crisis_response` edge-map
+   delta.** A PSY-WEAVE-1 escalation (`skill_select_node` finds `psychoed_weave_pending`
+   True and the reply is not a clear negative) sets `psychoed_weave_escalation=True` and is
+   the ONE new edge Phase 2 added to the graph: `graph.py`'s
+   `_route_after_skill_select` checks this flag as its top-priority branch —
+   before containment, screen, abstain, info_request, or active-skill — and routes straight
+   to `crisis_response`, wired via `graph.add_conditional_edges("skill_select", ...,
+   {"crisis_response": "crisis_response", ...})`. No other node in the graph gained a new
+   edge for Phase 2.
+
+3. **§6.2 corruption fallback chain:** payload's own `category` field → `psychoed_active_category`
+   → (both absent, unreachable by construction but held mechanically, not by convention) CRITICAL
+   log + first-enabled-category `check_in` (`sorted(config.PSYCHOED_CATEGORIES)[0]`, hardcoded
+   `"1f"` tertiary default if no category is enabled at all). Implemented in
+   `output_gate.py`'s psychoed verbatim hash gate (~L961-981).
+
+4. **Mechanism-A coexistence is per-category**, not global: a category can be live under
+   Phase-2 psychoed pathways while Mechanism-A's `info_request_consult_set.py` still carries
+   OTHER categories' consult entries. Retirement of a category's consult-set entry happens
+   at flip-time — in the same commit that enables the category — never as a separate pass.
+
+5. **Grief-context is 2 live signals, not 3.** `_psychoed_grief_context` (`skill_select.py`)
+   checks (a) `grief_loss` recently offered/active (`active_skill_id` or
+   `offered_skill_ids`) and (b) `psychoed_active_category == "s2c"`. A third,
+   clinical-flag-based signal was considered per the amended plan but no grief-coded
+   `flag_id` exists in `rules/data/safety/clinical_flag_patterns.json` — wiring a
+   nonexistent flag would be a disarmed-alarm shape, so it ships with only the two live
+   signals; add the third only once the safety lane declares one.
+
+6. **Outcome-2 (semantic backstop) is gated by the same two things outcome-1 is:**
+   active-skill suppression (skipped when a skill is already active) and Classifier A's
+   acute-distress veto (spec §2.1/§2.2). The Task-10 section of the mechanism plan
+   under-specified this — the gap was caught by spec-anchored review, not by a failing
+   test, and fixed before Task 10 closed (`knowledge_retrieve.py`'s outcome-2 branch).
+
+7. **EN-only pathway entry is enforced at two constructors, with an AR fall-through at a
+   third path (spec §3.7):** the resolver entry (`skill_select_node`) and the outcome-2
+   backstop (`knowledge_retrieve_node`) both gate on `detected_language == "en"` — a
+   psychoed_serve payload cannot be CREATED on a non-English turn. The third path,
+   menu-after-weave, is deliberately language-UNgated (PSY-WEAVE-1 evaluates a live safety
+   reply regardless of language) but its own composition
+   (`freeflow_respond_node`) falls through to the normal LLM freeflow path on a
+   non-English turn rather than serving the EN-ratified verbatim `menu_offer` — three
+   EN-ratified-copy leak paths, all closed.
+
+8. **Pathway-clear-on-exit fires at 9 explicit call sites**, all in `skill_select.py`
+   (`_psychoed_pathway_clear(state)` at the non-psychoed-skill-activation, HR-referral, and
+   offer-accept exits). The 10th call site, in `graph.py`'s `_crisis_response_node`, is
+   scoped to the PSY-WEAVE-1 escalation case only. An **ordinary** (non-weave) crisis
+   intercept does not call `_psychoed_pathway_clear` at all — it clears on the *next* turn
+   via the normal per-turn state spread (accepted at Task 8 review: path-accumulation and
+   escalation-scoped clear are both fine, since an ordinary crisis turn was never mid-serve
+   in the first place).
+
+9. **menu_first + weave is data-guarded, not code-guarded.** No category with
+   `delivery_shape: "menu_first"` also declares `safety_weave: true` in its manifest today,
+   so the "weave fires on a menu-first serve" combination is currently unreachable — by
+   content, not by a code assertion. If a future category ships both, the interaction is
+   unverified.
+
+10. **`compose_turn1`'s exception path is caught by the server's blanket handler, not a
+    psychoed-specific one** — a malformed payload or missing shared script fails the turn
+    closed (hard failure, no partial/garbled response reaches the user), but there is no
+    graceful psychoed-specific fallback. Triaged as a graceful-fallback candidate, non-blocking
+    for Phase 2 go-live.
+
+11. **Ambiguous menu-label multi-match fails closed at both resolution tiers.** In
+    `resolver._match_menu_label`, if the substring-containment tier yields more than one
+    match, the stopword-filtered token-subset tier is never consulted as a tiebreaker — the
+    whole lookup returns `None` (falls through to the global trigger-table match, or the
+    category's first block on the answer-first default). This was a post-review fix (see
+    `resolver.py`'s module docstring): the original code resolved multi-match ambiguity by
+    manifest array position, which is the same "undeclared winner" pattern the cross-category
+    collision tier explicitly refuses.
+
+12. **L2 template status strings (e.g. `human_referral_close`'s `PENDING-CLINICIAN` marker)
+    are ADVISORY ONLY — there is no loader-level enforcement gate today.** Nothing fails
+    the build if a pending script is wired into a live template; `psychoed_continuation`
+    carrying a pending-tone-confirm script is a Phase-4 flip precondition to be enforced by
+    process, not by code, until a build-time check is added (Addition 3, Section II, is
+    still open).
+
+13. **Outcome-2's return dict omits `skill_match_method`.** This is cosmetic — the audit
+    trail does not lose signal because `psychoed_collision_path == "semantic_backstop"` is
+    the field that actually carries "this was a backstop serve, not a resolver hit" forward
+    into the Node-8 audit row.
+
+14. **Answer-first block selection is a v1 limitation: label-containment else first-block,
+    not a specific-question mapping.** `resolver._pick_block` matches the *trigger phrase
+    itself* against each block's `menu_label` (substring, then stopword-filtered token
+    subset); on zero matches it falls back to the category's first manifest block. For
+    example, "Why do I feel numb?" (row `3c-t3`) serves `3c-b1` ("What is depression?"),
+    not the anhedonia-specific block `3c-b4` — even though `3c-b4`'s own label is "Why
+    things can feel numb or empty (anhedonia)" — because the phrase and the label don't
+    share a matching substring/token-subset under the current containment rules. True
+    specific-question→block mapping is a clinical judgment call, not one engineering should
+    invent by tuning string-matching heuristics: it requires a clinician-ratified
+    per-phrase block-hint column on the trigger tables. **Packet addendum required** (new
+    ask: ratify phrase→block hints per category); Phase-3 F1 fixtures then re-pin the
+    specific-block expectation. Until that lands, block selection stays deterministic
+    containment-or-first-block only — no similarity/embedding fallback is permitted here,
+    consistent with the resolver's "never similarity" invariant. Surfaced by
+    `tests/test_psychoed_graph.py`'s Task 13 graph test, which pins the v1 behavior
+    (`3c-b1`) with an explicit forward-reference comment to this delta.
+
+---
+
 *Document created: 2026-07-28*
 *Phase 1 content handoff complete; Phase 2 implementation to commence.*
+*Section VI (as-built deltas) added: 2026-07-29, Phase 2 Task 13.*
