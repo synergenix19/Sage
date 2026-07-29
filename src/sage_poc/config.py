@@ -442,3 +442,24 @@ PSYCHOED_CATEGORIES: frozenset[str] = (
 
 def psychoed_enabled_for(category: str) -> bool:
     return PSYCHOED_PATHWAYS_ENABLED and category in PSYCHOED_CATEGORIES
+
+# C1 interim Further-Reading cards on consult turns (v7.3 amendment record, named open item;
+# ruling: governance/2026-07-29-consult-further-reading-delivery-shape-ask.md, Option 1 APPROVED).
+# Gates the knowledge_retrieve_cards insertion on consult-selected turns: cards-only retrieval
+# whose passages populate X-Sage-Sources + the audit row and NEVER enter the prompt (the composer
+# reads knowledge_passages, which this path never writes — the signed conversational reply stays
+# byte-untouched). KILL-SWITCH, DEFAULT OFF, same inverted strict parse as the consult flag above.
+# OFF is byte-identical to master: the cards node is unreachable, no retrieval runs on consult
+# turns, the audit row carries no purpose column. TRANSITIONAL like its parent mechanism: each
+# Phase-2 category flip retires this path's predicate together with the category's consult-set
+# entry (same change — the ruling's disjointness condition). Migration 018 is the flag-flip
+# deploy gate (audit purpose column).
+_consult_sources_raw = os.getenv("SAGE_CONSULT_SOURCES")
+CONSULT_SOURCES_ENABLED = (
+    _consult_sources_raw is not None and _consult_sources_raw.strip().lower() == "true"
+)
+if _consult_sources_raw is not None and _consult_sources_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_CONSULT_SOURCES unexpected value %r — applying safe default (cards OFF); "
+        "only 'true' enables.", _consult_sources_raw,
+    )

@@ -193,3 +193,38 @@ async def knowledge_retrieve_node(state: SageState) -> dict:
         "path": path,
         **extra,
     }
+
+
+async def knowledge_retrieve_cards_node(state: SageState) -> dict:
+    """C1 cards-only retrieval on consult-selected turns (SAGE_CONSULT_SOURCES).
+
+    Writes the cards_* channels ONLY — never knowledge_passages/knowledge_source, which the
+    composer's L4 block and _allow_light_structure read. That separation is what makes the
+    ruling's "prompt byte-untouched" property structural: this node cannot alter the composed
+    reply no matter what it retrieves. Same retrieval, same ABSTAIN floor as the KB path, so
+    the cards are exactly the passages the KB path would have shown for the same question.
+    Failure is silent-degrade to no cards (never blocks the consult turn's reply).
+    """
+    pool = _get_pool()
+    path = (state.get("path") or []) + ["knowledge_retrieve_cards"]
+
+    if pool is None:
+        _log.warning("[knowledge_retrieve_cards] DB pool unavailable, no cards this turn")
+        return {
+            "cards_knowledge_passages": [],
+            "cards_knowledge_abstain": True,
+            "path": path,
+        }
+
+    lang = state.get("detected_language", "en")
+    query = state.get("raw_message", "") if lang == "ar" else state.get("message_en", "")
+
+    repo = PostgresKnowledgeRepository(pool)
+    result = await repo.retrieve(query, language=lang, top_k=5)
+
+    return {
+        "cards_knowledge_passages": [] if result.abstain else [p.to_dict() for p in result.passages],
+        "cards_knowledge_abstain": result.abstain,
+        "cards_knowledge_top_similarity": result.top_similarity,
+        "path": path,
+    }
