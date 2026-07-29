@@ -62,6 +62,12 @@ no-signed-instance branch (clinical-governance finding) is CLOSED. **Remaining m
 the PO signature:** pin the instance (`location: ______ · sha256: ______`) or, preferred, land a
 retroactive two-line-confirm transcription (`2026-07-29-consult-b1-confirm-V.md`, the
 `d1-vee-two-line-confirm` pattern) so the ruling is in-repo like every other Vee ruling.
+**Transcription protocol (evidentiary):** Vee is asked to confirm the substance and to state the
+date **unprompted, as best she recalls** (no date is suggested to her — a prompted echo that
+conflicts with the template's 2026-07-17 authoring date would create a new discrepancy inside the
+curing record). The hash-join is done at transcription, not by her: her reply is pinned verbatim
+with its own date alongside the recovered template's sha256 (`aa31d27f…`), so the transcription doc
+itself joins attestation to artifact.
 
 **Template rule going forward:** every amendment record MUST carry a location+hash pin for any
 sign-off artifact that lives outside the repo — and a sign-off artifact must never ride only an
