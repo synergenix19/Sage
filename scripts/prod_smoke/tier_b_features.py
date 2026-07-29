@@ -14,7 +14,9 @@ faking a pass. This keeps login (and its RBAC/harness discipline) in ONE place.
 
 run_all(base_url) -> list[CheckResult]  (all must_pass=False in v1).
 """
+import fnmatch
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -26,6 +28,60 @@ from result import CheckResult  # noqa: E402
 
 TIER = "b"
 _ARABIC = range(0x0600, 0x06FF + 1)
+_REPO_ROOT = str(Path(__file__).resolve().parents[2])
+
+# CREDENTIAL GUARD (must-pass): the storage-state file is a signed-in staff session
+# (cookies + localStorage) — credential-class, lives OUTSIDE version control with
+# deploy-secrets handling (docs/runbooks/tier-b-storage-state.md). Tracking one in git
+# is a leaked credential regardless of whether Tier B runs, so this refusal check
+# FAILS the smoke run on any tracked *storage*state*.json (and on a tracked
+# SAGE_SMOKE_STORAGE_STATE path pointing inside the repo).
+_STORAGE_STATE_GLOB = "*storage*state*.json"
+
+
+def _credential_guard_result(tracked: list[str], env_path: str, repo_root: str) -> CheckResult:
+    """Pure decision logic (unit-testable, no git). `tracked` is the repo's git index."""
+    name = "storage_state_not_in_vcs"
+    hits = [p for p in tracked
+            if fnmatch.fnmatch(Path(p).name.lower(), _STORAGE_STATE_GLOB)]
+    env_note = ""
+    env_path = (env_path or "").strip()
+    if env_path:
+        try:
+            rel = Path(env_path).resolve().relative_to(Path(repo_root).resolve())
+        except ValueError:
+            rel = None  # points outside the repo — the intended home
+        if rel is not None:
+            rel_s = str(rel).replace(os.sep, "/")
+            if rel_s in tracked:
+                hits.append(f"{rel_s} (via SAGE_SMOKE_STORAGE_STATE)")
+            else:
+                env_note = (f"; warning: SAGE_SMOKE_STORAGE_STATE points inside the repo "
+                            f"({rel_s}, untracked) — move it outside VCS (one `git add -A` "
+                            f"from a leak)")
+    if hits:
+        return CheckResult(
+            name=name, tier=TIER, status="FAIL", must_pass=True,
+            detail=("credential-class Playwright storage-state file TRACKED IN GIT: "
+                    + ", ".join(sorted(set(hits)))
+                    + " — remove from VCS and rotate the session (see "
+                    "docs/runbooks/tier-b-storage-state.md)"))
+    return CheckResult(name=name, tier=TIER, status="PASS", must_pass=True,
+                       detail="no storage-state artifact tracked in git" + env_note)
+
+
+def _credential_guard() -> CheckResult:
+    """The real check against this repo's git index."""
+    try:
+        raw = subprocess.check_output(["git", "-C", _REPO_ROOT, "ls-files"],
+                                      text=True, timeout=30)
+        tracked = raw.splitlines()
+    except Exception as exc:
+        return CheckResult(
+            name="storage_state_not_in_vcs", tier=TIER, status="FAIL", must_pass=True,
+            detail=f"cannot enumerate git index ({exc}) — refusing to assume clean")
+    return _credential_guard_result(
+        tracked, os.environ.get("SAGE_SMOKE_STORAGE_STATE", ""), _REPO_ROOT)
 
 
 def _is_arabic(text: str) -> bool:
@@ -37,9 +93,12 @@ def _rep(name, status, detail):
 
 
 def run_all(base_url: str) -> list[CheckResult]:
+    # Credential hygiene first, unconditionally: runs (and can fail the run) even when
+    # no storage state is configured — the leak check must not depend on auth working.
+    results_head = [_credential_guard()]
     storage_state = os.environ.get("SAGE_SMOKE_STORAGE_STATE", "").strip()
     if not storage_state or not Path(storage_state).is_file():
-        return [_rep(
+        return results_head + [_rep(
             "tier_b_auth", "FAIL",
             "no SAGE_SMOKE_STORAGE_STATE storage-state file — cannot auth to the frontend; "
             "produce one via the cdai Playwright auth harness (see runbook). Tier B skipped.",
@@ -47,10 +106,10 @@ def run_all(base_url: str) -> list[CheckResult]:
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
-        return [_rep("tier_b_playwright", "FAIL",
+        return results_head + [_rep("tier_b_playwright", "FAIL",
                      "playwright not installed in this env — `pip install playwright && playwright install chromium`")]
 
-    results: list[CheckResult] = []
+    results: list[CheckResult] = list(results_head)
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         ctx = browser.new_context(storage_state=storage_state)
