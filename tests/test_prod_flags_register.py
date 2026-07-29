@@ -241,3 +241,18 @@ def test_watchdog_has_no_auto_revert_surface():
     assert "--set" not in src and "variable delete" not in src, (
         "watchdog must never mutate railway variables — alert-first, no auto-revert"
     )
+
+
+def test_serving_verified_rider_is_only_ever_false():
+    """Desired-unverified rider (2026-07-29 ruling 2): rows seeded from the desired side
+    that no serving readback has ever confirmed carry serving_verified: false. The rider
+    dissolves by DELETING the key once the widened readback serves and the watchdog confirms
+    coverage — it may never flip to true, because the register never asserts serving state
+    statically; serving verification is the watchdog's job, dynamically, per check."""
+    reg = _register()
+    for name, row in reg["flags"].items():
+        if "serving_verified" in row:
+            assert row["serving_verified"] is False, (
+                f"{name}: serving_verified may only be false; dissolve the rider by "
+                "deleting the key after a serving readback covers the flag"
+            )
