@@ -135,6 +135,66 @@ def test_freeflow_respond_node_returns_prompt_layers():
     assert "persona" in result["prompt_layers"]
 
 
+# ── MEDIUM (final review): psychoed_continuation reachability ────────────────────────────────
+# L2_psychoed_continuation.json (Task 7) has existed since before this fix but was never
+# reachable: nothing passed l2_intent_override="psychoed_continuation" to compose_prompt on an
+# ordinary mid-pathway LLM turn (no psychoed_serve this turn, no menu-after-weave). This wires it.
+# Patches compose_prompt directly (monkeypatch capture) rather than exercising the real template
+# engine -- what's under test is THAT freeflow_respond_node passes the override, not what the
+# template renders (that's L2_psychoed_continuation.json's own concern / Task 7's tests).
+
+def _stub_compose_prompt(*args, **kwargs):
+    return ("system", "user", ["persona"])
+
+
+def test_psychoed_continuation_override_wired_on_active_pathway_ordinary_turn(monkeypatch):
+    import sage_poc.config as config
+    monkeypatch.setattr(config, "PSYCHOED_PATHWAYS_ENABLED", True)
+    state = {
+        **_BASE_STATE,
+        "psychoed_active_category": "1f",
+        "psychoed_serve": None,
+        "skill_match_method": None,
+    }
+    with patch("sage_poc.nodes.freeflow_respond.compose_prompt",
+               side_effect=_stub_compose_prompt) as mock_compose:
+        asyncio.run(freeflow_respond_node(state, llm=fr_stub_llm()))
+
+    mock_compose.assert_called_once()
+    _, kwargs = mock_compose.call_args
+    assert kwargs.get("l2_intent_override") == "psychoed_continuation"
+
+
+def test_no_override_on_non_pathway_turn(monkeypatch):
+    """No active psychoed pathway -> l2_intent_override stays None, exactly as every pre-existing
+    caller of compose_prompt(state) with no override argument."""
+    import sage_poc.config as config
+    monkeypatch.setattr(config, "PSYCHOED_PATHWAYS_ENABLED", True)
+    state = {**_BASE_STATE, "psychoed_active_category": None}
+    with patch("sage_poc.nodes.freeflow_respond.compose_prompt",
+               side_effect=_stub_compose_prompt) as mock_compose:
+        asyncio.run(freeflow_respond_node(state, llm=fr_stub_llm()))
+
+    mock_compose.assert_called_once()
+    _, kwargs = mock_compose.call_args
+    assert kwargs.get("l2_intent_override") is None
+
+
+def test_no_override_when_flag_off(monkeypatch):
+    """Flag off -> l2_override stays None even with psychoed_active_category set (a stale
+    checkpoint key from a session that ran with the flag on) -- byte-identical flag-off routing."""
+    import sage_poc.config as config
+    monkeypatch.setattr(config, "PSYCHOED_PATHWAYS_ENABLED", False)
+    state = {**_BASE_STATE, "psychoed_active_category": "1f"}
+    with patch("sage_poc.nodes.freeflow_respond.compose_prompt",
+               side_effect=_stub_compose_prompt) as mock_compose:
+        asyncio.run(freeflow_respond_node(state, llm=fr_stub_llm()))
+
+    mock_compose.assert_called_once()
+    _, kwargs = mock_compose.call_args
+    assert kwargs.get("l2_intent_override") is None
+
+
 def test_freeflow_respond_node_returns_token_usage():
     """The string/resilient_invoke path carries no usage -> token_usage stays {}.
     Deterministic: a state where Node 6 already ran suppresses knowledge_lookup, so with no

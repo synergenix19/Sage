@@ -593,6 +593,55 @@ def test_offer_pending_no_active_skill_routes_to_freeflow():
     assert _route_after_skill_select(state) == "freeflow"
 
 
+# --- HIGH-1 (final review): psychoed_weave_pending always reaches skill_select ---
+# Modeled on the answering_screen precedent above (D1 answer-turn tests would live here if
+# this file had them; the answering_screen redirect itself is exercised via test_intent_route_node
+# / test_psychoed_graph.py). Same precedence slot: below crisis-intent handling, above the rest
+# of the intent ladder (scope_refusal/jailbreak/monitoring/hr/offer-accept/venting/SF-2/prepass/
+# confidence-gate/new_skill/info_request/skill_continuation/freeflow).
+
+def test_weave_pending_general_chat_reaches_skill_select(monkeypatch):
+    """(a) A weave-pending reply that classifies as general_chat must still reach skill_select
+    -- the branch this test pins is what makes PSY-WEAVE-1 (skill_select's own evaluator) run
+    at all on a reply that would otherwise read as an unremarkable general_chat turn and fall
+    through to freeflow, silently starving the pending safety check."""
+    import sage_poc.config as config
+    monkeypatch.setattr(config, "PSYCHOED_PATHWAYS_ENABLED", True)
+    state = make_full_state(
+        primary_intent="general_chat", intent_confidence=0.85,
+        psychoed_weave_pending=True, emotional_intensity=5, active_skill_id=None,
+    )
+    assert _route_after_intent(state) == "skill_select"
+
+
+def test_weave_pending_yields_to_crisis_intent(monkeypatch):
+    """(b) A weave-pending reply that ALSO classifies as intent=="crisis" must still route to
+    "crisis" -- fail-closed via the crisis-intent check at the TOP of _route_after_intent
+    (which runs and returns before the weave-pending branch is ever reached), not starved.
+    Mirrors test_sf2_crisis_intent_wins_over_intensity's precedence pattern."""
+    import sage_poc.config as config
+    monkeypatch.setattr(config, "PSYCHOED_PATHWAYS_ENABLED", True)
+    state = make_full_state(
+        primary_intent="crisis", intent_confidence=0.9, psychoed_weave_pending=True,
+    )
+    assert _route_after_intent(state) == "crisis"
+
+
+def test_weave_pending_flag_off_stale_pending_no_effect(monkeypatch):
+    """(c) With PSYCHOED_PATHWAYS_ENABLED off, a stale psychoed_weave_pending=True (e.g. left
+    over in a persisted checkpoint from when the flag was on) must have NO routing effect --
+    routing falls through to the pre-existing intent ladder exactly as if the key were absent
+    (byte-identical flag-off behavior). A general_chat turn at calm intensity with no other
+    routing trigger lands in freeflow, same as test_sf2_calm_general_chat_still_freeflow."""
+    import sage_poc.config as config
+    monkeypatch.setattr(config, "PSYCHOED_PATHWAYS_ENABLED", False)
+    state = make_full_state(
+        primary_intent="general_chat", intent_confidence=0.85,
+        psychoed_weave_pending=True, emotional_intensity=5, active_skill_id=None,
+    )
+    assert _route_after_intent(state) == "freeflow"
+
+
 def test_build_state_resets_directive_posture_false():
     """directive_posture is a per-turn deterministic flag — it must reset to False each
     turn so a prior directive turn cannot leak into the next."""

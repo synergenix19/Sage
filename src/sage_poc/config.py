@@ -420,3 +420,46 @@ if _info_request_consult_raw is not None and _info_request_consult_raw.strip().l
         "SAGE_INFO_REQUEST_CONSULT unexpected value %r — applying safe default (consult OFF); "
         "only 'true' enables.", _info_request_consult_raw,
     )
+
+# --- Psychoed pathways (Phase 2 mechanism; spec 2026-07-23 §7.3). Default OFF. ---
+_psychoed_raw = os.getenv("SAGE_PSYCHOED_PATHWAYS")
+PSYCHOED_PATHWAYS_ENABLED = (
+    _psychoed_raw is not None and _psychoed_raw.strip().lower() == "true"
+)
+if _psychoed_raw is not None and _psychoed_raw.strip().lower() not in ("true", "false"):
+    logging.getLogger(__name__).warning(
+        "SAGE_PSYCHOED_PATHWAYS=%r is neither 'true' nor 'false'; treating as OFF", _psychoed_raw
+    )
+
+_PSYCHOED_VALID_CATEGORIES = frozenset({"1f", "3c", "4b", "6d", "7c", "s2c"})
+_categories_raw = os.getenv("SAGE_PSYCHOED_CATEGORIES", "")
+_parsed = {c.strip().lower() for c in _categories_raw.split(",") if c.strip()}
+for _bad in sorted(_parsed - _PSYCHOED_VALID_CATEGORIES):
+    logging.getLogger(__name__).warning("SAGE_PSYCHOED_CATEGORIES: unknown category %r dropped", _bad)
+PSYCHOED_CATEGORIES: frozenset[str] = (
+    frozenset(_parsed & _PSYCHOED_VALID_CATEGORIES) if PSYCHOED_PATHWAYS_ENABLED else frozenset()
+)
+
+def psychoed_enabled_for(category: str) -> bool:
+    return PSYCHOED_PATHWAYS_ENABLED and category in PSYCHOED_CATEGORIES
+
+# C1 interim Further-Reading cards on consult turns (v7.3 amendment record, named open item;
+# ruling: governance/2026-07-29-consult-further-reading-delivery-shape-ask.md, Option 1 APPROVED).
+# Gates the knowledge_retrieve_cards insertion on consult-selected turns: cards-only retrieval
+# whose passages populate X-Sage-Sources + the audit row and NEVER enter the prompt (the composer
+# reads knowledge_passages, which this path never writes — the signed conversational reply stays
+# byte-untouched). KILL-SWITCH, DEFAULT OFF, same inverted strict parse as the consult flag above.
+# OFF is byte-identical to master: the cards node is unreachable, no retrieval runs on consult
+# turns, the audit row carries no purpose column. TRANSITIONAL like its parent mechanism: each
+# Phase-2 category flip retires this path's predicate together with the category's consult-set
+# entry (same change — the ruling's disjointness condition). Migration 018 is the flag-flip
+# deploy gate (audit purpose column).
+_consult_sources_raw = os.getenv("SAGE_CONSULT_SOURCES")
+CONSULT_SOURCES_ENABLED = (
+    _consult_sources_raw is not None and _consult_sources_raw.strip().lower() == "true"
+)
+if _consult_sources_raw is not None and _consult_sources_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_CONSULT_SOURCES unexpected value %r — applying safe default (cards OFF); "
+        "only 'true' enables.", _consult_sources_raw,
+    )
