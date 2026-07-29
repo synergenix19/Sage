@@ -40,3 +40,5 @@ P2 Task 10: complete (16a9af8d..cc981b39; HIGH plan-gap fixed: backstop gated ac
 P2 Task 11: in progress (6482155f..1f96fec1; checkpoint: mismatch branch correct, corruption hole fixed, EN entry gate added; REVIEW: Medium menu-after-weave AR path open; Low compose_turn1 exception→server handler, triage at final review)
 INCIDENT: T11 reviewer popped pre-existing s3_semantic stash + reset --hard destroyed uncommitted ledger (this reconstruction); stashes verified intact; ledger committed from now on
 P2 Task 11: complete (commits 6482155f..a463f394; checkpoint fixes: corruption chain, EN entry gates x2, menu-after-weave AR fall-through; Low compose_turn1-exception noted for final triage; INCIDENT recovered, no-stash-pop rule standing)
+P2 Task 12: complete (commit 43abf34f, review clean; tautology audit passed all 16 pins; controller byte-identity checkpoint PASSED)
+P2 Task 13: complete (commit 7f3623c4; escalation graph test observed green by controller; as-built deltas 1-14 + spec register 8-12; PACKET ADDENDUM OPEN: phrase→block hints)
