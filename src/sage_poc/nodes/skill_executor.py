@@ -18,6 +18,37 @@ _OPERATOR_MAP = {
     "==": lambda a, b: a == b,
 }
 
+def _psychoed_family_exposure(state: SageState, skill: Skill) -> int:
+    """Family-exposure carry-forward (Phase 2 §4.4 as amended; declared session channel).
+
+    Counts occurrences of `skill`'s kb_ref *family* in state["psychoed_family_exposures"]
+    (Task 3 declared channel, session-scoped; APPEND happens on serve in
+    knowledge_retrieve.py -- Task 10). Returns 0 when the skill has no kb_ref attribute/
+    value, or the kb_ref does not resolve to a known article family (store.family_of_kb_ref
+    returns None). Never touches therapeutic_profile["techniques_used"] -- see the seam
+    comment beside `prior_exposure` below.
+
+    Local import (noqa: PLC0415, matches the repo's call-time-import convention e.g.
+    ipv_preempt.py, graph.py): this function is called unconditionally for every skill
+    turn regardless of any psychoed flag, so the import is NOT flag-gated. sage_poc.psychoed
+    .store loads data/psychoed/** (blocks, manifests, shared scripts, weave data) once per
+    process on first use and is cached thereafter (module-level singleton, see store.py
+    _s()) -- a one-time, local-disk, no-network cost paid on the first skill_executor call
+    of any process. Flag-gating the import would silently zero out this term when a
+    psychoed flag is off, which is a worse failure mode than the one-time load; documented
+    here per the dispatch rather than hidden.
+    """
+    kb_ref = getattr(skill, "kb_ref", None)
+    if not kb_ref:
+        return 0
+    from sage_poc.psychoed import store  # noqa: PLC0415
+    family = store.family_of_kb_ref(kb_ref)
+    if family is None:
+        return 0
+    exposures = state.get("psychoed_family_exposures") or []
+    return exposures.count(family)
+
+
 _RESISTANCE_PROMPT_PATH = (
     Path(__file__).parent.parent
     / "rules" / "data" / "resistance_scoring" / "resistance_prompt.json"
@@ -554,7 +585,14 @@ async def skill_executor_node(state: SageState) -> dict:
     # updated at end-of-session, so within a first session prior_exposure=0.
     therapeutic_profile = state.get("therapeutic_profile") or {}
     techniques_used = therapeutic_profile.get("techniques_used") or []
-    prior_exposure = techniques_used.count(skill_id)
+    # SEAM (verified 2026-07-28, binding finding carried into Phase 2 Task 9): techniques_used
+    # has no writer anywhere in the codebase and no DB column (postgres_repository.py:16-40),
+    # so techniques_used.count(skill_id) is always 0 in practice -- this read is dead. max()
+    # is additive-only: it keeps that dead read harmless (never lowers the value below what the
+    # live signal would give) while _psychoed_family_exposure supplies the actual carry-forward
+    # via the declared psychoed_family_exposures channel (spec §4.4 as amended). The counted
+    # unit is the kb_ref FAMILY, never the skill_id -- do not read this as prior_exposure[skill_id].
+    prior_exposure = max(techniques_used.count(skill_id), _psychoed_family_exposure(state, skill))
 
     # prev_step_id: the step executed on the PREVIOUS turn (persists via LangGraph checkpoint;
     # absent from _build_state so it is NOT reset each turn). When prev_step_id == step_id,

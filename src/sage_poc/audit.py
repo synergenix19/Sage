@@ -116,6 +116,28 @@ async def _supabase_insert(table: str, row: dict) -> None:
     r.raise_for_status()
 
 
+def derive_psychoed_weave_state(state: SageState) -> str | None:
+    """Node-8 audit derivation (Phase 2 Task 11, gap-2 escalation-turn fix). Single-sourced so
+    output_gate.py's in-memory audit log and _build_session_audit_row below can never drift on
+    the derivation:
+      - an explicit "psychoed_weave_state" key in the incoming dict wins outright. Only the
+        crisis node's escalation-turn audit patch sets this (graph.py's `_crisis_response_node`,
+        value "escalated") -- a PSY-WEAVE-1 evaluation that resolved to crisis this turn, which
+        never carries a live psychoed_serve payload of its own.
+      - otherwise "pending" while a weave question is outstanding (psychoed_weave_pending),
+      - "fired" once the pathway's weave has fired for this run (psychoed_weave_fired) and no
+        question is currently outstanding,
+      - else None (no psychoed weave activity this turn).
+    """
+    if "psychoed_weave_state" in state:
+        return state.get("psychoed_weave_state")
+    if state.get("psychoed_weave_pending"):
+        return "pending"
+    if state.get("psychoed_weave_fired"):
+        return "fired"
+    return None
+
+
 def _build_session_audit_row(state: SageState) -> dict:
     row = {
         "session_id":             state.get("session_id", ""),
@@ -211,6 +233,31 @@ def _build_session_audit_row(state: SageState) -> dict:
         # identifies the backend configuration that served the call (seed HONOR signal).
         # NULL when the provider exposes none; never fabricated.
         row["classifier_system_fingerprint"] = state.get("classifier_system_fingerprint")
+    # Psychoed audit (flag-gated, Phase 2 Task 11; same discipline as tiering/precedence/medical/
+    # HR/screen above): included ONLY when a psychoed signal fired this turn (a serve payload, a
+    # matched trigger row, a collision/framing disposition, a weave in flight/fired, or the gate
+    # having run), so a flag-OFF / non-psychoed row stays byte-identical to master (Check B).
+    # Migration 016 is the deploy-gate for SAGE_PSYCHOED_PATHWAYS. This is also how the
+    # escalation-turn row (gap-2, crisis node) picks up the marker: that call carries no live
+    # psychoed_serve payload of its own, but DOES carry the explicit "psychoed_weave_state":
+    # "escalated" patch, which alone trips the presence check below via derive_psychoed_weave_state.
+    _psychoed_serve = state.get("psychoed_serve") or {}
+    _psychoed_weave_state = derive_psychoed_weave_state(state)
+    if (
+        _psychoed_serve
+        or state.get("psychoed_matched_row_id") is not None
+        or state.get("psychoed_collision_path") is not None
+        or state.get("psychoed_framing") is not None
+        or _psychoed_weave_state is not None
+        or state.get("psychoed_gate_action") is not None
+    ):
+        row["psychoed_block_ids"] = [_psychoed_serve["block_id"]] if _psychoed_serve.get("block_id") else []
+        row["psychoed_matched_row_id"] = state.get("psychoed_matched_row_id")
+        row["psychoed_collision_path"] = state.get("psychoed_collision_path")
+        row["psychoed_framing"] = state.get("psychoed_framing")
+        row["psychoed_weave_state"] = _psychoed_weave_state
+        row["psychoed_template_version"] = _psychoed_serve.get("template_version")
+        row["psychoed_gate_action"] = state.get("psychoed_gate_action")
     return row
 
 
