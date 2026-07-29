@@ -128,6 +128,193 @@ def aggregate_case(fixture_result: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Quiescence attestation (baseline pre-authorization, BINDING)
+# ---------------------------------------------------------------------------
+# The full baseline may not run against a prod whose quiescence is merely assumed.
+# Attestation = (1) two CLEAN desired+serving readback checks of the signed-flag
+# set (minimum SAGE_INFO_REQUEST_CONSULT) that SPAN at least one deploy cycle
+# (deployment id changed between checks, or a deployment timestamp is bracketed
+# by them), AND (2) a NAMED CAUSE from the binding enum below. The clock alone
+# NEVER satisfies it: an elapsed-time-only state refuses explicitly. Refusals are
+# RECORDED (timestamp + failed condition) in the state file and surface in the
+# eventual artifact's header as the refusal log — never silently retried.
+
+QUIESCENCE_CAUSES = {
+    "item1-condition-a",      # parallel writer confirmed stopped
+    "item1-condition-b",      # activity feed clean over a deploy cycle
+    "supersession-ratified",  # the diverging desired state was ratified as superseding
+}
+SIGNED_FLAG_MINIMUM = ("SAGE_INFO_REQUEST_CONSULT",)
+DEFAULT_QUIESCENCE_STATE = os.path.join(
+    REPO, "docs/superpowers/governance/2026-07-29-emr-phase0-quiescence.json")
+
+
+def _now_iso() -> str:
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def load_quiescence_state(path: str) -> dict:
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
+            state = json.load(f)
+    else:
+        state = {}
+    state.setdefault("checks", [])
+    state.setdefault("refusals", [])
+    return state
+
+
+def save_quiescence_state(path: str, state: dict) -> None:
+    os.makedirs(os.path.dirname(os.path.abspath(path)) or ".", exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2, ensure_ascii=False)
+
+
+def _ts(value: str):
+    from datetime import datetime
+    try:
+        return datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def evaluate_quiescence(state: dict, cause) -> dict:
+    """Pure evaluation of the attestation over recorded checks. Returns
+    {"ok": bool, "condition_failed": str|None, "detail": str}."""
+    if cause not in QUIESCENCE_CAUSES:
+        return {"ok": False, "condition_failed": "missing-or-invalid-cause",
+                "detail": ("quiescence requires a NAMED CAUSE via --quiescence-cause, "
+                           f"got {cause!r}; allowed: " + ", ".join(sorted(QUIESCENCE_CAUSES)))}
+    clean = [c for c in state.get("checks", [])
+             if c.get("clean")
+             and all(f in c.get("flags_checked", []) for f in SIGNED_FLAG_MINIMUM)]
+    if len(clean) < 2:
+        return {"ok": False, "condition_failed": "insufficient-clean-checks",
+                "detail": (f"{len(clean)} clean check(s) covering the signed-flag set "
+                           f"(min {', '.join(SIGNED_FLAG_MINIMUM)}) recorded; need two "
+                           "clean desired+serving checks spanning a deploy cycle")}
+    events = [_ts(c.get("deployment_created_at")) for c in state.get("checks", [])]
+    events = [e for e in events if e is not None]
+    for i, a in enumerate(clean):
+        for b in clean[i + 1:]:
+            ida, idb = a.get("deployment_id"), b.get("deployment_id")
+            if ida and idb and ida != idb:
+                return {"ok": True, "condition_failed": None,
+                        "detail": (f"deploy cycle spanned: deployment id changed "
+                                   f"{ida} -> {idb} between clean checks "
+                                   f"{a['ts']} / {b['ts']}")}
+            ta, tb = _ts(a.get("ts")), _ts(b.get("ts"))
+            if ta and tb:
+                lo, hi = min(ta, tb), max(ta, tb)
+                for ev in events:
+                    if lo < ev < hi:
+                        return {"ok": True, "condition_failed": None,
+                                "detail": (f"deploy cycle spanned: deployment at "
+                                           f"{ev.isoformat()} bracketed by clean checks "
+                                           f"{lo.isoformat()} / {hi.isoformat()}")}
+    return {"ok": False, "condition_failed": "no-deploy-cycle-spanned",
+            "detail": ("two clean checks exist but no deploy cycle is spanned "
+                       "(deployment id unchanged and no deployment timestamp bracketed) "
+                       "— the clock alone NEVER satisfies quiescence; elapsed time is "
+                       "not evidence of a completed deploy cycle")}
+
+
+def record_refusal(state: dict, result: dict) -> dict:
+    entry = {"ts": _now_iso(), "condition_failed": result["condition_failed"],
+             "detail": result["detail"]}
+    state.setdefault("refusals", []).append(entry)
+    return entry
+
+
+def attach_quiescence_to_header(header: dict, cause, result: dict, state: dict) -> None:
+    """Standing rule 2: the artifact carries the attestation AND every recorded
+    refusal, inline, so a strong-armed baseline is distinguishable at read time."""
+    header["quiescence_attestation"] = {
+        "cause": cause,
+        "detail": result["detail"],
+        "clean_checks": [c for c in state.get("checks", []) if c.get("clean")],
+        "refusal_log": list(state.get("refusals", [])),
+    }
+    notes = header.setdefault("parity_notes", [])
+    notes.append(f"quiescence attestation: cause={cause}; {result['detail']}")
+    if state.get("refusals"):
+        for r in state["refusals"]:
+            notes.append(f"quiescence refusal log: {r['ts']} "
+                         f"condition={r['condition_failed']} — {r['detail']}")
+    else:
+        notes.append("quiescence refusal log: empty (no refusals recorded)")
+
+
+def _fetch_deployment_info(service: str = "sage-api") -> dict:
+    """Best-effort deployment id + created-at via railway status (None fields when
+    unavailable — absence is recorded, never fabricated)."""
+    import subprocess
+    rw_env = {**os.environ, "RAILWAY_CALLER": "instrument:run_emr_baseline"}
+    for cmd in (["railway", "status", "--json"],):
+        try:
+            raw = subprocess.check_output(cmd, text=True, timeout=45, env=rw_env,
+                                          stderr=subprocess.DEVNULL)
+            data = json.loads(raw)
+        except Exception:  # noqa: BLE001
+            continue
+        found = {}
+
+        def _walk(node):
+            if isinstance(node, dict):
+                keys = {k.lower(): k for k in node}
+                if "id" in keys and ("status" in keys or "createdat" in keys) \
+                        and not found:
+                    found["deployment_id"] = node.get(keys["id"])
+                    found["deployment_created_at"] = node.get(keys.get("createdat", ""))
+                for k, v in node.items():
+                    if "deployment" in k.lower() or isinstance(v, (dict, list)):
+                        _walk(v)
+            elif isinstance(node, list):
+                for v in node:
+                    _walk(v)
+
+        _walk(data)
+        return {"deployment_id": found.get("deployment_id"),
+                "deployment_created_at": found.get("deployment_created_at")}
+    return {"deployment_id": None, "deployment_created_at": None}
+
+
+def record_quiescence_check(state_path: str, base_url: str, service: str) -> dict:
+    """One desired+serving readback comparison of the signed-flag set, recorded into
+    the quiescence state file. Two clean checks spanning a deploy cycle satisfy
+    attestation condition (1)."""
+    readback = ge.fetch_readback(base_url)
+    desired = ge.fetch_railway_desired(service)
+    serving = ge.map_readback_to_sage(readback)
+    mapping = ge.config_sage_vars()
+    mismatches, flags_checked = [], []
+    if desired is None:
+        clean = False
+        detail = "railway (desired) unavailable — a one-sided check is never clean"
+    else:
+        for var in sorted(mapping):
+            if var not in serving:
+                continue
+            flags_checked.append(var)
+            srv = serving[var] if serving[var] is not None else mapping[var]
+            des = desired.get(var) if desired.get(var) is not None else mapping[var]
+            if srv != des:
+                mismatches.append({"var": var, "serving": srv, "desired": des})
+        clean = not mismatches
+        detail = "serving == desired on all readback-covered vars" if clean else \
+            f"{len(mismatches)} serving/desired mismatch(es)"
+    check = {"ts": _now_iso(), "clean": clean, "detail": detail,
+             "build_sha": readback.get("build_sha"),
+             "flags_checked": flags_checked, "mismatches": mismatches,
+             **_fetch_deployment_info(service)}
+    state = load_quiescence_state(state_path)
+    state["checks"].append(check)
+    save_quiescence_state(state_path, state)
+    return check
+
+
+# ---------------------------------------------------------------------------
 # Provenance gate
 # ---------------------------------------------------------------------------
 
@@ -212,6 +399,24 @@ def write_baseline(out_path: str, header: dict, per_case: dict,
 # ---------------------------------------------------------------------------
 
 async def _amain(args) -> int:
+    # ---- Quiescence attestation gate (full baseline only; smokes are already
+    # stamped non-baseline). Evaluated BEFORE any prod read beyond what the checks
+    # themselves recorded, and BEFORE any LLM spend. Refusals are RECORDED in the
+    # state file — never silently retried.
+    qstate = load_quiescence_state(args.quiescence_state)
+    qresult = None
+    if not args.smoke:
+        qresult = evaluate_quiescence(qstate, args.quiescence_cause)
+        if not qresult["ok"]:
+            entry = record_refusal(qstate, qresult)
+            save_quiescence_state(args.quiescence_state, qstate)
+            print("REFUSING (quiescence attestation NOT satisfied): "
+                  f"[{qresult['condition_failed']}] {qresult['detail']}\n"
+                  f"Refusal RECORDED at {entry['ts']} in {args.quiescence_state} "
+                  "(will appear in the eventual artifact's refusal log).",
+                  file=sys.stderr, flush=True)
+            return 2
+
     derived, readback = ge.prepare_evidence_env(args.base_url, args.railway_service,
                                                 args.allow_deploy_window)
     prov_note = enforce_recorded_provenance(derived["effective"],
@@ -269,12 +474,15 @@ async def _amain(args) -> int:
     header = ge.header_block(derived, readback, n_per_fixture=args.n,
                              degraded_turn_count=degraded_total,
                              fingerprints=all_fingerprints, base_url=args.base_url)
+    if qresult is not None and qresult["ok"]:
+        attach_quiescence_to_header(header, args.quiescence_cause, qresult, qstate)
     notes = []
     if prov_note:
         notes.append(prov_note)
     if args.smoke:
-        notes.append("PIPELINE SMOKE ONLY (N=%d, %d case(s)) — NOT the Phase-0 baseline."
-                     % (args.n, len(cases)))
+        notes.append("PIPELINE SMOKE ONLY (N=%d, %d case(s)) — NOT the Phase-0 baseline; "
+                     "quiescence attestation NOT evaluated (binding for the full "
+                     "baseline only)." % (args.n, len(cases)))
     if faults:
         notes.append(f"RUN VOID: {len(faults)} instrument fault(s) — a partial baseline "
                      f"is not data. First: {faults[0]}")
@@ -309,9 +517,29 @@ def main(argv=None) -> int:
     ap.add_argument("--allow-deploy-window", action="store_true",
                     help="SMOKES ONLY (requires --smoke): proceed although serving != "
                          "desired; divergence is stamped loudly, output is not a baseline")
+    ap.add_argument("--quiescence-cause", default=None,
+                    help="BINDING named cause for the quiescence attestation; one of: "
+                         + ", ".join(sorted(QUIESCENCE_CAUSES)))
+    ap.add_argument("--quiescence-state", default=DEFAULT_QUIESCENCE_STATE,
+                    help="quiescence state file (recorded checks + refusal log)")
+    ap.add_argument("--record-quiescence-check", action="store_true",
+                    help="record ONE desired+serving readback check of the signed-flag "
+                         "set into the state file and exit (no graph, no LLM); two clean "
+                         "checks spanning a deploy cycle satisfy attestation condition 1")
     ap.add_argument("--base-url", default=os.getenv("SAGE_PROD_HEALTH_URL", ge.DEFAULT_BASE_URL))
     ap.add_argument("--railway-service", default="sage-api")
     args = ap.parse_args(argv)
+    if args.record_quiescence_check:
+        try:
+            check = record_quiescence_check(args.quiescence_state, args.base_url,
+                                            args.railway_service)
+        except ge.ParityRefusal as e:
+            print(str(e), file=sys.stderr, flush=True)
+            return 2
+        print(json.dumps(check, indent=2, ensure_ascii=False))
+        print(f"quiescence check recorded ({'CLEAN' if check['clean'] else 'NOT clean'}) "
+              f"-> {args.quiescence_state}")
+        return 0
     if args.allow_deploy_window and not args.smoke:
         print("REFUSING: --allow-deploy-window is smoke-only — an evidence baseline is "
               "never taken against a mid-transition prod.", file=sys.stderr)

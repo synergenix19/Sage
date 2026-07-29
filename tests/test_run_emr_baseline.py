@@ -224,3 +224,123 @@ def test_runner_default_n_is_ten():
 def test_runner_writes_governance_artifact_path_by_default():
     assert rb.DEFAULT_OUT.endswith(
         "docs/superpowers/governance/2026-07-29-emr-phase0-baseline.md")
+
+
+# ---------------------------------------------------------------------------
+# Quiescence attestation (baseline pre-authorization, BINDING)
+# ---------------------------------------------------------------------------
+
+def _check(ts, clean=True, dep_id=None, dep_created=None,
+           flags=("SAGE_INFO_REQUEST_CONSULT",)):
+    return {"ts": ts, "clean": clean, "deployment_id": dep_id,
+            "deployment_created_at": dep_created, "flags_checked": list(flags)}
+
+
+def test_quiescence_satisfied_by_deployment_id_change():
+    state = {"checks": [
+        _check("2026-07-29T08:00:00+00:00", dep_id="dep-aaa"),
+        _check("2026-07-29T12:00:00+00:00", dep_id="dep-bbb"),
+    ], "refusals": []}
+    res = rb.evaluate_quiescence(state, "item1-condition-a")
+    assert res["ok"] is True
+    assert "deployment id changed" in res["detail"]
+
+
+def test_quiescence_satisfied_by_bracketed_deployment_timestamp():
+    state = {"checks": [
+        _check("2026-07-29T08:00:00+00:00", dep_id="dep-aaa"),
+        _check("2026-07-29T12:00:00+00:00", dep_id=None,
+               dep_created="2026-07-29T10:30:00+00:00"),
+    ], "refusals": []}
+    res = rb.evaluate_quiescence(state, "item1-condition-b")
+    assert res["ok"] is True
+    assert "bracket" in res["detail"]
+
+
+def test_quiescence_clock_only_refuses_explicitly():
+    """Two clean checks, hours apart, SAME deployment, nothing bracketed — the
+    clock alone NEVER satisfies quiescence."""
+    state = {"checks": [
+        _check("2026-07-29T08:00:00+00:00", dep_id="dep-aaa",
+               dep_created="2026-07-29T01:00:00+00:00"),
+        _check("2026-07-29T20:00:00+00:00", dep_id="dep-aaa",
+               dep_created="2026-07-29T01:00:00+00:00"),
+    ], "refusals": []}
+    res = rb.evaluate_quiescence(state, "item1-condition-a")
+    assert res["ok"] is False
+    assert res["condition_failed"] == "no-deploy-cycle-spanned"
+    assert "clock alone" in res["detail"]
+
+
+def test_quiescence_unsatisfied_on_insufficient_clean_checks():
+    one = {"checks": [_check("2026-07-29T08:00:00+00:00", dep_id="dep-aaa")],
+           "refusals": []}
+    res = rb.evaluate_quiescence(one, "item1-condition-a")
+    assert res["ok"] is False and res["condition_failed"] == "insufficient-clean-checks"
+
+    dirty = {"checks": [
+        _check("2026-07-29T08:00:00+00:00", clean=False, dep_id="dep-aaa"),
+        _check("2026-07-29T12:00:00+00:00", dep_id="dep-bbb"),
+    ], "refusals": []}
+    res = rb.evaluate_quiescence(dirty, "item1-condition-a")
+    assert res["ok"] is False and res["condition_failed"] == "insufficient-clean-checks"
+
+
+def test_quiescence_check_must_cover_the_signed_flag():
+    state = {"checks": [
+        _check("2026-07-29T08:00:00+00:00", dep_id="dep-aaa", flags=("SAGE_D1_SCREEN",)),
+        _check("2026-07-29T12:00:00+00:00", dep_id="dep-bbb"),
+    ], "refusals": []}
+    res = rb.evaluate_quiescence(state, "item1-condition-a")
+    assert res["ok"] is False and res["condition_failed"] == "insufficient-clean-checks"
+
+
+def test_quiescence_missing_or_invalid_cause_refuses():
+    good = {"checks": [
+        _check("2026-07-29T08:00:00+00:00", dep_id="dep-aaa"),
+        _check("2026-07-29T12:00:00+00:00", dep_id="dep-bbb"),
+    ], "refusals": []}
+    for cause in (None, "", "it-felt-quiet", "condition-a"):
+        res = rb.evaluate_quiescence(good, cause)
+        assert res["ok"] is False, f"cause {cause!r} must not satisfy"
+        assert res["condition_failed"] == "missing-or-invalid-cause"
+        for allowed in rb.QUIESCENCE_CAUSES:
+            assert allowed in res["detail"]  # explicit message lists the enum
+
+
+def test_quiescence_causes_are_the_binding_enum():
+    assert rb.QUIESCENCE_CAUSES == {"item1-condition-a", "item1-condition-b",
+                                    "supersession-ratified"}
+
+
+def test_refusals_are_recorded_and_persist(tmp_path):
+    path = str(tmp_path / "quiescence.json")
+    state = rb.load_quiescence_state(path)
+    res = rb.evaluate_quiescence(state, "item1-condition-a")
+    assert res["ok"] is False
+    rb.record_refusal(state, res)
+    rb.save_quiescence_state(path, state)
+    reloaded = rb.load_quiescence_state(path)
+    assert len(reloaded["refusals"]) == 1
+    entry = reloaded["refusals"][0]
+    assert entry["condition_failed"] == "insufficient-clean-checks"
+    assert entry["ts"]  # timestamped
+
+
+def test_attestation_and_refusal_log_land_in_the_header():
+    header = {"parity_notes": []}
+    state = {"checks": [
+        _check("2026-07-29T08:00:00+00:00", dep_id="dep-aaa"),
+        _check("2026-07-29T12:00:00+00:00", dep_id="dep-bbb"),
+    ], "refusals": [{"ts": "2026-07-29T09:00:00+00:00",
+                     "condition_failed": "insufficient-clean-checks",
+                     "detail": "1 clean check(s)"}]}
+    res = rb.evaluate_quiescence(state, "item1-condition-b")
+    rb.attach_quiescence_to_header(header, "item1-condition-b", res, state)
+    q = header["quiescence_attestation"]
+    assert q["cause"] == "item1-condition-b"
+    assert q["refusal_log"] == state["refusals"]
+    joined = " ".join(header["parity_notes"])
+    assert "item1-condition-b" in joined
+    assert "refusal log" in joined.lower()
+    assert "insufficient-clean-checks" in joined
