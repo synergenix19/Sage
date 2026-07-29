@@ -366,3 +366,12 @@ def test_export_sets_and_unsets_the_process_env(tmp_path, monkeypatch):
     assert "SAGE_D1_SCREEN" not in os.environ
     assert os.environ["SAGE_HIGH_RISK_DETECTION"] == "true"
     assert os.environ["SAGE_AUDIT_LOG"] == "false"     # recorded local-instrument deviation
+
+
+def test_allow_deploy_window_is_loud_and_serving_authoritative():
+    """Smoke/diagnostic escape: divergence stamped, resolution stays SERVING-side."""
+    derived = ge.derive_flag_set(
+        _mock_readback(), desired=_desired_matching(SAGE_HIGH_RISK_DETECTION="false"),
+        mapping=dict(_SMALL_MAPPING), allow_deploy_window=True)
+    assert derived["resolved_env"]["SAGE_HIGH_RISK_DETECTION"] == "true"  # serving wins
+    assert any("DEPLOY WINDOW OVERRIDDEN" in n for n in derived["notes"])

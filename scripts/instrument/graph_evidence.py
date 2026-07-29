@@ -194,7 +194,8 @@ def fetch_railway_desired(service: str = "sage-api") -> dict | None:
 # ---------------------------------------------------------------------------
 
 def derive_flag_set(readback_health: dict, desired: dict | None,
-                    mapping: dict | None = None) -> dict:
+                    mapping: dict | None = None,
+                    allow_deploy_window: bool = False) -> dict:
     """Derive the full flag set from the serving readback (+ railway desired).
 
     Returns {"resolved_env": {var: str|None}, "effective": {var: str|None},
@@ -264,10 +265,17 @@ def derive_flag_set(readback_health: dict, desired: dict | None,
                 window.append((var, srv, des))
         if window:
             lines = "; ".join(f"{v}: serving={s!r} desired={d!r}" for v, s, d in window)
-            raise ParityRefusal(
-                f"REFUSING (deploy window): serving flags differ from desired (railway) — "
-                f"prod is mid-transition and evidence taken now is stale on arrival: {lines}. "
-                "Re-run once prod has quiesced (serving == desired).")
+            if not allow_deploy_window:
+                raise ParityRefusal(
+                    f"REFUSING (deploy window): serving flags differ from desired (railway) — "
+                    f"prod is mid-transition and evidence taken now is stale on arrival: {lines}. "
+                    "Re-run once prod has quiesced (serving == desired).")
+            # Loud override (smoke/diagnostic use only — never an evidence baseline).
+            # Resolution stays SERVING-authoritative; the divergence is stamped so the
+            # artifact is distinguishable at read time (standing rule 2).
+            notes.append(
+                f"LOUD: DEPLOY WINDOW OVERRIDDEN (--allow-deploy-window) — serving != "
+                f"desired: {lines}. Output is NOT citable as a quiesced-prod baseline.")
         deploy_window_checked = True
 
     readback_holes = [v for v, src in coverage.items() if src != "serving_readback"]
@@ -501,7 +509,8 @@ def write_artifact(path: str, header: dict, body_md: str, title: str | None = No
 # ---------------------------------------------------------------------------
 
 def prepare_evidence_env(base_url: str = DEFAULT_BASE_URL,
-                         railway_service: str = "sage-api") -> tuple:
+                         railway_service: str = "sage-api",
+                         allow_deploy_window: bool = False) -> tuple:
     """The one-call setup: readback -> railway -> derive (refusals raise) -> export.
     Returns (derived, readback_health)."""
     readback = fetch_readback(base_url)
@@ -509,7 +518,7 @@ def prepare_evidence_env(base_url: str = DEFAULT_BASE_URL,
     if desired is None:
         print("LOUD: railway (desired) unavailable — proceeding readback-only; "
               "deploy-window check skipped.", flush=True)
-    derived = derive_flag_set(readback, desired)
+    derived = derive_flag_set(readback, desired, allow_deploy_window=allow_deploy_window)
     for note in derived["notes"]:
         print(note, flush=True)
     export_env(derived)
@@ -517,7 +526,8 @@ def prepare_evidence_env(base_url: str = DEFAULT_BASE_URL,
 
 
 async def _run_cli(args) -> int:
-    derived, readback = prepare_evidence_env(args.base_url, args.railway_service)
+    derived, readback = prepare_evidence_env(args.base_url, args.railway_service,
+                                             args.allow_deploy_window)
     fixture = json.load(open(args.fixture, encoding="utf-8"))
     turns = fixture["turns"] if isinstance(fixture, dict) else list(fixture)
     app = build_local_graph()
@@ -547,6 +557,9 @@ def main(argv=None) -> int:
     for p in (p_probe, p_run):
         p.add_argument("--base-url", default=os.getenv("SAGE_PROD_HEALTH_URL", DEFAULT_BASE_URL))
         p.add_argument("--railway-service", default="sage-api")
+        p.add_argument("--allow-deploy-window", action="store_true",
+                       help="SMOKE/DIAGNOSTIC ONLY: proceed although serving != desired; "
+                            "the divergence is stamped loudly and the output is not a baseline")
     p_run.add_argument("--fixture", required=True,
                        help='JSON file: {"turns": [...]} or a bare JSON list of turns')
     p_run.add_argument("--n", type=int, default=10)
@@ -555,7 +568,8 @@ def main(argv=None) -> int:
 
     try:
         if args.cmd == "probe":
-            derived, readback = prepare_evidence_env(args.base_url, args.railway_service)
+            derived, readback = prepare_evidence_env(args.base_url, args.railway_service,
+                                                     args.allow_deploy_window)
             header = header_block(derived, readback, n_per_fixture=0,
                                   degraded_turn_count=0, fingerprints=[],
                                   base_url=args.base_url)

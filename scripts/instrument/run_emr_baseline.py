@@ -175,7 +175,8 @@ def write_baseline(out_path: str, header: dict, per_case: dict,
 # ---------------------------------------------------------------------------
 
 async def _amain(args) -> int:
-    derived, readback = ge.prepare_evidence_env(args.base_url, args.railway_service)
+    derived, readback = ge.prepare_evidence_env(args.base_url, args.railway_service,
+                                                args.allow_deploy_window)
     prov_note = enforce_recorded_provenance(derived["effective"],
                                             args.allow_unrecorded_provenance)
     if prov_note:
@@ -262,9 +263,16 @@ def main(argv=None) -> int:
     ap.add_argument("--allow-unrecorded-provenance", action="store_true",
                     help="SMOKES ONLY: proceed although SAGE_AUDIT_CLASSIFIER_PROVENANCE "
                          "is off; artifact is loudly stamped non-baseline")
+    ap.add_argument("--allow-deploy-window", action="store_true",
+                    help="SMOKES ONLY (requires --smoke): proceed although serving != "
+                         "desired; divergence is stamped loudly, output is not a baseline")
     ap.add_argument("--base-url", default=os.getenv("SAGE_PROD_HEALTH_URL", ge.DEFAULT_BASE_URL))
     ap.add_argument("--railway-service", default="sage-api")
     args = ap.parse_args(argv)
+    if args.allow_deploy_window and not args.smoke:
+        print("REFUSING: --allow-deploy-window is smoke-only — an evidence baseline is "
+              "never taken against a mid-transition prod.", file=sys.stderr)
+        return 2
     if args.smoke:
         args.n = 1
         if os.path.abspath(args.out) == os.path.abspath(DEFAULT_OUT):
