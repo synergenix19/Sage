@@ -1,3 +1,5 @@
+# DEPRECATED-DIRECT-INVOKE: invokes the graph/LLM directly; output is NOT evidence under
+# the signed instrument-parity rule (2026-07-28). Migrate to scripts/instrument/graph_evidence.py.
 """Phase-B probe ($ small): verify the freeflow OPENER fix (#2) and measure the
 advice-after-validation DRAFT (#3) against the REAL production responder (gpt-4o
 via OpenRouter). Runs the actual compose_prompt path; the only swap is the L2

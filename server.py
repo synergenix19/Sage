@@ -950,6 +950,62 @@ async def health_version(_: None = Depends(require_api_key)):
         "openrouter_provider_pin_raw_env": os.environ.get("SAGE_OPENROUTER_PROVIDER_PIN"),
         "audit_classifier_provenance_enabled": _c.AUDIT_CLASSIFIER_PROVENANCE_ENABLED,
         "audit_classifier_provenance_raw_env": os.environ.get("SAGE_AUDIT_CLASSIFIER_PROVENANCE"),
+        # FULL readback closure (2026-07-29, instrument-parity standing rule): every remaining
+        # parity-relevant SAGE_* var config.py reads, resolved + raw_env, same pattern as above.
+        # The refuse-on-gap rule makes a serving-readback hole a HARD ERROR for evidence runs
+        # (the 2026-07-23 cosine confound class); after this block the parity guard can assert
+        # the ENTIRE config surface from the serving process, not railway DESIRED. Resolved
+        # values are the RUNNING process's config module state (what fires); raw_env is the
+        # provenance string — null when unset, never fabricated.
+        # Models (which upstream model each role actually runs — the v7 §5.4 divergence made
+        # this a provenance question, not an inference):
+        "classifier_model": _c.CLASSIFIER_MODEL,
+        "classifier_model_raw_env": os.environ.get("SAGE_CLASSIFIER_MODEL"),
+        "responder_model": _c.RESPONDER_MODEL,
+        "responder_model_raw_env": os.environ.get("SAGE_RESPONDER_MODEL"),
+        "translator_model": _c.TRANSLATOR_MODEL,
+        "translator_model_raw_env": os.environ.get("SAGE_TRANSLATOR_MODEL"),
+        "fallback_responder_model": _c.FALLBACK_RESPONDER_MODEL,
+        "fallback_responder_model_raw_env": os.environ.get("SAGE_FALLBACK_RESPONDER_MODEL"),
+        "fallback_classifier_model": _c.FALLBACK_CLASSIFIER_MODEL,
+        "fallback_classifier_model_raw_env": os.environ.get("SAGE_FALLBACK_CLASSIFIER_MODEL"),
+        "resistance_model": _c.RESISTANCE_MODEL,
+        "resistance_model_raw_env": os.environ.get("SAGE_RESISTANCE_MODEL"),
+        # Retrieval / skill-routing thresholds and gates:
+        "knowledge_abstain_threshold": _c.KNOWLEDGE_ABSTAIN_THRESHOLD,
+        "knowledge_abstain_threshold_raw_env": os.environ.get("SAGE_KNOWLEDGE_ABSTAIN_THRESHOLD"),
+        "skill_runner_up_min": _c.SKILL_RUNNER_UP_MIN,
+        "skill_runner_up_min_raw_env": os.environ.get("SAGE_SKILL_RUNNER_UP_MIN"),
+        "skill_runner_up_margin": _c.SKILL_RUNNER_UP_MARGIN,
+        "skill_runner_up_margin_raw_env": os.environ.get("SAGE_SKILL_RUNNER_UP_MARGIN"),
+        "skill_offer_cooldown_turns": _c.SKILL_OFFER_COOLDOWN_TURNS,
+        "skill_offer_cooldown_turns_raw_env": os.environ.get("SAGE_SKILL_OFFER_COOLDOWN_TURNS"),
+        "skill_offer_cooldown_enabled": _c.SKILL_OFFER_COOLDOWN_ENABLED,
+        "skill_offer_cooldown_enabled_raw_env": os.environ.get("SAGE_SKILL_OFFER_COOLDOWN_ENABLED"),
+        "d5_acuity_gate_enabled": _c.D5_ACUITY_GATE_ENABLED,
+        "d5_acuity_gate_raw_env": os.environ.get("SAGE_D5_ACUITY_GATE"),
+        "d5_acuity_floor": _c.D5_ACUITY_FLOOR,
+        "d5_acuity_floor_raw_env": os.environ.get("SAGE_D5_ACUITY_FLOOR"),
+        "native_arabic_shadow_enabled": _c.NATIVE_ARABIC_SHADOW_ENABLED,
+        "native_arabic_shadow_raw_env": os.environ.get("SAGE_NATIVE_ARABIC_SHADOW"),
+        # Remaining kill-switches + psychoed pathway gates:
+        "high_risk_terminal_enabled": _c.HIGH_RISK_TERMINAL_ENABLED,
+        "high_risk_terminal_raw_env": os.environ.get("SAGE_HIGH_RISK_TERMINAL"),
+        "psychoed_pathways_enabled": _c.PSYCHOED_PATHWAYS_ENABLED,
+        "psychoed_pathways_raw_env": os.environ.get("SAGE_PSYCHOED_PATHWAYS"),
+        "psychoed_categories": sorted(_c.PSYCHOED_CATEGORIES),  # frozenset -> JSON list
+        "psychoed_categories_raw_env": os.environ.get("SAGE_PSYCHOED_CATEGORIES"),
+        # Medical-terminal copy (the safety terminal's ACTUAL wording — a signed-copy surface):
+        "medical_referral_text": _c.MEDICAL_REFERRAL_TEXT,
+        "medical_referral_text_raw_env": os.environ.get("SAGE_MEDICAL_REFERRAL_TEXT"),
+        # SAGE_AUDIT_LOG ruled safety-class (2026-07-28): "an OFF state must be LOUDLY visible
+        # in /health/version" — covered here even though parity-denylists it as infra.
+        "audit_log_enabled": _c.AUDIT_LOG_ENABLED,
+        "audit_log_raw_env": os.environ.get("SAGE_AUDIT_LOG"),
+        # Correctly-named twin of skill_media_raw_env above: that legacy field maps (by the
+        # *_raw_env convention) to "SAGE_SKILL_MEDIA", which is not the real env var name, so
+        # the parity serving-map missed it. The legacy field stays for its consumers.
+        "skill_media_enabled_raw_env": os.environ.get("SAGE_SKILL_MEDIA_ENABLED"),
         # Mechanism-level attestation for BYTE-IDENTICAL crisis templating: True iff the deployed
         # crisis source carries {{crisis_}} placeholders. Distinguishes a real templated deploy from
         # a stale-literal one when the build_sha above is a lying label (see deploy-control doc).

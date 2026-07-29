@@ -1,3 +1,5 @@
+# DEPRECATED-DIRECT-INVOKE: invokes the graph/LLM directly; output is NOT evidence under
+# the signed instrument-parity rule (2026-07-28). Migrate to scripts/instrument/graph_evidence.py.
 """
 Latency benchmark: measures TTFB across all major turn types, English and Arabic.
 

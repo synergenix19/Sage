@@ -162,10 +162,22 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
         data = json.loads(match.group(0)) if match else {}
     except json.JSONDecodeError:
         data = {}
+    # `classifier_degraded` POSITIVE path marker (fast-follow ledger 2026-07-28, Q-a).
+    # Detection = the static-fallback shape: no parseable JSON in the reply (the pinned
+    # classifier chain exhausted and resilient_invoke served the static neutral copy, or
+    # the reply was truncated garbage) — everything below then resolves to the neutral
+    # defaults (general_chat @ 0.5). C3 discipline: assert the positive path, don't leave
+    # the degraded route distinguishable only by silence-shaped inference (empty meta_out,
+    # confidence exactly 0.5). A VALID parse that merely omits fields is NOT degraded —
+    # genuine low-confidence classifications must never carry this marker (RT-1 depends
+    # on the two populations staying separate). Pure additive marker, no flag.
+    _classifier_degraded = not data
 
     primary_intent = data.get("primary_intent", "general_chat")
     _directive_posture = detect_directive_request(state, primary_intent=primary_intent)
     _intent_route_path = state["path"] + ["intent_route"]
+    if _classifier_degraded:
+        _intent_route_path = _intent_route_path + ["classifier_degraded"]
     if _directive_posture:
         _intent_route_path = _intent_route_path + ["directive_posture_set"]
     result = {
