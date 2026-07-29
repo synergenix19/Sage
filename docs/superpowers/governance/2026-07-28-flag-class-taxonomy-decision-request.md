@@ -29,9 +29,9 @@ characterization got exactly this difference wrong.
 | SAGE_ROUTE_PRECEDENCE | safety | precedence ordering of safety routes |
 | SAGE_D1_SCREEN | safety (PRESUMED, ruling 2026-07-28) | screens on risk content → gates harm; clinical sign-off decides whether current behavior is safe ON |
 | SAGE_D1_SCREEN_SHADOW | feature | shadow measurement only |
-| SAGE_IPV_PREEMPTION | safety (PRESUMED, ruling 2026-07-28) | preempts on risk content; currently false in prod (reverted stream); clinical sign-off decides |
+| SAGE_IPV_PREEMPTION | safety (PRESUMED) | **pending review, Vee, 2026-07-29** (signed marker, no blind sign-off); currently false in prod |
 | SAGE_INFO_REQUEST_CONSULT | feature, **signed_value=true** (Vee B1 2026-07-23) | psychoed Mechanism-A. **RULING RECORD 2026-07-29:** off-drift observed in prod 2026-07-28 (93bd5abf/PR#370 deploy window); time-boxed record hunt found NO recorded rationale on master → **Step 2b fired** (unexplained drift, not a decision; signed state is standing truth). Restored true + owner-ratified (D1 GO + D2 RATIFY, 09013f19 deploy) before the ruling round-trip completed; readback-confirmed serving true. Evidence: pins-deploy-record (PR#378), 2026-07-29 ledger. First live case for the signed_value deploy-gate fast-follow |
-| SAGE_HIGH_RISK_TERMINAL | safety (PRESUMED, ruling 2026-07-28) | terminates on risk content; clinical sign-off decides |
+| SAGE_HIGH_RISK_TERMINAL | safety (PRESUMED) | **pending review, Vee, 2026-07-29** (signed marker, no blind sign-off); built, off |
 | SAGE_D5_ACUITY_GATE | feature (parked) | inert by decision |
 | SAGE_SKILL_OFFER_COOLDOWN | feature | |
 | SAGE_NATIVE_ARABIC_SHADOW | feature | shadow only, never served |
