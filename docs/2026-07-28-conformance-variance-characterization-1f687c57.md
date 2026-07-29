@@ -1,4 +1,12 @@
-# Conformance instrument — noise-floor characterization (N=3, full prod config) — graph @ 1f687c57
+<!-- ⚠️ BASELINE LABEL CORRECTED 2026-07-28 (see 2026-07-28-rca-correct-conformance-number.md):
+     "10/36 prod-faithful" is prod-DESIRED, NOT prod-SERVING. This run set info_request_consult=true (railway
+     desired), but prod SERVES it OFF (confirmed by behavioral probe: active-step-id empty on an info_request).
+     Current SERVING number = 8/36 (cosine 0.42 + info_request OFF); 10/36 is realized only after the next
+     master->prod deploy picks up info_request=true. The NOISE-FLOOR result below (±0 aggregate; band on
+     {S3a,S4a,§1d,§1e}; §1c STABLE) is UNAFFECTED — it was measured at FIXED config, so it characterizes the
+     instrument regardless of which config; only the absolute baseline label changes for the serving layer. -->
+
+# Conformance instrument — noise-floor characterization (N=3, FIXED config) — graph @ 1f687c57
 
 **Purpose:** publish the conformance instrument's noise floor before its readings gate any decision (the
 ARCHITECTURE_BOUNDARIES rule earned this month). Until this existed, single-run deltas were read as signal —
