@@ -97,17 +97,21 @@ def test_committed_file_passes_the_signed_value_check():
     assert violations == [], f"committed register fails its own gate: {violations}"
 
 
-def test_info_request_consult_row_records_the_contended_signed_state():
-    """The first live case for this gate: SAGE_INFO_REQUEST_CONSULT is served false while the
-    signed state is true (Vee B1). The register must say so EXPLICITLY — signed_value=true,
-    value=false, and a ratified override block — not paper over it."""
+def test_info_request_consult_row_records_the_restored_signed_state():
+    """Updated in the authorized restore PR (item-1 pre-authorization, 2026-07-29): the row
+    previously pinned the CONTENDED state (value false + ratified override) so a restore
+    could not sneak in as a side effect. The restore having happened through its own PR,
+    the row now pins the RESTORED invariant: value == signed_value, NO override block, and
+    the restore evidence carried in signature_ref/note. A future unexplained divergence
+    must reappear as an override block (gate check) — never as silent value drift."""
     row = _register()["flags"]["SAGE_INFO_REQUEST_CONSULT"]
-    assert row["value"] == "false"          # as currently served; restore is NOT this PR's side effect
+    assert row["value"] == "true"
     assert row["signed_value"] == "true"
+    assert row["value"] == row["signed_value"]
+    assert "override" not in row            # restored state needs no override; drift must re-add one
     assert "Vee B1" in row["signature_ref"] and "PR#362" in row["signature_ref"]
-    override = row["override"]
-    assert override["rationale"]
-    assert "2026-07-29" in override["ratification_ref"]
+    assert "2026-07-29" in row["signature_ref"]   # retro-confirmation + reaffirmation carried
+    assert "RESTORED 2026-07-29" in row["note"]
 
 
 # ---------------------------------------------------------------------------
