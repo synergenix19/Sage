@@ -375,3 +375,12 @@ def test_allow_deploy_window_is_loud_and_serving_authoritative():
         mapping=dict(_SMALL_MAPPING), allow_deploy_window=True)
     assert derived["resolved_env"]["SAGE_HIGH_RISK_DETECTION"] == "true"  # serving wins
     assert any("DEPLOY WINDOW OVERRIDDEN" in n for n in derived["notes"])
+
+
+def test_header_carries_local_tree_sha_and_flags_divergence_from_serving_sha():
+    header = ge.header_block(_derived_ok(), _mock_readback(), n_per_fixture=1,
+                             degraded_turn_count=0, fingerprints=[])
+    assert "local_tree_sha" in header and header["local_tree_sha"]
+    # the mocked serving sha 'deadbeefcafe' never matches the real local tree
+    assert any("LOCAL tree" in n for n in header["parity_notes"])
+    assert "Local tree SHA" in ge.render_header_md(header)

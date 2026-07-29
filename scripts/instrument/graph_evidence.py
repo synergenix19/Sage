@@ -63,6 +63,15 @@ import urllib.request
 import uuid
 from datetime import datetime, timezone
 
+
+def _local_tree_sha(repo: str | None = None) -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=repo or REPO, text=True,
+            stderr=subprocess.DEVNULL).strip()
+    except Exception:  # noqa: BLE001
+        return "unknown"
+
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Default prod base URL — same source of truth as scripts/prod_smoke/run.py.
@@ -85,7 +94,7 @@ DEGRADED_CONFIDENCE = 0.5
 
 REQUIRED_HEADER_FIELDS = (
     "instrument", "generated_at", "base_url", "build_sha", "build_sha_source",
-    "resolved_flag_set", "flag_coverage", "classifier_model",
+    "local_tree_sha", "resolved_flag_set", "flag_coverage", "classifier_model",
     "openrouter_provider_pin", "classifier_seed", "seed_honor",
     "n_per_fixture", "degraded_turn_count",
     "railway_desired_available", "deploy_window_checked", "parity_notes",
@@ -436,12 +445,18 @@ def header_block(derived: dict, readback_health: dict, *, n_per_fixture: int,
                  degraded_turn_count: int, fingerprints=None,
                  base_url: str = DEFAULT_BASE_URL) -> dict:
     eff = derived["effective"]
+    local_sha = _local_tree_sha()
+    serving_sha = readback_health.get("build_sha", "unknown")
     header = {
         "instrument": INSTRUMENT_ID,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "base_url": base_url,
-        "build_sha": readback_health.get("build_sha", "unknown"),
+        "build_sha": serving_sha,
         "build_sha_source": readback_health.get("build_sha_source", "unknown"),
+        # The LOCAL tree the graph was actually built from. Flags come from the
+        # serving readback; the CODE is this tree — when they differ the artifact
+        # must say so or it wears the serving SHA's name on another tree's number.
+        "local_tree_sha": local_sha,
         "resolved_flag_set": dict(sorted(eff.items())),
         "flag_coverage": dict(sorted(derived["coverage"].items())),
         "classifier_model": eff.get("SAGE_CLASSIFIER_MODEL"),
@@ -454,6 +469,12 @@ def header_block(derived: dict, readback_health: dict, *, n_per_fixture: int,
         "deploy_window_checked": derived["deploy_window_checked"],
         "parity_notes": list(derived["notes"]),
     }
+    if local_sha not in ("unknown",) and serving_sha not in ("unknown",) \
+            and not serving_sha.startswith(local_sha) and not local_sha.startswith(serving_sha):
+        header["parity_notes"].append(
+            f"NOTE: LOCAL tree {local_sha[:12]} != SERVING build {serving_sha[:12]} — "
+            "flags are serving-derived but the code under measurement is the local tree; "
+            "cite accordingly.")
     missing = [f for f in REQUIRED_HEADER_FIELDS if f not in header]
     if missing:  # defensive: the template is load-bearing for every future artifact
         raise ParityRefusal(f"header template incomplete, missing: {missing}")
@@ -470,6 +491,7 @@ def render_header_md(header: dict) -> str:
         f"- **Generated at:** {header['generated_at']}",
         f"- **Serving readback:** {header['base_url']} /health/version",
         f"- **Build SHA (from readback):** `{header['build_sha']}` (source: {header['build_sha_source']})",
+        f"- **Local tree SHA (code measured):** `{header['local_tree_sha']}`",
         f"- **Classifier model:** `{header['classifier_model']}`",
         f"- **OpenRouter provider pin:** `{header['openrouter_provider_pin']}`",
         f"- **Requested classifier seed:** `{header['classifier_seed']}`",

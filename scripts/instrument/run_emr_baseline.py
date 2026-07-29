@@ -193,6 +193,12 @@ async def _amain(args) -> int:
         cases = cases[:1] if not args.case else cases
 
     if not os.getenv("OPENROUTER_API_KEY"):
+        # This check runs BEFORE any sage_poc import (config.py's load_dotenv has not
+        # run yet), so backfill from the repo .env the same way config.py would.
+        env_key = ge._load_env_file(os.path.join(REPO, ".env")).get("OPENROUTER_API_KEY")
+        if env_key:
+            os.environ["OPENROUTER_API_KEY"] = env_key
+    if not os.getenv("OPENROUTER_API_KEY"):
         # config.py may have imported without it; the graph's classifier cannot run.
         print("FATAL: OPENROUTER_API_KEY missing — the graph's intent classifier cannot "
               "run. STOP; do not fabricate readouts.", file=sys.stderr)
