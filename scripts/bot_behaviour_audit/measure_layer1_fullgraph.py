@@ -1,4 +1,11 @@
-"""Full-graph BOT BEHAVIOUR Layer-1 conformance measurement (EN).
+"""Full-graph BOT BEHAVIOUR Layer-1 conformance measurement (EN) — DIAGNOSTIC, NOT the method of record.
+
+⚠️ This runner OVER-COUNTS vs the serving system and refuses to run without --diagnostic-only. Prod pins
+its intent classifier deterministic (SAGE_CLASSIFIER_SEED + provider pin); app.ainvoke calls the LLM live
+and unpinned, so intent_route diverges from what prod serves. That is an INSTRUMENT gap, not a config gap
+the flag-parity gate can catch (identical flags, different instrument). The number of record comes from
+measure_layer1_prod_http.py (drives the real /chat surface). Use this runner for fast local diagnosis of a
+routing change; read its deltas as indicative, never its absolute value as "the served number".
 
 Drives each corpus utterance through the REAL compiled graph (app.ainvoke), NOT skill_select
 isolation. Isolation over-counts because it skips intent_route's general_chat gate that routes
@@ -204,7 +211,26 @@ async def main():
     ap.add_argument("--allow-deploy-window", action="store_true",
                     help="proceed even if prod is mid-deploy (serving flags != desired flags)")
     ap.add_argument("--no-parity-check", action="store_true", help="skip the prod flag-parity fetch entirely")
+    ap.add_argument("--diagnostic-only", action="store_true",
+                    help="acknowledge this runner is NOT the method of record (it over-counts vs prod-HTTP "
+                         "because app.ainvoke cannot reproduce prod's pinned classifier); required to run")
     args = ap.parse_args()
+
+    # ---- INSTRUMENT-REFUSAL GATE: this runner cannot emit the number of record ----
+    # Prod pins its intent classifier deterministic (SAGE_CLASSIFIER_SEED + provider pin). app.ainvoke calls
+    # the LLM live and unpinned, so intent_route classifications DIVERGE from what prod serves — and that is
+    # NOT a config mismatch the flag-parity gate can catch (identical flags, different instrument). Measured
+    # 2026-07: this runner reported 7/36, 8/36, 11/36 while prod-HTTP served 9/36. So it must refuse to be
+    # read as authoritative. The number of record comes from measure_layer1_prod_http.py; deltas here stay
+    # roughly indicative, absolute values are superseded. Caller must acknowledge with --diagnostic-only.
+    if not args.diagnostic_only:
+        print("❌ NOT THE METHOD OF RECORD — this full-graph runner over-counts vs the serving system:", flush=True)
+        print("   prod pins its classifier (SAGE_CLASSIFIER_SEED + provider pin); app.ainvoke runs the LLM", flush=True)
+        print("   live+unpinned, so its intent_route diverges from what prod serves. Same flags, different", flush=True)
+        print("   instrument — flag-parity cannot catch it. Use scripts/bot_behaviour_audit/", flush=True)
+        print("   measure_layer1_prod_http.py for the number of record, or pass --diagnostic-only to run this", flush=True)
+        print("   as a NON-AUTHORITATIVE diagnostic (deltas indicative, absolute value superseded).", flush=True)
+        sys.exit(4)
 
     # ---- FLAG-PARITY GATE: config parity asserted the same way --sha pins the tree ----
     # Ground truth for "what prod serves" is the SERVING readback (/health/version *_raw_env, #338), NOT
@@ -307,6 +333,10 @@ async def main():
 
     with open(args.out, "w") as f:
         f.write("# Conformance re-run — FULL-GRAPH, EN\n\n")
+        f.write("> **⚠️ NON-AUTHORITATIVE (diagnostic-only).** This full-graph runner (app.ainvoke) over-counts "
+                "vs the serving system — prod pins its classifier, this does not. The NUMBER OF RECORD comes "
+                "from `measure_layer1_prod_http.py` (prod-HTTP). Read deltas here as indicative; absolute "
+                "values are superseded by the prod-HTTP driver.**\n\n")
         if faults:
             f.write(f"> **⚠️ RUN VOID: {faults} instrument fault(s) — a partial matrix is not data. "
                     f"Do NOT write back to the register. First fault: {errors[0]}**\n\n")
@@ -339,7 +369,8 @@ async def main():
                 "be scored without a ratified native Khaleeji corpus (Probe #1). The EN number above must "
                 "NEVER be reported as 'conformance' unqualified — it is English-graph conformance only.\n")
 
-    print(f"\nEN CONFORMING: {len(conforming)}/{len(cats)} | faults={faults}", flush=True)
+    print(f"\nEN CONFORMING (DIAGNOSTIC, NOT method of record): {len(conforming)}/{len(cats)} | faults={faults}", flush=True)
+    print("  ^ over-counts vs prod-HTTP; number of record = measure_layer1_prod_http.py", flush=True)
     print("RUN_VOID" if faults else "RUN_CLEAN", flush=True)
     print("ALLDONE", flush=True)
     sys.exit(1 if faults else 0)
