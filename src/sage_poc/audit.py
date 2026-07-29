@@ -168,6 +168,25 @@ def _build_session_audit_row(state: SageState) -> dict:
         "user_id":                state.get("user_id") or None,
         "re_escalation_within_monitoring": state.get("re_escalation_within_monitoring"),
     }
+    # C1 cards-only retrieval (flag-gated, same discipline as tiering/precedence/medical below):
+    # keys included ONLY when the cards path actually ran (cards channels populated — impossible
+    # with SAGE_CONSULT_SOURCES off, the node is unreachable), so a flag-OFF row stays
+    # byte-identical to master and migration 018 (knowledge_retrieval_purpose) is a flag-flip
+    # deploy gate, not a merge gate. PURPOSE DISCRIMINATOR (ruling condition 2): cards ids land
+    # in knowledge_passage_ids (preserving sources ⊆ knowledge_passage_ids) but the row stamps
+    # purpose='cards_only' so no auditor can read non-empty ids as evidence-grounded generation.
+    # Evidence and cards are mutually exclusive per turn by construction (consult turns never
+    # reach Node 6; KB turns never reach the cards node).
+    _cards = state.get("cards_knowledge_passages") or []
+    if _cards or state.get("cards_knowledge_abstain"):
+        if not row["knowledge_passage_ids"]:
+            row["knowledge_passage_ids"] = [p.get("source_id", "") for p in _cards]
+        row["knowledge_retrieval_purpose"] = "cards_only"
+        row["knowledge_top_similarity"] = (
+            row["knowledge_top_similarity"]
+            if row["knowledge_top_similarity"] is not None
+            else state.get("cards_knowledge_top_similarity")
+        )
     # v7.1 tiering (F / schema-delta): the tier classification is auditable ONLY when the flag
     # is ON (safety_check omits crisis_tier when OFF). Including it conditionally keeps a flag-OFF
     # audit row byte-identical to master (Check B) and means migration 006 (crisis_tier/tier_rule_id

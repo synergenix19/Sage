@@ -13,7 +13,7 @@ from sage_poc.nodes.low_confidence_respond import low_confidence_respond_node
 from sage_poc.nodes.skill_select import skill_select_node, _psychoed_pathway_clear
 from sage_poc.nodes.skill_executor import skill_executor_node
 from sage_poc.nodes.freeflow_respond import freeflow_respond_node
-from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
+from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node, knowledge_retrieve_cards_node
 from sage_poc.nodes.medical_response import medical_response_node
 from sage_poc.nodes.screen_response import screen_response_node
 from sage_poc.nodes.high_risk_response import high_risk_response_node
@@ -435,6 +435,18 @@ def _route_after_skill_select(state: SageState) -> str:
     # "knowledge_retrieve" for info_request exactly as before the consult existed.
     if state.get("primary_intent") == "info_request":
         if state.get("skill_match_method") == "info_request_skill_consult":
+            # C1 (SAGE_CONSULT_SOURCES, ruling 2026-07-29): a consult-selected turn detours
+            # through cards-only retrieval, then proceeds to skill_executor via the static
+            # knowledge_retrieve_cards -> skill_executor edge. SEQUENTIAL insertion, not a
+            # parallel branch, deliberately: skill_executor's conditional router
+            # (_route_after_skill_executor) must remain the SOLE post-executor authority — a
+            # parallel cards branch would carry its own unconditional edge into the join and
+            # fire even on a crisis re-escalation diversion, re-opening the state-channel-seam
+            # class. Retrieval is a sub-second DB call; topology safety wins over §10 fan-out
+            # purity here. Local import so monkeypatch.setattr(config, ...) works in tests.
+            from sage_poc import config  # noqa: PLC0415
+            if config.CONSULT_SOURCES_ENABLED:
+                return "knowledge_retrieve_cards"
             return "skill_executor"
         return "knowledge_retrieve"
     if state.get("active_skill_id"):
@@ -463,6 +475,7 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     graph.add_node("low_confidence_respond", low_confidence_respond_node)
     graph.add_node("skill_select", skill_select_node)
     graph.add_node("knowledge_retrieve", knowledge_retrieve_node)
+    graph.add_node("knowledge_retrieve_cards", knowledge_retrieve_cards_node)  # C1 cards-only (SAGE_CONSULT_SOURCES)
     graph.add_node("skill_executor", skill_executor_node)
     graph.add_node("freeflow_respond", freeflow_respond_node)
     graph.add_node("output_gate", output_gate_node)
@@ -499,6 +512,7 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     graph.add_conditional_edges("skill_select", _route_after_skill_select, {
         "skill_executor": "skill_executor",
         "knowledge_retrieve": "knowledge_retrieve",
+        "knowledge_retrieve_cards": "knowledge_retrieve_cards",  # C1: consult turn detour, flag-gated in the router
         "low_confidence": "low_confidence_respond",
         "freeflow": "freeflow_respond",
         "screen_response": "screen_response",   # #338 D1: served screen question → terminal
@@ -506,6 +520,9 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     })
     graph.add_edge("screen_response", END)
     graph.add_edge("knowledge_retrieve", "freeflow_respond")
+    # C1: cards retrieval is a sequential detour INTO skill_executor, whose conditional router
+    # stays the sole post-executor authority (crisis re-escalation etc.) — see the router comment.
+    graph.add_edge("knowledge_retrieve_cards", "skill_executor")
 
     graph.add_conditional_edges("skill_executor", _route_after_skill_executor, {
         "crisis": "crisis_response",

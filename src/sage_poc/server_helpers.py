@@ -187,6 +187,11 @@ def _build_state(req: _RequestLike) -> dict:
         "knowledge_source":        "",
         "knowledge_abstain":       False,
         "knowledge_passages":      [],
+        # C1 cards channels — per-turn reset so a prior turn's cards never leak into a later
+        # turn's sources header or audit row (state-channel seam discipline).
+        "cards_knowledge_passages": [],
+        "cards_knowledge_abstain":  False,
+        "cards_knowledge_top_similarity": None,
         "offer_response":          None,
         "offer_choice_skill_id":   None,
         "stall_detected":          None,   # per-turn; set in intent_route

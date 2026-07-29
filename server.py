@@ -116,15 +116,20 @@ _SOURCE_ALLOWED_GATE_PATHS = frozenset({"standard"})
 def _sources_header(result: dict) -> str | None:
     """Build the X-Sage-Sources header value: a JSON list of source cards, or None.
 
-    Sources are always a SUBSET of result["knowledge_passages"] — the exact list
-    audited in session_audit.knowledge_passage_ids — so every source card shown to
-    the user is audit-traceable back to that turn's retrieval.
+    Sources are always a SUBSET of the passages audited in
+    session_audit.knowledge_passage_ids — so every source card shown to the user is
+    audit-traceable back to that turn's retrieval. Two mutually-exclusive feeds
+    (v7.3 invariant): knowledge_passages (evidence path, Node 6) or, on a C1 consult
+    turn, cards_knowledge_passages (cards-only path; audited with
+    knowledge_retrieval_purpose='cards_only'). The frontend renders these under the
+    "Further Reading" label — ruling condition 1; never rename toward "Sources".
     """
     if result.get("gate_path") not in _SOURCE_ALLOWED_GATE_PATHS:
         return None
     entries: list[dict] = []
     seen: set[str] = set()
-    for p in (result.get("knowledge_passages") or []):
+    _passages = result.get("knowledge_passages") or result.get("cards_knowledge_passages") or []
+    for p in _passages:
         video, url = p.get("video_url", ""), p.get("source_url", "")
         if not (video or url):
             continue
@@ -916,6 +921,10 @@ async def health_version(_: None = Depends(require_api_key)):
         # (what actually fires), never a request-time env re-parse that could drift from it.
         "info_request_consult_enabled": _c.INFO_REQUEST_CONSULT_ENABLED,
         "info_request_consult_raw_env": os.environ.get("SAGE_INFO_REQUEST_CONSULT"),
+        # C1 Further-Reading cards on consult turns (v7.3 ruling 2026-07-29): resolved + raw,
+        # same pattern — readback coverage lands WITH the flag, per the parity refuse-on-gap rule.
+        "consult_sources_enabled": _c.CONSULT_SOURCES_ENABLED,
+        "consult_sources_raw_env": os.environ.get("SAGE_CONSULT_SOURCES"),
         "high_risk_detection_enabled": _c.HIGH_RISK_DETECTION_ENABLED,
         "high_risk_detection_raw_env": os.environ.get("SAGE_HIGH_RISK_DETECTION"),
         "hr_neutrality_gate_enabled": _c.HR_NEUTRALITY_GATE_ENABLED,

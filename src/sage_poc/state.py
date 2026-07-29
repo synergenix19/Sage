@@ -97,6 +97,13 @@ class SageState(TypedDict):
     knowledge_query_raw: str        # query as submitted (pre-normalization)
     knowledge_query_searched: str   # query actually searched (post-normalization)
     knowledge_top_similarity: float | None  # best cosine sim in the returned pack; drives abstain
+    # C1 cards-only retrieval (SAGE_CONSULT_SOURCES): populates Further-Reading cards + audit on
+    # consult turns. SEPARATE channels from knowledge_passages BY DESIGN — the composer's L4 block
+    # and _allow_light_structure read knowledge_passages, so keeping cards out of that channel is
+    # what makes "the prompt is byte-untouched" structural rather than a convention.
+    cards_knowledge_passages: list[dict]      # same passage shape as knowledge_passages
+    cards_knowledge_abstain: bool             # ABSTAIN floor applies: abstain -> no cards
+    cards_knowledge_top_similarity: float | None
 
     gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak", "crisis", "medical", "high_risk", "derealization"]]
 
