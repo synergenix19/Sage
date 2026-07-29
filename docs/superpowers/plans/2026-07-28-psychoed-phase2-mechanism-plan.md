@@ -44,7 +44,7 @@ src/sage_poc/nodes/skill_executor.py    # rule-6 family-counter read
 src/sage_poc/config.py                  # PSYCHOED_PATHWAYS_ENABLED + PSYCHOED_CATEGORIES
 src/sage_poc/state.py                   # 11 new channels
 src/sage_poc/graph.py                   # edge-map entry: skill_select → crisis_response
-migrations/016_add_psychoed_to_session_audit.sql
+migrations/017_add_psychoed_to_session_audit.sql
 server.py                               # per-turn reset of psychoed_serve
 tests/test_psychoed_store.py, test_psychoed_resolver.py, test_psychoed_classifiers.py,
 tests/test_psychoed_weave_eval.py, test_psychoed_serve.py, test_psychoed_skill_select.py,
@@ -866,7 +866,7 @@ Behavior notes: outcome-1 skips the DB entirely (`retrieve()` not called — the
 
 **Files:**
 - Modify: `src/sage_poc/nodes/freeflow_respond.py` (early path in node, line 240), `src/sage_poc/nodes/output_gate.py` (audit dict lines 933–969; new gate check near the HR gate call site lines 925–930), `src/sage_poc/audit.py` (`_build_session_audit_row` columns)
-- Create: `migrations/016_add_psychoed_to_session_audit.sql`; update `migrations/MIGRATIONS.md` (claim 016; reconcile table through 015)
+- Create: `migrations/017_add_psychoed_to_session_audit.sql`; update `migrations/MIGRATIONS.md` (claim 017 — renumbered from 016 at rebase, see MIGRATIONS.md; reconcile table)
 - Test: `tests/test_psychoed_gate.py`
 
 **Interfaces:**
