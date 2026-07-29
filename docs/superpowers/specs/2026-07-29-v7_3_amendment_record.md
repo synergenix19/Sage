@@ -6,7 +6,8 @@ approved and governed at every gate (chain below) but the v7 spec text was never
 Absolute-Rule-1 convention (spec + code merge together) was not followed for this change. Same debt family
 as the §5.4 Falcon→GPT item. Nothing in this record changes behaviour.
 
-**Amendment sign-off:** PENDING — product owner. ☐ approve ☐ edit ☐ reject
+**Amendment sign-off:** ☑ **APPROVED — product owner, 2026-07-29** (in-session; Vee's blanket
+approval of the same date recorded in the delivery-shape ruling + B1 confirm record).
 **Design:** `specs/2026-07-17-psychoed-mechanism-a-design.md` · **Go-live:** `governance/2026-07-23-psychoed-consult-golive-verification.md`
 
 ---
@@ -58,10 +59,10 @@ blank. The SIGNED instance (Vee's actual B1 ruling) was NOT FOUND in the repo, a
 reachable mail (search blocked: insufficient mailbox scopes); its in-repo attestation is the go-live
 record only. **RESOLVED 2026-07-29 — owner confirmation:** the PO confirmed (in-session, 2026-07-29)
 that Vee approved B1 before the 2026-07-23 flip; the signed instance exists out-of-repo. The
-no-signed-instance branch (clinical-governance finding) is CLOSED. **Remaining mechanical step, with
-the PO signature:** pin the instance (`location: ______ · sha256: ______`) or, preferred, land a
-retroactive two-line-confirm transcription (`2026-07-29-consult-b1-confirm-V.md`, the
-`d1-vee-two-line-confirm` pattern) so the ruling is in-repo like every other Vee ruling.
+no-signed-instance branch (clinical-governance finding) is CLOSED. **CLOSED with the PO signature:** the retroactive
+confirmation is transcribed at `governance/2026-07-29-consult-b1-confirm-V.md` (PO-relayed,
+hash-joined to the recovered template; evidentiary grade stated inside). If Vee's original message
+is later located, pin it verbatim in that record to upgrade it to primary-record grade.
 **Transcription protocol (evidentiary):** Vee is asked to confirm the substance and to state the
 date **unprompted, as best she recalls** (no date is suggested to her — a prompted echo that
 conflicts with the template's 2026-07-17 authoring date would create a new discrepancy inside the
