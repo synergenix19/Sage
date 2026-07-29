@@ -23,6 +23,21 @@ weakest acceptable posture for signed flags, hence this gate.
 register is where `signed_value` lives); until then, the readback + deploy-record
 discipline is the compensating control.
 
+**RECURRENCE #2 — 2026-07-29, same flag, ACTIVE mechanism (escalates urgency):**
+within ~18h of the owner-ratified restore, `SAGE_INFO_REQUEST_CONSULT` desired went
+`false` AGAIN with no new record on master, and a restart served it before
+detection (the parity helper's refuse-on-drift caught the desired/serving split;
+by verification time serving had flipped too). Twice in 24h = an active reset
+mechanism (likely a variable-template or env-block in one of the parallel streams'
+deploy tooling), not one-off human error. Ruling Step 2b re-executed by the command
+session (standing authorization, "executable without returning to me"): restored
+`true`, readback-poll to confirm. Consequences: (a) this gate item is no longer a
+fast-follow nicety — until it lands, the compensating control must include
+IDENTIFYING AND DISABLING the reset mechanism, which is now its own action item for
+the deploy owner + parallel-stream owners; (b) the EMR Phase 0 baseline requires a
+QUIESCED signed-flag state — re-blocked until the reset source is found or two
+consecutive clean readback checks span a deploy cycle.
+
 ## 2. Prod-Smoke Tier B Auth Harness (gap, must not fossilize)
 
 The 2026-07-28 deploy's behavioral probe ran 9/10 with Tier B (frontend) skipped:
