@@ -47,3 +47,21 @@ fossilize into "never checked." Fix: produce the storage state via the cdai
 Playwright auth harness (per prod_smoke runbook) and store it where deploy
 verification runs; until then every deploy record must carry the Tier-B-skipped
 line explicitly.
+
+**RECURRENCE #3 — 2026-07-29 11:47, STAND-DOWN DECISION (command session):** desired
+AND serving reverted to `false` within ~minutes of the confirmed restore. Deployment
+activity 11:26-11:30 (two FAILED = build-lock-gate signature, one SUCCESS) shows a
+parallel session actively deploying in the same window; its tooling evidently
+carries the flag `false`. **This is no longer drift; it is two writers contending on
+one signed variable.** The command session is STANDING DOWN from further restores:
+a third flip would start an automated flip-war on production (restart churn, live
+users), and the standing 2b ruling anticipated accidental drift, not an active
+contending writer — continuing under it would violate its intent. The flag is left
+as-found (`false`, UNRATIFIED, in breach of the signed state) pending HUMAN
+coordination: (1) deploy owner contacts the parallel-stream owner NOW, while their
+session is active; (2) Railway dashboard activity feed (web-only) identifies the
+variable-change actor decisively; (3) if their flip is deliberate mitigation, it
+comes through the front door as a decision request per the owner's own earlier
+note. EMR baseline remains blocked. This recurrence is the strongest possible
+rationale for the signed-flag deploy gate: three reversions, twenty-four hours, two
+of them served.
