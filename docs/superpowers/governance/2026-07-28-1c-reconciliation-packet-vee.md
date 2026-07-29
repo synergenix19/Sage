@@ -94,3 +94,24 @@ conflict is its first caught case, added as a regression fixture.
 **On item 1's confirm:** CF-010 flips alone (its clean delta: §1c derealization row moves), panic_override is
 remediated to pure-panic scope, item 2 rules its precondition, and each re-measures separately — the
 two-clean-deltas sequence restored.
+
+---
+
+## STATUS NOTE (2026-07-29) — the §1c premise SHIFTED under you; read before ruling item 1
+A prod-HTTP conformance measurement (served number of record, prod `09013f19`) plus a §1c stability drive
+(5 rows × 3, deterministic) found that **the §1c crisis over-escalation — the iatrogenic crisis card that
+made Part A urgent — is GONE.** The `a16b0a02` classifier pins (`SAGE_CLASSIFIER_SEED` + provider pin) made
+intent_route deterministic and it no longer misfires panic/derealization → crisis. All five §1c rows now show
+**zero crisis, stable across runs.**
+
+But it did NOT settle §1c *correctly* — it traded over-firing for **under-firing**: 3/5 rows (including the #2
+derealization row "everything feels unreal and I can't take this") now route to **presence_only**, not a skill
+or referral. So:
+- **CF-010 (derealization → anxiety referral) is still the doc-correct disposition (L151)** — nothing about
+  that changed. Ruling item 1 (derealization is referral, not panic_override's grounding) still stands on the doc.
+- **What changed is the URGENCY, not the direction.** §1c's live problem is no longer an iatrogenic crisis card;
+  it's under-response (presence). Part A becomes *correct-by-construction replacing correct-by-luck* — the
+  Rule-4 point holds (an LLM incidentally not misfiring is not a deterministic guarantee), so CF-010 is still
+  architecturally right, but its FLIP is now a scheduling decision, not a safety fix.
+- **You are not ruling on a premise that shifted:** item 1 (referral vs ground) is unaffected; only the
+  before/after urgency framing is. This note is here so that's explicit.
