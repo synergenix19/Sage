@@ -24,8 +24,13 @@ option below except where explicitly gated.
   the card source (deterministic, signed, no retrieval call), landing per category as each pathway
   flips.
 - ☐ **No** — consult turns are a guided-skill surface, not a cited-answer surface; cards would blur
-  the two registers. The UX inconsistency is accepted and the Scoping-Brief citation commitment is
-  read as applying to the KB-answer path only. (If so, we record that reading.)
+  the two registers. **Note before selecting:** this option reinterprets a commitment made to Sage in
+  the RFQ response (Learn cites its sources) by scoping it to the KB-answer path only. If selected,
+  **that scope reading is itself the recorded decision** — it gets its own ruling line below, so a
+  future RFQ-compliance review finds a ruling, not an inference buried in rationale. Options 1 and 2
+  do not carry this exposure.
+  - Scope reading ruling (only if this option is selected): *"The Scoping-Brief citation commitment
+    applies to the KB-answer path only."* ☐ approve ☐ edit ☐ reject
 
 **Explicitly out of scope of this ask:** injecting retrieved evidence into the consult turn's prompt
 (C2). That changes signed, just-verified output and is gated separately on the Phase-1 packet

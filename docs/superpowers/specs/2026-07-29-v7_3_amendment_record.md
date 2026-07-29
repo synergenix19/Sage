@@ -15,15 +15,18 @@ as the §5.4 Falcon→GPT item. Nothing in this record changes behaviour.
 
 **v7 (superseded):** *"Skill → executor. Info → knowledge. None → freeflow."*
 
-**v7.3:** *"Skill → executor. **Info → consult first:** if the top skill match is in
-`INFO_REQUEST_SKILL_CONSULT_SET` (disposition-scoped, doc-derived) → executor; else → knowledge,
-unchanged. None → freeflow."*
+**v7.3:** *"Skill → executor. **Info → when `SAGE_INFO_REQUEST_CONSULT` is enabled: consult
+first** — top skill match ∈ `INFO_REQUEST_SKILL_CONSULT_SET` (disposition-scoped, doc-derived) →
+executor; else → knowledge, unchanged. **When disabled: Info → knowledge** (original §4 text,
+byte-identical path). None → freeflow."*
 
-Gated by `SAGE_INFO_REQUEST_CONSULT` (kill-switch; only literal `"true"` enables). **OFF is
-byte-identical to v7:** the consult matching never runs and the knowledge path is exactly the
-pre-amendment behaviour (`config.py` inverted strict parse; `skill_select.py` info_request branch;
-`graph.py _route_after_skill_select` keyed on `skill_match_method == "info_request_skill_consult"`,
-never on `active_skill_id` alone).
+The flag is the predicate of the amended text, not an implementation note: `false` is the documented
+revert path, and a revert must leave this record still true rather than re-opening the same spec-edit
+debt in the opposite direction. Kill-switch semantics: only literal `"true"` enables (`config.py`
+inverted strict parse); OFF means the consult matching never runs and the knowledge path is exactly
+the pre-amendment behaviour (`skill_select.py` info_request branch; `graph.py
+_route_after_skill_select` keyed on `skill_match_method == "info_request_skill_consult"`, never on
+`active_skill_id` alone).
 
 ## What it does and why (measured, characterized)
 
@@ -45,10 +48,23 @@ matrix 8/36 → 11/36 (§1f, S2c, §6d full; §3c 4/5), guarded + parity-verifie
 | Flip + live behavioural verify + guarded re-measure | 2026-07-23 | `governance/2026-07-23-psychoed-consult-golive-verification.md` (PR#362) |
 | Desired-state drift (`false`, no rationale found) resolved; `true` restored, owner-ratified, readback-confirmed (build `09013f19`) | 2026-07-29 | drift-resolution record (command-session ledger) |
 
-**Approval-sheet pin — REQUIRED FIELD, OPEN:** the consolidated approval sheet carrying Vee's B1
-consult-set confirmation is not in this repo. Owner to pin **location + content hash** here before
-sign-off: `location: ______ · sha256: ______`. **Template rule going forward:** every amendment record
-MUST carry a location+hash pin for any sign-off artifact that lives outside the repo.
+**Approval-sheet pin — REQUIRED FIELD, PARTIALLY RESOLVED (2026-07-29 search):** the sheet IS a
+discrete artifact: `governance/2026-07-17-consolidated-clinician-approval-sheet.md`, item **B1** =
+the consult-set confirmation, authored at commit `ddd7c926` — which sat ONLY on the unmerged branch
+`cdai/p0b-delivery-format` and never reached master. It is recovered **byte-identical** into this
+amendment's change (`sha256: aa31d27f6d4dc3801dc79c03aae9ab92621a7acb42518d97cc52fcc34fa3591b` ·
+git blob `c342ad98`). **The recovered copy is the UNSIGNED template** — all 18 "Your call" cells
+blank. The SIGNED instance (Vee's actual B1 ruling) was NOT FOUND in the repo, any local tree, or
+reachable mail (search blocked: insufficient mailbox scopes); its in-repo attestation is the go-live
+record only. **Owner resolves before signing, one of:**
+- ☐ signed instance exists (mail/message/hard copy) → pin it: `location: ______ · sha256: ______`
+- ☐ no signed instance exists → the flip gate's evidence is a secondhand attestation over an
+  unsigned template. That is a **clinical-governance finding**; it goes in front of the PO signature
+  (rule on it explicitly), not behind it.
+
+**Template rule going forward:** every amendment record MUST carry a location+hash pin for any
+sign-off artifact that lives outside the repo — and a sign-off artifact must never ride only an
+unmerged feature branch.
 
 ## TRANSITIONAL — retirement condition (do not build on this mechanism)
 
