@@ -920,6 +920,17 @@ async def health_version(_: None = Depends(require_api_key)):
         "high_risk_detection_raw_env": os.environ.get("SAGE_HIGH_RISK_DETECTION"),
         "hr_neutrality_gate_enabled": _c.HR_NEUTRALITY_GATE_ENABLED,
         "hr_neutrality_gate_raw_env": os.environ.get("SAGE_HR_NEUTRALITY_GATE"),
+        # 2026-07-29 RCA: the last serving-vs-desired readback holes. cosine_abstain_threshold was the
+        # 8/10 conformance confound (measured against railway DESIRED, prod served 0.42-vs-0.0 unseen);
+        # panic_grounding_override (Part A) + derealization_detection (#369) are routing flags whose
+        # SERVED state the flag-parity guard could not assert (it fell back to DESIRED). Resolved + raw,
+        # same pattern; the guard's _map_health_to_sage turns *_raw_env into the SAGE_ names it compares.
+        "cosine_abstain_threshold": _c.COSINE_ABSTAIN_THRESHOLD,
+        "cosine_abstain_threshold_raw_env": os.environ.get("SAGE_COSINE_ABSTAIN_THRESHOLD"),
+        "panic_grounding_override_enabled": _c.PANIC_GROUNDING_OVERRIDE_ENABLED,
+        "panic_grounding_override_raw_env": os.environ.get("SAGE_PANIC_GROUNDING_OVERRIDE"),
+        "derealization_detection_enabled": _c.DEREALIZATION_DETECTION_ENABLED,
+        "derealization_detection_raw_env": os.environ.get("SAGE_DEREALIZATION_DETECTION"),
         # Node-2 determinism pins + audit provenance flag (bistability finding 2026-07-28):
         # resolved + raw, same pattern. classifier_seed / openrouter_provider_pin report the
         # RESOLVED module values (int-or-null / string-or-null — unset is null, never fabricated)
