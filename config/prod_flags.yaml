@@ -110,14 +110,11 @@ flags:
 
   # ---- psychoed / consult (signed-flag ground zero) -----------------------------
   SAGE_INFO_REQUEST_CONSULT:
-    value: "false"
+    value: "true"
     class: feature
     signed_value: "true"
-    signature_ref: "Vee B1 2026-07-23 / PR#362"
-    override:
-      rationale: "contended variable, item-1 restore pending owner-verified condition"
-      ratification_ref: "2026-07-29 approval sheet item 1 (conditional)"
-    note: "three variable-only reversions 2026-07-28..29 (two served); restore is a separately authorized action, never an apply side effect"
+    signature_ref: "Vee B1 2026-07-23 / PR#362; retro-confirmed 2026-07-29 (consult-b1-confirm-V, PO relay); reaffirmed in-room 2026-07-29"
+    note: "RESTORED 2026-07-29 via item-1 pre-authorization, condition (a)-equivalent: contention writes ceased ~4h (watchdog clean 43 flags both sides), parallel stream's record-cure merged on master, Vee reaffirmed. History: three reversions 2026-07-28..29; any future divergence = watchdog-named incident, never a re-flip"
   SAGE_PSYCHOED_PATHWAYS:
     value: null
     class: feature
