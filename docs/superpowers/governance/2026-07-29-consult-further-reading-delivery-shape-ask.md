@@ -61,4 +61,14 @@ If you judge the Phase-2 packet signature to be imminent, **Option 2 is equally 
 (C2). That changes signed, just-verified output and is gated separately on the Phase-1 packet
 sign-off plus a guarded, parity-verified matrix re-run.
 
-**Ruling:** ☐ approve (which option: ____) ☐ edit ☐ reject
+**Ruling:** ☑ approve (which option: **Option 1**) ☐ edit ☐ reject
+
+---
+
+## RULING RECORDED — 2026-07-29
+
+**Option 1 APPROVED (Vee), with the three in-ruling conditions (label mandate, audit purpose
+discriminator, same-change retirement coupling) as part of the approval.** Provenance: relayed by
+the PO in-session 2026-07-29; Vee's verbatim reply to be pinned here on receipt, per the v7.3
+transcription protocol. This ruling is the flip gate for the C1 sources flag: the build merges
+inert and flips only against this record.
