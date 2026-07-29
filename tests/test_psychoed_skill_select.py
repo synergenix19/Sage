@@ -81,12 +81,32 @@ async def test_trigger_hit_serves_and_preempts_info_request_consult(monkeypatch)
     assert result["psychoed_serve"] == {
         "category": "1f", "block_id": None, "route": "standard", "framing": "abstract",
         "weave_due": False, "matched_row_id": "1f-t1", "collision_path": None,
+        "menu_pick": False,  # HIGH-2: fresh trigger hit, not a pick off an already-offered menu
     }
     assert result["psychoed_active_category"] == "1f"
     assert result["psychoed_delivery_shape"] == "menu_first"
     assert result["psychoed_framing"] == "abstract"
     assert result["psychoed_weave_pending"] is False
     assert _route_after_skill_select(result) == "knowledge_retrieve"
+
+
+# ─────────────────────────── 1b. Menu pick carries menu_pick=True (HIGH-2) ───────────────────────────
+
+@pytest.mark.asyncio
+async def test_menu_pick_off_active_category_sets_menu_pick_flag(monkeypatch):
+    """HIGH-2 (final review): a reply that picks a specific topic off an already-offered 1f menu
+    ('the anxiety maintenance cycle', matching 1f-b4's menu_label) resolves via resolver.resolve's
+    active_category branch, which returns row_id='menu_pick'/menu_pick=True. skill_select_node
+    must carry that flag through onto the psychoed_serve payload -- it's what tells
+    serve.compose_turn1 to serve the picked block instead of re-offering the menu."""
+    _enable_psychoed(monkeypatch)
+    state = _ss_state(message_en="the anxiety maintenance cycle", psychoed_active_category="1f")
+
+    result = await skill_select_node(state)
+
+    assert result["psychoed_serve"]["block_id"] == "1f-b4"
+    assert result["psychoed_serve"]["menu_pick"] is True
+    assert result["skill_match_method"] == "psychoed_resolver"
 
 
 # ─────────────────────────── 2/3. Weave precedence over the resolver ───────────────────────────

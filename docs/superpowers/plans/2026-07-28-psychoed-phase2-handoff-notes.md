@@ -398,8 +398,34 @@ re-litigated against the binding requirements in Section I.
     `tests/test_psychoed_graph.py`'s Task 13 graph test, which pins the v1 behavior
     (`3c-b1`) with an explicit forward-reference comment to this delta.
 
+15. **Served-topics context injection deferred to Phase 3 (no template-variable mechanism);
+    continuation template reachable via `l2_intent_override`; F5 fixtures will pin loop-back
+    behavior.** Final-review MEDIUM finding: `L2_psychoed_continuation.json` (Task 7) existed but
+    was never reached -- `freeflow_respond_node` now passes
+    `compose_prompt(state, l2_intent_override="psychoed_continuation")` on every ordinary LLM turn
+    while a pathway is active (`psychoed_active_category` set, not a serve/menu-after-weave turn).
+    The template's own `"variables": []` declares no variables today, and no
+    served-menu-labels/remaining-menu-labels injection point exists without inventing new template
+    machinery -- so per the reviewer's instruction, that injection was NOT built. The override
+    wiring alone is shipped: the template is reachable and applies its generic conversational-glue
+    guardrails (acknowledge, offer remaining menu topics in the model's own words, no re-summarize
+    of served content), but has no deterministic signal telling it WHICH topics were served vs.
+    remain. Corrects the mechanism plan's §4.3 coverage claim (line ~912), which cited the
+    continuation template as covered by Task 6/7 without noting this gap.
+
+16. **The Node-8 gate rewrites `final_response` only; `response_en`/history retain the
+    blocked/tampered text**, per the pre-existing HR-neutrality-gate convention (the psychoed
+    verbatim hash gate at output_gate.py ~L949-996 follows the same shape: on mismatch/corruption
+    it reassigns `final_response`, never patches `response_en` or the conversation-history entry
+    already built from it). This means a hash-mismatch or corruption incident's ORIGINAL
+    (drifted/deleted) text can still appear in `response_en`-derived audit trails or history even
+    though the user-facing `response` was replaced. Phase-3 candidate: decide whether the psychoed
+    gate should also scrub `response_en`/history, or whether (as with HR neutrality) that's an
+    accepted incident-forensics trade-off.
+
 ---
 
 *Document created: 2026-07-28*
 *Phase 1 content handoff complete; Phase 2 implementation to commence.*
 *Section VI (as-built deltas) added: 2026-07-29, Phase 2 Task 13.*
+*Deltas 15-16 added: 2026-07-29, final-review fixes (HIGH-1/HIGH-2/MEDIUM/LOWs).*

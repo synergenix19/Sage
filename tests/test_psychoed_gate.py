@@ -14,6 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import sage_poc.config as config
 from sage_poc.audit import _build_session_audit_row
 from sage_poc.nodes.freeflow_respond import freeflow_respond_node
+from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
 from sage_poc.nodes.output_gate import output_gate_node
 from sage_poc.psychoed import serve, store
 
@@ -349,3 +350,81 @@ def test_escalation_turn_audit_row_carries_all_seven_fields():
     assert row["psychoed_template_version"] is None
     assert row["psychoed_gate_action"] is None
     assert len(row) >= 7  # all seven psychoed fields present alongside the baseline row
+
+
+# ── (i) HIGH-2 (final review): 1f menu-pick end-to-end through knowledge_retrieve + freeflow +
+# output_gate. Node-level chain (mirrors this file's own pattern of driving nodes directly rather
+# than the full compiled graph): a menu pick must NOT trip the Node-8 verbatim hash gate into a
+# false mismatch. Pre-fix, serve.compose_turn1 ignored block_id for a menu_first category and
+# always re-served the bare menu offer -- block content never appeared in final_response, so the
+# gate's `_block_content in final_response` check failed and the turn was wrongly "reserved"
+# (recomposed from a call that recomposes the SAME wrong text) instead of "pass".
+
+_MENU_PICK_BLOCK_ID = "1f-b4"
+_MENU_PICK_CATEGORY = "1f"
+_MENU_PICK_PAYLOAD = {
+    "category": _MENU_PICK_CATEGORY, "block_id": _MENU_PICK_BLOCK_ID, "route": "standard",
+    "framing": None, "weave_due": False, "matched_row_id": "menu_pick", "collision_path": None,
+    "menu_pick": True,
+}
+
+
+@pytest.mark.asyncio
+async def test_menu_pick_end_to_end_passes_gate_no_false_mismatch(monkeypatch):
+    monkeypatch.setattr(config, "PSYCHOED_PATHWAYS_ENABLED", True)
+
+    state = {
+        "path": ["safety_check", "intent_route", "skill_select"],
+        "detected_language": "en", "message_en": "the anxiety maintenance cycle",
+        "raw_message": "the anxiety maintenance cycle",
+        "psychoed_serve": _MENU_PICK_PAYLOAD,
+        "psychoed_active_category": _MENU_PICK_CATEGORY,
+        "psychoed_blocks_served": [], "psychoed_family_exposures": [],
+        "active_skill_id": None, "skill_match_method": "psychoed_resolver",
+        "gate_path": None, "is_safe": True, "crisis_state": "none", "crisis_flags": [],
+        "clinical_flags": [], "conversation_history": [], "turn_count": 3,
+        "conversation_summary": None, "session_id": "sess-menu-pick", "user_id": "user-1",
+        "active_step_id": None, "executed_step_id": None, "semantic_score": None,
+        "emotional_intensity": 5, "engagement": 5, "s7_result": None, "s7_method": None,
+        "third_party_crisis": False, "escalation_triggered": None,
+        "banned_opener_retry_count": 0, "turn_number": 3,
+        "psychoed_matched_row_id": "menu_pick", "psychoed_collision_path": None,
+        "psychoed_framing": None, "psychoed_weave_pending": False, "psychoed_weave_fired": False,
+        "psychoed_delivery_shape": "answer_first",
+    }
+
+    # Node 6: knowledge_retrieve -- outcome-1 store fetch, no DB call, blocks_served appended once.
+    kr_result = await knowledge_retrieve_node(state)
+    state = {**state, **kr_result}
+    assert state["psychoed_blocks_served"] == [_MENU_PICK_BLOCK_ID]
+    assert state["psychoed_serve"]["content_hash"] == store.block_sha256(_MENU_PICK_BLOCK_ID)
+
+    # Node 7: freeflow_respond -- no-LLM serve transit, composes the menu-pick shape.
+    with patch("sage_poc.nodes.freeflow_respond.get_responder",
+               side_effect=AssertionError("get_responder must not be called")), \
+         patch("sage_poc.nodes.freeflow_respond.get_fallback_responder",
+               side_effect=AssertionError("get_fallback_responder must not be called")):
+        ff_result = await freeflow_respond_node(state, llm=_raising_llm())
+    state = {**state, **ff_result, "response_en": ff_result["response_en"]}
+
+    block_content = store.get_block(_MENU_PICK_BLOCK_ID)["content"]
+    manifest = store.manifest(_MENU_PICK_CATEGORY)
+    assert state["response_en"] == block_content + "\n\n" + manifest["check_in"]
+    assert manifest["framing_statement"] not in state["response_en"]
+    assert manifest["menu_offer"] not in state["response_en"]
+
+    # Node 8: output_gate -- the verbatim hash gate must PASS (no false mismatch/reserve).
+    # NOTE: output_gate's PRE-EXISTING, unrelated question-discipline pass (collapse-stacked-
+    # questions, ~L826-841) also runs on this turn -- 1f's manifest check_in is itself two
+    # question sentences, so that generic pass collapses it to one and re-joins the block/check-in
+    # separator to a single space. That is expected, orthogonal behavior, not a HIGH-2 concern; the
+    # only thing under test here is the psychoed verbatim hash gate, so the assertion below checks
+    # the BLOCK CONTENT is still an intact, untouched substring (the gate's own pass/mismatch
+    # criterion) rather than exact string equality against the pre-discipline text.
+    og_result, write_calls = await _run_gate(state)
+    assert block_content in og_result["response"]  # ratified block survives the discipline pass intact
+    assert manifest["framing_statement"] not in og_result["response"]
+    assert manifest["menu_offer"] not in og_result["response"]
+    row = _build_session_audit_row(write_calls[0])
+    assert row["psychoed_gate_action"] == "pass"  # no false mismatch: block content WAS found verbatim
+    assert row["psychoed_block_ids"] == [_MENU_PICK_BLOCK_ID]  # appended exactly once, by knowledge_retrieve

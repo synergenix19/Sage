@@ -14,20 +14,44 @@ def compose_turn1(payload: dict) -> dict:
     cat = payload["category"]
     man = store.manifest(cat)
     join = _TPL["join"]
-    parts: list[str] = [man["framing_statement"]]
     blocks: list[str] = []
     weave_asked = False
     menu_offered = False
 
+    bid = payload.get("block_id")
+    # HIGH-2 (final review): a menu picked off an already-offered menu carries a block_id even
+    # though the CATEGORY's delivery_shape stays "menu_first" (that field describes the
+    # category's turn-1 shape, not this reply's shape) -- resolver.resolve's active_category
+    # branch sets menu_pick=True for exactly this case. Also true whenever a block_id is present
+    # on a menu_first category regardless of the menu_pick flag (a menu_first category never
+    # legitimately serves a block on any OTHER path, so a block_id there always means "the person
+    # picked a topic"). Either signal means "serve the picked block, not the menu again": spec
+    # §1f close -- serve topic then check-in, with NO framing repeat (the framing already ran on
+    # the turn that offered the menu) and NO menu re-offer (the person already chose).
+    is_menu_pick_serve = bid is not None and (
+        payload.get("menu_pick") or man["delivery_shape"] == "menu_first"
+    )
+
     if payload.get("route") == "formal_diagnosis":
-        parts.append(store.shared_script("diagnosis_guard_stage1"))
+        parts: list[str] = [man["framing_statement"], store.shared_script("diagnosis_guard_stage1")]
+    elif is_menu_pick_serve:
+        block = store.get_block(bid)
+        parts = [block["content"]]
+        blocks.append(bid)
+        guard = block["psychoed"].get("block_guard")
+        if guard and guard["note"] not in block["content"]:
+            parts.append(guard["note"])   # single-sourcing: only if not already the final sentence
+        if payload.get("weave_due"):
+            parts.append(store.shared_script("safety_weave_script"))
+            weave_asked = True
+        else:
+            parts.append(man["check_in"])  # serve topic then check-in -- no menu re-offer
     elif man["delivery_shape"] == "menu_first":
-        parts.append(man["menu_offer"])
+        parts = [man["framing_statement"], man["menu_offer"]]
         menu_offered = True
     else:  # answer_first
-        bid = payload["block_id"]
         block = store.get_block(bid)
-        parts.append(block["content"])
+        parts = [man["framing_statement"], block["content"]]
         blocks.append(bid)
         guard = block["psychoed"].get("block_guard")
         if guard and guard["note"] not in block["content"]:

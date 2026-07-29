@@ -264,6 +264,28 @@ def _route_after_intent(state: SageState) -> str:
     # all intent routing. answering_screen is only ever set in enforce mode, so flag-off is byte-identical.
     if state.get("answering_screen"):
         return "skill_select"
+    # HIGH-1 (final review, psychoed Phase 2): a PSY-WEAVE-1 weave-pending reply must ALWAYS reach
+    # skill_select, REGARDLESS of intent — modeled exactly on the answering_screen redirect immediately
+    # above (same seam: a reply to a pending in-band question usually classifies as general_chat and
+    # would otherwise fall through to freeflow, where PSY-WEAVE-1 never runs and the pending safety
+    # check on the PREVIOUS turn's serve is silently starved -- the 2026-07-20 seam, spec §6.1). Placed
+    # at the SAME priority as answering_screen (immediately below crisis, above all intent routing) --
+    # not above it, and not above the crisis-intent check at the top of this function: if a weave-pending
+    # turn ALSO classifies as intent=="crisis", the crisis branch above already returned "crisis" before
+    # this line ever runs, so weave-pending correctly yields to a crisis intent classification (fail-
+    # closed -- the reply still reaches crisis_response, just via the crisis branch, not skill_select).
+    # skill_select_node's own PSY-WEAVE-1 evaluation (order item 1, spec §2.1 step 1) is what actually
+    # judges the reply; this router only guarantees the reply ARRIVES there. This is graph-level ROUTING
+    # decided from state TOWARD the evaluator -- the permitted direction (routing decisions may read
+    # psychoed_* keys to decide where to send a turn); the safety NODES themselves (safety_check,
+    # crisis_response, high_risk_response, derealization_response) still never read psychoed_* keys, so
+    # the never-disarm invariant (state.py channel doc; handoff notes §I.4) is unaffected. Gated on
+    # PSYCHOED_PATHWAYS_ENABLED (local import, same established per-turn-effective pattern as the
+    # hr_disclosure_present check below): psychoed_weave_pending is only ever set by skill_select_node
+    # under that same flag, so with the flag off this branch is unreachable and routing is byte-identical.
+    from sage_poc import config as _psy_cfg  # noqa: PLC0415
+    if _psy_cfg.PSYCHOED_PATHWAYS_ENABLED and state.get("psychoed_weave_pending"):
+        return "skill_select"
     if intent == "scope_refusal":
         return "gate"
     if intent == "jailbreak":

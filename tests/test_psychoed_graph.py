@@ -38,17 +38,33 @@ def _carry_psychoed(prev: dict, raw_message: str, **overrides) -> dict:
 
 
 def _mock_intent_route(state):
-    """Deterministic routing to skill_select regardless of message content.
+    """Deterministic routing to skill_select for every turn EXCEPT the escalation turn.
 
-    primary_intent="info_request" at confidence 0.9 sends every turn to skill_select via
-    _route_after_intent's `if intent == "info_request": return "skill_select"` branch --
-    the same branch a real classification of these messages would very plausibly hit, but
-    pinned here so the psychoed mechanism (not LLM variance) is what's under test.
+    primary_intent="info_request" at confidence 0.9 sends the serve/re-arm turns to
+    skill_select via _route_after_intent's `if intent == "info_request": return
+    "skill_select"` branch -- the same branch a real classification of these messages would
+    very plausibly hit, but pinned here so the psychoed mechanism (not LLM variance) is what's
+    under test.
+
+    HIGH-1 (final review) un-masking: the escalation turn ("kind of") is deliberately NOT
+    pinned to info_request here. "kind of" is a bare contradiction-marker reply with no
+    information-seeking content -- a real classifier would very plausibly call this
+    general_chat, not info_request. Before the HIGH-1 fix, general_chat here would fall
+    through _route_after_intent's entire intent ladder to "freeflow", and skill_select's
+    PSY-WEAVE-1 evaluator (which is what actually judges "kind of" as a non-clear-negative and
+    escalates) would never run at all -- the pending weave silently starved. The OLD version of
+    this test pinned info_request for every turn, including this one, which masked exactly that
+    gap: it happened to route to skill_select for the wrong reason (info_request's own
+    intent-ladder branch), so the test passed whether or not the weave-pending branch existed.
+    Classifying this turn as general_chat un-masks it: the escalation must now reach skill_select
+    via HIGH-1's `psychoed_weave_pending` branch (graph.py's `_route_after_intent`, same
+    precedence slot as the answering_screen redirect), not via info_request's routing.
     """
+    is_escalation_turn = "kind of" in (state.get("message_en") or "").lower()
     return {
-        "primary_intent": "info_request",
+        "primary_intent": "general_chat" if is_escalation_turn else "info_request",
         "secondary_intent": None,
-        "intent_confidence": 0.9,
+        "intent_confidence": 0.85 if is_escalation_turn else 0.9,
         "emotional_intensity": state.get("emotional_intensity", 5),
         "engagement": state.get("engagement", 7),
         "path": state["path"] + ["intent_route"],

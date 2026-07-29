@@ -315,7 +315,23 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
 
     prior_context = await _get_prior_context(state)
 
-    system_str, user_str, prompt_layers = compose_prompt(state)
+    # MEDIUM (final review): continuation template reachability. Reaching this point means the
+    # turn was NOT a serve (psychoed_serve was falsy above) and NOT a handled menu-after-weave
+    # re-offer (either skill_match_method wasn't that, or it was but fell through on a non-English
+    # turn per spec §3.7 above) -- i.e. an ORDINARY LLM turn while a psychoed pathway is still
+    # active (psychoed_active_category set). L2_psychoed_continuation.json exists and is loadable
+    # (get_intent_template("psychoed_continuation")) but was never reachable: nothing passed
+    # l2_intent_override for this turn shape, so every mid-pathway ordinary turn fell to the
+    # generic per-primary_intent template with no awareness it was inside a served psychoed
+    # category. This wires the override only -- no served/remaining-menu_labels variable
+    # injection: L2_psychoed_continuation.json declares "variables": [] today, so there is no
+    # variables/format path to inject into without inventing new template machinery (handoff
+    # notes Section VI, delta 15; that injection is deferred to Phase 3). Byte-identical when the
+    # flag is off or no pathway is active (l2_override stays None, matching every other caller).
+    l2_override = "psychoed_continuation" if (
+        config.PSYCHOED_PATHWAYS_ENABLED and state.get("psychoed_active_category")
+    ) else None
+    system_str, user_str, prompt_layers = compose_prompt(state, l2_intent_override=l2_override)
 
     if prior_context:
         system_str = system_str + "\n\nPRIOR SESSION CONTEXT (share naturally, not verbatim):\n" + prior_context

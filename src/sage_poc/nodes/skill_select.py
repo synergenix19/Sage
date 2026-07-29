@@ -743,7 +743,14 @@ async def skill_select_node(state: SageState) -> dict:
                              and not state.get("psychoed_weave_fired"))
                 payload = {"category": hit["category"], "block_id": hit["block_id"],
                            "route": hit["route"], "framing": framing, "weave_due": weave_due,
-                           "matched_row_id": hit["row_id"], "collision_path": hit["collision_path"]}
+                           "matched_row_id": hit["row_id"], "collision_path": hit["collision_path"],
+                           # HIGH-2 (final review): carry the resolver's menu_pick flag through to the
+                           # served payload -- serve.compose_turn1 needs it to tell a fresh menu-first
+                           # trigger (row_id != "menu_pick", framing-then-menu turn) apart from a reply
+                           # that picked a specific topic OFF an already-offered menu (row_id ==
+                           # "menu_pick", resolver.py's active_category branch), which must serve that
+                           # topic's block content instead of re-offering the menu.
+                           "menu_pick": hit["menu_pick"]}
                 return {"psychoed_serve": payload,
                         "psychoed_active_category": hit["category"],
                         "psychoed_delivery_shape": "menu_first" if hit["block_id"] is None else "answer_first",
