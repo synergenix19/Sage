@@ -124,9 +124,11 @@ flags:
     class: feature
     note: "inert unless SAGE_PSYCHOED_PATHWAYS enables"
   SAGE_CONSULT_SOURCES:
-    value: null
+    value: "true"
     class: feature
-    note: "C1 Further-Reading cards; default OFF; migration 018 is the flag-flip deploy gate"
+    signed_value: "true"
+    signature_ref: "Vee Option-1 delivery-shape ruling 2026-07-29 (consult-further-reading-delivery-shape-ask, three in-ruling conditions) + PO amended-flip-sequence approval 2026-07-29"
+    note: "C1 Further-Reading cards on consult turns (PR#384, code dark on dec4a9e7). Flip deploy gate migration 018: APPLIED to prod 2026-07-29, column verified nullable (inert under OFF). Apply order per the amended sequence: only after SAGE_INFO_REQUEST_CONSULT restore is readback-verified SERVING (C1 is moot without consult turns); then readback both sides + three live checks (Further Reading label, KB-path unchanged, ABSTAIN negative)"
 
   # ---- models -------------------------------------------------------------------
   SAGE_CLASSIFIER_MODEL:
