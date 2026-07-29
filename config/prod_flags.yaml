@@ -27,6 +27,16 @@
 #   signature_ref: who signed + record (required whenever signed_value is present).
 #   override:      {rationale, ratification_ref} — the ONLY way a signed flag may
 #                  legitimately sit off its signed value. ratification_ref is mandatory.
+#   serving_verified: false = DESIRED-UNVERIFIED RIDER (2026-07-29 ruling 2). The row's
+#                  value was seeded from `railway variables` (desired side) and has NEVER
+#                  been confirmed by a serving readback — the deployed build predates the
+#                  #386 readback widening. Any artifact, register row, or decision citing
+#                  such a flag must carry the desired-unverified caveat. The rider
+#                  DISSOLVES PER-VAR by DELETING the key once a deploy serves the widened
+#                  readback and the watchdog confirms coverage (its readback_gaps output
+#                  is the live source of truth). The key may never be set to true: the
+#                  register never asserts serving state statically — that is the
+#                  watchdog's job, dynamically (see tests/test_prod_flags_register.py).
 #
 # NOT in this file, by design: SAGE_API_KEY (secret), SAGE_BUILD_SHA (per-deploy
 # provenance pin owned by deploy_prod.sh), SAGE_TEST_USER_IDS (env-specific data).
@@ -76,6 +86,7 @@ flags:
   SAGE_HIGH_RISK_TERMINAL:
     value: null
     class: safety
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "PRESUMED safety (ruling 2026-07-28); default OFF pending clinician sign-off on §HR fixed copy (Stage 2)"
   SAGE_DEREALIZATION_DETECTION:
     value: null
@@ -88,12 +99,14 @@ flags:
   SAGE_MEDICAL_REFERRAL_TEXT:
     value: null
     class: safety
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "medical-terminal copy; unset = config.py default (998 ambulance wording); pending clinician ratification"
 
   # ---- audit / provenance -------------------------------------------------------
   SAGE_AUDIT_LOG:
     value: null
     class: safety
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "RULED safety 2026-07-28: compliance commitment (PDPL). Default ON; any OFF requires recorded rationale and must be loudly visible in /health/version"
   SAGE_AUDIT_CLASSIFIER_PROVENANCE:
     value: "true"
@@ -118,10 +131,12 @@ flags:
   SAGE_PSYCHOED_PATHWAYS:
     value: null
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "Phase 2 mechanism; default OFF"
   SAGE_PSYCHOED_CATEGORIES:
     value: null
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "inert unless SAGE_PSYCHOED_PATHWAYS enables"
   SAGE_CONSULT_SOURCES:
     value: "true"
@@ -134,24 +149,30 @@ flags:
   SAGE_CLASSIFIER_MODEL:
     value: "openai/gpt-4o-mini"
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
   SAGE_RESPONDER_MODEL:
     value: "openai/gpt-4o"
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
   SAGE_TRANSLATOR_MODEL:
     value: null
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "unset = default openai/gpt-4o-mini"
   SAGE_FALLBACK_RESPONDER_MODEL:
     value: null
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "unset = default openai/gpt-4o"
   SAGE_FALLBACK_CLASSIFIER_MODEL:
     value: null
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "unset = default openai/gpt-4o-mini"
   SAGE_RESISTANCE_MODEL:
     value: null
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "unset = falls back to classifier model (v7 Falcon divergence recorded)"
 
   # ---- retrieval / skill routing ------------------------------------------------
@@ -162,59 +183,74 @@ flags:
   SAGE_KNOWLEDGE_ABSTAIN_THRESHOLD:
     value: null
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "secondary per-passage guard; cannot abstain at default (RRF floor)"
   SAGE_SKILL_RUNNER_UP_MIN:
     value: null
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
   SAGE_SKILL_RUNNER_UP_MARGIN:
     value: null
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
   SAGE_SKILL_OFFER_COOLDOWN_ENABLED:
     value: "true"
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
   SAGE_SKILL_OFFER_COOLDOWN_TURNS:
     value: null
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
   SAGE_D5_ACUITY_GATE:
     value: null
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "parked, inert by decision"
   SAGE_D5_ACUITY_FLOOR:
     value: null
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
   SAGE_NATIVE_ARABIC_SHADOW:
     value: null
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "shadow only, never served"
 
   # ---- delivery / server layer --------------------------------------------------
   SAGE_SKILL_MEDIA_ENABLED:
     value: "true"
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "server response-header layer (read in server.py, not config.py)"
   SAGE_WARMUP_BGE:
     value: "1"
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "infra: BGE-M3 startup warm-load (read in server.py); warmup-fail is currently WARN+continue"
 
   # ---- infra / perf (parity-denylisted, still classified at birth) ---------------
   SAGE_EMBED_CACHE_ENABLED:
     value: null
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "perf; default ON behind byte-identical equivalence gate"
   SAGE_DB_POOL_MAX_SIZE:
     value: null
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "infra"
   SAGE_HTTP_MAX_CONNECTIONS:
     value: null
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "infra"
   SAGE_HTTP_MAX_KEEPALIVE:
     value: null
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "infra"
   SAGE_CHECKPOINT_POOL_MAX_SIZE:
     value: null
     class: feature
+    serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "infra; per-turn concurrency ceiling (saver_pool RCA 2026-06-24)"
