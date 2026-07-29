@@ -287,9 +287,33 @@ def derive_flag_set(readback_health: dict, desired: dict | None,
     }
 
 
-def export_env(derived: dict) -> None:
+def export_env(derived: dict, env_file: str | None = None) -> None:
     """Mirror the derived flag set into THIS process's environment. MUST run before
-    any sage_poc import — config.py reads the environment at import time."""
+    any sage_poc import — config.py reads the environment at import time.
+
+    .env re-injection guard: config.py calls load_dotenv() at import, which SETS any
+    var we just popped if the repo .env defines it — silently defeating "unset means
+    prod default". A .env SAGE_ parity var that differs from the derived effective
+    value is therefore a REFUSAL; an equal one is a benign note."""
+    env_file = env_file if env_file is not None else os.path.join(REPO, ".env")
+    envf = _load_env_file(env_file)
+    conflicts = []
+    for var, val in derived["resolved_env"].items():
+        if val is None and var in envf:
+            effective = derived["effective"].get(var)
+            if envf[var] != (effective if effective is not None else ""):
+                conflicts.append((var, envf[var], effective))
+            else:
+                derived["notes"].append(
+                    f"note: .env sets {var}={envf[var]!r} (load_dotenv re-injects it after "
+                    "unset) — equal to the derived effective value, so parity holds.")
+    if conflicts:
+        lines = "; ".join(f"{v}: .env={e!r} derived-effective={d!r}" for v, e, d in conflicts)
+        raise ParityRefusal(
+            "REFUSING (.env re-injection): config.py load_dotenv() would re-inject "
+            f"SAGE_ var(s) the derivation says must be UNSET (prod runs the default), with "
+            f"values that DIFFER from the derived effective state: {lines}. Remove or align "
+            f"them in {env_file} before producing evidence.")
     for var, val in derived["resolved_env"].items():
         if val is None:
             os.environ.pop(var, None)  # prod runs the default -> so must we

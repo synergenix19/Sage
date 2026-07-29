@@ -330,3 +330,39 @@ def test_degraded_signature_is_exact():
     assert ge.is_degraded("general_chat", 0.51) is False
     assert ge.is_degraded("new_skill", 0.5) is False
     assert ge.is_degraded("general_chat", None) is False
+
+
+# ---------------------------------------------------------------------------
+# 6. .env re-injection guard (config.py load_dotenv() runs at import)
+# ---------------------------------------------------------------------------
+
+def test_export_refuses_when_env_file_would_reinject_a_divergent_value(tmp_path, monkeypatch):
+    """load_dotenv() SETS vars we popped; a .env value differing from the derived
+    effective state silently defeats 'unset means prod default' -> hard refusal."""
+    envf = tmp_path / ".env"
+    envf.write_text("SAGE_D1_SCREEN=true\n")  # derived says unset -> default 'false'
+    derived = _derived_ok()
+    with pytest.raises(ge.ParityRefusal) as exc:
+        ge.export_env(derived, env_file=str(envf))
+    assert "SAGE_D1_SCREEN" in str(exc.value)
+    assert ".env" in str(exc.value)
+
+
+def test_export_notes_but_allows_env_file_value_equal_to_default(tmp_path):
+    envf = tmp_path / ".env"
+    envf.write_text("SAGE_D1_SCREEN=false\n")  # equals the config default -> benign
+    derived = _derived_ok()
+    ge.export_env(derived, env_file=str(envf))
+    assert any("SAGE_D1_SCREEN" in n for n in derived["notes"])
+
+
+def test_export_sets_and_unsets_the_process_env(tmp_path, monkeypatch):
+    monkeypatch.setenv("SAGE_D1_SCREEN", "true")       # stale local value must be UNSET
+    monkeypatch.delenv("SAGE_HIGH_RISK_DETECTION", raising=False)
+    envf = tmp_path / ".env"
+    envf.write_text("")
+    derived = _derived_ok()
+    ge.export_env(derived, env_file=str(envf))
+    assert "SAGE_D1_SCREEN" not in os.environ
+    assert os.environ["SAGE_HIGH_RISK_DETECTION"] == "true"
+    assert os.environ["SAGE_AUDIT_LOG"] == "false"     # recorded local-instrument deviation
