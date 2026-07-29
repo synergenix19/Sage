@@ -1,0 +1,221 @@
+# =====================================================================================
+# prod_flags.yaml — config-as-code register for every SAGE_* prod flag (sage-api, production)
+#
+# THIS FILE IS THE ONLY SANCTIONED FLAG-CHANGE PATH:
+#     edit this file -> PR -> merge -> scripts/apply_prod_flags.py --apply
+# Direct `railway variables` edits are drift by definition; scripts/flag_watchdog.py
+# alerts on them (alert-first interim; NO auto-revert per the 2026-07-29 stand-down).
+#
+# Why config-as-code and not a build-side deploy gate (#258 shape): all three real
+# SAGE_INFO_REQUEST_CONSULT reversions (2026-07-28..29, two of them SERVED) were
+# VARIABLE-ONLY changes that never triggered a build. A build gate watches them sail
+# past; the enforcement surface must be the committed file + idempotent apply.
+#
+# Semantics of each row:
+#   value:         the RAW railway env value as a STRING, or null = "not set in railway"
+#                  (the config.py default then applies — strict-parse defaults for the
+#                  safety kill-switches). SEEDED 2026-07-29 from the prod SERVING readback
+#                  (/health/version, build 09013f19) with `railway variables --kv` for the
+#                  vars the serving build's readback does not yet expose.
+#   class:         safety | feature (two-class taxonomy, endorsed 2026-07-28:
+#                  2026-07-28-flag-class-taxonomy-decision-request.md). "PRESUMED" rows
+#                  carry the 2026-07-28 architectural ruling (screens/preempts/terminates
+#                  on risk content -> safety) pending clinical sign-off.
+#   signed_value:  for flags carrying a clinical/governance signature — the SIGNED state.
+#                  value != signed_value WITHOUT an override block is a CI FAILURE
+#                  (tests/test_prod_flags_register.py) and apply REFUSES to run.
+#   signature_ref: who signed + record (required whenever signed_value is present).
+#   override:      {rationale, ratification_ref} — the ONLY way a signed flag may
+#                  legitimately sit off its signed value. ratification_ref is mandatory.
+#
+# NOT in this file, by design: SAGE_API_KEY (secret), SAGE_BUILD_SHA (per-deploy
+# provenance pin owned by deploy_prod.sh), SAGE_TEST_USER_IDS (env-specific data).
+# The apply script never touches variables this file does not list.
+# =====================================================================================
+schema: 1
+service: sage-api
+environment: production
+flags:
+
+  # ---- crisis / safety routing --------------------------------------------------
+  SAGE_CRISIS_TIERING:
+    value: null
+    class: safety
+    note: "unset in prod (serving raw_env null); strict-parse SIGNED default ON — only a literal 'false' disables (2026-07-03 signoff packet)"
+  SAGE_ROUTE_PRECEDENCE:
+    value: "true"
+    class: safety
+  SAGE_MEDICAL_REDFLAG_GUARD:
+    value: "true"
+    class: safety
+    note: "E1-E7 approval: ON is intended prod state"
+  SAGE_HIGH_RISK_DETECTION:
+    value: "true"
+    class: safety
+    note: "HR-1 Stage 1 live"
+  SAGE_HR_NEUTRALITY_GATE:
+    value: "true"
+    class: safety
+    note: "pairs with SAGE_HIGH_RISK_DETECTION"
+  SAGE_VENTING_SUPPRESSION:
+    value: "true"
+    class: safety
+    note: "register row flagged 'needs confirm: suppression semantics'"
+  SAGE_D1_SCREEN:
+    value: "true"
+    class: safety
+    note: "PRESUMED safety (ruling 2026-07-28); clinical sign-off decides current behavior"
+  SAGE_D1_SCREEN_SHADOW:
+    value: "true"
+    class: feature
+    note: "shadow measurement only, never alters the served route"
+  SAGE_IPV_PREEMPTION:
+    value: "false"
+    class: safety
+    note: "PRESUMED safety (ruling 2026-07-28); false is the RECORDED state (E7 reverted stream); clinical sign-off decides"
+  SAGE_HIGH_RISK_TERMINAL:
+    value: null
+    class: safety
+    note: "PRESUMED safety (ruling 2026-07-28); default OFF pending clinician sign-off on §HR fixed copy (Stage 2)"
+  SAGE_DEREALIZATION_DETECTION:
+    value: null
+    class: safety
+    note: "PRESUMED safety (routes CF-010 to the anxiety-track safety terminal); default OFF pending Vee copy sign-off"
+  SAGE_PANIC_GROUNDING_OVERRIDE:
+    value: "true"
+    class: safety
+    note: "PRESUMED safety (routing override on risk content); Part A mechanism, Vee-signed 2026-07-28 per config.py record"
+  SAGE_MEDICAL_REFERRAL_TEXT:
+    value: null
+    class: safety
+    note: "medical-terminal copy; unset = config.py default (998 ambulance wording); pending clinician ratification"
+
+  # ---- audit / provenance -------------------------------------------------------
+  SAGE_AUDIT_LOG:
+    value: null
+    class: safety
+    note: "RULED safety 2026-07-28: compliance commitment (PDPL). Default ON; any OFF requires recorded rationale and must be loudly visible in /health/version"
+  SAGE_AUDIT_CLASSIFIER_PROVENANCE:
+    value: "true"
+    class: safety
+    note: "RULED 2026-07-28: safety on activation; must be ON before the Phase 0 baseline runs"
+  SAGE_CLASSIFIER_SEED:
+    value: "20260728"
+    class: feature
+    note: "Node-2 determinism pin (bistability finding 2026-07-28)"
+  SAGE_OPENROUTER_PROVIDER_PIN:
+    value: "openai"
+    class: feature
+    note: "Node-2 determinism pin (provider-level nondeterminism)"
+
+  # ---- psychoed / consult (signed-flag ground zero) -----------------------------
+  SAGE_INFO_REQUEST_CONSULT:
+    value: "false"
+    class: feature
+    signed_value: "true"
+    signature_ref: "Vee B1 2026-07-23 / PR#362"
+    override:
+      rationale: "contended variable, item-1 restore pending owner-verified condition"
+      ratification_ref: "2026-07-29 approval sheet item 1 (conditional)"
+    note: "three variable-only reversions 2026-07-28..29 (two served); restore is a separately authorized action, never an apply side effect"
+  SAGE_PSYCHOED_PATHWAYS:
+    value: null
+    class: feature
+    note: "Phase 2 mechanism; default OFF"
+  SAGE_PSYCHOED_CATEGORIES:
+    value: null
+    class: feature
+    note: "inert unless SAGE_PSYCHOED_PATHWAYS enables"
+  SAGE_CONSULT_SOURCES:
+    value: null
+    class: feature
+    note: "C1 Further-Reading cards; default OFF; migration 018 is the flag-flip deploy gate"
+
+  # ---- models -------------------------------------------------------------------
+  SAGE_CLASSIFIER_MODEL:
+    value: "openai/gpt-4o-mini"
+    class: feature
+  SAGE_RESPONDER_MODEL:
+    value: "openai/gpt-4o"
+    class: feature
+  SAGE_TRANSLATOR_MODEL:
+    value: null
+    class: feature
+    note: "unset = default openai/gpt-4o-mini"
+  SAGE_FALLBACK_RESPONDER_MODEL:
+    value: null
+    class: feature
+    note: "unset = default openai/gpt-4o"
+  SAGE_FALLBACK_CLASSIFIER_MODEL:
+    value: null
+    class: feature
+    note: "unset = default openai/gpt-4o-mini"
+  SAGE_RESISTANCE_MODEL:
+    value: null
+    class: feature
+    note: "unset = falls back to classifier model (v7 Falcon divergence recorded)"
+
+  # ---- retrieval / skill routing ------------------------------------------------
+  SAGE_COSINE_ABSTAIN_THRESHOLD:
+    value: "0.42"
+    class: feature
+    note: "authoritative KB abstain gate (PR#86); rollback = 0.0 (fail-open)"
+  SAGE_KNOWLEDGE_ABSTAIN_THRESHOLD:
+    value: null
+    class: feature
+    note: "secondary per-passage guard; cannot abstain at default (RRF floor)"
+  SAGE_SKILL_RUNNER_UP_MIN:
+    value: null
+    class: feature
+  SAGE_SKILL_RUNNER_UP_MARGIN:
+    value: null
+    class: feature
+  SAGE_SKILL_OFFER_COOLDOWN_ENABLED:
+    value: "true"
+    class: feature
+  SAGE_SKILL_OFFER_COOLDOWN_TURNS:
+    value: null
+    class: feature
+  SAGE_D5_ACUITY_GATE:
+    value: null
+    class: feature
+    note: "parked, inert by decision"
+  SAGE_D5_ACUITY_FLOOR:
+    value: null
+    class: feature
+  SAGE_NATIVE_ARABIC_SHADOW:
+    value: null
+    class: feature
+    note: "shadow only, never served"
+
+  # ---- delivery / server layer --------------------------------------------------
+  SAGE_SKILL_MEDIA_ENABLED:
+    value: "true"
+    class: feature
+    note: "server response-header layer (read in server.py, not config.py)"
+  SAGE_WARMUP_BGE:
+    value: "1"
+    class: feature
+    note: "infra: BGE-M3 startup warm-load (read in server.py); warmup-fail is currently WARN+continue"
+
+  # ---- infra / perf (parity-denylisted, still classified at birth) ---------------
+  SAGE_EMBED_CACHE_ENABLED:
+    value: null
+    class: feature
+    note: "perf; default ON behind byte-identical equivalence gate"
+  SAGE_DB_POOL_MAX_SIZE:
+    value: null
+    class: feature
+    note: "infra"
+  SAGE_HTTP_MAX_CONNECTIONS:
+    value: null
+    class: feature
+    note: "infra"
+  SAGE_HTTP_MAX_KEEPALIVE:
+    value: null
+    class: feature
+    note: "infra"
+  SAGE_CHECKPOINT_POOL_MAX_SIZE:
+    value: null
+    class: feature
+    note: "infra; per-turn concurrency ceiling (saver_pool RCA 2026-06-24)"
