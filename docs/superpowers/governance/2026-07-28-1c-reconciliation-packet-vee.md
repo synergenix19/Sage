@@ -147,8 +147,13 @@ Since the note above, the served state changed. Read this last, rule at this urg
   serving behavior. Item 2's ask is unchanged, upgraded from latent to live.
 - **No interim flag-off is requested.** The served state carries your 07-28 signature and the deploy owner's
   command; unwinding it ahead of your ruling would itself contradict a signed record. The ask is instead:
-  rule items 1 and 2 at served-behavior urgency. If item 1 ticks *"No — referral (expected)"*, the fastest
-  clean resolution is: sign the CF-010 copy → CF-010 flips at its higher precedence (crisis > medical > hr >
+  rule items 1 and 2 at served-behavior urgency.
+- **What unblocks CF-010 — exactly two ticks, both yours (verified against the record 2026-07-30):**
+  (a) **item 1 above** (the scope confirm), and (b) **the copy ratification** in
+  `2026-07-28-1c-anxiety-referral-copy-for-vee.md` — its two ticks (wording EN+AR; resources = National +
+  SAKINA 24/7, no 999) are still blank: PR#371 shipped the placeholder single-sourcing and the proposal, but
+  `derealization_referral_en/ar` were never pinned in `signed_clinical_fields.json`. With both ticks:
+  engineering pins the copy → CF-010 flips **alone** at its higher precedence (crisis > medical > hr >
   derealization > panic-grounding; the two-mechanism composition was measured with both flags on) → grounding
   is confined to pure panic → the pure-panic scoping edit of panic_override's match set closes the four
   HR-family overlaps in the annex.
