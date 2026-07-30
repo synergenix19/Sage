@@ -93,6 +93,11 @@ def observed(resp, a):
         return "professional_referral"
     if gp == "derealization":
         return "derealization_referral"
+    # 2026-07-30 instrument fix: the derealization terminal does NOT stamp gate_path (serving-side
+    # provenance gap, filed with increment 2) — classify from the process's own node_path so a served
+    # referral is never counted presence_only. Node-path is what the serving process wrote, not inference.
+    if "derealization_response" in (a.get("node_path") or ""):
+        return "derealization_referral"
     if a.get("skill_match_method") == "psychotic_disclosure_auto_select":
         return "professional_referral"
     if a.get("active_skill_id") or (a.get("skill_match_method") not in (None, "", "-")):
@@ -104,13 +109,15 @@ def _audit_row(db, sid):
     row = subprocess.run(
         ["psql", db, "-tAc",
          "SELECT COALESCE(active_skill_id,'')||'|'||COALESCE(skill_match_method,'')||'|'||"
-         f"COALESCE(gate_path::text,'') FROM session_audit WHERE session_id='{sid}' "
+         f"COALESCE(gate_path::text,'')||'|'||COALESCE(array_to_string(node_path,'>'),'') "
+         f"FROM session_audit WHERE session_id='{sid}' "
          "ORDER BY turn_number DESC LIMIT 1;"],
         capture_output=True, text=True).stdout.strip()
     if not row:
         return {}
     p = row.split("|")
-    return {"active_skill_id": p[0] or None, "skill_match_method": p[1] or None, "gate_path": p[2] or None}
+    return {"active_skill_id": p[0] or None, "skill_match_method": p[1] or None, "gate_path": p[2] or None,
+            "node_path": (p[3] if len(p) > 3 else "") or ""}
 
 
 def _purge(db, sids):
@@ -138,19 +145,33 @@ def main():
     errors, sids = 0, []
     t0 = time.time()
     try:
+        run_tag = str(int(time.time()))  # 2026-07-30 instrument fix: sids MUST be run-unique — audit rows
+        # are purged between runs but LangGraph CHECKPOINTS are not, so a reused sid measures turn-N of a
+        # stale session (one-shot semantics like derealization_referral_delivered / HR suppress re-fires),
+        # not the corpus disposition. Fresh session per row per run.
         for i, r in enumerate(corpus):
-            sid = f"prodconf-{i}"
+            sid = f"prodconf-{run_tag}-{i}"
             sids.append(sid)
             resp = _chat(args.url, key, ctx, r["utterance"], sid)
             if resp.startswith("__ERR__"):
                 errors += 1
-            time.sleep(0.5)  # let the background audit write land before the readback
-            a = _audit_row(db, sid)
+            # Condition-based wait (2026-07-30 instrument fix): deterministic terminals (derealization
+            # referral) answer in <1s, so a fixed 0.5s sleep loses the race against the background audit
+            # persist and the row reads back EMPTY -> misclassified presence_only. Poll until the row
+            # lands (bounded), never a bare sleep.
+            a = {}
+            for _ in range(24):
+                a = _audit_row(db, sid)
+                if a:
+                    break
+                time.sleep(0.5)
             o = observed(resp, a)
             pres = r["prescribed_disposition"]
             c = per[r["spec_id"]]
             c["n"] += 1
             c["conform"] += int(norm(o) == norm(pres))
+            c.setdefault("rows", []).append({"utterance": r["utterance"], "observed": o,
+                                            "audit": {k: a.get(k) for k in ("gate_path", "node_path", "skill_match_method", "active_skill_id")}})
             c["pres"] = pres
             c["obs"][o] += 1
             if i % 15 == 0:
@@ -165,7 +186,7 @@ def main():
            "en_conforming": len(conforming), "en_categories": len(cats),
            "conforming_ids": sorted(conforming),
            "categories": {s: {"prescribed": c["pres"], "conform": c["conform"], "n": c["n"],
-                              "obs": dict(c["obs"])} for s, c in cats}}
+                              "obs": dict(c["obs"]), "rows": c.get("rows", [])} for s, c in cats}}
     if args.json:
         json.dump(res, open(args.json, "w"), indent=2, ensure_ascii=False)
 
