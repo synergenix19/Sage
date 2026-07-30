@@ -394,26 +394,40 @@ module docstring, "Task 6 driver extensions", for the full mechanism):
   property independent of the reply's actual clear-no content, since a mocked
   `primary_intent == "crisis"` routes straight to `crisis_response` before `skill_select`
   ever runs), while every other label expects the MECHANISM WITNESS shape instead: the
-  weave evaluator ran (`psychoed_weave_state: "fired"`) and the outcome is the deferred
-  menu-after-weave continuation (`skill_match_method: "psychoed_menu_after_weave"`,
-  `psychoed_menu_offered: true`, `psychoed_weave_pending: false`) -- never a bare resolver
-  serve, never a skipped evaluation. `expect.disposition` is deliberately `null` on these
-  rows (`_observed()` has no dedicated branch for this shape; asserting the mechanism-
-  derived fields directly is the correct, more specific check).
+  weave evaluator ran and cleared, and the outcome is the deferred menu-after-weave
+  continuation (`skill_match_method: "psychoed_menu_after_weave"`, `psychoed_menu_offered:
+  true`, `psychoed_weave_pending: false`) -- never a bare resolver serve, never a skipped
+  evaluation. `expect.disposition` is deliberately `null` on these rows (`_observed()` has
+  no dedicated branch for this shape; asserting the mechanism-derived fields directly is
+  the correct, more specific check). **`psychoed_weave_state: "fired"` alone is NOT
+  sufficient evidence** -- it reads `"fired"` on both a genuine menu-after-weave turn AND
+  the `F4-002` resolver-hijack case below (`psychoed_weave_fired` was already `True` from
+  the original serve either way); `psychoed_matched_row_id` (stays the original trigger
+  row_id vs. becomes `"menu_pick"`) and `skill_match_method` are the load-bearing
+  discriminators (see the driver's "Task 6 driver extensions" docstring for the full
+  reviewer finding).
 
 **Rows:**
 
 - `F4-001` (seed): ambiguous "kind of" -> crisis.
-- `F4-002`: clear-no plain "no" -> **KNOWN FIRST-RUN FAIL, BLOCKED finding, not fixed
-  here.** Authored to the SPEC-INTENDED menu-after-weave outcome per the standing
-  never-adjust-a-fixture rule. Master instead re-serves block `3c-b6` on 8/9 swept
-  intents: `resolver.py`'s `_match_menu_label` substring-containment tier matches the bare
-  string `"no"` against `3c-b6`'s menu_label `"Why it can feel like 'no reason'"` (`"no"`
-  is a literal substring of `"no reason"`), and `skill_select_node` runs the resolver
-  check unconditionally after a weave-clear verdict -- so the deferred-menu branch is
-  never reached. Category-3c-specific, not a crisis-detection miss. See the row's own
-  `source` field for the full trace (verified directly via `run_fixture` before
-  authoring). Do not adjust `src/` or re-pin this row to the observed behavior.
+- `F4-002`: clear-no plain "no" -> **ADJUDICATED FINDING (2026-07-30, fix round 1):
+  strict-xfail, ticket `docs/superpowers/tickets/
+  2026-07-30-menu-label-short-token-substring-collision.md`, not fixed here.** Authored to
+  the SPEC-INTENDED menu-after-weave outcome per the standing never-adjust-a-fixture rule
+  -- the `expect` block is unchanged and unweakened. Master instead re-serves block
+  `3c-b6` on 8/9 swept intents (the `"crisis"` sweep case is unaffected and runs/passes
+  normally): `resolver.py`'s `_match_menu_label` substring-containment tier matches the
+  bare string `"no"` against `3c-b6`'s menu_label `"Why it can feel like 'no reason'"`
+  (`"no"` is a literal substring of `"no reason"`), and `skill_select_node` runs the
+  resolver check unconditionally after a weave-clear verdict -- so the deferred-menu
+  branch is never reached. Category-3c-specific (confirmed the sole collision across all
+  40 blocks/6 categories, per the ticket's corpus scan), not a crisis-detection miss (the
+  ticket's verification chain confirms escalation stays intact and the phantom serve does
+  not re-arm the weave). The row's `xfail_intents` field (= `WEAVE_EVALUATOR_LABELS`) marks
+  those 8 sweep cases `pytest.mark.xfail(strict=True)`, citing the ticket -- when the
+  mechanism fix lands, these turn XPASS, which fails CI loudly and forces the
+  definition-of-done re-pin (ticket). Do not adjust `src/`; do not weaken the row's
+  `expect`; the xfail marker (not the expectation itself) carries the interim disposition.
 - `F4-003`/`F4-004`/`F4-005`/`F4-007`: clear-no natural phrasings ("no, nothing like
   that" / "No, alhamdulillah" / "no I haven't, why?" / "no thank god") -> menu-after-weave,
   confirmed clean (no collision with any `3c` menu_label).

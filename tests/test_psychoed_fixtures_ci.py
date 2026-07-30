@@ -112,16 +112,32 @@ Task 6 driver extensions (F4 weave family, 100% hard gate):
       `escalate_crisis` here for `clear_no` rows too, sourced from the same universal graph
       property the escalation-row split already encodes, not from the row's own `expect`.
     - every other label (`WEAVE_EVALUATOR_LABELS`, or `intent_for_sweep is None`): the MECHANISM
-      WITNESS property -- the weave evaluator ran (audit `psychoed_weave_state == "fired"`, not
-      `None`/`"pending"`) and the outcome is the menu-after-weave continuation
-      (`skill_match_method == "psychoed_menu_after_weave"`, `psychoed_menu_offered` True,
-      `psychoed_weave_pending` False) -- never a bare resolver serve (`skill_match_method ==
-      "psychoed_resolver"`) and never a skipped evaluation. This is what `expect.audit`/
-      `expect.state` on `clear_no` rows encode; `expect.disposition` stays `null` on these rows
-      deliberately (`_observed()` has no dedicated `"psychoed_menu_after_weave"` branch and falls
-      through to `"presence_only"`, an artifact of `_observed`'s fallthrough order rather than a
-      meaningful named disposition for this shape -- the brief's own instruction is to assert the
-      shape via mechanism-derived fields, not disposition).
+      WITNESS property -- the weave evaluator ran and cleared, and the outcome is the
+      menu-after-weave continuation (`skill_match_method == "psychoed_menu_after_weave"`,
+      `psychoed_menu_offered` True, `psychoed_weave_pending` False) -- never a bare resolver
+      serve (`skill_match_method == "psychoed_resolver"`) and never a skipped evaluation. This is
+      what `expect.audit`/`expect.state` on `clear_no` rows encode; `expect.disposition` stays
+      `null` on these rows deliberately (`_observed()` has no dedicated
+      `"psychoed_menu_after_weave"` branch and falls through to `"presence_only"`, an artifact of
+      `_observed`'s fallthrough order rather than a meaningful named disposition for this shape --
+      the brief's own instruction is to assert the shape via mechanism-derived fields, not
+      disposition).
+      **`psychoed_weave_state == "fired"` alone is NOT the discriminator** (reviewer finding,
+      2026-07-30 adjudication fix round 1): the audit's derived `psychoed_weave_state` reads
+      `"fired"` whenever `psychoed_weave_fired` is `True` and no weave is currently pending --
+      which is ALSO true on a turn where the weave cleared correctly and a *different*
+      mechanism (the resolver's active-category menu-label match) then hijacks the turn with an
+      unrelated block serve (the exact class the F4-002 ticket, `docs/superpowers/tickets/
+      2026-07-30-menu-label-short-token-substring-collision.md`, documents: `psychoed_weave_fired`
+      was already `True` from the original serve, so `psychoed_weave_state` reads `"fired"` in
+      BOTH the correct menu-after-weave case and the resolver-hijack phantom-serve case). The
+      companions `psychoed_matched_row_id` (stays the ORIGINAL trigger row_id, e.g. `"3c-t3"`, on
+      a genuine menu-after-weave continuation; becomes `"menu_pick"` on a resolver hijack) and
+      `skill_match_method` (`"psychoed_menu_after_weave"` vs `"psychoed_resolver"`) are
+      LOAD-BEARING for telling "evaluated, then proceeded" apart from "evaluated, then a
+      DIFFERENT mechanism hijacked the turn" -- do not drop them from a `clear_no` row's
+      `expect.state`/`expect.audit` in a future edit, and do not treat `psychoed_weave_state`
+      alone as sufficient evidence the mechanism-witness property holds.
   F4-002 (bare "no") is authored to this SPEC-INTENDED shape and is a KNOWN, PASTED first-run
   FAIL on 8/9 swept intents: a same-category, unrelated resolver substring-match gap (see the
   row's own `source` field) makes master re-serve a specific block instead of reaching the
@@ -662,6 +678,44 @@ def _is_ar_draft(row: dict) -> bool:
     return row.get("lang") == "ar" and row.get("status") == "draft-pending-validator"
 
 
+_XFAIL_TICKET = "docs/superpowers/tickets/2026-07-30-menu-label-short-token-substring-collision.md"
+
+
+def _xfail_marks_for(row: dict, intent: str) -> list:
+    """Adjudication fix round 1 (2026-07-30, human-ruled): F4-002 (bare "no" clear-no reply)
+    stays authored to the spec-intended clinician contract -- the mechanism is NOT touched and
+    the fixture is NOT weakened -- but its 8 known-failing sweep cases (every WEAVE_EVALUATOR_
+    LABELS member; the "crisis" case is unaffected and keeps failing/passing on its own terms)
+    are disposed as STRICT xfail, citing the divergence ticket (`_XFAIL_TICKET`), instead of a
+    bare CI-red FAIL. `strict=True` is load-bearing, not decorative: when the mechanism fix
+    lands (word-boundary/min-length guard on resolver.py's _match_menu_label, per the ticket),
+    these cases will start passing, and a strict xfail that unexpectedly passes is ITSELF
+    reported as a failure (XPASS(strict) -> test failure) -- which is exactly the "loud xpass
+    forces a re-pin" property the ticket's definition-of-done requires, not a mechanism to let
+    the fix land unnoticed.
+
+    A row opts in via the optional row-level `xfail_intents` field (list of intent-sweep labels;
+    schema-neutral, same additive pattern as `clear_no`/`flag_pair_check`/`baseline_only`) --
+    general-purpose, not hardcoded to F4-002, so any future adjudicated-and-ticketed gate-family
+    gap can use the same disposition without a new driver mechanism. Returns `[]` (no marks) for
+    every row/intent pair that doesn't opt in, which is the overwhelming majority -- ordinary
+    rows are completely unaffected.
+    """
+    xfail_intents = row.get("xfail_intents")
+    if not xfail_intents or intent not in xfail_intents:
+        return []
+    return [pytest.mark.xfail(
+        reason=(
+            f"{row['fixture_id']}[{intent}]: adjudicated 2026-07-30 (fix round 1) -- known "
+            f"mechanism gap, NOT a fixture bug. See {_XFAIL_TICKET} for the full trace "
+            f"(short-token substring collision in resolver.py's _match_menu_label tier-1 "
+            f"containment check). strict=True: when the fix lands this turns XPASS, which "
+            f"fails CI loudly and forces the definition-of-done re-pin."
+        ),
+        strict=True,
+    )]
+
+
 def _all_params() -> list:
     params = []
     for family in _discovered_families():
@@ -685,7 +739,10 @@ def _all_params() -> list:
             if family in GATE_FAMILIES and swept:
                 for intent in INTENT_SWEEP:
                     params.append(
-                        pytest.param(row, intent, id=f"{row['fixture_id']}-{intent}")
+                        pytest.param(
+                            row, intent, id=f"{row['fixture_id']}-{intent}",
+                            marks=_xfail_marks_for(row, intent),
+                        )
                     )
             else:
                 params.append(pytest.param(row, None, id=row["fixture_id"]))
@@ -871,6 +928,35 @@ def test_f4_ar_rows_present_and_flagged_draft():
     print(
         f"\n[F4 AR] {len(ar_rows)} lang='ar' row(s) present, all status='draft-pending-validator', "
         f"skipped from the hard gate (see test_psychoed_ar_draft_pending_validator)."
+    )
+
+
+def test_f4_002_xfail_intents_are_counted_and_cite_ticket():
+    """Adjudication fix round 1 (2026-07-30): F4-002's mechanism gap is disposed as strict xfail,
+    not a fixture bug and not silently absorbed. Independent of pytest's own -rxX summary count,
+    this always-running test makes the xfail set itself visible + counted (no-silent-caps, same
+    posture as the AR skip count above) and pins that the row's disposition is exactly the
+    adjudicated shape: every WEAVE_EVALUATOR_LABELS member xfails, "crisis" is untouched, and the
+    row's source field cites the ticket."""
+    f4_by_id = {r["fixture_id"]: r for r in load_family("F4")}
+    row = f4_by_id["F4-002"]
+    xfail_intents = set(row.get("xfail_intents") or [])
+    assert xfail_intents, (
+        "F4-002 must carry xfail_intents -- adjudicated 2026-07-30 strict-xfail disposition, "
+        "see docs/superpowers/tickets/2026-07-30-menu-label-short-token-substring-collision.md"
+    )
+    assert xfail_intents == WEAVE_EVALUATOR_LABELS, (
+        f"F4-002's xfail_intents must be EXACTLY WEAVE_EVALUATOR_LABELS (the 'crisis' label is "
+        f"unaffected by the collision -- crisis-intent supremacy bypasses skill_select entirely "
+        f"-- and must keep running/passing normally, not xfail): got {sorted(xfail_intents)}, "
+        f"expected {sorted(WEAVE_EVALUATOR_LABELS)}"
+    )
+    assert _XFAIL_TICKET in (row.get("source") or ""), (
+        f"F4-002's source field must cite the divergence ticket ({_XFAIL_TICKET})"
+    )
+    print(
+        f"\n[F4-002 xfail] {len(xfail_intents)} sweep intent(s) marked strict-xfail "
+        f"(ticket: {_XFAIL_TICKET}); 'crisis' sweep case runs normally (not xfailed)."
     )
 
 
