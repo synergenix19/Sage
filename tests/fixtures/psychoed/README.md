@@ -64,6 +64,38 @@ Required keys: `fixture_id`, `family`, `set`, `turns`, `expect`, `lang`.
 - `delta_cite` / `repin_on`: provenance hooks for spec deltas and re-pin triggers;
   null when unused.
 
+### Task 4 schema additions (F2 + F9)
+
+- `categories` (optional list, row-level): arms MULTIPLE psychoed categories at once via
+  `config.PSYCHOED_CATEGORIES`, instead of the single `category` string. Wins over
+  `category` when both are present. Needed for F2's genuine cross-category collisions:
+  `resolver.py`'s collision-table resolution (`_flat_collision_winner`,
+  `_subsumption_winner`) only fires when BOTH colliding categories are enabled
+  simultaneously -- a single `category` can never produce a real collision, only a
+  same-category exact match. Schema-neutral (`_validate_row` accepts unknown keys), same
+  additive pattern as `flag_pair_check` / `baseline_only`.
+- `turns[0].state_overrides` (optional dict, first turn only): merged into the driver's
+  `make_e2e_state(...)` call for the row's FIRST turn (e.g. `active_skill_id`,
+  `detected_language`, `message_en`). This is the same "construct the entry state
+  directly" pattern used throughout this codebase's own node-level tests to represent "a
+  skill was already active" or "this is an Arabic-language turn" when it arrives -- not a
+  mechanism bypass, just supplying real `SageState` fields the mechanism itself reads.
+  Only meaningful on the first turn; later turns are built from the previous turn's real
+  graph result via `_carry`, which already threads the relevant channels forward.
+- `rag_top` (optional object, row-level): F9's retrieval-faking hook. Shape:
+  `{"passages": [<source_id>, ...], "abstain": <bool, default false>}`, `passages`
+  rank-ordered (index 0 = top / rank 1). When present, `run_fixture` patches
+  `sage_poc.nodes.knowledge_retrieve.PostgresKnowledgeRepository` and `._get_pool` so the
+  node's DB round trip returns a deterministic `KnowledgeResult` built from `rag_top`
+  instead of touching a real database -- see "F9 backstop/quarantine" below for the full
+  design and the CI-tier-only consequence.
+
+Driver-side threading note (not a schema field, but load-bearing for F2's multi-turn
+grief-context row): the driver's turn-carry helper now also carries `offered_skill_ids`
+forward between turns (a real, checkpoint-persisted `SageState` channel, `state.py:76`,
+that `tests/test_graph.py`'s own carry helper happens not to include). Documented in
+`tests/test_psychoed_fixtures_ci.py`'s module docstring under "Task 4 driver extensions".
+
 ## Execution environment
 
 The driver runs every row full-graph with `SAGE_PSYCHOED_PATHWAYS=true` semantics
@@ -163,6 +195,115 @@ no test currently reads it, since v1 authors no block-level expectations at all.
   across the 6 categories were excluded on this basis during Task 2 authoring (e.g. "What
   is anxiety?" under `§1f`, "What is depression?" under `§3c`); see each surviving row's
   `source` field, and each F1 row's own fixture, for the corresponding coverage.
+
+## F2 collisions
+
+`f2_collisions.jsonl` (Task 4, 7 rows) pins the DECLARED resolution paths in
+`data/psychoed/collisions/collision_table.json` -- the collision table IS the spec for
+this family, not a spec-adjacent artifact: `expect.audit.psychoed_collision_path` asserts
+the exact path value `resolver.py` reports (`default_winner` / `context_winner` /
+`interim_default_winner` / `subsumption_winner` / absent-for-an-own-category-exact-match),
+and `expect.audit.psychoed_matched_row_id` pins which trigger-table row won. Every row
+arms BOTH categories in a collision pair via the `categories` schema addition (see above)
+-- a single armed category can never exercise the cross-category tie the collision table
+resolves.
+
+- **F2-001** (`Why do I feel numb?`, bare, no grief context): `3c`/`s2c` both armed,
+  `default_winner` -> category `3c`, matched row `3c-t3`.
+- **F2-002** (same phrase, multi-turn, grief context): turn 1 ("My father died last
+  month.") is a real keyword-matched `grief_loss` offer (`grief_loss.json`'s
+  `target_presentations` contains that exact phrase; the `default_offer`
+  skill-matching rule applies since `grief_loss` is not in the acute-direct-entry list) --
+  this is what `skill_select._psychoed_grief_context`'s signal 1 (`'grief_loss' in
+  offered_skill_ids`) reads on turn 2. `context_winner` -> category `s2c`, matched row
+  `s2c-t5`. `expect.audit` matches the LAST captured audit row (turn 2's), per the
+  driver's documented semantics -- turn 1 also writes an audit row (2 captured total),
+  but it carries no psychoed signal of its own (the grief-context seeding is a plain
+  skill offer, not a psychoed hit) so asserting against the last row is both correct and
+  the only meaningful choice here; no earlier-row assertion extension was needed for this
+  family (see task-4-report.md for the run that established this).
+- **F2-003** (`What's happening to me?`): `1f`/`3c` both armed. The collision table
+  declares no `default_winner` or `context_winner` for this pair, only
+  `interim_default_winner: 3c` with `resolution.pending: "clinician"` and
+  `safe_before_disambiguation: false` -- an explicitly UNRATIFIED interim resolution
+  (fail-toward-weave: 3c carries the safety weave, 1f does not). The row's `source` field
+  records this pending status; `interim_default_winner` (not `default_winner`) is what
+  `resolver.py` actually reports, and that is what is pinned.
+- **F2-004 / F2-006** (subsumption long-forms): `subsumption_collisions[0]`'s long_phrase
+  ("...for no reason?", winner `3c`) and `subsumption_collisions[1]`'s long_phrase
+  ("...confident socially.", winner `7c`) are each embedded as a substring inside a
+  longer, non-registered utterance -- NOT typed verbatim. Typing either long phrase
+  verbatim would resolve via an ordinary single-category exact-phrase match (both long
+  phrases happen to already be registered word-for-word under their winning category:
+  `3c-t3` and `7c-t4` respectively), never reaching `resolver._subsumption_winner` at
+  all (per its own module-docstring note: the fallback is only reachable when the
+  message contains the declared long form as a substring but is NOT itself an exact
+  registered-phrase match). Embedding the phrase inside a longer sentence is what
+  actually exercises the subsumption tier; `psychoed_collision_path` pins
+  `subsumption_winner` for both.
+- **F2-005 / F2-007** (subsumption short-forms, own category): the paired short phrases
+  ("Why do I feel like this?" -> `4b-t1`; "I want to become more confident." ->
+  `6d-t3`) are registered ONLY under their own category, so even with the disputed pair
+  co-armed they resolve via an ordinary single-category exact match --
+  `psychoed_collision_path` is absent/null, not `subsumption_winner`.
+
+## F9 backstop/quarantine
+
+`f9_backstop.jsonl` (Task 4, 7 rows) exercises `knowledge_retrieve.py`'s outcome-2
+semantic backstop and L4 quarantine (spec §2.2) full-graph, using the `rag_top`
+retrieval-faking hook (see "Task 4 schema additions" above and
+`tests/test_psychoed_fixtures_ci.py`'s `_fake_knowledge_result` / `run_fixture` for the
+mechanism). ONLY the DB retrieval boundary is faked
+(`PostgresKnowledgeRepository`/`_get_pool`); `knowledge_retrieve_node` itself runs
+completely unmocked, so every gating check under test -- mid-skill suppression,
+Classifier A acute-distress, EN-only entry, L4 quarantine -- is real `sage_poc` code
+reacting to the faked result exactly as it would react to a real one.
+
+- **F9-001** (backstop hit): top passage = `3c-b1` (a real psychoed block id), not
+  abstained. Category comes from `psy_store.category_of(article_id)` -- FROM METADATA,
+  not from any trigger row (`psychoed_matched_row_id` stays null) -- framing is
+  fail-to-personal (`personal`), weave fires per the `3c` manifest's `safety_weave: true`,
+  and the audit row's `psychoed_collision_path` is `semantic_backstop`.
+- **F9-002** (abstained): same top passage, `abstain: true` -> no backstop (the abstain
+  gate is checked before passages are even consulted). Quarantine still strips the
+  passage.
+- **F9-003** (rank-2 psychoed passage): top passage is a non-psychoed id
+  (`cbt-001-en`), a psychoed block (`3c-b1`) sits at rank 2 -> quarantined out of
+  `knowledge_passages`, the top (non-psychoed) passage survives, no backstop (the
+  backstop only ever inspects `passages[0]`).
+- **F9-004** (active-skill suppression): `turns[0].state_overrides` sets
+  `active_skill_id: "box_breathing"` directly on the entry state (mirrors
+  `tests/test_psychoed_knowledge_retrieve.py::test_outcome2_suppressed_mid_active_skill`'s
+  node-level setup, exercised here full-graph -- `skill_select` preserves
+  `active_skill_id` on an `info_request` turn and still routes to `knowledge_retrieve`,
+  so the suppression is genuinely reachable, not bypassed).
+- **F9-005** (acute-distress suppression): message trips
+  `classifiers.acute_distress`'s distress-marker check without tripping Node-1 crisis
+  detection (verified full-graph before authoring -- the turn reaches
+  `knowledge_retrieve`, not `crisis_response`).
+- **F9-006** (AR-turn suppression, delta 6/7 cite): `turns[0].state_overrides` sets
+  `detected_language: "ar"` directly on the entry state (this repo has no
+  detect-language/translate graph node -- `server.py` supplies these fields before
+  invoking the graph, so setting them on the entry state is the correct, real way to
+  represent "this turn arrived already-detected-Arabic," not a workaround). EN-only
+  pathway entry (delta 6) applies to the backstop exactly as it does to the resolver;
+  delta 7 (AR fall-through) is the companion cite for why AR stays unserved rather than
+  silently degrading. Quarantine stays language-ungated and still strips the passage.
+- **F9-007** (legacy-quarantine negative): top passage is `anxiety-001`, a real LEGACY KB
+  corpus article (`data/knowledge_corpus/en/anxiety-001.json`), never a psychoed block id
+  -- neither the backstop condition nor the quarantine filter matches it, so it serves as
+  a completely normal RAG passage. Guards against a naming-collision false positive
+  (`psy_store.block_ids()` is checked by exact id, never by prefix/pattern).
+
+**CI-tier only (spec §7.2 no-silent-caps).** F9's retrieval is FAKED at the DB boundary
+via a controlled, hand-authored `rag_top` per row -- there is no live seeded corpus row
+these cases correspond to, so they are not meaningfully re-runnable against a real
+database the way F1/F2/etc. are. The Task 9 flip-tier runner (real intent_route, real
+retrieval, no node patches) MUST SKIP every `family == "F9"` row with a LOGGED COUNT in
+its output (not a silent filter) rather than attempt to run them against live retrieval --
+noted here for that task, not implemented by this driver. This is a known, named
+limitation (plan Self-Review: "F9's repo-patch dependence makes it CI-only"), not an
+oversight.
 
 ## Provenance
 

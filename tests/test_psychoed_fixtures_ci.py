@@ -46,13 +46,52 @@ excluded from _all_params()'s sweep and instead run through test_psychoed_baseli
 which is xfail(strict=False) so neither a miss nor a hit can fail CI. See that test's
 section below for the full mechanism and the README's "F1 naturalistic" section for the
 fixture-level rationale.
+
+Task 4 driver extensions (F2 collisions + F9 backstop/quarantine):
+- `_arm_psychoed` now also accepts a row-level `categories` (list) field, arming MULTIPLE
+  categories at once via monkeypatch. F2's cross-category collision paths (default_winner /
+  context_winner / interim_default_winner / subsumption_winner) are only reachable when
+  BOTH colliding categories are enabled simultaneously (resolver.py's `_flat_collision_winner`
+  / `_subsumption_winner` both filter on `enabled_categories` first) -- a single `category`
+  string can never exercise a genuine collision. `categories` wins over `category` when both
+  are present; falls back to the existing single-`category` behavior otherwise. Schema-neutral
+  (unknown keys aren't rejected).
+- `_carry` (turn-to-turn state threading) now also carries `offered_skill_ids` forward, via
+  `_EXTRA_CARRY` below. This is a REAL, checkpoint-persisted SageState channel (state.py:76)
+  that `tests/test_graph.py`'s own `_CARRY_FIELDS` happens not to include (that suite's
+  fixtures never needed it turn-to-turn) -- completing the gap here, not inventing new state.
+  F2's grief-context multi-turn row needs it: `skill_select._psychoed_grief_context` reads
+  `offered_skill_ids` to detect "grief_loss was recently offered" as the collision table's
+  `context_winner` signal (spec §5.1/§5.2), so a prior turn's real keyword-matched skill offer
+  must survive into the next turn's state exactly as it would in a live session.
+- `run_fixture` now accepts two more optional, additive row/turn-level inputs:
+    1. `turns[0]["state_overrides"]`: a dict merged into the FIRST turn's `make_e2e_state(...)`
+       call (e.g. `active_skill_id`, `detected_language`). This is the same "construct the
+       entry state directly" pattern every other test in this suite uses to represent
+       "a skill was already active" or "this is an Arabic-language turn" -- not a mechanism
+       bypass, just supplying real SageState fields the mechanism itself reads.
+    2. `row["rag_top"]`: F9's retrieval-faking hook (see `_fake_knowledge_result` below and
+       the README's F9 section). When present, `run_fixture` patches
+       `sage_poc.nodes.knowledge_retrieve.PostgresKnowledgeRepository` and `._get_pool` so
+       `knowledge_retrieve_node`'s DB round trip returns a CONTROLLED `KnowledgeResult` built
+       from `rag_top`, instead of touching a real database. This fakes ONLY the retrieval
+       boundary -- every downstream decision (semantic-backstop gating, Classifier A,
+       mid-skill suppression, EN-only entry, L4 quarantine) still runs as real, unmocked
+       `knowledge_retrieve_node` code reading the faked result exactly as it would read a real
+       one. Because retrieval is faked at the DB boundary rather than measured against a live
+       corpus, F9 is CI-TIER ONLY: the flip-tier runner (Task 9) drives real intent_route AND
+       real retrieval, so F9 rows are not meaningfully flip-driveable without a live seeded
+       corpus row per case. Task 9's runner must SKIP `family == "F9"` rows with a LOGGED COUNT
+       (spec §7.2 no-silent-caps) rather than attempt to run them -- noted here for that task,
+       not implemented by this driver.
 """
 import asyncio
+import contextlib
 import json
 import pathlib
 import re
 import unicodedata
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -177,6 +216,20 @@ def _validate_row(row: dict, where: str) -> None:
             isinstance(row.get("source"), str) and bool(row["source"].strip()),
             where, "F1 (naturalistic) rows must carry a non-empty source (authoring provenance)",
         )
+    # rag_top (Task 4, F9 retrieval-faking hook): optional on every family, schema-neutral by
+    # convention (see the flag_pair_check / baseline_only markers above), but shape-validated
+    # when present so a malformed row fails at collection time, not with a confusing runtime
+    # TypeError deep inside knowledge_retrieve_node.
+    rag_top = row.get("rag_top")
+    if rag_top is not None:
+        _require(isinstance(rag_top, dict), where, "rag_top must be an object or null")
+        passages = rag_top.get("passages")
+        _require(
+            isinstance(passages, list) and all(isinstance(p, str) and p for p in passages),
+            where, "rag_top.passages must be a list of non-empty source_id strings",
+        )
+        abstain = rag_top.get("abstain", False)
+        _require(isinstance(abstain, bool), where, "rag_top.abstain must be a bool when present")
 
 
 def load_family(family: str, fixtures_dir: pathlib.Path = FIXTURES_DIR) -> list[dict]:
@@ -275,10 +328,45 @@ def _observed(res: dict) -> str:
 # Driver
 # ---------------------------------------------------------------------------
 
+# Extra state channels carried turn-to-turn by this driver, beyond test_graph.py's
+# _CARRY_FIELDS + _PSYCHOED_CARRY (Task 4: F2's grief-context multi-turn row). See the
+# module docstring's "Task 4 driver extensions" section for why offered_skill_ids belongs
+# here (a real, checkpoint-persisted SageState channel test_graph.py's own carry helper
+# happens not to include).
+_EXTRA_CARRY = ("offered_skill_ids",)
+
+
 def _carry(prev: dict, raw_message: str, **overrides) -> dict:
-    """carry_state() plus the psychoed channels it doesn't know about (_PSYCHOED_CARRY)."""
-    carried = {k: prev.get(k) for k in _PSYCHOED_CARRY if k in prev}
+    """carry_state() plus the psychoed channels it doesn't know about (_PSYCHOED_CARRY),
+    plus _EXTRA_CARRY (Task 4)."""
+    carried = {k: prev.get(k) for k in (*_PSYCHOED_CARRY, *_EXTRA_CARRY) if k in prev}
     return carry_state(prev, raw_message, **{**carried, **overrides})
+
+
+def _fake_knowledge_result(rag_top: dict):
+    """Task 4 (F9): build a controlled KnowledgeResult from a row's `rag_top` field.
+
+    `rag_top` shape: {"passages": [<source_id>, ...], "abstain": <bool, default false>}.
+    `passages` is rank-ordered (index 0 = top / rank 1). Each source_id becomes a minimal,
+    deterministic KnowledgePassage: text=f"fixture passage {source_id}", citation="fixture",
+    relevance_score descending from 0.9 by 0.1 per rank, source_url/title/video_url empty --
+    the CONTENT of these fields is never clinically meaningful (no real KB text is faked;
+    only the routing-relevant source_id and rank matter to the psychoed backstop/quarantine
+    logic under test), so a fixture asserting exact `knowledge_passages` equality is pinning
+    this documented, deterministic shape, not an arbitrary literal.
+    `abstain: true` models a retrieval that judged its own match too weak (knowledge_retrieve
+    node's outcome-2 gate checks `not result.abstain` before consulting passages at all).
+    """
+    from sage_poc.knowledge.models import KnowledgePassage, KnowledgeResult  # noqa: PLC0415
+
+    passages = [
+        KnowledgePassage(
+            text=f"fixture passage {source_id}", source_id=source_id, citation="fixture",
+            relevance_score=round(0.9 - 0.1 * i, 2),
+        )
+        for i, source_id in enumerate(rag_top.get("passages") or [])
+    ]
+    return KnowledgeResult(passages=passages, abstain=bool(rag_top.get("abstain", False)))
 
 
 async def run_fixture(row: dict, intent_for_sweep: str | None = None) -> dict:
@@ -287,6 +375,11 @@ async def run_fixture(row: dict, intent_for_sweep: str | None = None) -> dict:
     Returns {"result": final_state, "audit_rows": [...]} where audit_rows are built via
     audit._build_session_audit_row from every raw state captured at EITHER
     write_session_audit call site, in chronological call order.
+
+    Task 4 additions (see module docstring): turns[0]["state_overrides"] is merged into the
+    first turn's make_e2e_state(...) call; row["rag_top"], when present, activates the F9
+    retrieval-faking patch (knowledge_retrieve's DB boundary only -- see
+    _fake_knowledge_result above).
     """
     if intent_for_sweep is None and any(t["intent_sweep"] for t in row["turns"]):
         raise ValueError(
@@ -314,11 +407,26 @@ async def run_fixture(row: dict, intent_for_sweep: str | None = None) -> dict:
 
     stub_llm = make_mock_llm([_FREEFLOW_STUB])
 
-    with patch("sage_poc.graph.intent_route_node", side_effect=_mock_intent_route), \
-         patch("sage_poc.nodes.output_gate.write_session_audit", new=_capture_audit), \
-         patch("sage_poc.graph.write_session_audit", new=_capture_audit), \
-         patch("sage_poc.nodes.freeflow_respond.get_responder", return_value=stub_llm), \
-         patch("sage_poc.nodes.freeflow_respond.get_fallback_responder", return_value=stub_llm):
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(patch("sage_poc.graph.intent_route_node", side_effect=_mock_intent_route))
+        stack.enter_context(patch("sage_poc.nodes.output_gate.write_session_audit", new=_capture_audit))
+        stack.enter_context(patch("sage_poc.graph.write_session_audit", new=_capture_audit))
+        stack.enter_context(patch("sage_poc.nodes.freeflow_respond.get_responder", return_value=stub_llm))
+        stack.enter_context(patch("sage_poc.nodes.freeflow_respond.get_fallback_responder", return_value=stub_llm))
+        rag_top = row.get("rag_top")
+        if rag_top is not None:
+            # F9 retrieval-faking (Task 4): ONLY the DB boundary is replaced. knowledge_retrieve_node
+            # still runs unmocked -- _get_pool() must return a non-None sentinel (real code returns
+            # abstain-everything when the pool is None) and PostgresKnowledgeRepository(pool) must
+            # return an object whose .retrieve(...) resolves to the row's controlled KnowledgeResult;
+            # every gating check downstream (mid-skill suppression, Classifier A, EN-only entry, L4
+            # quarantine) is real, unpatched sage_poc code reading that result.
+            fake_repo = MagicMock()
+            fake_repo.retrieve = AsyncMock(return_value=_fake_knowledge_result(rag_top))
+            stack.enter_context(
+                patch("sage_poc.nodes.knowledge_retrieve.PostgresKnowledgeRepository", return_value=fake_repo)
+            )
+            stack.enter_context(patch("sage_poc.nodes.knowledge_retrieve._get_pool", return_value=object()))
         # build_graph() must run INSIDE the patch context: add_node("intent_route", ...)
         # captures a direct reference to sage_poc.graph.intent_route_node at call time.
         graph = build_graph()
@@ -328,10 +436,10 @@ async def run_fixture(row: dict, intent_for_sweep: str | None = None) -> dict:
                 intent_for_sweep if turn["intent_sweep"]
                 else turn.get("intent") or row.get("default_intent") or DEFAULT_INTENT
             )
-            state_in = (
-                make_e2e_state(turn["utterance"]) if result is None
-                else _carry(result, turn["utterance"])
-            )
+            if result is None:
+                state_in = make_e2e_state(turn["utterance"], **(turn.get("state_overrides") or {}))
+            else:
+                state_in = _carry(result, turn["utterance"])
             result = await graph.ainvoke(state_in)
             # let asyncio.create_task(write_session_audit(...)) run (both call sites)
             await asyncio.sleep(0)
@@ -455,9 +563,20 @@ def _all_params() -> list:
 
 
 def _arm_psychoed(monkeypatch, row: dict) -> None:
-    """SAGE_PSYCHOED_PATHWAYS=true semantics + the fixture's category, monkeypatch-only."""
+    """SAGE_PSYCHOED_PATHWAYS=true semantics + the fixture's category(ies), monkeypatch-only.
+
+    Task 4: a row may carry `categories` (list) instead of the single `category` string --
+    needed for F2's genuine cross-category collisions, which resolver.py only resolves when
+    BOTH colliding categories are simultaneously enabled (see module docstring). `categories`
+    wins when present; falls back to the pre-existing single-`category` behavior otherwise.
+    """
     monkeypatch.setattr(config, "PSYCHOED_PATHWAYS_ENABLED", True)
-    cats = frozenset({row["category"]}) if row.get("category") else frozenset()
+    if row.get("categories"):
+        cats = frozenset(row["categories"])
+    elif row.get("category"):
+        cats = frozenset({row["category"]})
+    else:
+        cats = frozenset()
     monkeypatch.setattr(config, "PSYCHOED_CATEGORIES", cats)
 
 
