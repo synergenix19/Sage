@@ -96,7 +96,7 @@ REQUIRED_HEADER_FIELDS = (
     "instrument", "generated_at", "base_url", "build_sha", "build_sha_source",
     "local_tree_sha", "resolved_flag_set", "flag_coverage", "classifier_model",
     "openrouter_provider_pin", "classifier_seed", "seed_honor",
-    "n_per_fixture", "degraded_turn_count",
+    "n_per_fixture", "degraded_turn_count", "db_pool_available",
     "railway_desired_available", "deploy_window_checked", "parity_notes",
 )
 
@@ -360,6 +360,43 @@ def build_local_graph(warm: bool = True):
     return app
 
 
+async def attach_db_pool():
+    """Serving-parity DB pool for the KB path. knowledge_retrieve resolves its pool
+    from server.app.state._db_pool — created only by the FastAPI lifespan, which a
+    direct-graph evidence run never executes, so the KB path silently abstains on
+    every turn (the 2026-07-29 shakedown's DB-absent caveat). Replicate the serving
+    pool exactly as server.py's lifespan builds it and attach it where _get_pool()
+    looks. Import happens here, after export_env, by design (same rule as
+    build_local_graph). Returns the pool, or None (DATABASE_URL unset / connect
+    failure) — the CALLER decides whether absence is a refusal (full baselines) or
+    a stamped degradation (smokes)."""
+    db_url = os.environ.get("DATABASE_URL")
+    if not db_url:
+        db_url = _load_env_file(os.path.join(REPO, ".env")).get("DATABASE_URL")
+        if db_url:
+            os.environ["DATABASE_URL"] = db_url
+    if not db_url:
+        print("(db pool: DATABASE_URL not set — KB path will abstain)", flush=True)
+        return None
+    try:
+        import asyncpg  # noqa: PLC0415
+        # server.py lives at the repo ROOT (uvicorn's cwd in prod); the instrument only
+        # puts src/ on sys.path. Root must be importable or knowledge_retrieve's own
+        # `from server import app` fails the same way inside the graph.
+        if REPO not in sys.path:
+            sys.path.insert(0, REPO)
+        import server as _server  # noqa: PLC0415  (module import only; lifespan NOT run)
+        from sage_poc.config import DB_POOL_MAX_SIZE  # noqa: PLC0415
+        pool = await asyncpg.create_pool(
+            db_url, min_size=1, max_size=DB_POOL_MAX_SIZE,
+            max_inactive_connection_lifetime=300)  # mirror server.py verbatim
+        _server.app.state._db_pool = pool
+        return pool
+    except Exception as e:  # noqa: BLE001
+        print(f"(db pool attach FAILED: {str(e)[:150]} — KB path will abstain)", flush=True)
+        return None
+
+
 # ---------------------------------------------------------------------------
 # N-sample driver (bistability rider)
 # ---------------------------------------------------------------------------
@@ -443,7 +480,8 @@ def _seed_honor(effective: dict, fingerprints) -> dict:
 
 def header_block(derived: dict, readback_health: dict, *, n_per_fixture: int,
                  degraded_turn_count: int, fingerprints=None,
-                 base_url: str = DEFAULT_BASE_URL) -> dict:
+                 base_url: str = DEFAULT_BASE_URL,
+                 db_pool_available: bool = False) -> dict:
     eff = derived["effective"]
     local_sha = _local_tree_sha()
     serving_sha = readback_health.get("build_sha", "unknown")
@@ -465,10 +503,19 @@ def header_block(derived: dict, readback_health: dict, *, n_per_fixture: int,
         "seed_honor": _seed_honor(eff, fingerprints),
         "n_per_fixture": n_per_fixture,
         "degraded_turn_count": degraded_turn_count,
+        # Run-environment DB parity (2026-07-30 close-read gap): serving always has the
+        # KB pool; a direct-graph run has it ONLY when attach_db_pool() succeeded. False
+        # means every KB-path turn abstained — a different graph than prod serves.
+        "db_pool_available": bool(db_pool_available),
         "railway_desired_available": derived["railway_desired_available"],
         "deploy_window_checked": derived["deploy_window_checked"],
         "parity_notes": list(derived["notes"]),
     }
+    if not db_pool_available:
+        header["parity_notes"].append(
+            "DB POOL ABSENT: knowledge_retrieve abstained on every KB-path turn — the "
+            "run is NOT DB-parity with serving; not citable as a baseline-of-record "
+            "(2026-07-30 close-read ruling).")
     if local_sha not in ("unknown",) and serving_sha not in ("unknown",) \
             and not serving_sha.startswith(local_sha) and not local_sha.startswith(serving_sha):
         header["parity_notes"].append(
@@ -500,6 +547,7 @@ def render_header_md(header: dict) -> str:
            if header['seed_honor'].get('distinct_fingerprints') else ""),
         f"- **N per fixture:** {header['n_per_fixture']}",
         f"- **Degraded turns (static-fallback signature general_chat@0.5):** {header['degraded_turn_count']}",
+        f"- **DB pool (KB-path serving parity):** {'AVAILABLE' if header['db_pool_available'] else 'ABSENT — KB path abstained'}",
         f"- **Railway (desired) available:** {header['railway_desired_available']}"
         f" | **deploy-window checked:** {header['deploy_window_checked']}",
     ]

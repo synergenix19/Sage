@@ -447,6 +447,16 @@ async def _amain(args) -> int:
         return 2
 
     app = ge.build_local_graph()
+    # DB parity (2026-07-30 close-read ruling): serving always has the KB pool; a
+    # direct-graph run has it only via attach_db_pool(). A DB-absent FULL run is the
+    # shakedown class — refuse rather than produce a plausible-looking non-baseline.
+    db_pool = await ge.attach_db_pool()
+    if db_pool is None and not (args.smoke or args.allow_db_absent):
+        print("REFUSING: DB pool unavailable — knowledge_retrieve would abstain on every "
+              "KB-path turn, a different graph than prod serves. Set DATABASE_URL (or fix "
+              "the connection) and re-run. (--allow-db-absent exists for pipeline SMOKES "
+              "only and stamps the artifact loudly.)", file=sys.stderr, flush=True)
+        return 2
     t0 = time.time()
     per_case, all_fingerprints, degraded_total, faults = {}, [], 0, []
     for c in cases:
@@ -473,7 +483,10 @@ async def _amain(args) -> int:
 
     header = ge.header_block(derived, readback, n_per_fixture=args.n,
                              degraded_turn_count=degraded_total,
-                             fingerprints=all_fingerprints, base_url=args.base_url)
+                             fingerprints=all_fingerprints, base_url=args.base_url,
+                             db_pool_available=db_pool is not None)
+    if db_pool is not None:
+        await db_pool.close()
     if qresult is not None and qresult["ok"]:
         attach_quiescence_to_header(header, args.quiescence_cause, qresult, qstate)
     notes = []
@@ -517,6 +530,11 @@ def main(argv=None) -> int:
     ap.add_argument("--allow-deploy-window", action="store_true",
                     help="SMOKES ONLY (requires --smoke): proceed although serving != "
                          "desired; divergence is stamped loudly, output is not a baseline")
+    ap.add_argument("--allow-db-absent", action="store_true",
+                    help="SMOKES ONLY: proceed although the KB DB pool is unavailable "
+                         "(knowledge_retrieve abstains on every KB-path turn); the header "
+                         "records db_pool_available=false and the artifact is not citable "
+                         "as a baseline-of-record")
     ap.add_argument("--quiescence-cause", default=None,
                     help="BINDING named cause for the quiescence attestation; one of: "
                          + ", ".join(sorted(QUIESCENCE_CAUSES)))
