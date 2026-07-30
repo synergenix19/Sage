@@ -249,7 +249,7 @@ resolves.
 
 ## F3 classifiers
 
-`f3_classifiers.jsonl` (Task 5, 7 rows) exercises Classifier A (acute-distress veto,
+`f3_classifiers.jsonl` (Task 5, 8 rows) exercises Classifier A (acute-distress veto,
 `sage_poc/psychoed/classifiers.py::acute_distress`, spec §5.3) and Classifier B
 (framing-from-row-type + weave-due, spec §5.4) full-graph, via `skill_select.py`'s
 resolver path (`config.PSYCHOED_PATHWAYS_ENABLED` block, step (3)+(4): `if hit and
@@ -267,15 +267,24 @@ psy_cls.acute_distress(...): hit = None`).
     subsumption_collisions[0]`, winner `3c`), the same mechanism `f2_collisions.jsonl`
     uses for `F2-004`/`F2-006`.
   - `F3-002` **structural** (`fragment_min_count`/`fragment_max_len`): every
-    registered trigger phrase and menu_label in the six category tables is >=14
-    characters, so a genuine hit cannot itself sit inside a <=12-char fragment
-    alongside two more short fragments. The hit is obtained via the resolver's
-    menu-pick tier instead (`turns[0].state_overrides` pre-seeds
+    registered trigger phrase and menu_label in the six category tables is >=13
+    characters (the shortest are `"What is grief?"` / `"What is worry?"` / `"do I
+    have GAD"`, all norm-length 13), so a genuine hit cannot itself sit inside a
+    <=12-char fragment alongside two more short fragments. The hit is obtained via
+    the resolver's menu-pick tier instead (`turns[0].state_overrides` pre-seeds
     `psychoed_active_category`, mirroring `F9-004`/`F9-006`'s "construct the entry
     state directly" pattern) with filler fragments drawn from `resolver.py`'s own
     `_STOPWORDS` list so they drop out of the token-subset match rather than break
     it. The resulting phrasing (`"The. It. Worry."`) is terse by mechanical
     necessity, not an authoring shortcut -- see the row's `source` field.
+    **`expect.state` deliberately omits `psychoed_active_category`**: the row's own
+    `state_overrides` sets it, and asserting an identical field/value back would be
+    a tautology (the state_overrides/asserted-field disjointness rule -- a row must
+    never assert a field it overrides). Because `skill_select.py`'s veto discards
+    `hit` (line 738) before any menu-pick-specific key is written, no field in THIS
+    row distinguishes "hit then vetoed" from "no hit attempted"; `F3-008` (below)
+    is the non-injected witness that the override genuinely reaches a live
+    menu-pick hit.
   - `F3-003` **numeric** (`numeric_self_report_pattern`, e.g. `8/10`): the other
     declared subsumption pair (`subsumption_collisions[1]`, winner `7c`).
   - `F3-004` **upstream-state** (`fired_safety_routes` non-empty): a bare exact
@@ -301,6 +310,16 @@ psy_cls.acute_distress(...): hit = None`).
   serve fires normally, proving the veto does not over-fire. Pairing `F3-004`/
   `F3-005` isolates the upstream-state signal as the sole difference between vetoed
   and served.
+
+- **`F3-002`'s companion positive control** (`F3-008`): identical `state_overrides`
+  (`psychoed_active_category:"1f"`) and category as `F3-002`, structural signal
+  removed (`"Worry."`, a single fragment -- no `fragment_min_count`, no lexical/
+  numeric marker). Serves via the same menu-pick tier, and asserts
+  `psychoed_matched_row_id:"menu_pick"` -- a field neither row's `state_overrides`
+  ever sets, so it is a genuine, mechanism-written witness -- proving the override
+  really does open a live menu-pick hit for this category, which is what makes
+  `F3-002`'s no-serve outcome a real veto rather than a fixture where nothing was
+  ever reachable in the first place. Same pairing shape as `F3-004`/`F3-005`.
 
 - **Classifier B outcome-1: framing from row type** (`F3-006`/`F3-007`):
   `skill_select.py`'s `weave_due = (framing == "personal" and
