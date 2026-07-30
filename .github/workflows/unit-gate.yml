@@ -98,6 +98,12 @@ jobs:
         # entries carry tickets (EXEMPT pattern) so transitional debt stays visible, not silent.
         if: steps.detect.outputs.code == 'true'
         run: python scripts/check_safety_reads_raw.py
+      - name: Static — safety disposition-ownership (no un-reconciled overlap)
+        # Fails if two safety mechanisms' match sets overlap into DIFFERENT dispositions without a declared
+        # owner in disposition_ownership.json. Third refusal-property; born from the 2026-07-28 §1c conflict
+        # (CF-010 referral vs panic_override ground on the same utterance, both clinician-signed).
+        if: steps.detect.outputs.code == 'true'
+        run: python scripts/check_disposition_ownership.py
 
       - name: Run curated deterministic safety-surface suites
         if: steps.detect.outputs.code == 'true'
