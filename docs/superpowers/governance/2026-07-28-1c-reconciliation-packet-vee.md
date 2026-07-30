@@ -1,5 +1,14 @@
 # §1c reconciliation — one packet to Vee (2026-07-28)
 
+> **✅ RULED — Vee, 2026-07-30 (five ticks via PO relay).**
+> **Item 1**: No — derealization stays REFERRAL; panic_override scopes back to pure panic (closes the four
+> HR-family overlaps in the annex). **Copy**: re-affirmed (was already ratified + pinned 2026-07-28,
+> `aea60720`). **Item 2**: the "going to die + can't breathe" class STAYS AT CRISIS — a knowing residual
+> (Ruling-3 fail-safe reading; no downgrade without a clean screen). **Item 3 (registry)**: approved as the
+> pre-sign-off gate — this PR's merge is its adoption. **K3/K4 clauses**: she authors; sentences pending.
+> Execution: increment 1 (CF-010 flip) LIVE + re-measured 2026-07-30; increment 2 (scope-back + cardiac
+> deference) merged `ada1855a`; this merge is increment 3; increment 4 awaits her sentences.
+
 Two §1c Part A mechanisms were built in parallel and dispose the same utterance oppositely (HALT record:
 `2026-07-28-1c-derealization-disposition-conflict-HALT.md`). Both are flag-OFF/inert — no live conflict. Three
 items: one clinical confirm, one clinical finding, one process fix. Neither mechanism flips until item 1 rules.

@@ -1,5 +1,13 @@
 # ⛔ HALT — two parallel §1c Part A mechanisms give derealization OPPOSITE dispositions (2026-07-28)
 
+> **✅ HALT LIFTED 2026-07-30 — Vee ruled (five ticks, PO relay; see the packet's RULINGS banner).**
+> Derealization = REFERRAL (item 1). Resolution executed as four owner-ordered increments:
+> **1** CF-010 flipped alone (register change #3, PR#397; live + verified + re-measured, execution record
+> `2026-07-30-cf010-flip-execution-record.md`); **2** panic_override remediated to its signed scope
+> (pure-panic + cardiac deference, PR#398); **3** this PR merges the disposition-ownership registry as the
+> pre-sign-off gate; **4** K3/K4 description clauses await Vee's authored sentences. This document stays as
+> the record of the conflict; nothing below is edited.
+
 **The CF-010 flip is HALTED pending Vee reconciliation.** Two sessions built §1c Part A in parallel without
 cross-awareness, and they dispose the SAME utterance oppositely — both citing a Vee sign-off.
 
