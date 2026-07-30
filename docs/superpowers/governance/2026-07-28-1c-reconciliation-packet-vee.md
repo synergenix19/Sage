@@ -148,12 +148,14 @@ Since the note above, the served state changed. Read this last, rule at this urg
 - **No interim flag-off is requested.** The served state carries your 07-28 signature and the deploy owner's
   command; unwinding it ahead of your ruling would itself contradict a signed record. The ask is instead:
   rule items 1 and 2 at served-behavior urgency.
-- **What unblocks CF-010 — exactly two ticks, both yours (verified against the record 2026-07-30):**
-  (a) **item 1 above** (the scope confirm), and (b) **the copy ratification** in
-  `2026-07-28-1c-anxiety-referral-copy-for-vee.md` — its two ticks (wording EN+AR; resources = National +
-  SAKINA 24/7, no 999) are still blank: PR#371 shipped the placeholder single-sourcing and the proposal, but
-  `derealization_referral_en/ar` were never pinned in `signed_clinical_fields.json`. With both ticks:
-  engineering pins the copy → CF-010 flips **alone** at its higher precedence (crisis > medical > hr >
+- **What unblocks CF-010 — item 1 alone (CORRECTED 2026-07-30, second verification):** your copy
+  ratification is **already recorded and pinned** — `derealization_referral_en/ar` sit in
+  `signed_clinical_fields.json` (commit `aea60720`, "Vee ratified 2026-07-28 — copy signed, flip-ready"),
+  wording + resource set (National + SAKINA 24/7, no 999) with full signoff provenance. An earlier revision
+  of this note claimed the fields were "never pinned" — that was a verification error on our side (the check
+  read the manifest wrong, and the ask-doc's checkbox section was never updated to reflect the recorded
+  ratification; a doc-hygiene fix rides the flip PR). **Nothing further is needed from you on the copy.**
+  With item 1 confirmed: CF-010 flips **alone** at its higher precedence (crisis > medical > hr >
   derealization > panic-grounding; the two-mechanism composition was measured with both flags on) → grounding
   is confined to pure panic → the pure-panic scoping edit of panic_override's match set closes the four
   HR-family overlaps in the annex.
