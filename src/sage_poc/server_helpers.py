@@ -187,9 +187,35 @@ def _build_state(req: _RequestLike) -> dict:
         "knowledge_source":        "",
         "knowledge_abstain":       False,
         "knowledge_passages":      [],
+        # C1 cards channels — per-turn reset so a prior turn's cards never leak into a later
+        # turn's sources header or audit row (state-channel seam discipline).
+        "cards_knowledge_passages": [],
+        "cards_knowledge_abstain":  False,
+        "cards_knowledge_top_similarity": None,
         "offer_response":          None,
         "offer_choice_skill_id":   None,
         "stall_detected":          None,   # per-turn; set in intent_route
+        # Classifier provenance (SAGE_AUDIT_CLASSIFIER_PROVENANCE) — per-turn reset so a prior
+        # turn's hash/provider can never be pinned onto a later turn's audit row (SG-2 stale-value
+        # discipline, same as step_mandatory_caveat above). intent_route re-stamps when the flag is ON.
+        "classifier_context_hash": None,
+        "classifier_provider":     None,
+        "classifier_system_fingerprint": None,
+        # Psychoed (spec 2026-07-23 §4.2; Phase 2, Task 3): psychoed_serve is PER-TURN, reset
+        # unconditionally like resistance_score/completed_skill_id above. The other pathway-scoped
+        # channels (psychoed_active_category, _delivery_shape, _blocks_served, _menu_offered,
+        # _weave_fired, _weave_pending, _matched_row_id, _collision_path, _framing) and the
+        # session-scoped psychoed_family_exposures are DELIBERATELY ABSENT here, matching every
+        # other pathway-scoped channel in this dict (active_skill_id, clinical_flags,
+        # distress_trajectory, declined_skills, offer_count, hr_terminal_step, session_screen_answer,
+        # screen_pending, screen_held_skill, ...) per this function's own docstring: persistent
+        # fields are intentionally absent and come from the LangGraph checkpoint. _build_state(req)
+        # is a pure function of the incoming request only -- it runs BEFORE the checkpoint/session
+        # is even read (the stale-session check below calls graph.aget_state AFTER this function
+        # returns) -- so it has no "loaded session" to check absence/presence against. Defaulting
+        # (None/False/[]) for these keys belongs in the consuming node's state.get(key, default),
+        # the same place active_skill_id etc. are defaulted, not here.
+        "psychoed_serve":          None,
         # #338 D1 screen per-turn audit fields — reset each turn so a prior screen turn's class/branch/shadow
         # observation cannot leak onto a later non-screen turn's audit row (the SG-2 seam class, applied to
         # the audit surface). session_screen_answer and screen_pending are per-SESSION and deliberately absent.

@@ -1,3 +1,5 @@
+# DEPRECATED-DIRECT-INVOKE: invokes the graph/LLM directly; output is NOT evidence under
+# the signed instrument-parity rule (2026-07-28). Migrate to scripts/instrument/graph_evidence.py.
 """Shared recall-measurement harness for the BOT BEHAVIOUR safety-route fixtures
 (ingestion plan §3). ENGINEERING TEST INFRA — changes no production behaviour.
 

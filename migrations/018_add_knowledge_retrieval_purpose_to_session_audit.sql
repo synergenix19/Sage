@@ -1,0 +1,18 @@
+-- Add knowledge_retrieval_purpose to session_audit (C1 Further-Reading cards, v7.3 amendment
+-- record + delivery-shape ruling 2026-07-29, condition 2: audit purpose discriminator).
+-- On a C1 consult turn, knowledge_passage_ids becomes non-empty while the reply is grounded in
+-- signed skill content, NOT the passages — without this column every consult-turn audit row
+-- between the C1 flip and its Phase-2 retirement is a forensic ambiguity (reads as
+-- evidence-grounded generation). audit.py writes this column ONLY when the cards path ran
+-- (impossible with SAGE_CONSULT_SOURCES off), so a flag-OFF row stays byte-identical to master
+-- (same discipline as migrations 006/008/012/013/016/017). This migration is a DEPLOY GATE for the
+-- SAGE_CONSULT_SOURCES flip: it MUST run on the target environment before the flag is set true,
+-- or the flag-ON audit write fails on an unknown column (CRITICAL AUDIT FAILURE in
+-- _write_session_audit_row). Existing rows get NULL: NULL + non-empty knowledge_passage_ids
+-- keeps today's semantics (evidence retrieval, Node 6 / tool_lookup); 'cards_only' marks
+-- retrieval that fed ONLY the Further-Reading cards, never the prompt.
+--
+-- Values: 'cards_only' (C1 path) | NULL (evidence semantics / no retrieval). The kb_ref-derived
+-- Phase-2 cards will extend source provenance separately (retrieval | kb_ref) per the v7.3
+-- invariant precondition; this column is the purpose axis only.
+ALTER TABLE session_audit ADD COLUMN IF NOT EXISTS knowledge_retrieval_purpose text;

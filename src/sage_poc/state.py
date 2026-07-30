@@ -97,6 +97,13 @@ class SageState(TypedDict):
     knowledge_query_raw: str        # query as submitted (pre-normalization)
     knowledge_query_searched: str   # query actually searched (post-normalization)
     knowledge_top_similarity: float | None  # best cosine sim in the returned pack; drives abstain
+    # C1 cards-only retrieval (SAGE_CONSULT_SOURCES): populates Further-Reading cards + audit on
+    # consult turns. SEPARATE channels from knowledge_passages BY DESIGN — the composer's L4 block
+    # and _allow_light_structure read knowledge_passages, so keeping cards out of that channel is
+    # what makes "the prompt is byte-untouched" structural rather than a convention.
+    cards_knowledge_passages: list[dict]      # same passage shape as knowledge_passages
+    cards_knowledge_abstain: bool             # ABSTAIN floor applies: abstain -> no cards
+    cards_knowledge_top_similarity: float | None
 
     gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak", "crisis", "medical", "high_risk", "derealization"]]
 
@@ -157,10 +164,43 @@ class SageState(TypedDict):
     answering_screen: bool                 # PER-TURN: set by consume_pending_screen at graph entry when a
                                            # screen was pending; the structural guarantee the hold outlives
                                            # exactly one turn (screen_pending cleared the same turn)
+    # Classifier provenance (SAGE_AUDIT_CLASSIFIER_PROVENANCE, default OFF — Node-2 bistability finding
+    # 2026-07-28). PER-TURN, reset in _build_state. Written by intent_route ONLY when the flag is ON
+    # (flag-OFF state update is byte-identical to today), read by audit._build_session_audit_row.
+    # MUST be declared channels: LangGraph drops undeclared keys between nodes (the SG-2 seam class),
+    # which here would silently record NULL provenance while every component test stays green.
+    classifier_context_hash: Optional[str]  # sha256 hex of the exact assembled classifier prompt messages, computed in intent_route immediately before invocation
+    classifier_provider: Optional[str]      # upstream provider: response metadata "provider" if OpenRouter returns it, else the SAGE_OPENROUTER_PROVIDER_PIN value, else None
+    classifier_system_fingerprint: Optional[str]  # Q-b (seed HONOR, not seed request): system_fingerprint echoed by the provider, or None when absent/empty — the only available signal of the backend config that served the call; a requested seed proves intent, this records what came BACK
     panic_grounding_override: bool         # PER-TURN (Part A): set by intent_route when the deterministic
                                            # panic-grounding override applies (safety_check clean + clear panic
                                            # + no harm + intent=crisis). Declared channel so _route_after_intent
                                            # reads it (SG-2: undeclared keys are dropped between nodes).
+
+    # --- Psychoed pathway channel (spec 2026-07-23 §4.2; Phase 2). ---
+    # psychoed_serve is PER-TURN: reset each turn in _build_state(). All others are
+    # pathway-scoped (cleared on pathway exit by skill_select/output_gate, after audit
+    # persist) except psychoed_family_exposures which is session-scoped (carry-forward,
+    # schema-extension follow-up to spec §10 item 7).
+    psychoed_serve: Optional[dict]
+    psychoed_active_category: Optional[str]
+    psychoed_delivery_shape: Optional[str]
+    psychoed_blocks_served: list[str]
+    psychoed_menu_offered: bool
+    psychoed_weave_fired: bool
+    psychoed_weave_pending: bool
+    psychoed_matched_row_id: Optional[str]
+    psychoed_collision_path: Optional[str]
+    psychoed_framing: Optional[str]
+    psychoed_family_exposures: list[str]
+    psychoed_weave_escalation: bool  # PER-TURN (Task 8): True for exactly the turn PSY-WEAVE-1
+                                     # (weave.evaluate) classifies a weave-pending reply as anything
+                                     # other than a clear negative (fail-closed-to-crisis). Consumed by
+                                     # _route_after_skill_select (-> crisis_response, TOP priority) and
+                                     # reset to False by _crisis_response_node's return, AFTER the
+                                     # escalation is persisted to the session audit (persist-before-clear).
+                                     # Declared because it crosses skill_select -> router -> crisis_response
+                                     # (the SG-2 seam class: LangGraph drops undeclared keys between nodes).
 
 
 def safety_text(state: SageState) -> str:
