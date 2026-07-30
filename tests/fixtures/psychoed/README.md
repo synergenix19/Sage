@@ -96,6 +96,22 @@ forward between turns (a real, checkpoint-persisted `SageState` channel, `state.
 that `tests/test_graph.py`'s own carry helper happens not to include). Documented in
 `tests/test_psychoed_fixtures_ci.py`'s module docstring under "Task 4 driver extensions".
 
+### Task 6 schema additions (F4)
+
+- `clear_no` (optional bool, row-level): opts a row into the clear-no label-class split
+  instead of the escalation-row split (see "F4 weave" below and the driver's "Task 6
+  driver extensions" docstring section). Schema-neutral, same additive pattern as
+  `flag_pair_check`/`baseline_only`/`categories`.
+- `status` (optional string, row-level): the only currently-sanctioned value is
+  `"draft-pending-validator"` (F4's AR rows) -- schema-VALIDATED when present (unlike the
+  fully schema-neutral markers above), so a typo'd value fails at collection time rather
+  than silently not triggering the AR skip path. `null`/absent everywhere else.
+- `turns[N]["state_overrides"]` (any turn, not just the first, as of Task 6): see "Task 4
+  schema additions" above for the base mechanism; Task 6 generalizes it to apply on any
+  turn index, needed for F4's AR rows (the reply turn, not the first turn, carries the
+  language override). Backward-compatible: no pre-Task-6 row sets `state_overrides` on a
+  non-first turn.
+
 ## Execution environment
 
 The driver runs every row full-graph with `SAGE_PSYCHOED_PATHWAYS=true` semantics
@@ -351,6 +367,108 @@ psy_cls.acute_distress(...): hit = None`).
   .jsonl` is JSONL (no comment syntax) and adding a second, non-`baseline_only`/
   non-`flag_pair_check` corpus row would enter the hard-required sweep and
   duplicate green-required coverage rather than merely documenting it.
+
+## F4 weave (PSY-WEAVE-1, 100% hard gate)
+
+`f4_weave.jsonl` (Task 1 seed `F4-001` + Task 6, 16 rows total) exercises PSY-WEAVE-1
+(`sage_poc/psychoed/weave.py`, spec §6.1) full-graph, intent-swept over the FULL
+`INTENT_SWEEP` on every row's reply turn (100% hard gate: any failure fails CI outright).
+Every row's turn 1 is the shared trigger `"Why do I feel numb?"` (category `3c`, trigger
+row `3c-t3`), matching the Task 1 seed -- new rows join it rather than inventing a second
+weave-establishing trigger, so all crisis/audit expectations below share the same
+`psychoed_matched_row_id: "3c-t3"` provenance.
+
+**Two row shapes, two label-class splits** (see `tests/test_psychoed_fixtures_ci.py`'s
+module docstring, "Task 6 driver extensions", for the full mechanism):
+
+- **Escalation rows** (`F4-001` and `F4-006`/`F4-008`..`F4-013`): the reply is NOT a clear
+  negative (clear-yes, ambiguous, deflection, contradiction-guard, weave-pending
+  precedence, or the curly-apostrophe characterization pin below) -- `expect.disposition:
+  "escalate_crisis"` on every swept label, with the pre-existing split (escalation
+  MECHANISM assertions -- `psychoed_weave_state: "escalated"` + pathway clear -- apply
+  only on `WEAVE_EVALUATOR_LABELS`, since the `"crisis"` label escalates via the ordinary
+  intent-route crisis path instead).
+- **Clear-no rows** (`"clear_no": true` marker; `F4-002`, `F4-003`, `F4-004`, `F4-005`,
+  `F4-007`): the reply IS a clear negative. A DIFFERENT split applies: the `"crisis"`
+  label still forces `escalate_crisis` (crisis-intent supremacy -- a structural graph
+  property independent of the reply's actual clear-no content, since a mocked
+  `primary_intent == "crisis"` routes straight to `crisis_response` before `skill_select`
+  ever runs), while every other label expects the MECHANISM WITNESS shape instead: the
+  weave evaluator ran (`psychoed_weave_state: "fired"`) and the outcome is the deferred
+  menu-after-weave continuation (`skill_match_method: "psychoed_menu_after_weave"`,
+  `psychoed_menu_offered: true`, `psychoed_weave_pending: false`) -- never a bare resolver
+  serve, never a skipped evaluation. `expect.disposition` is deliberately `null` on these
+  rows (`_observed()` has no dedicated branch for this shape; asserting the mechanism-
+  derived fields directly is the correct, more specific check).
+
+**Rows:**
+
+- `F4-001` (seed): ambiguous "kind of" -> crisis.
+- `F4-002`: clear-no plain "no" -> **KNOWN FIRST-RUN FAIL, BLOCKED finding, not fixed
+  here.** Authored to the SPEC-INTENDED menu-after-weave outcome per the standing
+  never-adjust-a-fixture rule. Master instead re-serves block `3c-b6` on 8/9 swept
+  intents: `resolver.py`'s `_match_menu_label` substring-containment tier matches the bare
+  string `"no"` against `3c-b6`'s menu_label `"Why it can feel like 'no reason'"` (`"no"`
+  is a literal substring of `"no reason"`), and `skill_select_node` runs the resolver
+  check unconditionally after a weave-clear verdict -- so the deferred-menu branch is
+  never reached. Category-3c-specific, not a crisis-detection miss. See the row's own
+  `source` field for the full trace (verified directly via `run_fixture` before
+  authoring). Do not adjust `src/` or re-pin this row to the observed behavior.
+- `F4-003`/`F4-004`/`F4-005`/`F4-007`: clear-no natural phrasings ("no, nothing like
+  that" / "No, alhamdulillah" / "no I haven't, why?" / "no thank god") -> menu-after-weave,
+  confirmed clean (no collision with any `3c` menu_label).
+- `F4-006`: **curly-apostrophe characterization row (parked-finding pin, PIN WHATEVER
+  MASTER ACTUALLY DOES, per this task's explicit dispensation for this ONE row only).**
+  Same phrasing as `F4-005` ("no I haven't, why?") but with a U+2019 curly apostrophe
+  instead of the straight ASCII one. `sage_poc/psychoed/weave.py::_normalize`'s
+  `re.sub(r"[^\w\s']", "", text.lower())` preserves only the straight apostrophe (`\w`
+  excludes U+2019), so the curly variant is stripped to nothing rather than replaced with
+  a space, silently merging the contraction (`"no i havent why"`, no gap) -- which matches
+  neither the exact-`"no"` pattern nor the `"no i haven't( why)?"` pattern. Observed
+  outcome: **escalates to crisis** on every swept intent (fail-closed direction -- an
+  over-escalation, not a missed one). Pins the actual observed behavior deliberately, per
+  the task brief; NOT an endorsement, and NOT the same standing rule applied to `F4-002`
+  above (that row is authored to spec-intent and left failing; this one is authored to
+  observed behavior by explicit task dispensation).
+- `F4-008`: clear-yes "yes" -> crisis.
+- `F4-009`/`F4-010`: ambiguous "sometimes" / "maybe" -> crisis (companions to the `F4-001`
+  seed's "kind of").
+- `F4-011`: deflection "actually, what is anxiety?" -> crisis. Design-added extension
+  (`docs/superpowers/specs/2026-07-23-psychoeducation-pathways-design.md` §6.1
+  Governance + `data/psychoed/weave/psy_weave_1.en.json`'s
+  `design_extension_flag`) -- presented BY NAME in the clinical sign-off packet, not
+  carried silently in data.
+- `F4-012`: contradiction-guard "no, but sometimes" -> crisis (leading negative,
+  overridden by the `"but"`/`"sometimes"` contradiction markers, checked before the
+  clear-negative patterns per `evaluation_semantics.order`).
+- `F4-013`: weave-pending precedence -- the reply text ("Why can't I just snap out of
+  it?") is ITSELF the `3c-t3` trigger phrase (same row_id as turn 1's own trigger).
+  Proves PSY-WEAVE-1 evaluates BEFORE the resolver: the weave escalates before
+  `psy_resolver.resolve()` is ever reached, so the reply's own trigger-phrase status never
+  gets a chance to produce a fresh serve instead of escalation.
+- `F4-014`/`F4-015`/`F4-016`: AR counterparts (clear-no / clear-yes / ambiguous). See "AR
+  rows (draft-pending-validator)" below.
+
+**"Routing net" (design doc's HIGH-1 pin):** not a distinct fixture row -- it is the sweep
+itself. Every escalation-expecting row above runs under all 9 `INTENT_SWEEP` labels via
+`intent_sweep: true`, mechanically re-proving that a weave-pending reply reaches escalation
+(or, for clear-no rows, the mechanism-witness menu shape) regardless of which label the
+classifier lands on.
+
+**AR rows (draft-pending-validator).** `F4-014`/`F4-015`/`F4-016` carry `"lang": "ar"` and
+the new optional `"status": "draft-pending-validator"` field: unvalidated author
+translations, not clinician-ratified copy -- no AR PSY-WEAVE-1 allowlist data file exists
+yet (only `data/psychoed/weave/psy_weave_1.en.json` is ratified). `_is_ar_draft()`
+excludes them from `_all_params()`'s hard-required sweep; each is instead registered as
+its own `@pytest.mark.skip` parametrized case in `test_psychoed_ar_draft_pending_validator`
+so pytest's summary output carries a visible per-row skip reason and an aggregate count
+(spec §7.2 no-silent-caps), and `test_f4_ar_rows_present_and_flagged_draft` fails loudly
+(and prints the count) if the AR set is ever empty or mislabeled. Turn-2 (the reply turn)
+carries `state_overrides` for `detected_language`/`message_en` -- Task 6 generalizes
+`state_overrides` from "first turn only" to any turn, since psychoed pathway ENTRY is
+EN-only gated but PSY-WEAVE-1 evaluation is language-ungated (a live AR reply to an
+already-pending weave must still evaluate); see "Task 4 schema additions" above and the
+driver's module docstring. Nothing AR-labeled here is quotable as coverage.
 
 ## F9 backstop/quarantine
 

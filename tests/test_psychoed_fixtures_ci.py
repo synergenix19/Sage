@@ -40,6 +40,12 @@ never set, hence neither the "escalated" audit patch nor the escalation-scoped p
 clear runs (graph.py _crisis_response_node: both are gated on _weave_escalation). A blanket
 assertion there would fail for the wrong reason.
 
+Task 6 adds a THIRD label-class split for `"clear_no": true` rows (F4's clear-no family):
+crisis-intent SUPREMACY forces `escalate_crisis` on the "crisis" label regardless of the reply's
+actual clear-no content (a structural graph property, not a weave outcome), while every other
+label asserts the mechanism-witness menu-after-weave shape instead. See the "Task 6 driver
+extensions" section below for the full reasoning.
+
 baseline_only rows (Task 3: f1_naturalistic.jsonl, the blind-authored F1 naturalistic set)
 are collected and schema-validated like every other row, but never hard-required: they are
 excluded from _all_params()'s sweep and instead run through test_psychoed_baseline_only,
@@ -69,7 +75,13 @@ Task 4 driver extensions (F2 collisions + F9 backstop/quarantine):
        call (e.g. `active_skill_id`, `detected_language`). This is the same "construct the
        entry state directly" pattern every other test in this suite uses to represent
        "a skill was already active" or "this is an Arabic-language turn" -- not a mechanism
-       bypass, just supplying real SageState fields the mechanism itself reads.
+       bypass, just supplying real SageState fields the mechanism itself reads. Task 6
+       generalizes this to ANY turn's `state_overrides` (not just the first): F4's AR rows need
+       `detected_language`/`message_en` overrides on the REPLY turn specifically, since psychoed
+       pathway ENTRY is EN-only gated but PSY-WEAVE-1 evaluation is language-ungated (a live AR
+       reply to an already-pending weave must still evaluate) -- see the "Task 6 driver
+       extensions" section below. Backward-compatible: no pre-Task-6 row sets state_overrides on
+       a non-first turn.
     2. `row["rag_top"]`: F9's retrieval-faking hook (see `_fake_knowledge_result` below and
        the README's F9 section). When present, `run_fixture` patches
        `sage_poc.nodes.knowledge_retrieve.PostgresKnowledgeRepository` and `._get_pool` so
@@ -84,6 +96,49 @@ Task 4 driver extensions (F2 collisions + F9 backstop/quarantine):
        corpus row per case. Task 9's runner must SKIP `family == "F9"` rows with a LOGGED COUNT
        (spec §7.2 no-silent-caps) rather than attempt to run them -- noted here for that task,
        not implemented by this driver.
+
+Task 6 driver extensions (F4 weave family, 100% hard gate):
+- A THIRD label-class split, alongside the escalation-row split documented above. A row opts in
+  via the row-level `"clear_no": true` marker (schema-neutral, same additive pattern as
+  `flag_pair_check`/`baseline_only`): a weave-pending reply that IS a clear negative, so it does
+  NOT expect `escalate_crisis` as its uniform disposition (unlike F4-001 and the other crisis
+  rows) -- but it still needs a label-dependent split, for a reason specific to this row type:
+    - `intent_for_sweep == "crisis"`: crisis-intent SUPREMACY, a structural graph property
+      independent of message content. `_route_after_safety`/the intent router send ANY turn whose
+      (here, mocked) `primary_intent` is `"crisis"` straight to `crisis_response` BEFORE
+      `skill_select` -- and therefore before PSY-WEAVE-1 or the resolver -- ever run, regardless
+      of what the reply text actually says. So even a genuinely clear-no reply escalates under
+      this one label, exactly like every other row in the family; `assert_expectations` asserts
+      `escalate_crisis` here for `clear_no` rows too, sourced from the same universal graph
+      property the escalation-row split already encodes, not from the row's own `expect`.
+    - every other label (`WEAVE_EVALUATOR_LABELS`, or `intent_for_sweep is None`): the MECHANISM
+      WITNESS property -- the weave evaluator ran (audit `psychoed_weave_state == "fired"`, not
+      `None`/`"pending"`) and the outcome is the menu-after-weave continuation
+      (`skill_match_method == "psychoed_menu_after_weave"`, `psychoed_menu_offered` True,
+      `psychoed_weave_pending` False) -- never a bare resolver serve (`skill_match_method ==
+      "psychoed_resolver"`) and never a skipped evaluation. This is what `expect.audit`/
+      `expect.state` on `clear_no` rows encode; `expect.disposition` stays `null` on these rows
+      deliberately (`_observed()` has no dedicated `"psychoed_menu_after_weave"` branch and falls
+      through to `"presence_only"`, an artifact of `_observed`'s fallthrough order rather than a
+      meaningful named disposition for this shape -- the brief's own instruction is to assert the
+      shape via mechanism-derived fields, not disposition).
+  F4-002 (bare "no") is authored to this SPEC-INTENDED shape and is a KNOWN, PASTED first-run
+  FAIL on 8/9 swept intents: a same-category, unrelated resolver substring-match gap (see the
+  row's own `source` field) makes master re-serve a specific block instead of reaching the
+  menu-after-weave branch. Per the standing rule, this is authored to spec-intended and NOT
+  re-pinned to match the unsanctioned observed behavior -- a BLOCKED finding, not a fixture bug.
+- AR rows (`"lang": "ar"`, `"status": "draft-pending-validator"` -- the optional `status` field
+  is new in Task 6, schema-neutral, `None`/absent everywhere else): F4's AR counterparts exist
+  only as UNVALIDATED author translations pending the AR faithfulness-graded validator chain (no
+  AR PSY-WEAVE-1 allowlist data file is ratified yet). `_all_params()` excludes them from the
+  hard-required sweep entirely (same shape as the `baseline_only`/`flag_pair_check` exclusions
+  above); a dedicated `@pytest.mark.skip` parametrized test
+  (`test_psychoed_ar_draft_pending_validator`) registers each one individually so pytest's own
+  `-rs`/summary output carries a per-row, VISIBLE skip reason and an aggregate skipped count
+  (spec §7.2 no-silent-caps) -- nothing AR-labeled is quotable as coverage. A companion always-
+  running test (`test_f4_ar_rows_present_and_flagged_draft`) asserts the AR rows are neither
+  missing nor mislabeled and PRINTS the count, so an accidentally-empty AR set fails loudly
+  rather than silently reading as "AR coverage: zero, nobody noticed."
 """
 import asyncio
 import contextlib
@@ -230,6 +285,18 @@ def _validate_row(row: dict, where: str) -> None:
         )
         abstain = rag_top.get("abstain", False)
         _require(isinstance(abstain, bool), where, "rag_top.abstain must be a bool when present")
+
+    # status (Task 6, F4 AR rows): optional on every family, schema-neutral by the same additive
+    # convention as rag_top/flag_pair_check/baseline_only above, but shape-validated when present.
+    # Currently the only sanctioned value is "draft-pending-validator" (F4's AR rows -- see
+    # _is_ar_draft and the module docstring's "Task 6 driver extensions" section); a future
+    # validator-graded AR chain would introduce a new value here, not repurpose this one.
+    status = row.get("status")
+    if status is not None:
+        _require(
+            status == "draft-pending-validator",
+            where, f"status must be 'draft-pending-validator' (or absent), got {status!r}",
+        )
 
 
 def load_family(family: str, fixtures_dir: pathlib.Path = FIXTURES_DIR) -> list[dict]:
@@ -439,7 +506,16 @@ async def run_fixture(row: dict, intent_for_sweep: str | None = None) -> dict:
             if result is None:
                 state_in = make_e2e_state(turn["utterance"], **(turn.get("state_overrides") or {}))
             else:
-                state_in = _carry(result, turn["utterance"])
+                # Task 6: state_overrides now applies on ANY turn, not just the first. F4's
+                # draft-pending-validator AR rows need it on the REPLY turn (turn index 1):
+                # entry into a psychoed pathway is EN-only gated (skill_select.py order item 2),
+                # so an AR row's turn 1 stays EN to establish the weave, and only the reply turn
+                # carries detected_language:"ar" + a message_en gloss -- mirroring how a live AR
+                # reply to an already-pending weave would arrive (PSY-WEAVE-1 evaluation is
+                # correctly language-UNgated; only fresh psychoed ENTRY is EN-gated). Backward-
+                # compatible: no pre-Task-6 row sets state_overrides on a non-first turn, so this
+                # is additive only.
+                state_in = _carry(result, turn["utterance"], **(turn.get("state_overrides") or {}))
             result = await graph.ainvoke(state_in)
             # let asyncio.create_task(write_session_audit(...)) run (both call sites)
             await asyncio.sleep(0)
@@ -474,10 +550,49 @@ def assert_expectations(row: dict, out: dict, intent_for_sweep: str | None = Non
       escalation-scoped pathway clear fires -- both mechanism assertion sets would fail
       there for the wrong reason. Rows not expecting escalation (e.g. F8 absence rows)
       keep their audit/state expectations on every label.
+
+    Task 6 adds a THIRD split for `row["clear_no"] == True` (F4's clear-no family; see the
+    module docstring's "Task 6 driver extensions" section for the full reasoning): these rows
+    do NOT expect escalate_crisis as a uniform disposition (they're clear negatives), but the
+    "crisis" label still forces escalate_crisis via crisis-intent supremacy -- a structural
+    graph property independent of the reply's actual content -- while every other label expects
+    the menu-after-weave mechanism-witness shape. Handled as an early, self-contained branch
+    below (returns before the escalation-row logic, which does not apply to these rows).
     """
     expect = row["expect"]
     ctx = row["fixture_id"] if intent_for_sweep is None else f"{row['fixture_id']}[{intent_for_sweep}]"
     result = out["result"]
+
+    if row.get("clear_no"):
+        if intent_for_sweep == "crisis":
+            got = _observed(result)
+            assert got == "escalate_crisis", (
+                f"{ctx}: crisis-intent supremacy violated: a weave-pending reply classified "
+                f"'crisis' by intent_route must escalate regardless of the reply's own clear-no "
+                f"content (structural graph property, not a weave outcome) -- observed {got!r} "
+                f"(gate_path={result.get('gate_path')!r}, "
+                f"skill_match_method={result.get('skill_match_method')!r})"
+            )
+            assert not result.get("psychoed_menu_offered"), (
+                f"{ctx}: crisis-intent supremacy violated: menu offered despite crisis-label "
+                f"routing"
+            )
+            return
+        # Every other label: the weave evaluator ran (mechanism witness) and the outcome is
+        # the deferred menu-after-weave continuation -- never a bare resolver serve, never a
+        # skipped evaluation. expect.disposition is deliberately null on clear_no rows (see the
+        # module docstring); expect.audit/expect.state carry the mechanism-derived fields.
+        assert not result.get("psychoed_weave_escalation"), (
+            f"{ctx}: clear-no reply unexpectedly escalated to crisis"
+        )
+        audit_expect = expect.get("audit")
+        if audit_expect:
+            assert out["audit_rows"], f"{ctx}: audit expectations given but no audit rows captured"
+            _subset_match(audit_expect, out["audit_rows"][-1], f"{ctx} audit (last row)")
+        state_expect = expect.get("state")
+        if state_expect:
+            _subset_match(state_expect, result, f"{ctx} state")
+        return
 
     disposition = expect.get("disposition")
     expects_escalation = disposition == "escalate_crisis"
@@ -538,6 +653,15 @@ def _discovered_families(fixtures_dir: pathlib.Path = FIXTURES_DIR) -> list[str]
     return sorted(fams)
 
 
+def _is_ar_draft(row: dict) -> bool:
+    """Task 6: AR rows that are draft-pending-validator (F4's AR counterparts, at minimum) --
+    schema-neutral opt-out, same additive pattern as flag_pair_check/baseline_only. Requires
+    BOTH lang=="ar" AND the explicit status marker, not lang alone, so a future validator-graded
+    AR row (status left null/absent once the chain lands) is NOT silently excluded here -- the
+    opt-out is deliberate-and-labeled, not lang-triggered."""
+    return row.get("lang") == "ar" and row.get("status") == "draft-pending-validator"
+
+
 def _all_params() -> list:
     params = []
     for family in _discovered_families():
@@ -550,6 +674,12 @@ def _all_params() -> list:
                 # Handled by test_psychoed_baseline_only's non-gating path below, not by
                 # the hard-required expect-matching path here. See that test's section
                 # (search "baseline_only: non-gating registration") for the mechanism.
+                continue
+            if _is_ar_draft(row):
+                # Task 6: F4's AR rows are draft-pending-validator -- handled by
+                # test_psychoed_ar_draft_pending_validator's skipped-with-count registration
+                # below (search "AR draft-pending-validator"), never by the hard-required
+                # expect-matching path here.
                 continue
             swept = any(t.get("intent_sweep") for t in row["turns"])
             if family in GATE_FAMILIES and swept:
@@ -683,6 +813,65 @@ async def test_psychoed_baseline_only(row, monkeypatch):
     _arm_psychoed(monkeypatch, row)
     out = await run_fixture(row)
     assert_expectations(row, out)
+
+
+# ---------------------------------------------------------------------------
+# AR draft-pending-validator: skipped-with-count registration (Task 6). F4's AR rows
+# (lang=="ar", status=="draft-pending-validator") are collected and schema-validated like any
+# other row (load_family/load_corpus run _validate_row on them, corpus-wide fixture_id
+# uniqueness included -- a malformed AR row still fails CI at collection time), but are excluded
+# from _all_params()'s hard-required sweep (see _is_ar_draft above) and NEVER executed against
+# the mechanism here: no AR PSY-WEAVE-1 allowlist data exists yet, so there is nothing validated
+# to assert against, and per spec 3.7 / the AR-gating design, nothing AR-labeled is quotable as
+# coverage until the faithfulness-graded validator chain lands.
+#
+# Each row is registered as its own pytest.mark.skip parametrized case (not silently omitted)
+# so pytest's own summary output (`-rs`, or the default short summary line) carries a VISIBLE,
+# per-row skip reason plus an aggregate "N skipped" count -- spec §7.2 no-silent-caps. This
+# mirrors baseline_only's "collected + schema-validated, never hard-gating" shape above, but
+# skip (not xfail) is the right primitive here: these rows have no `expect` to compare against
+# at all (deliberately null), so there is no pass/fail outcome to record, only "not yet
+# executable."
+# ---------------------------------------------------------------------------
+
+def _ar_draft_params() -> list:
+    params = []
+    for family in _discovered_families():
+        for row in load_family(family):
+            if _is_ar_draft(row):
+                params.append(pytest.param(row, id=row["fixture_id"]))
+    return params
+
+
+@pytest.mark.skip(
+    reason="AR rows are draft-pending-validator (Task 6): unvalidated author translations, no "
+           "AR PSY-WEAVE-1 allowlist data file is ratified yet, nothing AR-labeled is quotable "
+           "as coverage until the faithfulness-graded AR validator chain exists. Collected + "
+           "schema-validated (see test_f4_ar_rows_present_and_flagged_draft); never executed."
+)
+@pytest.mark.parametrize("row", _ar_draft_params())
+async def test_psychoed_ar_draft_pending_validator(row):
+    raise AssertionError("unreachable: this test is unconditionally skipped (see reason above)")
+
+
+def test_f4_ar_rows_present_and_flagged_draft():
+    """Always-running companion to the skip registration above: a genuinely empty or
+    mislabeled AR set must fail loudly, not silently read as "AR coverage: zero, nobody
+    noticed" (no-silent-caps in the negative direction too). Prints the visible count."""
+    ar_rows = [r for r in load_family("F4") if r.get("lang") == "ar"]
+    assert ar_rows, (
+        "F4 AR rows are missing entirely -- no-silent-caps: this must never be silently zero "
+        "(see task-6-brief.md: clear-no/clear-yes/ambiguous AR counterparts are required)"
+    )
+    mislabeled = [r["fixture_id"] for r in ar_rows if r.get("status") != "draft-pending-validator"]
+    assert not mislabeled, (
+        f"F4 AR rows must all carry status=='draft-pending-validator' until the AR "
+        f"faithfulness-graded validator chain exists: {mislabeled}"
+    )
+    print(
+        f"\n[F4 AR] {len(ar_rows)} lang='ar' row(s) present, all status='draft-pending-validator', "
+        f"skipped from the hard gate (see test_psychoed_ar_draft_pending_validator)."
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -936,13 +1125,15 @@ def test_validator_rejects_intent_sweep_in_non_gate_family():
 
 
 def test_load_family_reads_and_validates_seed_corpus():
-    """Task 1 bring-up seeds are still present and still set:"seed" -- unmoved by Task 2's
-    F8 extension (Task 2 adds new fixture_ids alongside F8-001, so this no longer asserts
-    the FULL family listing, only that the original seed rows survive unchanged)."""
+    """Task 1 bring-up seeds are still present and still set:"seed" -- unmoved by Task 2's F8
+    extension and Task 6's F4 extension (both add new fixture_ids alongside the seed row, so
+    this no longer asserts the FULL family listing, only that the original seed row survives
+    unchanged)."""
     f4 = load_family("F4")
     f8 = load_family("F8")
-    assert [r["fixture_id"] for r in f4] == ["F4-001"]
-    assert all(r["set"] == "seed" for r in f4)
+    f4_by_id = {r["fixture_id"]: r for r in f4}
+    assert "F4-001" in f4_by_id
+    assert f4_by_id["F4-001"]["set"] == "seed"
     f8_by_id = {r["fixture_id"]: r for r in f8}
     assert "F8-001" in f8_by_id
     assert f8_by_id["F8-001"]["set"] == "seed"
