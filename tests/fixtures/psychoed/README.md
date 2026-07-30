@@ -247,6 +247,92 @@ resolves.
   co-armed they resolve via an ordinary single-category exact match --
   `psychoed_collision_path` is absent/null, not `subsumption_winner`.
 
+## F3 classifiers
+
+`f3_classifiers.jsonl` (Task 5, 7 rows) exercises Classifier A (acute-distress veto,
+`sage_poc/psychoed/classifiers.py::acute_distress`, spec §5.3) and Classifier B
+(framing-from-row-type + weave-due, spec §5.4) full-graph, via `skill_select.py`'s
+resolver path (`config.PSYCHOED_PATHWAYS_ENABLED` block, step (3)+(4): `if hit and
+psy_cls.acute_distress(...): hit = None`).
+
+- **Classifier A mixed-pull suppressions** (`F3-001`..`F3-004`, one per acute signal
+  class declared in `data/psychoed/classifier_a.en.json`): each row's utterance BOTH
+  produces a genuine `resolver.resolve()` hit AND trips `acute_distress` for that
+  class, expecting NO psychoed serve (`expect.state.psychoed_serve: null`) -- the
+  veto falls through to whatever the pre-existing coping/Mechanism-A/freeflow
+  behavior does, which this family deliberately does not pin (`expect.disposition:
+  null`, same scope discipline as `f9_backstop.jsonl`'s suppression rows).
+  - `F3-001` **lexical** (`shaking`, a `distress_markers` entry): the resolver hit
+    comes from the subsumption long-form embed (`collision_table.json
+    subsumption_collisions[0]`, winner `3c`), the same mechanism `f2_collisions.jsonl`
+    uses for `F2-004`/`F2-006`.
+  - `F3-002` **structural** (`fragment_min_count`/`fragment_max_len`): every
+    registered trigger phrase and menu_label in the six category tables is >=14
+    characters, so a genuine hit cannot itself sit inside a <=12-char fragment
+    alongside two more short fragments. The hit is obtained via the resolver's
+    menu-pick tier instead (`turns[0].state_overrides` pre-seeds
+    `psychoed_active_category`, mirroring `F9-004`/`F9-006`'s "construct the entry
+    state directly" pattern) with filler fragments drawn from `resolver.py`'s own
+    `_STOPWORDS` list so they drop out of the token-subset match rather than break
+    it. The resulting phrasing (`"The. It. Worry."`) is terse by mechanical
+    necessity, not an authoring shortcut -- see the row's `source` field.
+  - `F3-003` **numeric** (`numeric_self_report_pattern`, e.g. `8/10`): the other
+    declared subsumption pair (`subsumption_collisions[1]`, winner `7c`).
+  - `F3-004` **upstream-state** (`fired_safety_routes` non-empty): a bare exact
+    trigger-phrase hit (`What is anxiety?` -> `1f-t1`) with `fired_safety_routes`
+    set via `state_overrides` -- mirrors
+    `tests/test_psychoed_skill_select.py::test_acute_distress_vetoes_a_resolver_hit`'s
+    exact construction, extended full-graph. `ROUTE_PRECEDENCE_ENABLED` defaults OFF
+    so nothing overwrites the override before `skill_select` runs (verified
+    full-graph before authoring).
+
+  **Plan-phrase finding**: the plan's literally-quoted "canonical mixed-pull case"
+  (`"what is anxiety? I can't breathe right now"`) was checked directly against
+  `resolver.resolve()` before authoring and produces **no hit at all** -- appending
+  the second clause breaks `1f-t1`'s required exact whole-message match, and it is
+  not a declared subsumption long-form. Asserting no-serve against that literal
+  phrase would be a fixture=pattern tautology (nothing for Classifier A to veto,
+  same class of gap as the E7 verbatim-match finding), not a genuine test of the
+  suppression. `F3-001` substitutes a verified, mechanism-genuine lexical mixed-pull
+  case instead; see `task-5-report.md` for the verification transcript.
+
+- **Calm-curiosity negative** (`F3-005`): the same bare trigger hit as `F3-004`
+  (`What is anxiety?` -> `1f-t1`) with no acute-distress signal of any class --
+  serve fires normally, proving the veto does not over-fire. Pairing `F3-004`/
+  `F3-005` isolates the upstream-state signal as the sole difference between vetoed
+  and served.
+
+- **Classifier B outcome-1: framing from row type** (`F3-006`/`F3-007`):
+  `skill_select.py`'s `weave_due = (framing == "personal" and
+  store_manifest_weave(category) and not weave_fired)`.
+  - `F3-006` **abstract** (`6d-t1`, `"What is assertiveness?"`, type
+    "Abstract/definitional"): framing `abstract` -> `weave_due` False. `6d`'s own
+    manifest also declares `safety_weave: false`, so this case is doubly no-weave;
+    see `F3-007` for the isolated-framing case.
+  - `F3-007` **personal** (`3c-t3`, `"Why do I feel disconnected from everything?"`,
+    type "Symptom-confusion questions"): framing `personal` inside `3c`'s
+    `safety_weave: true` manifest -> `weave_due` True, audit
+    `psychoed_weave_state:"pending"`. Phrase chosen from `3c-t3`'s list to avoid the
+    `Why do I feel numb?` collision-table entry and an incidental crisis-lexicon
+    `is_safe` interaction some other `3c-t3` phrasings trip (verified full-graph
+    before authoring; does not affect disposition either way, but this row stays
+    isolated to the framing/weave mechanism under test).
+
+- **Classifier B outcome-2: fail-to-personal backstop (cross-registered with F9, NOT
+  duplicated here)**. The outcome-2 fail-to-personal case
+  (`knowledge_retrieve.py`'s semantic backstop serving `personal` framing
+  regardless of the underlying block's own framing metadata, spec §2.2) is the
+  SAME mechanism `f9_backstop.jsonl`'s `F9-001` already exercises full-graph
+  (`rag_top` top passage `3c-b1`, not abstained -> `psychoed_framing:"personal"`,
+  `psychoed_collision_path:"semantic_backstop"`). Rather than author a second row
+  that re-runs the identical scenario under a different fixture_id (corpus bloat
+  with no new coverage), `F9-001` is the single source row for this case; this
+  entry is the pointer. This is a documentation-only cross-reference (no driver
+  change) -- the lightest option consistent with the driver, since `f3_classifiers
+  .jsonl` is JSONL (no comment syntax) and adding a second, non-`baseline_only`/
+  non-`flag_pair_check` corpus row would enter the hard-required sweep and
+  duplicate green-required coverage rather than merely documenting it.
+
 ## F9 backstop/quarantine
 
 `f9_backstop.jsonl` (Task 4, 7 rows) exercises `knowledge_retrieve.py`'s outcome-2
