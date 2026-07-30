@@ -209,6 +209,12 @@ def _build_session_audit_row(state: SageState) -> dict:
     if state.get("medical_flags"):
         row["gate_path"] = state.get("gate_path")
         row["medical_flags"] = state.get("medical_flags")
+    # §1c derealization terminal audit (same conditional discipline): gate_path was ONLY persisted on
+    # medical turns, so a served derealization referral audited with gate_path NULL and the prod-HTTP
+    # conformance driver misclassified it presence_only (2026-07-30 increment-1 finding). Included ONLY
+    # when the derealization terminal ran, so every other row stays byte-identical.
+    if "derealization_response" in (row["node_path"] or []):
+        row["gate_path"] = state.get("gate_path")
     # HR-1 Stage 2 high_risk_response audit (flag-gated, same discipline as tiering/
     # precedence/medical above): included ONLY when a distress branch actually resolved
     # this turn (hr_branch set by _deliver_branch), so a flag-OFF / non-HR / mid-protocol
