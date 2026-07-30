@@ -51,6 +51,7 @@ import asyncio
 import json
 import pathlib
 import re
+import unicodedata
 from unittest.mock import patch
 
 import pytest
@@ -595,8 +596,50 @@ async def test_psychoed_baseline_only(row, monkeypatch):
 #      REAL trigger phrase, whole, turns up inside a longer utterance.
 # ---------------------------------------------------------------------------
 
+# Unicode apostrophe/quote variants mapped to the straight ASCII apostrophe BEFORE the
+# alnum-strip below (Task 3 fix round 2, reviewer-required): without this, a curly
+# apostrophe ("can’t") is stripped to a space by the regex ([^a-z0-9\s'] does not
+# include U+2019), silently splitting "can't" into "can t" -- so a trigger phrase reused
+# verbatim except for straight-vs-curly quoting would sail past both the exact-match and
+# embedded-substring checks below. 31/133 committed trigger phrases contain an
+# apostrophe, so this is a live hole, not a theoretical one. NFKC first so composed/
+# decomposed variants of the same character collapse before the literal quote-map runs.
+_QUOTE_VARIANTS = str.maketrans({
+    "‘": "'",  # LEFT SINGLE QUOTATION MARK
+    "’": "'",  # RIGHT SINGLE QUOTATION MARK (the common "smart apostrophe")
+    "‛": "'",  # SINGLE HIGH-REVERSED-9 QUOTATION MARK
+    "ʼ": "'",  # MODIFIER LETTER APOSTROPHE
+    "ʻ": "'",  # MODIFIER LETTER TURNED COMMA
+    "´": "'",  # ACUTE ACCENT (used as apostrophe substitute in some inputs)
+    "`": "'",  # GRAVE ACCENT (ditto)
+})
+
+
 def _normalize_phrase(s: str) -> str:
+    s = unicodedata.normalize("NFKC", s).translate(_QUOTE_VARIANTS)
     return " ".join(re.sub(r"[^a-z0-9\s']", " ", s.lower()).split())
+
+
+def _find_trigger_reuse(
+    utterance: str, trigger_phrases: list[tuple[str, str]]
+) -> list[tuple[str, str, str]]:
+    """[(kind, row_id, phrase), ...] hits for ONE utterance against a list of
+    (row_id, phrase) trigger pairs -- "exact" or "embedded" per the module docstring
+    above. Factored out so the corpus-wide standing test and its own regression cases
+    below exercise IDENTICAL matching logic (no drift between what's asserted on the
+    real corpus and what's proven in the regression tests)."""
+    utt_norm = _normalize_phrase(utterance)
+    hits: list[tuple[str, str, str]] = []
+    for row_id, phrase in trigger_phrases:
+        phrase_norm = _normalize_phrase(phrase)
+        tokens = phrase_norm.split()
+        if len(tokens) < 2:
+            continue  # single-word trigger phrases aren't meaningfully "reusable"
+        if utt_norm == phrase_norm:
+            hits.append(("exact", row_id, phrase))
+        elif len(tokens) >= 3 and f" {phrase_norm} " in f" {utt_norm} ":
+            hits.append(("embedded", row_id, phrase))
+    return hits
 
 
 def test_f1_naturalistic_no_trigger_phrase_reuse():
@@ -614,23 +657,58 @@ def test_f1_naturalistic_no_trigger_phrase_reuse():
         for row in generate_rows()
     ]
 
-    violations = []
-    for row in naturalistic_rows:
-        utt_norm = _normalize_phrase(row["turns"][0]["utterance"])
-        for row_id, phrase in trigger_phrases:
-            phrase_norm = _normalize_phrase(phrase)
-            tokens = phrase_norm.split()
-            if len(tokens) < 2:
-                continue  # single-word trigger phrases aren't meaningfully "reusable"
-            if utt_norm == phrase_norm:
-                violations.append((row["fixture_id"], "exact", row_id, phrase))
-            elif len(tokens) >= 3 and f" {phrase_norm} " in f" {utt_norm} ":
-                violations.append((row["fixture_id"], "embedded", row_id, phrase))
+    violations = [
+        (row["fixture_id"], kind, row_id, phrase)
+        for row in naturalistic_rows
+        for kind, row_id, phrase in _find_trigger_reuse(row["turns"][0]["utterance"], trigger_phrases)
+    ]
 
     assert not violations, (
         "f1_naturalistic.jsonl reuses trigger-table phrase(s) -- fixture-independence "
         f"violated (fixture_id, kind, trigger row_id, phrase): {violations}"
     )
+
+
+# --- Regression cases (Task 3 fix round 2): a re-reviewer demonstrated that the ORIGINAL
+# _normalize_phrase only preserved the straight ASCII apostrophe (regex [^a-z0-9\s'] does
+# not include U+2019), so a curly/smart apostrophe -- the default on iOS/macOS/Word/
+# Docs, and common in LLM output -- silently split contractions and let a verbatim-except-
+# for-quote-style trigger phrase sail past both checks above. 31/133 committed trigger
+# phrases contain an apostrophe, so this was a live hole, not a theoretical one. These
+# cases pin the fix and prove it doesn't make the guard over-eager on clean phrasing.
+
+def test_normalize_phrase_collapses_unicode_apostrophe_variants():
+    straight = "why can't I just snap out of it"
+    curly = "why can’t I just snap out of it"  # the re-reviewer's exact demonstration
+    assert straight != curly, "sanity: these must be different raw strings to be a real test"
+    assert _normalize_phrase(straight) == _normalize_phrase(curly) == (
+        "why can't i just snap out of it"
+    )
+
+
+def test_f1_naturalistic_no_trigger_phrase_reuse_catches_curly_apostrophe_variant():
+    """Regression for the re-reviewer's exact demonstration pair: 3c-t3's trigger phrase
+    embedded in a longer utterance was already caught with a straight apostrophe before
+    this fix; the identical utterance spelled with a curly apostrophe was MISSED. Both
+    must be caught now, with the same violation shape."""
+    trigger_phrases = [("3c-t3", "Why can't I just snap out of it?")]
+    straight_utt = "yeah so why can't I just snap out of it, like actually"
+    curly_utt = "yeah so why can’t I just snap out of it, like actually"
+
+    for utt in (straight_utt, curly_utt):
+        hits = _find_trigger_reuse(utt, trigger_phrases)
+        assert hits == [("embedded", "3c-t3", "Why can't I just snap out of it?")], (
+            f"expected embedded-reuse hit for {utt!r}, got {hits!r}"
+        )
+
+
+def test_f1_naturalistic_no_trigger_phrase_reuse_clean_utterance_stays_clean():
+    """Companion sanity check: a real, independently-phrased F1N utterance (no
+    apostrophe at all) must NOT trip the guard against an apostrophe-bearing trigger
+    phrase -- the fix must not make the check over-eager."""
+    trigger_phrases = [("3c-t3", "Why can't I just snap out of it?")]
+    clean_utt = "why does my heart race and my hands shake when nothing bad is even happening"
+    assert _find_trigger_reuse(clean_utt, trigger_phrases) == []
 
 
 # ---------------------------------------------------------------------------
