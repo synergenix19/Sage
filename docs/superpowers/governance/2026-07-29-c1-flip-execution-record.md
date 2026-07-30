@@ -37,8 +37,12 @@ events) and the Vee Option-1 ruling with its three in-ruling conditions.
 
 **Label condition (ruling condition 1):** all emitted entries `type: article` → frontend label key
 `reading` → **"Further reading"** (pinned by `source-card-labels.test.ts` + signed registry
-comment). DOM-level visual confirmation: PO's browser check outstanding (5-second check; API +
-component-pin verified here).
+comment). DOM-level visual confirmation: **CLOSED 2026-07-30** — browser probe on
+`chat.biosight.ai` (prod alias), EN UI, fresh conversation as `e2e.test@biosight.ai`
+(`SAGE_TEST_USER_IDS[0]`, excluded traffic): "What is anxiety?" → consult reply rendered with a
+`complementary` region, `h3` **"Further reading"**, exactly 3 article cards (nimh.nih.gov /
+apa.org / mind.org.uk). Screenshot: `c1-further-reading-dom-check-2026-07-30.png` (PO records
+dir). All three in-ruling conditions now verified end-to-end; no conditions outstanding.
 
 **Invariant:** every card ⊆ that turn's audited `knowledge_passage_ids` (3-card header cap from 5
 audited ids) — holds on all probes. Purpose discriminator live (`cards_only` vs NULL) exactly per
