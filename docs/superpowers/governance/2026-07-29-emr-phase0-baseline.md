@@ -1,4 +1,13 @@
-# EMR Phase-0 baseline — explicit-modality-request handling (distributional, pre-fix)
+# EMR Phase-0 PIPELINE SHAKEDOWN — explicit-modality-request handling (distributional, pre-fix)
+
+> **RELABELED per PO close-read ruling (2026-07-30): this artifact is the instrument
+> SHAKEDOWN, not the baseline-of-record.** The run executed with `DATABASE_URL` unset, so
+> `knowledge_retrieve` abstained on every KB-path turn — a run-environment degradation the
+> header did not record as a field (instrument gap, same class as `classifier_degraded`).
+> Everything else about the run is template-clean (quiescence attested, 0 degraded turns,
+> refusal log empty) and it proved the pipeline end-to-end. The **baseline-of-record is the
+> DB-present re-run** (2026-07-30 artifact); comparisons for the EMR re-plan cite that
+> artifact, never this one.
 
 <!-- instrument-parity header block (signed standing rule 2026-07-28) — template artifact -->
 
