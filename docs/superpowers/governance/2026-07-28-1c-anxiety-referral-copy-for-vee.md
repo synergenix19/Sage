@@ -38,8 +38,14 @@ TEMPLATE; the digits cannot drift from the crisis card.
 
 ## Your call — two ticks
 
-→ **Wording** ☐ approve (EN+AR) ☐ edit
-→ **Resources** ☐ approve (National + SAKINA 24/7, no 999 — recommended, doc L151/L1830) ☐ add 999 back ☐ edit
+<!-- ✅ RATIFIED — Vee (clinical lead), 2026-07-28. Both ticks approved AS RECOMMENDED; the
+     ratification of record is the manifest pin (signed_clinical_fields.json, derealization_referral_en/ar,
+     commit aea60720 — "copy signed, flip-ready"), which landed the same day. This checkbox section was not
+     updated at the time, and the stale blanks caused a 2026-07-30 false-negative during reconciliation
+     (record read as "unsigned"). Re-affirmed by Vee 2026-07-30 (PO relay) alongside the item-1 scope confirm.
+     Doc-hygiene rule: when a ratification is recorded in the manifest, tick the asking doc in the SAME PR. -->
+→ **Wording** ☑ approve (EN+AR) ☐ edit
+→ **Resources** ☑ approve (National + SAKINA 24/7, no 999 — recommended, doc L151/L1830) ☐ add 999 back ☐ edit
 
 ## On approval (eng)
 Pin `derealization_referral_en/ar` (provenance = this ratification + your 1a–1d), deploy the inert mechanism,

@@ -89,13 +89,17 @@ flags:
     serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "PRESUMED safety (ruling 2026-07-28); default OFF pending clinician sign-off on §HR fixed copy (Stage 2)"
   SAGE_DEREALIZATION_DETECTION:
-    value: null
+    value: "true"
     class: safety
-    note: "PRESUMED safety (routes CF-010 to the anxiety-track safety terminal); default OFF pending Vee copy sign-off"
+    signed_value: "true"
+    signature_ref: "Vee 1a-1d 2026-07-21 (mechanism+strings, 2026-07-18-vee-open-decisions-approval-sheet.md) + copy ratification 2026-07-28 (aea60720, derealization_referral_en/ar pinned in signed_clinical_fields.json) + item-1 scope confirm 2026-07-30 (PO relay: derealization = REFERRAL; PR#374 packet)"
+    note: "FLIPPED 2026-07-30 (increment 1 of the four-increment §1c execution): CF-010 derealization -> anxiety-track referral terminal, precedence crisis > medical > hr > derealization > panic-grounding — ends the live L151 collision at flag speed (derealization refers regardless of panic_override's term set). Rollback = value false via register PR + apply (instant-off)"
   SAGE_PANIC_GROUNDING_OVERRIDE:
     value: "true"
     class: safety
-    note: "PRESUMED safety (routing override on risk content); Part A mechanism, Vee-signed 2026-07-28 per config.py record"
+    signed_value: "true"
+    signature_ref: "Vee §1c-A/§1c-B boundary sheet 2026-07-28 (2026-07-28-part-a-1c-boundary-to-vee.md, SIGNED-OFF header: force-ground set + never-regress + conservative dial)"
+    note: "Part A panic-grounding override. SCOPE-BACK RULED 2026-07-30 (item-1, PO relay): _PANIC_TERMS narrows to pure panic (breathing/heart/dizzy/panic-attack) removing derealization + HR-family terms, and the cardiac 'going to die + can't breathe' class stays at crisis (item-3, no downgrade without a clean screen) — remediation = increment 2, code PR, staging-first. Flag value itself stays true (the signed capability survives narrowed)"
   SAGE_MEDICAL_REFERRAL_TEXT:
     value: null
     class: safety
@@ -215,6 +219,27 @@ flags:
     class: feature
     serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "shadow only, never served"
+  # -- V2 semantic-routing pair + precision (2026-07-30 coverage fix): non-SAGE prefix kept them
+  # -- outside the register/watchdog/readback since the SANCTIONED 2026-07-08 flip (PO-signed
+  # -- re-verdict FLIP, 2026-07-08-v2-reverdict-FLIP.md; deploy 944939b, hard gates + acceptance
+  # -- probes). The gap is scope, not governance. One-time serving evidence 2026-07-30:
+  # -- /health/ready routing_mode=v2 + reranker_head_control=passed. Riders stay until the
+  # -- *_raw_env readback covers them (their dissolve rule).
+  SKILL_ROUTING_V2:
+    value: "1"
+    class: safety
+    serving_verified: false  # rider: /health/version *_raw_env readback does not expose this var yet
+    note: "PRESUMED safety (2026-07-28 taxonomy: reranker abstain PREEMPTS iatrogenic skill routes - OCD veto, postpartum harm-intrusive); read in skill_select.py not config.py; flip signed 2026-07-08"
+  SKILL_RERANK_ENABLED:
+    value: "1"
+    class: safety
+    serving_verified: false  # rider: /health/version *_raw_env readback does not expose this var yet
+    note: "PRESUMED safety (same basis as SKILL_ROUTING_V2; cross-encoder selector half of the pair); known live effect: below-tau keyword_rerank_veto no-offer class (#202, K3/K4 2026-07-30)"
+  SKILL_RERANK_PRECISION:
+    value: "fp32"
+    class: safety
+    serving_verified: false  # rider: /health/version *_raw_env readback does not expose this var yet; reranker_head_control=passed gates fp32 at serve time
+    note: "fp32 REQUIRED: int8 safety-disqualified (over-routes clinician territory, quantization-not-safety-neutral ruling); headless/wrong-precision -> 503 via reranker_head_control"
 
   # ---- delivery / server layer --------------------------------------------------
   SAGE_SKILL_MEDIA_ENABLED:
@@ -254,3 +279,41 @@ flags:
     class: feature
     serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "infra; per-turn concurrency ceiling (saver_pool RCA 2026-06-24)"
+  AINVOKE_TIMEOUT_SECONDS:
+    value: "55"
+    class: feature
+    serving_verified: false  # rider: not in *_raw_env readback
+    note: "graph LLM ainvoke timeout (non-SAGE prefix; 2026-07-30 coverage fix)"
+  SAGE_CORPUS_DIR:
+    value: null
+    class: feature
+    serving_verified: false  # rider: not in *_raw_env readback
+    note: "corpus source path override; unset = repo default (content-as-code)"
+  SAGE_CORPUS_PRUNE:
+    value: null
+    class: feature
+    serving_verified: false  # rider: not in *_raw_env readback
+    note: "deploy-time KB auto-sync prune toggle"
+  SAGE_SYNC_CORPUS:
+    value: null
+    class: feature
+    serving_verified: false  # rider: not in *_raw_env readback
+    note: "deploy-time KB auto-sync toggle"
+
+# Env reads that are DELIBERATELY not register rows. Every name the serving source reads must be
+# a flags: row OR listed here with a reason — scripts/check_env_register_coverage.py + CI enforce
+# the dichotomy (2026-07-30, after the SKILL_* scope gap). Exclusions are as governed as rows:
+# adding a name here is a PR-reviewable decision, never a silent default.
+infra_allowlist:
+  SAGE_API_KEY: "secret (register is committed plaintext + apply write scope)"
+  OPENROUTER_API_KEY: "secret"
+  SUPABASE_SERVICE_KEY: "secret"
+  SUPABASE_URL: "infra endpoint (paired with service key)"
+  DATABASE_URL: "secret connection string"
+  CHECKPOINT_DATABASE_URL: "secret connection string"
+  SAGE_TRIPWIRE_WEBHOOK_URL: "secret webhook"
+  SAGE_BUILD_SHA: "per-deploy provenance pin (excluded by design, see apply script header)"
+  SAGE_TEST_USER_IDS: "excluded by design + CI (test-user tripwire scope; see test_secrets_and_deploy_provenance_are_not_in_the_register)"
+  RAILWAY_GIT_COMMIT_SHA: "per-deploy provenance (cache-bust ARG, deploy_prod.sh owns it)"
+  CORS_ALLOWED_ORIGINS: "serving-surface infra (origin list, not behavior flag); pre-prod checklist item"
+  PYTHONPATH: "platform infra"
