@@ -4,6 +4,10 @@ Two §1c Part A mechanisms were built in parallel and dispose the same utterance
 `2026-07-28-1c-derealization-disposition-conflict-HALT.md`). Both are flag-OFF/inert — no live conflict. Three
 items: one clinical confirm, one clinical finding, one process fix. Neither mechanism flips until item 1 rules.
 
+> **[2026-07-30: "both flag-OFF" is no longer true — panic_override is LIVE on prod under your 07-28
+> signature; CF-010 remains OFF pending your copy sign-off. See the STATUS UPDATE (2026-07-30) at the end
+> before ruling. Items 1–3 are otherwise unchanged.]**
+
 ---
 
 ## 1. Derealization — a SCOPE confirm, not a re-deliberation (one line)
@@ -12,9 +16,10 @@ You adjudicated derealization **once**, on **07-21** (1a–1d): you saw the doc'
 standard tools"* — and you ruled **referral**. CF-010 implements that.
 
 On **07-28**, the panic-grounding sheet (`part-a-1c-boundary-to-vee.md`) asked you about **panic** force-grounding.
-It **did not surface derealization as a question** — but the terms `"unreal"`, `"not real"`, `"derealiz"`,
-`"detached"`, `"outside my body"`, `"watching myself"` rode into that mechanism's match set as lexical neighbors of
-panic. So `"everything feels unreal"` now force-**grounds** under it — the exact state L151 says grounding can
+Its proposed §1c-A paraphrase set did include the words *"detachment / derealization"* (which you approved "as
+proposed") — but **it never surfaced derealization as its own question, and never referenced L151 or your 07-21
+referral ruling**, so the terms `"unreal"`, `"not real"`, `"derealiz"`, `"detached"`, `"outside my body"`,
+`"watching myself"` rode into that mechanism's match set as lexical neighbors of panic. So `"everything feels unreal"` now force-**grounds** under it — the exact state L151 says grounding can
 intensify. This is not "you ruled twice, differently." It is one ruling (referral) plus a later mechanism that
 captured territory its sheet never put to you.
 
@@ -115,3 +120,39 @@ or referral. So:
   architecturally right, but its FLIP is now a scheduling decision, not a safety fix.
 - **You are not ruling on a premise that shifted:** item 1 (referral vs ground) is unaffected; only the
   before/after urgency framing is. This note is here so that's explicit.
+
+---
+
+## STATUS UPDATE (2026-07-30) — one side of item 1 is now LIVE on prod; this packet is now post-flip reconciliation
+
+Since the note above, the served state changed. Read this last, rule at this urgency:
+
+- **`SAGE_PANIC_GROUNDING_OVERRIDE` is `true` on prod.** It is recorded in the flag register
+  (`config/prod_flags.yaml`, value seeded 2026-07-29 from the serving readback and readback-verified), shipped
+  by the owner-commanded parallel stream (RCA closure PR#388). **`SAGE_DEREALIZATION_DETECTION` (CF-010)
+  remains OFF** pending your copy sign-off. So the interim served disposition for a safety-check-clean
+  derealization disclosure that the LLM re-flags as crisis is **ground** — the direction L151 names as the
+  contraindication — wherever the predicate fires.
+- **This is signature-covered, not rogue.** Your signed 07-28 sheet approved the §1c-A set "as proposed," and
+  that set contains *"detachment / derealization."* The question is therefore not "did engineering ship past
+  you" — it is item 1 exactly as written: the sheet never connected that set to L151 or your 07-21 ruling, and
+  there are now **two of your signatures pointing opposite ways on the same presentation slice, one of them
+  serving.** Item 1 asks which governs.
+- **Live exposure is narrow but real.** The classifier pins mean intent_route now rarely re-flags §1c rows as
+  crisis (the 07-29 note: most derealization rows land presence_only, the override never firing). The override
+  grounds only the residual phrasings the pinned classifier still over-flags. Narrow is not none; the
+  mechanism serves.
+- **Item 2 (cardiac precondition) is live on the same flip.** The signed sheet's trade-off paragraph weighed
+  the passive-SI residual; the *"going to die + can't breathe, D1 silent"* class it did not surface is now
+  serving behavior. Item 2's ask is unchanged, upgraded from latent to live.
+- **No interim flag-off is requested.** The served state carries your 07-28 signature and the deploy owner's
+  command; unwinding it ahead of your ruling would itself contradict a signed record. The ask is instead:
+  rule items 1 and 2 at served-behavior urgency. If item 1 ticks *"No — referral (expected)"*, the fastest
+  clean resolution is: sign the CF-010 copy → CF-010 flips at its higher precedence (crisis > medical > hr >
+  derealization > panic-grounding; the two-mechanism composition was measured with both flags on) → grounding
+  is confined to pure panic → the pure-panic scoping edit of panic_override's match set closes the four
+  HR-family overlaps in the annex.
+
+*(Register hygiene, not for Vee: the register row carries the 07-28 signature only as a `note:`; a follow-up
+register PR should add `signed_value: "true"` + `signature_ref:` pointing at the signed boundary sheet so CI
+pins it — and if item 1 rules referral, that same PR records the scoping remediation.)*
