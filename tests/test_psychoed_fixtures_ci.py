@@ -155,6 +155,42 @@ Task 6 driver extensions (F4 weave family, 100% hard gate):
   running test (`test_f4_ar_rows_present_and_flagged_draft`) asserts the AR rows are neither
   missing nor mislabeled and PRINTS the count, so an accidentally-empty AR set fails loudly
   rather than silently reading as "AR coverage: zero, nobody noticed."
+
+Task 8 driver extensions (F6 precedence, 100% hard gate):
+- `row["label_dispositions"]` (optional dict, row-level): a FOURTH label-class split (see
+  `assert_expectations`'s own docstring for the full mechanism), schema-neutral like
+  `clear_no`/`flag_pair_check`/`categories`. Maps an intent-sweep label to its expected
+  `_observed()` disposition; `"_default"` is the fallback for any label without its own entry;
+  a missing/`null` lookup means "assert no particular disposition for this label" (the row
+  still asserts the universal never-proceed + non-leak properties on that label, just not a
+  pinned disposition). This exists because F6's mid-menu precedence rows discovered, by
+  running the full sweep before authoring (never assumed), that "which non-psychoed route
+  wins" genuinely VARIES by sweep label for reasons that are ORTHOGONAL to psychoed and
+  predate this family -- e.g. `skill_select_node`'s own `primary_intent == "info_request"`
+  early-return (skill_select.py ~L786) runs BEFORE the psychotic-disclosure block
+  (~L858) and so starves an HR referral on that one label; `_route_after_intent` sends
+  `scope_refusal`/`jailbreak` to the `"gate"` node (graph.py ~L289-294) before its own HR
+  redirect (~L316) ever runs. Both are pre-existing baseline routing, not something this task
+  built or should adjudicate -- `label_dispositions` lets the fixture assert the REAL,
+  verified-full-graph-before-authoring shape instead of a false uniform claim that would
+  fail CI for a reason unrelated to F6's own precedence property. The property F6 actually
+  gates on -- psychoed never wins the turn, and the winning route's response carries no
+  psychoed copy fragment (design doc §6.3, #359 pattern) -- is asserted UNCONDITIONALLY on
+  every label inside this branch, regardless of which specific route won or whether a
+  disposition was pinned for that label at all. Crisis-mid-menu and medical-mid-menu use
+  this same mechanism (via a single `"_default"` entry) rather than the pre-existing
+  `expects_escalation` never-proceed block below, because that block's
+  `assert not psychoed_menu_offered` assumes a weave-style escalation that clears the
+  pathway the SAME turn (true for F4); an ordinary safety-exit mid a genuinely-offered menu
+  leaves `psychoed_menu_offered` truthfully `True` as a stale carry-over (delta 8), which
+  is not itself evidence of a leak.
+- The post-crisis weave re-evaluation NAMED CASE (`f6_precedence.jsonl`'s row citing this
+  comment) needs NO driver extension at all: verified full-graph before authoring, its
+  disposition is uniformly `escalate_crisis` across every sweep label (an ordinary
+  Node-1-driven crisis intercept on the `"crisis"` label; the residual `psychoed_weave_pending`
+  re-firing PSY-WEAVE-1 -- fail-closed -- and escalating via `psychoed_weave_escalation` on
+  every other label), so the PRE-EXISTING escalation-row shape and its WEAVE_EVALUATOR_LABELS
+  mechanism-assertion split (already built for F4) apply unmodified.
 """
 import asyncio
 import contextlib
@@ -553,6 +589,46 @@ def _subset_match(expected: dict, actual: dict, ctx: str) -> None:
             assert got == want, f"{ctx}: {key!r}: expected {want!r}, got {got!r}"
 
 
+def _resolve_content_ref(ref: dict) -> str:
+    """Task 8 (F10 diagnosis split): resolve a content reference to its ratified string,
+    NEVER a literal copy pasted into a fixture (assert on behavior/markers, never copy
+    strings -- the standing convention this suite already follows for block content /
+    manifest fields elsewhere). One of three shapes:
+      {"category": <cat>, "field": "framing_statement"|"menu_offer"|"check_in"}
+      {"script": <shared_script_name>}
+      {"block_id": <block_id>}
+    """
+    from sage_poc.psychoed import store as psy_store  # noqa: PLC0415
+    if "category" in ref:
+        return psy_store.manifest(ref["category"])[ref["field"]]
+    if "script" in ref:
+        return psy_store.shared_script(ref["script"])
+    if "block_id" in ref:
+        return psy_store.get_block(ref["block_id"])["content"]
+    raise ValueError(f"unrecognized content ref shape: {ref!r}")
+
+
+def _assert_content(row: dict, result: dict, ctx: str) -> None:
+    """Task 8 (F10 diagnosis split): optional row-level `assert_content` field, schema-
+    neutral like every other additive marker in this driver. `{"contains": [...], "excludes":
+    [...]}`, each entry a content ref resolved by `_resolve_content_ref` above and checked
+    for presence/absence as a substring of the final turn's response. Applied unconditionally
+    at the top of `assert_expectations` (before any label-class branching) so it holds
+    regardless of which disposition-assertion shape a row otherwise uses -- harmless no-op
+    for the overwhelming majority of rows that don't set it.
+    """
+    spec = row.get("assert_content")
+    if not spec:
+        return
+    response = result.get("response") or ""
+    for ref in spec.get("contains") or []:
+        copy = _resolve_content_ref(ref)
+        assert copy in response, f"{ctx}: assert_content.contains violated: {ref!r} not found in response"
+    for ref in spec.get("excludes") or []:
+        copy = _resolve_content_ref(ref)
+        assert copy not in response, f"{ctx}: assert_content.excludes violated: {ref!r} found in response"
+
+
 def assert_expectations(row: dict, out: dict, intent_for_sweep: str | None = None) -> None:
     """Label-class assertion split (plan amendment 09d8ff59, human-ruled):
 
@@ -574,10 +650,72 @@ def assert_expectations(row: dict, out: dict, intent_for_sweep: str | None = Non
     graph property independent of the reply's actual content -- while every other label expects
     the menu-after-weave mechanism-witness shape. Handled as an early, self-contained branch
     below (returns before the escalation-row logic, which does not apply to these rows).
+
+    Task 8 adds a FOURTH split, `row["label_dispositions"]` (F6 precedence; see "Task 8 driver
+    extensions" in the module docstring): a per-label disposition map for rows whose winning
+    route genuinely varies by sweep label for reasons ORTHOGONAL to psychoed (baseline graph
+    precedence/routing quirks that predate this family), while the property F6 actually gates
+    on -- psychoed never wins the turn -- holds uniformly across every label regardless. Also
+    self-contained; returns before the escalation-row logic below.
     """
     expect = row["expect"]
     ctx = row["fixture_id"] if intent_for_sweep is None else f"{row['fixture_id']}[{intent_for_sweep}]"
     result = out["result"]
+
+    _assert_content(row, result, ctx)
+
+    if row.get("label_dispositions"):
+        label_map = row["label_dispositions"]
+        expected = label_map.get(intent_for_sweep, label_map.get("_default"))
+        if expected is not None:
+            got = _observed(result)
+            assert got == expected, (
+                f"{ctx}: label_dispositions[{intent_for_sweep!r}]: expected {expected!r}, "
+                f"observed {got!r} (gate_path={result.get('gate_path')!r}, "
+                f"skill_match_method={result.get('skill_match_method')!r})"
+            )
+        # The universal F6 property, independent of WHICH non-psychoed route wins on a given
+        # label: psychoed never wins a precedence conflict. Holds under every sweep label
+        # without exception (100% hard gate) -- unlike expects_escalation's never-proceed
+        # block below, this deliberately does NOT check psychoed_menu_offered, since an
+        # ordinary (non-weave) safety-exit does not clear the pathway on the SAME turn (handoff
+        # notes delta 8: "_psychoed_pathway_clear" only runs from the weave-escalation exit and
+        # skill_select's own non-psychoed-skill/HR/offer-accept exits) -- a mid-menu turn's
+        # STALE `psychoed_menu_offered: true`, carried over from the turn that genuinely
+        # offered it, is not evidence psychoed won THIS turn.
+        assert not result.get("psychoed_serve"), (
+            f"{ctx}: never-proceed violated: psychoed serve payload present when a "
+            f"higher-precedence route should have won"
+        )
+        assert result.get("skill_match_method") not in (
+            "psychoed_resolver", "psychoed_menu_after_weave"
+        ), f"{ctx}: never-proceed violated: {result.get('skill_match_method')!r}"
+        # Non-leak (design doc §6.3, #359 pattern): whichever non-psychoed route won, the
+        # emitted response must carry no psychoed copy fragment from the row's own armed
+        # category -- assert on behavior (the manifest's own ratified strings), never a
+        # hand-copied literal pasted into the fixture. Single-category rows only (the
+        # overwhelming majority); a future multi-category label_dispositions row would need
+        # its own per-category loop, not implemented here since none exists yet.
+        _category = row.get("category")
+        if _category:
+            from sage_poc.psychoed import store as psy_store  # noqa: PLC0415
+            _manifest = psy_store.manifest(_category)
+            _response = result.get("response") or ""
+            for _field in ("framing_statement", "menu_offer", "check_in"):
+                _copy = _manifest.get(_field)
+                if _copy:
+                    assert _copy not in _response, (
+                        f"{ctx}: non-leak violated: category {_category!r}'s {_field!r} "
+                        f"psychoed copy fragment found in the winning route's response"
+                    )
+        audit_expect = expect.get("audit")
+        if audit_expect:
+            assert out["audit_rows"], f"{ctx}: audit expectations given but no audit rows captured"
+            _subset_match(audit_expect, out["audit_rows"][-1], f"{ctx} audit (last row)")
+        state_expect = expect.get("state")
+        if state_expect:
+            _subset_match(state_expect, result, f"{ctx} state")
+        return
 
     if row.get("clear_no"):
         if intent_for_sweep == "crisis":
@@ -749,6 +887,15 @@ def _all_params() -> list:
     return params
 
 
+# Task 8 (F6 precedence): the ONLY config attrs a row's optional `flags` dict may monkeypatch,
+# beyond PSYCHOED_PATHWAYS_ENABLED/PSYCHOED_CATEGORIES which _arm_psychoed already owns.
+# Allowlisted (not an arbitrary setattr) so a typo'd or malicious key fails loudly at fixture-
+# run time instead of silently patching an unrelated config surface. F6's medical-mid-menu row
+# needs MEDICAL_REDFLAG_GUARD_ENABLED (default OFF, env-gated -- see config.py) armed in the
+# SAME patch-context-only, never-env-persisted discipline as every other flag in this driver.
+_ALLOWED_ROW_FLAGS = frozenset({"MEDICAL_REDFLAG_GUARD_ENABLED"})
+
+
 def _arm_psychoed(monkeypatch, row: dict) -> None:
     """SAGE_PSYCHOED_PATHWAYS=true semantics + the fixture's category(ies), monkeypatch-only.
 
@@ -756,6 +903,10 @@ def _arm_psychoed(monkeypatch, row: dict) -> None:
     needed for F2's genuine cross-category collisions, which resolver.py only resolves when
     BOTH colliding categories are simultaneously enabled (see module docstring). `categories`
     wins when present; falls back to the pre-existing single-`category` behavior otherwise.
+
+    Task 8: a row may also carry `flags` (dict of config attr name -> value), monkeypatched
+    the same way -- patch-context only, never env-persisted (this task's own "flags patch-
+    context only" rule). Restricted to `_ALLOWED_ROW_FLAGS` above.
     """
     monkeypatch.setattr(config, "PSYCHOED_PATHWAYS_ENABLED", True)
     if row.get("categories"):
@@ -765,6 +916,12 @@ def _arm_psychoed(monkeypatch, row: dict) -> None:
     else:
         cats = frozenset()
     monkeypatch.setattr(config, "PSYCHOED_CATEGORIES", cats)
+    for _flag, _value in (row.get("flags") or {}).items():
+        assert _flag in _ALLOWED_ROW_FLAGS, (
+            f"{row['fixture_id']}: row['flags'] key {_flag!r} is not in _ALLOWED_ROW_FLAGS "
+            f"{sorted(_ALLOWED_ROW_FLAGS)} -- add it there deliberately, don't widen silently"
+        )
+        monkeypatch.setattr(config, _flag, _value)
 
 
 def _disarm_psychoed(monkeypatch) -> None:
@@ -957,6 +1114,152 @@ def test_f4_002_xfail_intents_are_counted_and_cite_ticket():
     print(
         f"\n[F4-002 xfail] {len(xfail_intents)} sweep intent(s) marked strict-xfail "
         f"(ticket: {_XFAIL_TICKET}); 'crisis' sweep case runs normally (not xfailed)."
+    )
+
+
+# ---------------------------------------------------------------------------
+# F10 (Task 8) push-further companion: TRACE what the as-built continuation actually
+# composes for f10_diagnosis.jsonl's F10-003 scenario. run_fixture's generic driver doesn't
+# capture the LLM prompt (its stub_llm is a fixed-reply mock, not a capturing one -- mirrors
+# test_psychoed_f5_flow.py's own reason for needing a dedicated capturing helper), so this is
+# a standalone procedural test, not a corpus row, reusing F10-003's exact turns.
+# ---------------------------------------------------------------------------
+
+def test_f10_push_further_stage2_not_deterministically_composed():
+    """F10-003's own `source` field states the trace conclusion; this test performs it.
+    diagnosis_guard_stage1 primed the exchange, then a push-further reply that matches no
+    resolver trigger reaches freeflow_respond via the generic psychoed_continuation L2
+    override (delta 15) -- captures the ACTUAL messages list passed to the LLM and confirms
+    diagnosis_guard_stage2's own text is absent, i.e. genuinely not deterministically
+    reachable, not merely unasserted."""
+    from sage_poc.psychoed import store as psy_store  # noqa: PLC0415
+
+    pinned = {"intent": "info_request"}
+
+    def _mock_intent_route(state):
+        return {
+            "primary_intent": pinned["intent"], "secondary_intent": None,
+            "intent_confidence": 0.9, "emotional_intensity": state.get("emotional_intensity", 5),
+            "engagement": state.get("engagement", 7), "path": state["path"] + ["intent_route"],
+        }
+
+    calls: list = []
+
+    def _capturing_llm(text: str):
+        mock = MagicMock()
+        mock.model_name = "mock-model"
+        mock.openai_api_base = ""
+        mock.bind_tools = MagicMock(return_value=mock)
+
+        async def _ainvoke(*args, **kwargs):
+            calls.append(args[0] if args else kwargs.get("input"))
+            msg = MagicMock()
+            msg.content = text
+            msg.tool_calls = []
+            return msg
+
+        mock.ainvoke = AsyncMock(side_effect=_ainvoke)
+        return mock
+
+    stub_llm = _capturing_llm(_FREEFLOW_STUB)
+
+    async def _drive():
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(patch("sage_poc.graph.intent_route_node", side_effect=_mock_intent_route))
+            stack.enter_context(patch("sage_poc.nodes.freeflow_respond.get_responder", return_value=stub_llm))
+            stack.enter_context(patch("sage_poc.nodes.freeflow_respond.get_fallback_responder", return_value=stub_llm))
+            with patch.object(config, "PSYCHOED_PATHWAYS_ENABLED", True), \
+                 patch.object(config, "PSYCHOED_CATEGORIES", frozenset({"1f"})):
+                graph = build_graph()
+                t1 = await graph.ainvoke(make_e2e_state("do I have GAD"))
+                t2 = await graph.ainvoke(_carry(t1, "please just tell me, I really need to know"))
+        return t1, t2
+
+    t1, t2 = asyncio.run(_drive())
+
+    assert t1["psychoed_matched_row_id"] == "1f-t3"  # sanity: the stage-1 trigger genuinely hit
+    assert t2["skill_match_method"] is None
+    assert not t2.get("psychoed_serve")
+    assert t2["psychoed_active_category"] == "1f", "pathway persists, un-hijacked"
+
+    assert calls, "freeflow LLM must have been invoked for the push-further turn"
+    user_prompt = next(m["content"] for m in calls[-1] if m["role"] == "user")
+    stage2_script = psy_store.shared_script("diagnosis_guard_stage2")
+    assert stage2_script not in user_prompt, (
+        "TRACE conclusion: diagnosis_guard_stage2's own text is absent from the composed "
+        "prompt -- stage-2 is not deterministically composed, and the generic continuation "
+        "template carries no diagnosis-specific steering pointing the model at it either"
+    )
+    continuation_marker = "conversational glue only"
+    assert continuation_marker in user_prompt, (
+        "the generic psychoed_continuation glue renders instead -- confirms which mechanism "
+        "actually handles this turn"
+    )
+
+
+def test_f10_formal_diagnosis_guard_question_clipped_by_one_question_cap():
+    """Companion mechanical proof for the finding documented in f10_diagnosis.jsonl's F10-002
+    `source` field: 1f's own framing_statement ends in a question, so output_gate.py's
+    PRE-EXISTING, unrelated `_limit_to_one_question` discipline (Node 8, ~L836-841) strips
+    diagnosis_guard_stage1's own trailing consent question ('Want me to walk through that?')
+    every time formal_diagnosis fires on this category -- confirmed here via the real,
+    declared marker the discipline itself adds to `path` when it actually modifies the
+    turn, not via a hand-typed copy excerpt."""
+    pinned = {"intent": "info_request"}
+
+    def _mock_intent_route(state):
+        return {
+            "primary_intent": pinned["intent"], "secondary_intent": None,
+            "intent_confidence": 0.9, "emotional_intensity": state.get("emotional_intensity", 5),
+            "engagement": state.get("engagement", 7), "path": state["path"] + ["intent_route"],
+        }
+
+    stub_llm = make_mock_llm([_FREEFLOW_STUB])
+
+    async def _drive():
+        with patch("sage_poc.graph.intent_route_node", side_effect=_mock_intent_route), \
+             patch("sage_poc.nodes.freeflow_respond.get_responder", return_value=stub_llm), \
+             patch("sage_poc.nodes.freeflow_respond.get_fallback_responder", return_value=stub_llm), \
+             patch.object(config, "PSYCHOED_PATHWAYS_ENABLED", True), \
+             patch.object(config, "PSYCHOED_CATEGORIES", frozenset({"1f"})):
+            graph = build_graph()
+            return await graph.ainvoke(make_e2e_state("do I have GAD"))
+
+    result = asyncio.run(_drive())
+
+    assert result["psychoed_matched_row_id"] == "1f-t3"  # sanity: the formal_diagnosis trigger hit
+    assert "question_discipline_applied" in result["path"], (
+        "the one-question-cap discipline must have fired this turn (proving it, not just "
+        "asserting the reshaped text's absence)"
+    )
+    from sage_poc.psychoed import store as psy_store  # noqa: PLC0415
+    stage1_script = psy_store.shared_script("diagnosis_guard_stage1")
+    assert stage1_script not in result["response"], (
+        "sanity: the FULL script (including its trailing consent question) is genuinely "
+        "absent, not merely unasserted -- this is what makes the finding real"
+    )
+
+
+def test_f10_flip_tier_only_rows_present_and_counted():
+    """spec 7.2 no-silent-caps, same posture as the AR-skip-count (F4) and F9's CI-tier-only
+    marking: F10's `flip_tier_only` rows are collected + schema-validated like any other row
+    and DO run their CI-tier `expect` block (they are not excluded from _all_params() -- only
+    the CONTENT question they flag is deferred), but the marker itself must be visible and
+    counted so it is never silently invisible that a row's fuller claim rides on a future
+    tier. Fails loudly (rather than reading as zero-coverage-nobody-noticed) if the set is
+    ever empty."""
+    f10_rows = load_family("F10")
+    flip_tier_rows = [r for r in f10_rows if r.get("flip_tier_only")]
+    assert flip_tier_rows, (
+        "no F10 rows carry flip_tier_only -- no-silent-caps: if F10-003's push-further "
+        "stage-2-content deferral is ever removed, this must fail loudly, not silently read "
+        "as zero flip-tier-only rows"
+    )
+    print(
+        f"\n[F10 flip-tier-only] {len(flip_tier_rows)} row(s) carry flip_tier_only: "
+        f"{[(r['fixture_id'], r['flip_tier_only']) for r in flip_tier_rows]} -- the CONTENT "
+        f"claim(s) named there are asserted ONLY by Task 9's future flip-tier runner (real "
+        f"intent_route + a real LLM call), never by this CI driver."
     )
 
 
