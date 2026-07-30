@@ -1,0 +1,89 @@
+{
+  "checks": [
+    {
+      "ts": "2026-07-29T19:30:51+00:00",
+      "clean": true,
+      "detail": "serving == desired on all readback-covered vars",
+      "build_sha": "dec4a9e7f4de3ad4bd4c560db81f1f499c890787",
+      "flags_checked": [
+        "SAGE_AUDIT_CLASSIFIER_PROVENANCE",
+        "SAGE_CLASSIFIER_SEED",
+        "SAGE_CONSULT_SOURCES",
+        "SAGE_COSINE_ABSTAIN_THRESHOLD",
+        "SAGE_CRISIS_TIERING",
+        "SAGE_D1_SCREEN",
+        "SAGE_D1_SCREEN_SHADOW",
+        "SAGE_DEREALIZATION_DETECTION",
+        "SAGE_HIGH_RISK_DETECTION",
+        "SAGE_HR_NEUTRALITY_GATE",
+        "SAGE_INFO_REQUEST_CONSULT",
+        "SAGE_IPV_PREEMPTION",
+        "SAGE_MEDICAL_REDFLAG_GUARD",
+        "SAGE_OPENROUTER_PROVIDER_PIN",
+        "SAGE_PANIC_GROUNDING_OVERRIDE",
+        "SAGE_ROUTE_PRECEDENCE",
+        "SAGE_VENTING_SUPPRESSION"
+      ],
+      "mismatches": [],
+      "deployment_id": "543fd26a-7d5c-424b-a1b4-922108d758c1",
+      "deployment_created_at": "2026-07-29T19:22:46.205Z"
+    },
+    {
+      "ts": "2026-07-29T19:51:35+00:00",
+      "clean": true,
+      "detail": "serving == desired on all readback-covered vars",
+      "build_sha": "dec4a9e7f4de3ad4bd4c560db81f1f499c890787",
+      "flags_checked": [
+        "SAGE_AUDIT_CLASSIFIER_PROVENANCE",
+        "SAGE_CLASSIFIER_SEED",
+        "SAGE_CONSULT_SOURCES",
+        "SAGE_COSINE_ABSTAIN_THRESHOLD",
+        "SAGE_CRISIS_TIERING",
+        "SAGE_D1_SCREEN",
+        "SAGE_D1_SCREEN_SHADOW",
+        "SAGE_DEREALIZATION_DETECTION",
+        "SAGE_HIGH_RISK_DETECTION",
+        "SAGE_HR_NEUTRALITY_GATE",
+        "SAGE_INFO_REQUEST_CONSULT",
+        "SAGE_IPV_PREEMPTION",
+        "SAGE_MEDICAL_REDFLAG_GUARD",
+        "SAGE_OPENROUTER_PROVIDER_PIN",
+        "SAGE_PANIC_GROUNDING_OVERRIDE",
+        "SAGE_ROUTE_PRECEDENCE",
+        "SAGE_VENTING_SUPPRESSION"
+      ],
+      "mismatches": [],
+      "deployment_id": "90cd7f83-d9c1-4c59-85d8-2601db2fd444",
+      "deployment_created_at": "2026-07-29T19:33:51.546Z"
+    },
+    {
+      "ts": "2026-07-29T20:10:22+00:00",
+      "clean": true,
+      "detail": "serving == desired on all readback-covered vars",
+      "build_sha": "dec4a9e7f4de3ad4bd4c560db81f1f499c890787",
+      "flags_checked": [
+        "SAGE_AUDIT_CLASSIFIER_PROVENANCE",
+        "SAGE_CLASSIFIER_SEED",
+        "SAGE_CONSULT_SOURCES",
+        "SAGE_COSINE_ABSTAIN_THRESHOLD",
+        "SAGE_CRISIS_TIERING",
+        "SAGE_D1_SCREEN",
+        "SAGE_D1_SCREEN_SHADOW",
+        "SAGE_DEREALIZATION_DETECTION",
+        "SAGE_HIGH_RISK_DETECTION",
+        "SAGE_HR_NEUTRALITY_GATE",
+        "SAGE_INFO_REQUEST_CONSULT",
+        "SAGE_IPV_PREEMPTION",
+        "SAGE_MEDICAL_REDFLAG_GUARD",
+        "SAGE_OPENROUTER_PROVIDER_PIN",
+        "SAGE_PANIC_GROUNDING_OVERRIDE",
+        "SAGE_ROUTE_PRECEDENCE",
+        "SAGE_VENTING_SUPPRESSION"
+      ],
+      "mismatches": [],
+      "deployment_id": "90cd7f83-d9c1-4c59-85d8-2601db2fd444",
+      "deployment_created_at": "2026-07-29T19:33:51.546Z"
+    }
+  ],
+  "refusals": []
+}
