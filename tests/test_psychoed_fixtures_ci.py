@@ -426,6 +426,10 @@ def _all_params() -> list:
     params = []
     for family in _discovered_families():
         for row in load_family(family):
+            if row.get("flag_pair_check"):
+                # Handled by test_psychoed_f8_flag_conformance_neutral's paired ON/OFF
+                # execution below, not by the single-arm expect-matching path here.
+                continue
             swept = any(t.get("intent_sweep") for t in row["turns"])
             if family in GATE_FAMILIES and swept:
                 for intent in INTENT_SWEEP:
@@ -444,11 +448,86 @@ def _arm_psychoed(monkeypatch, row: dict) -> None:
     monkeypatch.setattr(config, "PSYCHOED_CATEGORIES", cats)
 
 
+def _disarm_psychoed(monkeypatch) -> None:
+    """Flag-OFF counterpart to _arm_psychoed (Task 2 driver extension): full disarm, for
+    the paired conformance-neutrality check below. Monkeypatch-only, never env-persisted."""
+    monkeypatch.setattr(config, "PSYCHOED_PATHWAYS_ENABLED", False)
+    monkeypatch.setattr(config, "PSYCHOED_CATEGORIES", frozenset())
+
+
 @pytest.mark.parametrize("row,intent", _all_params())
 async def test_psychoed_fixture(row, intent, monkeypatch):
     _arm_psychoed(monkeypatch, row)
     out = await run_fixture(row, intent_for_sweep=intent)
     assert_expectations(row, out, intent_for_sweep=intent)
+
+
+# ---------------------------------------------------------------------------
+# F8 matrix-rows-unmoved: paired flag ON/OFF conformance-neutrality (Task 2 driver
+# extension). Minimal addition: a row opts in via the top-level "flag_pair_check": true
+# marker (schema-neutral -- _validate_row does not reject unknown keys), is excluded from
+# the single-arm _all_params() sweep above, and instead runs its turns TWICE here: once
+# with the psychoed pathway armed for the row's category, once fully disarmed. The
+# assertion is EQUALITY of the observed disposition between the two runs, not a pinned
+# disposition value -- this is what makes it "mechanical": the property under test is
+# "the flag never moves this row's disposition", regardless of what that disposition is.
+# ---------------------------------------------------------------------------
+
+def _matrix_pair_params() -> list:
+    params = []
+    for row in load_family("F8"):
+        if row.get("flag_pair_check"):
+            params.append(pytest.param(row, id=row["fixture_id"]))
+    return params
+
+
+@pytest.mark.parametrize("row", _matrix_pair_params())
+async def test_psychoed_f8_flag_conformance_neutral(row, monkeypatch):
+    """matrix-rows-unmoved (Task 2): rows reusing spec_ids from
+    tests/fixtures/bot_behaviour_audit/layer1_trigger_corpus.jsonl for the 6 psychoed-
+    adjacent categories. Runs the row with the psychoed pathway armed for its category,
+    then again fully disarmed, and asserts the OBSERVED disposition is identical both
+    ways -- the flag must be conformance-neutral for pre-existing Layer-1 matrix rows
+    outside its own trigger tables. A row whose disposition MOVES between arm settings
+    is a BLOCKED finding for adjudication (the flag is additive-only over the pre-
+    psychoed graph, never disposition-moving elsewhere), not a fixture to bend.
+    """
+    _arm_psychoed(monkeypatch, row)
+    out_on = await run_fixture(row)
+    disposition_on = _observed(out_on["result"])
+
+    _disarm_psychoed(monkeypatch)
+    out_off = await run_fixture(row)
+    disposition_off = _observed(out_off["result"])
+
+    assert disposition_on == disposition_off, (
+        f"{row['fixture_id']}: conformance-neutrality violated: flag ON -> {disposition_on!r}, "
+        f"flag OFF -> {disposition_off!r}. BLOCKED finding for adjudication, not a fixture bug."
+    )
+
+
+# ---------------------------------------------------------------------------
+# F1 wiring: table-sync check (Task 2). f1_wiring.jsonl is GENERATED from
+# data/psychoed/trigger_tables/en/*.json by tests/fixtures/psychoed/regen_wiring.py; this
+# test re-generates from the tables on every CI run and fails if the committed file has
+# drifted, so a trigger-table edit without a regeneration (or a hand-edit of the
+# committed JSONL) fails CI instead of silently rotting.
+# ---------------------------------------------------------------------------
+
+def test_f1_wiring_matches_generator():
+    from tests.fixtures.psychoed.regen_wiring import generate_rows, OUTPUT_PATH
+
+    fresh_rows = generate_rows()
+    committed_rows = [
+        json.loads(line)
+        for line in OUTPUT_PATH.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert committed_rows == fresh_rows, (
+        "tests/fixtures/psychoed/f1_wiring.jsonl has drifted from "
+        "data/psychoed/trigger_tables/en/*.json -- regenerate via "
+        "`uv run python -m tests.fixtures.psychoed.regen_wiring` and commit the result."
+    )
 
 
 def test_intent_sweep_matches_intent_route_vocabulary():
@@ -533,11 +612,16 @@ def test_validator_rejects_intent_sweep_in_non_gate_family():
 
 
 def test_load_family_reads_and_validates_seed_corpus():
+    """Task 1 bring-up seeds are still present and still set:"seed" -- unmoved by Task 2's
+    F8 extension (Task 2 adds new fixture_ids alongside F8-001, so this no longer asserts
+    the FULL family listing, only that the original seed rows survive unchanged)."""
     f4 = load_family("F4")
     f8 = load_family("F8")
     assert [r["fixture_id"] for r in f4] == ["F4-001"]
-    assert [r["fixture_id"] for r in f8] == ["F8-001"]
-    assert all(r["set"] == "seed" for r in f4 + f8)
+    assert all(r["set"] == "seed" for r in f4)
+    f8_by_id = {r["fixture_id"]: r for r in f8}
+    assert "F8-001" in f8_by_id
+    assert f8_by_id["F8-001"]["set"] == "seed"
 
 
 # ---------------------------------------------------------------------------

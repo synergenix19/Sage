@@ -74,3 +74,73 @@ and both `write_session_audit` call sites are captured in-process. No mechanism 
 a seed that fails against master's behavior is a FINDING, not a fixture to bend.
 
 Run: `uv run pytest tests/test_psychoed_fixtures_ci.py`
+
+## F1 wiring (table-synced)
+
+`f1_wiring.jsonl` is **generated**, not authored, from `data/psychoed/trigger_tables/en/
+*.json`: one row per trigger phrase (`set:"wiring"`), asserting the resolver's mechanical
+routing -- `psychoed_serve` disposition, the phrase's own category, and
+`psychoed_matched_row_id` equal to the phrase's `row_id` -- via
+`tests/fixtures/psychoed/regen_wiring.py`.
+
+Regenerate after any `trigger_tables/en/*.json` edit:
+
+```
+uv run python -m tests.fixtures.psychoed.regen_wiring
+```
+
+`test_f1_wiring_matches_generator` (in `tests/test_psychoed_fixtures_ci.py`) re-runs the
+generator on every CI invocation and diffs it against the committed file, so a trigger
+table edited without regenerating -- or a hand-edit of `f1_wiring.jsonl` itself -- fails
+CI rather than drifting silently.
+
+## F8 regression
+
+`f8_regression.jsonl` has two subsets beyond the `F8-001` seed:
+
+- **Bare-affect** (`F8-002`..`F8-006`): plain affect statements ("I feel depressed", "I'm
+  anxious", ...) that must never trigger the psychoed pathway even with a relevant
+  category armed. `intent_sweep:true`, gate-family 100% coverage (every label in
+  `INTENT_SWEEP`). Only psychoed-ABSENCE is asserted (`expect.disposition: null`) --
+  whatever master's own disposition is, is out of scope here.
+- **Matrix-rows-unmoved** (`F8-MX-<cat>-NN`): reference rows reusing utterances from
+  `tests/fixtures/bot_behaviour_audit/layer1_trigger_corpus.jsonl`'s 6 psychoed-adjacent
+  spec_ids (`§1f`, `§3c`, `§4b`, `§6d`, `§7c`, `S2c`, mapped to psychoed categories `1f`,
+  `3c`, `4b`, `6d`, `7c`, `s2c`). Marked `"flag_pair_check": true` and run by
+  `test_psychoed_f8_flag_conformance_neutral`, which executes the row TWICE -- once with
+  the psychoed pathway armed for its category, once fully disarmed -- and asserts the
+  OBSERVED disposition is identical both ways (conformance neutrality, checked
+  mechanically, never a hand-typed expected value). This is the driver's paired
+  flag-ON/flag-OFF execution mode: a minimal addition (`_disarm_psychoed`, a row-level
+  opt-in flag, and a dedicated parametrized test excluded from the single-arm sweep in
+  `_all_params()`), not a new fixture format.
+
+  **Exclusion**: any layer1 utterance that exactly (normalized) matches a phrase already
+  in that category's trigger table is left OUT of this subset. Those specific utterances
+  ARE supposed to move disposition when the flag flips -- that is the entire point of the
+  psychoed pathway, and it is what F1 wiring already asserts directly. Nine layer1 rows
+  across the 6 categories were excluded on this basis during Task 2 authoring (e.g. "What
+  is anxiety?" under `§1f`, "What is depression?" under `§3c`); see each surviving row's
+  `source` field, and each F1 row's own fixture, for the corresponding coverage.
+
+## Provenance
+
+- **`set` labels are load-bearing, not decorative.** `wiring` rows are mechanical --
+  generated, phrase-to-row_id routing checks only. They are never to be cited as evidence
+  of clinical recall, naturalistic-phrasing coverage, or accuracy: that is what `set:
+  "authored"`/naturalistic `F1` rows (out of Task 2's scope) are for. An auditor pulling
+  "F1 passes" as a recall number must first split by `set` -- `wiring`'s 100% pass rate
+  is a routing-table sync check, not a recall metric.
+- **Regeneration command**: `uv run python -m tests.fixtures.psychoed.regen_wiring`
+  (writes `f1_wiring.jsonl`; see "F1 wiring" above).
+- **Content-block titles are not an isolation leak.** Task 3's sealed clinical-intent
+  brief deliberately includes content-block TITLES from the psychoed manifests. This is a
+  human ruling, not an oversight: titles ARE clinical intent (they name what the block is
+  for), and block-level expectations are not authored in v1 -- delta 14 records that the
+  answer-first block selection is label-containment-else-first-block, with phrase-to-
+  block hints deferred to a future clinician-ratified mapping (see
+  `tests/test_psychoed_graph.py`'s `block_3c_b1` comment for the as-built v1-pinned
+  behavior this traces to). A future auditor who finds block titles inside a "sealed"
+  brief should read this as the ruled, intentional scope of what v1 seals (routing +
+  category-level intent) versus what it does not (block-level content pinning) -- not as
+  evidence the seal leaked.
