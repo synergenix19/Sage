@@ -171,12 +171,16 @@ def _validate_row(row: dict, where: str) -> None:
         )
 
 
-def load_family(family: str) -> list[dict]:
-    """Read and schema-validate every tests/fixtures/psychoed/f<N>_*.jsonl row for a family."""
-    files = sorted(FIXTURES_DIR.glob(f"{family.lower()}_*.jsonl"))
+def load_family(family: str, fixtures_dir: pathlib.Path = FIXTURES_DIR) -> list[dict]:
+    """Read and schema-validate every f<N>_*.jsonl row for a family.
+
+    Enforces WITHIN-family fixture_id uniqueness; the corpus-WIDE guarantee the README
+    states is enforced by load_corpus() (standing test: test_corpus_fixture_ids_globally_unique).
+    """
+    files = sorted(fixtures_dir.glob(f"{family.lower()}_*.jsonl"))
     if not files:
         raise FileNotFoundError(
-            f"no corpus files for family {family!r} under {FIXTURES_DIR} "
+            f"no corpus files for family {family!r} under {fixtures_dir} "
             f"(expected {family.lower()}_*.jsonl)"
         )
     rows: list[dict] = []
@@ -200,6 +204,31 @@ def load_family(family: str) -> list[dict]:
     if dupes:
         raise FixtureSchemaError(f"{family}: duplicate fixture_id(s): {dupes}")
     return rows
+
+
+def load_corpus(fixtures_dir: pathlib.Path = FIXTURES_DIR) -> dict[str, list[dict]]:
+    """Load EVERY family's corpus and enforce corpus-WIDE fixture_id uniqueness.
+
+    load_family() can only see one family at a time, so it enforces within-family
+    uniqueness; this is where the README's "unique across the whole corpus" claim is
+    made true. Returns {family: rows}. Raises FixtureSchemaError listing each duplicated
+    fixture_id with every family it appears in.
+    """
+    corpus = {
+        family: load_family(family, fixtures_dir=fixtures_dir)
+        for family in _discovered_families(fixtures_dir)
+    }
+    seen: dict[str, list[str]] = {}
+    for family, rows in corpus.items():
+        for row in rows:
+            seen.setdefault(row["fixture_id"], []).append(family)
+    cross_dupes = {fid: fams for fid, fams in seen.items() if len(fams) > 1}
+    if cross_dupes:
+        detail = "; ".join(
+            f"{fid!r} in families {sorted(fams)}" for fid, fams in sorted(cross_dupes.items())
+        )
+        raise FixtureSchemaError(f"corpus-wide duplicate fixture_id(s): {detail}")
+    return corpus
 
 
 # ---------------------------------------------------------------------------
@@ -384,9 +413,9 @@ def assert_expectations(row: dict, out: dict, intent_for_sweep: str | None = Non
 # Parametrization: discover families from the corpus directory
 # ---------------------------------------------------------------------------
 
-def _discovered_families() -> list[str]:
+def _discovered_families(fixtures_dir: pathlib.Path = FIXTURES_DIR) -> list[str]:
     fams = set()
-    for path in FIXTURES_DIR.glob("f*_*.jsonl"):
+    for path in fixtures_dir.glob("f*_*.jsonl"):
         m = re.match(r"^(f\d+)_", path.name)
         if m:
             fams.add(m.group(1).upper())
@@ -509,3 +538,41 @@ def test_load_family_reads_and_validates_seed_corpus():
     assert [r["fixture_id"] for r in f4] == ["F4-001"]
     assert [r["fixture_id"] for r in f8] == ["F8-001"]
     assert all(r["set"] == "seed" for r in f4 + f8)
+
+
+# ---------------------------------------------------------------------------
+# fixture_id uniqueness: corpus-wide standing check + both rejection paths
+# ---------------------------------------------------------------------------
+
+def _write_jsonl(path: pathlib.Path, rows: list[dict]) -> None:
+    path.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+
+
+def test_corpus_fixture_ids_globally_unique():
+    """Standing check on the REAL corpus: the README's 'unique across the whole corpus'
+    claim, enforced. Fails if any two f*_*.jsonl rows anywhere share a fixture_id."""
+    corpus = load_corpus()
+    assert set(corpus) >= {"F4", "F8"}  # seed families present; more join as tasks land
+
+
+def test_load_family_rejects_within_family_duplicate(tmp_path):
+    _write_jsonl(tmp_path / "f4_weave.jsonl", [
+        _seed_row(fixture_id="F4-DUP"),
+        _seed_row(fixture_id="F4-DUP"),
+    ])
+    with pytest.raises(FixtureSchemaError, match=r"duplicate fixture_id.*F4-DUP"):
+        load_family("F4", fixtures_dir=tmp_path)
+
+
+def test_load_corpus_rejects_cross_family_duplicate(tmp_path):
+    """Cross-family collision: invisible to load_family (each family alone is clean),
+    caught only by load_corpus's corpus-wide check."""
+    _write_jsonl(tmp_path / "f4_weave.jsonl", [_seed_row(fixture_id="SHARED-001")])
+    _write_jsonl(tmp_path / "f8_regression.jsonl", [
+        _seed_row(fixture_id="SHARED-001", family="F8"),
+    ])
+    # sanity: each family alone passes the per-family check
+    assert len(load_family("F4", fixtures_dir=tmp_path)) == 1
+    assert len(load_family("F8", fixtures_dir=tmp_path)) == 1
+    with pytest.raises(FixtureSchemaError, match=r"corpus-wide duplicate.*SHARED-001.*F4.*F8"):
+        load_corpus(fixtures_dir=tmp_path)
