@@ -22,6 +22,23 @@ Execution model (mirrors tests/test_psychoed_graph.py exactly):
 Gate families (F4/F6/F8) are intent-SWEPT: a row with any turn marked intent_sweep=true
 runs once per intent in INTENT_SWEEP, every swept turn pinned to that intent. Non-gate
 families run once with the row's default intent.
+
+INTENT_SWEEP [AMENDED 2026-07-30, human-ruled] is the FULL intent_route label vocabulary
+(src/sage_poc/nodes/intent_route.py:25) plus one "__nonexistent_label__" sentinel that pins
+the intent ladder's fall-through default branch (the de facto ninth classification). A sync
+test below fails if the classifier's vocabulary and this sweep diverge, so future
+vocabulary changes fail CI instead of silently narrowing the gate.
+
+Assertions are split by label class (same ruling): EVERY label asserts the never-proceed
+invariant (a weave-pending reply produces no psychoed serve and no menu; crisis disposition
+where the row expects escalation). The escalation MECHANISM assertions (escalation audit
+row: psychoed_weave_state="escalated" + matched_row_id; and the Task-8 pathway clear in
+final state) apply ONLY on labels whose graph path reaches the weave evaluator -- under the
+"crisis" label, _route_after_intent's crisis branch returns before the weave-pending
+branch, so escalation arrives via crisis_response directly: psychoed_weave_escalation is
+never set, hence neither the "escalated" audit patch nor the escalation-scoped pathway
+clear runs (graph.py _crisis_response_node: both are gated on _weave_escalation). A blanket
+assertion there would fail for the wrong reason.
 """
 import asyncio
 import json
@@ -40,7 +57,27 @@ from tests.test_psychoed_graph import _PSYCHOED_CARRY
 
 FIXTURES_DIR = pathlib.Path(__file__).parent / "fixtures" / "psychoed"
 
-INTENT_SWEEP = ("general_chat", "info_request", "skill_request", "emotional_support")
+# Maintained-by-hand copy of intent_route's label vocabulary (src/sage_poc/nodes/
+# intent_route.py:25, the INTENT_SYSTEM "primary_intent: one of ..." line -- there is no
+# importable constant). test_intent_sweep_matches_intent_route_vocabulary() below is the
+# sync check: vocabulary drift fails CI rather than silently narrowing the gate.
+INTENT_ROUTE_VOCABULARY = (
+    "skill_continuation", "new_skill", "general_chat", "crisis",
+    "info_request", "exit_skill", "scope_refusal", "jailbreak",
+)
+# Pins _route_after_intent's fall-through default branch (the de facto ninth classification).
+FALLTHROUGH_SENTINEL = "__nonexistent_label__"
+INTENT_SWEEP = INTENT_ROUTE_VOCABULARY + (FALLTHROUGH_SENTINEL,)
+
+# Labels whose graph path reaches the PSY-WEAVE-1 evaluator on a weave-pending turn.
+# Derived from graph.py _route_after_intent's branch order: (1) intent == "crisis" returns
+# "crisis" FIRST (crisis supremacy -- deliberate, see the HIGH-1 comment in graph.py);
+# (2) answering_screen (never set here); (3) the weave-pending branch returns
+# "skill_select" for EVERY other label, including scope_refusal/jailbreak (their "gate"
+# branches sit BELOW it) and the sentinel (which would otherwise fall through to freeflow).
+# So exactly one label bypasses the evaluator: "crisis".
+WEAVE_EVALUATOR_LABELS = frozenset(INTENT_SWEEP) - {"crisis"}
+
 GATE_FAMILIES = frozenset({"F4", "F6", "F8"})
 # Default pinned intent for non-swept turns with no explicit turn/row intent: info_request
 # reaches skill_select, where the psychoed resolver runs (mirrors test_psychoed_graph.py's
@@ -279,27 +316,67 @@ def _subset_match(expected: dict, actual: dict, ctx: str) -> None:
             assert got == want, f"{ctx}: {key!r}: expected {want!r}, got {got!r}"
 
 
-def assert_expectations(row: dict, out: dict) -> None:
+def assert_expectations(row: dict, out: dict, intent_for_sweep: str | None = None) -> None:
+    """Label-class assertion split (plan amendment 09d8ff59, human-ruled):
+
+    - EVERY label: disposition (if the row asserts one) + the never-proceed invariant for
+      gate rows expecting escalation (a weave-pending reply produces no psychoed serve and
+      no menu, under any classification whatsoever).
+    - Escalation MECHANISM assertions (expect.audit escalation row, expect.state Task-8
+      pathway clear): ONLY on labels in WEAVE_EVALUATOR_LABELS. Under the "crisis" label
+      escalation arrives via the intent-route crisis path (crisis_response without
+      psychoed_weave_escalation), so neither the "escalated" audit patch nor the
+      escalation-scoped pathway clear fires -- both mechanism assertion sets would fail
+      there for the wrong reason. Rows not expecting escalation (e.g. F8 absence rows)
+      keep their audit/state expectations on every label.
+    """
     expect = row["expect"]
-    ctx = row["fixture_id"]
+    ctx = row["fixture_id"] if intent_for_sweep is None else f"{row['fixture_id']}[{intent_for_sweep}]"
     result = out["result"]
 
     disposition = expect.get("disposition")
+    expects_escalation = disposition == "escalate_crisis"
+
     if disposition is not None:
         got = _observed(result)
         assert got == disposition, (
             f"{ctx}: disposition: expected {disposition!r}, observed {got!r} "
             f"(gate_path={result.get('gate_path')!r}, "
             f"skill_match_method={result.get('skill_match_method')!r})"
+            + (
+                "\nA weave-pending reply PROCEEDING unevaluated (serve/menu/freeflow "
+                "instead of escalation) is a BLOCKED finding for adjudication, not a "
+                "fixture bug -- do not weaken the fixture."
+                if expects_escalation else ""
+            )
         )
 
+    if row["family"] in GATE_FAMILIES and expects_escalation:
+        # Never-proceed invariant: holds under EVERY label, sentinel included.
+        assert not result.get("psychoed_serve"), (
+            f"{ctx}: never-proceed violated: psychoed serve payload present on a "
+            f"weave-pending reply turn"
+        )
+        assert not result.get("psychoed_menu_offered"), (
+            f"{ctx}: never-proceed violated: menu offered on a weave-pending reply turn"
+        )
+        assert result.get("skill_match_method") not in (
+            "psychoed_resolver", "psychoed_menu_after_weave"
+        ), f"{ctx}: never-proceed violated: {result.get('skill_match_method')!r}"
+
+    mechanism_applies = (
+        not expects_escalation
+        or intent_for_sweep is None
+        or intent_for_sweep in WEAVE_EVALUATOR_LABELS
+    )
+
     audit_expect = expect.get("audit")
-    if audit_expect:
+    if audit_expect and mechanism_applies:
         assert out["audit_rows"], f"{ctx}: audit expectations given but no audit rows captured"
         _subset_match(audit_expect, out["audit_rows"][-1], f"{ctx} audit (last row)")
 
     state_expect = expect.get("state")
-    if state_expect:
+    if state_expect and mechanism_applies:
         _subset_match(state_expect, result, f"{ctx} state")
 
 
@@ -342,7 +419,37 @@ def _arm_psychoed(monkeypatch, row: dict) -> None:
 async def test_psychoed_fixture(row, intent, monkeypatch):
     _arm_psychoed(monkeypatch, row)
     out = await run_fixture(row, intent_for_sweep=intent)
-    assert_expectations(row, out)
+    assert_expectations(row, out, intent_for_sweep=intent)
+
+
+def test_intent_sweep_matches_intent_route_vocabulary():
+    """Sync check (plan amendment 09d8ff59): INTENT_SWEEP = intent_route's ACTUAL label
+    vocabulary + the fall-through sentinel. intent_route.py has no importable label
+    constant -- the vocabulary lives in the INTENT_SYSTEM prompt's "primary_intent: one
+    of ..." line -- so this parses that line (same pattern as a table-sync check). If the
+    classifier's vocabulary changes, this fails CI instead of the sweep silently
+    narrowing the gate."""
+    intent_route_src = (
+        pathlib.Path(__file__).parents[1] / "src" / "sage_poc" / "nodes" / "intent_route.py"
+    )
+    label_lines = [
+        line for line in intent_route_src.read_text(encoding="utf-8").splitlines()
+        if line.strip().startswith("- primary_intent: one of")
+    ]
+    assert len(label_lines) == 1, (
+        f"expected exactly one 'primary_intent: one of' vocabulary line in "
+        f"{intent_route_src}, found {len(label_lines)} -- re-derive INTENT_ROUTE_VOCABULARY"
+    )
+    source_vocabulary = tuple(re.findall(r'"([a-z_]+)"', label_lines[0]))
+    assert source_vocabulary == INTENT_ROUTE_VOCABULARY, (
+        "intent_route's label vocabulary and the driver's INTENT_ROUTE_VOCABULARY have "
+        f"diverged.\n  source: {source_vocabulary}\n  driver: {INTENT_ROUTE_VOCABULARY}\n"
+        "Update INTENT_ROUTE_VOCABULARY (and re-derive WEAVE_EVALUATOR_LABELS from "
+        "_route_after_intent's branch order) so the sweep never silently narrows."
+    )
+    assert INTENT_SWEEP == INTENT_ROUTE_VOCABULARY + (FALLTHROUGH_SENTINEL,)
+    assert FALLTHROUGH_SENTINEL not in source_vocabulary
+    assert WEAVE_EVALUATOR_LABELS == frozenset(INTENT_SWEEP) - {"crisis"}
 
 
 # ---------------------------------------------------------------------------

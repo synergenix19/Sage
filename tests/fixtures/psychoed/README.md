@@ -6,8 +6,10 @@ One JSON object per line.
 
 ## File naming
 
-`f<N>_<slug>.jsonl` where `f<N>` (lowercased) is the family, e.g. `f4_weave_gate.jsonl`
-holds family `F4` rows. `load_family("F4")` reads every `f4_*.jsonl` file.
+`f<N>_<slug>.jsonl` where `f<N>` (lowercased) is the family, e.g. `f4_weave.jsonl`
+holds family `F4` rows. `load_family("F4")` reads every `f4_*.jsonl` file, so keep ONE
+file per family (later tasks extend the plan's File Structure names in place:
+`f4_weave.jsonl`, `f8_regression.jsonl`, ...) or rows double-load.
 
 ## Row schema (all families; unused fields null)
 
@@ -30,9 +32,20 @@ Required keys: `fixture_id`, `family`, `set`, `turns`, `expect`, `lang`.
 - `turns[*].utterance`: non-empty; NO EM DASHES (clinician-editable content class,
   schema-enforced).
 - `turns[*].intent_sweep`: bool, required. `true` is only legal in gate families
-  (F4/F6/F8): the row runs once per intent in
-  `INTENT_SWEEP = ("general_chat", "info_request", "skill_request", "emotional_support")`,
-  with every swept turn's `primary_intent` pinned to that intent. Never single-pinned.
+  (F4/F6/F8): the row runs once per intent in `INTENT_SWEEP`, with every swept turn's
+  `primary_intent` pinned to that intent. Never single-pinned.
+  `INTENT_SWEEP` [AMENDED 2026-07-30, human-ruled] = the FULL `intent_route` label
+  vocabulary (`skill_continuation`, `new_skill`, `general_chat`, `crisis`,
+  `info_request`, `exit_skill`, `scope_refusal`, `jailbreak`; source of truth:
+  `src/sage_poc/nodes/intent_route.py:25`, sync-checked by
+  `test_intent_sweep_matches_intent_route_vocabulary`) plus the
+  `"__nonexistent_label__"` sentinel pinning the intent ladder's fall-through default
+  branch. Assertion split by label class: every label asserts the never-proceed
+  invariant (weave-pending reply produces no serve, no menu; crisis disposition where
+  the row expects escalation); the escalation MECHANISM assertions (`expect.audit`
+  escalation row and `expect.state` pathway clear) apply only on labels reaching the
+  weave evaluator (all labels except `crisis`, whose intent-route crisis branch
+  precedes the weave-pending branch).
 - `turns[*].intent` (optional): pinned intent for a NON-swept turn. Falls back to the
   row-level optional `default_intent`, then to the driver default (`info_request`, the
   intent that reaches skill_select where the psychoed resolver runs, mirroring
