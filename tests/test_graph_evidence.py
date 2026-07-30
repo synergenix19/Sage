@@ -384,3 +384,21 @@ def test_header_carries_local_tree_sha_and_flags_divergence_from_serving_sha():
     # the mocked serving sha 'deadbeefcafe' never matches the real local tree
     assert any("LOCAL tree" in n for n in header["parity_notes"])
     assert "Local tree SHA" in ge.render_header_md(header)
+
+
+def test_header_db_pool_field_and_absent_note():
+    """DB parity (2026-07-30 close-read): the header must POSITIVELY record whether the
+    KB pool was attached. Absent -> db_pool_available False + a parity note naming the
+    abstention (the shakedown class must be visible at read time, never inferred from
+    warning lines in a log). Present -> True and NO such note."""
+    absent = ge.header_block(_derived_ok(), _mock_readback(), n_per_fixture=1,
+                             degraded_turn_count=0, fingerprints=[])
+    assert absent["db_pool_available"] is False
+    assert any("DB POOL ABSENT" in n for n in absent["parity_notes"])
+    present = ge.header_block(_derived_ok(), _mock_readback(), n_per_fixture=1,
+                              degraded_turn_count=0, fingerprints=[],
+                              db_pool_available=True)
+    assert present["db_pool_available"] is True
+    assert not any("DB POOL ABSENT" in n for n in present["parity_notes"])
+    # and the markdown renderer surfaces it either way
+    assert "DB pool" in ge.render_header_md(present)
