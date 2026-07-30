@@ -38,8 +38,20 @@ echo "✅ ancestry gate passed"
 rw variables delete SAGE_BUILD_SHA >/dev/null 2>&1 || true
 rw variables --set "RAILWAY_GIT_COMMIT_SHA=$SHA" >/dev/null
 echo "✅ cache-bust set: RAILWAY_GIT_COMMIT_SHA=$SHA · SAGE_BUILD_SHA deleted (derives from ARG)"
+# 5. FLAG REGISTER RE-ASSERT (config-as-code control; PO ruling 2026-07-30: every deploy
+# re-asserts the committed register idempotently — this apply plus the post-deploy drift
+# probe are the POC drift controls; the scheduled watchdog is DEFERRED to production
+# hardening). Runs the deploy tree's register version; a refusal (signed-value check or
+# railway failure) ABORTS the deploy and releases the lock. Production only — the register
+# targets service=sage-api environment=production.
+if [ "$ENV" = "production" ]; then
+  uv run python scripts/apply_prod_flags.py --apply \
+    || { echo "❌ ABORT: flag register apply refused." >&2; rw variables delete DEPLOY_LOCK >/dev/null 2>&1||true; exit 5; }
+  echo "✅ flag register re-asserted (idempotent apply; drift, if any, corrected pre-build)"
+fi
 echo ""
 echo "NEXT (still yours to run, the lock is held ${TTL}s): from a worktree detached at origin/master ($SHA):"
 echo "  railway up --detach -c -m '<msg>'"
-echo "Then MANDATORY behavioral probe (health SHA is necessary-not-sufficient) + verify crisis_copy_templated."
-echo "Release when verified:  railway variables --set DEPLOY_LOCK='' ... (or let the ${TTL}s TTL expire)."
+echo "Then MANDATORY behavioral probe (health SHA is necessary-not-sufficient) + verify crisis_copy_templated,"
+echo "  + drift probe:  SAGE_API_KEY=<key> uv run python scripts/flag_watchdog.py   (committed vs desired vs serving; nonzero exit = named divergence)"
+echo "Release when verified:  railway variable delete DEPLOY_LOCK   (SINGULAR subcommand — 'variables --set DEPLOY_LOCK=' is IGNORED by the CLI, 2026-07-22 lesson; delete triggers a same-SHA restart, re-verify after. Or let the ${TTL}s TTL expire.)"
