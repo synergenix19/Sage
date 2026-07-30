@@ -89,13 +89,17 @@ flags:
     serving_verified: false  # desired-unverified rider (2026-07-29 ruling 2): serving build predates readback widening
     note: "PRESUMED safety (ruling 2026-07-28); default OFF pending clinician sign-off on §HR fixed copy (Stage 2)"
   SAGE_DEREALIZATION_DETECTION:
-    value: null
+    value: "true"
     class: safety
-    note: "PRESUMED safety (routes CF-010 to the anxiety-track safety terminal); default OFF pending Vee copy sign-off"
+    signed_value: "true"
+    signature_ref: "Vee 1a-1d 2026-07-21 (mechanism+strings, 2026-07-18-vee-open-decisions-approval-sheet.md) + copy ratification 2026-07-28 (aea60720, derealization_referral_en/ar pinned in signed_clinical_fields.json) + item-1 scope confirm 2026-07-30 (PO relay: derealization = REFERRAL; PR#374 packet)"
+    note: "FLIPPED 2026-07-30 (increment 1 of the four-increment §1c execution): CF-010 derealization -> anxiety-track referral terminal, precedence crisis > medical > hr > derealization > panic-grounding — ends the live L151 collision at flag speed (derealization refers regardless of panic_override's term set). Rollback = value false via register PR + apply (instant-off)"
   SAGE_PANIC_GROUNDING_OVERRIDE:
     value: "true"
     class: safety
-    note: "PRESUMED safety (routing override on risk content); Part A mechanism, Vee-signed 2026-07-28 per config.py record"
+    signed_value: "true"
+    signature_ref: "Vee §1c-A/§1c-B boundary sheet 2026-07-28 (2026-07-28-part-a-1c-boundary-to-vee.md, SIGNED-OFF header: force-ground set + never-regress + conservative dial)"
+    note: "Part A panic-grounding override. SCOPE-BACK RULED 2026-07-30 (item-1, PO relay): _PANIC_TERMS narrows to pure panic (breathing/heart/dizzy/panic-attack) removing derealization + HR-family terms, and the cardiac 'going to die + can't breathe' class stays at crisis (item-3, no downgrade without a clean screen) — remediation = increment 2, code PR, staging-first. Flag value itself stays true (the signed capability survives narrowed)"
   SAGE_MEDICAL_REFERRAL_TEXT:
     value: null
     class: safety
