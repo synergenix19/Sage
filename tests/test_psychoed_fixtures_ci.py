@@ -39,6 +39,13 @@ branch, so escalation arrives via crisis_response directly: psychoed_weave_escal
 never set, hence neither the "escalated" audit patch nor the escalation-scoped pathway
 clear runs (graph.py _crisis_response_node: both are gated on _weave_escalation). A blanket
 assertion there would fail for the wrong reason.
+
+baseline_only rows (Task 3: f1_naturalistic.jsonl, the blind-authored F1 naturalistic set)
+are collected and schema-validated like every other row, but never hard-required: they are
+excluded from _all_params()'s sweep and instead run through test_psychoed_baseline_only,
+which is xfail(strict=False) so neither a miss nor a hit can fail CI. See that test's
+section below for the full mechanism and the README's "F1 naturalistic" section for the
+fixture-level rationale.
 """
 import asyncio
 import json
@@ -430,6 +437,11 @@ def _all_params() -> list:
                 # Handled by test_psychoed_f8_flag_conformance_neutral's paired ON/OFF
                 # execution below, not by the single-arm expect-matching path here.
                 continue
+            if row.get("baseline_only"):
+                # Handled by test_psychoed_baseline_only's non-gating path below, not by
+                # the hard-required expect-matching path here. See that test's section
+                # (search "baseline_only: non-gating registration") for the mechanism.
+                continue
             swept = any(t.get("intent_sweep") for t in row["turns"])
             if family in GATE_FAMILIES and swept:
                 for intent in INTENT_SWEEP:
@@ -504,6 +516,53 @@ async def test_psychoed_f8_flag_conformance_neutral(row, monkeypatch):
         f"{row['fixture_id']}: conformance-neutrality violated: flag ON -> {disposition_on!r}, "
         f"flag OFF -> {disposition_off!r}. BLOCKED finding for adjudication, not a fixture bug."
     )
+
+
+# ---------------------------------------------------------------------------
+# baseline_only: non-gating registration (Task 3). A row opts in via the top-level
+# "baseline_only": true marker -- schema-neutral (_validate_row does not reject unknown
+# keys, same additive pattern as F8's "flag_pair_check"). This is how f1_naturalistic.jsonl
+# (the blind-authored F1 naturalistic set) shares family "F1" -- and therefore the f1_*.jsonl
+# glob in load_family/load_corpus -- with the green-required f1_wiring.jsonl without ever
+# entering the hard-required sweep: _all_params() excludes baseline_only rows outright (see
+# above), and they run ONLY through test_psychoed_baseline_only below.
+#
+# What "baseline-only" means mechanically:
+#   - COLLECTED + SCHEMA-VALIDATED: load_family()/load_corpus() run _validate_row on every
+#     baseline_only row exactly like any other row (including the corpus-wide fixture_id
+#     uniqueness check) -- a malformed row still fails CI at collection time.
+#   - FIXTURE-OUTCOME NEVER GATING: the row is driven full-graph and its expectations are
+#     checked via assert_expectations, but the test is marked xfail(strict=False) (same
+#     idiom as this codebase's other known-gap suites, e.g. test_safety_detection.py's
+#     test_safety_known_gap) -- a mismatch reports XFAIL, a match reports XPASS, and EITHER
+#     outcome is a normal, green pytest run. Nothing here can fail CI except a genuine
+#     schema violation or a hard crash building/loading the corpus.
+# Baseline MEASUREMENT (recall-by-category, the number for the clinician bar) is Task 10's
+# job, not this driver's -- this only keeps the set runnable and visible in `-rxX` pytest
+# output so a future measurement pass has something to point at.
+# ---------------------------------------------------------------------------
+
+def _baseline_only_params() -> list:
+    params = []
+    for family in _discovered_families():
+        for row in load_family(family):
+            if row.get("baseline_only"):
+                params.append(pytest.param(row, id=row["fixture_id"]))
+    return params
+
+
+@pytest.mark.xfail(
+    reason="baseline_only: F1 naturalistic (blind-authored) recall is a TRACKED BASELINE, "
+           "never a hard gate (spec §7.1 / plan Global Constraints). XFAIL = row missed "
+           "psychoed_serve/category this run; XPASS = row hit. Neither fails CI. Task 10 "
+           "measures recall-by-category from this same set; do not chase individual rows here.",
+    strict=False,
+)
+@pytest.mark.parametrize("row", _baseline_only_params())
+async def test_psychoed_baseline_only(row, monkeypatch):
+    _arm_psychoed(monkeypatch, row)
+    out = await run_fixture(row)
+    assert_expectations(row, out)
 
 
 # ---------------------------------------------------------------------------

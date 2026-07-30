@@ -94,6 +94,47 @@ generator on every CI invocation and diffs it against the committed file, so a t
 table edited without regenerating -- or a hand-edit of `f1_wiring.jsonl` itself -- fails
 CI rather than drifting silently.
 
+## F1 naturalistic (blind-authored, baseline-only)
+
+`f1_naturalistic.jsonl` (Task 3) is **authored**, not generated: 61 first-person,
+naturalistically-phrased user utterances (`set:"authored"`), one turn each
+(`intent_sweep:false`), written by an author isolated from the implementation (see
+"Provenance" below). Each row asserts `psychoed_serve` disposition plus
+`expect.state.psychoed_active_category` for the row's category -- the same key
+(`psychoed_active_category`) and location the wiring rows use for their category
+assertion. It does NOT pin `expect.audit.psychoed_matched_row_id` or any other
+block/row-level expectation: naturalistic rows assert category-level recall only (delta
+14 -- block-level answer selection is label-containment-else-first-block in v1, with
+phrase-to-block hints deferred to a future clinician-ratified mapping; see each row's
+`repin_on` field below).
+
+**`baseline_only` marker.** Every row carries `"baseline_only": true`, a schema-neutral
+additive field (`_validate_row` does not reject unknown keys -- same pattern as F8's
+`flag_pair_check`). This is what lets `f1_naturalistic.jsonl` share family `F1` -- and
+therefore the `f1_*.jsonl` glob `load_family("F1")`/`load_corpus()` use -- with the
+green-required `f1_wiring.jsonl` without ever becoming green-required itself:
+
+- `_all_params()` excludes `baseline_only` rows from the hard-required sweep
+  (`test_psychoed_fixture`), the same way it excludes `flag_pair_check` rows.
+- A dedicated test, `test_psychoed_baseline_only`, runs every `baseline_only` row
+  full-graph and checks its expectations, but is marked
+  `@pytest.mark.xfail(reason=..., strict=False)`: a mismatch reports XFAIL, a match
+  reports XPASS, and **either outcome is a green pytest run**. Nothing about a row's
+  clinical recall can fail CI.
+- Schema validation is NOT weakened by the marker: `load_family`/`load_corpus` still run
+  `_validate_row` (including the corpus-wide `fixture_id` uniqueness check) on every
+  `baseline_only` row exactly like any other row. A malformed row still fails CI at
+  collection time.
+
+Baseline **measurement** -- recall-by-category, the number that goes in front of the
+clinician (packet ask 11) -- is Task 10's job, not this driver's. This registration only
+keeps the set runnable, schema-honest, and visible in pytest's `-rxX` output so Task 10
+has something mechanical to point at.
+
+`repin_on:"packet-addendum-block-hints"` marks rows whose expected *block* (not category)
+may change once phrase-to-block hints are clinician-ratified; it is informational only --
+no test currently reads it, since v1 authors no block-level expectations at all.
+
 ## F8 regression
 
 `f8_regression.jsonl` has two subsets beyond the `F8-001` seed:
@@ -144,3 +185,31 @@ CI rather than drifting silently.
   brief should read this as the ruled, intentional scope of what v1 seals (routing +
   category-level intent) versus what it does not (block-level content pinning) -- not as
   evidence the seal leaked.
+- **`f1_naturalistic.jsonl` provenance (Task 3).** Blind-authored 2026-07-30 by an author
+  isolated from the implementation. The author's ONLY input was the sealed clinical-intent
+  brief (`.superpowers/sdd/2026-07-30-psychoed-phase3-fixtures-plan/
+  f1-clinical-intent-brief.md`): category ids, clinical-intent prose, and content-block
+  TITLES only -- no `resolver.py`, no trigger tables, no other fixture file (dispatch
+  personally inspected by the controller per the plan's Task 3 checkpoint ruling). The
+  sealed brief was itself mechanically verified (grep overlap against the trigger tables)
+  for zero trigger-phrase overlap before it was ever handed to the author.
+  After authoring, the integrator (this task) mechanically re-checked all 61 rows against
+  BOTH the trigger tables (`data/psychoed/trigger_tables/en/*.json`, 133 phrases) and the
+  block titles (`data/psychoed/blocks/en/*/*.json`, 40 titles): **0/61 exact (normalized)
+  matches**, and a contiguous-3+-word-substring scan (requiring at least 2 non-stopword
+  words in the shared span, so pure sentence scaffolding like "why do i" or "i want to"
+  doesn't count as a hit) found **no reuse of a distinctive trigger phrase or block
+  title** -- the residual raw n-gram hits below that filter are generic connective English
+  stems ("the difference between", "want to understand", "keep thinking", "for myself
+  without", "am i angry") that recur across unrelated categories too, not copied clinical
+  language. Full check output is in the Task 3 report.
+  This is the **ONLY recall-quotable F1 set**: `wiring` rows are mechanical routing checks
+  (see the `set` bullet above) and must never be cited as recall evidence; `authored`
+  naturalistic rows are what "F1 recall" means. It is also registered `baseline_only`
+  (see "F1 naturalistic (blind-authored, baseline-only)" above) -- runnable and measured,
+  never a hard CI gate.
+  `repin_on:"packet-addendum-block-hints"` marks 6 of the 61 rows (`F1N-008`, `F1N-010`,
+  `F1N-030`, `F1N-039`, `F1N-048`, `F1N-055`) whose expected content BLOCK -- not category
+  -- may change once phrase-to-block hints are clinician-ratified. v1 authors no
+  block-level expectation at all (delta 14), so this marker is a future re-pin trigger
+  only; no test reads it today.
