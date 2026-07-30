@@ -52,3 +52,15 @@ override never sees. A deterministic rule (death-fear × air-hunger → crisis a
 "stays at crisis" unconditional — it touches the signed activation map, so it rides to Vee as the
 implementation ask of her own item-3 ruling. Current ×3 re-measure shows crisis stable, so exposure is
 the bistable tail, not the steady state.
+
+## ADDENDUM (2026-07-30 evening) — cardiac tail CHARACTERIZED (N=20, fresh sessions, prod ada1855a)
+Three phrasings of the death-fear × air-hunger class, ~7 drives each: **crisis card 13/20; empathic
+freeflow (primary_intent=general_chat — NO crisis resources, no grounding) 6/20; grounding-skill door
+(acute_direct_entry) 1/20.** The 6 freeflow outcomes were ALL the demonstrated phrasing ("going to die +
+can't breathe") — which had measured crisis 3/3 a few hours earlier in the §1c re-measure. **The
+bistability is time-correlated: the pinned classifier (seed + provider pin) still flips attractors across
+windows.** Net for the Vee ask: the demonstrated cardiac phrasing reached NO crisis resources in 6 of its
+9 fresh-session drives today; "stays at crisis" is currently ~65% overall and phrase/window-dependent.
+The deterministic Node-1 rule (death-fear × air-hunger → crisis at safety_check) is the only unconditional
+realization of her item-3 ruling — the ask upgrades from belt-and-suspenders to URGENT, with these
+measured rates as its calibration.
