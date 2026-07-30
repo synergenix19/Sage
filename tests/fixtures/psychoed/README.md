@@ -191,8 +191,37 @@ no test currently reads it, since v1 authors no block-level expectations at all.
   f1-clinical-intent-brief.md`): category ids, clinical-intent prose, and content-block
   TITLES only -- no `resolver.py`, no trigger tables, no other fixture file (dispatch
   personally inspected by the controller per the plan's Task 3 checkpoint ruling). The
-  sealed brief was itself mechanically verified (grep overlap against the trigger tables)
-  for zero trigger-phrase overlap before it was ever handed to the author.
+  sealed brief was itself mechanically checked (normalized substring overlap of every
+  multi-word trigger-table string -- both `phrases` and row `type` labels -- against the
+  full brief text) **before** it was ever handed to the author. The verified property is
+  **not** "zero trigger-phrase overlap" -- it is zero trigger-MATERIAL LEAKAGE, with
+  exactly 8 sanctioned title/trigger-table coincidences, every one of them appearing ONLY
+  inside a "Content blocks:" numbered title list (never inside the free-form
+  clinical-intent prose), which is precisely the human-ruled title-inclusion scope two
+  bullets up:
+
+  | Brief text (as a content-block title) | Trigger-table string it coincides with |
+  |---|---|
+  | "What is anxiety?" (1f block 1) | `1f-t1` phrase `"What is anxiety?"` |
+  | "What is depression?" (3c block 1) | `3c-t2` phrase `"What is depression?"` |
+  | "Why can't I just 'snap out of it'?" (3c block 2) | `3c-t3` phrase `"Why can't I just snap out of it?"` |
+  | "Why reactions differ in intensity (comparison to others)" (4b block 3) | `4b-t4` row **type label** `"Comparison to others"` (not a phrase) |
+  | "What is assertiveness?" (6d block 1) | `6d-t1` phrase `"What is assertiveness?"` |
+  | "What is grief?" (S2c block 1) | `s2c-t1` phrase `"What is grief?"` |
+  | "Is there a 'right' way to grieve?" (S2c block 4) | `s2c-t1` phrase `"Is there a right way to grieve?"` |
+  | "How long does grief last?" (S2c block 8) | `s2c-t1` phrase `"How long does grief last?"` |
+
+  This is expected, not a leak: a clinically apt content-block title and a natural
+  direct-question trigger phrase for the same concept often ARE the same string (a block
+  literally titled "What is anxiety?" would be a strange thing to word differently), and
+  the human ruling already covers this ("Content-block titles are not an isolation
+  leak," two bullets up) -- this table exists so a future auditor sees the actual
+  evidence instead of an unqualified "zero" claim. This half of the seal (brief vs.
+  tables) is a **recorded one-time verification**, not a standing CI check: the sealed
+  brief is workspace scratch (`.superpowers/sdd/2026-07-30-psychoed-phase3-fixtures-plan/
+  f1-clinical-intent-brief.md`), not part of the committed corpus, so there is nothing
+  for CI to re-check on every run.
+
   After authoring, the integrator (this task) mechanically re-checked all 61 rows against
   BOTH the trigger tables (`data/psychoed/trigger_tables/en/*.json`, 133 phrases) and the
   block titles (`data/psychoed/blocks/en/*/*.json`, 40 titles): **0/61 exact (normalized)
@@ -203,6 +232,15 @@ no test currently reads it, since v1 authors no block-level expectations at all.
   stems ("the difference between", "want to understand", "keep thinking", "for myself
   without", "am i angry") that recur across unrelated categories too, not copied clinical
   language. Full check output is in the Task 3 report.
+
+  Unlike the brief-vs-tables check above, the utterance-vs-trigger-tables half of this
+  property IS a **standing CI guarantee**, because both sides are committed to this repo:
+  `test_f1_naturalistic_no_trigger_phrase_reuse` (`tests/test_psychoed_fixtures_ci.py`)
+  re-derives the trigger phrases fresh from `data/psychoed/trigger_tables/en/*.json` on
+  every run and asserts no naturalistic utterance is an exact match of, or embeds, any
+  multi-word trigger phrase -- so a future corpus edit (or trigger-table edit) that
+  reintroduces overlap fails CI instead of silently rotting this provenance claim, the
+  same pattern as the F1 wiring table-sync check just below.
   This is the **ONLY recall-quotable F1 set**: `wiring` rows are mechanical routing checks
   (see the `set` bullet above) and must never be cited as recall evidence; `authored`
   naturalistic rows are what "F1 recall" means. It is also registered `baseline_only`

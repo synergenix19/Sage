@@ -566,6 +566,74 @@ async def test_psychoed_baseline_only(row, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
+# F1 naturalistic no-trigger-phrase-reuse: standing fixture-independence guard (Task 3
+# fix round 1, reviewer-required). f1_naturalistic.jsonl (blind-authored) and
+# data/psychoed/trigger_tables/en/*.json are BOTH committed, so the isolation property
+# the controller verified once by hand at authoring time -- the naturalistic set never
+# reuses a real trigger phrase -- is mechanically checkable forever. This converts that
+# one-time attestation into CI, same pattern as test_f1_wiring_matches_generator's
+# table-sync check and test_intent_sweep_matches_intent_route_vocabulary's vocabulary-
+# sync check: a future corpus edit (or trigger-table edit) that reintroduces overlap
+# fails the build instead of silently rotting the provenance claim.
+#
+# This covers ONLY utterance-vs-trigger-tables (both sides committed, both sides live in
+# this repo). It does NOT re-check the sealed brief against the trigger tables -- the
+# brief is workspace scratch (.superpowers/sdd/.../f1-clinical-intent-brief.md), not part
+# of the corpus, so that half of the seal remains a recorded one-time verification (see
+# the README's provenance section for what was found there and why it's sanctioned).
+#
+# Two properties, both checked on NORMALIZED text (lowercased, punctuation stripped,
+# whitespace collapsed, word-boundary-safe substring test):
+#   1. no naturalistic utterance is an EXACT match of any multi-word (>=2 token) trigger
+#      phrase;
+#   2. no naturalistic utterance EMBEDS, as a contiguous substring, the FULL text of any
+#      3+-token trigger phrase. This is deliberately NOT a sliding-3-gram scan over
+#      arbitrary word co-occurrence -- generic connective fragments ("why do i", "i want
+#      to") are expected to recur across any naturalistic corpus discussing the same
+#      topics and are not reuse (see the README provenance section for the mechanical
+#      check that established this, done at authoring time). This test checks whether a
+#      REAL trigger phrase, whole, turns up inside a longer utterance.
+# ---------------------------------------------------------------------------
+
+def _normalize_phrase(s: str) -> str:
+    return " ".join(re.sub(r"[^a-z0-9\s']", " ", s.lower()).split())
+
+
+def test_f1_naturalistic_no_trigger_phrase_reuse():
+    from tests.fixtures.psychoed.regen_wiring import generate_rows  # noqa: PLC0415
+
+    naturalistic_rows = [r for r in load_family("F1") if r.get("baseline_only")]
+    assert naturalistic_rows, (
+        "no baseline_only F1 rows found -- f1_naturalistic.jsonl missing or its marker "
+        "was removed; this guard has nothing to check"
+    )
+    # Fresh from the tables (same generator f1_wiring.jsonl's own sync test re-runs), so
+    # this guard tracks trigger-table edits too, not just a stale snapshot.
+    trigger_phrases = [
+        (row["expect"]["audit"]["psychoed_matched_row_id"], row["turns"][0]["utterance"])
+        for row in generate_rows()
+    ]
+
+    violations = []
+    for row in naturalistic_rows:
+        utt_norm = _normalize_phrase(row["turns"][0]["utterance"])
+        for row_id, phrase in trigger_phrases:
+            phrase_norm = _normalize_phrase(phrase)
+            tokens = phrase_norm.split()
+            if len(tokens) < 2:
+                continue  # single-word trigger phrases aren't meaningfully "reusable"
+            if utt_norm == phrase_norm:
+                violations.append((row["fixture_id"], "exact", row_id, phrase))
+            elif len(tokens) >= 3 and f" {phrase_norm} " in f" {utt_norm} ":
+                violations.append((row["fixture_id"], "embedded", row_id, phrase))
+
+    assert not violations, (
+        "f1_naturalistic.jsonl reuses trigger-table phrase(s) -- fixture-independence "
+        f"violated (fixture_id, kind, trigger row_id, phrase): {violations}"
+    )
+
+
+# ---------------------------------------------------------------------------
 # F1 wiring: table-sync check (Task 2). f1_wiring.jsonl is GENERATED from
 # data/psychoed/trigger_tables/en/*.json by tests/fixtures/psychoed/regen_wiring.py; this
 # test re-generates from the tables on every CI run and fails if the committed file has
