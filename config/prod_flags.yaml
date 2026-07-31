@@ -93,6 +93,10 @@ flags:
     signed_value: "true"
     signature_ref: "Vee 1a-1d 2026-07-21 (mechanism+strings, 2026-07-18-vee-open-decisions-approval-sheet.md) + copy ratification 2026-07-28 (aea60720, derealization_referral_en/ar pinned in signed_clinical_fields.json) + item-1 scope confirm 2026-07-30 (PO relay: derealization = REFERRAL; PR#374 packet)"
     note: "FLIPPED 2026-07-30 (increment 1 of the four-increment §1c execution): CF-010 derealization -> anxiety-track referral terminal, precedence crisis > medical > hr > derealization > panic-grounding — ends the live L151 collision at flag speed (derealization refers regardless of panic_override's term set). Rollback = value false via register PR + apply (instant-off)"
+  SAGE_CARDIAC_ESCALATION:
+    value: null
+    class: safety
+    note: "Node-1 deterministic death-fear x air-hunger -> crisis (item-3 realization). BUILT INERT 2026-07-31; default OFF; activation = Vee one-tick (2026-07-31-cardiac-node1-one-tick-vee.md) + register PR + apply. Measured basis: N=20 characterization, 6/20 freeflow-no-resources on the demonstrated phrasing (inc2 record addendum)"
   SAGE_PANIC_GROUNDING_OVERRIDE:
     value: "true"
     class: safety
