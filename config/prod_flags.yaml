@@ -82,11 +82,15 @@ flags:
   SAGE_IPV_PREEMPTION:
     value: "false"
     class: safety
-    note: "PRESUMED safety (ruling 2026-07-28); false is the RECORDED state (E7 reverted stream); clinical sign-off decides"
+    signed_value: "false"
+    signature_ref: "Vee 2026-07-31, in-room per-line assent to the staged default (PO relay; sheet item 1, record 2026-07-31-vee-sheet-execution.md)"
+    note: "Safety class CONFIRMED + OFF ratified as current state (supersedes PRESUMED 2026-07-28). false = E7-reverted stream state. Any future activation returns as its own decision request carrying naturalistic-recall evidence (recall-fixture-independence rule)"
   SAGE_HIGH_RISK_TERMINAL:
     value: null
     class: safety
-    note: "PRESUMED safety (ruling 2026-07-28); default OFF pending clinician sign-off on §HR fixed copy (Stage 2)"
+    signed_value: null
+    signature_ref: "Vee 2026-07-31, in-room per-line assent to the staged default (PO relay; sheet item 2, record 2026-07-31-vee-sheet-execution.md)"
+    note: "Safety class CONFIRMED + OFF ratified until the Stage-2 fixed terminal copy is authored and signed (supersedes PRESUMED 2026-07-28; un-authored copy cannot be reviewed)"
   SAGE_DEREALIZATION_DETECTION:
     value: "true"
     class: safety
