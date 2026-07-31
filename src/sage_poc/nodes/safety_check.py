@@ -34,7 +34,6 @@ from sage_poc.safety.s3_semantic import check_s3, check_s3_bilingual, S3_THRESHO
 from sage_poc.safety.medical_redflag import detect_medical_redflag
 from sage_poc.safety.medical_screen import consume_pending_screen
 from sage_poc.safety.cardiac_escalation import cardiac_ambiguous_present, CARDIAC_FLAG_ID
-from sage_poc import config as _cfg
 
 _log = logging.getLogger(__name__)
 
@@ -186,6 +185,8 @@ async def safety_check_node(state: SageState) -> dict:
     # a third-party pattern fired (consistent with the S1 third-party-overrides-direct rule above);
     # deliberately independent of crisis_suppress actions (those were authored for the semantic tier —
     # this deterministic rule fails toward escalation, Vee's conservative dial).
+    from sage_poc import config as _cfg  # noqa: PLC0415 — deferred like the tiering import below; the
+    # function re-imports config locally (line ~255), so a module-level alias would be shadowed-unbound here.
     if _cfg.CARDIAC_ESCALATION_ENABLED and not third_party_flags:
         if cardiac_ambiguous_present(message_en, raw):
             new_crisis_flags.append(CARDIAC_FLAG_ID)
