@@ -854,6 +854,26 @@ def _xfail_marks_for(row: dict, intent: str) -> list:
     )]
 
 
+def _row_xfail_marks(row: dict) -> list:
+    """Task 8 fix round 1 (2026-07-31, human-ruled adjudication): the per-ROW equivalent of
+    `_xfail_marks_for` above, for families with no intent sweep (F10 has none -- every F10
+    row runs once, `intent_for_sweep=None`), so the intent-keyed `xfail_intents` mechanism
+    doesn't apply. A row opts in via the optional row-level `xfail` field:
+    `{"reason": <str>, "ticket": <path>}` (schema-neutral, same additive pattern as
+    `xfail_intents`). `strict=True` for the same reason as `_xfail_marks_for`: an unexpected
+    XPASS (the fix landing) fails CI loudly and forces the row's re-pin, rather than letting
+    a landed fix go uncelebrated. Minimal, general-purpose (not hardcoded to F10-004) --
+    returns `[]` for every row that doesn't opt in.
+    """
+    spec = row.get("xfail")
+    if not spec:
+        return []
+    return [pytest.mark.xfail(
+        reason=f"{row['fixture_id']}: {spec['reason']} (ticket: {spec['ticket']})",
+        strict=True,
+    )]
+
+
 def _all_params() -> list:
     params = []
     for family in _discovered_families():
@@ -883,7 +903,9 @@ def _all_params() -> list:
                         )
                     )
             else:
-                params.append(pytest.param(row, None, id=row["fixture_id"]))
+                params.append(
+                    pytest.param(row, None, id=row["fixture_id"], marks=_row_xfail_marks(row))
+                )
     return params
 
 
@@ -1186,9 +1208,14 @@ def test_f10_push_further_stage2_not_deterministically_composed():
     user_prompt = next(m["content"] for m in calls[-1] if m["role"] == "user")
     stage2_script = psy_store.shared_script("diagnosis_guard_stage2")
     assert stage2_script not in user_prompt, (
-        "TRACE conclusion: diagnosis_guard_stage2's own text is absent from the composed "
-        "prompt -- stage-2 is not deterministically composed, and the generic continuation "
-        "template carries no diagnosis-specific steering pointing the model at it either"
+        "TRACE conclusion (reworded per review LOW 4a, 2026-07-31): diagnosis_guard_stage2 has "
+        "NO ENGINEERED MECHANISM AT ANY TIER -- zero references anywhere in src/sage_poc/ (grep-"
+        "confirmed), not 'rides the LLM with some steering.' The composed prompt carries no "
+        "diagnosis-specific signal whatsoever; a future flip-tier run (Task 9, real LLM) may "
+        "OBSERVE the model rendering something resembling stage-2's substance on its own "
+        "initiative given the conversation history, but that would be unengineered LLM behavior, "
+        "not a mechanism this codebase built or steers toward -- nothing here should be read as "
+        "'stage-2 rides the LLM continuation' in the sense of a designed handoff."
     )
     continuation_marker = "conversational glue only"
     assert continuation_marker in user_prompt, (
@@ -1247,7 +1274,12 @@ def test_f10_flip_tier_only_rows_present_and_counted():
     the CONTENT question they flag is deferred), but the marker itself must be visible and
     counted so it is never silently invisible that a row's fuller claim rides on a future
     tier. Fails loudly (rather than reading as zero-coverage-nobody-noticed) if the set is
-    ever empty."""
+    ever empty.
+
+    Reworded per review LOW 4a (2026-07-31): 'flip-tier-only' does NOT mean 'this claim is
+    checkable at flip tier' -- diagnosis_guard_stage2 has no engineered mechanism at any tier
+    (zero src/ references). Flip tier only ever gets to OBSERVE, never assert against a
+    designed behavior."""
     f10_rows = load_family("F10")
     flip_tier_rows = [r for r in f10_rows if r.get("flip_tier_only")]
     assert flip_tier_rows, (
@@ -1257,9 +1289,132 @@ def test_f10_flip_tier_only_rows_present_and_counted():
     )
     print(
         f"\n[F10 flip-tier-only] {len(flip_tier_rows)} row(s) carry flip_tier_only: "
-        f"{[(r['fixture_id'], r['flip_tier_only']) for r in flip_tier_rows]} -- the CONTENT "
-        f"claim(s) named there are asserted ONLY by Task 9's future flip-tier runner (real "
-        f"intent_route + a real LLM call), never by this CI driver."
+        f"{[(r['fixture_id'], r['flip_tier_only']) for r in flip_tier_rows]} -- NONE of the "
+        f"claim(s) named there have any engineered mechanism at ANY tier (zero src/sage_poc/ "
+        f"references for diagnosis_guard_stage2). A future Task 9 flip-tier run (real "
+        f"intent_route + a real LLM call) may OBSERVE the live LLM rendering something "
+        f"resembling this content unprompted, given conversation history -- that is unengineered "
+        f"model behavior, never an assertion this or any future driver can make against a "
+        f"designed mechanism."
+    )
+
+
+_F10_004_XFAIL_TICKET = "docs/superpowers/tickets/2026-07-31-diagnosis-guard-consent-to-serve-unbuilt.md"
+
+
+def test_f10_004_xfail_and_cites_ticket():
+    """Adjudication fix round 1 (2026-07-31): F10-004's finding (the diagnosis-guard
+    consent-to-serve mechanism, design doc 5.5's yes-branch, is unimplemented) is disposed as
+    strict xfail via the row-level `xfail` marker (`_row_xfail_marks`), not silently absorbed.
+    Independent of pytest's own -rxX summary, this always-running test makes the disposition
+    itself visible + counted (no-silent-caps, same posture as F4-002's own xfail-citation
+    test) and pins that the row cites the right ticket in both `xfail` and `source`."""
+    f10_by_id = {r["fixture_id"]: r for r in load_family("F10")}
+    row = f10_by_id["F10-004"]
+    xfail_spec = row.get("xfail")
+    assert xfail_spec, (
+        "F10-004 must carry an `xfail` marker -- adjudicated 2026-07-31 fix round 1, disposed "
+        "as spec-sanctioned-behavior-UNBUILT, see " + _F10_004_XFAIL_TICKET
+    )
+    assert xfail_spec.get("ticket") == _F10_004_XFAIL_TICKET, (
+        f"F10-004's xfail.ticket must be exactly {_F10_004_XFAIL_TICKET!r}, "
+        f"got {xfail_spec.get('ticket')!r}"
+    )
+    assert _F10_004_XFAIL_TICKET in (row.get("source") or ""), (
+        f"F10-004's source field must also cite the ticket ({_F10_004_XFAIL_TICKET})"
+    )
+    print(f"\n[F10-004 xfail] strict-xfail, ticket: {_F10_004_XFAIL_TICKET}")
+
+
+# ---------------------------------------------------------------------------
+# F10-004b (Task 8 fix round 1, adjudicated): companion GREEN, GATING regression floor for
+# F10-004's finding. Reuses run_fixture's own `rag_top` retrieval-faking hook (Task 4, F9's
+# mechanism -- generic to any row/family, not F9-specific) to construct a scenario where block
+# content IS plausibly retrievable (a psychoed block ranks alongside a real KB passage) on the
+# consented-yes continuation turn, and confirms the interim floor holds: L4 quarantine strips
+# the psychoed passage before it ever reaches the composed prompt, and no psychoed_serve
+# fires. Deliberately NOT the "psychoed block ranks FIRST, not abstained" shape (F9-001's own
+# scenario) -- that shape legitimately fires knowledge_retrieve's outcome-2 backstop and SERVES
+# the block (verified directly before choosing this row's rag_top shape: a rank-1, non-abstained
+# psychoed passage produces a genuine psychoed_serve with psychoed_gate_action=="pass", which
+# would conflate "the backstop legitimately served content" with "quarantine failed to protect
+# an unconsented turn" -- two different properties). The rank-2 shape (F9-003's own mechanism)
+# is the one that isolates "retrieval considered this content, quarantine must still strip it."
+# ---------------------------------------------------------------------------
+
+def test_f10_004b_consented_yes_no_block_leak_llm_prompt_capture():
+    """Node-level companion to F10-004b's corpus row (which asserts knowledge_passages via
+    expect.state, run through the generic driver): this test additionally captures the ACTUAL
+    messages list passed to the freeflow LLM for the identical scenario and confirms the
+    quarantined block's content is absent from what the model literally saw -- per this fix
+    round's explicit instruction to VERIFY the floor, not assume it from the final response
+    alone (a stub LLM's reply is fixed regardless of what's in the prompt, so asserting only
+    against `response` would prove nothing)."""
+    pinned = {"intent": "info_request"}
+
+    def _mock_intent_route(state):
+        return {
+            "primary_intent": pinned["intent"], "secondary_intent": None,
+            "intent_confidence": 0.9, "emotional_intensity": state.get("emotional_intensity", 5),
+            "engagement": state.get("engagement", 7), "path": state["path"] + ["intent_route"],
+        }
+
+    calls: list = []
+
+    def _capturing_llm(text: str):
+        mock = MagicMock()
+        mock.model_name = "mock-model"
+        mock.openai_api_base = ""
+        mock.bind_tools = MagicMock(return_value=mock)
+
+        async def _ainvoke(*args, **kwargs):
+            calls.append(args[0] if args else kwargs.get("input"))
+            msg = MagicMock()
+            msg.content = text
+            msg.tool_calls = []
+            return msg
+
+        mock.ainvoke = AsyncMock(side_effect=_ainvoke)
+        return mock
+
+    stub_llm = _capturing_llm(_FREEFLOW_STUB)
+
+    async def _drive():
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(patch("sage_poc.graph.intent_route_node", side_effect=_mock_intent_route))
+            stack.enter_context(patch("sage_poc.nodes.freeflow_respond.get_responder", return_value=stub_llm))
+            stack.enter_context(patch("sage_poc.nodes.freeflow_respond.get_fallback_responder", return_value=stub_llm))
+            fake_repo = MagicMock()
+            fake_repo.retrieve = AsyncMock(
+                return_value=_fake_knowledge_result({"passages": ["cbt-001-en", "1f-b1"], "abstain": False})
+            )
+            stack.enter_context(
+                patch("sage_poc.nodes.knowledge_retrieve.PostgresKnowledgeRepository", return_value=fake_repo)
+            )
+            stack.enter_context(patch("sage_poc.nodes.knowledge_retrieve._get_pool", return_value=object()))
+            with patch.object(config, "PSYCHOED_PATHWAYS_ENABLED", True), \
+                 patch.object(config, "PSYCHOED_CATEGORIES", frozenset({"1f"})):
+                graph = build_graph()
+                t1 = await graph.ainvoke(make_e2e_state("do I have GAD"))
+                t2 = await graph.ainvoke(_carry(t1, "yes"))
+        return t1, t2
+
+    t1, t2 = asyncio.run(_drive())
+
+    assert t1["psychoed_matched_row_id"] == "1f-t3"  # sanity: stage-1 trigger genuinely hit
+    assert not t2.get("psychoed_serve"), "no serve must fire on the consented-yes turn (F10-004's finding)"
+    assert t2["knowledge_passages"] == [
+        {"text": "fixture passage cbt-001-en", "source_id": "cbt-001-en", "citation": "fixture",
+         "relevance_score": 0.9, "source_url": "", "title": "", "video_url": ""}
+    ], "L4 quarantine must strip the rank-2 psychoed passage; the rank-1 non-psychoed passage survives"
+
+    assert calls, "freeflow LLM must have been invoked for the consented-yes turn"
+    user_prompt = next(m["content"] for m in calls[-1] if m["role"] == "user")
+    from sage_poc.psychoed import store as psy_store  # noqa: PLC0415
+    block_content = psy_store.get_block("1f-b1")["content"]
+    assert block_content not in user_prompt, (
+        "VERIFIED, not assumed: the quarantined block's content is absent from what the model "
+        "actually saw, not merely absent from the (stub-fixed) final response"
     )
 
 

@@ -567,10 +567,20 @@ oversight.
   copy pasted into the fixture (this suite's standing "assert on behavior/markers, never
   copy strings" convention). Applied unconditionally, before any label-class branching.
 - `flip_tier_only` (optional list of strings, row-level): names CLAIMS this row cannot
-  assert at CI tier at all (not even a deterministic-vs-non-deterministic split -- the claim
-  genuinely requires a real LLM call), for Task 9's future flip-tier runner to pick up. Same
-  CI-tier-only spirit as F9's `rag_top` marking. `test_f10_flip_tier_only_rows_present_and_
-  counted` makes the marker itself visible + counted (spec 7.2 no-silent-caps).
+  assert at CI tier at all. **Reworded per fix round 1 review (2026-07-31, LOW 4a):** this
+  does NOT mean "Task 9's future flip-tier runner can assert this claim" -- for F10-003's
+  `stage2_content` entry specifically, `diagnosis_guard_stage2` has NO ENGINEERED MECHANISM AT
+  ANY TIER (zero `src/sage_poc/` references, grep-confirmed). A flip-tier run (real LLM) can
+  only ever OBSERVE the model rendering something resembling that content unprompted, given
+  conversation history -- unengineered behavior, never a designed mechanism a runner could
+  assert against. `test_f10_flip_tier_only_rows_present_and_counted` makes the marker itself
+  visible + counted (spec 7.2 no-silent-caps) and states this distinction explicitly.
+- `xfail` (optional dict, row-level, non-swept families only): `{"reason": <str>, "ticket":
+  <path>}` -- the per-row equivalent of `xfail_intents` for families with no intent sweep
+  (F10 has none). `_row_xfail_marks` applies `pytest.mark.xfail(strict=True)`; `strict=True`
+  is load-bearing (an unexpected XPASS fails CI loudly and forces the row's re-pin), same
+  discipline as `xfail_intents`. Added Task 8 fix round 1 (2026-07-31, adjudicated) for
+  `F10-004`.
 
 ## F6 precedence (100% hard gate)
 
@@ -635,6 +645,12 @@ Intent-swept over the full `INTENT_SWEEP` on every row's precedence-testing turn
   2 and 8 plus the concrete code locations (see the row's own `source` field). Known-accepted
   pending Phase-4 review, not an endorsement.
 
+**Fix round 1 (2026-07-31, adjudicated):** `F6-001` gained `expect.audit` content
+(`psychoed_matched_row_id`, `psychoed_framing`, `psychoed_weave_state: null`,
+`psychoed_gate_action: null`) per the review LOW that the plan's "escalation-turn audit row on
+every crisis-winning row" clause covers every crisis-winning row, not only the F6-005 NAMED
+CASE. `F6-005` already carried its audit assertions and needed no change.
+
 ## F7 integrity (Node-8 verbatim hash gate)
 
 Procedural, NOT a corpus file (`tests/test_psychoed_f7_integrity.py`; see that file's module
@@ -656,11 +672,13 @@ fixed -- `src/` untouched.
 
 ## F10 diagnosis split
 
-`f10_diagnosis.jsonl` (Task 8, 4 rows) exercises design doc 5.5's diagnosis-guard row split
-plus two companion procedural tests in `test_psychoed_fixtures_ci.py`
+`f10_diagnosis.jsonl` (Task 8, 5 rows after fix round 1) exercises design doc 5.5's
+diagnosis-guard row split plus companion procedural tests in `test_psychoed_fixtures_ci.py`
 (`test_f10_push_further_stage2_not_deterministically_composed`,
 `test_f10_formal_diagnosis_guard_question_clipped_by_one_question_cap`,
-`test_f10_flip_tier_only_rows_present_and_counted`).
+`test_f10_flip_tier_only_rows_present_and_counted`,
+`test_f10_004_xfail_and_cites_ticket`,
+`test_f10_004b_consented_yes_no_block_leak_llm_prompt_capture`).
 
 - **F10-001** (`direct_diagnostic`, category `3c`, `3c-t1`'s own trigger): normal answer-first
   flow, `3c`'s disclaimer-carrying `framing_statement` present, `diagnosis_guard_stage1`
@@ -689,26 +707,40 @@ plus two companion procedural tests in `test_psychoed_fixtures_ci.py`
   reach the user, but the question the whole mechanism exists to ask does not. Not fixed here.
 - **F10-003** (push-further second turn, category `1f`, `flip_tier_only:["stage2_content"]`):
   TRACE of what the as-built continuation actually does (per the brief's own instruction).
-  `diagnosis_guard_stage2` has zero references anywhere in `src/sage_poc/` -- not
-  deterministically reachable. The reply falls through to the generic `psychoed_continuation`
-  glue with no diagnosis-specific steering (captured directly by the companion test). CI-tier
-  conclusion (hard-required, green): `skill_match_method`/`psychoed_serve` stay null, the
-  pathway persists un-hijacked. The CONTENT question -- whether a live LLM happens to produce
-  something resembling stage-2's substance -- is flip-tier-only (Task 9, not yet built); not
-  a BLOCKED finding, a genuine reachability determination.
-- **F10-004** (consented yes-branch, category `1f`): **BLOCKED finding, first-run FAIL,
-  authored to spec-intent per the standing never-adjust-a-fixture rule.** Verified full-graph
-  before authoring: a "yes" reply after formal_diagnosis stage-1 produces NO serve of any
-  kind -- `resolver.resolve()`'s active-category branch matches against menu labels only
-  ("yes" matches none; the guard's own stage-1 serve never even offers a menu), and there is
-  no OTHER mechanism anywhere in this codebase tracking "the guard's own consent question is
-  outstanding" the way `offered_skill_ids`/`offer_response` track a skill offer's consent
-  (grep-confirmed zero hits). The turn falls through to the same generic
-  `psychoed_continuation` glue as F10-003. `psychoed_gate_action` stays `null` (never
-  `"pass"`), `skill_match_method` stays `null` (never `"psychoed_resolver"`). Design doc
-  5.5's entire "yes-branch -> serve the relevant concept block through the same audited path"
-  property appears UNIMPLEMENTED, not merely mis-wired for one route. Do not adjust `src/`;
-  do not weaken this row's `expect`.
+  `diagnosis_guard_stage2` has NO ENGINEERED MECHANISM AT ANY TIER -- zero references anywhere
+  in `src/sage_poc/`, reworded per fix round 1 review (see "Task 8 schema additions" above).
+  The reply falls through to the generic `psychoed_continuation` glue with no diagnosis-specific
+  steering (captured directly by the companion test). CI-tier conclusion (hard-required, green):
+  `skill_match_method`/`psychoed_serve` stay null, the pathway persists un-hijacked. Not a
+  BLOCKED finding, a genuine reachability determination.
+- **F10-004** (consented yes-branch, category `1f`): **ADJUDICATED 2026-07-31 (fix round 1,
+  human-ruled): disposed as STRICT xfail, ticket `docs/superpowers/tickets/
+  2026-07-31-diagnosis-guard-consent-to-serve-unbuilt.md`, not fixed here.** Authored to the
+  SPEC-INTENDED shape per the standing never-adjust-a-fixture rule -- `expect` unchanged and
+  unweakened. Verified full-graph before authoring: a "yes" reply after formal_diagnosis
+  stage-1 produces NO serve of any kind -- `resolver.resolve()`'s active-category branch
+  matches against menu labels only ("yes" matches none; the guard's own stage-1 serve never
+  even offers a menu), and there is no OTHER mechanism anywhere in this codebase tracking "the
+  guard's own consent question is outstanding" the way `offered_skill_ids`/`offer_response`
+  track a skill offer's consent (grep-confirmed zero hits). CLASS NOTE (per the ruling):
+  spec-sanctioned-behavior-UNBUILT, distinct from `F4-002`'s built-mechanism-divergent-behavior
+  class -- there is no mechanism here to diverge from at all; Phase 2's own self-review
+  deferred the consented yes-branch to "the continuation layer," and this fixture mechanically
+  proved that deferral left the consent path with zero deterministic implementation.
+- **F10-004b** (companion, GREEN and GATING, added fix round 1): the interim quarantine floor
+  F10-004's finding must not silently violate -- a "yes" reply must never leak psychoed block
+  content into the continuation, even when retrieval plausibly surfaces it. Uses `run_fixture`'s
+  own `rag_top` hook with a psychoed block (`1f-b1`) at rank 2 alongside a real KB passage
+  (`cbt-001-en`) at rank 1, not abstained (F9-003's own "L4 quarantine, rank-2 case" shape --
+  deliberately NOT the rank-1-not-abstained shape, verified full-graph to legitimately fire the
+  outcome-2 backstop and SERVE the block instead, a different, correct property, not a leak).
+  **Observed result: the floor HOLDS on master** -- `psychoed_serve` stays null,
+  `knowledge_passages` contains only the non-psychoed passage (`1f-b1` quarantined out), and the
+  companion node-level test `test_f10_004b_consented_yes_no_block_leak_llm_prompt_capture`
+  additionally captures the real LLM prompt and confirms the block content is absent from what
+  the model literally saw (per the fix round's "VERIFY it, don't assume it" instruction -- not
+  inferred from the stub's fixed final response). Survives permanently past
+  `diagnosis-guard-consent-to-serve-unbuilt.md`'s eventual fix (an independent property).
 
 ## Provenance
 
