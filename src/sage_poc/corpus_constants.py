@@ -117,6 +117,13 @@ PRESENTATIONS_FLOOR_EXEMPTIONS: dict[str, str] = {
 KEYWORD_SEMANTIC_SKIP: frozenset[str] = frozenset({
     "post_crisis_check_in",  # activated via post_crisis_auto_select (crisis_state=='monitoring')
     "psychotic_referral",    # activated via psychotic_disclosure clinical flag; not keyword/semantic routed
+    # DEROUTED until registration is signed (Vee 2026-07-31, sign-off sheet item 3):
+    # approved_by is null while the skill is routable, and the technique family carries
+    # the BOT BEHAVIOUR section-1a/6 contraindication (grounding/mindfulness can intensify
+    # dissociation, derealization, flashback, psychosis-like states) whose review IS the
+    # missing signature. Offer-Second in the spec, so no first-line flow is touched.
+    # Re-route on signature = delete this entry (one line, as staged on the sheet).
+    "mindfulness_meditation",
 })
 
 # Words that short-circuit to freeflow BEFORE the BGE-M3 semantic tier.
