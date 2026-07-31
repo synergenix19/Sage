@@ -653,3 +653,37 @@ def test_build_state_resets_directive_posture_false():
         user_id = None
     state = _build_state(_Req())
     assert state["directive_posture"] is False
+
+
+async def test_mindfulness_meditation_derouted_while_unsigned():
+    """mindfulness_meditation must be unreachable via keyword or semantic matching
+    while its registration is unsigned (Vee 2026-07-31, sign-off sheet item 3).
+
+    The skill stays in SKILL_REGISTRY (mid-session state and the executor are
+    untouched); only the two matching surfaces are cut. Re-route on signature =
+    remove the KEYWORD_SEMANTIC_SKIP entry, then delete this test's premise line
+    in the same PR as the signed registration.
+    """
+    from sage_poc.nodes.skill_select import skill_select_node
+    phrases = [
+        "mindfulness meditation",
+        "guided meditation",
+        "can we do some sitting meditation",
+        "i want to meditate",
+    ]
+    for phrase in phrases:
+        state = make_full_state(
+            message_en=phrase,
+            primary_intent="new_skill",
+            intent_confidence=0.9,
+        )
+        result = await skill_select_node(state)
+        assert result.get("active_skill_id") != "mindfulness_meditation", (
+            f"mindfulness_meditation ACTIVATED by {repr(phrase)} while unsigned. "
+            "Ensure it is in corpus_constants.KEYWORD_SEMANTIC_SKIP."
+        )
+        offered = result.get("offered_skill_ids") or []
+        assert "mindfulness_meditation" not in offered, (
+            f"mindfulness_meditation OFFERED for {repr(phrase)} while unsigned. "
+            "Ensure it is in corpus_constants.KEYWORD_SEMANTIC_SKIP."
+        )
