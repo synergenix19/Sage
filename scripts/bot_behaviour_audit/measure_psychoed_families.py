@@ -168,6 +168,72 @@ from scripts.bot_behaviour_audit.measure_layer1_fullgraph import (  # noqa: E402
 
 _PSYCHOED_VALID_CATEGORIES = frozenset({"1f", "3c", "4b", "6d", "7c", "s2c"})
 
+# ---------------------------------------------------------------------------
+# Psychoed arming = this run's DECLARED DELTA, not a parity violation (Task 9 fix round 2,
+# controller-observed deadlock at Task 10's live checkpoint -- see task-9-report.md for the
+# full incident). Prod currently serves the psychoed pathway OFF (pre-flip): the inherited,
+# GENERIC _flag_parity() guard (measure_layer1_fullgraph.py, shared unmodified with the layer1
+# conformance matrix, which has no declared-delta concept and must keep comparing every var
+# unconditionally) would refuse on exactly SAGE_PSYCHOED_PATHWAYS/SAGE_PSYCHOED_CATEGORIES the
+# moment this runner arms them ON -- deadlocking against this runner's OWN, independent
+# PSYCHOED_PATHWAYS_ENABLED/PSYCHOED_CATEGORIES checks below, which demand the opposite. The
+# ONLY built-in escape, --allow-flag-mismatch, is a GENERIC override that stamps the WHOLE run
+# non-baseline and would silently tolerate a mismatch in any of the ~17 OTHER SAGE_ vars too --
+# unacceptable for a §7.3 record run, which needs parity on everything EXCEPT the two vars this
+# run exists to measure the un-flipped mechanism under.
+#
+# Fix: `_carve_out_declared_delta` (below) removes ONLY these two named vars from the diff set
+# _flag_parity() already computed, then recomputes the verdict from what remains. PARITY-SAFE
+# because the carve-out is a fixed, exactly-two-name set applied AFTER the full inherited scan
+# has already run (it does not skip or narrow that scan) -- a mismatch on ANY other SAGE_ var
+# still hard-refuses exactly as before the fix (see the safety-test file's
+# `test_carve_out_is_exactly_two_vars_other_mismatches_still_refuse`). The two carved vars are
+# instead validated by this runner's OWN explicit expectations immediately below (pathway ON;
+# resolved PSYCHOED_CATEGORIES == --categories) -- so they are never left unchecked, only
+# checked against a DIFFERENT, run-specific baseline (the declared delta) instead of prod's.
+_PSYCHOED_DECLARED_DELTA_VARS = frozenset({"SAGE_PSYCHOED_PATHWAYS", "SAGE_PSYCHOED_CATEGORIES"})
+
+
+def _carve_out_declared_delta(flag_diffs: list, unverified_vars: list):
+    """Removes `_PSYCHOED_DECLARED_DELTA_VARS` from flag_diffs/unverified_vars and recomputes
+    the parity verdict from what remains. Returns (verdict, filtered_diffs,
+    filtered_unverified, carved_diffs) -- carved_diffs (the entries removed, each
+    `(var, local, prod)`) feeds the output doc's honest delta stamp, so the record states
+    plainly what prod actually serves vs what this run armed, never hides it."""
+    carved = [d for d in flag_diffs if d[0] in _PSYCHOED_DECLARED_DELTA_VARS]
+    filtered_diffs = [d for d in flag_diffs if d[0] not in _PSYCHOED_DECLARED_DELTA_VARS]
+    filtered_unverified = [v for v in unverified_vars if v not in _PSYCHOED_DECLARED_DELTA_VARS]
+    if filtered_diffs:
+        verdict = "MISMATCH"
+    elif filtered_unverified:
+        verdict = "VERIFIED_PARTIAL"
+    else:
+        verdict = "VERIFIED"
+    return verdict, filtered_diffs, filtered_unverified, carved
+
+
+def _psychoed_delta_stamp(carved_diffs: list, resolved_flags: dict, armed: frozenset[str]) -> str:
+    """The honest 'declared delta' line for the output doc (ruled: must be prominent). Reads
+    what PROD actually serves for the two carved vars from `carved_diffs` when they diverged
+    from local; when they did NOT diverge (local already equals prod -- e.g. a post-flip
+    parity run, or a rare local coincidence), falls back to `resolved_flags` (which then holds
+    the SAME value on both sides by construction of "no diff"), so the stamp is always present
+    and always accurate, never conditional on a diff having fired."""
+    prod_vals = {var: prod for var, _local, prod in carved_diffs}
+    prod_pathways = prod_vals.get("SAGE_PSYCHOED_PATHWAYS", resolved_flags.get("SAGE_PSYCHOED_PATHWAYS"))
+    prod_categories = prod_vals.get("SAGE_PSYCHOED_CATEGORIES", resolved_flags.get("SAGE_PSYCHOED_CATEGORIES"))
+    prod_on = str(prod_pathways).strip().lower() == "true"
+    armed_str = ",".join(sorted(armed))
+    if prod_on and str(prod_categories or "") == armed_str:
+        return (f"PROD SERVES: psychoed ON ({prod_categories}) -- THIS RUN ARMS THE SAME SET. "
+                f"No declared delta this run; full parity including psychoed.")
+    return (
+        f"PROD SERVES: psychoed {'ON' if prod_on else 'OFF'}"
+        f"{f' ({prod_categories})' if prod_on else ''}. THIS RUN ARMS: {armed_str} -- "
+        f"flip-tier measurement of the UNFLIPPED mechanism at parity on all other flags "
+        f"(declared delta, not a parity violation -- see _PSYCHOED_DECLARED_DELTA_VARS)."
+    )
+
 
 # ---------------------------------------------------------------------------
 # Canonical disposition oracle (Task 9) -- see module docstring.
@@ -632,6 +698,11 @@ async def _main_async(args) -> int:
                      else "serving(/health/version)" if serving
                      else "desired(railway)" if desired else "none")
     parity, resolved_flags, flag_diffs, unverified_vars = _flag_parity(serving, desired)
+    # CARVE-OUT (see _PSYCHOED_DECLARED_DELTA_VARS docstring above): the two psychoed vars are
+    # this run's declared delta, not a parity violation -- removed from the diff set BEFORE the
+    # MISMATCH gate below, verdict recomputed from what remains. Every other var stays hard-parity.
+    parity, flag_diffs, unverified_vars, _carved_delta = _carve_out_declared_delta(flag_diffs, unverified_vars)
+    print(f"📌 DECLARED DELTA: {_psychoed_delta_stamp(_carved_delta, resolved_flags, armed)}", flush=True)
 
     deploy_window = []
     if serving and desired:
@@ -741,8 +812,10 @@ async def _main_async(args) -> int:
             "sha": args.sha or _git_sha(),
             "instrument": "FULL-GRAPH app.ainvoke, REAL intent_route + REAL LLM + REAL retrieval "
                            "(no node patches); only write_session_audit is captured (parity-safe)",
-            "flag_parity": f"{parity} vs {parity_source}",
+            "flag_parity": f"{parity} vs {parity_source} (psychoed vars carved out as the "
+                           "declared delta -- see below; all other SAGE_ vars hard-parity)",
             "categories_armed": sorted(armed),
+            "declared_delta": _psychoed_delta_stamp(_carved_delta, resolved_flags, armed),
         },
         "faults": faults,
         "errors": errors,
@@ -769,6 +842,11 @@ def _write_markdown(path: str, result: dict) -> None:
     prov = result["provenance"]
     with open(path, "w") as f:
         f.write("# Psychoeducation Phase 3 -- flip-tier conformance run (FLIP-TIER, real intent + real LLM)\n\n")
+        # PROMINENT declared-delta banner (ruled, task-9 fix round 2): this run intentionally
+        # diverges from prod on exactly SAGE_PSYCHOED_PATHWAYS/SAGE_PSYCHOED_CATEGORIES -- the
+        # record must state that plainly, up front, every time, not bury it in the provenance
+        # table below.
+        f.write(f"> **📌 DECLARED DELTA: {prov['declared_delta']}**\n\n")
         if result["faults"]:
             f.write(f"> **⚠️ RUN VOID: {result['faults']} instrument fault(s) -- a partial run "
                     f"is not data. First fault: {result['errors'][0]}**\n\n")

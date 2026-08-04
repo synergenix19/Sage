@@ -116,6 +116,109 @@ def test_live_mode_proceeds_past_the_gate_with_a_genuinely_pre_import_key(tmp_pa
 
 
 # ---------------------------------------------------------------------------
+# (a2) Psychoed-arming-as-declared-delta carve-out (Task 9 fix round 2, controller-observed
+# deadlock at Task 10's live checkpoint -- see task-9-report.md). Attempts 2 and 3 there were
+# jointly a deadlock: the inherited, generic flag-parity guard demanded SAGE_PSYCHOED_PATHWAYS/
+# SAGE_PSYCHOED_CATEGORIES match prod (OFF, pre-flip), while this runner's own precondition
+# demands them ON+armed -- the only built-in escape (--allow-flag-mismatch) is a GENERIC
+# override that would also mask a mismatch in any of the ~17 OTHER SAGE_ vars, unacceptable for
+# a record run. Fix: carve exactly these two vars out of the parity comparison and validate
+# them against the run's OWN expectation instead. Tests below prove the carve-out (1) actually
+# clears the exact deadlock scenario, (2) does NOT widen past the two named vars -- a mismatch
+# in any other SAGE_ var still hard-refuses, (3) does not become a rubber stamp -- a locally-OFF
+# pathway or a --categories/resolved-categories disagreement still refuses exactly as before.
+# ---------------------------------------------------------------------------
+
+def test_carve_out_is_exactly_two_vars_other_mismatches_still_refuse(monkeypatch):
+    """Simulates the exact controller-observed deadlock: prod serves psychoed OFF/empty,
+    local arms it ON with categories -- the RAW _flag_parity() verdict is MISMATCH (would
+    deadlock against this runner's own PSYCHOED_PATHWAYS_ENABLED/CATEGORIES checks below),
+    but the carve-out reduces it to VERIFIED once every OTHER var genuinely matches. Then
+    perturbs exactly ONE other var and proves the carved verdict is MISMATCH again,
+    containing ONLY that other var -- the carve-out never widens past the two named vars."""
+    from scripts.bot_behaviour_audit.measure_layer1_fullgraph import _flag_parity, _config_sage_vars
+
+    mapping = _config_sage_vars()
+    serving, desired = {}, {}
+    other_var = None
+    for var, default in mapping.items():
+        if var == "SAGE_PSYCHOED_PATHWAYS":
+            serving[var] = "false"
+            desired[var] = "false"
+            monkeypatch.setenv(var, "true")
+        elif var == "SAGE_PSYCHOED_CATEGORIES":
+            serving[var] = ""
+            desired[var] = ""
+            monkeypatch.setenv(var, "1f,3c,4b,6d,7c,s2c")
+        else:
+            val = default or ""
+            serving[var] = val
+            desired[var] = val
+            monkeypatch.setenv(var, val)
+            if other_var is None:
+                other_var = var
+
+    # Attempt-3 shape: psychoed diverges, everything else matches -> carve-out must clear it.
+    parity, _resolved, flag_diffs, unverified = _flag_parity(serving, desired)
+    assert parity == "MISMATCH", "test premise: raw parity must show the deadlock first"
+    carved_parity, filtered_diffs, _fu, carved = mpf._carve_out_declared_delta(flag_diffs, unverified)
+    assert carved_parity == "VERIFIED", f"carve-out did not clear the declared delta: {filtered_diffs}"
+    assert {d[0] for d in carved} == mpf._PSYCHOED_DECLARED_DELTA_VARS
+
+    # Perturb exactly one OTHER var -- the carve-out must NOT hide it.
+    monkeypatch.setenv(other_var, serving[other_var] + "XDIFFX")
+    parity2, _resolved2, flag_diffs2, unverified2 = _flag_parity(serving, desired)
+    carved_parity2, filtered_diffs2, _fu2, _carved2 = mpf._carve_out_declared_delta(flag_diffs2, unverified2)
+    assert carved_parity2 == "MISMATCH", "a mismatch on a non-psychoed var must still refuse"
+    assert [d[0] for d in filtered_diffs2] == [other_var], (
+        f"carve-out leaked beyond the two named vars: {filtered_diffs2}"
+    )
+
+
+def test_pathway_off_locally_still_refuses_with_carve_out_in_place(tmp_path):
+    """Even with the parity carve-out active, a locally-OFF pathway must still refuse -- the
+    carve-out validates the two vars against THIS RUN's own declared-delta expectation
+    (pathway ON, categories == --categories), never a rubber stamp that lets anything
+    through. --no-parity-check isolates this from the network-touching parity fetch."""
+    proc = _run_subprocess(
+        tmp_path,
+        ["--live", "--no-parity-check", "--categories", "1f", "--out", str(tmp_path / "out.md")],
+        env_overrides={"OPENROUTER_API_KEY": "genuinely-set", "SAGE_PSYCHOED_PATHWAYS": "false"},
+    )
+    assert proc.returncode == 4, proc.stdout + proc.stderr
+    assert "SAGE_PSYCHOED_PATHWAYS is not ON" in proc.stdout
+
+
+def test_categories_disagreement_still_refuses_with_carve_out_in_place(tmp_path):
+    """--categories declaring a different set than the REAL resolved SAGE_PSYCHOED_CATEGORIES
+    must still refuse -- the carve-out validates the declared delta, it does not relax this
+    declared-vs-resolved cross-check."""
+    proc = _run_subprocess(
+        tmp_path,
+        ["--live", "--no-parity-check", "--categories", "1f,3c", "--out", str(tmp_path / "out.md")],
+        env_overrides={"OPENROUTER_API_KEY": "genuinely-set", "SAGE_PSYCHOED_PATHWAYS": "true",
+                        "SAGE_PSYCHOED_CATEGORIES": "1f"},
+    )
+    assert proc.returncode == 5, proc.stdout + proc.stderr
+    assert "does not equal the REAL resolved" in proc.stdout
+
+
+def test_declared_delta_stamp_matches_the_controller_observed_scenario():
+    """The output-doc stamp text, built from the exact attempt-3 carved diffs, matches the
+    ruled format ('PROD SERVES: ... THIS RUN ARMS: ... flip-tier measurement of the
+    unflipped mechanism at parity on all other flags')."""
+    carved = [
+        ("SAGE_PSYCHOED_CATEGORIES", "1f,3c,4b,6d,7c,s2c", ""),
+        ("SAGE_PSYCHOED_PATHWAYS", "true", "false"),
+    ]
+    stamp = mpf._psychoed_delta_stamp(carved, {}, frozenset({"1f", "3c", "4b", "6d", "7c", "s2c"}))
+    assert "PROD SERVES: psychoed OFF" in stamp
+    assert "THIS RUN ARMS: 1f,3c,4b,6d,7c,s2c" in stamp
+    assert "unflipped mechanism" in stamp.lower()
+    assert "at parity on all other flags" in stamp.lower()
+
+
+# ---------------------------------------------------------------------------
 # (b) Six-site audit-capture coverage guard
 # ---------------------------------------------------------------------------
 
