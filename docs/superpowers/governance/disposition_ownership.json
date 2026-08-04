@@ -46,6 +46,12 @@
    "source": "src/sage_poc/safety/cardiac_escalation.py:_DEATH_FEAR",
    "disposition": "crisis",
    "note": "Node-1 deterministic death-fear x air-hunger CONJUNCTION -> crisis (item-3 realization, BUILT INERT 2026-07-31, flag SAGE_CARDIAC_ESCALATION). Fires only on the co-occurrence; either term set alone stays with existing routing. Pattern source = panic_override's own tuples (imported, single-sourced) so the override's deference and this escalation cannot drift."
+  },
+  {
+   "id": "grief_defer",
+   "source": "src/sage_poc/nodes/grief_override.py:_GRIEF_TERMS",
+   "disposition": "grief_presence",
+   "note": "S2a deterministic grief-presence deference (BUILT INERT 2026-08-04, flag SAGE_GRIEF_DEFERENCE). Restores the clean verdict for safety_check-clean bereavement disclosures the LLM re-flags as crisis; harm set imported from panic_override (single-sourced) so grief+harm always escalates. Boundary sheet pending Vee."
   }
  ],
  "resolved_overlaps": [

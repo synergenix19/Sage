@@ -103,6 +103,10 @@ flags:
     signed_value: "true"
     signature_ref: "Vee item-3 disposition ruling 2026-07-30 (PO relay, five ticks) + activation tick 2026-08-04 (PO relay: 'It is approved. Please proceed.' against 2026-07-31-cardiac-node1-one-tick-vee.md)"
     note: "ACTIVATED 2026-08-04 (register change #4): Node-1 deterministic death-fear x air-hunger -> crisis, BEFORE the LLM classifier. Measured basis: N=20, 6/20 freeflow-no-resources on the demonstrated phrasing, time-correlated bistability (inc2 record addendum). Mechanism merged inert PR#402 (932eaf5b); term sets single-sourced with panic_override. Rollback = value false via register PR + apply (instant-off)"
+  SAGE_GRIEF_DEFERENCE:
+    value: null
+    class: safety
+    note: "S2a grief-presence deference (sweep row 13). BUILT INERT 2026-08-04; default OFF; activation = Vee boundary-sheet ruling (2026-08-04-grief-deference-boundary-to-vee.md) + register PR + apply. Measured basis: grief->crisis over-fire 1/5 live (iatrogenic crisis card on bereaved user; diagnosis PR#380)"
   SAGE_PANIC_GROUNDING_OVERRIDE:
     value: "true"
     class: safety
