@@ -87,3 +87,15 @@ Needs its own branch and normal review cycle — this touches a general safety d
 `formal_diagnosis` serve on ANY category whose `framing_statement` also ends in a question must
 still deliver the guard's own consent question to the user (a positive presence assertion, not
 merely "no false mismatch") — author this as a sibling to `F10-002` once the fix shape is decided.
+
+## RULING (2026-08-04, human — attached from the weave-vs-guard precedence ruling)
+
+Same principle as `2026-07-31-weave-vs-guard-consent-precedence.md`, violated twice: a second
+question sharing the turn with (or colliding into) a pending question makes the user's reply
+ambiguous. Ruled fix is COMPOSITION: the guard's consent close is segmented into body/close
+fields (data-schema segmentation, no wording change) and composed so exactly one question owns
+the turn; the one-question cap then has nothing to clip. Because stage-1 is single-sourced
+ratified copy, the segmentation rides the packet round for ratification before implementation.
+See the full ruling text in the precedence ticket. The permanent regression case defined above
+(consent question positively delivered on framing-question categories) stands as this ticket's
+definition-of-done.

@@ -92,3 +92,31 @@ annotated to note the interaction explicitly, since it currently reads as if the
 push-further/consent flow is universally reachable). If reading 2 is ratified, it becomes a design
 task with its own scope, likely coupled to `2026-07-31-diagnosis-guard-consent-to-serve-unbuilt.md`
 (since a fix to one may need to account for the other).
+
+## RULING (2026-08-04, human — design ruling requested above, now made)
+
+**Reading 1 ratified, with a composition corollary.** The ruled weave turn-boundary is
+"weave question, full stop": nothing shares the turn with a pending safety question — this
+is exactly why the menu defers. The current precedence is CORRECT and unchanged; PSY-WEAVE-1
+semantics change not at all.
+
+The defect this ticket observed is not evaluation but composition: the guard's consent close
+created a two-question turn with the weave, making the user's next reply ambiguous — and an
+ambiguous reply to a suicide-screening question fail-closes to crisis by ruled design. So a
+"yes" meaning "yes, walk me through" crisis-routes: fail-closed in the right direction, but
+wrong-question-attributed.
+
+**Fix shape (composition, not evaluation):** the consent close defers behind the weave exactly
+as the menu does. Weave-due `formal_diagnosis` turns emit framing + guard body + weave question
+only; on clear-negative, the continuation re-offers the walk-through.
+
+**Implementation note:** stage-1 is single-sourced ratified copy, so deferring its close means
+segmenting the script into body/close fields — a data-schema segmentation with NO wording
+change, but it touches signed clinical data, so the split RIDES THE PACKET ROUND for
+ratification before any branch implements it.
+
+**Closure:** this ticket closes as "current precedence is correct; composition must stop
+creating two-question turns." The same ruling resolves
+`2026-07-31-framing-question-clips-guard-consent-question.md` under the same segmentation
+(same principle, violated twice). Implemented in neither this plan nor a drive-by — own
+branch, normal review, after packet ratification of the copy split.
