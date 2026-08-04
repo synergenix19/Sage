@@ -71,11 +71,23 @@ Skip classes (spec 7.2 no-silent-caps -- every one LOGGED with a count, never a 
     meaningfully driveable this run, so it is skipped with a count rather than silently
     misreported as a miss.
 
+FULL expect.audit/expect.state assertion (Task 9 fix round 4, controller-observed live-run
+finding): every row's `expect.audit`/`expect.state` subsets are checked via `_assert_subset`
+(imports, does not reimplement, test_psychoed_fixtures_ci.py's own `_subset_match`) -- not
+just `expect.disposition`. `_real_label`/`_mechanism_applies` capture what the REAL graph
+actually decided this turn (Node-1's own deterministic crisis intercept, or the live
+classifier's own `primary_intent`) and mirror the CI driver's `WEAVE_EVALUATOR_LABELS` split
+against it, so a row's mechanism-witness assertions only apply on labels that actually reach
+the code path they describe -- exactly as at CI tier, just keyed on the REAL label instead of
+a pinned sweep label.
+
 xfail reproduction (ruled): F4-002 and F10-004 are strict-xfail at CI tier (known,
 adjudicated, ticketed gaps -- see f4_weave.jsonl's `xfail_intents` / f10_diagnosis.jsonl's
 `xfail`). This runner drives them like any other row (no special-casing of the MECHANISM) and
 reports whether the SAME divergence reproduces at prod parity with a live classifier, as an
-explicit named count in the output -- never silently absorbed into the general miss tally.
+explicit named count in the output -- never silently absorbed into the general miss tally. As
+of fix round 4, this reproduction is MEANINGFUL (the actual audit/state divergence, not just
+"n/a (no pinned disposition to compare)") now that expect.audit/expect.state are asserted.
 
 flip_tier_only rows (F10-003's class): per the ruled wording (test_psychoed_fixtures_ci.py's
 `test_f10_flip_tier_only_rows_present_and_counted`), `diagnosis_guard_stage2` has NO
@@ -88,7 +100,11 @@ best-effort, NON-GATING real-retrieval smoke case (`_AMENDMENT_8_SMOKE`, below) 
 paraphrase query that plausibly retrieves a psychoed block through the REAL knowledge_retrieve
 node (no rag_top fake) at prod parity. When it fires, the run confirms the quarantine/backstop
 shape in situ and logs it; when it doesn't, the run logs that it didn't. Contributes to NO
-pass/fail tally either way.
+pass/fail tally either way. RETRIEVAL HONESTY (Task 9 fix round 4): this smoke case can only
+genuinely fire when retrieval is ACTIVE -- see `_bootstrap_retrieval_pool` below, which
+bootstraps a real (read-only) DB pool when `DATABASE_URL` is present and stamps an honest
+"UNAVAILABLE" provenance line when it is not, rather than silently driving every row with
+retrieval structurally abstaining while the output claims "REAL retrieval."
 
 Usage (mirrors measure_layer1_fullgraph.py's own usage block -- set flags to match the SERVING
 env BEFORE running; config reads them at import). `--live` is REQUIRED for a real run --
@@ -316,8 +332,27 @@ _EXTRA_CARRY = ("offered_skill_ids",)
 
 
 def _carry(prev: dict, raw_message: str, **overrides) -> dict:
+    """PSYCHOED_SERVE EXPLICIT RESET (Task 9 fix round 4, controller-observed live-run
+    finding): `psychoed_serve` is documented in src/sage_poc/state.py + server_helpers.py's
+    `_build_state` as PER-TURN -- prod's own `_build_state` explicitly resets it to `None` on
+    EVERY incoming request ("psychoed_serve is PER-TURN, reset unconditionally... The other
+    pathway-scoped channels... are DELIBERATELY ABSENT here... persistent fields are
+    intentionally absent and come from the LangGraph checkpoint"). This runner's
+    make_e2e_state/carry_state helpers predate the psychoed mechanism, so `psychoed_serve` is
+    in neither their defaults nor `_PSYCHOED_CARRY` -- harmless for the CI driver (no
+    checkpointer, an omitted key is simply absent, never stale), but a real gap now that this
+    runner's graph is built WITH a real checkpointer + a stable per-row thread_id (fix round
+    3): an omitted key means "don't touch this channel," so a genuine serve on an EARLIER
+    turn of a multi-turn row leaked, unreset, into every LATER turn's final state --
+    confirmed by an offline harness (task-9-report.md fix round 4): a real F6-002-shaped
+    2-turn row showed turn 1's `psychoed_serve` dict still present in turn 2's result even
+    when turn 2's OWN `skill_match_method` correctly showed HR routing
+    (`psychotic_disclosure_auto_select`) had fired -- `observed()` checks `psychoed_serve`
+    before the HR marker, so the stale leak silently overrode the correct disposition, and
+    this runner's own `never_proceed` checks read it as a false leak. This is the exact class
+    of bug the F6-001/F6-002/F6-003 MISSes in Task 10 live attempt 5 traced to."""
     carried = {k: prev.get(k) for k in (*_PSYCHOED_CARRY, *_EXTRA_CARRY) if k in prev}
-    return carry_state(prev, raw_message, **{**carried, **overrides})
+    return carry_state(prev, raw_message, **{**carried, "psychoed_serve": None, **overrides})
 
 
 # ---------------------------------------------------------------------------
@@ -492,15 +527,82 @@ def _skip_reason(row: dict, armed_categories: frozenset[str]) -> str | None:
 # ---------------------------------------------------------------------------
 # Expected-vs-observed (adapted from test_psychoed_fixtures_ci.py::assert_expectations for a
 # SINGLE real path per row -- there is no intent sweep at flip tier, a live classifier picks
-# exactly one label per turn, so the label-class splits become branches on the OBSERVED path
-# rather than on a pinned sweep label. Returns (conform: bool | None, detail: str);
-# conform=None means "no assertable expectation for this row shape" (never tallied as a
-# pass or a fail, only reported as observed).
+# exactly one label per turn, so the label-class splits become branches on the REAL OBSERVED
+# label rather than on a pinned sweep label -- see `_real_label`/`_mechanism_applies` below.
+#
+# Task 9 fix round 4 (controller-observed live-run findings, Task 10 attempt 5):
+#   (1) "Flip-tier assertion semantics are disposition-only" -- rows with no
+#       expect.disposition (all F10, F3-001..004, all F8 matrix rows) reported
+#       "observed-only n/a": their expect.audit/expect.state subsets were never asserted at
+#       all. Fixed by `_assert_subset` below, which REUSES (imports, does not reimplement)
+#       test_psychoed_fixtures_ci.py's own `_subset_match` -- the exact function the CI
+#       driver asserts audit/state subsets with -- wrapped to convert its raising-assert
+#       semantics into this runner's non-raising MISS-is-data semantics.
+#   (2) "Label-class split by REAL observed intent" -- F6-001/F6-003 showed observed
+#       disposition == expected yet MISS. Root-caused (see `_carry`'s own docstring) to a
+#       DIFFERENT bug (`psychoed_serve` staleness from the newly-active checkpointer), not a
+#       missing label split per se -- but `label_dispositions` rows WERE also missing the
+#       real-label lookup entirely (only `_default` was ever consulted, so F6-002's row,
+#       which has no `_default`, never had ITS per-label expected disposition checked at
+#       all). `_real_label`/`_mechanism_applies` below now mirror the CI driver's
+#       WEAVE_EVALUATOR_LABELS split using the REAL observed label instead of a pinned sweep
+#       label.
+# Returns (conform: bool | None, detail: str); conform=None means "no assertable expectation
+# fired for this row" (never tallied as a pass or a fail, only reported as observed).
 # ---------------------------------------------------------------------------
+
+def _real_label(result: dict) -> str | None:
+    """The flip-tier analog of the CI driver's swept `intent_for_sweep` label: what the REAL
+    graph actually decided for this row's final turn. `"crisis"` when Node-1's own
+    deterministic S1-S4 crisis detection intercepted (`gate_path == "crisis"`) BEFORE
+    intent_route ever ran -- the flip-tier equivalent of the CI driver's crisis-label sweep
+    case, a structural graph property independent of what the LLM classifier would have said.
+    Otherwise the REAL `primary_intent` the live classifier produced this turn -- `None` if
+    the turn never reached intent_route via some other early-gate path. `primary_intent` is a
+    per-turn-reset SageState channel (both make_e2e_state's defaults and
+    server_helpers.py::_build_state explicitly set it to `None` every turn), so it can never
+    carry stale from an earlier turn the way `psychoed_serve` did before this fix round."""
+    if result.get("gate_path") == "crisis":
+        return "crisis"
+    return result.get("primary_intent")
+
+
+def _mechanism_applies(real_label: str | None) -> bool:
+    """Mirrors the CI driver's `WEAVE_EVALUATOR_LABELS` split (test_psychoed_fixtures_ci.py):
+    the psychoed mechanism-witness assertions (escalation audit patch, pathway-clear state)
+    only apply on labels whose graph path actually reaches skill_select's PSY-WEAVE-1
+    evaluator -- every real label EXCEPT `"crisis"` (crisis-intent supremacy bypasses
+    skill_select entirely, at flip tier exactly as at CI tier)."""
+    return real_label != "crisis"
+
+
+def _assert_subset(expected: dict | None, actual: dict, ctx: str) -> tuple[bool | None, str]:
+    """Wraps test_psychoed_fixtures_ci.py's own `_subset_match` (imported, NOT reimplemented,
+    per the ruled instruction) to convert its raising-assert semantics into this runner's
+    non-raising MISS-is-data semantics. Deferred (in-function) import: by the time THIS
+    function is CALLED, both modules are already fully loaded regardless of import order, so
+    this cannot resurrect the circular-import `observed()`'s own one-way top-level-import
+    discipline exists to avoid (test_psychoed_fixtures_ci.py imports `observed` from this
+    module at ITS top level; this module must not import anything back at ITS OWN top level)."""
+    if not expected:
+        return None, "(no expect block)"
+    from tests.test_psychoed_fixtures_ci import _subset_match  # noqa: PLC0415
+    try:
+        _subset_match(expected, actual, ctx)
+        return True, "OK"
+    except AssertionError as e:
+        return False, str(e)
+
 
 def _conforms(row: dict, out: dict) -> tuple[bool | None, str]:
     result = out["result"]
+    audit_rows = out["audit_rows"]
+    last_audit = audit_rows[-1] if audit_rows else {}
     got = observed(result)
+    real_label = _real_label(result)
+    fid = row.get("fixture_id", "?")
+
+    parts: list[tuple[str, bool | None, str]] = []  # (name, ok_or_None, detail)
 
     if row.get("clear_no"):
         # Single real path: crisis-intent supremacy applies only if the LIVE classifier
@@ -508,29 +610,115 @@ def _conforms(row: dict, out: dict) -> tuple[bool | None, str]:
         # observed path expects the menu-after-weave mechanism-witness shape (see the CI
         # driver's own `assert_expectations` docstring, "Task 6 driver extensions", for the
         # full reasoning this mirrors).
-        if result.get("gate_path") == "crisis":
+        if real_label == "crisis":
             ok = got == "escalate_crisis" and not result.get("psychoed_menu_offered")
-            return ok, f"clear_no/crisis-path: observed={got!r}"
-        ok = (
-            not result.get("psychoed_weave_escalation")
-            and result.get("skill_match_method") != "psychoed_resolver"
-        )
-        return ok, f"clear_no/non-crisis-path: skill_match_method={result.get('skill_match_method')!r}"
+            parts.append(("disposition", ok, f"clear_no/crisis-path observed={got!r}"))
+        else:
+            never_proceed = (
+                not result.get("psychoed_weave_escalation")
+                and result.get("skill_match_method") != "psychoed_resolver"
+            )
+            parts.append(("never_proceed", never_proceed,
+                          f"clear_no/non-crisis skill_match_method={result.get('skill_match_method')!r}"))
+            ok, d = _assert_subset(row["expect"].get("audit"), last_audit, f"{fid} audit")
+            parts.append(("audit", ok, d))
+            ok, d = _assert_subset(row["expect"].get("state"), result, f"{fid} state")
+            parts.append(("state", ok, d))
 
-    if row.get("label_dispositions"):
-        expected = row["label_dispositions"].get("_default")
+    elif row.get("label_dispositions"):
+        label_map = row["label_dispositions"]
+        expected = label_map.get(real_label, label_map.get("_default"))
         never_proceed = (
             not result.get("psychoed_serve")
             and result.get("skill_match_method") not in ("psychoed_resolver", "psychoed_menu_after_weave")
         )
-        if expected is None:
-            return never_proceed, f"label_dispositions/no-default: never_proceed={never_proceed}"
-        return (never_proceed and got == expected), f"label_dispositions: observed={got!r} expected={expected!r}"
+        parts.append(("never_proceed", never_proceed,
+                      f"label_dispositions[{real_label!r}] never_proceed={never_proceed}"))
+        if expected is not None:
+            parts.append(("disposition", got == expected, f"observed={got!r} expected={expected!r}"))
+        ok, d = _assert_subset(row["expect"].get("audit"), last_audit, f"{fid} audit")
+        parts.append(("audit", ok, d))
+        ok, d = _assert_subset(row["expect"].get("state"), result, f"{fid} state")
+        parts.append(("state", ok, d))
 
-    disposition = row["expect"].get("disposition")
-    if disposition is None:
-        return None, f"no expect.disposition (row shape asserts audit/state only): observed={got!r}"
-    return got == disposition, f"observed={got!r} expected={disposition!r}"
+    else:
+        disposition = row["expect"].get("disposition")
+        expects_escalation = disposition == "escalate_crisis"
+        if disposition is not None:
+            parts.append(("disposition", got == disposition, f"observed={got!r} expected={disposition!r}"))
+        if row["family"] in ("F4", "F6", "F8") and expects_escalation:
+            never_proceed = (
+                not result.get("psychoed_serve")
+                and not result.get("psychoed_menu_offered")
+                and result.get("skill_match_method") not in ("psychoed_resolver", "psychoed_menu_after_weave")
+            )
+            parts.append(("never_proceed", never_proceed, f"never_proceed={never_proceed}"))
+        # Mechanism-witness assertions (audit/state) apply unconditionally UNLESS this row
+        # expects escalation, in which case they only apply on labels that actually reach the
+        # weave evaluator (mirrors the CI driver's WEAVE_EVALUATOR_LABELS split, keyed here on
+        # the REAL observed label instead of a pinned sweep label).
+        gate_ok = (not expects_escalation) or _mechanism_applies(real_label)
+        if gate_ok:
+            ok, d = _assert_subset(row["expect"].get("audit"), last_audit, f"{fid} audit")
+            parts.append(("audit", ok, d))
+            ok, d = _assert_subset(row["expect"].get("state"), result, f"{fid} state")
+            parts.append(("state", ok, d))
+        else:
+            parts.append(("audit/state", None,
+                          f"real_label={real_label!r} does not reach the weave evaluator -- "
+                          f"mechanism-witness assertions do not apply this turn"))
+
+    assertable = [ok for _n, ok, _d in parts if ok is not None]
+    overall = all(assertable) if assertable else None
+    detail = "; ".join(
+        f"{n}={'OK' if ok else 'MISS' if ok is False else 'n/a'}({d})" for n, ok, d in parts
+    ) or "no assertable expectation"
+    return overall, f"real_label={real_label!r} {detail}"
+
+
+# ---------------------------------------------------------------------------
+# Retrieval honesty + read-only bootstrap (Task 9 fix round 4, controller-observed live-run
+# finding). knowledge_retrieve_node's own `_get_pool()` reads `server.app.state._db_pool` --
+# normally built by server.py's startup lifespan hook (server.py:363-411), which never runs
+# for this standalone script. Task 10 live attempt 5 drove EVERY row with retrieval
+# permanently abstaining ('[knowledge_retrieve] DB pool unavailable, returning abstain' on
+# every single turn), making the prior provenance line ("REAL retrieval") FALSE AS WRITTEN,
+# and the amendment-8 smoke case STRUCTURALLY UNABLE to fire -- not merely "didn't fire this
+# run, retrieval-dependent" (which implied a coin-flip that never had real odds).
+# ---------------------------------------------------------------------------
+
+async def _bootstrap_retrieval_pool():
+    """When DATABASE_URL is present, bootstraps a genuinely READ-ONLY asyncpg pool
+    (`server_settings={"default_transaction_read_only": "on"}` -- a session-level PostgreSQL
+    GUC that makes the SERVER ITSELF reject any write statement issued through a connection
+    from this pool; a DB-ENFORCED write guard, not merely an application-level promise) and
+    injects it at the EXACT site `_get_pool()` reads (`server.app.state._db_pool`) -- the same
+    attribute name server.py's own startup hook sets, so `knowledge_retrieve_node`'s
+    unmodified code path finds it exactly as it would find prod's own pool.
+
+    When DATABASE_URL is ABSENT, this does NOT refuse -- retrieval-dependent measurement is a
+    known-honest degraded mode, not a hard failure; the run proceeds with retrieval abstaining
+    everywhere (byte-identical to Task 10 attempt 5's actual behavior), but the provenance
+    below states the truth instead of overclaiming "REAL retrieval".
+
+    Returns (provenance_line: str, pool_or_None) -- caller is responsible for closing the pool."""
+    db_url = os.environ.get("DATABASE_URL")
+    if not db_url:
+        return (
+            "UNAVAILABLE (no DATABASE_URL) -- all retrieval abstains this run; the "
+            "amendment-8 smoke case cannot structurally fire"
+        ), None
+    import asyncpg  # noqa: PLC0415
+    from server import app as _server_app  # noqa: PLC0415
+    pool = await asyncpg.create_pool(
+        db_url, min_size=1, max_size=2,
+        server_settings={"default_transaction_read_only": "on"},
+    )
+    _server_app.state._db_pool = pool
+    return (
+        "ACTIVE (read-only pool: default_transaction_read_only=on -- writes rejected at the "
+        "DB session level, not merely an application-level promise)"
+    ), pool
 
 
 # ---------------------------------------------------------------------------
@@ -543,12 +731,17 @@ _AMENDMENT_8_SMOKE = {
 }
 
 
-async def _run_amendment_8_smoke(armed_categories: frozenset[str]) -> dict:
+async def _run_amendment_8_smoke(armed_categories: frozenset[str], retrieval_active: bool) -> dict:
     """Register amendment #8 rider (a) (ruled 2026-07-30): a paraphrase query, run through
-    the REAL knowledge_retrieve node (no rag_top fake -- genuinely live DB retrieval), that
-    plausibly surfaces a psychoed block via spec 2.2's semantic backstop (the same mechanism
-    F9-001 pins with a faked rag_top). NON-GATING regardless of outcome: this only ever
-    produces a log entry, never a pass/fail contribution."""
+    the REAL knowledge_retrieve node (no rag_top fake -- genuinely live DB retrieval when
+    `retrieval_active`), that plausibly surfaces a psychoed block via spec 2.2's semantic
+    backstop (the same mechanism F9-001 pins with a faked rag_top). NON-GATING regardless of
+    outcome: this only ever produces a log entry, never a pass/fail contribution.
+
+    `retrieval_active=False` (no DATABASE_URL) means this smoke case is STRUCTURALLY UNABLE
+    to fire -- still runs (for the rest of its diagnostic value: intent routing, psychoed
+    entry, etc.) but is reported honestly as "cannot structurally fire" rather than the
+    misleading "did not fire this run (non-deterministic)" the pre-fix version always said."""
     if _AMENDMENT_8_SMOKE["category"] not in armed_categories:
         return {"ran": False, "note": f"target category {_AMENDMENT_8_SMOKE['category']!r} not armed this run"}
     row = {"turns": [{"utterance": _AMENDMENT_8_SMOKE["utterance"], "state_overrides": {}}]}
@@ -558,6 +751,7 @@ async def _run_amendment_8_smoke(armed_categories: frozenset[str]) -> dict:
     passages = result.get("knowledge_passages") or []
     return {
         "ran": True,
+        "retrieval_active": retrieval_active,
         "fired": fired,
         "gate_action": result.get("psychoed_gate_action"),
         "matched_row_id": result.get("psychoed_matched_row_id"),
@@ -770,6 +964,9 @@ async def _main_async(args) -> int:
         print(f"  (s3 warm note: {str(e)[:80]})", flush=True)
     print(f"[{time.time()-t0:.0f}s] BGE-M3 warmed", flush=True)
 
+    retrieval_provenance, retrieval_pool = await _bootstrap_retrieval_pool()
+    print(f"[{time.time()-t0:.0f}s] retrieval: {retrieval_provenance}", flush=True)
+
     per_family = collections.defaultdict(lambda: {"n": 0, "conform": 0, "observed_only": 0})
     skip_counts: collections.Counter = collections.Counter()
     xfail_repro = {}
@@ -817,21 +1014,26 @@ async def _main_async(args) -> int:
             print(f"[{time.time()-t0:.0f}s] {row['fixture_id']} {detail} "
                   f"{'OK' if conform else ('n/a' if conform is None else 'MISS')}", flush=True)
 
-    amendment8 = await _run_amendment_8_smoke(armed)
+    amendment8 = await _run_amendment_8_smoke(armed, retrieval_active=retrieval_pool is not None)
 
     procedural = _run_procedural() if args.include_procedural else None
+
+    if retrieval_pool is not None:
+        await retrieval_pool.close()
 
     faults = len(errors)
     result = {
         "provenance": {
             "sha": args.sha or _git_sha(),
-            "instrument": "FULL-GRAPH app.ainvoke, REAL intent_route + REAL LLM + REAL retrieval "
-                           "(no node patches); only write_session_audit is captured (parity-safe)",
+            "instrument": "FULL-GRAPH app.ainvoke, REAL intent_route + REAL LLM (no node "
+                           "patches); only write_session_audit is captured (parity-safe); "
+                           "retrieval state below is the ACTUAL state, not assumed",
             "flag_parity": f"{parity} vs {parity_source} (psychoed vars carved out as the "
                            "declared delta -- see below; all other SAGE_ vars hard-parity)"
                            + (" (proceeded via --allow-flag-mismatch)" if parity == "MISMATCH" else ""),
             "categories_armed": sorted(armed),
             "declared_delta": _psychoed_delta_stamp(_carved_delta, resolved_flags, armed),
+            "retrieval": retrieval_provenance,
         },
         "faults": faults,
         "errors": errors,
@@ -907,13 +1109,17 @@ def _write_markdown(path: str, result: dict) -> None:
         f.write("\n## Register-amendment-8 rider (a): real-retrieval smoke case (NON-GATING)\n")
         if not a8.get("ran"):
             f.write(f"- did not run: {a8.get('note')}\n")
+        elif not a8.get("retrieval_active"):
+            f.write(f"- did not fire -- retrieval UNAVAILABLE this run ({prov['retrieval']}); "
+                    f"this smoke case could NOT structurally fire (honest, not a non-deterministic "
+                    f"miss). passages surfaced: {a8.get('passage_source_ids')}\n")
         elif a8.get("fired"):
             f.write(f"- **FIRED**: backstop served (matched_row_id={a8.get('matched_row_id')!r}, "
                     f"collision_path={a8.get('collision_path')!r}, gate_action={a8.get('gate_action')!r})"
                     " -- confirms spec 2.2 fail-to-personal shape in situ.\n")
         else:
-            f.write(f"- did not fire this run (retrieval-dependent, non-deterministic); "
-                    f"passages surfaced: {a8.get('passage_source_ids')}\n")
+            f.write(f"- did not fire this run (retrieval was ACTIVE; genuinely retrieval-dependent, "
+                    f"non-deterministic outcome); passages surfaced: {a8.get('passage_source_ids')}\n")
 
         if result["procedural"] is not None:
             p = result["procedural"]
