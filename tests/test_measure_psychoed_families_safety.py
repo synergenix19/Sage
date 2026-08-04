@@ -644,3 +644,279 @@ def test_amendment_8_smoke_return_shape_carries_retrieval_active_flag():
         return await mpf._run_amendment_8_smoke(frozenset(), retrieval_active=False)
     result = asyncio.run(_run())
     assert result == {"ran": False, "note": "target category '3c' not armed this run"}
+
+
+# ---------------------------------------------------------------------------
+# (i) COMPLETE per-turn reset mirror + source-sync guard (Task 9 fix round 5).
+#
+# Fix round 4 mirrored ONE of prod's per-turn resets (`psychoed_serve`). The scoped
+# re-review found the defect is a CLASS: this runner's graph is compiled WITH a real
+# MemorySaver and driven with a STABLE per-row thread_id, so any channel a turn's input
+# dict OMITS is not reset -- it persists from the previous turn's checkpoint. Prod's own
+# per-turn constructor (src/sage_poc/server_helpers.py::_build_state) rebuilds ~60 channels
+# on EVERY request; make_e2e_state/carry_state (which predate most of them) set 30. Every
+# key in the difference was leak-prone, and at least one existing multi-turn fixture
+# (F10-004b, f10_diagnosis.jsonl) asserts on one of them (`knowledge_passages`) -- so a
+# flip-tier MISS on that class would have been an INSTRUMENT ARTIFACT, not a measurement.
+#
+# The runner now IMPORTS AND CALLS the real `_build_state` (no channel list lives in the
+# runner to drift). The guards below are the house-style sync checks
+# (cf. test_psychoed_fixtures_ci.py::test_intent_sweep_matches_intent_route_vocabulary):
+# they AST-derive `_build_state`'s declared reset set straight from server_helpers.py's
+# source and fail CI if the runner's constructed turns ever stop covering it, if reuse
+# degrades into a copy, or if the reset/carried distinction drifts.
+# ---------------------------------------------------------------------------
+
+_SERVER_HELPERS_SRC = REPO / "src" / "sage_poc" / "server_helpers.py"
+
+# Prod's `_build_state` docstring names these as DELIBERATELY ABSENT (checkpoint-sourced),
+# and its psychoed comment extends the same rule to the pathway-scoped psychoed channels.
+# None of them may ever appear in the per-turn reset set.
+_PROD_DOCUMENTED_PERSISTENT = frozenset({
+    "conversation_history", "crisis_state", "active_skill_id", "active_step_id",
+    "clinical_flags", "distress_trajectory", "engagement_trajectory",
+    "conversation_summary", "turn_count", "therapeutic_profile",
+})
+
+# The ONLY channels prod resets per-turn that this runner deliberately THREADS instead
+# (tests/test_graph.py::_CARRY_FIELDS, a convention that predates this task and that
+# multi-turn psychoed fixtures depend on: a row's turn 2 keeps the distress level turn 1
+# established). Pinned so a FUTURE carry-set edit that starts shadowing another prod reset
+# fails here and demands a deliberate decision, instead of silently re-opening the leak
+# class through the carry door.
+_SANCTIONED_CARRIED_OVER_PROD_RESET = frozenset({"emotional_intensity", "engagement"})
+
+# Channels the runner DOES reset every turn (so never leak-prone) but to make_e2e_state's
+# own long-standing constant rather than prod's: `message_en=""` and `is_safe=False` are the
+# unprocessed-input convention every psychoed test at CI tier uses, and safety_check_node
+# overwrites BOTH on every turn before any other node reads them. Deliberately not changed
+# by this fix round -- changing a reset VALUE would move measured behavior, whereas this
+# round's finding is about channels with NO reset at all. Pinned so the divergence stays a
+# recorded two-key exception rather than growing silently.
+_SANCTIONED_RESET_VALUE_DIVERGENCE = frozenset({"message_en", "is_safe"})
+
+
+def _ast_declared_reset_keys() -> frozenset[str]:
+    """Parse `_build_state`'s literal return dict out of server_helpers.py's SOURCE.
+
+    Source-derived, not imported, on purpose: this is the drift alarm. If `_build_state`
+    ever stops being a single literal `return {...}` (e.g. becomes conditional, or merges a
+    second dict), the runner's "one call gives you the whole reset slice" premise no longer
+    holds, and this parse fails loudly rather than the runner silently under-resetting."""
+    import ast
+    tree = ast.parse(_SERVER_HELPERS_SRC.read_text(encoding="utf-8"))
+    fns = [n for n in ast.walk(tree)
+           if isinstance(n, ast.FunctionDef) and n.name == "_build_state"]
+    assert len(fns) == 1, f"expected exactly one _build_state in {_SERVER_HELPERS_SRC}, got {len(fns)}"
+    returns = [n for n in ast.walk(fns[0]) if isinstance(n, ast.Return)]
+    assert len(returns) == 1, (
+        "_build_state is no longer a single-return function -- the runner's per-turn reset "
+        "mirror assumes one call yields the complete reset slice; re-derive it"
+    )
+    node = returns[0].value
+    assert isinstance(node, ast.Dict), (
+        "_build_state no longer returns a dict literal -- re-derive the runner's reset mirror"
+    )
+    keys = []
+    for k in node.keys:
+        assert isinstance(k, ast.Constant) and isinstance(k.value, str), (
+            f"_build_state's return dict has a non-literal key ({ast.dump(k)}) -- the static "
+            "reset-set derivation can no longer see the full channel list"
+        )
+        keys.append(k.value)
+    # Duplicates are prod's own (`rule_fired` is listed twice, same None value) and are
+    # harmless to a set-based reset derivation -- not asserted against.
+    return frozenset(keys)
+
+
+def test_prod_reset_mirror_reuses_the_real_build_state_not_a_copy():
+    """Reuse, not reimplementation: the runner must hold the ACTUAL server_helpers function
+    object, so a prod-side reset change lands here with no runner edit at all."""
+    import sage_poc.server_helpers as sh
+    assert mpf._prod_build_state is sh._build_state
+    assert mpf._ProdRequestLike is sh._RequestLike
+    assert mpf._ProdMessageLike is sh._MessageLike
+
+
+def test_prod_reset_set_matches_server_helpers_source():
+    """Sync guard: the reset slice the runner actually builds == `_build_state`'s declared
+    channel list as parsed from src/sage_poc/server_helpers.py, minus only the two
+    request-identity keys the runner deliberately withholds."""
+    declared = _ast_declared_reset_keys()
+    built = frozenset(mpf._prod_per_turn_reset("hello"))
+    assert mpf._PROD_REQUEST_DERIVED_KEYS == frozenset({"session_id", "user_id"})
+    assert mpf._PROD_REQUEST_DERIVED_KEYS < declared, (
+        "the request-identity keys the runner withholds are no longer in _build_state -- "
+        "re-derive _PROD_REQUEST_DERIVED_KEYS"
+    )
+    assert built == declared - mpf._PROD_REQUEST_DERIVED_KEYS, (
+        "runner's per-turn reset slice and server_helpers._build_state have diverged.\n"
+        f"  missing from runner: {sorted(declared - mpf._PROD_REQUEST_DERIVED_KEYS - built)}\n"
+        f"  extra in runner:     {sorted(built - declared)}"
+    )
+    # Sanity: the class this fix exists for is genuinely large, not a one-key special case.
+    from tests.test_graph import make_e2e_state as _mk
+    assert len(built - frozenset(_mk("hello"))) >= 30, (
+        "the leak-prone set collapsed unexpectedly -- re-verify the finding still holds"
+    )
+
+
+def test_every_prod_reset_channel_is_present_in_every_runner_turn():
+    """THE leak guard. Builds a continuation turn from a previous result that has been
+    polluted with a non-default value in EVERY reset channel (the worst case a live
+    checkpointer can hand turn 2), and asserts each one comes back reset -- to prod's own
+    reset value, except for the explicitly sanctioned carried pair."""
+    declared = _ast_declared_reset_keys() - mpf._PROD_REQUEST_DERIVED_KEYS
+    reset_values = mpf._prod_per_turn_reset("turn two")
+
+    polluted = {k: f"STALE::{k}" for k in declared}
+    polluted.update({"turn_count": 1, "conversation_history": [{"role": "user", "content": "x"}]})
+
+    for label, state in (
+        ("turn-1", mpf._turn_state(None, "turn one")),
+        ("turn-2", mpf._turn_state(polluted, "turn two")),
+    ):
+        missing = sorted(k for k in declared if k not in state)
+        assert not missing, (
+            f"{label}: these per-turn-reset channels are ABSENT from the turn's input state, "
+            f"so an active checkpointer would carry the previous turn's value forward "
+            f"unreset: {missing}"
+        )
+
+    turn2 = mpf._turn_state(polluted, "turn two")
+    diverged = {
+        k: (reset_values[k], turn2[k]) for k in declared
+        if turn2[k] != reset_values[k]
+    }
+    sanctioned = _SANCTIONED_CARRIED_OVER_PROD_RESET | _SANCTIONED_RESET_VALUE_DIVERGENCE
+    assert frozenset(diverged) == sanctioned, (
+        "a per-turn-reset channel diverges from prod's reset value without sanction (or a "
+        "sanctioned one stopped diverging).\n"
+        f"  diverged (prod-reset, runner-value): {diverged}\n"
+        f"  sanctioned carried: {sorted(_SANCTIONED_CARRIED_OVER_PROD_RESET)}\n"
+        f"  sanctioned constant: {sorted(_SANCTIONED_RESET_VALUE_DIVERGENCE)}"
+    )
+    # The carried pair really is CARRIED (turn 2 sees turn 1's value, by design)...
+    for k in _SANCTIONED_CARRIED_OVER_PROD_RESET:
+        assert turn2[k] == polluted[k]
+    # ...and the constant pair really is RESET (a fresh constant, never the previous value).
+    for k in _SANCTIONED_RESET_VALUE_DIVERGENCE:
+        assert turn2[k] != polluted[k]
+    # No stale value survives in any channel this fix round is responsible for.
+    leaked = [k for k in declared - _SANCTIONED_CARRIED_OVER_PROD_RESET
+              if turn2[k] == f"STALE::{k}"]
+    assert not leaked, f"stale turn-1 values survived into turn 2: {leaked}"
+
+
+def test_reset_and_carried_channels_are_disjoint_by_prods_own_rule():
+    """Requirement 2's distinction, checked MECHANICALLY rather than by list review:
+    presence in `_build_state`'s dict == per-turn reset; absence == checkpoint-persisted.
+    The runner's psychoed carry set must live entirely on the ABSENT side, so the reset
+    overlay structurally cannot clobber pathway state that legitimately spans turns."""
+    declared = _ast_declared_reset_keys()
+    overlap = sorted(frozenset(mpf._PSYCHOED_CARRY) & declared)
+    assert not overlap, (
+        "a psychoed carry channel is now ALSO a prod per-turn reset -- prod and this runner "
+        f"disagree about whether it spans turns; adjudicate before proceeding: {overlap}"
+    )
+    assert not (frozenset(mpf._EXTRA_CARRY) & declared)
+    assert not (_PROD_DOCUMENTED_PERSISTENT & declared), (
+        "a channel _build_state's own docstring documents as checkpoint-persisted is now in "
+        "its reset dict: " + str(sorted(_PROD_DOCUMENTED_PERSISTENT & declared))
+    )
+    # psychoed_serve is the one pathway channel prod DOES reset per turn (fix round 4).
+    assert "psychoed_serve" in declared
+    assert "psychoed_serve" not in mpf._PSYCHOED_CARRY
+
+
+def test_reset_overlay_never_clobbers_carried_or_override_values():
+    """Merge order is load-bearing: the reset overlay is the BASE, so it only ever FILLS IN
+    a channel the runner does not already set. Carried pathway state and fixture
+    `state_overrides` both still win."""
+    prev = {
+        "psychoed_active_category": "1f", "psychoed_menu_offered": True,
+        "psychoed_blocks_served": ["b1"], "psychoed_family_exposures": {"1f": 1},
+        "offered_skill_ids": ["s1"], "clinical_flags": ["cf-1"],
+        "crisis_state": "monitoring", "turn_count": 3,
+        "knowledge_passages": [{"source_id": "stale"}],
+    }
+    state = mpf._turn_state(prev, "next", knowledge_passages=[{"source_id": "explicit"}])
+    assert state["psychoed_active_category"] == "1f"
+    assert state["psychoed_menu_offered"] is True
+    assert state["psychoed_blocks_served"] == ["b1"]
+    assert state["psychoed_family_exposures"] == {"1f": 1}
+    assert state["offered_skill_ids"] == ["s1"]
+    assert state["clinical_flags"] == ["cf-1"]
+    assert state["crisis_state"] == "monitoring"
+    assert state["turn_count"] == 3
+    # explicit state_overrides beat the reset overlay (documented escape hatch)
+    assert state["knowledge_passages"] == [{"source_id": "explicit"}]
+    # request-identity keys are never fabricated
+    assert "session_id" not in state and "user_id" not in state
+
+
+def test_knowledge_passages_does_not_leak_turn_1_into_turn_2_through_the_runner():
+    """Requirement 3 -- the named, KNOWN-EXPOSED leak channel, proven at the runner's own
+    driving path with the graph boundary MOCKED (offline: no LLM, no API key, no DB).
+
+    Turn 1's "graph" returns a result carrying retrieved passages. Turn 2's input state, as
+    the runner actually constructs it, must carry `knowledge_passages == []` -- otherwise an
+    active MemorySaver hands turn 2 turn 1's passages and F10-004b's assertion on that
+    channel measures the instrument, not the mechanism."""
+    row = {
+        "fixture_id": "F-LEAK-TEST",
+        "turns": [{"utterance": "turn one"}, {"utterance": "turn two"}],
+    }
+    captured_inputs: list[dict] = []
+    turn_1_passages = [{"source_id": "kb-psychoed-001", "similarity": 0.91}]
+
+    async def _fake_invoke_turn(app, state_in, thread_id):
+        captured_inputs.append(dict(state_in))
+        n = len(captured_inputs)
+        return {
+            **state_in,
+            "path": ["safety_check", "intent_route", "output_gate"],
+            "response": f"stub turn {n}",
+            # turn 1 retrieves; turn 2 does not (the exact shape that exposes the leak)
+            "knowledge_passages": turn_1_passages if n == 1 else [],
+            "knowledge_source": "kb" if n == 1 else "",
+            "knowledge_abstain": n != 1,
+        }
+
+    with patch("scripts.instrument.graph_evidence.build_local_graph",
+               return_value=MagicMock(name="app")), \
+         patch("scripts.instrument.graph_evidence.invoke_turn", new=_fake_invoke_turn):
+        asyncio.run(mpf.run_fixture_real(row))
+
+    assert len(captured_inputs) == 2
+    for n, state_in in enumerate(captured_inputs, start=1):
+        assert "knowledge_passages" in state_in, (
+            f"turn {n}'s input state OMITS knowledge_passages -- under the runner's real "
+            "MemorySaver an omitted key is NOT a reset, it means 'leave this channel as the "
+            "previous turn left it'. That IS the leak."
+        )
+    assert captured_inputs[0]["knowledge_passages"] == []
+    assert captured_inputs[1]["knowledge_passages"] == [], (
+        "knowledge_passages LEAKED turn 1's retrieval into turn 2's input state -- with the "
+        "runner's real MemorySaver + stable thread_id this is exactly the artifact class "
+        "fix round 4 diagnosed for psychoed_serve"
+    )
+    assert captured_inputs[1]["knowledge_source"] == ""
+    assert captured_inputs[1]["knowledge_abstain"] is False
+    # And the same input carries EVERY other prod reset too, not just this one channel.
+    declared = _ast_declared_reset_keys() - mpf._PROD_REQUEST_DERIVED_KEYS
+    assert not [k for k in declared if k not in captured_inputs[1]]
+
+
+def test_pre_fix_construction_would_have_leaked_knowledge_passages():
+    """Proves the fix is load-bearing, not decorative: the PRE-fix continuation-turn
+    construction (`_carry` alone, which is what run_fixture_real called before this round)
+    omits `knowledge_passages` entirely -- and an omitted key under an active checkpointer
+    means "leave the channel as the previous turn left it", i.e. the leak."""
+    prev = {"knowledge_passages": [{"source_id": "kb-psychoed-001"}]}
+    pre_fix = mpf._carry(prev, "turn two")
+    assert "knowledge_passages" not in pre_fix, (
+        "pre-fix construction unexpectedly covers this channel -- re-derive the finding"
+    )
+    post_fix = mpf._turn_state(prev, "turn two")
+    assert post_fix["knowledge_passages"] == []

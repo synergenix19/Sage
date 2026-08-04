@@ -356,6 +356,111 @@ def _carry(prev: dict, raw_message: str, **overrides) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# COMPLETE PER-TURN RESET MIRROR (Task 9 fix round 5, scoped-re-review finding).
+#
+# Fix round 4 mirrored exactly ONE of prod's per-turn resets (`psychoed_serve`, in `_carry`
+# above) because that was the one channel a diagnosed live artifact pointed at. That fix was
+# correct but INCOMPLETE: the underlying defect is a CLASS, not a single channel.
+#
+# The class: fix round 3 made this runner's checkpointer genuinely active (a real MemorySaver
+# compiled into the graph by `graph_evidence.build_local_graph`, plus a STABLE per-row
+# thread_id so one fixture row = one session). Under an active checkpointer, LangGraph merges
+# a turn's input dict INTO the persisted channel values -- so a key OMITTED from the input
+# does not mean "absent/default", it means "leave this channel exactly as the previous turn
+# left it". `make_e2e_state`/`carry_state` (tests/test_graph.py) predate almost all of the
+# psychoed/knowledge/screen/classifier channels and set only 30 keys; prod's own per-turn
+# state constructor (src/sage_poc/server_helpers.py::_build_state) sets 62. Every one of the
+# ~37 keys in the difference was leak-prone here: turn 1's value silently survived into turn
+# 2+ with no reset, exactly as `psychoed_serve` did. At least one existing multi-turn fixture
+# (F10-004b, tests/fixtures/psychoed/f10_diagnosis.jsonl) asserts on one of them
+# (`knowledge_passages`), so flip-tier MISSes on that class would have been INSTRUMENT
+# ARTIFACTS, not measurements -- the same verdict fix round 4 reached for F6-001/002/003.
+#
+# The fix is DERIVED FROM THE SOURCE, not hand-copied: `_prod_build_state` IS
+# `server_helpers._build_state`, imported and called. There is no list of channel names in
+# this file to drift out of sync -- if prod adds, removes, or renames a per-turn reset, this
+# runner picks it up on the next run with no edit. `src/` is not touched: the import is
+# read-only reuse of a pure function (server_helpers' own module docstring guarantees it
+# imports neither FastAPI nor anything that opens a DB connection at import time, and it
+# imports nothing sage_poc-rooted at all -- so this import cannot trigger config.py's
+# `load_dotenv()` and is safe with respect to the SAFETY SNAPSHOT discipline at the top of
+# this file). `test_measure_psychoed_families_safety.py` still carries a source-parsing SYNC
+# GUARD (AST-derived from server_helpers.py, house style per
+# test_psychoed_fixtures_ci.py::test_intent_sweep_matches_intent_route_vocabulary) that fails
+# CI if `_build_state` ever stops being a single literal return dict, or if any reset channel
+# it declares stops being present in a turn this runner constructs.
+#
+# RESET vs CARRIED -- the distinction is prod's own, mirrored structurally, not by a list:
+#   * PRESENT as a key in `_build_state`'s returned dict  => per-turn reset. Prod rebuilds it
+#     from scratch on EVERY request, so a stale value can never reach a node.
+#   * ABSENT from that dict                               => persisted. Prod deliberately
+#     leaves it to the LangGraph checkpoint (its own docstring: "Persistent fields
+#     intentionally absent ... they come from LangGraph checkpoint" -- conversation_history,
+#     crisis_state, active_skill_id/_step_id, clinical_flags, trajectories, turn_count,
+#     therapeutic_profile), and its psychoed comment extends the same rule to the
+#     pathway-scoped channels: "The other pathway-scoped channels (psychoed_active_category,
+#     _delivery_shape, _blocks_served, _menu_offered, _weave_fired, _weave_pending,
+#     _matched_row_id, _collision_path, _framing) and the session-scoped
+#     psychoed_family_exposures are DELIBERATELY ABSENT here".
+# That is EXACTLY this runner's carry set: `_PSYCHOED_CARRY` (10 keys) has ZERO intersection
+# with `_build_state`'s keys -- verified mechanically, every run, by the sync guard -- so the
+# reset overlay structurally CANNOT clobber a psychoed carry key. The overlay is applied
+# UNDER the runner's own state (`{**overlay, **own}`), so it only ever FILLS IN a channel the
+# runner does not already set: every carried value (`_CARRY_FIELDS`, `_PSYCHOED_CARRY`,
+# `_EXTRA_CARRY`) and every fixture `state_overrides` value still wins, unchanged. This is
+# additive reset coverage, never a value change to anything already threaded.
+#
+# TWO KEYS ARE EXCLUDED (`_PROD_REQUEST_DERIVED_KEYS`): `session_id`/`user_id` are not resets
+# at all -- `_build_state`'s own trailing comment labels them "Set from request", they carry
+# the caller's identity, and injecting a synthetic one here would hand real per-session/user
+# persistence paths a fabricated identity. This runner drives fixtures, not sessions; leaving
+# them absent (as every psychoed test at CI tier does) is the faithful choice.
+#
+# `raw_message`/`message_en`/`detected_language` ARE included (they are genuine per-turn
+# rebuilds in prod), but the runner's own state sets all three, so the overlay never changes
+# them -- `make_e2e_state`'s long-standing `message_en=""` / `is_safe=False` conventions are
+# preserved byte-for-byte, and safety_check overwrites both on every turn regardless.
+# ---------------------------------------------------------------------------
+
+from sage_poc.server_helpers import (  # noqa: E402
+    _MessageLike as _ProdMessageLike,
+    _RequestLike as _ProdRequestLike,
+    _build_state as _prod_build_state,
+)
+
+_PROD_REQUEST_DERIVED_KEYS = frozenset({"session_id", "user_id"})
+
+
+def _prod_per_turn_reset(raw_message: str) -> dict:
+    """The EXACT per-turn reset slice prod's server builds for every incoming request.
+
+    Calls the REAL `server_helpers._build_state` (a pure function of the request) rather than
+    reproducing any part of it, then drops the two request-identity keys (see
+    `_PROD_REQUEST_DERIVED_KEYS` above). Every remaining key is a channel prod rebuilds from
+    scratch each turn; supplying them here is what makes this runner's checkpointer-backed
+    multi-turn path reset-equivalent to prod's stateless-per-turn construction."""
+    prod_state = _prod_build_state(
+        _ProdRequestLike(
+            messages=[_ProdMessageLike(role="user", content=raw_message)],
+            session_id="",
+            user_id=None,
+        )
+    )
+    return {k: v for k, v in prod_state.items() if k not in _PROD_REQUEST_DERIVED_KEYS}
+
+
+def _turn_state(prev: dict | None, raw_message: str, **overrides) -> dict:
+    """Build one turn's input state: prod's full per-turn reset UNDER this runner's own
+    turn-state convention (first turn: `make_e2e_state`; continuation turns: `_carry`).
+
+    Merge order is load-bearing and asserted by the sync guard: the reset overlay is the
+    BASE, so it fills every channel the runner would otherwise omit (the leak class) while
+    every carried field and every fixture `state_overrides` value still wins on top."""
+    own = make_e2e_state(raw_message, **overrides) if prev is None else _carry(prev, raw_message, **overrides)
+    return {**_prod_per_turn_reset(raw_message), **own}
+
+
+# ---------------------------------------------------------------------------
 # Audit-capture coverage (task-9-review.md finding "(c) Audit-write exposure" -- Important).
 #
 # `write_session_audit` is imported into SIX distinct module namespaces across src/sage_poc/
@@ -479,10 +584,12 @@ async def run_fixture_real(row: dict) -> dict:
         result: dict | None = None
         for turn in row["turns"]:
             overrides = turn.get("state_overrides") or {}
-            if result is None:
-                state_in = make_e2e_state(turn["utterance"], **overrides)
-            else:
-                state_in = _carry(result, turn["utterance"], **overrides)
+            # `_turn_state` = prod's COMPLETE per-turn reset (server_helpers._build_state,
+            # imported and called, not re-typed) under this runner's own make_e2e_state/
+            # `_carry` convention -- see that function and the reset-mirror block above.
+            # Applied on the FIRST turn too, exactly as prod does: `_build_state` runs for
+            # every incoming request, including a session's first.
+            state_in = _turn_state(result, turn["utterance"], **overrides)
             result = await ge.invoke_turn(app, state_in, thread_id)
             await asyncio.sleep(0)  # let the fire-and-forget audit task(s) run
 
