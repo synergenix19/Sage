@@ -105,6 +105,12 @@ PRESENTATIONS_FLOOR_EXEMPTIONS: dict[str, str] = {
 # Skills that must never be reached via keyword or semantic matching.
 # Each entry is activated by a dedicated routing path that runs BEFORE the matching loops.
 #
+# DEROUTE CHECKLIST (2026-08-04, from the mm->body_scan absorption finding): a deroute
+# redistributes demand to the nearest semantic neighbour, it does not delete it. Every
+# new entry here must record, in the deroute's own governance record: (1) where the
+# derouted request-shapes land next (measured next-hop ranking, not spec ordering), and
+# (2) the landing skill's signature status. Decision time, not probe time.
+#
 # This constant is imported by skill_select_node to exclude these skills from:
 #   (a) the Tier 1 keyword loop
 #   (b) the BGE-M3 semantic embedding matrix
