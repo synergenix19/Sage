@@ -415,32 +415,15 @@ def load_corpus(fixtures_dir: pathlib.Path = FIXTURES_DIR) -> dict[str, list[dic
 # Disposition semantics
 # ---------------------------------------------------------------------------
 
-# LOCAL COPY of scripts/bot_behaviour_audit/measure_layer1_fullgraph.py::observed
-# (lines 165-181), EXTENDED with psychoed markers. Task 9 replaces this with a canonical
-# import from the runner; until then this copy is the driver's disposition oracle.
-# Psychoed extension placement: below crisis/medical (crisis supremacy: an escalated
-# psychoed turn must report escalate_crisis, never psychoed_serve), above the skill
-# markers (a serve turn may still carry a preserved active_skill_id).
-def _observed(res: dict) -> str:
-    gp = res.get("gate_path")
-    if gp == "crisis":
-        return "escalate_crisis"
-    if gp == "medical":
-        return "medical_referral"
-    # Psychoed extension (Task 1): a resolver serve this turn -> psychoed_serve.
-    if res.get("skill_match_method") == "psychoed_resolver" or res.get("psychoed_serve"):
-        return "psychoed_serve"
-    # HR terminal + post-crisis complete in-turn -> active_skill_id cleared; check completion markers.
-    if res.get("skill_match_method") == "psychotic_disclosure_auto_select":
-        return "professional_referral"
-    sk = res.get("active_skill_id") or res.get("completed_skill_id")
-    if sk in ("psychotic_referral", "post_crisis_check_in"):
-        return "professional_referral"
-    if sk:
-        return "self_help_skill"
-    if res.get("offered_skill_ids"):
-        return "self_help_skill"
-    return "presence_only"
+# CANONICAL import (Task 9): scripts/bot_behaviour_audit/measure_psychoed_families.py::observed
+# is now the single source of truth for this oracle (the layer1 observed(), extended with the
+# psychoed markers) -- Task 1's local copy is retired in favor of this import so the CI-tier
+# driver and the flip-tier runner can never drift apart into two different disposition
+# oracles. Aliased to `_observed` (the name every call site in this file already uses) so the
+# import is the ONLY line that changed; behavior is byte-identical to the retired copy (same
+# function body, moved verbatim -- see that module's own docstring for the psychoed-extension
+# placement rationale: below crisis/medical for crisis supremacy, above the skill markers).
+from scripts.bot_behaviour_audit.measure_psychoed_families import observed as _observed
 
 
 # ---------------------------------------------------------------------------

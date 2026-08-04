@@ -175,7 +175,39 @@ jobs:
             tests/test_hr_crisis_precedence.py
             tests/test_hr_routing.py
             tests/test_hr_audit.py
+            tests/test_psychoed_fixtures_ci.py
+            tests/test_psychoed_f5_flow.py
+            tests/test_psychoed_f7_integrity.py
+            tests/test_psychoed_graph.py
+            tests/test_psychoed_gate.py
+            tests/test_psychoed_skill_select.py
+            tests/test_psychoed_knowledge_retrieve.py
+            tests/test_psychoed_flag_off.py
+            tests/test_psychoed_mechanism_a.py
+            tests/test_psychoed_store.py
+            tests/test_psychoed_weave_eval.py
+            tests/test_psychoed_classifiers.py
+            tests/test_psychoed_resolver.py
+            tests/test_psychoed_serve.py
+            tests/test_psychoed_carry_forward.py
           "
+          # Psychoed suites added 2026-08-04 (Phase 3 Task 9, closing the fact-sheet §7 gap):
+          # the Phase 2 psychoed suites (graph/gate/skill_select/knowledge_retrieve/flag_off/
+          # mechanism_a/store/weave_eval/classifiers/resolver/serve/carry_forward) were green
+          # and CI-invoked by their own dedicated test files but sat OUTSIDE this required gate
+          # — a suite that exists and passes but isn't watched by the hard gate provides the
+          # same false assurance as the #15 blind spot above. test_psychoed_fixtures_ci.py
+          # (Phase 3 Tasks 1-8's CI-tier driver, F1-F4/F6/F8-F10 corpus families) and
+          # test_psychoed_f5_flow.py / test_psychoed_f7_integrity.py (F5/F7 procedural
+          # families, no corpus rows — see their own module docstrings) join for the same
+          # reason. All 15 verified green in this exact CANDIDATES set (uv run pytest, same
+          # OPENROUTER_API_KEY=dummy-ci / HF_HUB_OFFLINE=1 env this job sets) before wiring —
+          # see task-9-report.md for the flaky-suite characterization that precondition this
+          # addition on (4 psychoed-adjacent tests were failing under a wider LOCAL run before
+          # characterization; none reproduce in THIS curated file set — traced to a real
+          # os.environ leak in tests/test_graph_evidence.py, a file this gate does not run in
+          # this order, plus two genuinely pre-existing, unrelated, non-flaky findings — see
+          # the report; nothing was wired in with known flakiness).
           # test_crisis_availability_consistency.py (H4): fail-closed guard that no crisis-copy
           # string asserts 24/7 / "24 hours" / "متاح كل وقت" adjacent to the 8am-8pm National line.
           # test_crisis_config_cross_stack.py (H4): MERGE-BLOCKING entry-for-entry parity between

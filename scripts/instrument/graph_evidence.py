@@ -360,6 +360,22 @@ def build_local_graph(warm: bool = True):
     return app
 
 
+async def invoke_turn(app, state_in: dict) -> dict:
+    """Single-turn graph invocation, given a FULLY-CONSTRUCTED state dict. The caller owns
+    state construction (e.g. make_e2e_state/carry_state, or hand-built overrides) -- this
+    function's only job is the actual `app.ainvoke(...)` call, kept here per the
+    instrument-parity standing rule (rule 1, 2026-07-28): every graph invocation whose output
+    feeds a decision/memo/matrix-row/escalation goes through this file, never re-implemented
+    at the call site (test_instrument_helper_only.py enforces this by static scan). Added
+    for Task 9's psychoed flip-tier runner (scripts/bot_behaviour_audit/
+    measure_psychoed_families.py), which needs per-turn `state_overrides` and manual
+    turn-to-turn carry (test_psychoed_fixtures_ci.py's own `_carry` pattern) rather than
+    run_fixture()'s flat-message-list/N-sample shape below -- generic, not psychoed-specific,
+    so any future instrument needing single-turn control can reuse it instead of re-deriving
+    a direct ainvoke() call."""
+    return await app.ainvoke(state_in)
+
+
 # ---------------------------------------------------------------------------
 # N-sample driver (bistability rider)
 # ---------------------------------------------------------------------------
