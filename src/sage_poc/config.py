@@ -239,6 +239,21 @@ if _cardiac_escalation_raw is not None and _cardiac_escalation_raw.strip().lower
         "only 'true' enables.", _cardiac_escalation_raw,
     )
 
+# S2a grief-presence deference (sweep row 13, BUILT INERT 2026-08-04). KILL-SWITCH, DEFAULT OFF, same
+# strict parse: only a LITERAL "true" enables. OFF is byte-identical (intent_route crisis routes to crisis
+# as today). ON -> a safety_check-CLEAN bereavement disclosure the LLM re-flags as crisis restores the
+# clean verdict (presence-mode grief_loss path via skill_select) instead of the crisis card. Harm set
+# single-sourced from panic_override; activation gated on Vee's boundary-sheet ruling.
+_grief_deference_raw = os.getenv("SAGE_GRIEF_DEFERENCE")
+GRIEF_DEFERENCE_ENABLED = (
+    _grief_deference_raw is not None and _grief_deference_raw.strip().lower() == "true"
+)
+if _grief_deference_raw is not None and _grief_deference_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_GRIEF_DEFERENCE unexpected value %r — applying safe default (deference OFF); "
+        "only 'true' enables.", _grief_deference_raw,
+    )
+
 # E7 — BOT BEHAVIOUR §6a coercive-control / relationship-safety pre-emption. KILL-SWITCH, DEFAULT
 # OFF, same inverted strict parse as ROUTE_PRECEDENCE: only a LITERAL "true" enables; unset / empty /
 # whitespace / garbage -> OFF. OFF is byte-identical v7 — only the approved CF-005 domestic_situation

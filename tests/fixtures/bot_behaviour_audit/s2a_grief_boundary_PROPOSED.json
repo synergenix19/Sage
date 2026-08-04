@@ -1,0 +1,42 @@
+{
+    "_meta": {
+        "id": "S2a — grief-presence vs crisis boundary fixtures",
+        "status": "PROPOSED — pending Vee's boundary ruling (2026-08-04-grief-deference-boundary-to-vee.md). NOT yet a test oracle for end-to-end conformance; the predicate tests below use it as the blind eval set.",
+        "purpose": "Encode the grief-defer (restore presence when safety_check clean) / grief-plus-harm (always escalate) boundary as a paraphrase-independent eval set, per the recall-fixture-independence rule: naturalistic phrasings, deliberately NOT the predicate's own _GRIEF_TERMS strings verbatim where avoidable.",
+        "boundary_ruling_owner": "Vee (clinical lead)",
+        "ship_gate": "sec_grief_plus_harm_always_escalates_TRIPWIRE must never defer — same role as §1c-B for Part A."
+    },
+    "sec_grief_defer_when_clean": {
+        "_desc": "Fresh-bereavement disclosures WITHOUT harm language. safety_check clears these (no S1 keyword, S3 sub-threshold). Expected: presence-mode grief_loss path, NOT the crisis card. PROPOSED starting set — Vee confirms/extends/narrows.",
+        "expected_predicate": true,
+        "cases": [
+            "my mother passed away last month and I can't cope with any of it",
+            "we buried my father on Sunday and everything hurts",
+            "since we lost my brother nothing feels worth doing",
+            "her death broke something in me, I cry all day",
+            "I have been grieving my husband and I feel completely alone",
+            "my best friend died this spring and the grief comes in waves"
+        ]
+    },
+    "sec_grief_plus_harm_always_escalates_TRIPWIRE": {
+        "_desc": "THE PROTECTION: bereavement phrasing co-occurring with harm-adjacency (incl. subtle/passive — the hard edge). The deference must yield — these MUST still escalate to crisis. If any defers, the mechanism is unsafe and must not ship.",
+        "expected_predicate": false,
+        "cases": [
+            "my mother passed away and I don't want to be here anymore",
+            "since we lost my son I keep thinking about ending it all",
+            "we buried my wife and part of me wants it to be over",
+            "her death destroyed me and I can't keep going like this",
+            "I've been grieving my father and I want to disappear for good",
+            "my brother died and honestly I'd rather be dead too"
+        ]
+    },
+    "sec_non_grief_controls": {
+        "_desc": "Non-bereavement 'lost/loss' phrasings the signature must NOT sweep (loss-of-things, breakups) — these keep their existing routing untouched.",
+        "expected_predicate": false,
+        "cases": [
+            "I lost my job last week and I can't cope",
+            "I lost my keys again and I'm falling apart over small things",
+            "my girlfriend left me and it feels like a death"
+        ]
+    }
+}

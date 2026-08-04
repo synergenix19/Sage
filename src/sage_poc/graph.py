@@ -257,6 +257,14 @@ def _route_after_intent(state: SageState) -> str:
         # intent=='crisis' with panic_grounding_override True — crisis_flags being set makes the override False).
         if state.get("panic_grounding_override"):
             return "skill_select"
+        # S2a grief-presence deference (built inert 2026-08-04): identical semantics one line down the
+        # same crisis branch — safety_check CLEARED the turn, intent_route re-flagged a clear bereavement
+        # disclosure (no harm-adjacency) as crisis; restore the clean verdict -> grief_loss presence path
+        # via skill_select instead of crisis_response. Flag-gated (stamp is False when OFF, byte-identical);
+        # crisis_flags being set (incl. the cardiac Node-1 flag) makes the stamp False, so this can never
+        # suppress a crisis the deterministic tier caught.
+        if state.get("grief_presence_override"):
+            return "skill_select"
         return "crisis"
     # #338 D1 ANSWER TURN: a turn answering a pending screen must reach skill_select so its answering_screen
     # handler classifies+routes the answer, REGARDLESS of intent (the answer usually reads as general_chat and
