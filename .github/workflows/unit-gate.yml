@@ -176,6 +176,7 @@ jobs:
             tests/test_hr_routing.py
             tests/test_hr_audit.py
             tests/test_psychoed_fixtures_ci.py
+            tests/test_measure_psychoed_families_safety.py
             tests/test_psychoed_f5_flow.py
             tests/test_psychoed_f7_integrity.py
             tests/test_psychoed_graph.py
@@ -208,6 +209,13 @@ jobs:
           # os.environ leak in tests/test_graph_evidence.py, a file this gate does not run in
           # this order, plus two genuinely pre-existing, unrelated, non-flaky findings — see
           # the report; nothing was wired in with known flakiness).
+          # test_measure_psychoed_families_safety.py added same day (Task 9 fix round 1,
+          # review findings): permanent regression guard for two Important review findings in
+          # the flip-tier runner (scripts/bot_behaviour_audit/measure_psychoed_families.py) —
+          # (a) the undefeatable --live + pre-import-key-snapshot gate (proves a planted
+          # parent .env cannot forge a live run), (b) the six-site write_session_audit
+          # patch-coverage static guard (fails loudly if a future terminal-response-node
+          # addition reopens a live-DB-write hole). No live LLM, no API key, no network call.
           # test_crisis_availability_consistency.py (H4): fail-closed guard that no crisis-copy
           # string asserts 24/7 / "24 hours" / "متاح كل وقت" adjacent to the 8am-8pm National line.
           # test_crisis_config_cross_stack.py (H4): MERGE-BLOCKING entry-for-entry parity between

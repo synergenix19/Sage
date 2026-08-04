@@ -29,17 +29,28 @@ test_psychoed_fixtures_ci.py's `load_family`/`_validate_row` (it runs on every P
 unit-gate); this runner is downstream of that green gate and trusts the corpus shape -- it
 does not re-implement `_validate_row`.
 
-DUAL-SITE AUDIT CAPTURE IS PARITY-SAFE, NOT AN INTENT MOCK. The one patch this runner applies
--- `sage_poc.nodes.output_gate.write_session_audit` and `sage_poc.graph.write_session_audit`,
-same two call sites the CI driver patches -- intercepts a SIDE EFFECT, never a decision. Both
-sites invoke `write_session_audit` via `asyncio.create_task(...)` (fire-and-forget) strictly
-AFTER the graph has already computed `result`/`response`: the write is what server.py sends to
-Postgres for later analytics, not an input to any node's decision. Replacing it with a
-capturing coroutine that records the raw state and returns changes nothing about what
-intent_route, skill_select, or freeflow computed or returned -- it only lets this run inspect
-the audit row a live deployment would have written, without touching a real database. Contrast
-with the CI driver's OTHER patches (`intent_route_node`, the freeflow LLM, `rag_top` retrieval-
-faking) -- all decision-node mocks, all deliberately ABSENT here.
+SIX-SITE AUDIT CAPTURE IS PARITY-SAFE, NOT AN INTENT MOCK. `write_session_audit` is imported
+into SIX distinct module namespaces across src/sage_poc/ (`_AUDIT_PATCH_TARGETS`, below) --
+the CI driver's own two (`sage_poc.graph`, the Node-1 crisis short-circuit;
+`sage_poc.nodes.output_gate`, normal turn-close) plus FOUR terminal response nodes that bypass
+output_gate entirely (`derealization_response.py`, `medical_response.py`,
+`high_risk_response.py`, `screen_response.py`). An earlier version of this file patched only
+the CI driver's two sites -- a review finding (task-9-review.md, "(c) Audit-write exposure")
+caught that this runner drives the REAL, unpatched intent_route with a live LLM, so a
+fixture's real-time classification can land on ANY of the six, and the other four would POST a
+real `session_audit` row to prod Supabase whenever credentials are configured in-process
+(which Task 10's live run necessarily has). `_assert_audit_patch_coverage_complete()` runs
+before every row is driven and fails loudly if a future node addition introduces a SEVENTH
+site this list doesn't cover -- the coverage claim is enforced, not merely asserted in prose.
+Every site invokes `write_session_audit` via `asyncio.create_task(...)` (fire-and-forget)
+strictly AFTER the graph has already computed `result`/`response`: the write is what a live
+deployment sends to Postgres for later analytics, not an input to any node's decision.
+Replacing it with a capturing coroutine that records the raw state and returns changes nothing
+about what intent_route, skill_select, freeflow, or any terminal node computed or returned --
+it only lets this run inspect the audit row a live deployment would have written, without
+touching a real database. Contrast with the CI driver's OTHER patches (`intent_route_node`,
+the freeflow LLM, `rag_top` retrieval-faking) -- all decision-node mocks, all deliberately
+ABSENT here.
 
 Skip classes (spec 7.2 no-silent-caps -- every one LOGGED with a count, never a silent filter):
   - family == "F9": retrieval-faking (`rag_top`) is CI-tier only (no live seeded corpus row
@@ -80,11 +91,13 @@ shape in situ and logs it; when it doesn't, the run logs that it didn't. Contrib
 pass/fail tally either way.
 
 Usage (mirrors measure_layer1_fullgraph.py's own usage block -- set flags to match the SERVING
-env BEFORE running; config reads them at import):
+env BEFORE running; config reads them at import). `--live` is REQUIRED for a real run --
+without it, this refuses before touching the network or the graph (undefeatable-live-mode-gate,
+see the module-level safety-snapshot comment near the top of this file):
   SAGE_PSYCHOED_PATHWAYS=true SAGE_PSYCHOED_CATEGORIES=1f,3c,4b,6d,7c,s2c \\
   OPENROUTER_API_KEY=... python scripts/bot_behaviour_audit/measure_psychoed_families.py \\
-    --categories 1f,3c,4b,6d,7c,s2c --sha <serving-sha> --out <path.md> [--json <path.json>] \\
-    [--include-procedural]
+    --live --categories 1f,3c,4b,6d,7c,s2c --sha <serving-sha> --out <path.md> \\
+    [--json <path.json>] [--include-procedural]
 
 Dry run (CI smoke; validates wiring WITHOUT an API key or a live LLM call -- mirrors the
 "runnable dry" requirement; measure_layer1_fullgraph.py has no such mode, so this is added
@@ -109,10 +122,39 @@ import time
 from pathlib import Path
 from unittest.mock import patch
 
+# ---------------------------------------------------------------------------
+# SAFETY SNAPSHOT -- fixes a disclosed Task-9 incident (task-9-review.md, "(a) No-key
+# refusal: STILL DEFEATABLE"). MUST stay the first executable statement after the stdlib
+# imports above, BEFORE any import below that could transitively import sage_poc.config.
+#
+# The incident: sage_poc/config.py calls bare `load_dotenv()` at module import time.
+# python-dotenv's default `find_dotenv()` walks UP parent directories looking for a `.env`;
+# `override=False` only refuses to clobber a var ALREADY PRESENT in os.environ, so a var an
+# operator explicitly unset (`env -u OPENROUTER_API_KEY ...`) is *absent*, not merely empty,
+# and dotenv freely (re-)injects it from any discoverable parent `.env`. A key-presence check
+# placed AFTER `sage_poc.config` has already been imported (as this file's first version did,
+# and as measure_layer1_fullgraph.py's own guard still does) observes the RE-INJECTED value
+# and is silently defeated -- reproduced live during Task 9's own verification AND
+# independently by the reviewer (`env -u OPENROUTER_API_KEY python -c "import
+# sage_poc.config"` shows the var reappear, with zero graph/LLM involvement).
+#
+# Fix (two independent layers, per the reviewer's "or both"): (1) live mode requires the
+# explicit --live flag, checked in main() -- a .env file cannot forge a CLI argument, so an
+# operator who did not deliberately type --live can never reach the live path regardless of
+# what any .env anywhere up the tree contains; (2) this snapshot, taken here (before the
+# import below that is THIS module's own trigger for sage_poc.config's load_dotenv()),
+# reflects the process's OWN environment at interpreter start -- immune to dotenv injection,
+# because dotenv has not run yet at this line. main() requires BOTH before ever calling
+# asyncio.run(_main_async(...)).
+_PRE_IMPORT_ENV_HAD_OPENROUTER_KEY = "OPENROUTER_API_KEY" in os.environ
+
 REPO = Path(__file__).resolve().parents[2]
 FIXTURES_DIR = REPO / "tests" / "fixtures" / "psychoed"
 
-# ---- inherited VERBATIM from the layer1 fullgraph runner (not re-typed) -------------------
+# ---- inherited VERBATIM from the layer1 fullgraph runner (not re-typed) -- THIS is the
+# import that transitively triggers sage_poc.config's load_dotenv() (measure_layer1_
+# fullgraph.py's own top level does `from sage_poc import config as _c`) -- everything above
+# this line must never import anything sage_poc-rooted. -------------------------------------
 sys.path.insert(0, str(REPO)) if str(REPO) not in sys.path else None
 from scripts.bot_behaviour_audit.measure_layer1_fullgraph import (  # noqa: E402
     _config_sage_vars,
@@ -120,7 +162,6 @@ from scripts.bot_behaviour_audit.measure_layer1_fullgraph import (  # noqa: E402
     _fetch_serving_flags,
     _flag_parity,
     _git_sha,
-    _map_health_to_sage,
     _resolve,
     normalize,
 )
@@ -213,8 +254,81 @@ def _carry(prev: dict, raw_message: str, **overrides) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Driver: REAL intent_route, REAL freeflow LLM, REAL knowledge_retrieve. The ONLY patch is
-# the dual-site audit capture -- see module docstring for why that is parity-safe.
+# Audit-capture coverage (task-9-review.md finding "(c) Audit-write exposure" -- Important).
+#
+# `write_session_audit` is imported into SIX distinct module namespaces across src/sage_poc/
+# (each `from sage_poc.audit import write_session_audit`, a REBOUND name -- patching
+# `sage_poc.audit.write_session_audit` alone does NOT intercept a caller that already holds
+# its own reference). Two are the CI driver's own patch targets (`sage_poc.graph`, the Node-1
+# crisis short-circuit; `sage_poc.nodes.output_gate`, normal turn-close, two call sites one
+# import); the other FOUR are terminal response nodes that bypass output_gate entirely
+# (`derealization_response.py`, `medical_response.py`, `high_risk_response.py`,
+# `screen_response.py`). This runner drives the REAL, unpatched intent_route with a live LLM
+# by design -- a fixture's real-time classification can land on any of the six -- so missing
+# even one means a live run (Task 10, which necessarily configures real Supabase credentials
+# for the amendment-8 smoke case's genuine DB retrieval) POSTs a real session_audit row from
+# that unpatched site. Enumerated explicitly (not just "the two the CI driver already
+# patches") and statically verified complete before ANY row is driven -- see
+# `_assert_audit_patch_coverage_complete` below.
+# ---------------------------------------------------------------------------
+
+_AUDIT_PATCH_TARGETS = (
+    "sage_poc.graph.write_session_audit",
+    "sage_poc.nodes.output_gate.write_session_audit",
+    "sage_poc.nodes.derealization_response.write_session_audit",
+    "sage_poc.nodes.medical_response.write_session_audit",
+    "sage_poc.nodes.high_risk_response.write_session_audit",
+    "sage_poc.nodes.screen_response.write_session_audit",
+)
+
+
+def _discover_write_session_audit_importers(src_root: Path | None = None) -> frozenset[str]:
+    """Static source scan (same enforcement idiom as scripts/check_state_channels.py /
+    tests/test_instrument_helper_only.py): every module under src/sage_poc/ whose source
+    contains `from sage_poc.audit import ... write_session_audit ...`. Returns dotted
+    `<module>.write_session_audit` names, the same shape `_AUDIT_PATCH_TARGETS` uses."""
+    src_root = src_root or (REPO / "src" / "sage_poc")
+    pattern = re.compile(r"from\s+sage_poc\.audit\s+import\s+[^\n]*\bwrite_session_audit\b")
+    discovered = set()
+    for path in src_root.rglob("*.py"):
+        if path.name == "audit.py":
+            continue  # the definition site, not an importer
+        if pattern.search(path.read_text(encoding="utf-8")):
+            rel = path.relative_to(src_root).with_suffix("")
+            mod = "sage_poc." + ".".join(rel.parts)
+            discovered.add(f"{mod}.write_session_audit")
+    return frozenset(discovered)
+
+
+def _assert_audit_patch_coverage_complete() -> None:
+    """Fails LOUDLY (RuntimeError, not a silently-narrowed patch list) if a
+    write_session_audit import site exists that `_AUDIT_PATCH_TARGETS` does not cover, so a
+    FUTURE node addition (a fifth terminal response node, same shape as the current four)
+    cannot silently reopen the live-DB-write hole this module closes. Also flags a STALE
+    entry (a target that no longer corresponds to any real import site) so the list never
+    drifts into false confidence in either direction. Called once, before driving any row."""
+    discovered = _discover_write_session_audit_importers()
+    patched = frozenset(_AUDIT_PATCH_TARGETS)
+    missing = discovered - patched
+    stale = patched - discovered
+    if missing:
+        raise RuntimeError(
+            f"AUDIT-CAPTURE COVERAGE GAP: write_session_audit is imported by {sorted(missing)} "
+            f"but _AUDIT_PATCH_TARGETS does not cover it -- a live run would POST real "
+            f"session_audit rows from this site if a fixture's real-time routing reaches it. "
+            f"Add it to _AUDIT_PATCH_TARGETS (measure_psychoed_families.py) before running live."
+        )
+    if stale:
+        raise RuntimeError(
+            f"_AUDIT_PATCH_TARGETS lists {sorted(stale)} but no matching write_session_audit "
+            f"import site exists anymore -- prune the stale entry."
+        )
+
+
+# ---------------------------------------------------------------------------
+# Driver: REAL intent_route, REAL freeflow LLM, REAL knowledge_retrieve. The ONLY patches are
+# the six write_session_audit capture sites above -- see module docstring for why that is
+# parity-safe (observes a side effect, never a decision).
 # ---------------------------------------------------------------------------
 
 async def run_fixture_real(row: dict) -> dict:
@@ -225,10 +339,12 @@ async def run_fixture_real(row: dict) -> dict:
     itself (test_instrument_helper_only.py enforces this by static scan; this module
     deliberately calls neither the graph constructor nor the graph's own invoke method by
     name). This runner owns state construction (make_e2e_state/carry_state/`_carry`) and the
-    dual-site audit-capture patch; the helper owns the actual invocation mechanics -- see
+    six-site audit-capture patch; the helper owns the actual invocation mechanics -- see
     graph_evidence.py's own `invoke_turn` docstring."""
     from sage_poc.audit import _build_session_audit_row  # noqa: PLC0415
     from scripts.instrument import graph_evidence as ge  # noqa: PLC0415
+
+    _assert_audit_patch_coverage_complete()
 
     captured: list[dict] = []
 
@@ -236,8 +352,8 @@ async def run_fixture_real(row: dict) -> dict:
         captured.append(state)
 
     with contextlib.ExitStack() as stack:
-        stack.enter_context(patch("sage_poc.nodes.output_gate.write_session_audit", new=_capture_audit))
-        stack.enter_context(patch("sage_poc.graph.write_session_audit", new=_capture_audit))
+        for target in _AUDIT_PATCH_TARGETS:
+            stack.enter_context(patch(target, new=_capture_audit))
         # build_local_graph() INSIDE the patch context: add_node("output_gate", ...) style
         # callers capture a direct reference to the write_session_audit-calling function at
         # build time in this codebase's graph wiring (same rule the CI driver documents for
@@ -428,6 +544,10 @@ def build_argparser() -> argparse.ArgumentParser:
     ap.add_argument("--dry-run", action="store_true",
                      help="validate wiring (corpus loads, skip/xfail counts computable, categories "
                           "parse) WITHOUT an API key or any live LLM/graph call -- CI smoke mode")
+    ap.add_argument("--live", action="store_true",
+                     help="REQUIRED (with --dry-run absent) to actually drive fixtures against a "
+                          "live LLM/graph. Explicit opt-in a .env file cannot forge -- see the "
+                          "module-level safety-snapshot comment for why this exists.")
     return ap
 
 
@@ -543,9 +663,13 @@ async def _main_async(args) -> int:
               flush=True)
         return 5
     if not os.environ.get("OPENROUTER_API_KEY"):
+        # Defense-in-depth: main()'s pre-import snapshot check (undefeatable by a .env) is
+        # the PRIMARY guard and already ran before this function was ever called; this catches
+        # the (currently theoretical) case of something deleting the var between that snapshot
+        # and here.
         print("❌ OPENROUTER_API_KEY is not set -- refusing (this runner requires a REAL "
               "live LLM; no node patches, see module docstring).", flush=True)
-        return 6
+        return 8
 
     t0 = time.time()
     fixtures_dir = Path(args.fixtures_dir)
@@ -709,6 +833,21 @@ def main() -> int:
     args = build_argparser().parse_args()
     if args.dry_run:
         return _dry_run(args)
+    # ---- UNDEFEATABLE live-mode gate (task-9-review.md finding (a)) -- checked here, before
+    # ANY network/graph/asyncio work, so a missing opt-in fails as cheaply and as loudly as
+    # possible. Both checks are required; neither alone is sufficient (see the module-level
+    # safety-snapshot comment for the full incident trace).
+    if not args.live:
+        print("❌ live mode requires the explicit --live flag (a .env file cannot forge a CLI "
+              "argument) -- refusing. Pass --dry-run to validate wiring, or --live to actually "
+              "drive fixtures against a live LLM.", flush=True)
+        return 6
+    if not _PRE_IMPORT_ENV_HAD_OPENROUTER_KEY:
+        print("❌ OPENROUTER_API_KEY was not present in this process's environment BEFORE any "
+              "sage_poc import (checked pre-import -- immune to config.py's load_dotenv() "
+              "re-injecting it from a parent .env). This is the disclosed Task-9 incident's exact "
+              "mechanism; refusing.", flush=True)
+        return 7
     return asyncio.run(_main_async(args))
 
 
