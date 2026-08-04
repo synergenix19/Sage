@@ -21,8 +21,18 @@ scripts/bot_behaviour_audit/measure_psychoed_families.py:
     introduces an uncovered seventh site. Tests below exercise that guard directly (both the
     passing case on real source and synthetic missing/stale cases via monkeypatch).
 
+Also (fix round 3, Task 10 live checkpoint): run_fixture_real omitted `config={'configurable':
+{'thread_id': ...}}` on every graph invocation. build_local_graph() always compiles the graph
+WITH a checkpointer (MemorySaver), and LangGraph raises ValueError on ANY invoke that lacks a
+thread_id when a checkpointer is present -- a live run crashed on its very first invocation
+(the amendment-8 smoke case, which runs before any of the 196 corpus rows), driving zero rows
+and writing no output doc. Fixed by generating a thread_id per fixture row (stable across that
+row's turns, unique per row) and threading it through graph_evidence.py's `invoke_turn`. Tested
+below with a mocked ainvoke capturing the config -- NOT a live call.
+
 No live LLM, no OPENROUTER_API_KEY, no network call anywhere in this file.
 """
+import asyncio
 import subprocess
 import sys
 from pathlib import Path
@@ -276,3 +286,78 @@ def test_map_health_to_sage_is_not_imported():
     assert not hasattr(mpf, "_map_health_to_sage"), (
         "dead import should have been removed (task-9-review.md minor finding)"
     )
+
+
+# ---------------------------------------------------------------------------
+# (c) thread_id on every live-invoke call (Task 9 fix round 3, controller-observed live crash)
+# ---------------------------------------------------------------------------
+
+def test_run_fixture_real_supplies_thread_id_on_every_invoke(monkeypatch):
+    """The controller-observed incident, reproduced structurally: build_local_graph() always
+    compiles the graph WITH a checkpointer (MemorySaver), so LangGraph requires
+    config={'configurable': {'thread_id': ...}} on every ainvoke() call, or it raises
+    ValueError before any node runs. An earlier version of run_fixture_real (via
+    graph_evidence.invoke_turn) omitted config entirely -- a live run crashed on its very
+    first invocation (the amendment-8 smoke case), driving zero fixture rows.
+
+    Mocked ainvoke capturing the config (NOT a live call): build_local_graph is monkeypatched
+    to return a fake app whose .ainvoke records every (state_in, config) pair. This exercises
+    the REAL, unmocked run_fixture_real + graph_evidence.invoke_turn code paths -- only the
+    graph construction itself is substituted, so this proves both (1) run_fixture_real
+    generates and passes a thread_id, and (2) invoke_turn forwards it in the exact shape
+    LangGraph requires."""
+    import scripts.instrument.graph_evidence as ge_module
+
+    calls = []
+
+    class _FakeApp:
+        async def ainvoke(self, state_in, config=None):
+            calls.append((state_in, config))
+            return {"path": [], "response": "stub"}
+
+    monkeypatch.setattr(ge_module, "build_local_graph", lambda warm=True: _FakeApp())
+
+    row = {"fixture_id": "THREAD-ID-REGRESSION-TEST", "turns": [
+        {"utterance": "turn one", "state_overrides": {}},
+        {"utterance": "turn two", "state_overrides": {}},
+    ]}
+    asyncio.run(mpf.run_fixture_real(row))
+
+    assert len(calls) == 2, "both turns of the row must reach the (fake) graph invocation"
+    thread_ids = set()
+    for state_in, config in calls:
+        assert config is not None, (
+            "invoke call missing config entirely -- this is the EXACT incident "
+            "(ValueError: Checkpointer requires ... thread_id)"
+        )
+        assert "configurable" in config, config
+        assert "thread_id" in config["configurable"], config
+        assert config["configurable"]["thread_id"], "thread_id must be non-empty"
+        thread_ids.add(config["configurable"]["thread_id"])
+    assert len(thread_ids) == 1, (
+        f"thread_id must be STABLE across every turn of the SAME row (one fixture row = one "
+        f"session, mirroring a real multi-turn conversation); got {thread_ids}"
+    )
+
+
+def test_run_fixture_real_thread_id_is_unique_per_row(monkeypatch):
+    """Two different rows must get two different thread_ids -- otherwise one row's
+    checkpoint state could bleed into another's (cross-row contamination)."""
+    import scripts.instrument.graph_evidence as ge_module
+
+    seen_thread_ids = []
+
+    class _FakeApp:
+        async def ainvoke(self, state_in, config=None):
+            seen_thread_ids.append(config["configurable"]["thread_id"])
+            return {"path": [], "response": "stub"}
+
+    monkeypatch.setattr(ge_module, "build_local_graph", lambda warm=True: _FakeApp())
+
+    row_a = {"fixture_id": "ROW-A", "turns": [{"utterance": "hi", "state_overrides": {}}]}
+    row_b = {"fixture_id": "ROW-B", "turns": [{"utterance": "hi", "state_overrides": {}}]}
+    asyncio.run(mpf.run_fixture_real(row_a))
+    asyncio.run(mpf.run_fixture_real(row_b))
+
+    assert len(seen_thread_ids) == 2
+    assert seen_thread_ids[0] != seen_thread_ids[1], "rows must not share a thread_id"

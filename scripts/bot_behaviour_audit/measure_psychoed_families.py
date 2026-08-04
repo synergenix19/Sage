@@ -119,6 +119,7 @@ import re
 import subprocess
 import sys
 import time
+import uuid
 from pathlib import Path
 from unittest.mock import patch
 
@@ -406,7 +407,19 @@ async def run_fixture_real(row: dict) -> dict:
     deliberately calls neither the graph constructor nor the graph's own invoke method by
     name). This runner owns state construction (make_e2e_state/carry_state/`_carry`) and the
     six-site audit-capture patch; the helper owns the actual invocation mechanics -- see
-    graph_evidence.py's own `invoke_turn` docstring."""
+    graph_evidence.py's own `invoke_turn` docstring.
+
+    THREAD_ID (Task 9 fix round 3, controller-observed live-checkpoint crash): `build_local_
+    graph()` always compiles the graph WITH a checkpointer (MemorySaver), so `invoke_turn`
+    REQUIRES a thread_id on every call (LangGraph raises ValueError otherwise -- see that
+    function's own docstring for the full incident trace: a live run crashed on its very
+    first invocation, the amendment-8 smoke case, before driving any of the 196 corpus rows).
+    This function does NOT rely on the checkpointer for turn-to-turn continuity -- state is
+    threaded manually via make_e2e_state/`_carry` exactly as the CI driver does, so the
+    SPECIFIC thread_id value is not load-bearing for correctness -- but it must be STABLE
+    across every turn of the SAME row (one fixture row = one session, mirroring how a real
+    multi-turn conversation would look) and UNIQUE per row (so two rows, or two runs of the
+    same fixture_id, never share checkpoint state)."""
     from sage_poc.audit import _build_session_audit_row  # noqa: PLC0415
     from scripts.instrument import graph_evidence as ge  # noqa: PLC0415
 
@@ -416,6 +429,8 @@ async def run_fixture_real(row: dict) -> dict:
 
     async def _capture_audit(state):
         captured.append(state)
+
+    thread_id = f"psychoed-flip-{row.get('fixture_id', 'unknown')}-{uuid.uuid4().hex[:8]}"
 
     with contextlib.ExitStack() as stack:
         for target in _AUDIT_PATCH_TARGETS:
@@ -433,7 +448,7 @@ async def run_fixture_real(row: dict) -> dict:
                 state_in = make_e2e_state(turn["utterance"], **overrides)
             else:
                 state_in = _carry(result, turn["utterance"], **overrides)
-            result = await ge.invoke_turn(app, state_in)
+            result = await ge.invoke_turn(app, state_in, thread_id)
             await asyncio.sleep(0)  # let the fire-and-forget audit task(s) run
 
     return {"result": result, "audit_rows": [_build_session_audit_row(s) for s in captured]}
@@ -813,7 +828,8 @@ async def _main_async(args) -> int:
             "instrument": "FULL-GRAPH app.ainvoke, REAL intent_route + REAL LLM + REAL retrieval "
                            "(no node patches); only write_session_audit is captured (parity-safe)",
             "flag_parity": f"{parity} vs {parity_source} (psychoed vars carved out as the "
-                           "declared delta -- see below; all other SAGE_ vars hard-parity)",
+                           "declared delta -- see below; all other SAGE_ vars hard-parity)"
+                           + (" (proceeded via --allow-flag-mismatch)" if parity == "MISMATCH" else ""),
             "categories_armed": sorted(armed),
             "declared_delta": _psychoed_delta_stamp(_carved_delta, resolved_flags, armed),
         },
