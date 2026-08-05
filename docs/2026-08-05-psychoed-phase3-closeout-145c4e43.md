@@ -18,11 +18,13 @@ Counts derived directly from `tests/fixtures/psychoed/f*_*.jsonl` (one `jsonl` l
 | F6 | `f6_precedence.jsonl` | 5 | |
 | F8 | `f8_regression.jsonl` | 27 | |
 | F9 | `f9_backstop.jsonl` | 7 | all 7 CI-tier-only (skipped at flip tier, per register entry 13) |
-| F10 | `f10_diagnosis.jsonl` | 5 | F10-001/002/004 hard; F10-003 flip_tier_only (observed-only); F10-004b rag_top CI-tier-only |
+| F10 | `f10_diagnosis.jsonl` | 5 | F10-001/002/003/004 gated (all 4 graded at flip tier — see §7); F10-004b rag_top CI-tier-only |
 | F5 | none (procedural, no corpus rows — `tests/test_psychoed_f5_flow.py`) | 0 | 9 procedural tests, not corpus-driven |
 | F7 | none (procedural, no corpus rows — `tests/test_psychoed_f7_integrity.py`) | 0 | included in the same 9-test procedural run as F5 |
 
 **Total corpus rows: 269** (across `f1_wiring`, `f1_naturalistic`, `f2`–`f4`, `f6`, `f8`–`f10`).
+
+**Correction (fix round 1, review Low finding):** F10-003 is not excluded from grading. Its `flip_tier_only: ["stage2_content"]` tag scopes only the narrative "did the live LLM say something resembling stage-2 content" question — untestable outside a live LLM run — not the row as a whole. F10-003's `expect.state` block (`psychoed_active_category: "1f"`) is a deterministic pin graded at every tier including flip, exactly like F10-001/002/004. The runner's own `flip_tier_only` bucket ("observed: 0, not_observed: 1" in the flip-tier doc) reports whether that one narrative question observed anything, not whether the row itself was graded.
 
 ## 2. Skip counts (spec §7.2 no-silent-caps — every skip logged, never a silent filter)
 
@@ -94,9 +96,25 @@ Four Task-8 tickets + one Task-6 ticket = five total, all filed under `docs/supe
 | F4 | 12/13 (sole miss: F4-002, expected xfail reproduced at parity) |
 | F6 | 5/5 |
 | F8 | 6/6 (21 observed-only rows, no pinned disposition) |
+| F10 | 0/4 — see §7.1 below (Major review finding; omitted from the first cut of this doc) |
 | F5/F7 (procedural) | 9/9 passed |
 
 Xfail reproduction at prod parity: **F4-002** and **F10-004** both REPRODUCED (field-level divergence identical in kind to the CI-tier xfail — see spec §10 entries 14/15). Register-amendment-8 rider (a) real-retrieval smoke: did not fire this run (retrieval genuinely active, non-deterministic outcome; five nearest passages logged).
+
+### 7.1 F10 flip-tier result — 0/4, the real-intent interception class
+
+**Every one of F10's four gated rows missed at flip tier — not only the adjudicated F10-004 xfail.** Per-row detail, extracted from the run's console log (`.superpowers/sdd/2026-07-30-psychoed-phase3-fixtures-plan/attempt7-console.log`, `grep '^\['` for row lines) and cross-checked against the raw record (`docs/2026-08-05-psychoed-families-fliptier-145c4e43.json`, `per_family.F10 = {"n": 4, "conform": 0, "observed_only": 0}`):
+
+| row | real_label (live classifier) | audit | state |
+|---|---|---|---|
+| F10-001 | `general_chat` | MISS — `psychoed_matched_row_id`: expected `'3c-t1'`, got `None` | MISS — `skill_match_method`: expected `'psychoed_resolver'`, got `None` |
+| F10-002 | `scope_refusal` | MISS — `psychoed_matched_row_id`: expected `'1f-t3'`, got `None` | MISS — `skill_match_method`: expected `'psychoed_resolver'`, got `None` |
+| F10-003 | `scope_refusal` | n/a (no `expect.audit` block) | MISS — `psychoed_active_category`: expected `'1f'`, got `None` |
+| F10-004 | `scope_refusal` | MISS — `psychoed_gate_action`: expected `'pass'`, got `None` | MISS — `skill_match_method`: expected `'psychoed_resolver'`, got `None` (the adjudicated xfail — already disclosed via spec §10 entry 15 and the flip-tier doc's own "xfail reproduction" section) |
+
+**Characterization: all four misses are the same real-intent interception class, not four independent findings.** At prod parity, the live `intent_route` classifier routes "do I have depression"-shaped turns to `scope_refusal` — so the diagnosis-guard's stage-1 script is never reached at all; the scope-refusal handler answers the turn instead — and separately classifies the direct-diagnostic phrasing (F10-001) as `general_chat` without ever producing a resolver hit. This is the **same real-intent divergence class as F1 wiring's 81/133** (patched-intent CI tier vs. real classifier at prod parity diverge on which turns even reach the psychoed mechanism at all). It is **consistent with, not contradictory to**, the open findings in `docs/superpowers/tickets/2026-07-31-weave-vs-guard-consent-precedence.md` (reachability concerns on weave-enabled categories) and `docs/superpowers/tickets/2026-07-31-diagnosis-guard-consent-to-serve-unbuilt.md` (the consent-to-serve BUILD ticket) — and it is exactly the information the sign-off packet round's flip-consideration line (§10 entry 15) exists to carry. Stated explicitly: **at prod parity today, formal-diagnosis-shaped turns are handled by the scope-refusal path end-to-end** — which may be correct interim behavior (a live classifier declining to engage with diagnosis-seeking phrasing is a plausible fail-closed posture) — but it means the F10 guard mechanism is **UNREACHED at the classifier level**, not merely unbuilt-at-the-consent-step as register entry 15's CI-tier framing alone would suggest.
+
+**Register entry 15 note:** entry 15's "F10's green-required status is satisfied by F10-004 disposed as strict xfail plus F10-004b green" is a **CI-tier statement** (patched intent, the resolver reached deterministically). It is not softened or restated here. But read alongside this section: the flip-tier F10 record is 0/4, and the interception characterization above — not merely the one adjudicated consent-step gap — is the fuller picture the packet round's flip-consideration line should carry.
 
 ## 8. Flip-tier caveats that must ride any quotation of these numbers
 
@@ -112,9 +130,11 @@ The flip-tier runner (`scripts/bot_behaviour_audit/measure_psychoed_families.py`
 4. Four **live-checkpoint-only findings** — issues that only a genuine live run could surface, none reproducible via dry-run or CI tier: (a) flip-tier assertion semantics were disposition-only, silently never asserting `expect.audit`/`expect.state` on any row without a pinned disposition (all F10, F3-001..004, all 27 F8 matrix rows); (b) the label-class split from the CI driver was missing at flip tier, so real crisis-label routing (which legitimately bypasses `skill_select`) reported false CI-tier-shaped misses; (c) F6-002's apparent divergence was reproduced as a genuine, real artifact in both directions (HR routing fired pre-fix; stale `psychoed_serve` misreported it) — not a fixture bug; (d) retrieval was structurally absent (the pool is server-hosted, not available to the standalone runner process), making the "REAL retrieval" provenance claim false and the amendment-8 smoke case structurally incapable of ever firing — fixed via a read-only bootstrap pool from `DATABASE_URL`.
 5. Complete per-turn reset mirror (this sha, 145c4e43) — the prior round's reset mirror covered only `psychoed_serve` of ~30+ real prod per-turn resets; this round live-imports the actual `_build_state` reset dict (62 prod channels, 37 of them leak-prone) with an AST shape-guard and negative controls proving the drift class is now structurally impossible, not merely tested against today's corpus.
 
-**Superseded/removed:** an earlier "attempt 5" flip-tier doc (`docs/2026-08-04-psychoed-families-fliptier-37935fda.md`) completed cleanly (0 faults, exit 0) but was flagged stale by the fix-round-4/5 findings above (specifically: disposition-only assertions silently under-measured every F10/F3/F8 row, and retrieval was not actually active) and was never committed — it does not exist in this worktree or in git history. Live attempts 1–3 (this task) deadlocked on the flag-parity guard before the carve-out landed; attempt 4 crashed pre-thread_id-fix with zero rows driven and no output doc. **`docs/2026-08-05-psychoed-families-fliptier-145c4e43.md` (attempt 6, this sha) is the sole quotable flip-tier record** — every number in this close-out doc, and every field-level xfail-reproduction claim in spec §10 entries 14/15, is cited from it directly.
+**Superseded/removed:** an earlier "attempt 5" flip-tier doc (`docs/2026-08-04-psychoed-families-fliptier-37935fda.md`) completed cleanly (0 faults, exit 0) but was flagged stale by the fix-round-4/5 findings above (specifically: disposition-only assertions silently under-measured every F10/F3/F8 row, and retrieval was not actually active) and was never committed — it does not exist in this worktree or in git history. Live attempts 1–3 (this task) deadlocked on the flag-parity guard before the carve-out landed; attempt 4 crashed pre-thread_id-fix with zero rows driven and no output doc. **`docs/2026-08-05-psychoed-families-fliptier-145c4e43.md` (attempt 7, this sha) is the sole quotable flip-tier record** — the controller's own preserved console log (`.superpowers/sdd/2026-07-30-psychoed-phase3-fixtures-plan/attempt7-console.log`) numbers it attempt 7, superseding this doc's earlier "attempt 6" working label; every number in this close-out doc, and every field-level xfail-reproduction claim in spec §10 entries 14/15, is cited from it directly. Raw structured record: `docs/2026-08-05-psychoed-families-fliptier-145c4e43.json`.
 
 ## 10. CI evidence (this task, fresh at HEAD 145c4e43)
 
 - `scripts/check_state_channels.py`: **OK: all 112 written+read state keys are declared SageState channels.**
 - Full unit-gate CANDIDATES set (77 files, `.github/workflows/unit-gate.yml`'s exact list, same env as CI: `OPENROUTER_API_KEY=dummy-ci`, `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1`, `pytest -m "not slow" -p no:randomly`): **1804 passed, 4 skipped, 38 deselected, 71 xfailed, 0 failed**, in 77.97s.
+
+**Fix round 1 addendum (review Major/Low, this sha):** the raw structured record for attempt 7 (`docs/2026-08-05-psychoed-families-fliptier-145c4e43.json`) is committed alongside the markdown record as of this round. Its `per_family.F10` (`{"n": 4, "conform": 0, "observed_only": 0}`) is the machine-readable source the §7.1 F10 disclosure above was checked against; the sum of every `per_family[*].n` (133+4+7+8+13+5+27 = 197) matches the 197 flip-tier rows driven this attempt.
