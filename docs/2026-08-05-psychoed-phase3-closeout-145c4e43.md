@@ -83,6 +83,8 @@ All 16 verified green in the exact CANDIDATES set before wiring (Task 9); the ga
 
 Four Task-8 tickets + one Task-6 ticket = five total, all filed under `docs/superpowers/tickets/` with the standard house ticket format (class, file:line trace, live-repro evidence, fix shape or explicit non-fix for the design-ruling ticket).
 
+- `docs/superpowers/tickets/2026-08-05-weave-normalize-curly-apostrophe-clear-no.md` — **[final review, Important 3]** BUG: `sage_poc/psychoed/weave.py::_normalize` deletes (not spaces) curly apostrophes, silently merging contraction-bearing clear-no replies ("no I haven't, why?" typed with U+2019) so they miss `clear_negative_patterns` and escalate to crisis on the turn right after a suicide-screening question. Fail-closed (over-escalation, not a missed escalation) — safe direction, wrong-question-attributed UX. Characterized live via `F4-006` (CI-tier, and reproduced at prod-parity flip tier per §7 above); formalizes the parked finding at `progress.md:32`, first noted 2026-07-30 (same bug class as the fixture-guard's own curly-apostrophe fix, commit `351c552c`, which does not touch this separate `src/` module). Fix needs its own branch + clinical-adjacent review; DoD is `F4-006`'s re-pin from `escalate_crisis` to menu-after-weave plus a permanent curly-apostrophe regression case.
+
 ## 7. Flip-tier record reference — headline numbers
 
 **`docs/2026-08-05-psychoed-families-fliptier-145c4e43.md`** (full-graph `app.ainvoke`, REAL `intent_route` + REAL LLM, no node patches; flag parity VERIFIED vs. desired(railway) with the psychoed-arming vars carved out as the declared delta — every other `SAGE_` var hard-parity; retrieval ACTIVE via a read-only Postgres pool; 0 instrument faults):
@@ -100,6 +102,14 @@ Four Task-8 tickets + one Task-6 ticket = five total, all filed under `docs/supe
 | F5/F7 (procedural) | 9/9 passed |
 
 Xfail reproduction at prod parity: **F4-002** and **F10-004** both REPRODUCED (field-level divergence identical in kind to the CI-tier xfail — see spec §10 entries 14/15). Register-amendment-8 rider (a) real-retrieval smoke: did not fire this run (retrieval genuinely active, non-deterministic outcome; five nearest passages logged).
+
+**Note (final review Minor 3):** the committed flip-tier record's own per-family table
+(`docs/2026-08-05-psychoed-families-fliptier-145c4e43.md:17`) prints the wiring row's label as bare
+`F1`, correct by elimination (its own section header states "F1 naturalistic reported
+separately") but implicit. The table above disambiguates it as `F1 (wiring)`. The record itself is
+an unedited run artifact and is not touched by this note; `scripts/bot_behaviour_audit/
+measure_psychoed_families.py`'s `_write_markdown` now labels this row `F1 (wiring)` for future
+runs so the ambiguity does not recur.
 
 ### 7.1 F10 flip-tier result — 0/4, the real-intent interception class
 
@@ -120,6 +130,7 @@ Xfail reproduction at prod parity: **F4-002** and **F10-004** both REPRODUCED (f
 
 - **Session-identity absent at flip tier.** `session_id`/`user_id` are deliberately not exercised, so any prod behavior keyed on real session identity (summary persistence, profile lookup) is unexercised by this record. This matches CI tier and predates this closing round, but the record must state it, not imply parity on it.
 - **Reset-VALUE divergence pins (`message_en`/`is_safe`).** The per-turn prod-reset mirror (Task 9, fix round 5) reproduces all 62 real prod per-turn-reset channels structurally, but `message_en`/`is_safe` still diverge in *value* from what a live prod turn would carry — harmless today because `safety_check_node` overwrites both before any other node reads them. If a future change makes any node read either channel before `safety_check`, this divergence becomes a real artifact risk; the pin makes it visible, it does not close it.
+- **F6's non-leak property has no flip-tier counterpart (final review Minor 1).** The CI driver (`tests/test_psychoed_fixtures_ci.py:676-693`) asserts F6's non-leak property unconditionally on EVERY swept label — whichever non-psychoed route wins a turn, the response must carry no psychoed copy fragment (design doc §6.3, #359 pattern). `scripts/bot_behaviour_audit/measure_psychoed_families.py` has no equivalent check (it asserts `never_proceed` but not the copy-fragment property). The `| F6 | 5/5 |` row in `docs/2026-08-05-psychoed-families-fliptier-145c4e43.md` therefore covers dispositions and audit rows only, not the copy-fragment half of what F6 gates on at CI tier — read it as a partial, not full-property, flip-tier agreement. A real regression on this property still fails CI outright (100% hard gate, every label), so this is a measurement-instrument gap, not a live safety gap.
 
 ## 9. Instrument lineage
 

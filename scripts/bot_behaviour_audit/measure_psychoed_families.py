@@ -1185,7 +1185,12 @@ def _write_markdown(path: str, result: dict) -> None:
         f.write("| family | conform/total | observed-only (no pinned disposition) |\n|---|---|---|\n")
         for fam, c in sorted(result["per_family"].items()):
             gated = c["n"] - c["observed_only"]
-            f.write(f"| {fam} | {c['conform']}/{gated} | {c['observed_only']} |\n")
+            # final review Minor 3: this table's F1 row is the wiring set by elimination
+            # (naturalistic is reported separately just below), but that was implicit --
+            # label it explicitly so future runs don't repeat the ambiguity. Does not touch
+            # any already-committed record (those are unedited run artifacts).
+            label = "F1 (wiring)" if fam == "F1" else fam
+            f.write(f"| {label} | {c['conform']}/{gated} | {c['observed_only']} |\n")
 
         b = result["f1_naturalistic_baseline"]
         pct = (100.0 * b["hits"] / b["total"]) if b["total"] else 0.0

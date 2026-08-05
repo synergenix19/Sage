@@ -23,6 +23,12 @@ on:
       # on deploy, so a malformed/mistagged/clinically-wrong chunk must be gated like
       # code. Pairs with test_corpus_integrity.py in CANDIDATES below.
       - 'data/knowledge_corpus/**'
+      # Psychoed content is the same content-as-code class as the knowledge corpus above
+      # (clinician-editable trigger phrases/blocks/collision table that drive a clinical
+      # serving surface): a PR editing ONLY data/psychoed/** must be gated like code.
+      # Pairs with test_psychoed_content_integrity.py in CANDIDATES below (final review
+      # Important 1/2, 2026-08-05).
+      - 'data/psychoed/**'
       # Flags are config-as-code (2026-07-29 signed-flag gate): a PR editing ONLY
       # config/prod_flags.yaml is exactly the PR the signed-value check exists for, so
       # it must trigger the gate (test_prod_flags_register.py). scripts/ is likewise a
@@ -60,7 +66,7 @@ jobs:
             CHANGED=$(git diff --name-only "${{ github.event.before }}...${{ github.sha }}" 2>/dev/null || echo "src/sage_poc/_forcerun")
           fi
           echo "changed files:"; echo "$CHANGED"
-          if echo "$CHANGED" | grep -qE '^(src/sage_poc/|tests/|data/knowledge_corpus/|config/|scripts/)|^pyproject\.toml$'; then
+          if echo "$CHANGED" | grep -qE '^(src/sage_poc/|tests/|data/knowledge_corpus/|data/psychoed/|config/|scripts/)|^pyproject\.toml$'; then
             echo "code=true" >> "$GITHUB_OUTPUT"
           else
             echo "code=false" >> "$GITHUB_OUTPUT"
@@ -191,6 +197,7 @@ jobs:
             tests/test_psychoed_resolver.py
             tests/test_psychoed_serve.py
             tests/test_psychoed_carry_forward.py
+            tests/test_psychoed_content_integrity.py
           "
           # Psychoed suites added 2026-08-04 (Phase 3 Task 9, closing the fact-sheet §7 gap):
           # the Phase 2 psychoed suites (graph/gate/skill_select/knowledge_retrieve/flag_off/
@@ -216,6 +223,16 @@ jobs:
           # parent .env cannot forge a live run), (b) the six-site write_session_audit
           # patch-coverage static guard (fails loudly if a future terminal-response-node
           # addition reopens a live-DB-write hole). No live LLM, no API key, no network call.
+          # test_psychoed_content_integrity.py added 2026-08-05 (final-review Important 1/2):
+          # validates the psychoed CLINICAL CONTENT DATA itself (data/psychoed/blocks/**,
+          # trigger_tables/**, manifests, collision table -- schema, em-dash-free served copy,
+          # source citation, per-category coverage). It was in-repo, green (138 tests, no
+          # network/DB), and CI-invoked by its own file, but was missed from Task 9's sweep and
+          # sat outside this required gate -- the same false-assurance gap named above, for the
+          # single most valuable suite to gate given data/psychoed/** is now also a change-
+          # detection path (see the "Corpus is content-as-code" comment on data/psychoed/**
+          # above): without both fixes together, a PR editing ONLY clinical content reported a
+          # green fast-pass and ran neither the gate's Detect step nor this suite.
           # test_crisis_availability_consistency.py (H4): fail-closed guard that no crisis-copy
           # string asserts 24/7 / "24 hours" / "متاح كل وقت" adjacent to the 8am-8pm National line.
           # test_crisis_config_cross_stack.py (H4): MERGE-BLOCKING entry-for-entry parity between
@@ -228,11 +245,14 @@ jobs:
           # the gate — the blind spot that let #15 (overwhelm -> dbt_tipp, a C1-violating
           # production routing defect) stay red invisibly for weeks. A control that does not
           # watch the surface it exists to protect reads as protection while providing none.
-          # NOTE: this suite is currently RED solely on #15
-          # (test_selects_grounding_for_overwhelmed_phrasing), a tracked PRE-EXISTING
-          # production defect under clinical adjudication, NOT introduced by this branch.
-          # It clears when #15's clinically-signed fix lands (separate master PR). Do not
-          # silence the assertion to make the gate green.
+          # NOTE (updated 2026-08-05, final review Minor 6): #15
+          # (test_selects_grounding_for_overwhelmed_phrasing) was RED when this suite was
+          # wired (2026-06-13); verified GREEN as of this update (162 passed, 0 failed,
+          # full CANDIDATES run). #15's clinically-signed fix has since landed on a separate
+          # master PR. Left here (rather than deleted) as a live record that this suite
+          # watches a surface that has previously gone quietly wrong in production -- do not
+          # silence a future assertion here to make the gate green without the same
+          # clinical-adjudication rigor #15 went through.
           FILES=""
           SKIPPED=""
           for f in $CANDIDATES; do

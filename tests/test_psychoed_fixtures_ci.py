@@ -317,6 +317,28 @@ def _validate_row(row: dict, where: str) -> None:
             section_val is None or isinstance(section_val, dict),
             where, f"expect.{section} must be an object or null",
         )
+    # Override-vs-assert forward rule, mechanically enforced (final review Minor 4). A row
+    # must never override a state field it also asserts: turns[*].state_overrides SETS UP
+    # the entry state passed INTO make_e2e_state/_carry (see the module docstring's "Task 4
+    # driver extensions" section); expect.state/expect.audit CHECK state produced OUT of the
+    # graph. If the same key does both, the override already put the value there before the
+    # mechanism ran, so a passing assertion on that key proves nothing about the mechanism --
+    # it's circular. This caught a real violation at Task 5 (F3-002); this makes the class
+    # structurally impossible rather than relying on prose (README + dispatches) alone.
+    override_keys: set[str] = set()
+    for turn in turns:
+        override_keys.update((turn.get("state_overrides") or {}).keys())
+    if override_keys:
+        asserted_keys = set((row["expect"].get("state") or {}).keys()) | set(
+            (row["expect"].get("audit") or {}).keys()
+        )
+        collisions = sorted(override_keys & asserted_keys)
+        _require(
+            not collisions,
+            where,
+            f"state_overrides key(s) {collisions} also appear in expect.state/expect.audit -- "
+            "a row must never override a field it asserts (override-vs-assert forward rule)",
+        )
     # F1 is the naturalistic family: provenance is mandatory, not decorative.
     if row["family"] == "F1":
         _require(
@@ -1640,6 +1662,67 @@ def test_validator_rejects_f1_naturalistic_row_without_source():
     row = _seed_row(fixture_id="F1-900", family="F1", source=None)
     with pytest.raises(FixtureSchemaError, match="source"):
         _validate_row(row, "unit")
+
+
+def test_validator_rejects_state_overrides_key_also_asserted_in_expect_state():
+    """Final review Minor 4: the override-vs-assert forward rule, mechanically enforced.
+    A row that overrides `psychoed_active_category` on entry and then asserts the SAME
+    key in expect.state is circular -- the override put the value there, not the
+    mechanism. This is the exact shape that bit Task 5's F3-002 before the prose rule
+    caught it by hand; this test proves the validator now catches it structurally."""
+    row = _seed_row(
+        turns=[{
+            "utterance": "Why do I feel numb?", "intent_sweep": False,
+            "state_overrides": {"psychoed_active_category": "3c"},
+        }],
+        expect={"disposition": None, "audit": None, "state": {"psychoed_active_category": "3c"}},
+    )
+    with pytest.raises(FixtureSchemaError, match="state_overrides.*also appear in expect"):
+        _validate_row(row, "unit")
+
+
+def test_validator_rejects_state_overrides_key_also_asserted_in_expect_audit():
+    """Same rule, expect.audit side (the task's explicit "plus expect.audit where an
+    override key maps to an audit field of the same name" clause)."""
+    row = _seed_row(
+        turns=[{
+            "utterance": "Why do I feel numb?", "intent_sweep": False,
+            "state_overrides": {"psychoed_matched_row_id": "3c-t3"},
+        }],
+        expect={"disposition": None, "audit": {"psychoed_matched_row_id": "3c-t3"}, "state": None},
+    )
+    with pytest.raises(FixtureSchemaError, match="state_overrides.*also appear in expect"):
+        _validate_row(row, "unit")
+
+
+def test_corpus_wide_override_vs_assert_disjointness():
+    """Standing corpus-wide guard (final review Minor 4): every committed row's
+    turns[*].state_overrides key set must be disjoint from its expect.state/expect.audit
+    key sets. load_family (called by load_corpus) already runs _validate_row on every
+    row, which enforces this per-row -- this test is the explicit, named, corpus-wide
+    assertion so a future author reading test output sees exactly what property is being
+    protected, not just an incidental side effect of schema loading. Corpus is clean
+    today (0 violations); this test exists so the NEXT violation fails CI instead of
+    needing another hand audit like the one that caught F3-002."""
+    corpus = load_corpus()
+    violations = []
+    for family, rows in corpus.items():
+        for row in rows:
+            override_keys: set[str] = set()
+            for turn in row["turns"]:
+                override_keys.update((turn.get("state_overrides") or {}).keys())
+            if not override_keys:
+                continue
+            asserted_keys = set((row["expect"].get("state") or {}).keys()) | set(
+                (row["expect"].get("audit") or {}).keys()
+            )
+            collisions = sorted(override_keys & asserted_keys)
+            if collisions:
+                violations.append((family, row["fixture_id"], collisions))
+    assert not violations, (
+        "corpus row(s) override a state_overrides key they also assert in "
+        f"expect.state/expect.audit (family, fixture_id, keys): {violations}"
+    )
 
 
 def test_validator_rejects_intent_sweep_in_non_gate_family():
