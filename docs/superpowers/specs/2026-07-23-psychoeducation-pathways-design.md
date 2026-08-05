@@ -327,6 +327,67 @@ Lane mapping: reunification P0 = Lane 1 (safety queue, own clock). Psychoed buil
     `tests/test_psychoed_graph.py` pins the current v1 behavior with a forward-reference
     comment to this entry.
 
+**As-built amendments (Phase 3 execution, 2026-08-05):**
+
+13. **F9's deterministic CI tier SATISFIES the §7.3 flip precondition** — ruled 2026-07-30
+    (Phase-3 plan approval/adjudications), labeled at ruling time **"register amendment #8"**
+    (that label is carried here verbatim for traceability back to the plan-approval ledger).
+    Rationale: F9's protected properties — category-from-metadata (never a bare block),
+    never-bare-block, fail-to-personal, and legacy-quarantine (a query landing nearest an
+    existing anxiety-001/depression-001 article must resolve to normal RAG, never a psychoed
+    serve) — are **code-path behaviors of the semantic backstop**, not retrieval-quality
+    properties. A controlled-retrieval assertion (Task 4's `rag_top` DB-boundary fake, real
+    `knowledge_retrieve_node` and every downstream gating check unpatched) is therefore the
+    correct instrument for these properties; a live-retrieval flip-tier run would add
+    non-determinism without adding coverage of what F9 actually protects. Riders (ruled at
+    the same time): **(a)** the flip runner carries one best-effort, **NON-GATING**
+    real-retrieval smoke case (implemented in Task 9; first armed run, 2026-08-05 at
+    145c4e43: retrieval was ACTIVE — a read-only Postgres pool, writes rejected at the DB
+    session level — and the smoke case genuinely did not fire this run (a paraphrase query
+    plausibly, not deterministically, retrieving a psychoed block); the five nearest surfaced
+    passages were logged (`depression-003-en-000`, `depression-003-en-002`,
+    `depression-001-en-002`, `depression-003-en-001`, `depression-003-en-003`) per the rider's
+    own "log when it doesn't fire" instruction — see
+    `docs/2026-08-05-psychoed-families-fliptier-145c4e43.md`); **(b)** record this amendment
+    in the §10 register — **this entry closes rider (b)**.
+
+14. **F4's §7.3 flip precondition — interim reading, pending ticket closure** — ruled
+    2026-07-30 (Phase-3 plan approval/adjudications). Until
+    `docs/superpowers/tickets/2026-07-30-menu-label-short-token-substring-collision.md`
+    closes, F4's §7.3 flip-precondition reads: **"green with the F4-002 strict-xfail
+    recorded"**, not unconditionally green. F4-002 (bare-"no" re-serve under the resolver's
+    menu-label substring tier, colliding with `3c-b6`'s own menu label "Why it can feel like
+    'no reason'") is a corpus-confirmed single collision (40-label scan), UX-contract-only
+    (not a latent escalation bypass — the weave evaluator classifies clear-no correctly
+    first; ambiguous/yes replies structurally cannot reach the resolver at all), disposed as
+    strict xfail citing the ticket above. **Flip-tier record, 2026-08-05 (145c4e43): F4
+    12/13 — the sole divergence is F4-002, REPRODUCED at prod parity** (real intent_route,
+    real LLM: `real_label='general_chat'`, `never_proceed=MISS` on
+    `skill_match_method='psychoed_resolver'`, `audit=MISS` on
+    `psychoed_matched_row_id: expected '3c-t3', got 'menu_pick'`, `state=MISS` on
+    `skill_match_method: expected 'psychoed_menu_after_weave', got 'psychoed_resolver'`) —
+    field-level agreement between the CI-tier xfail and the flip-tier miss is itself the
+    two-tier design confirmation (the mechanism gap is real, not a CI-tier artifact).
+
+15. **F10's green-required precondition — interim reading via F10-004/F10-004b split** —
+    ruled 2026-07-31 (Phase-3 plan approval/adjudications). F10's green-required status is
+    satisfied by **F10-004 disposed as strict xfail** (BUILD ticket
+    `docs/superpowers/tickets/2026-07-31-diagnosis-guard-consent-to-serve-unbuilt.md` — the
+    consented yes-branch after formal_diagnosis stage-1 has no deterministic implementation
+    anywhere in `src/`: no state channel tracks "the guard's own consent question is
+    outstanding" the way `offered_skill_ids`/`offer_response` track a skill offer's consent)
+    **plus F10-004b green** — the companion, permanently-surviving row that verifies the
+    interim L4-quarantine floor the mechanism's absence must not violate (a "yes" reply on
+    the consented-yes turn never leaks psychoed block content into the continuation, even
+    when controlled retrieval plausibly surfaces it at rank 2 — verified both in final state
+    and in the actual LLM prompt the model received, not merely the stubbed final response).
+    The consent-to-serve build named in the ticket is a **NAMED FLIP CONSIDERATION** for the
+    `formal_diagnosis` route: the clinician sign-off packet round carries this line so the
+    flip decision is made knowing that, today, the walk-through offer ("Want me to walk
+    through that?") is answered by general freeflow conversation (the generic
+    `psychoed_continuation` L2 override), not by the ratified concept block — this is a known
+    interim to be flipped with eyes open, not a silently-discovered one after the fact.
+
 ---
 
 ## 11. Not in scope
