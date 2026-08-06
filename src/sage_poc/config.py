@@ -224,6 +224,36 @@ if _panic_override_raw is not None and _panic_override_raw.strip().lower() not i
         "only 'true' enables.", _panic_override_raw,
     )
 
+# Node-1 cardiac-ambiguous deterministic escalation (item-3 realization, BUILT INERT 2026-07-31).
+# KILL-SWITCH, DEFAULT OFF, same strict parse: only a LITERAL "true" enables. OFF is byte-identical.
+# ON -> death-fear x air-hunger co-occurrence sets a deterministic crisis flag at safety_check, BEFORE
+# the LLM classifier — closing the measured window-dependent miss (N=20: 6/20 freeflow-no-resources).
+# Activation gated on Vee's one-tick (her item-3 ruling already assigned the class to crisis).
+_cardiac_escalation_raw = os.getenv("SAGE_CARDIAC_ESCALATION")
+CARDIAC_ESCALATION_ENABLED = (
+    _cardiac_escalation_raw is not None and _cardiac_escalation_raw.strip().lower() == "true"
+)
+if _cardiac_escalation_raw is not None and _cardiac_escalation_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_CARDIAC_ESCALATION unexpected value %r — applying safe default (escalation OFF); "
+        "only 'true' enables.", _cardiac_escalation_raw,
+    )
+
+# S2a grief-presence deference (sweep row 13, BUILT INERT 2026-08-04). KILL-SWITCH, DEFAULT OFF, same
+# strict parse: only a LITERAL "true" enables. OFF is byte-identical (intent_route crisis routes to crisis
+# as today). ON -> a safety_check-CLEAN bereavement disclosure the LLM re-flags as crisis restores the
+# clean verdict (presence-mode grief_loss path via skill_select) instead of the crisis card. Harm set
+# single-sourced from panic_override; activation gated on Vee's boundary-sheet ruling.
+_grief_deference_raw = os.getenv("SAGE_GRIEF_DEFERENCE")
+GRIEF_DEFERENCE_ENABLED = (
+    _grief_deference_raw is not None and _grief_deference_raw.strip().lower() == "true"
+)
+if _grief_deference_raw is not None and _grief_deference_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_GRIEF_DEFERENCE unexpected value %r — applying safe default (deference OFF); "
+        "only 'true' enables.", _grief_deference_raw,
+    )
+
 # E7 — BOT BEHAVIOUR §6a coercive-control / relationship-safety pre-emption. KILL-SWITCH, DEFAULT
 # OFF, same inverted strict parse as ROUTE_PRECEDENCE: only a LITERAL "true" enables; unset / empty /
 # whitespace / garbage -> OFF. OFF is byte-identical v7 — only the approved CF-005 domestic_situation

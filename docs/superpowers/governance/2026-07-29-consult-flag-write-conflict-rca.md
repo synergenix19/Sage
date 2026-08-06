@@ -58,3 +58,20 @@ no user-visible impact from any of it.
    C1 flip per the amended sequence (readback both sides, three live checks, flip-event record).
 4. **Carried debt noted:** `SAGE_CONSULT_SOURCES` has no committed default yet — rides the
    write-path fix.
+
+## Closure addendum (2026-07-29, post step-1 verification — PO-ordered)
+
+**Branch taken: internal concurrency failure.** Writer identified as the owner's own parallel
+session acting on the owner's in-session instruction. **Branch NOT taken: security incident** — no
+credential rotation, no PDPL breach lens; ruled out by identity, recorded here explicitly so future
+readers of two same-day explicit writes find the ruling-out rather than inferring it.
+
+**Stand-down verified by absence:** bounded snapshots 19:24Z/19:26Z identical; the false-asserting
+session wrote nothing through 4+ hours of visible `true` (watchdog independently: clean, 43 flags,
+desired+serving). The one write inside the interval identified itself as PR#387's governed restore.
+
+**Same-day-earned guards (promotion argument):** the pre-flip readback gate (flip-sequence
+amendment 1) and transcript-level writer investigation were both adopted AND both earned their
+place within the same day — the strongest available argument for promoting the config-lock
+extension (mutual exclusion on desired-state writes) to standing protocol. Ledgered as carried
+debt in the C1 flip execution record.

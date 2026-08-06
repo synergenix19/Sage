@@ -653,3 +653,72 @@ def test_build_state_resets_directive_posture_false():
         user_id = None
     state = _build_state(_Req())
     assert state["directive_posture"] is False
+
+
+async def test_mindfulness_meditation_derouted_while_unsigned():
+    """mindfulness_meditation must be unreachable via keyword or semantic matching
+    while its registration is unsigned (Vee 2026-07-31, sign-off sheet item 3).
+
+    The skill stays in SKILL_REGISTRY (mid-session state and the executor are
+    untouched); only the two matching surfaces are cut. Re-route on signature =
+    remove the KEYWORD_SEMANTIC_SKIP entry, then delete this test's premise line
+    in the same PR as the signed registration.
+    """
+    from sage_poc.nodes.skill_select import skill_select_node
+    phrases = [
+        "mindfulness meditation",
+        "guided meditation",
+        "can we do some sitting meditation",
+        "i want to meditate",
+    ]
+    for phrase in phrases:
+        state = make_full_state(
+            message_en=phrase,
+            primary_intent="new_skill",
+            intent_confidence=0.9,
+        )
+        result = await skill_select_node(state)
+        assert result.get("active_skill_id") != "mindfulness_meditation", (
+            f"mindfulness_meditation ACTIVATED by {repr(phrase)} while unsigned. "
+            "Ensure it is in corpus_constants.KEYWORD_SEMANTIC_SKIP."
+        )
+        offered = result.get("offered_skill_ids") or []
+        assert "mindfulness_meditation" not in offered, (
+            f"mindfulness_meditation OFFERED for {repr(phrase)} while unsigned. "
+            "Ensure it is in corpus_constants.KEYWORD_SEMANTIC_SKIP."
+        )
+
+
+async def test_body_scan_and_safe_place_derouted_while_unsigned():
+    """mindfulness_body_scan and safe_place_visualization must be unreachable via
+    keyword or semantic matching while their signature records are unresolved
+    (body_scan family ruling, option (a), 2026-08-06; packet PR#407).
+
+    body_scan was measured absorbing the derouted mm demand; safe_place shares the
+    signature-record-not-found status and catches "guided meditation" (guided
+    imagery, trauma-contraindicated risk shape). Re-route on signature = remove the
+    KEYWORD_SEMANTIC_SKIP entry and this test's corresponding phrases in the same PR.
+    """
+    from sage_poc.nodes.skill_select import skill_select_node
+    blocked = {"mindfulness_body_scan", "safe_place_visualization"}
+    phrases = [
+        "I want to try mindfulness meditation to sit with my feelings",
+        "guided meditation",
+        "body scan",
+        "can we do a body scan exercise",
+        "visualize a safe place",
+        "take me to my safe place",
+    ]
+    for phrase in phrases:
+        state = make_full_state(
+            message_en=phrase,
+            primary_intent="new_skill",
+            intent_confidence=0.9,
+        )
+        result = await skill_select_node(state)
+        offered = set(result.get("offered_skill_ids") or [])
+        hit = blocked & (offered | {result.get("active_skill_id")})
+        assert not hit, (
+            f"{hit} reachable via {repr(phrase)} while its signature record is "
+            "unresolved. Ensure both are in corpus_constants.KEYWORD_SEMANTIC_SKIP."
+        )

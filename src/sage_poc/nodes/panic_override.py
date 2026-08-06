@@ -1,4 +1,6 @@
-"""Part A — §1c panic-grounding override (crisis-path). Vee-signed boundary 2026-07-28.
+"""Part A — §1c panic-grounding override (crisis-path). Vee-signed boundary 2026-07-28; SCOPED BACK 2026-07-30
+(item-1: pure-panic only, derealization -> CF-010 referral, HR-family terms -> their own mechanisms) with the
+item-3 cardiac deference (death-fear x air-hunger stays crisis). Rulings via PO relay, PR#374 packet.
 
 Restores the Cardinal Rule that the deterministic crisis tier (safety_check) owns the crisis call. When
 safety_check has CLEARED a turn but intent_route's LLM re-flags it crisis on panic phrasing, this deterministic
@@ -33,19 +35,36 @@ _HARM_TERMS: tuple[str, ...] = (
     "hurt them", "hurt him", "hurt her", "hurt someone", "kill them", "hurt people",
 )
 
-# PANIC / SOMATIC / DEREALIZATION signature — the presentation safety_check cleared and the doc says route
-# to grounding. Must be PRESENT for the override to fire (we only ever correct a panic over-escalation).
+# PURE-PANIC signature — SCOPED BACK 2026-07-30 (item-1 ruling, Vee via PO relay, PR#374 packet):
+# breathing / chest / heart / dizzy / trembling / closing-in / panic-attack clusters plus fear-of-death
+# phrasing (the panic presentation itself). REMOVED: the derealization set ("detached", "unreal",
+# "outside my body", "watching myself", "not real", "derealiz") — CF-010's referral territory (doc L151),
+# and the HR-family-owned terms ("thoughts are racing", "mind is racing" CF-007; "losing my mind",
+# "losing it" CF-009-adjacent; "out of control", "coming apart", "falling apart" non-somatic) — the
+# disposition-ownership registry's four overlap findings. Escalation stands on all removed surface.
 _PANIC_TERMS: tuple[str, ...] = (
     "can't breathe", "cant breathe", "can't get", "cant get", "get enough air", "get any air", "no air",
     "chest is tight", "chest tight", "tight chest", "chest is really tight",
     "heart is pounding", "heart pounding", "heart is racing", "heart racing", "racing heart",
     "heart is hammering", "hammering", "heart won't stop", "heart wont stop",
     "room is spinning", "spinning", "dizzy", "lightheaded",
-    "detached", "outside my body", "watching myself", "unreal", "not real", "derealiz",
     "closing in", "trembling", "shaking", "shaky",
     "panic attack", "panicking", "hyperventilat", "can't calm down", "cant calm down",
-    "coming apart", "falling apart", "losing my mind", "losing it", "out of control",
-    "thoughts are racing", "mind is racing", "going to die", "gonna die", "feel like dying",
+    "going to die", "gonna die", "feel like dying",
+)
+
+# CARDIAC-AMBIGUOUS deference — item-3 ruling 2026-07-30: the "going to die + can't breathe" class
+# (death-fear AND air-hunger co-occurring, no harm word) STAYS AT CRISIS. A live probe proved D1's
+# red-flag surface does not intercept panic air-hunger, so "no medical_flags" cannot certify this class
+# medically clean — and Vee's Ruling 3 permits a downgrade only WITH a clean screen. No single-turn clean
+# screen exists; therefore no downgrade. This knowingly reverses the 07-28 demonstrated anchor.
+_DEATH_FEAR: tuple[str, ...] = (
+    "going to die", "gonna die", "feel like dying", "about to die",
+    "think i'm dying", "think im dying", "i'm dying", "im dying", "certain i'm dying",
+)
+_AIR_HUNGER: tuple[str, ...] = (
+    "can't breathe", "cant breathe", "cannot breathe", "get enough air", "get any air", "no air",
+    "can't get air", "cant get air", "short of breath", "struggling to breathe", "gasping",
 )
 
 
@@ -81,4 +100,7 @@ def should_ground_over_crisis(state) -> bool:
     text = state.get("message_en") or state.get("raw_message") or ""
     if _has_harm_language(text):
         return False
+    t = _norm(text)
+    if any(d in t for d in _DEATH_FEAR) and any(a in t for a in _AIR_HUNGER):
+        return False  # cardiac-ambiguous class stays at crisis (item-3 ruling 2026-07-30)
     return _has_panic_signature(text)

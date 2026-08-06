@@ -940,6 +940,10 @@ async def health_version(_: None = Depends(require_api_key)):
         "panic_grounding_override_raw_env": os.environ.get("SAGE_PANIC_GROUNDING_OVERRIDE"),
         "derealization_detection_enabled": _c.DEREALIZATION_DETECTION_ENABLED,
         "derealization_detection_raw_env": os.environ.get("SAGE_DEREALIZATION_DETECTION"),
+        "cardiac_escalation_enabled": _c.CARDIAC_ESCALATION_ENABLED,
+        "cardiac_escalation_raw_env": os.environ.get("SAGE_CARDIAC_ESCALATION"),
+        "grief_deference_enabled": _c.GRIEF_DEFERENCE_ENABLED,
+        "grief_deference_raw_env": os.environ.get("SAGE_GRIEF_DEFERENCE"),
         # Node-2 determinism pins + audit provenance flag (bistability finding 2026-07-28):
         # resolved + raw, same pattern. classifier_seed / openrouter_provider_pin report the
         # RESOLVED module values (int-or-null / string-or-null — unset is null, never fabricated)

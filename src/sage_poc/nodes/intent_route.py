@@ -10,6 +10,7 @@ from sage_poc.conversation_stall import detect_stall
 from sage_poc.nodes.self_reference_detect import detect_self_reference
 from sage_poc.nodes.venting_detect import detect_venting
 from sage_poc.nodes.panic_override import should_ground_over_crisis
+from sage_poc.nodes.grief_override import should_defer_grief_over_crisis
 from sage_poc import config as _cfg
 
 # SINGLE-POINT-OF-FAILURE WARNING: The general_chat classification below is the sole
@@ -211,6 +212,13 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
         "panic_grounding_override": (
             _cfg.PANIC_GROUNDING_OVERRIDE_ENABLED
             and should_ground_over_crisis({**state, "primary_intent": primary_intent})
+        ),
+        # S2a (sweep row 13, built inert 2026-08-04) — deterministic grief-presence deference. Same
+        # stamp/honor pattern as panic_grounding_override immediately above: code decides here,
+        # _route_after_intent honours it. Flag-gated kill-switch; OFF -> always False (byte-identical).
+        "grief_presence_override": (
+            _cfg.GRIEF_DEFERENCE_ENABLED
+            and should_defer_grief_over_crisis({**state, "primary_intent": primary_intent})
         ),
     }
     if _provenance_on:

@@ -63,26 +63,6 @@
         "ar": null
       }
     },
-    "safe_place_visualization": {
-      "display_name": {
-        "en": "Safe place imagery",
-        "ar": null
-      },
-      "description": {
-        "en": "a calming exercise where you picture a place, real or imagined, that feels safe and build it up in detail with your senses, so you can settle and return to it when you need calm, about ten minutes",
-        "ar": null
-      }
-    },
-    "mindfulness_body_scan": {
-      "display_name": {
-        "en": "Body scan",
-        "ar": null
-      },
-      "description": {
-        "en": "a slow guided check-in where you move your attention gently through your body from head to toe, noticing sensation without judging it and releasing tension as you go, ten to fifteen minutes",
-        "ar": null
-      }
-    },
     "cbt_thought_record": {
       "display_name": {
         "en": "Fact vs. Opinion",
@@ -250,16 +230,6 @@
       },
       "description": {
         "en": "a gentle, guided space to be with a loss at your own pace, with no pressure to fix it or move on, just room to feel it and put it into words, about fifteen minutes",
-        "ar": null
-      }
-    },
-    "mindfulness_meditation": {
-      "display_name": {
-        "en": "Mindfulness meditation",
-        "ar": null
-      },
-      "description": {
-        "en": "a longer-form practice for sitting with anxious feelings without needing to fix or fight them, resting your attention on your breath and letting thoughts and feelings come and go, a few minutes",
         "ar": null
       }
     }
