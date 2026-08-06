@@ -388,6 +388,44 @@ Lane mapping: reunification P0 = Lane 1 (safety queue, own clock). Psychoed buil
     `psychoed_continuation` L2 override), not by the ratified concept block — this is a known
     interim to be flipped with eyes open, not a silently-discovered one after the fact.
 
+16. **F1 wiring's 81/133 — retraction of a pre-written taxonomy category, and the honest
+    reading of the number — ruled 2026-08-06.** A pre-written taxonomy category for the
+    2026-08-05 flip-tier record's 52 F1 wiring misses assumed "by-design precedence" (crisis
+    or safety routing correctly outranking psychoed) would explain some share of the
+    divergence between CI-tier (133/133) and flip-tier (81/133). It was **RETRACTED** when
+    the evidence refused it: a full per-row taxonomy against the run's own console log
+    (`docs/2026-08-06-f1-wiring-flip-divergence-taxonomy.md`, source
+    `docs/2026-08-05-psychoed-families-fliptier-145c4e43-console.log`) found **zero of the 52
+    misses involve crisis, high-risk, or medical precedence**. All 52 are one of three named
+    classes: 48 `intent_interception_general_chat`, 3 `intent_interception_scope_refusal`
+    (51 total — the live `intent_route` classifier routes the turn to a label that never
+    transits `skill_select`, so the resolver never runs), and 1
+    `cross_category_collision` (`F1-s2c-t5-01`, a separate, narrower defect — see Ticket B
+    below).
+
+    The 51-row class is a **spec conformance violation**, ruled as such rather than an
+    annotation matter: `docs/superpowers/tickets/2026-08-06-psychoed-resolver-intent-reachability.md`
+    (Ticket A, HIGH) finds that spec §2.1's binding principle — "It runs the §0 trigger match
+    on the raw turn, regardless of `primary_intent`... deterministic recognition is never
+    conditional on the probabilistic router" — holds INSIDE Node 4 (the resolver itself never
+    consults `primary_intent`) and is violated ONE NODE UPSTREAM: transit TO Node 4 is
+    conditional on `intent_route`'s classification, so a turn labeled `general_chat` or
+    `scope_refusal` never reaches the node the trigger tables live in. This is the exact
+    §5-drift class §2.1's own rationale names, realized one node upstream of where that
+    rationale describes it. The 1-row class (`F1-s2c-t5-01`) is `docs/superpowers/tickets/
+    2026-08-06-cross-category-collision-all-armed.md` (Ticket B): a genuine cross-category
+    collision the CI driver's per-row single-category arming cannot expose, now reproduced
+    deterministically in CI via this task's all-armed collision mode
+    (`tests/test_psychoed_fixtures_ci.py::test_psychoed_fixture_all_armed`).
+
+    **Honest restatement (this is the quotable reading, not the bare fraction):** F1
+    wiring's flip condition is **133/133 CI green + flip-tier RED with a named blocking
+    ticket** (Ticket A, spec §2.1 violation, HIGH) — **per-category flips are blocked on its
+    resolution.** The 81/133 record number carries this reading always; it is never
+    quotable as a pass or a fail in isolation, and never as evidence that crisis/safety
+    precedence explains any part of the gap — the taxonomy checked that claim by name and
+    it does not hold.
+
 ---
 
 ## 11. Not in scope

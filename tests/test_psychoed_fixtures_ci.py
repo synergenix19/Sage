@@ -966,6 +966,185 @@ async def test_psychoed_fixture(row, intent, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
+# All-six-armed collision mode (2026-08-06 human adjudication, Ticket B:
+# docs/superpowers/tickets/2026-08-06-cross-category-collision-all-armed.md).
+#
+# The single-armed driver above (`_arm_psychoed`) only ever enables the row's OWN
+# category/categories, never all six psychoed categories at once -- except F2, which
+# declares exactly the two categories its collision needs. Prod topology (and the
+# 2026-08-05 flip-tier run, all six armed) enables every flipped category simultaneously,
+# so a cross-category exact-phrase collision that isn't declared as the row's own
+# `categories` is structurally invisible to the CI driver: F1-s2c-t5-01 pins category
+# s2c under single-arming, but the SAME phrase ("Why do I feel numb?") also lives in 3c's
+# table (3c-t3) -- a collision the flip-tier run's real all-six-armed topology exposed
+# (docs/2026-08-05-psychoed-families-fliptier-145c4e43.md; taxonomized in
+# docs/2026-08-06-f1-wiring-flip-divergence-taxonomy.md). This section closes that CI
+# blind spot: collision-sensitive rows run a SECOND time, all six categories armed, on
+# top of their existing (unchanged) single/declared-category run above.
+#
+# Scope derivation (mechanical, not hand-picked):
+#   1. The F2 family, unconditionally (Ticket B, ruled) -- F2 is the family purpose-built
+#      to exercise collision paths; every row already declares a `categories` arming, but
+#      that is 2-of-6, not the prod-shaped 6-of-6, so F2 is re-run all-six-armed too.
+#   2. Every OTHER hard-required row whose utterance normalizes (resolver._norm, the exact
+#      function the resolver itself uses) to a phrase that appears, after normalization,
+#      in more than one category's data/psychoed/trigger_tables/en/*.json (see
+#      `_collision_sensitive_multi_table_phrases` below for the exact derivation --
+#      running it today yields exactly 2 normalized phrases: "what's happening to me"
+#      {1f-t2, 3c-t4} and "why do i feel numb" {3c-t3, s2c-t5}, matching
+#      data/psychoed/collisions/collision_table.json's `collisions` list phrase-for-phrase).
+#
+# Deliberate exclusion, documented not silent: F4/F6 (the intent-swept gate families) are
+# excluded from this mode even though 16 F4 rows + 1 F6 row also open on "Why do I feel
+# numb?" (turn 0). Justification, not convenience: resolver.resolve() takes NO intent
+# argument at all -- category/row_id resolution is a pure function of
+# (message_en, grief_context, enabled_categories) -- and turns 2+'s menu-context matching
+# (the only path an already-active category's downstream turns can take) is scoped to
+# `_labels_for(active_category)`, a SINGLE category, never influenced by which OTHER
+# categories are also enabled (resolver.py `resolve()`'s `active_category` branch). Turn 0
+# of every F4/F6 row resolves to 3c under all-six-armed identically to single-armed
+# (verified directly against resolver.resolve(), see Ticket B) -- there is no reachable
+# downstream difference arming the other four categories could produce, so sweeping F4/F6
+# through this mode (which would also require picking a representative INTENT_SWEEP label
+# per row, multiplying cases) would add zero new-property coverage. If a future collision
+# phrase becomes reachable mid-pathway (menu-context scope changes), this exclusion is the
+# first place to revisit.
+#
+# Non-gate collision-sensitive rows are NOT intent-swept (F1/F2 are not in GATE_FAMILIES),
+# so each runs exactly ONCE here (intent_for_sweep=None, the row's own turn-pinned intent),
+# same shape as `test_psychoed_fixture`'s non-swept branch.
+# ---------------------------------------------------------------------------
+
+_ALL_SIX_CATEGORIES = frozenset({"1f", "3c", "4b", "6d", "7c", "s2c"})
+
+_TICKET_B = "docs/superpowers/tickets/2026-08-06-cross-category-collision-all-armed.md"
+
+# Empirically determined (this task, 2026-08-06): running _all_armed_params() with zero
+# marks first, then pinning exactly the rows that diverged. Keyed by fixture_id, not baked
+# into f1_wiring.jsonl itself -- that file is mechanically GENERATED from the trigger
+# tables (tests/fixtures/psychoed/regen_wiring.py) and re-checked byte-for-byte against the
+# generator every run (test_f1_wiring_matches_generator); an adjudicated CI-driver-level
+# exception belongs in the driver, the same place F4-002's/F10-004's ticket citations
+# already live, never hand-edited into generated fixture data.
+_ALL_ARMED_KNOWN_DIVERGENCES: dict[str, str] = {
+    "F1-1f-t2-02": (
+        "phrase \"What's happening to me?\" (1f-t2) collides with 3c-t4 under all-six-armed "
+        "topology; collision_table.json's interim_default_winner=3c wins over 1f absent a "
+        "context signal (no context_winner is even declared for this collision) -- observed "
+        "category/row_id: 3c/3c-t4, expected 1f/1f-t2"
+    ),
+    "F1-s2c-t5-01": (
+        "phrase 'Why do I feel numb?' (s2c-t5) collides with 3c-t3 under all-six-armed "
+        "topology; collision_table.json's default_winner=3c wins over s2c absent grief "
+        "context -- the exact divergence the 2026-08-05 flip-tier run reproduced live "
+        "(real all-six-armed topology, no CI-tier equivalent existed before this task) -- "
+        "observed category/row_id: 3c/3c-t3, expected s2c/s2c-t5"
+    ),
+}
+
+
+def _collision_sensitive_multi_table_phrases() -> frozenset[str]:
+    """Mechanical derivation (Ticket B): the set of resolver-normalized trigger phrases
+    that appear, after normalization, in more than one category's EN trigger table.
+    Reuses resolver._norm directly so this can never drift from the resolver's own
+    normalization. Iterates data/psychoed/trigger_tables/en/*.json via store.trigger_rows()
+    (the same source resolver.py itself reads), not a re-parse of the raw files, so a
+    future table edit is picked up automatically -- no hardcoded phrase list to rot."""
+    from sage_poc.psychoed import store as psy_store  # noqa: PLC0415
+    from sage_poc.psychoed.resolver import _norm  # noqa: PLC0415
+
+    phrase_categories: dict[str, set[str]] = {}
+    for row in psy_store.trigger_rows():
+        for phrase in row["phrases"]:
+            phrase_categories.setdefault(_norm(phrase), set()).add(row["category"])
+    return frozenset(
+        norm_phrase for norm_phrase, cats in phrase_categories.items() if len(cats) > 1
+    )
+
+
+def _is_collision_sensitive(row: dict) -> bool:
+    """F2, unconditionally, plus any row with a turn whose utterance normalizes to a
+    multi-table phrase (see `_collision_sensitive_multi_table_phrases`)."""
+    if row["family"] == "F2":
+        return True
+    from sage_poc.psychoed.resolver import _norm  # noqa: PLC0415
+
+    multi_table = _collision_sensitive_multi_table_phrases()
+    return any(_norm(t["utterance"]) in multi_table for t in row["turns"])
+
+
+def _arm_psychoed_all(monkeypatch, row: dict) -> None:
+    """All-six-armed variant of `_arm_psychoed` (Ticket B): same PSYCHOED_PATHWAYS_ENABLED
+    + row['flags'] handling, but PSYCHOED_CATEGORIES is unconditionally every category --
+    the row's own `category`/`categories` field is ignored for arming purposes (its
+    `expect` block is still the comparison target: this mode asks "does the row's declared
+    expectation still hold when every OTHER category is also live", not "what should the
+    row expect under all-six-armed" -- those are the same question only when the answer is
+    yes, which is exactly what the pass/xfail split below measures)."""
+    _arm_psychoed(monkeypatch, row)
+    monkeypatch.setattr(config, "PSYCHOED_CATEGORIES", _ALL_SIX_CATEGORIES)
+
+
+def _all_armed_params() -> list:
+    params = []
+    for family in _discovered_families():
+        for row in load_family(family):
+            if row.get("flag_pair_check") or row.get("baseline_only") or _is_ar_draft(row):
+                continue  # same non-hard-required exclusions as _all_params()
+            if any(t.get("intent_sweep") for t in row["turns"]):
+                continue  # gate families (F4/F6/F8) -- see module-level exclusion note above
+            if not _is_collision_sensitive(row):
+                continue
+            marks = []
+            reason = _ALL_ARMED_KNOWN_DIVERGENCES.get(row["fixture_id"])
+            if reason:
+                marks = [pytest.mark.xfail(
+                    reason=(
+                        f"{row['fixture_id']} [all-six-armed]: {reason} (ticket: {_TICKET_B}). "
+                        f"strict=True: when the resolver-side collision-table fix in the ticket "
+                        f"lands, this turns XPASS -- loud CI failure, forcing a re-pin -- not a "
+                        f"silently-absorbed fix."
+                    ),
+                    strict=True,
+                )]
+            params.append(pytest.param(row, id=f"{row['fixture_id']}-all-armed", marks=marks))
+    return params
+
+
+@pytest.mark.parametrize("row", _all_armed_params())
+async def test_psychoed_fixture_all_armed(row, monkeypatch):
+    """Collision-sensitive rows, all six psychoed categories armed simultaneously (prod-
+    shaped topology) -- see the module-level docstring above this test's section for scope
+    derivation and F4/F6 exclusion reasoning. Runs IN ADDITION to, never instead of, the
+    row's existing single/declared-category run in `test_psychoed_fixture` above (that
+    sweep and its assertions are completely unchanged by this section)."""
+    _arm_psychoed_all(monkeypatch, row)
+    out = await run_fixture(row, intent_for_sweep=None)
+    assert_expectations(row, out, intent_for_sweep=None)
+
+
+def test_all_armed_collision_mode_visible_count():
+    """No-silent-caps companion (same posture as test_f4_002_xfail_intents_are_counted_and_
+    cite_ticket / the AR-skip count above): always runs, prints and pins the exact set of
+    fixture_ids entering all-six-armed collision mode and the exact xfail subset, so the
+    scope of this mode is visible in CI output (and in any -rxX/-v summary), never an
+    implicit byproduct of parametrize collection alone."""
+    entered = sorted(p.id for p in _all_armed_params())
+    xfailed = sorted(_ALL_ARMED_KNOWN_DIVERGENCES.keys())
+    assert entered, "all-six-armed collision mode has zero rows -- scope derivation is broken"
+    for fid in xfailed:
+        assert f"{fid}-all-armed" in entered, (
+            f"{fid} is pinned as an all-armed known divergence but never entered all-armed "
+            f"mode (_is_collision_sensitive/family filtering excluded it) -- stale pin"
+        )
+    print(
+        f"\n[all-armed collision mode] {len(entered)} row(s) entered all-six-armed arming; "
+        f"{len(xfailed)} strict-xfail (ticket: {_TICKET_B}): {xfailed}. "
+        f"Full entered set: {entered}"
+    )
+
+
+# ---------------------------------------------------------------------------
 # F8 matrix-rows-unmoved: paired flag ON/OFF conformance-neutrality (Task 2 driver
 # extension). Minimal addition: a row opts in via the top-level "flag_pair_check": true
 # marker (schema-neutral -- _validate_row does not reject unknown keys), is excluded from

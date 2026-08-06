@@ -85,6 +85,8 @@ Four Task-8 tickets + one Task-6 ticket = five total, all filed under `docs/supe
 
 - `docs/superpowers/tickets/2026-08-05-weave-normalize-curly-apostrophe-clear-no.md` — **[final review, Important 3]** BUG: `sage_poc/psychoed/weave.py::_normalize` deletes (not spaces) curly apostrophes, silently merging contraction-bearing clear-no replies ("no I haven't, why?" typed with U+2019) so they miss `clear_negative_patterns` and escalate to crisis on the turn right after a suicide-screening question. Fail-closed (over-escalation, not a missed escalation) — safe direction, wrong-question-attributed UX. Characterized live via `F4-006` (CI-tier, and reproduced at prod-parity flip tier per §7 above); formalizes the parked finding at `progress.md:32`, first noted 2026-07-30 (same bug class as the fixture-guard's own curly-apostrophe fix, commit `351c552c`, which does not touch this separate `src/` module). Fix needs its own branch + clinical-adjacent review; DoD is `F4-006`'s re-pin from `escalate_crisis` to menu-after-weave plus a permanent curly-apostrophe regression case.
 - `docs/superpowers/tickets/2026-08-06-semantic-zero-norm-silent-degradation.md` — **[final pre-merge deflake, concern 3]** BUG, warmup-silent-failure class: a zero-norm query embedding makes `skill_select::_semantic_match_with_runner_up` return an ordinary no-match — `0.0 > 0.0` is never true, so `skill_scores` comes back empty and the function yields `(None, 0.0, None)` with no log, no marker and no metric, i.e. semantic routing silently dead while the model is resident and the anchor index healthy. Safety-adjacent: S3's crisis path shares `s3_semantic::get_embedding`, and S3 is the sole detection path for crisis phrasings carrying no S1 keyword. Evidence is the 2026-08-06 deflake trace (317/329 live query-cache entries scored `0.0` silently, alongside a real SentenceTransformer and a correct manual top-1 of 0.5736 vs. threshold 0.4593); commit `764e8151` closed the test-side producer in `tests/conftest.py` and deliberately left this consumer-side gap open. Fix is `src/`-only (zero-norm guard + refuse-to-memoise + degraded marker/log at the embedding boundary), own branch + normal review; DoD includes a regression test asserting the degraded marker FIRES on a zero-norm embedding and is ABSENT on a genuine no-match.
+- `docs/superpowers/tickets/2026-08-06-psychoed-resolver-intent-reachability.md` — **[2026-08-06 human adjudication]** BUG, HIGH — spec §2.1 topology violation: transit TO `skill_select` (Node 4) is conditional on `intent_route`'s classification, so the resolver's own "regardless of `primary_intent`" guarantee (true inside Node 4) is violated one node upstream — turns the live classifier labels `general_chat` (48 rows) or `scope_refusal` (3 rows) never reach the node the trigger tables live in. This is 51/52 of F1 wiring's flip-tier misses, taxonomized in `docs/2026-08-06-f1-wiring-flip-divergence-taxonomy.md`; zero crisis-precedence involvement. **BLOCKS per-category Phase-4 flips** until resolved or explicitly, signed-off accepted as a deviation. See spec §10 entry 16.
+- `docs/superpowers/tickets/2026-08-06-cross-category-collision-all-armed.md` — **[2026-08-06 human adjudication]** BUG: `F1-s2c-t5-01` (the 52nd F1 wiring miss, not explained by the ticket above) resolves to `3c-t3` instead of `s2c-t5` under all-six-armed topology — a genuine cross-category collision the CI driver's per-row single-category arming structurally cannot expose. F2-002's flip-tier-only miss (context_winner→default_winner) is the same class via a different path (grief-context signal lost under real classification). This task adds an all-six-armed CI mode (`tests/test_psychoed_fixtures_ci.py::test_psychoed_fixture_all_armed`) that reproduces `F1-s2c-t5-01`'s divergence deterministically in CI (strict xfail citing this ticket); fix is resolver-side (collision-table data), own branch + normal review.
 
 ## 7. Flip-tier record reference — headline numbers
 
@@ -92,7 +94,7 @@ Four Task-8 tickets + one Task-6 ticket = five total, all filed under `docs/supe
 
 | family | conform/total |
 |---|---|
-| F1 (wiring) | 81/133 (vs. 133/133 CI-tier — real-intent divergence data) |
+| F1 (wiring) | 81/133 (vs. 133/133 CI-tier) — **corrected framing, 2026-08-06 human adjudication:** never quotable as a bare pass/fail fraction; the number's honest reading is spec §10 entry 16 ("133/133 CI green + flip-tier RED with a named blocking ticket, `2026-08-06-psychoed-resolver-intent-reachability.md`, spec §2.1 violation, HIGH; per-category flips blocked on its resolution"). All 52 misses taxonomized in `docs/2026-08-06-f1-wiring-flip-divergence-taxonomy.md`: 51 are intent-reachability interceptions (48 general_chat + 3 scope_refusal, Ticket A), 1 is a cross-category collision (`F1-s2c-t5-01`, Ticket B). Zero crisis-precedence involvement — see §10 entry 16 for the retracted taxonomy category this checked and ruled out. |
 | F1 (naturalistic) | 0/61 (both tiers — see `docs/2026-08-05-psychoed-f1-baseline-145c4e43.md`) |
 | F2 | 3/7 |
 | F3 | 6/8 |
@@ -150,3 +152,32 @@ The flip-tier runner (`scripts/bot_behaviour_audit/measure_psychoed_families.py`
 - Full unit-gate CANDIDATES set (77 files, `.github/workflows/unit-gate.yml`'s exact list, same env as CI: `OPENROUTER_API_KEY=dummy-ci`, `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1`, `pytest -m "not slow" -p no:randomly`): **1804 passed, 4 skipped, 38 deselected, 71 xfailed, 0 failed**, in 77.97s.
 
 **Fix round 1 addendum (review Major/Low, this sha):** the raw structured record for attempt 7 (`docs/2026-08-05-psychoed-families-fliptier-145c4e43.json`) is committed alongside the markdown record as of this round. Its `per_family.F10` (`{"n": 4, "conform": 0, "observed_only": 0}`) is the machine-readable source the §7.1 F10 disclosure above was checked against; the sum of every `per_family[*].n` (133+4+7+8+13+5+27 = 197) matches the 197 flip-tier rows driven this attempt.
+
+## 11. 2026-08-06 human adjudication — F1 wiring taxonomy, two tickets, register entry 16, all-armed CI mode
+
+The flip-tier record's F1 wiring result (81/133) was taxonomized from the run's own
+per-row console log (committed verbatim: `docs/2026-08-05-psychoed-families-fliptier-145c4e43-console.log`),
+producing `docs/2026-08-06-f1-wiring-flip-divergence-taxonomy.md`. All 52 misses classify
+into exactly three named classes — 48 `intent_interception_general_chat`, 3
+`intent_interception_scope_refusal`, 1 `cross_category_collision` — with **zero
+crisis-precedence involvement**. Filed as two tickets (§6 above):
+`docs/superpowers/tickets/2026-08-06-psychoed-resolver-intent-reachability.md` (Ticket A,
+HIGH — the 51-row intent-reachability class, a spec §2.1 topology violation that BLOCKS
+per-category Phase-4 flips) and `docs/superpowers/tickets/2026-08-06-cross-category-collision-all-armed.md`
+(Ticket B — the 1-row `F1-s2c-t5-01` collision, cross-referenced against F2-002's own
+flip-tier miss as the same class via a different path). Recorded as spec §10 register
+entry 16, which also carries the honest restatement of what 81/133 means going forward:
+**F1 wiring's flip condition is 133/133 CI green + flip-tier RED with a named blocking
+ticket (spec §2.1 violation, HIGH); per-category flips are blocked on its resolution.**
+
+This task also closes the CI blind spot Ticket B names: `tests/test_psychoed_fixtures_ci.py`
+gained an all-six-armed collision mode (`test_psychoed_fixture_all_armed`) for
+collision-sensitive rows (the F2 family, plus every row whose utterance normalizes to a
+phrase appearing in more than one category's trigger table — mechanically derived, see
+that function's docstring). 11 rows entered all-armed mode; 2 strict-xfail
+(`F1-1f-t2-02-all-armed`, `F1-s2c-t5-01-all-armed`), citing Ticket B — the latter
+reproducing the exact flip-tier divergence deterministically in CI for the first time.
+
+A ruled process line, verbatim: **A ruling pre-wrote an empirical category and the data
+refused it — the discipline held because the taxonomy was run before the register text
+shipped. Rulings name the question; evidence names the classes.**
