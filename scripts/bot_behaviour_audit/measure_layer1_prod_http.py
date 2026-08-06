@@ -169,7 +169,15 @@ def main():
             pres = r["prescribed_disposition"]
             c = per[r["spec_id"]]
             c["n"] += 1
-            c["conform"] += int(norm(o) == norm(pres))
+            ok = norm(o) == norm(pres)
+            # S2a offer-form acceptance (conformance-owner ruling 2026-08-06): presence-WITH-offer
+            # conforms (the doc's presence-mode is presence-first, not presence-only-forever); a bare
+            # skill DELIVERY does not (the original violation = offer displacing presence). Mechanical
+            # marker, not prose: offer-form shows skill_offer_made and never skill_executor in node_path.
+            if not ok and r.get("accept_offer_form") and o == "self_help_skill":
+                np_ = a.get("node_path") or ""
+                ok = ("skill_offer_made" in np_) and ("skill_executor" not in np_)
+            c["conform"] += int(ok)
             c.setdefault("rows", []).append({"utterance": r["utterance"], "observed": o,
                                             "audit": {k: a.get(k) for k in ("gate_path", "node_path", "skill_match_method", "active_skill_id")}})
             c["pres"] = pres
