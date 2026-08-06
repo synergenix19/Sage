@@ -130,6 +130,15 @@ KEYWORD_SEMANTIC_SKIP: frozenset[str] = frozenset({
     # missing signature. Offer-Second in the spec, so no first-line flow is touched.
     # Re-route on signature = delete this entry (one line, as staged on the sheet).
     "mindfulness_meditation",
+    # DEROUTED per the body_scan family ruling (option (a) executed 2026-08-06; packet
+    # PR#407): body_scan was absorbing the derouted mm demand with signature record not
+    # found; safe_place_visualization shares that status (authored 2026-05-22, no sign-off
+    # record) and catches "guided meditation" (guided imagery, trauma-contraindicated
+    # risk shape) -- ruled in under the signature-status rule, protective reading pending
+    # Vee's sentence. Landing zones measured + recorded (checklist above):
+    # 2026-08-06-body-scan-spv-deroute-record.md. Re-route on signature = delete entry.
+    "mindfulness_body_scan",
+    "safe_place_visualization",
 })
 
 # Words that short-circuit to freeflow BEFORE the BGE-M3 semantic tier.
