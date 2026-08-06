@@ -116,6 +116,28 @@ async def _supabase_insert(table: str, row: dict) -> None:
     r.raise_for_status()
 
 
+def derive_psychoed_weave_state(state: SageState) -> str | None:
+    """Node-8 audit derivation (Phase 2 Task 11, gap-2 escalation-turn fix). Single-sourced so
+    output_gate.py's in-memory audit log and _build_session_audit_row below can never drift on
+    the derivation:
+      - an explicit "psychoed_weave_state" key in the incoming dict wins outright. Only the
+        crisis node's escalation-turn audit patch sets this (graph.py's `_crisis_response_node`,
+        value "escalated") -- a PSY-WEAVE-1 evaluation that resolved to crisis this turn, which
+        never carries a live psychoed_serve payload of its own.
+      - otherwise "pending" while a weave question is outstanding (psychoed_weave_pending),
+      - "fired" once the pathway's weave has fired for this run (psychoed_weave_fired) and no
+        question is currently outstanding,
+      - else None (no psychoed weave activity this turn).
+    """
+    if "psychoed_weave_state" in state:
+        return state.get("psychoed_weave_state")
+    if state.get("psychoed_weave_pending"):
+        return "pending"
+    if state.get("psychoed_weave_fired"):
+        return "fired"
+    return None
+
+
 def _build_session_audit_row(state: SageState) -> dict:
     row = {
         "session_id":             state.get("session_id", ""),
@@ -146,6 +168,25 @@ def _build_session_audit_row(state: SageState) -> dict:
         "user_id":                state.get("user_id") or None,
         "re_escalation_within_monitoring": state.get("re_escalation_within_monitoring"),
     }
+    # C1 cards-only retrieval (flag-gated, same discipline as tiering/precedence/medical below):
+    # keys included ONLY when the cards path actually ran (cards channels populated — impossible
+    # with SAGE_CONSULT_SOURCES off, the node is unreachable), so a flag-OFF row stays
+    # byte-identical to master and migration 018 (knowledge_retrieval_purpose) is a flag-flip
+    # deploy gate, not a merge gate. PURPOSE DISCRIMINATOR (ruling condition 2): cards ids land
+    # in knowledge_passage_ids (preserving sources ⊆ knowledge_passage_ids) but the row stamps
+    # purpose='cards_only' so no auditor can read non-empty ids as evidence-grounded generation.
+    # Evidence and cards are mutually exclusive per turn by construction (consult turns never
+    # reach Node 6; KB turns never reach the cards node).
+    _cards = state.get("cards_knowledge_passages") or []
+    if _cards or state.get("cards_knowledge_abstain"):
+        if not row["knowledge_passage_ids"]:
+            row["knowledge_passage_ids"] = [p.get("source_id", "") for p in _cards]
+        row["knowledge_retrieval_purpose"] = "cards_only"
+        row["knowledge_top_similarity"] = (
+            row["knowledge_top_similarity"]
+            if row["knowledge_top_similarity"] is not None
+            else state.get("cards_knowledge_top_similarity")
+        )
     # v7.1 tiering (F / schema-delta): the tier classification is auditable ONLY when the flag
     # is ON (safety_check omits crisis_tier when OFF). Including it conditionally keeps a flag-OFF
     # audit row byte-identical to master (Check B) and means migration 006 (crisis_tier/tier_rule_id
@@ -168,6 +209,12 @@ def _build_session_audit_row(state: SageState) -> dict:
     if state.get("medical_flags"):
         row["gate_path"] = state.get("gate_path")
         row["medical_flags"] = state.get("medical_flags")
+    # §1c derealization terminal audit (same conditional discipline): gate_path was ONLY persisted on
+    # medical turns, so a served derealization referral audited with gate_path NULL and the prod-HTTP
+    # conformance driver misclassified it presence_only (2026-07-30 increment-1 finding). Included ONLY
+    # when the derealization terminal ran, so every other row stays byte-identical.
+    if "derealization_response" in (row["node_path"] or []):
+        row["gate_path"] = state.get("gate_path")
     # HR-1 Stage 2 high_risk_response audit (flag-gated, same discipline as tiering/
     # precedence/medical above): included ONLY when a distress branch actually resolved
     # this turn (hr_branch set by _deliver_branch), so a flag-OFF / non-HR / mid-protocol
@@ -211,6 +258,31 @@ def _build_session_audit_row(state: SageState) -> dict:
         # identifies the backend configuration that served the call (seed HONOR signal).
         # NULL when the provider exposes none; never fabricated.
         row["classifier_system_fingerprint"] = state.get("classifier_system_fingerprint")
+    # Psychoed audit (flag-gated, Phase 2 Task 11; same discipline as tiering/precedence/medical/
+    # HR/screen above): included ONLY when a psychoed signal fired this turn (a serve payload, a
+    # matched trigger row, a collision/framing disposition, a weave in flight/fired, or the gate
+    # having run), so a flag-OFF / non-psychoed row stays byte-identical to master (Check B).
+    # Migration 016 is the deploy-gate for SAGE_PSYCHOED_PATHWAYS. This is also how the
+    # escalation-turn row (gap-2, crisis node) picks up the marker: that call carries no live
+    # psychoed_serve payload of its own, but DOES carry the explicit "psychoed_weave_state":
+    # "escalated" patch, which alone trips the presence check below via derive_psychoed_weave_state.
+    _psychoed_serve = state.get("psychoed_serve") or {}
+    _psychoed_weave_state = derive_psychoed_weave_state(state)
+    if (
+        _psychoed_serve
+        or state.get("psychoed_matched_row_id") is not None
+        or state.get("psychoed_collision_path") is not None
+        or state.get("psychoed_framing") is not None
+        or _psychoed_weave_state is not None
+        or state.get("psychoed_gate_action") is not None
+    ):
+        row["psychoed_block_ids"] = [_psychoed_serve["block_id"]] if _psychoed_serve.get("block_id") else []
+        row["psychoed_matched_row_id"] = state.get("psychoed_matched_row_id")
+        row["psychoed_collision_path"] = state.get("psychoed_collision_path")
+        row["psychoed_framing"] = state.get("psychoed_framing")
+        row["psychoed_weave_state"] = _psychoed_weave_state
+        row["psychoed_template_version"] = _psychoed_serve.get("template_version")
+        row["psychoed_gate_action"] = state.get("psychoed_gate_action")
     return row
 
 

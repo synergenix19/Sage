@@ -224,6 +224,36 @@ if _panic_override_raw is not None and _panic_override_raw.strip().lower() not i
         "only 'true' enables.", _panic_override_raw,
     )
 
+# Node-1 cardiac-ambiguous deterministic escalation (item-3 realization, BUILT INERT 2026-07-31).
+# KILL-SWITCH, DEFAULT OFF, same strict parse: only a LITERAL "true" enables. OFF is byte-identical.
+# ON -> death-fear x air-hunger co-occurrence sets a deterministic crisis flag at safety_check, BEFORE
+# the LLM classifier — closing the measured window-dependent miss (N=20: 6/20 freeflow-no-resources).
+# Activation gated on Vee's one-tick (her item-3 ruling already assigned the class to crisis).
+_cardiac_escalation_raw = os.getenv("SAGE_CARDIAC_ESCALATION")
+CARDIAC_ESCALATION_ENABLED = (
+    _cardiac_escalation_raw is not None and _cardiac_escalation_raw.strip().lower() == "true"
+)
+if _cardiac_escalation_raw is not None and _cardiac_escalation_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_CARDIAC_ESCALATION unexpected value %r — applying safe default (escalation OFF); "
+        "only 'true' enables.", _cardiac_escalation_raw,
+    )
+
+# S2a grief-presence deference (sweep row 13, BUILT INERT 2026-08-04). KILL-SWITCH, DEFAULT OFF, same
+# strict parse: only a LITERAL "true" enables. OFF is byte-identical (intent_route crisis routes to crisis
+# as today). ON -> a safety_check-CLEAN bereavement disclosure the LLM re-flags as crisis restores the
+# clean verdict (presence-mode grief_loss path via skill_select) instead of the crisis card. Harm set
+# single-sourced from panic_override; activation gated on Vee's boundary-sheet ruling.
+_grief_deference_raw = os.getenv("SAGE_GRIEF_DEFERENCE")
+GRIEF_DEFERENCE_ENABLED = (
+    _grief_deference_raw is not None and _grief_deference_raw.strip().lower() == "true"
+)
+if _grief_deference_raw is not None and _grief_deference_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_GRIEF_DEFERENCE unexpected value %r — applying safe default (deference OFF); "
+        "only 'true' enables.", _grief_deference_raw,
+    )
+
 # E7 — BOT BEHAVIOUR §6a coercive-control / relationship-safety pre-emption. KILL-SWITCH, DEFAULT
 # OFF, same inverted strict parse as ROUTE_PRECEDENCE: only a LITERAL "true" enables; unset / empty /
 # whitespace / garbage -> OFF. OFF is byte-identical v7 — only the approved CF-005 domestic_situation
@@ -419,4 +449,47 @@ if _info_request_consult_raw is not None and _info_request_consult_raw.strip().l
     _log.warning(
         "SAGE_INFO_REQUEST_CONSULT unexpected value %r — applying safe default (consult OFF); "
         "only 'true' enables.", _info_request_consult_raw,
+    )
+
+# --- Psychoed pathways (Phase 2 mechanism; spec 2026-07-23 §7.3). Default OFF. ---
+_psychoed_raw = os.getenv("SAGE_PSYCHOED_PATHWAYS")
+PSYCHOED_PATHWAYS_ENABLED = (
+    _psychoed_raw is not None and _psychoed_raw.strip().lower() == "true"
+)
+if _psychoed_raw is not None and _psychoed_raw.strip().lower() not in ("true", "false"):
+    logging.getLogger(__name__).warning(
+        "SAGE_PSYCHOED_PATHWAYS=%r is neither 'true' nor 'false'; treating as OFF", _psychoed_raw
+    )
+
+_PSYCHOED_VALID_CATEGORIES = frozenset({"1f", "3c", "4b", "6d", "7c", "s2c"})
+_categories_raw = os.getenv("SAGE_PSYCHOED_CATEGORIES", "")
+_parsed = {c.strip().lower() for c in _categories_raw.split(",") if c.strip()}
+for _bad in sorted(_parsed - _PSYCHOED_VALID_CATEGORIES):
+    logging.getLogger(__name__).warning("SAGE_PSYCHOED_CATEGORIES: unknown category %r dropped", _bad)
+PSYCHOED_CATEGORIES: frozenset[str] = (
+    frozenset(_parsed & _PSYCHOED_VALID_CATEGORIES) if PSYCHOED_PATHWAYS_ENABLED else frozenset()
+)
+
+def psychoed_enabled_for(category: str) -> bool:
+    return PSYCHOED_PATHWAYS_ENABLED and category in PSYCHOED_CATEGORIES
+
+# C1 interim Further-Reading cards on consult turns (v7.3 amendment record, named open item;
+# ruling: governance/2026-07-29-consult-further-reading-delivery-shape-ask.md, Option 1 APPROVED).
+# Gates the knowledge_retrieve_cards insertion on consult-selected turns: cards-only retrieval
+# whose passages populate X-Sage-Sources + the audit row and NEVER enter the prompt (the composer
+# reads knowledge_passages, which this path never writes — the signed conversational reply stays
+# byte-untouched). KILL-SWITCH, DEFAULT OFF, same inverted strict parse as the consult flag above.
+# OFF is byte-identical to master: the cards node is unreachable, no retrieval runs on consult
+# turns, the audit row carries no purpose column. TRANSITIONAL like its parent mechanism: each
+# Phase-2 category flip retires this path's predicate together with the category's consult-set
+# entry (same change — the ruling's disjointness condition). Migration 018 is the flag-flip
+# deploy gate (audit purpose column).
+_consult_sources_raw = os.getenv("SAGE_CONSULT_SOURCES")
+CONSULT_SOURCES_ENABLED = (
+    _consult_sources_raw is not None and _consult_sources_raw.strip().lower() == "true"
+)
+if _consult_sources_raw is not None and _consult_sources_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_CONSULT_SOURCES unexpected value %r — applying safe default (cards OFF); "
+        "only 'true' enables.", _consult_sources_raw,
     )

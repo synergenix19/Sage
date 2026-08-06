@@ -19,3 +19,28 @@ Task 12: complete (commit 3b2ec3d2, review clean; Minor: block-disk cross-check 
 Task 13: complete (commits a13c2718..f953672f, review clean; packet enumerates 40+18+4+31 by name, 12 asks, 3rd period+capital site 6d-b2 self-found; Lane-3 clock STARTED)
 Task 14: complete (commits 5197afd2..5291bc1b, re-review RESOLVED all 5; handoff notes carry verbatim keys, corrected 3-form bridge taxonomy)
 Final review: READY FOR MERGE after fix wave 969c802e + pin re-stamp bb5829cd (138 tests green; 68 dash sites = 64 comma / 4 period+capital, all 4 read-differently sites enumerated for clinical)
+
+--- CLEANUP RULING (2026-07-28, session close) ---
+Keep worktree + branch until the sign-off packet signs. At signature: move this .superpowers/sdd/ audit trail (task briefs, reports, review packages, this ledger) into docs/superpowers/governance/ adjacent to 2026-07-28-psychoed-signoff-packet.md IN THE SAME CHANGE that deletes the worktree/branch. Rationale: the trail answers "who transcribed this ratified copy, against what source, reviewed by whom, with what catches" — clinical-governance weight outlives the branch. Branch itself carries nothing the merge commit (95bf2370) lacks.
+
+# SDD Ledger — psychoed Phase 2 mechanism plan (2026-07-28) [RECONSTRUCTED after reviewer git-reset incident; committed henceforth]
+Plan: docs/superpowers/plans/2026-07-28-psychoed-phase2-mechanism-plan.md (amended: gap-1 pathway-clear, gap-2 escalation audit)
+Branch: feat/psychoed-phase2-mechanism | Checkpoints: T8 diff ✓done, T11 hash-gate branches ✓done, T12 byte-identity, T13 escalation graph test
+P2 Task 1: complete (a0a5e602; Low: red transcript not pasted)
+P2 Task 2: complete (98311d10; Medium report gap fixed post-hoc; standing rule: no red transcript = rejected)
+P2 Task 3: complete (e9aacd8e; ACCEPTED DEVIATION: pathway keys default at consumers — binding on 8/10/11)
+P2 env fix: uv sync --extra dev (pytest-asyncio missing) -> Mechanism-A baseline 18/18 GREEN
+P2 Task 4: complete (b5051512; adversarial hand-traces fail-closed correct)
+P2 Task 5: complete (4d3b93d9; threshold band probes exact)
+P2 Task 6: complete (8fa4ff79..14a1f6be; plan-code KeyError found; Medium ambiguity fixed: multi-match fails closed both tiers)
+P2 Task 7: complete (efba7f39..bcdfc8e4; MEDIUM-HIGH false-attestation fixed; template status strings ADVISORY — flag is only gate; menu_first+weave = data-guarded)
+P2 Task 8: complete (d71f3da6..7e9bba3b; controller checkpoint + independent review clean; 9 clear sites; accepted: path-accumulation, escalation-scoped clear)
+P2 Task 9: complete (e2590959; kb_ref schema additive, 28/28 skills load)
+P2 Task 10: complete (16a9af8d..cc981b39; HIGH plan-gap fixed: backstop gated active-skill + Classifier A per spec §2.1/§2.2)
+P2 Task 11: in progress (6482155f..1f96fec1; checkpoint: mismatch branch correct, corruption hole fixed, EN entry gate added; REVIEW: Medium menu-after-weave AR path open; Low compose_turn1 exception→server handler, triage at final review)
+INCIDENT: T11 reviewer popped pre-existing s3_semantic stash + reset --hard destroyed uncommitted ledger (this reconstruction); stashes verified intact; ledger committed from now on
+P2 Task 11: complete (commits 6482155f..a463f394; checkpoint fixes: corruption chain, EN entry gates x2, menu-after-weave AR fall-through; Low compose_turn1-exception noted for final triage; INCIDENT recovered, no-stash-pop rule standing)
+P2 Task 12: complete (commit 43abf34f, review clean; tautology audit passed all 16 pins; controller byte-identity checkpoint PASSED)
+P2 Task 13: complete (commit 7f3623c4; escalation graph test observed green by controller; as-built deltas 1-14 + spec register 8-12; PACKET ADDENDUM OPEN: phrase→block hints)
+P2 FINAL REVIEW: READY FOR MERGE after fix wave b8315d30 (HIGH-1 weave routing net via _route_after_intent — the flagship fail-closed property now holds mechanically; HIGH-2 menu-pick phantom serve fixed; MEDIUM continuation reachable via l2_intent_override, served-topics deferred delta 15). Residual Lows recorded: offer-mid-pathway L2 suppression (new, F5 fixture item), post-crisis monitoring weave re-eval (pre-existing, fail-closed direction), psychoed_depression fixture-divergence pair -> separate reconciliation ticket.
+P2 BUILD CLOSED 2026-07-29: 13 tasks, 30 commits, 311 psychoed tests green, 138 integrity green, flag-OFF byte-identical, channels 106/106.

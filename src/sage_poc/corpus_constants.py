@@ -105,6 +105,12 @@ PRESENTATIONS_FLOOR_EXEMPTIONS: dict[str, str] = {
 # Skills that must never be reached via keyword or semantic matching.
 # Each entry is activated by a dedicated routing path that runs BEFORE the matching loops.
 #
+# DEROUTE CHECKLIST (2026-08-04, from the mm->body_scan absorption finding): a deroute
+# redistributes demand to the nearest semantic neighbour, it does not delete it. Every
+# new entry here must record, in the deroute's own governance record: (1) where the
+# derouted request-shapes land next (measured next-hop ranking, not spec ordering), and
+# (2) the landing skill's signature status. Decision time, not probe time.
+#
 # This constant is imported by skill_select_node to exclude these skills from:
 #   (a) the Tier 1 keyword loop
 #   (b) the BGE-M3 semantic embedding matrix
@@ -117,6 +123,22 @@ PRESENTATIONS_FLOOR_EXEMPTIONS: dict[str, str] = {
 KEYWORD_SEMANTIC_SKIP: frozenset[str] = frozenset({
     "post_crisis_check_in",  # activated via post_crisis_auto_select (crisis_state=='monitoring')
     "psychotic_referral",    # activated via psychotic_disclosure clinical flag; not keyword/semantic routed
+    # DEROUTED until registration is signed (Vee 2026-07-31, sign-off sheet item 3):
+    # approved_by is null while the skill is routable, and the technique family carries
+    # the BOT BEHAVIOUR section-1a/6 contraindication (grounding/mindfulness can intensify
+    # dissociation, derealization, flashback, psychosis-like states) whose review IS the
+    # missing signature. Offer-Second in the spec, so no first-line flow is touched.
+    # Re-route on signature = delete this entry (one line, as staged on the sheet).
+    "mindfulness_meditation",
+    # DEROUTED per the body_scan family ruling (option (a) executed 2026-08-06; packet
+    # PR#407): body_scan was absorbing the derouted mm demand with signature record not
+    # found; safe_place_visualization shares that status (authored 2026-05-22, no sign-off
+    # record) and catches "guided meditation" (guided imagery, trauma-contraindicated
+    # risk shape) -- ruled in under the signature-status rule, protective reading pending
+    # Vee's sentence. Landing zones measured + recorded (checklist above):
+    # 2026-08-06-body-scan-spv-deroute-record.md. Re-route on signature = delete entry.
+    "mindfulness_body_scan",
+    "safe_place_visualization",
 })
 
 # Words that short-circuit to freeflow BEFORE the BGE-M3 semantic tier.

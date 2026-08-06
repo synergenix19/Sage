@@ -286,6 +286,47 @@ Lane mapping: reunification P0 = Lane 1 (safety queue, own clock). Psychoed buil
 6. `delivery_shape` as a per-category attribute (block metadata + manifests) — the schema extension flagged in the original scope ruling, realized here; this closes that ruling's loop.
 7. Per-article-family `prior_exposure` granularity — v7 §9.1 defines `prior_exposure` per-skill (0–5+); the carry-forward increments it per article family: a mild granularity extension of the profile schema.
 
+**As-built amendments (Phase 2 execution, 2026-07-29):**
+8. `skill_select`→`crisis_response` edge-map delta — Phase 2's one new graph edge. A
+   PSY-WEAVE-1 escalation (`psychoed_weave_escalation=True`) is checked as
+   `_route_after_skill_select`'s top-priority branch, above containment, screen, abstain,
+   info_request, and active-skill routing, and routes directly to `crisis_response`. No
+   other node gained a new edge for Phase 2.
+9. `psychoed_family_exposures` channel substitution (seam) — carry-forward (§4.4) is
+   implemented against a new session-scoped `psychoed_family_exposures` channel, not
+   against `therapeutic_profile["techniques_used"]`: that field has no writer anywhere in
+   the codebase and no DB column, so `prior_exposure` via that path was always 0 — a
+   reader-without-writer seam pre-dating and reaching beyond psychoed. The new channel is
+   folded in additively (`max()`), so the dead read stays harmless.
+10. EN-only pathway entry gating + AR fall-through (§3.7 enforcement in mechanism) — both
+    payload constructors (`skill_select`'s resolver hit, `knowledge_retrieve`'s outcome-2
+    backstop) gate creation on `detected_language == "en"`. PSY-WEAVE-1's weave evaluation
+    is deliberately language-UNgated (it evaluates a live safety reply on any language),
+    so the menu-after-weave re-offer is the one path that CAN reach composition on a
+    non-English turn; `freeflow_respond` closes that leak by falling through to the normal
+    LLM freeflow path instead of serving the EN-ratified verbatim `menu_offer` untranslated.
+11. Outcome-2 classifier/active-skill parity gates (§2.2 as-built) — the semantic-backstop
+    serve path (`knowledge_retrieve`'s outcome-2) is gated by the identical two checks as
+    the resolver's outcome-1 path: active-skill suppression and Classifier A's
+    acute-distress veto. The mechanism plan's Task-10 section under-specified this parity;
+    caught by spec-anchored review and fixed before Task 10 closed, not discovered via a
+    failing test.
+12. Answer-first block selection is v1-pinned to label-containment-else-first-block, not a
+    specific-question mapping (Task 13 finding). `resolver._pick_block` matches the
+    trigger phrase against each block's `menu_label` (substring, then a stopword-filtered
+    token-subset check) and falls back to the category's first manifest block on zero
+    matches. This under-serves specific questions the phrase and the intended block don't
+    lexically overlap on — e.g. "Why do I feel numb?" (row `3c-t3`) serves `3c-b1` ("What
+    is depression?") rather than the anhedonia-specific `3c-b4`, whose own label ("Why
+    things can feel numb or empty (anhedonia)") does not share a matching substring/token
+    subset with the trigger phrase. Deterministic containment-or-first-block only; no
+    similarity/embedding fallback is permitted, consistent with the resolver's "never
+    similarity" invariant (§5.1/§5.2). Closing this requires a clinician-ratified
+    phrase→block-hint column on the trigger tables — **packet addendum required** (new
+    ask) — with Phase-3 F1 fixtures re-pinning the specific-block expectation once ratified.
+    `tests/test_psychoed_graph.py` pins the current v1 behavior with a forward-reference
+    comment to this entry.
+
 ---
 
 ## 11. Not in scope

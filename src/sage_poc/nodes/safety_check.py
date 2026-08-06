@@ -33,6 +33,7 @@ from sage_poc.nodes.post_crisis_classifier import evaluate_s7
 from sage_poc.safety.s3_semantic import check_s3, check_s3_bilingual, S3_THRESHOLD
 from sage_poc.safety.medical_redflag import detect_medical_redflag
 from sage_poc.safety.medical_screen import consume_pending_screen
+from sage_poc.safety.cardiac_escalation import cardiac_ambiguous_present, CARDIAC_FLAG_ID
 
 _log = logging.getLogger(__name__)
 
@@ -176,6 +177,19 @@ async def safety_check_node(state: SageState) -> dict:
         _log.warning(
             "[safety_check] S3 check failed: %s; crisis detection degraded to S1 only", exc
         )
+
+    # Node-1 cardiac-ambiguous deterministic escalation (item-3 realization; BUILT INERT 2026-07-31,
+    # flag default OFF). Death-fear x air-hunger co-occurrence -> deterministic crisis flag, BEFORE the
+    # LLM classifier ever sees the turn (the measured miss: the pinned classifier routes this class to
+    # freeflow with no crisis resources in a window-dependent 6/20 — inc2 record addendum). Skipped when
+    # a third-party pattern fired (consistent with the S1 third-party-overrides-direct rule above);
+    # deliberately independent of crisis_suppress actions (those were authored for the semantic tier —
+    # this deterministic rule fails toward escalation, Vee's conservative dial).
+    from sage_poc import config as _cfg  # noqa: PLC0415 — deferred like the tiering import below; the
+    # function re-imports config locally (line ~255), so a module-level alias would be shadowed-unbound here.
+    if _cfg.CARDIAC_ESCALATION_ENABLED and not third_party_flags:
+        if cardiac_ambiguous_present(message_en, raw):
+            new_crisis_flags.append(CARDIAC_FLAG_ID)
 
     trajectory, escalating = _update_distress_trajectory(state)
     engagement_trajectory, engagement_declining = _update_engagement_trajectory(state)

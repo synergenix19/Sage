@@ -23,6 +23,12 @@ on:
       # on deploy, so a malformed/mistagged/clinically-wrong chunk must be gated like
       # code. Pairs with test_corpus_integrity.py in CANDIDATES below.
       - 'data/knowledge_corpus/**'
+      # Flags are config-as-code (2026-07-29 signed-flag gate): a PR editing ONLY
+      # config/prod_flags.yaml is exactly the PR the signed-value check exists for, so
+      # it must trigger the gate (test_prod_flags_register.py). scripts/ is likewise a
+      # tested surface now (helper-only grep, apply/watchdog logic, prod_smoke guard).
+      - 'config/**'
+      - 'scripts/**'
   # Runs on EVERY PR (no path filter) so the required "Safety-surface unit tests" check
   # ALWAYS reports. A path-filtered REQUIRED check never reports on a docs-only PR, and
   # strict branch protection would then deadlock that PR's merge forever (9 open docs/
@@ -42,7 +48,7 @@ jobs:
           fetch-depth: 0   # need base history to diff which paths changed
 
       # Guard: does this PR touch the safety-surface paths the heavy suite protects?
-      # If not (docs/scripts/.github-only), skip install+pytest but STILL succeed, so the
+      # If not (docs/.github-only), skip install+pytest but STILL succeed, so the
       # required check reports green and the PR is not deadlocked. If yes, run the full gate.
       - name: Detect safety-surface changes
         id: detect
@@ -54,7 +60,7 @@ jobs:
             CHANGED=$(git diff --name-only "${{ github.event.before }}...${{ github.sha }}" 2>/dev/null || echo "src/sage_poc/_forcerun")
           fi
           echo "changed files:"; echo "$CHANGED"
-          if echo "$CHANGED" | grep -qE '^(src/sage_poc/|tests/|data/knowledge_corpus/)|^pyproject\.toml$'; then
+          if echo "$CHANGED" | grep -qE '^(src/sage_poc/|tests/|data/knowledge_corpus/|config/|scripts/)|^pyproject\.toml$'; then
             echo "code=true" >> "$GITHUB_OUTPUT"
           else
             echo "code=false" >> "$GITHUB_OUTPUT"
@@ -92,6 +98,12 @@ jobs:
         # entries carry tickets (EXEMPT pattern) so transitional debt stays visible, not silent.
         if: steps.detect.outputs.code == 'true'
         run: python scripts/check_safety_reads_raw.py
+      - name: Static — safety disposition-ownership (no un-reconciled overlap)
+        # Fails if two safety mechanisms' match sets overlap into DIFFERENT dispositions without a declared
+        # owner in disposition_ownership.json. Third refusal-property; born from the 2026-07-28 §1c conflict
+        # (CF-010 referral vs panic_override ground on the same utterance, both clinician-signed).
+        if: steps.detect.outputs.code == 'true'
+        run: python scripts/check_disposition_ownership.py
 
       - name: Run curated deterministic safety-surface suites
         if: steps.detect.outputs.code == 'true'
@@ -136,6 +148,11 @@ jobs:
             tests/test_deploy_build_lock.py
             tests/test_signed_fields_manifest.py
             tests/test_conformance_flag_parity.py
+            tests/test_prod_flags_register.py
+            tests/test_health_version_full_readback.py
+            tests/test_classifier_degraded_marker.py
+            tests/test_instrument_helper_only.py
+            scripts/prod_smoke/tests/test_tier_b_credential_guard.py
             tests/test_harm_to_others_node1_backstop.py
             tests/test_crisis_availability_consistency.py
             tests/test_crisis_config_cross_stack.py

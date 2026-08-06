@@ -10,6 +10,7 @@ from sage_poc.conversation_stall import detect_stall
 from sage_poc.nodes.self_reference_detect import detect_self_reference
 from sage_poc.nodes.venting_detect import detect_venting
 from sage_poc.nodes.panic_override import should_ground_over_crisis
+from sage_poc.nodes.grief_override import should_defer_grief_over_crisis
 from sage_poc import config as _cfg
 
 # SINGLE-POINT-OF-FAILURE WARNING: The general_chat classification below is the sole
@@ -162,10 +163,22 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
         data = json.loads(match.group(0)) if match else {}
     except json.JSONDecodeError:
         data = {}
+    # `classifier_degraded` POSITIVE path marker (fast-follow ledger 2026-07-28, Q-a).
+    # Detection = the static-fallback shape: no parseable JSON in the reply (the pinned
+    # classifier chain exhausted and resilient_invoke served the static neutral copy, or
+    # the reply was truncated garbage) — everything below then resolves to the neutral
+    # defaults (general_chat @ 0.5). C3 discipline: assert the positive path, don't leave
+    # the degraded route distinguishable only by silence-shaped inference (empty meta_out,
+    # confidence exactly 0.5). A VALID parse that merely omits fields is NOT degraded —
+    # genuine low-confidence classifications must never carry this marker (RT-1 depends
+    # on the two populations staying separate). Pure additive marker, no flag.
+    _classifier_degraded = not data
 
     primary_intent = data.get("primary_intent", "general_chat")
     _directive_posture = detect_directive_request(state, primary_intent=primary_intent)
     _intent_route_path = state["path"] + ["intent_route"]
+    if _classifier_degraded:
+        _intent_route_path = _intent_route_path + ["classifier_degraded"]
     if _directive_posture:
         _intent_route_path = _intent_route_path + ["directive_posture_set"]
     result = {
@@ -199,6 +212,13 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
         "panic_grounding_override": (
             _cfg.PANIC_GROUNDING_OVERRIDE_ENABLED
             and should_ground_over_crisis({**state, "primary_intent": primary_intent})
+        ),
+        # S2a (sweep row 13, built inert 2026-08-04) — deterministic grief-presence deference. Same
+        # stamp/honor pattern as panic_grounding_override immediately above: code decides here,
+        # _route_after_intent honours it. Flag-gated kill-switch; OFF -> always False (byte-identical).
+        "grief_presence_override": (
+            _cfg.GRIEF_DEFERENCE_ENABLED
+            and should_defer_grief_over_crisis({**state, "primary_intent": primary_intent})
         ),
     }
     if _provenance_on:
