@@ -360,6 +360,37 @@ def build_local_graph(warm: bool = True):
     return app
 
 
+async def invoke_turn(app, state_in: dict, thread_id: str) -> dict:
+    """Single-turn graph invocation, given a FULLY-CONSTRUCTED state dict and a thread_id.
+
+    `thread_id` is REQUIRED, not optional: `build_local_graph()` always compiles the graph
+    WITH a checkpointer (MemorySaver, mirroring the committed layer1 runner's own
+    `build_graph(MemorySaver())` pattern), and LangGraph raises `ValueError: "Checkpointer
+    requires one or more of the following 'configurable' keys: thread_id, ..."` on ANY
+    `ainvoke()` call that omits `config={'configurable': {'thread_id': ...}}` when a
+    checkpointer is present -- structurally, before any node runs, independent of what the
+    caller's own state-carry strategy is. This function's first version omitted `config`
+    entirely (Task 9 fix-round-3 incident: a live run crashed on its very first invocation --
+    the amendment-8 smoke case runs before any of the 196 corpus rows -- with zero rows
+    driven and no output doc written). Mirrors measure_layer1_fullgraph.py's own
+    `drive(app, msg, tid)` (`config={"configurable": {"thread_id": tid}}`) -- the established,
+    working convention this codebase's OTHER checkpointer-backed driver already uses; not a
+    new pattern invented here.
+
+    The caller owns state construction (e.g. make_e2e_state/carry_state, or hand-built
+    overrides) -- this function's only job is the actual `app.ainvoke(...)` call, kept here
+    per the instrument-parity standing rule (rule 1, 2026-07-28): every graph invocation whose
+    output feeds a decision/memo/matrix-row/escalation goes through this file, never
+    re-implemented at the call site (test_instrument_helper_only.py enforces this by static
+    scan). Added for Task 9's psychoed flip-tier runner (scripts/bot_behaviour_audit/
+    measure_psychoed_families.py), which needs per-turn `state_overrides` and manual
+    turn-to-turn carry (test_psychoed_fixtures_ci.py's own `_carry` pattern) rather than
+    run_fixture()'s flat-message-list/N-sample shape below -- generic, not psychoed-specific,
+    so any future instrument needing single-turn control can reuse it instead of re-deriving
+    a direct ainvoke() call."""
+    return await app.ainvoke(state_in, config={"configurable": {"thread_id": thread_id}})
+
+
 async def attach_db_pool():
     """Serving-parity DB pool for the KB path. knowledge_retrieve resolves its pool
     from server.app.state._db_pool — created only by the FastAPI lifespan, which a
