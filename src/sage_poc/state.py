@@ -176,6 +176,12 @@ class SageState(TypedDict):
                                            # panic-grounding override applies (safety_check clean + clear panic
                                            # + no harm + intent=crisis). Declared channel so _route_after_intent
                                            # reads it (SG-2: undeclared keys are dropped between nodes).
+    explicit_modality_request: Optional[dict]  # PER-TURN (EMR Phase 1): {"requested": bool, "modality_hint":
+                                           # str|None} from matching.detect_explicit_modality_request, written
+                                           # at the head of intent_route BEFORE the LLM call, every turn (None
+                                           # when flag OFF; describes THIS turn only, unlike recent_presentation).
+                                           # ONE detector, THREE Phase-2 consumers (executor rehand, info_request
+                                           # early-return, offer-reply resolution) read this same channel.
     grief_presence_override: bool          # PER-TURN (S2a, built inert 2026-08-04): set by intent_route when
                                            # the deterministic grief-presence deference applies (safety_check
                                            # clean + clear bereavement + no harm + intent=crisis). Same declared-
