@@ -1,6 +1,8 @@
 # Psychoeducation Pathways — Phase 3 Sign-off Round (for Vee)
 
-**Requested turnaround:** ______ (three items below are URGENT — they gate everything else)
+**Requested turnaround:** ______ (four items below are URGENT — 1, 2, 3, and 13 — they gate everything else)
+**When your marked sheet returns** it becomes a pinned governance artifact (signed-fields over
+your answers — your rulings enter the same provenance chain as the copy they govern).
 **How to use this sheet:** each item is self-contained. Mark one box, add edits inline under
 "Your answer." Nothing here approves a deployment or turns anything on for users — serving
 remains mechanically blocked in CI until named engineering items resolve AND your signatures
@@ -75,9 +77,13 @@ me?" 1f/3c — currently 3c interim). Your pairwise defaults were ratified when 
 could collide; with all six categories armed the same defaults now win six-wide, and
 measurement confirmed they do. Also standing: the weave-dominance rule (weave question,
 full stop — nothing shares that turn).
-**Your signature means:** the declared winners (incl. six-wide) and the interim 3c defaults
-are your call; the resolver changes only if your winners change.
-☐ APPROVE as declared  ☐ EDIT winners (specify)  ☐ Discuss
+Also folded here (same class, filed 07-28): the **3c-t4/t5 trigger-row pendings** — their
+collision/typing status is part of this same answer.
+**Your signature means:** the declared winners (incl. six-wide), the interim 3c defaults, and
+the 3c-t4/t5 pendings are your call; the resolver changes only if your winners change.
+**Answer format:** edits to the collision table data or an explicit "as declared" — the table
+is the artifact, your marks are its ratification (not prose).
+☐ APPROVE as declared  ☐ EDIT winners (return table edits)  ☐ Discuss
 **Your answer:**
 
 ### 7. §7c reclassification (ruled amendment) — confirm
@@ -121,7 +127,39 @@ build ticket exists; any formal_diagnosis flip decision is made knowing this.
 ### 12. mindfulness_body_scan — deroute or sign
 After MM's deroute, body_scan (also unsigned, no contraindications) absorbs the derouted
 demand live. Same class, same decision needed: deroute it too, or sign it.
-☐ DEROUTE  ☐ SIGN (review to follow)  ☐ Discuss
+Note before marking: "unsigned, no contraindications" is itself the argument that SIGN cannot
+be checkbox-only. Body-scan is a body-focused attention practice — exactly the class where
+trauma/dissociation contraindications matter (our Clinical Flags track trauma_indicator for
+this reason), and the skill schema makes contraindications and evidence_base mandatory per
+step.
+☐ DEROUTE  ☐ SIGN — full schema review to follow, incl. contraindications + evidence base, BEFORE any serve (your signature starts that review; it does not substitute for it)  ☐ Discuss
+**Your answer:**
+
+### 13. §1f inferred-row typing — ratify the framing-driving type column (URGENT: safety-rule governed)
+The Phase-1 trigger tables carry 31 rows with an honest doc_table/inferred provenance split.
+The inferred rows' TYPE column drives Classifier B's personal-vs-abstract framing — which
+decides whether the suicide-screening weave fires on a serve. Under ruled governance (spec
+§5.4: framing mappings take safety-rule review rigor), the engineering-inferred type values
+are running on an engineering guess pending your ratification. This is the one item on this
+sheet where your answer changes a safety check's firing conditions. (Filed in the original
+packet; restored to this round.)
+**Your signature means:** the inferred type values are clinically correct, or your corrected
+column replaces them.
+☐ RATIFY as-is  ☐ EDIT (return corrected type column)  ☐ Discuss
+**Your answer:**
+
+### 14. worry_tree bridge — and the missing-skill class behind it
+The §1f bridge map routes maintenance-cycle → worry_tree, a skill the library does not have
+(one instance of the recorded 10-pathways-no-skill_id gap). Bridges are pinned offer-only,
+so the interim is safe — but an offer to a missing skill needs a defined behavior. (Filed
+07-28; restored to this round.)
+☐ DEROUTE the bridge  ☐ SUBSTITUTE skill: ____________  ☐ HOLD the offer until the skill exists  ☐ Discuss
+**Your answer:**
+
+### 15. §6d/E7 shared launch-board gate — confirm
+One checkbox confirming the shared §6d/E7 launch-board gate, outstanding since before
+Phase 2. (Filed; restored to this round.)
+☐ CONFIRM shared gate  ☐ Discuss
 **Your answer:**
 
 ---
