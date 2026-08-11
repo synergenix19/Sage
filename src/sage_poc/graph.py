@@ -416,8 +416,11 @@ def _route_after_skill_select(state: SageState) -> str:
     # #338 D1: a SERVED screen question is terminal for this turn. apply_screen_at_route (enforce path) set
     # screen_question_text + active_skill_id=None on an ask_screen decision; the question IS this turn's
     # output. Below containment (crisis > vetoes > containment > screen > routing), above skill routing.
-    # Flag-gated upstream: screen_question_text is only ever set when SAGE_D1_SCREEN (enforce) is on, so this
-    # branch is unreachable with the flag off and the graph is byte-identical to master.
+    # Flag-gated upstream: screen_question_text is set only when SAGE_D1_SCREEN (enforce) is on, OR — since
+    # EMR Phase 2 surface 2 — when SAGE_MODALITY_REQUEST_ROUTING is on and the section-1a screen is pending
+    # (skill_select serves the signed screen question through this same verbatim terminal; audit rows are
+    # distinguished by the modality_request_screen_pending path marker). Both flags off -> unreachable,
+    # graph byte-identical to master.
     if state.get("screen_question_text"):
         return "screen_response"
     # V2 reranker ABSTAIN (below-τ semantic OR keyword-veto) → Node 3 low_confidence_respond, NOT
