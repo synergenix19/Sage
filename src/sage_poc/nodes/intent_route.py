@@ -144,10 +144,17 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
     # crisis/medical turns terminate before this node, so precedence is untouched).
     # One detector, three Phase-2 consumers; flag OFF -> channel None, byte-identical.
     _emr = None
+    _presentation = None
     if _cfg.MODALITY_REQUEST_ROUTING_ENABLED:
-        from sage_poc.matching import detect_explicit_modality_request  # noqa: PLC0415
+        from sage_poc.matching import (  # noqa: PLC0415
+            detect_explicit_modality_request, update_presentation_context)
         _emr = detect_explicit_modality_request(
             state.get("message_en", ""), state.get("raw_message", ""),
+            state.get("detected_language", "en"))
+        # EMR Phase 2 foundation: session-scoped screening accumulation (M1 stand-in),
+        # same deterministic head, same flag. OFF omits the key entirely (byte-identical).
+        _presentation = update_presentation_context(
+            state.get("recent_presentation"), state.get("message_en", ""),
             state.get("detected_language", "en"))
 
     if llm is None:
@@ -238,6 +245,10 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
             and should_defer_grief_over_crisis({**state, "primary_intent": primary_intent})
         ),
     }
+    if _presentation is not None:
+        # EMR Phase 2 (flag ON only): session-scoped screening accumulation; OFF never
+        # writes the key, so the state update is byte-identical to the pre-EMR shape.
+        result["recent_presentation"] = _presentation
     if _provenance_on:
         # DECLARED channels (classifier_context_hash / classifier_provider in SageState;
         # LangGraph drops undeclared keys — the SG-2 seam class). Read by
