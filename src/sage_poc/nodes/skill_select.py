@@ -792,6 +792,66 @@ async def skill_select_node(state: SageState) -> dict:
         if not state.get("active_skill_id"):
             result["active_skill_id"] = None
             result["active_step_id"] = None
+            # EMR surface 2 (info_request early-return; plan 2026-07-28 Phase 2, consumer 2;
+            # A1 gate closed 2026-08-11): an explicit modality request that the classifier
+            # labelled info_request must NOT fall into the KB short-circuit. Runs BEFORE the
+            # Mechanism-A consult: an explicit request for a tool outranks a psychoed consult
+            # (psychoed absorption of requests is exactly the surface-1 defect class).
+            # Deterministic input only: the Phase-1 detector channel, never re-detection.
+            # Screening gates delivery: cleared -> binding-table offer through the existing
+            # R1 consent machinery (declined-filtering preserved, never re-offers declined);
+            # not cleared -> the signed screen question served VERBATIM via the D1
+            # screen_question_text terminal (same served-bytes mechanism, no LLM rendering);
+            # red-flag language -> fall through untouched (the medical guard surface owns
+            # that turn, the screen goes silent per the foundation contract). Guard (C3):
+            # genuine info asks carry requested=False and reach KB exactly as today.
+            from sage_poc import config as _config_emr  # noqa: PLC0415
+            _emr_req = state.get("explicit_modality_request") or {}
+            if _config_emr.MODALITY_REQUEST_ROUTING_ENABLED and _emr_req.get("requested"):
+                from sage_poc.matching import (  # noqa: PLC0415
+                    BINDING_TABLE, empty_presentation_context, next_screen_question)
+                _ctx = state.get("recent_presentation") or empty_presentation_context()
+                if _ctx.get("red_flag_language"):
+                    pass  # medical territory: no offer, no screen, KB/guard path unchanged
+                elif _ctx.get("cleared"):
+                    _declined = set(state.get("declined_skills") or [])
+                    _cands = list(BINDING_TABLE.get(_emr_req.get("modality_hint") or "default")
+                                  or BINDING_TABLE["default"])
+                    _offerable = [s for s in _cands if s not in _declined][:2]
+                    if _offerable:
+                        _markers = ["modality_request_routed:info_request"]
+                        if _ctx.get("referral_alongside"):
+                            _markers.append("modality_request_referral_context")
+                        return {
+                            "active_skill_id": None,
+                            "active_step_id": None,
+                            "offered_skill_ids": _offerable,
+                            "offer_count": 1,
+                            "last_offer_turn": state.get("turn_count", 0),
+                            "skill_match_method": "modality_request_offer",
+                            "semantic_score": None,
+                            "path": state["path"] + ["skill_select"] + _markers + ["skill_offer_made"],
+                            **_psychoed_pathway_clear(state),
+                        }
+                    # every binding candidate declined this session: fall through to KB
+                    # (released/declined semantics preserved; silence here is the R1 rule)
+                else:
+                    _q = next_screen_question(_ctx)
+                    if _q is not None:
+                        _new_ctx = dict(_ctx)
+                        _new_ctx["screen_asked"] = list(_new_ctx.get("screen_asked") or []) + [_q["key"]]
+                        return {
+                            "active_skill_id": None,
+                            "active_step_id": None,
+                            "skill_match_method": None,
+                            "semantic_score": None,
+                            # served verbatim by screen_response (signed bytes; audit rows
+                            # for EMR screens are distinguished from D1 by this path marker)
+                            "screen_question_text": f'{_q["lead_in"]} {_q["question"]}',
+                            "recent_presentation": _new_ctx,
+                            "path": state["path"] + ["skill_select", "modality_request_screen_pending"],
+                        }
+                    # nothing askable and not cleared: fall through to KB unchanged
             # Psychoed Mechanism-A consult (2026-07-17 design doc): BEFORE force-routing to
             # knowledge_retrieve, consult the SAME keyword+semantic matching the
             # non-info_request path uses. A top match inside INFO_REQUEST_SKILL_CONSULT_SET
