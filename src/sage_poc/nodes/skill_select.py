@@ -689,6 +689,55 @@ def _psychoed_pathway_clear(state: SageState) -> dict:
     }
 
 
+def _modality_request_delivery(state: SageState, emr: dict, surface: str) -> dict | None:
+    """Shared EMR delivery gate (plan 2026-07-28 Phase 2; one implementation, every
+    surface). Screening gates delivery: cleared -> binding-table offer through the R1
+    consent shape (declined-filtering preserved); unscreened -> the signed screen
+    question served verbatim via the D1 screen_question_text terminal; red-flag
+    context, all-candidates-declined, or nothing-askable -> None (caller's path runs
+    unchanged — the medical guard / KB / normal matching own those turns)."""
+    from sage_poc.matching import (  # noqa: PLC0415
+        BINDING_TABLE, empty_presentation_context, next_screen_question)
+    ctx = state.get("recent_presentation") or empty_presentation_context()
+    if ctx.get("red_flag_language"):
+        return None
+    if ctx.get("cleared"):
+        declined = set(state.get("declined_skills") or [])
+        cands = list(BINDING_TABLE.get(emr.get("modality_hint") or "default")
+                     or BINDING_TABLE["default"])
+        offerable = [s for s in cands if s not in declined][:2]
+        if not offerable:
+            return None
+        markers = [f"modality_request_routed:{surface}"]
+        if ctx.get("referral_alongside"):
+            markers.append("modality_request_referral_context")
+        return {
+            "active_skill_id": None,
+            "active_step_id": None,
+            "offered_skill_ids": offerable,
+            "offer_count": 1,
+            "last_offer_turn": state.get("turn_count", 0),
+            "skill_match_method": "modality_request_offer",
+            "semantic_score": None,
+            "path": state["path"] + ["skill_select"] + markers + ["skill_offer_made"],
+            **_psychoed_pathway_clear(state),
+        }
+    q = next_screen_question(ctx)
+    if q is None:
+        return None
+    new_ctx = dict(ctx)
+    new_ctx["screen_asked"] = list(new_ctx.get("screen_asked") or []) + [q["key"]]
+    return {
+        "active_skill_id": None,
+        "active_step_id": None,
+        "skill_match_method": None,
+        "semantic_score": None,
+        "screen_question_text": f'{q["lead_in"]} {q["question"]}',
+        "recent_presentation": new_ctx,
+        "path": state["path"] + ["skill_select", "modality_request_screen_pending"],
+    }
+
+
 async def skill_select_node(state: SageState) -> dict:
     # --- Psychoed pathway (spec §2.1; Phase 2 Task 8; flag-gated, default OFF). ORDER IS BINDING:
     # (1) PSY-WEAVE-1 evaluation on a weave-pending turn runs BEFORE any matching — a pending weave
@@ -808,50 +857,10 @@ async def skill_select_node(state: SageState) -> dict:
             from sage_poc import config as _config_emr  # noqa: PLC0415
             _emr_req = state.get("explicit_modality_request") or {}
             if _config_emr.MODALITY_REQUEST_ROUTING_ENABLED and _emr_req.get("requested"):
-                from sage_poc.matching import (  # noqa: PLC0415
-                    BINDING_TABLE, empty_presentation_context, next_screen_question)
-                _ctx = state.get("recent_presentation") or empty_presentation_context()
-                if _ctx.get("red_flag_language"):
-                    pass  # medical territory: no offer, no screen, KB/guard path unchanged
-                elif _ctx.get("cleared"):
-                    _declined = set(state.get("declined_skills") or [])
-                    _cands = list(BINDING_TABLE.get(_emr_req.get("modality_hint") or "default")
-                                  or BINDING_TABLE["default"])
-                    _offerable = [s for s in _cands if s not in _declined][:2]
-                    if _offerable:
-                        _markers = ["modality_request_routed:info_request"]
-                        if _ctx.get("referral_alongside"):
-                            _markers.append("modality_request_referral_context")
-                        return {
-                            "active_skill_id": None,
-                            "active_step_id": None,
-                            "offered_skill_ids": _offerable,
-                            "offer_count": 1,
-                            "last_offer_turn": state.get("turn_count", 0),
-                            "skill_match_method": "modality_request_offer",
-                            "semantic_score": None,
-                            "path": state["path"] + ["skill_select"] + _markers + ["skill_offer_made"],
-                            **_psychoed_pathway_clear(state),
-                        }
-                    # every binding candidate declined this session: fall through to KB
-                    # (released/declined semantics preserved; silence here is the R1 rule)
-                else:
-                    _q = next_screen_question(_ctx)
-                    if _q is not None:
-                        _new_ctx = dict(_ctx)
-                        _new_ctx["screen_asked"] = list(_new_ctx.get("screen_asked") or []) + [_q["key"]]
-                        return {
-                            "active_skill_id": None,
-                            "active_step_id": None,
-                            "skill_match_method": None,
-                            "semantic_score": None,
-                            # served verbatim by screen_response (signed bytes; audit rows
-                            # for EMR screens are distinguished from D1 by this path marker)
-                            "screen_question_text": f'{_q["lead_in"]} {_q["question"]}',
-                            "recent_presentation": _new_ctx,
-                            "path": state["path"] + ["skill_select", "modality_request_screen_pending"],
-                        }
-                    # nothing askable and not cleared: fall through to KB unchanged
+                _emr_delivery = _modality_request_delivery(state, _emr_req, surface="info_request")
+                if _emr_delivery is not None:
+                    return _emr_delivery
+                # None (red-flag / all-declined / nothing-askable): fall through to KB
             # Psychoed Mechanism-A consult (2026-07-17 design doc): BEFORE force-routing to
             # knowledge_retrieve, consult the SAME keyword+semantic matching the
             # non-info_request path uses. A top match inside INFO_REQUEST_SKILL_CONSULT_SET
@@ -929,6 +938,20 @@ async def skill_select_node(state: SageState) -> dict:
             "path": state["path"] + ["skill_select"],
             **_psychoed_pathway_clear(state),  # Task 8 gap 1: non-psychoed skill activation (HR referral)
         }
+
+    # EMR delivery, generic entry (surfaces routed here by the graph's EMR redirect —
+    # incl. the surface-3 route-with-release turn; the info_request branch above has its
+    # own call). Subordinate by ORDER to post-crisis and psychotic/HR auto-selects (both
+    # return before this line); skips accept-promotion turns (the pending offer's
+    # promotion machinery below owns those, offer_promoted semantics preserved); never
+    # fires mid-skill (surface-1 territory). None -> normal matching runs unchanged.
+    _emr_generic = state.get("explicit_modality_request") or {}
+    if (config.MODALITY_REQUEST_ROUTING_ENABLED and _emr_generic.get("requested")
+            and not state.get("active_skill_id")
+            and not ((state.get("offered_skill_ids") or []) and state.get("offer_response") == "accept")):
+        _emr_delivery = _modality_request_delivery(state, _emr_generic, surface="select")
+        if _emr_delivery is not None:
+            return _emr_delivery
 
     # E7 §6a IPV pre-emption (flag-gated SAGE_IPV_PREEMPTION). When domestic_situation is set, the §6
     # coaching_confrontation skills (assertive_communication, interpersonal_effectiveness) are

@@ -276,7 +276,36 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
     result["prepass_matched"] = _prepass
     result["prepass_rule_id"] = "prepass_kw_v1" if _prepass else None
     offered = state.get("offered_skill_ids") or []
-    if offered:
+    if offered and _emr is not None and _emr.get("requested"):
+        # EMR surface 3 (offer-reply resolution; addendum 2026-07-28, Option A SIGNED,
+        # clinical confirmation via the 2026-08-11 A1 pin). Deterministic resolution
+        # REPLACES the LLM offer-reply classification whenever the detector fired:
+        #   1. promote-if-member: the binding table's skills for the hint (or the
+        #      first-line default) intersected with the pending offer, first in
+        #      binding order wins -> acceptance of that member via the EXISTING
+        #      promotion path (offer_promoted semantics, entry screens preserved).
+        #   2. route-with-release: no member -> release the offer. Marker is
+        #      offer_released_modality_request, NOT offer_ignored (the user engaged,
+        #      with a different ask), and released skills NEVER enter declined_skills
+        #      (release must never quietly become decline; reoffer-eligible). The
+        #      request then reaches skill_select via the router's EMR redirect.
+        # Genuine ignores/declines carry requested=False and take the LLM path below
+        # unchanged (both-direction guards).
+        from sage_poc.matching import BINDING_TABLE  # noqa: PLC0415
+        _cands = list(BINDING_TABLE.get(_emr.get("modality_hint") or "default")
+                      or BINDING_TABLE["default"])
+        _member = next((s for s in _cands if s in offered), None)
+        if _member is not None:
+            result["offer_response"] = "accept"
+            result["offer_choice_skill_id"] = _member
+            result["path"] = result["path"] + ["modality_request_routed:offer_reply", "offer_accepted"]
+            result["offer_count"] = 0
+        else:
+            result["offered_skill_ids"] = None
+            result["path"] = result["path"] + ["modality_request_routed:offer_reply",
+                                               "offer_released_modality_request"]
+            result["offer_count"] = 0
+    elif offered:
         offer_response = data.get("offer_response")
         if offer_response not in ("accept", "decline", "other"):
             if "offer_response" in data:

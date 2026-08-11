@@ -369,6 +369,19 @@ def _route_after_intent(state: SageState) -> str:
             and not state.get("active_skill_id")
             and (state.get("prepass_matched") or [])):
         return "skill_select"
+    # EMR redirect (plan 2026-07-28: "an explicit modality request, in a screened context,
+    # always resolves against the clinical binding table — regardless of which way the LLM
+    # intent classifier lands"). Same slot + guards as the prepass hint above, but for ALL
+    # intents that would otherwise miss skill_select (incl. the route-with-release turn,
+    # whose classification is unpredictable by design). Guarded on active_skill_id: a
+    # mid-skill request is surface-1 (executor) territory and falls through unchanged.
+    # Subordinate by ORDER to crisis, the D1/weave redirects, monitoring, the psychotic/HR
+    # referral, and the F6 venting hold above — all of them return before this line.
+    # Flag OFF -> the channel is None, branch unreachable, routing byte-identical.
+    if (_cfg.MODALITY_REQUEST_ROUTING_ENABLED
+            and not state.get("active_skill_id")
+            and (state.get("explicit_modality_request") or {}).get("requested")):
+        return "skill_select"
     if confidence < 0.6:
         return "low_confidence"
     if intent == "exit_skill":
