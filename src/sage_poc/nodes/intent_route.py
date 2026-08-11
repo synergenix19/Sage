@@ -138,6 +138,18 @@ def _classifier_context_hash(messages: list[dict]) -> str:
 
 
 async def intent_route_node(state: SageState, llm=None) -> dict:
+    # EMR Phase 1 (plan 2026-07-28, gate closed 2026-08-11): the deterministic
+    # explicit-modality-request detector runs at the HEAD of this node, BEFORE and
+    # independently of the LLM classification (placement rider: not in safety_check —
+    # crisis/medical turns terminate before this node, so precedence is untouched).
+    # One detector, three Phase-2 consumers; flag OFF -> channel None, byte-identical.
+    _emr = None
+    if _cfg.MODALITY_REQUEST_ROUTING_ENABLED:
+        from sage_poc.matching import detect_explicit_modality_request  # noqa: PLC0415
+        _emr = detect_explicit_modality_request(
+            state.get("message_en", ""), state.get("raw_message", ""),
+            state.get("detected_language", "en"))
+
     if llm is None:
         llm = get_classifier()
     fallback_llm = get_fallback_classifier()
@@ -181,6 +193,8 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
         _intent_route_path = _intent_route_path + ["classifier_degraded"]
     if _directive_posture:
         _intent_route_path = _intent_route_path + ["directive_posture_set"]
+    if _emr is not None and _emr.get("requested"):
+        _intent_route_path = _intent_route_path + ["modality_request_detected"]
     result = {
         "primary_intent": primary_intent,
         "secondary_intent": data.get("secondary_intent"),
@@ -213,6 +227,9 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
             _cfg.PANIC_GROUNDING_OVERRIDE_ENABLED
             and should_ground_over_crisis({**state, "primary_intent": primary_intent})
         ),
+        # EMR Phase 1: written EVERY turn (None when flag OFF) — per-turn semantics live
+        # at this write site, same contract as panic_grounding_override above.
+        "explicit_modality_request": _emr,
         # S2a (sweep row 13, built inert 2026-08-04) — deterministic grief-presence deference. Same
         # stamp/honor pattern as panic_grounding_override immediately above: code decides here,
         # _route_after_intent honours it. Flag-gated kill-switch; OFF -> always False (byte-identical).
