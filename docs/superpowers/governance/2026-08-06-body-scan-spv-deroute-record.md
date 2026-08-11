@@ -10,8 +10,9 @@ doesn't resolve it, default to the protective reading pending the record check."
 (commit `857f8eef`, a compliance-fixes batch); no entry in `signed_clinical_fields.json`;
 no dedicated sign-off record anywhere in the governance directory. Status: **signature
 record not found — same as body_scan.** Ruled IN; both derouted under the protective
-reading. Vee's sentence on the sheet (section B) remains the clinical confirmation slot;
-if she recalls (or issues) a signature for either skill, re-route = delete its
+reading. **CONFIRMED by Vee 2026-08-11** (approval-list rows 5a/5b, PO relay —
+`2026-08-11-vee-approval-record.md`): both stay derouted until she signs each
+registration. If she issues a signature for either skill, re-route = delete its
 `KEYWORD_SEMANTIC_SKIP` entry + restore its offer blurb from this commit's parent, one
 line each.
 

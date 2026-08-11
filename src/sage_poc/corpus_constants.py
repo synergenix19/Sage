@@ -134,8 +134,9 @@ KEYWORD_SEMANTIC_SKIP: frozenset[str] = frozenset({
     # PR#407): body_scan was absorbing the derouted mm demand with signature record not
     # found; safe_place_visualization shares that status (authored 2026-05-22, no sign-off
     # record) and catches "guided meditation" (guided imagery, trauma-contraindicated
-    # risk shape) -- ruled in under the signature-status rule, protective reading pending
-    # Vee's sentence. Landing zones measured + recorded (checklist above):
+    # risk shape) -- ruled in under the signature-status rule. CONFIRMED by Vee
+    # 2026-08-11 (approval record 2026-08-11-vee-approval-record.md): derouted until
+    # she signs each registration. Landing zones measured + recorded (checklist above):
     # 2026-08-06-body-scan-spv-deroute-record.md. Re-route on signature = delete entry.
     "mindfulness_body_scan",
     "safe_place_visualization",
