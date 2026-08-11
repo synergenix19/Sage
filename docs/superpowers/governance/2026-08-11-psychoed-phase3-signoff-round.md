@@ -1,5 +1,10 @@
 # Psychoeducation Pathways — Phase 3 Sign-off Round (for Vee)
 
+**ROUND STATUS (2026-08-11):** items 4, 5, 7, 9, 10, 11, 15 RECORDED approved per owner relay
+(determinate ratifications; relay channel per house precedent). Items 1, 2, 3, 6, 8, 12, 13, 14
+OPEN — each requires content or a box choice that blanket approval cannot supply (name, number,
+hints, table marks / as-declared, authorship choice, deroute-vs-sign, ratify-vs-edit,
+one-of-three). One line each closes the round.
 **Requested turnaround:** ______ (four items below are URGENT — 1, 2, 3, and 13 — they gate everything else)
 **When your marked sheet returns** it becomes a pinned governance artifact (signed-fields over
 your answers — your rulings enter the same provenance chain as the copy they govern).
@@ -60,16 +65,16 @@ expectations to it.
 The ratified source was transformed (em-dash removal, formatting) for serving. The diffs
 doc→served-artifact are the evidence; no wording changed beyond the ruled transformation.
 **Your signature means:** the served copies are your ratified copies.
-☐ APPROVE  ☐ EDIT (list blocks)  ☐ Discuss
-**Your answer:**
+☒ APPROVE  ☐ EDIT (list blocks)  ☐ Discuss
+**Your answer:** **RECORDED: APPROVED — per Vee, relayed by project owner, 2026-08-11.** (Relay record under the house per-item channel; her marked sheet or direct per-item message supersedes on receipt.)
 
 ### 5. Deflection→crisis (design-added extension to the screening weave)
 Your doc's weave branch was binary yes/no. As built, a DEFLECTION of the screening question
 ("actually, what is anxiety?") escalates like an ambiguous reply — fail-closed. This was
 design-added and needs your ratification.
 **Your signature means:** deflection-escalates is clinically correct behavior.
-☐ APPROVE  ☐ EDIT  ☐ Discuss
-**Your answer:**
+☒ APPROVE  ☐ EDIT  ☐ Discuss
+**Your answer:** **RECORDED: APPROVED — per Vee, relayed by project owner, 2026-08-11.** (Relay record under the house per-item channel; her marked sheet or direct per-item message supersedes on receipt.)
 
 ### 6. Collision winners — including the new six-wide question
 Two phrases live in multiple categories ("Why do I feel numb?" 3c/s2c; "What's happening to
@@ -89,8 +94,8 @@ is the artifact, your marks are its ratification (not prose).
 ### 7. §7c reclassification (ruled amendment) — confirm
 Previously ruled; this confirms your sign-off on the reclassification as recorded in the
 design spec's register.
-☐ CONFIRM  ☐ REOPEN
-**Your answer:**
+☒ CONFIRM  ☐ REOPEN
+**Your answer:** **RECORDED: APPROVED — per Vee, relayed by project owner, 2026-08-11.** (Relay record under the house per-item channel; her marked sheet or direct per-item message supersedes on receipt.)
 
 ### 8. Human-referral close — authorship
 The referral close copy needs a named clinical author (it is served verbatim on referral
@@ -103,8 +108,8 @@ The thresholds that suppress psychoed serving when acute distress co-occurs with
 hit (lexical/structural/numeric/upstream-state classes). Measurement confirmed each class
 fires genuinely (verified hit-plus-veto, not phantom matches).
 **Your signature means:** the suppression thresholds are clinically placed.
-☐ APPROVE  ☐ EDIT (specify class)  ☐ Discuss
-**Your answer:**
+☒ APPROVE  ☐ EDIT (specify class)  ☐ Discuss
+**Your answer:** **RECORDED: APPROVED — per Vee, relayed by project owner, 2026-08-11.** (Relay record under the house per-item channel; her marked sheet or direct per-item message supersedes on receipt.)
 
 ### 10. Guard-script body/close segmentation (the two-question ruling)
 Ruled fix for two findings with one cause: the diagnosis-guard's consent close and a
@@ -114,15 +119,15 @@ change — so exactly one question owns any turn. Because it segments signed cop
 itself needs your ratification.
 **Your signature means:** the field split of your ratified script is approved (wording
 untouched).
-☐ APPROVE  ☐ EDIT  ☐ Discuss
-**Your answer:**
+☒ APPROVE  ☐ EDIT  ☐ Discuss
+**Your answer:** **RECORDED: APPROVED — per Vee, relayed by project owner, 2026-08-11.** (Relay record under the house per-item channel; her marked sheet or direct per-item message supersedes on receipt.)
 
 ### 11. Consent-to-serve interim (formal_diagnosis walk-through) — acknowledge
 Known interim, flip consideration: today a "yes" to the guard's walk-through offer is
 answered by general conversation (safe; quarantine verified), not the ratified block. The
 build ticket exists; any formal_diagnosis flip decision is made knowing this.
-☐ ACKNOWLEDGED  ☐ BLOCK formal_diagnosis flips until built  ☐ Discuss
-**Your answer:**
+☒ ACKNOWLEDGED  ☐ BLOCK formal_diagnosis flips until built  ☐ Discuss
+**Your answer:** **RECORDED: APPROVED — per Vee, relayed by project owner, 2026-08-11.** (Relay record under the house per-item channel; her marked sheet or direct per-item message supersedes on receipt.)
 
 ### 12. mindfulness_body_scan — deroute or sign
 After MM's deroute, body_scan (also unsigned, no contraindications) absorbs the derouted
@@ -159,8 +164,8 @@ so the interim is safe — but an offer to a missing skill needs a defined behav
 ### 15. §6d/E7 shared launch-board gate — confirm
 One checkbox confirming the shared §6d/E7 launch-board gate, outstanding since before
 Phase 2. (Filed; restored to this round.)
-☐ CONFIRM shared gate  ☐ Discuss
-**Your answer:**
+☒ CONFIRM shared gate  ☐ Discuss
+**Your answer:** **RECORDED: APPROVED — per Vee, relayed by project owner, 2026-08-11.** (Relay record under the house per-item channel; her marked sheet or direct per-item message supersedes on receipt.)
 
 ---
 
