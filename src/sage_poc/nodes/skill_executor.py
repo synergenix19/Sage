@@ -576,6 +576,37 @@ async def skill_executor_node(state: SageState) -> dict:
             **crisis_update,
         }
 
+    # EMR surface 1 (plan 2026-07-28 Phase 2, consumer 1; A1 gate closed 2026-08-11):
+    # an explicit modality request mid-skill is the user-initiated departure family
+    # ("request-for-alternative" = the same L1 family as spec 9.2 rule 5), evaluated
+    # BEFORE step advancement so the active skill can never absorb it into an
+    # exploration step (the observed turn-3 defect). Expressed as escalation-matrix L1
+    # data: the exit instruction is the skill's OWN clinician-authorable L1 text, the
+    # capability is generic (exit-with-warm-handoff -> skill_select via the rehand
+    # router branch), no per-skill code. Subordinate to a real L1 (exit phrase /
+    # exit_skill intent wins above — a user asking to STOP is honored as a plain exit
+    # even if the same turn also asks for an alternative: conservative, no re-offer on
+    # an exit). Both-direction guard: mid-skill affirmations carry requested=False.
+    from sage_poc import config as _emr_cfg  # noqa: PLC0415
+    _emr_req = state.get("explicit_modality_request") or {}
+    if _emr_cfg.MODALITY_REQUEST_ROUTING_ENABLED and _emr_req.get("requested"):
+        matrix_instruction = skill.escalation_matrix.get("L1", "Follow escalation protocol.")
+        return {
+            "step_instruction":    f"[L1] {matrix_instruction}",
+            "executed_step_id":    step_id,
+            "active_step_id":      None,
+            "active_skill_id":     None,
+            "escalation_triggered": {"level": "L1",
+                                     "reason": "modality_request:request_for_alternative",
+                                     "action": "exit_with_rehand"},
+            "resistance_score":    None,
+            "criteria_hold_count": 0,
+            "criteria_hold_step_id": None,
+            "rule_hold_count":     0,
+            "rule_hold_step_id":   None,
+            "path": state["path"] + ["skill_executor", "modality_request_routed:executor"],
+        }
+
     resistance_history    = list(state.get("resistance_history") or [])
     engagement_trajectory = list(state.get("engagement_trajectory") or [])
     re_escalation_detected = state.get("s7_result") == "NEW_CRISIS"
