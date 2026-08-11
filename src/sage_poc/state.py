@@ -176,6 +176,13 @@ class SageState(TypedDict):
                                            # panic-grounding override applies (safety_check clean + clear panic
                                            # + no harm + intent=crisis). Declared channel so _route_after_intent
                                            # reads it (SG-2: undeclared keys are dropped between nodes).
+    recent_presentation: Optional[dict]    # SESSION-SCOPED (EMR Phase 2, M1 stand-in for the Active Issues
+                                           # List): deterministic screening/presentation accumulation from
+                                           # matching.update_presentation_context, written by intent_route each
+                                           # turn ONLY when SAGE_MODALITY_REQUEST_ROUTING is ON (OFF omits the
+                                           # key entirely; checkpoint carries prior value). Monotonic latches
+                                           # (red_flag_language never un-sets); cleared/referral_alongside are
+                                           # DERIVED fields. Consumers gate all skill delivery on cleared=True.
     explicit_modality_request: Optional[dict]  # PER-TURN (EMR Phase 1): {"requested": bool, "modality_hint":
                                            # str|None} from matching.detect_explicit_modality_request, written
                                            # at the head of intent_route BEFORE the LLM call, every turn (None
