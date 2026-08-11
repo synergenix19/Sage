@@ -481,6 +481,13 @@ def _route_after_skill_select(state: SageState) -> str:
 def _route_after_skill_executor(state: SageState) -> str:
     if state.get("re_escalation_within_monitoring"):
         return "crisis"
+    # EMR surface 1 rehand: the executor exited on a request-for-alternative (its own
+    # escalation record carries the action) -> the request reaches skill_select, where
+    # the shared delivery gate produces the screened binding-table offer. Below crisis
+    # (unchanged, first). The action string is only ever written under
+    # SAGE_MODALITY_REQUEST_ROUTING, so flag-off routing is byte-identical.
+    if (state.get("escalation_triggered") or {}).get("action") == "exit_with_rehand":
+        return "skill_select"
     return "freeflow"
 
 
@@ -551,6 +558,7 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     graph.add_conditional_edges("skill_executor", _route_after_skill_executor, {
         "crisis": "crisis_response",
         "freeflow": "freeflow_respond",
+        "skill_select": "skill_select",   # EMR surface-1 rehand (exit_with_rehand only)
     })
     graph.add_edge("freeflow_respond", "output_gate")
     graph.add_conditional_edges("output_gate", _route_after_output_gate, {
