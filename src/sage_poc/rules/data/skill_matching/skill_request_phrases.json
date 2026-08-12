@@ -2,48 +2,201 @@
   "_meta": {
     "purpose": "EMR Phase 1 request-phrasing lexicon + first-line binding table. Consumed by matching.detect_explicit_modality_request (detector, Phase 1) and the three Phase-2 consumer surfaces (executor rehand, info_request early-return, offer-reply resolution).",
     "governance": "draft-pending-review. Clinical content class (routing keywords, v7 section 9); behind SAGE_MODALITY_REQUEST_ROUTING default OFF; clinician (Vee) sign-off hard-blocks the prod flip. Plan: docs/superpowers/plans/2026-07-28-explicit-modality-request-handling.md; clinical basis: Vee sign-off 2026-07-29 items 1-3, confirmed at adopted-sentence grade 2026-08-11.",
-    "matching_contract": "case-insensitive substring pass over message_en, EN sessions only (B2 language gate lives in the detector, not here). Max 32 request_phrases (latency budget: one substring pass, no model call). Fixture-independence rule: conformance fixtures must be naturalistic superstrings, never these entries verbatim (CI-checked).",
+    "matching_contract": "case-insensitive substring pass over message_en, EN sessions only (B2 language gate lives in the detector, not here). Max 48 request_phrases (raised from 32 on 2026-08-12: first fix-arm measured 9/12 naturalistic paraphrase misses; latency budget re-asserted by test) (latency budget: one substring pass, no model call). Fixture-independence rule: conformance fixtures must be naturalistic superstrings, never these entries verbatim (CI-checked).",
     "no_em_dashes": "none of these strings may contain em dashes (rule-content convention)"
   },
   "request_phrases": [
-    {"phrase": "exercise i can do", "modality_hint": null},
-    {"phrase": "exercises i can do", "modality_hint": null},
-    {"phrase": "any exercises", "modality_hint": null},
-    {"phrase": "an exercise for", "modality_hint": null},
-    {"phrase": "any techniques", "modality_hint": null},
-    {"phrase": "a technique for", "modality_hint": null},
-    {"phrase": "technique i can", "modality_hint": null},
-    {"phrase": "coping tool", "modality_hint": null},
-    {"phrase": "coping skill", "modality_hint": null},
-    {"phrase": "coping technique", "modality_hint": null},
-    {"phrase": "coping strateg", "modality_hint": null},
-    {"phrase": "something i can try", "modality_hint": null},
-    {"phrase": "something i can do to", "modality_hint": null},
-    {"phrase": "something to help me calm", "modality_hint": null},
-    {"phrase": "give me a tool", "modality_hint": null},
-    {"phrase": "give me an exercise", "modality_hint": null},
-    {"phrase": "teach me a", "modality_hint": null},
-    {"phrase": "teach me how to calm", "modality_hint": null},
-    {"phrase": "teach me to relax", "modality_hint": null},
-    {"phrase": "show me an exercise", "modality_hint": null},
-    {"phrase": "show me a technique", "modality_hint": null},
-    {"phrase": "walk me through an exercise", "modality_hint": null},
-    {"phrase": "can we do an exercise", "modality_hint": null},
-    {"phrase": "can we try an exercise", "modality_hint": null},
-    {"phrase": "can we practice", "modality_hint": null},
-    {"phrase": "what can i do to calm", "modality_hint": null},
-    {"phrase": "what can i do when i panic", "modality_hint": null},
-    {"phrase": "how do i calm myself", "modality_hint": null},
-    {"phrase": "breathing exercise", "modality_hint": "breathing"},
-    {"phrase": "grounding exercise", "modality_hint": "grounding"},
-    {"phrase": "relaxation exercise", "modality_hint": "relaxation"},
-    {"phrase": "relaxation technique", "modality_hint": "relaxation"}
+    {
+      "phrase": "exercise i can do",
+      "modality_hint": null
+    },
+    {
+      "phrase": "exercises i can do",
+      "modality_hint": null
+    },
+    {
+      "phrase": "any exercises",
+      "modality_hint": null
+    },
+    {
+      "phrase": "an exercise for",
+      "modality_hint": null
+    },
+    {
+      "phrase": "any techniques",
+      "modality_hint": null
+    },
+    {
+      "phrase": "a technique for",
+      "modality_hint": null
+    },
+    {
+      "phrase": "technique i can",
+      "modality_hint": null
+    },
+    {
+      "phrase": "coping tool",
+      "modality_hint": null
+    },
+    {
+      "phrase": "coping skill",
+      "modality_hint": null
+    },
+    {
+      "phrase": "coping technique",
+      "modality_hint": null
+    },
+    {
+      "phrase": "coping strateg",
+      "modality_hint": null
+    },
+    {
+      "phrase": "something i can try",
+      "modality_hint": null
+    },
+    {
+      "phrase": "something i can do to",
+      "modality_hint": null
+    },
+    {
+      "phrase": "something to help me calm",
+      "modality_hint": null
+    },
+    {
+      "phrase": "give me a tool",
+      "modality_hint": null
+    },
+    {
+      "phrase": "give me an exercise",
+      "modality_hint": null
+    },
+    {
+      "phrase": "teach me a",
+      "modality_hint": null
+    },
+    {
+      "phrase": "teach me how to calm",
+      "modality_hint": null
+    },
+    {
+      "phrase": "teach me to relax",
+      "modality_hint": null
+    },
+    {
+      "phrase": "show me an exercise",
+      "modality_hint": null
+    },
+    {
+      "phrase": "show me a technique",
+      "modality_hint": null
+    },
+    {
+      "phrase": "walk me through an exercise",
+      "modality_hint": null
+    },
+    {
+      "phrase": "can we do an exercise",
+      "modality_hint": null
+    },
+    {
+      "phrase": "can we try an exercise",
+      "modality_hint": null
+    },
+    {
+      "phrase": "can we practice",
+      "modality_hint": null
+    },
+    {
+      "phrase": "what can i do to calm",
+      "modality_hint": null
+    },
+    {
+      "phrase": "what can i do when i panic",
+      "modality_hint": null
+    },
+    {
+      "phrase": "how do i calm myself",
+      "modality_hint": null
+    },
+    {
+      "phrase": "breathing exercise",
+      "modality_hint": "breathing"
+    },
+    {
+      "phrase": "grounding exercise",
+      "modality_hint": "grounding"
+    },
+    {
+      "phrase": "relaxation exercise",
+      "modality_hint": "relaxation"
+    },
+    {
+      "phrase": "relaxation technique",
+      "modality_hint": "relaxation"
+    },
+    {
+      "phrase": "something practical i could try",
+      "modality_hint": null
+    },
+    {
+      "phrase": "something i can practice",
+      "modality_hint": null
+    },
+    {
+      "phrase": "tools i can use",
+      "modality_hint": null
+    },
+    {
+      "phrase": "got any tools",
+      "modality_hint": null
+    },
+    {
+      "phrase": "what can i actually do",
+      "modality_hint": null
+    },
+    {
+      "phrase": "what should i do when this happens",
+      "modality_hint": null
+    },
+    {
+      "phrase": "show me how to calm",
+      "modality_hint": null
+    },
+    {
+      "phrase": "tips or exercises",
+      "modality_hint": null
+    },
+    {
+      "phrase": "actual steps i can follow",
+      "modality_hint": null
+    },
+    {
+      "phrase": "steps i can follow",
+      "modality_hint": null
+    },
+    {
+      "phrase": "a breathing thing",
+      "modality_hint": "breathing"
+    },
+    {
+      "phrase": "grounding method",
+      "modality_hint": "grounding"
+    }
   ],
   "binding_table": {
     "_comment": "Phase-2 consumer data, draft-pending-review. First-line ordering owner for explicitly requested modalities (BOT BEHAVIOUR section 1a offer tables; V2 owns inferred-presentation retrieval). Rows are clinician-signable units. 'default' is the section-1a Tier-1 first-line pair, in spec order.",
-    "default": ["box_breathing", "grounding_5_4_3_2_1"],
-    "breathing": ["box_breathing"],
-    "grounding": ["grounding_5_4_3_2_1"],
-    "relaxation": ["progressive_muscle_relaxation"]
+    "default": [
+      "box_breathing",
+      "grounding_5_4_3_2_1"
+    ],
+    "breathing": [
+      "box_breathing"
+    ],
+    "grounding": [
+      "grounding_5_4_3_2_1"
+    ],
+    "relaxation": [
+      "progressive_muscle_relaxation"
+    ]
   }
 }

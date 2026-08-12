@@ -409,14 +409,32 @@ def test_flag_override_stamped_and_loud():
     coverage 'deliberate_override' AND a loud parity note naming it — a counterfactual
     arm must be distinguishable from a serving-parity baseline at read time. No
     override -> byte-identical derive (no note, no coverage change)."""
+    import os
     import unittest.mock as mock
-    with mock.patch.object(ge, "fetch_readback", return_value=_mock_readback()), \
-         mock.patch.object(ge, "fetch_railway_desired", return_value=_desired_matching()), \
-         mock.patch.object(ge, "export_env"):
-        derived, _ = ge.prepare_evidence_env(
-            flag_overrides={"SAGE_MODALITY_REQUEST_ROUTING": "true"})
-        assert derived["effective"]["SAGE_MODALITY_REQUEST_ROUTING"] == "true"
-        assert derived["coverage"]["SAGE_MODALITY_REQUEST_ROUTING"] == "deliberate_override"
-        assert any("DELIBERATE FLAG OVERRIDE" in n for n in derived["notes"])
-        plain, _ = ge.prepare_evidence_env()
-        assert not any("DELIBERATE FLAG OVERRIDE" in n for n in plain["notes"])
+
+    def _fake_export(derived, env_file=None):
+        # mirror the real export for the vars under test (the self-check reads os.environ)
+        for var, val in derived["resolved_env"].items():
+            if val is None:
+                os.environ.pop(var, None)
+            else:
+                os.environ[var] = val
+
+    try:
+        with mock.patch.object(ge, "fetch_readback", return_value=_mock_readback()), \
+             mock.patch.object(ge, "fetch_railway_desired", return_value=_desired_matching()), \
+             mock.patch.object(ge, "export_env", side_effect=_fake_export):
+            derived, _ = ge.prepare_evidence_env(
+                flag_overrides={"SAGE_MODALITY_REQUEST_ROUTING": "true"})
+            assert derived["effective"]["SAGE_MODALITY_REQUEST_ROUTING"] == "true"
+            # BOTH maps (the 2026-08-12 first-arm incident: effective said true while
+            # resolved_env — the exported map — kept it unset; the run diverged from
+            # its own artifact)
+            assert derived["resolved_env"]["SAGE_MODALITY_REQUEST_ROUTING"] == "true"
+            assert os.environ.get("SAGE_MODALITY_REQUEST_ROUTING") == "true"
+            assert derived["coverage"]["SAGE_MODALITY_REQUEST_ROUTING"] == "deliberate_override"
+            assert any("DELIBERATE FLAG OVERRIDE" in n for n in derived["notes"])
+            plain, _ = ge.prepare_evidence_env()
+            assert not any("DELIBERATE FLAG OVERRIDE" in n for n in plain["notes"])
+    finally:
+        os.environ.pop("SAGE_MODALITY_REQUEST_ROUTING", None)
