@@ -294,6 +294,17 @@ def _route_after_intent(state: SageState) -> str:
     from sage_poc import config as _psy_cfg  # noqa: PLC0415
     if _psy_cfg.PSYCHOED_PATHWAYS_ENABLED and state.get("psychoed_weave_pending"):
         return "skill_select"
+    # EMR screen resumption (2026-08-12): a turn answering the modality screen must reach
+    # skill_select so the held request can deliver (or the adaptive screen continue) —
+    # the same seam class as answering_screen/weave directly above (answers classify as
+    # general_chat and would fall to freeflow, starving the hold). Same priority slot:
+    # below crisis (crisis intent already returned above), below the D1 answer redirect
+    # (disjoint by construction — EMR screens never set D1's screen_pending). Guarded on
+    # active_skill_id; flag OFF -> the channel is never set, byte-identical.
+    if (_psy_cfg.MODALITY_REQUEST_ROUTING_ENABLED
+            and state.get("modality_screen_pending")
+            and not state.get("active_skill_id")):
+        return "skill_select"
     if intent == "scope_refusal":
         return "gate"
     if intent == "jailbreak":

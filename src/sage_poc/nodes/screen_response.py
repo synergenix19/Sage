@@ -51,6 +51,11 @@ async def screen_response_node(state: SageState) -> dict:
         "active_skill_id": None,
         "active_step_id": None,
         "offered_skill_ids": None,
-        "screen_pending": True,
+        # PRESERVE, never force: D1's apply_screen_at_route sets screen_pending=True itself
+        # at serve time, so D1 flows arrive here True and stay True (unchanged). EMR screens
+        # (2026-08-12) share this terminal but carry their OWN pending channel
+        # (modality_screen_pending); forcing True here armed D1's answer machinery on an
+        # EMR duration answer — the crossed-wires defect the screen-completion family caught.
+        "screen_pending": bool(state.get("screen_pending")),
         "screen_held_skill": state.get("screen_held_skill"),
     }

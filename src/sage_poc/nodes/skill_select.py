@@ -693,18 +693,22 @@ def _modality_request_delivery(state: SageState, emr: dict, surface: str) -> dic
     """Shared EMR delivery gate (plan 2026-07-28 Phase 2; one implementation, every
     surface). Screening gates delivery: cleared -> binding-table offer through the R1
     consent shape (declined-filtering preserved); unscreened -> the signed screen
-    question served verbatim via the D1 screen_question_text terminal; red-flag
-    context, all-candidates-declined, or nothing-askable -> None (caller's path runs
-    unchanged — the medical guard / KB / normal matching own those turns)."""
+    question served verbatim via the D1 screen_question_text terminal, with the
+    request HELD in modality_screen_pending so it survives to the answer turn (the
+    2026-08-12 resumption fix); red-flag context, all-candidates-declined, or
+    nothing-askable -> None (caller decides: fall through on a fresh request, abandon
+    the hold on a pending one)."""
     from sage_poc.matching import (  # noqa: PLC0415
         BINDING_TABLE, empty_presentation_context, next_screen_question)
     ctx = state.get("recent_presentation") or empty_presentation_context()
+    pending = state.get("modality_screen_pending") or {}
+    hint = (emr.get("modality_hint") if emr.get("requested") else None) \
+        or pending.get("modality_hint")
     if ctx.get("red_flag_language"):
         return None
     if ctx.get("cleared"):
         declined = set(state.get("declined_skills") or [])
-        cands = list(BINDING_TABLE.get(emr.get("modality_hint") or "default")
-                     or BINDING_TABLE["default"])
+        cands = list(BINDING_TABLE.get(hint or "default") or BINDING_TABLE["default"])
         offerable = [s for s in cands if s not in declined][:2]
         if not offerable:
             return None
@@ -719,6 +723,7 @@ def _modality_request_delivery(state: SageState, emr: dict, surface: str) -> dic
             "last_offer_turn": state.get("turn_count", 0),
             "skill_match_method": "modality_request_offer",
             "semantic_score": None,
+            "modality_screen_pending": None,   # the held request is delivered
             "path": state["path"] + ["skill_select"] + markers + ["skill_offer_made"],
             **_psychoed_pathway_clear(state),
         }
@@ -734,7 +739,23 @@ def _modality_request_delivery(state: SageState, emr: dict, surface: str) -> dic
         "semantic_score": None,
         "screen_question_text": f'{q["lead_in"]} {q["question"]}',
         "recent_presentation": new_ctx,
+        "modality_screen_pending": {"modality_hint": hint},   # the request survives
         "path": state["path"] + ["skill_select", "modality_request_screen_pending"],
+    }
+
+
+def _modality_screen_abandon(state: SageState) -> dict:
+    """The hold ends honestly: pending but nothing deliverable or askable (off-topic
+    answers exhausted the adaptive screen, or red-flag language arrived — the medical
+    surface owns that turn). Clears the hold with its own marker; the turn proceeds to
+    presence/KB unchanged."""
+    return {
+        "active_skill_id": None,
+        "active_step_id": None,
+        "skill_match_method": None,
+        "semantic_score": None,
+        "modality_screen_pending": None,
+        "path": state["path"] + ["skill_select", "modality_request_screen_abandoned"],
     }
 
 
@@ -856,11 +877,14 @@ async def skill_select_node(state: SageState) -> dict:
             # genuine info asks carry requested=False and reach KB exactly as today.
             from sage_poc import config as _config_emr  # noqa: PLC0415
             _emr_req = state.get("explicit_modality_request") or {}
-            if _config_emr.MODALITY_REQUEST_ROUTING_ENABLED and _emr_req.get("requested"):
+            if _config_emr.MODALITY_REQUEST_ROUTING_ENABLED and (
+                    _emr_req.get("requested") or state.get("modality_screen_pending")):
                 _emr_delivery = _modality_request_delivery(state, _emr_req, surface="info_request")
                 if _emr_delivery is not None:
                     return _emr_delivery
-                # None (red-flag / all-declined / nothing-askable): fall through to KB
+                if state.get("modality_screen_pending"):
+                    return _modality_screen_abandon(state)
+                # fresh-request None (red-flag / all-declined): fall through to KB
             # Psychoed Mechanism-A consult (2026-07-17 design doc): BEFORE force-routing to
             # knowledge_retrieve, consult the SAME keyword+semantic matching the
             # non-info_request path uses. A top match inside INFO_REQUEST_SKILL_CONSULT_SET
@@ -946,12 +970,15 @@ async def skill_select_node(state: SageState) -> dict:
     # promotion machinery below owns those, offer_promoted semantics preserved); never
     # fires mid-skill (surface-1 territory). None -> normal matching runs unchanged.
     _emr_generic = state.get("explicit_modality_request") or {}
-    if (config.MODALITY_REQUEST_ROUTING_ENABLED and _emr_generic.get("requested")
+    if (config.MODALITY_REQUEST_ROUTING_ENABLED
+            and (_emr_generic.get("requested") or state.get("modality_screen_pending"))
             and not state.get("active_skill_id")
             and not ((state.get("offered_skill_ids") or []) and state.get("offer_response") == "accept")):
         _emr_delivery = _modality_request_delivery(state, _emr_generic, surface="select")
         if _emr_delivery is not None:
             return _emr_delivery
+        if state.get("modality_screen_pending"):
+            return _modality_screen_abandon(state)
 
     # E7 §6a IPV pre-emption (flag-gated SAGE_IPV_PREEMPTION). When domestic_situation is set, the §6
     # coaching_confrontation skills (assertive_communication, interpersonal_effectiveness) are
