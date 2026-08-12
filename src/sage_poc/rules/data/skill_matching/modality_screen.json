@@ -12,12 +12,87 @@
     "onset": "Did this come on after something, a stressful thought, situation, or moment, or did it start suddenly without an obvious reason, even while resting or asleep?",
     "quality": "Is this the same kind of feeling you've had with anxiety before, or does anything about it feel different, like sharp or crushing pain rather than tightness, pain spreading to your arm, jaw, or back, real trouble breathing rather than shallow breathing, or numbness or weakness on one side?"
   },
-  "mandatory_clearing_set": ["duration", "onset"],
+  "mandatory_clearing_set": [
+    "duration",
+    "onset"
+  ],
   "duration_markers": {
-    "chronic": ["weeks", "months", "years", "a long time", "long time now", "always been", "constantly", "constant", "every day", "daily", "as long as i can remember", "for ages", "keeps coming back", "on and off for"],
-    "acute": ["today", "this morning", "this afternoon", "tonight", "just now", "right now", "just started", "an hour ago", "few hours", "since this morning", "yesterday", "out of nowhere just"]
+    "chronic": [
+      "weeks",
+      "months",
+      "years",
+      "a long time",
+      "long time now",
+      "always been",
+      "constantly",
+      "constant",
+      "every day",
+      "daily",
+      "as long as i can remember",
+      "for ages",
+      "keeps coming back",
+      "on and off for"
+    ],
+    "acute": [
+      "today",
+      "this morning",
+      "this afternoon",
+      "tonight",
+      "just now",
+      "right now",
+      "just started",
+      "an hour ago",
+      "few hours",
+      "since this morning",
+      "yesterday",
+      "out of nowhere just"
+    ]
   },
-  "onset_markers": ["after ", "when i ", "since the ", "because of", "triggered", "out of nowhere", "no obvious reason", "without any reason", "suddenly", "while resting", "woke up with", "before my", "whenever i"],
-  "physical_symptom_markers": ["chest", "heart", "breath", "breathing", "dizzy", "lightheaded", "shaking", "trembling", "sweat", "stomach", "nausea", "tense", "tight"],
-  "red_flag_markers": ["crushing pain", "sharp pain", "pain spreading", "spreading to my arm", "pain in my arm", "pain in my jaw", "jaw pain", "pain in my back", "numbness on one side", "numb on one side", "weakness on one side", "one side of my body"]
+  "onset_markers": [
+    "after ",
+    "when i ",
+    "since the ",
+    "because of",
+    "triggered",
+    "out of nowhere",
+    "no obvious reason",
+    "without any reason",
+    "suddenly",
+    "while resting",
+    "woke up with",
+    "before my",
+    "whenever i",
+    "ever since ",
+    "since i ",
+    "since we "
+  ],
+  "physical_symptom_markers": [
+    "chest",
+    "heart",
+    "breath",
+    "breathing",
+    "dizzy",
+    "lightheaded",
+    "shaking",
+    "trembling",
+    "sweat",
+    "stomach",
+    "nausea",
+    "tense",
+    "tight"
+  ],
+  "red_flag_markers": [
+    "crushing pain",
+    "sharp pain",
+    "pain spreading",
+    "spreading to my arm",
+    "pain in my arm",
+    "pain in my jaw",
+    "jaw pain",
+    "pain in my back",
+    "numbness on one side",
+    "numb on one side",
+    "weakness on one side",
+    "one side of my body"
+  ]
 }

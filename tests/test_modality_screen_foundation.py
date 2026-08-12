@@ -168,3 +168,12 @@ async def test_flag_off_never_writes_the_key(monkeypatch):
     out = await intent_route_node(
         _intent_route_state("i've been wound up for weeks now"), llm=_StubLLM())
     assert "recent_presentation" not in out
+
+
+def test_onset_ever_since_variants_supply_onset():
+    """SC-003's measured miss (2026-08-12): 'ever since we moved cities' carried a clear
+    onset but matched no marker ('since the ' != 'since we'). The variants now count."""
+    ctx = _turns("this has been going on for months really, ever since we moved cities")
+    assert ctx["onset_supplied"] is True
+    assert ctx["duration_class"] == "chronic"
+    assert ctx["cleared"] is True and ctx["referral_alongside"] is True

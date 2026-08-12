@@ -455,6 +455,31 @@ def _record(turn_no: int, user_msg: str, state: dict) -> dict:
     return rec
 
 
+def _prod_turn_state(msg: str, thread_id: str) -> dict:
+    """SERVING-PARITY per-turn input: the REAL server_helpers._build_state — the same
+    function prod calls on every /chat turn — via a minimal request shim, so the
+    instrument's per-turn resets can NEVER drift from serving's (single-source).
+
+    Incident this closes (2026-08-12, screen-completion family): run_fixture passed
+    only {raw_message, path} per turn, none of _build_state's ~30 per-turn resets;
+    prod resets screen_question_text every turn, the instrument did not, and the
+    stale turn-1 screen text routed the answer turn back to screen_response, which
+    nulled the freshly made offer — behavior that CANNOT occur in serving. Import is
+    deferred (after export_env, same rule as build_local_graph)."""
+    from sage_poc.server_helpers import _build_state  # noqa: PLC0415
+
+    class _Msg:  # noqa: N801
+        role = "user"
+        content = msg
+
+    class _Req:  # noqa: N801
+        messages = [_Msg]
+        session_id = thread_id
+        user_id = None
+
+    return _build_state(_Req)
+
+
 async def run_fixture(app, session_turns: list, n: int,
                       thread_prefix: str = "evidence") -> dict:
     """Drive a multi-turn session N times, each on an INDEPENDENT session thread
@@ -466,7 +491,7 @@ async def run_fixture(app, session_turns: list, n: int,
         records = []
         for i, msg in enumerate(session_turns, start=1):
             state = await app.ainvoke(
-                {"raw_message": msg, "path": []},
+                _prod_turn_state(msg, tid),
                 config={"configurable": {"thread_id": tid}})
             rec = _record(i, msg, state)
             degraded += int(rec["degraded"])
