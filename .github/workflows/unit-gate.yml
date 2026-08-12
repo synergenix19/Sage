@@ -204,6 +204,7 @@ jobs:
             tests/test_psychoed_serve.py
             tests/test_psychoed_carry_forward.py
             tests/test_psychoed_content_integrity.py
+            tests/test_psychoed_reachability.py
           "
           # Psychoed suites added 2026-08-04 (Phase 3 Task 9, closing the fact-sheet §7 gap):
           # the Phase 2 psychoed suites (graph/gate/skill_select/knowledge_retrieve/flag_off/
