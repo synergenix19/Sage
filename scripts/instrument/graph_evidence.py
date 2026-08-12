@@ -629,7 +629,12 @@ def prepare_evidence_env(base_url: str = DEFAULT_BASE_URL,
               "deploy-window check skipped.", flush=True)
     derived = derive_flag_set(readback, desired, allow_deploy_window=allow_deploy_window)
     for var, val in (flag_overrides or {}).items():
+        # BOTH maps, or the header lies about the run (2026-08-12 first-arm incident:
+        # effective/coverage said true, resolved_env — the map export_env actually
+        # exports — kept the var unset, and the artifact's flag table diverged from
+        # the process env; caught by the zero-marker readout, now self-checked below).
         derived["effective"][var] = val
+        derived["resolved_env"][var] = val
         derived["coverage"][var] = "deliberate_override"
         derived["notes"].append(
             f"DELIBERATE FLAG OVERRIDE (fix-arm measurement): {var}={val!r} — serving "
@@ -638,6 +643,12 @@ def prepare_evidence_env(base_url: str = DEFAULT_BASE_URL,
     for note in derived["notes"]:
         print(note, flush=True)
     export_env(derived)
+    for var, val in (flag_overrides or {}).items():
+        if os.environ.get(var) != val:
+            raise ParityRefusal(
+                f"REFUSING: override {var}={val!r} did not reach the process env "
+                f"(got {os.environ.get(var)!r}) — the artifact would claim a flag "
+                "state the run does not have.")
     return derived, readback
 
 
