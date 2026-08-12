@@ -611,15 +611,30 @@ def write_artifact(path: str, header: dict, body_md: str, title: str | None = No
 
 def prepare_evidence_env(base_url: str = DEFAULT_BASE_URL,
                          railway_service: str = "sage-api",
-                         allow_deploy_window: bool = False) -> tuple:
+                         allow_deploy_window: bool = False,
+                         flag_overrides: dict | None = None) -> tuple:
     """The one-call setup: readback -> railway -> derive (refusals raise) -> export.
-    Returns (derived, readback_health)."""
+    Returns (derived, readback_health).
+
+    flag_overrides (Phase-3 fix-arm measurement, 2026-08-12): DELIBERATE per-flag
+    deltas applied AFTER serving-parity export, for measuring dark code with its flag
+    ON while everything else stays serving-derived. Every override is stamped into the
+    resolved set (coverage source "deliberate_override"), and a LOUD parity note names
+    each one — the artifact is a counterfactual measurement arm and must never read as
+    a serving-parity baseline. Empty/None = byte-identical to before."""
     readback = fetch_readback(base_url)
     desired = fetch_railway_desired(railway_service)
     if desired is None:
         print("LOUD: railway (desired) unavailable — proceeding readback-only; "
               "deploy-window check skipped.", flush=True)
     derived = derive_flag_set(readback, desired, allow_deploy_window=allow_deploy_window)
+    for var, val in (flag_overrides or {}).items():
+        derived["effective"][var] = val
+        derived["coverage"][var] = "deliberate_override"
+        derived["notes"].append(
+            f"DELIBERATE FLAG OVERRIDE (fix-arm measurement): {var}={val!r} — serving "
+            f"carries a different value; this run is a COUNTERFACTUAL arm, not a "
+            f"serving-parity baseline. Cite only against its paired baseline.")
     for note in derived["notes"]:
         print(note, flush=True)
     export_env(derived)

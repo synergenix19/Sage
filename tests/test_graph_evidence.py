@@ -402,3 +402,21 @@ def test_header_db_pool_field_and_absent_note():
     assert not any("DB POOL ABSENT" in n for n in present["parity_notes"])
     # and the markdown renderer surfaces it either way
     assert "DB pool" in ge.render_header_md(present)
+
+
+def test_flag_override_stamped_and_loud():
+    """Phase-3 fix-arm contract: a deliberate override lands in the effective set with
+    coverage 'deliberate_override' AND a loud parity note naming it — a counterfactual
+    arm must be distinguishable from a serving-parity baseline at read time. No
+    override -> byte-identical derive (no note, no coverage change)."""
+    import unittest.mock as mock
+    with mock.patch.object(ge, "fetch_readback", return_value=_mock_readback()), \
+         mock.patch.object(ge, "fetch_railway_desired", return_value=_desired_matching()), \
+         mock.patch.object(ge, "export_env"):
+        derived, _ = ge.prepare_evidence_env(
+            flag_overrides={"SAGE_MODALITY_REQUEST_ROUTING": "true"})
+        assert derived["effective"]["SAGE_MODALITY_REQUEST_ROUTING"] == "true"
+        assert derived["coverage"]["SAGE_MODALITY_REQUEST_ROUTING"] == "deliberate_override"
+        assert any("DELIBERATE FLAG OVERRIDE" in n for n in derived["notes"])
+        plain, _ = ge.prepare_evidence_env()
+        assert not any("DELIBERATE FLAG OVERRIDE" in n for n in plain["notes"])

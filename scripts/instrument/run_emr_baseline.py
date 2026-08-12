@@ -417,8 +417,17 @@ async def _amain(args) -> int:
                   file=sys.stderr, flush=True)
             return 2
 
+    overrides = {}
+    for spec in (args.override_flag or []):
+        var, _, val = spec.partition("=")
+        if not var.startswith("SAGE_") or not val:
+            print(f"FATAL: --override-flag expects SAGE_VAR=value, got {spec!r}",
+                  file=sys.stderr)
+            return 2
+        overrides[var] = val
     derived, readback = ge.prepare_evidence_env(args.base_url, args.railway_service,
-                                                args.allow_deploy_window)
+                                                args.allow_deploy_window,
+                                                flag_overrides=overrides or None)
     prov_note = enforce_recorded_provenance(derived["effective"],
                                             args.allow_unrecorded_provenance)
     if prov_note:
@@ -530,6 +539,13 @@ def main(argv=None) -> int:
     ap.add_argument("--allow-deploy-window", action="store_true",
                     help="SMOKES ONLY (requires --smoke): proceed although serving != "
                          "desired; divergence is stamped loudly, output is not a baseline")
+    ap.add_argument("--override-flag", action="append", default=None,
+                    metavar="SAGE_VAR=value",
+                    help="FIX-ARM MEASUREMENT ONLY: apply a deliberate flag delta after "
+                         "serving-parity export (repeatable). Every override is stamped "
+                         "into the resolved set (coverage 'deliberate_override') with a "
+                         "loud parity note; the artifact is a counterfactual arm, never "
+                         "a serving-parity baseline")
     ap.add_argument("--allow-db-absent", action="store_true",
                     help="SMOKES ONLY: proceed although the KB DB pool is unavailable "
                          "(knowledge_retrieve abstains on every KB-path turn); the header "
