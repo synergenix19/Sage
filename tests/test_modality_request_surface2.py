@@ -149,3 +149,80 @@ async def test_mid_skill_info_request_untouched_surface1_territory():
     assert "active_skill_id" not in out or out.get("active_skill_id") != "box_breathing"
     assert not out.get("offered_skill_ids")
     assert "modality_request_routed:info_request" not in out["path"]
+
+
+# ---------------------------------------------------------------------------
+# Screen resumption (2026-08-12; the loop-closure the extension family caught)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_screen_serve_holds_request_and_does_not_arm_d1():
+    """The screen turn writes modality_screen_pending (the request survives) and must
+    NOT set D1's screen_pending — the crossed-wires defect: D1's answer machinery
+    processed the duration answer through the contraindication classifier."""
+    out = await skill_select_node(_state(
+        emr={"requested": True, "modality_hint": "breathing"}, ctx=None))
+    assert out["modality_screen_pending"] == {"modality_hint": "breathing"}
+    assert "screen_pending" not in out
+    from sage_poc.nodes.screen_response import screen_response_node
+    served = await screen_response_node({**_state(emr=None), **out, "path": out["path"],
+                                         "turn_started_at": None})
+    assert served["screen_pending"] is False
+
+
+@pytest.mark.asyncio
+async def test_answer_turn_delivers_held_request_with_hint():
+    """The resumption itself: requested=False on the answer turn, but the hold + a now-
+    cleared context deliver the hinted offer and release the hold."""
+    out = await skill_select_node({
+        **_state("it started this afternoon after a rough call with my boss",
+                 emr={"requested": False, "modality_hint": None},
+                 ctx=_cleared_ctx(), intent="general_chat"),
+        "modality_screen_pending": {"modality_hint": "breathing"},
+    })
+    assert out["offered_skill_ids"] == ["box_breathing"]
+    assert out["modality_screen_pending"] is None
+    assert "skill_offer_made" in out["path"]
+
+
+@pytest.mark.asyncio
+async def test_answer_turn_not_yet_cleared_asks_next_question_keeps_hold():
+    ctx = empty_presentation_context()
+    ctx["duration_class"] = "acute"          # duration supplied, onset still missing
+    out = await skill_select_node({
+        **_state("a few hours i guess", emr={"requested": False, "modality_hint": None},
+                 ctx=ctx, intent="general_chat"),
+        "modality_screen_pending": {"modality_hint": None},
+    })
+    assert "screen_question_text" in out
+    assert out["modality_screen_pending"] == {"modality_hint": None}
+
+
+@pytest.mark.asyncio
+async def test_exhausted_screen_abandons_hold_honestly():
+    """All mandatory questions asked, still not cleared (off-topic answers): the hold
+    clears with its own marker and the turn falls to presence — never a silent
+    forever-hold, never an unscreened offer."""
+    ctx = empty_presentation_context()
+    ctx["screen_asked"] = ["duration", "onset"]
+    out = await skill_select_node({
+        **_state("anyway did you watch the match last night",
+                 emr={"requested": False, "modality_hint": None},
+                 ctx=ctx, intent="general_chat"),
+        "modality_screen_pending": {"modality_hint": None},
+    })
+    assert out["modality_screen_pending"] is None
+    assert "modality_request_screen_abandoned" in out["path"]
+    assert not out.get("offered_skill_ids")
+
+
+def test_router_redirects_pending_answer_turn_to_skill_select(monkeypatch):
+    from sage_poc.graph import _route_after_intent
+    monkeypatch.setattr(config, "MODALITY_REQUEST_ROUTING_ENABLED", True)
+    state = {
+        "primary_intent": "general_chat", "intent_confidence": 0.9,
+        "active_skill_id": None, "clinical_flags": [], "crisis_flags": [],
+        "modality_screen_pending": {"modality_hint": None},
+        "explicit_modality_request": {"requested": False, "modality_hint": None},
+    }
+    assert _route_after_intent(state) == "skill_select"

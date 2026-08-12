@@ -176,6 +176,14 @@ class SageState(TypedDict):
                                            # panic-grounding override applies (safety_check clean + clear panic
                                            # + no harm + intent=crisis). Declared channel so _route_after_intent
                                            # reads it (SG-2: undeclared keys are dropped between nodes).
+    modality_screen_pending: Optional[dict]  # HOLD (EMR screen resumption, 2026-08-12): set when the EMR
+                                           # screen question is served ({"modality_hint": str|None} = the
+                                           # pending request's hint), so the request SURVIVES to the answer
+                                           # turn; the router redirects pending turns to skill_select and the
+                                           # delivery gate fires on pending OR a fresh request. Cleared on
+                                           # offer delivery or screen abandonment. DISJOINT from D1's
+                                           # screen_pending by construction (screen_response preserves, never
+                                           # forces, the D1 hold).
     recent_presentation: Optional[dict]    # SESSION-SCOPED (EMR Phase 2, M1 stand-in for the Active Issues
                                            # List): deterministic screening/presentation accumulation from
                                            # matching.update_presentation_context, written by intent_route each
