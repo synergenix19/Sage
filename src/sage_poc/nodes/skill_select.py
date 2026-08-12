@@ -835,6 +835,29 @@ async def skill_select_node(state: SageState) -> dict:
             # clear-negative reply, no new trigger: emit the deferred menu via continuation
             return {"psychoed_weave_pending": False, "skill_match_method": "psychoed_menu_after_weave",
                     "path": state["path"] + ["skill_select"]}
+        # (5-transit) Ticket A, ruled Direction 1 (2026-08-11): this turn is in Node 4 ONLY
+        # because the reachability widening routed it here so the resolver's unconditional §0
+        # match could run on it (docs/superpowers/tickets/2026-08-06-psychoed-resolver-intent-
+        # reachability.md; graph.psychoed_transit_destination is the single definition of
+        # "transit turn"). The match ran and produced nothing -- no hit, or suppressed by the
+        # active-skill / EN-only / Classifier-A gates above -- so spec §2.1 step 5 applies
+        # verbatim: "No hit -> existing behavior unchanged." Return the NULL delta: no state
+        # written, and "skill_select" deliberately NOT appended to path, so the turn's audit
+        # row (node_path included) is byte-identical to master's. _route_after_skill_select
+        # re-derives the same transit destination from this unchanged state and sends the turn
+        # to the handler it would have reached on master.
+        #
+        # Placed after the weave/resolver block above and before the node body below, which is
+        # the code a transit turn must NOT run (skill matching, offers, auto-selects: none of
+        # it ran for these turns on master). A transit turn is never weave-pending -- HIGH-1's
+        # weave redirect sits above the general_chat/scope_refusal ladder, so a weave-pending
+        # reply reaches Node 4 on its own and psychoed_transit_destination returns None for it.
+        #
+        # Local import: graph.py imports this module at import time, so this must stay
+        # runtime-only. Same local-import convention as the config reads throughout this file.
+        from sage_poc.graph import psychoed_transit_destination  # noqa: PLC0415
+        if psychoed_transit_destination(state) is not None:
+            return {}
         # (5) fall through unchanged to the existing node body below.
 
     # #338 D1 ANSWER TURN: when this turn answers a pending screen (answering_screen was set by

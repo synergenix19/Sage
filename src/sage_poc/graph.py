@@ -244,7 +244,91 @@ def _route_after_safety(state: SageState) -> str:
     return "safe"
 
 
+# ── Ticket A: psychoed resolver intent-reachability (spec §2.1), ruled fix ──────────────
+# docs/superpowers/tickets/2026-08-06-psychoed-resolver-intent-reachability.md. Spec §2.1
+# binds the resolver to run the §0 trigger match "on the raw turn, regardless of
+# primary_intent -- deterministic recognition is never conditional on the probabilistic
+# router". That guarantee held INSIDE Node 4 and was violated ONE NODE UPSTREAM, here:
+# _route_after_intent_base sends general_chat to freeflow_respond and scope_refusal to
+# output_gate, so the trigger tables were unreachable for those turns. The 2026-08-05
+# flip-tier record's 52 misses taxonomize (docs/2026-08-06-f1-wiring-flip-divergence-
+# taxonomy.md, per-row against the run's own console log) as 48 general_chat + 3
+# scope_refusal interceptions + 1 unrelated collision (Ticket B) -- and ZERO crisis.
+#
+# RULED (human, 2026-08-11): Direction 1 -- widen transit through skill_select. NOT the
+# hoist. There is still exactly ONE matching site (the resolver, inside Node 4); this only
+# changes which turns reach it. A turn whose destination on master was freeflow/gate now
+# transits THROUGH Node 4 so the resolver's unconditional match runs; on no hit,
+# skill_select_node returns an EMPTY delta (writes no state, and deliberately does NOT
+# append "skill_select" to path) and _route_after_skill_select re-derives this same
+# destination and sends the turn there -- spec §2.1 step 5's pre-specified null case,
+# byte-identical to master on response, state, node_path and audit row
+# (tests/test_psychoed_reachability.py pins that against a flag-off run of the same turn).
+#
+# SCOPE (ruled): general_chat + scope_refusal only -- the two labels the taxonomy observed
+# intercepting, which together account for 100% of the observed unreachable set (the other
+# live labels on that corpus, info_request and new_skill, already reach Node 4 on their own).
+# jailbreak and exit_skill are ASSESSED and deliberately NOT widened
+# (docs/2026-08-12-reachability-jailbreak-exit-skill-assessment.md): the flip-tier run's
+# per-row real_label distribution emits neither label ONCE across all 133 doc-verbatim trigger
+# phrases (not merely zero misses -- zero occurrences), so there is no evidence of need; and
+# widening them is not free -- a jailbreak turn would answer with psychoed content instead of
+# reaching the persona-reassertion terminal, and an exit_skill turn would be served a block in
+# response to asking to stop. Both are clinical/product calls, not routing calls. The boundary
+# is pinned by test_labels_outside_the_ruled_scope_are_not_widened, not just commented.
+#
+# CRISIS PRECEDENCE, explicitly: untouched by construction. Node 1's crisis short-circuit
+# never reaches intent_route at all, and the intent=="crisis" branch at the top of
+# _route_after_intent_base returns before this widening is ever consulted. Transit can fire
+# ONLY on a turn whose own master destination was freeflow_respond/output_gate, so no
+# safety route can be diverted by it (spec §2.3: psychoed is the lowest-precedence pathway,
+# by topology). Pinned: test_crisis_intent_never_transits,
+# test_node1_crisis_short_circuit_still_precedes_everything.
+#
+# NO NEW STATE CHANNEL: the transit is a pure re-derivation from state, in both readers.
+# The no-hit node return is empty, so the state _route_after_skill_select re-derives from is
+# byte-identically the state _route_after_intent derived from -- the two calls cannot
+# disagree. (A hit is not a re-derivation case at all: the psychoed branches above the
+# transit check in _route_after_skill_select claim the turn first.)
+_PSYCHOED_TRANSIT_INTENTS = frozenset({"general_chat", "scope_refusal"})
+_PSYCHOED_TRANSIT_ORIGINS = frozenset({"freeflow", "gate"})
+
+
+def psychoed_transit_destination(state: SageState) -> str | None:
+    """Destination a psychoed-transit turn falls through to when the resolver does not hit.
+
+    Returns None when this turn is not a transit turn -- i.e. routing is exactly master's.
+    Read by _route_after_intent (widen), _route_after_skill_select (fall through), and
+    skill_select_node (run the resolver only, then return the null delta).
+
+    Flag OFF -> always None: the whole mechanism is unreachable and routing is byte-identical.
+    """
+    from sage_poc import config as _cfg  # noqa: PLC0415 — local import so monkeypatch.setattr(config, ...) takes effect
+    if not _cfg.PSYCHOED_PATHWAYS_ENABLED:
+        return None
+    if state.get("primary_intent", "general_chat") not in _PSYCHOED_TRANSIT_INTENTS:
+        return None
+    # Node 4 has a SECOND in-edge: the EMR surface-1 rehand (skill_executor -> skill_select,
+    # _route_after_skill_executor). A turn that arrived that way reached Node 4 on its own and
+    # must run the full node body + the normal post-select ladder -- it is not a transit turn,
+    # whatever this turn's intent label happens to be. Discriminated on the executor's own path
+    # stamp, which is present before skill_select runs on exactly that path and on no other.
+    if "skill_executor" in (state.get("path") or []):
+        return None
+    dest = _route_after_intent_base(state)
+    return dest if dest in _PSYCHOED_TRANSIT_ORIGINS else None
+
+
 def _route_after_intent(state: SageState) -> str:
+    # Ticket A widening (above). Every branch of the unmodified base router below still
+    # decides this turn; the ONE delta is that a general_chat/scope_refusal turn whose base
+    # destination is freeflow/gate transits through Node 4 first.
+    if psychoed_transit_destination(state) is not None:
+        return "skill_select"
+    return _route_after_intent_base(state)
+
+
+def _route_after_intent_base(state: SageState) -> str:
     intent = state.get("primary_intent", "general_chat")
     confidence = state.get("intent_confidence", 1.0)
 
@@ -437,6 +521,19 @@ def _route_after_skill_select(state: SageState) -> str:
     # flag-off is unreachable and this branch never fires with the flag off.
     if state.get("psychoed_serve") or state.get("skill_match_method") == "psychoed_menu_after_weave":
         return "knowledge_retrieve"
+    # Ticket A transit fall-through (spec §2.1 step 5's pre-specified null case): this turn
+    # reached Node 4 ONLY because the reachability widening routed it here so the resolver's
+    # unconditional match could run. It did not hit, skill_select_node returned an empty
+    # delta, and the turn now continues to the destination it had on master. Placed BELOW
+    # every psychoed-outcome branch above (escalation, containment, serve/menu) so a turn the
+    # resolver DID claim is routed by its outcome, never by this fall-through; and ABOVE the
+    # rest of the ladder because none of that ladder ran for this turn on master (the
+    # skill-matching body below the resolver is exactly the code a transit turn must not
+    # execute -- e.g. a mid-skill general_chat turn must still fall to freeflow, not be
+    # re-routed to skill_executor by the active_skill_id branch at the bottom).
+    _transit = psychoed_transit_destination(state)
+    if _transit is not None:
+        return _transit
     # #338 D1: a SERVED screen question is terminal for this turn. apply_screen_at_route (enforce path) set
     # screen_question_text + active_skill_id=None on an ask_screen decision; the question IS this turn's
     # output. Below containment (crisis > vetoes > containment > screen > routing), above skill routing.
@@ -559,6 +656,7 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
         "freeflow": "freeflow_respond",
         "screen_response": "screen_response",   # #338 D1: served screen question → terminal
         "crisis_response": "crisis_response",   # Psychoed Task 8: PSY-WEAVE-1 escalation
+        "gate": "output_gate",                  # Ticket A: scope_refusal transit falls back to its master terminal
     })
     graph.add_edge("screen_response", END)
     graph.add_edge("knowledge_retrieve", "freeflow_respond")
