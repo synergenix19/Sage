@@ -4,7 +4,13 @@
 (determinate ratifications; relay channel per house precedent). Items 1, 2, 3, 6, 8, 12, 13, 14
 OPEN — each requires content or a box choice that blanket approval cannot supply (name, number,
 hints, table marks / as-declared, authorship choice, deroute-vs-sign, ratify-vs-edit,
-one-of-three). One line each closes the round.
+one-of-three). One line each closes the round, PLUS one extra mark in the same pass:
+**"Confirm the seven relayed approvals (4, 5, 7, 9, 10, 11, 15) as recorded"** — that
+countersign converts the entire round to primary record under signed-fields.
+INTERIM SAFETY NOTE: the relay opens no gates (critical-path items are all in the open
+eight). Item-10 rider: the body/close segmentation branch MAY DISPATCH on the relay, but its
+changes to signed clinical data MERGE only after the countersign lands. A DEROUTE on item 12
+or pure-inventory closures act on relay alone; a SIGN on 12 waits for countersign.
 **Requested turnaround:** ______ (four items below are URGENT — 1, 2, 3, and 13 — they gate everything else)
 **When your marked sheet returns** it becomes a pinned governance artifact (signed-fields over
 your answers — your rulings enter the same provenance chain as the copy they govern).
@@ -66,7 +72,7 @@ The ratified source was transformed (em-dash removal, formatting) for serving. T
 doc→served-artifact are the evidence; no wording changed beyond the ruled transformation.
 **Your signature means:** the served copies are your ratified copies.
 ☒ APPROVE  ☐ EDIT (list blocks)  ☐ Discuss
-**Your answer:** **RECORDED: APPROVED — per Vee, relayed by project owner, 2026-08-11.** (Relay record under the house per-item channel; her marked sheet or direct per-item message supersedes on receipt.)
+**Your answer:** **RECORDED: APPROVED (RELAYED — PENDING COUNTERSIGN), per Vee via project owner, 2026-08-11.** Meeting-minutes-grade interim record, distinct provenance class from her marks under signed-fields; converts to primary record on her countersign (see round status).
 
 ### 5. Deflection→crisis (design-added extension to the screening weave)
 Your doc's weave branch was binary yes/no. As built, a DEFLECTION of the screening question
@@ -74,7 +80,7 @@ Your doc's weave branch was binary yes/no. As built, a DEFLECTION of the screeni
 design-added and needs your ratification.
 **Your signature means:** deflection-escalates is clinically correct behavior.
 ☒ APPROVE  ☐ EDIT  ☐ Discuss
-**Your answer:** **RECORDED: APPROVED — per Vee, relayed by project owner, 2026-08-11.** (Relay record under the house per-item channel; her marked sheet or direct per-item message supersedes on receipt.)
+**Your answer:** **RECORDED: APPROVED (RELAYED — PENDING COUNTERSIGN), per Vee via project owner, 2026-08-11.** Meeting-minutes-grade interim record, distinct provenance class from her marks under signed-fields; converts to primary record on her countersign (see round status).
 
 ### 6. Collision winners — including the new six-wide question
 Two phrases live in multiple categories ("Why do I feel numb?" 3c/s2c; "What's happening to
@@ -95,7 +101,7 @@ is the artifact, your marks are its ratification (not prose).
 Previously ruled; this confirms your sign-off on the reclassification as recorded in the
 design spec's register.
 ☒ CONFIRM  ☐ REOPEN
-**Your answer:** **RECORDED: APPROVED — per Vee, relayed by project owner, 2026-08-11.** (Relay record under the house per-item channel; her marked sheet or direct per-item message supersedes on receipt.)
+**Your answer:** **RECORDED: APPROVED (RELAYED — PENDING COUNTERSIGN), per Vee via project owner, 2026-08-11.** Meeting-minutes-grade interim record, distinct provenance class from her marks under signed-fields; converts to primary record on her countersign (see round status).
 
 ### 8. Human-referral close — authorship
 The referral close copy needs a named clinical author (it is served verbatim on referral
@@ -109,7 +115,7 @@ hit (lexical/structural/numeric/upstream-state classes). Measurement confirmed e
 fires genuinely (verified hit-plus-veto, not phantom matches).
 **Your signature means:** the suppression thresholds are clinically placed.
 ☒ APPROVE  ☐ EDIT (specify class)  ☐ Discuss
-**Your answer:** **RECORDED: APPROVED — per Vee, relayed by project owner, 2026-08-11.** (Relay record under the house per-item channel; her marked sheet or direct per-item message supersedes on receipt.)
+**Your answer:** **RECORDED: APPROVED (RELAYED — PENDING COUNTERSIGN), per Vee via project owner, 2026-08-11.** Meeting-minutes-grade interim record, distinct provenance class from her marks under signed-fields; converts to primary record on her countersign (see round status).
 
 ### 10. Guard-script body/close segmentation (the two-question ruling)
 Ruled fix for two findings with one cause: the diagnosis-guard's consent close and a
@@ -120,14 +126,14 @@ itself needs your ratification.
 **Your signature means:** the field split of your ratified script is approved (wording
 untouched).
 ☒ APPROVE  ☐ EDIT  ☐ Discuss
-**Your answer:** **RECORDED: APPROVED — per Vee, relayed by project owner, 2026-08-11.** (Relay record under the house per-item channel; her marked sheet or direct per-item message supersedes on receipt.)
+**Your answer:** **RECORDED: APPROVED (RELAYED — PENDING COUNTERSIGN), per Vee via project owner, 2026-08-11.** Meeting-minutes-grade interim record, distinct provenance class from her marks under signed-fields; converts to primary record on her countersign (see round status).
 
 ### 11. Consent-to-serve interim (formal_diagnosis walk-through) — acknowledge
 Known interim, flip consideration: today a "yes" to the guard's walk-through offer is
 answered by general conversation (safe; quarantine verified), not the ratified block. The
 build ticket exists; any formal_diagnosis flip decision is made knowing this.
 ☒ ACKNOWLEDGED  ☐ BLOCK formal_diagnosis flips until built  ☐ Discuss
-**Your answer:** **RECORDED: APPROVED — per Vee, relayed by project owner, 2026-08-11.** (Relay record under the house per-item channel; her marked sheet or direct per-item message supersedes on receipt.)
+**Your answer:** **RECORDED: APPROVED (RELAYED — PENDING COUNTERSIGN), per Vee via project owner, 2026-08-11.** Meeting-minutes-grade interim record, distinct provenance class from her marks under signed-fields; converts to primary record on her countersign (see round status).
 
 ### 12. mindfulness_body_scan — deroute or sign
 After MM's deroute, body_scan (also unsigned, no contraindications) absorbs the derouted
@@ -165,7 +171,7 @@ so the interim is safe — but an offer to a missing skill needs a defined behav
 One checkbox confirming the shared §6d/E7 launch-board gate, outstanding since before
 Phase 2. (Filed; restored to this round.)
 ☒ CONFIRM shared gate  ☐ Discuss
-**Your answer:** **RECORDED: APPROVED — per Vee, relayed by project owner, 2026-08-11.** (Relay record under the house per-item channel; her marked sheet or direct per-item message supersedes on receipt.)
+**Your answer:** **RECORDED: APPROVED (RELAYED — PENDING COUNTERSIGN), per Vee via project owner, 2026-08-11.** Meeting-minutes-grade interim record, distinct provenance class from her marks under signed-fields; converts to primary record on her countersign (see round status).
 
 ---
 
