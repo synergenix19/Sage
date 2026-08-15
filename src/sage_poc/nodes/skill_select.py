@@ -561,6 +561,18 @@ def _resolve_entry(
         audit_markers.append("enter_direct_declined_fallback")
 
     offerable = [sid for sid in candidates if sid not in declined]
+    # K4 bin-(b) grief exclusion (Vee-authored boundary, adopted 2026-08-15): grief-driven
+    # reconnection belongs to grief territory, not behavioral_activation. Deterministic:
+    # when BA would be offered and the turn carries the bereavement signature (the SAME
+    # single-sourced _GRIEF_TERMS the S2a deference uses — never a second list), the offer
+    # becomes grief_loss. Both-direction guarded: clean reconnection wishes still reach BA.
+    if "behavioral_activation" in offerable:
+        from sage_poc.nodes.grief_override import _has_grief_signature  # noqa: PLC0415
+        if _has_grief_signature(state.get("message_en", "")):
+            offerable = list(dict.fromkeys(
+                ["grief_loss" if s == "behavioral_activation" else s for s in offerable]))
+            offerable = [s for s in offerable if s not in declined]
+            audit_markers.append("ba_grief_exclusion_swap")
     offerable = offerable[: int(action.get("max_offered", 2))]
     if not offerable:
         return {

@@ -74,7 +74,7 @@
     "want to reconnect",
     "reconnect"
   ],
-  "semantic_description": "Behavioral activation for low mood and withdrawal: loss of interest or pleasure, low motivation or energy, cancelling plans, avoiding or withdrawing from people, staying home, everything feeling like effort. Graded activity scheduling protocol (Martell 2001; Richards 2016): identify one concrete task, assign a specific day and time, complete it, observe the result. Start with the smallest achievable step and build up. Pleasurable activity planning; activity monitoring; one small task per day.",
+  "semantic_description": "Behavioral activation for low mood and withdrawal: loss of interest or pleasure, low motivation or energy, cancelling plans, avoiding or withdrawing from people, staying home, everything feeling like effort. Graded activity scheduling protocol (Martell 2001; Richards 2016): identify one concrete task, assign a specific day and time, complete it, observe the result. Start with the smallest achievable step and build up. Pleasurable activity planning; activity monitoring; one small task per day. Wanting to reconnect with people or re-engage socially after a period of withdrawing, isolating, or losing touch; taking one small social step back, such as replying to one message, a short check-in text, or a brief call, repeated to rebuild contact.",
   "steps": [
     {
       "step_id": "activity_audit",
