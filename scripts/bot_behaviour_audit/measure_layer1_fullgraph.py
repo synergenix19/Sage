@@ -193,7 +193,8 @@ async def drive(app, msg, tid):
     return {"gate_path": r.get("gate_path"), "active_skill_id": r.get("active_skill_id"),
             "completed_skill_id": r.get("completed_skill_id"),
             "skill_match_method": r.get("skill_match_method"),
-            "offered_skill_ids": r.get("offered_skill_ids"), "primary_intent": r.get("primary_intent")}
+            "offered_skill_ids": r.get("offered_skill_ids"), "primary_intent": r.get("primary_intent"),
+            "path": r.get("path") or []}
 
 
 async def main():
@@ -313,6 +314,16 @@ async def main():
             obs = "error"
         pres = r["prescribed_disposition"]
         conf = obs != "error" and normalize(obs) == normalize(pres)
+        # accept_offer_form (conformance-owner ruling 2026-08-06, merged #415; condition
+        # verbatim from the row's oracle_provenance): self_help_skill conforms on a
+        # presence-prescribed row ONLY in offer-form — node_path has skill_offer_made and
+        # never skill_executor (a bare delivery re-opens the violation). The ruling was
+        # data-present in the corpus but runner-ignored until 2026-08-16 (v6 run 1 scored
+        # S2a 0/5 against its own merged ruling — the split-surface finding).
+        if (not conf and obs != "error" and r.get("accept_offer_form")
+                and normalize(obs) == "self_help_skill"):
+            _path = out.get("path") or []
+            conf = ("skill_offer_made" in _path) and ("skill_executor" not in _path)
         c = per_cat[r["spec_id"]]
         c["n"] += 1; c["conform"] += int(conf); c["prescribed"] = pres; c["obs"][obs] += 1
         if i % 20 == 0:
