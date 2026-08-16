@@ -108,3 +108,26 @@ The live probe pair (the gate's final rung) caught two defects the local gate mi
    approved it") — the wording was presented verbatim as the approval artifact, so
    approve-as-written is the adoption under the established draft-adoption mechanism.**
    Full gate green (289 tests, test_skill_select included this round); deploy follows.
+
+## Addendum — round 3 and CLOSE (2026-08-16)
+
+**K3 (the commissioned fix) is LIVE and verified: "i need to stop crossing a line"
+offers interpersonal_effectiveness 3/3 on the served build (6cae3379).** The path there
+required widening BOTH cross-encoder call sites to the one recognition surface
+(keyword-veto in round 2, semantic-side _rerank_route in round 3 — each measured live
+before fixing). K4, all four exclusion bins (incl. the live grief swap), and the CBT
+fixture hold on every probe round.
+
+**K3-b (my added hard paraphrase, "i keep overstepping...") is a measured recall
+boundary, NOT a defect in the commissioned fix:** under prod's V2 flags the bi-encoder
+ranks worry_time/dbt_tipp/cognitive_restructuring above IE on that phrasing, so IE never
+reaches the cross-encoder's top-5. Pinned as an xfail with the full reason (visible,
+never silently green). Chasing it means bi-encoder-tier work with real margin risk —
+a follow-up decision, not part of this adoption.
+
+**Two instrument lessons earned this round, recorded as rules:**
+1. Local probe scripts MUST export prod-parity flags (prepare_evidence_env or explicit
+   SKILL_*/SAGE_* riders) — my V2-off locals produced false "K3-b fixed" readings twice.
+2. Deploy convergence keys on the deployment-status API + a behavioral probe of the
+   change itself, NEVER build_sha (third SHA-lie instance this month; the variable-
+   restart window serves old code under the new SHA).
