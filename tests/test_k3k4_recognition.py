@@ -106,3 +106,16 @@ def test_rerank_veto_sees_the_signed_anchor():
     vetoed = _keyword_rerank_veto(["interpersonal_effectiveness"],
                                   "i need to stop crossing a line", "en")
     assert vetoed is False, "anchor still invisible to the veto"
+
+
+def test_semantic_side_rerank_sees_the_signed_anchor():
+    """K3-b's live finding (2026-08-16): 'overstepping' has no keyword, routes via the
+    semantic tier, and _rerank_route scored descriptions only — the anchor was invisible
+    to the SECOND cross-encoder call site and the route abstained. Both call sites now
+    share the one recognition surface."""
+    from sage_poc.nodes.skill_select import _rerank_route
+    sid, score, ru = _rerank_route(
+        [("interpersonal_effectiveness", 0.58)], "en",
+        "i keep overstepping with my wife and i want to stop doing that",
+        lambda best: None)
+    assert sid == "interpersonal_effectiveness", f"abstained/wrong: {sid}"
