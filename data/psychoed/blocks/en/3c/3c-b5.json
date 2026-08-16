@@ -1,0 +1,19 @@
+{
+  "article_id": "3c-b5",
+  "language": "en",
+  "title": "Sadness vs. depression",
+  "content": "Sadness is a normal, temporary emotion usually tied to something specific, and it tends to lift with time or a change in circumstances. Depression is more persistent, it affects most areas of life for weeks or longer, often without one clear cause, and comes with physical symptoms too, like changes in sleep, appetite, and energy, alongside the emotional ones.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "3c",
+    "article_family": "understanding_depression",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "Sadness vs. depression",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "3c – UNDERSTANDING DEPRESSION, §4 Content Library, item 5"
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # Clinician sitting agenda — Vee · target 2026-07-16 (HG-1's date)
 
-> **READ FIRST — this is a five-item bundle, the largest single clinical review this project has requested. That is a risk, not a convenience.** Five rulings in one sitting invites pattern-matched "approve" by the fourth item, which is the polite failure mode of the one-sitting-three-signatures discipline. So: **items may be deferred individually.** A partial sitting with THREE real rulings beats a complete sitting with five nominal ones. **Only HG-1 has a hard date (07-16)** — the rest tolerate a second sitting. Order below is by STAKES, highest first, while attention is freshest; the 30-second item is deliberately last.
+> **READ FIRST — this is now a FOUR-item bundle (item 5, the trim confirm, was resolved out-of-band 2026-07-10). Still a large single clinical review.** Multiple rulings in one sitting invite pattern-matched "approve" by the last item, the polite failure mode of the one-sitting-per-signature discipline. So: **items may be deferred individually.** A partial sitting with THREE real rulings beats a complete sitting with four nominal ones. **Only HG-1 has a hard date (07-16)** — the rest tolerate a second sitting. Order below is by STAKES, highest first, while attention is freshest.
 
 Each item is its OWN recorded ruling. Do not let one approval carry the next.
 
@@ -26,10 +26,8 @@ Each item is its OWN recorded ruling. Do not let one approval carry the next.
 **Why here:** a routing/coverage decision, not content — lower cognitive load than 1-3, sits after them. Engineering recommends **(c) split by anaphora distance** (same-turn deterministic co-occurrence rule; cross-turn semantic honestly-scoped). Fixtures already committed as the acceptance instrument. Carries a PO note (third recall class on the unmeasured MARBERT → pull Exp 4.2 forward).
 → its own recorded ruling (c / a / b / other). **Most deferrable of the five** — nothing waits on it today.
 
-## 5. interpersonal_effectiveness trim confirm — 30 seconds, last
-**Doc:** `2026-07-09-clinician-approval-queue.md` item 5.
-**Why last:** genuinely 30 seconds — confirm the 591-char trimmed rendering still says what you signed (prod is HELD on the 762 version until this lands). A/B-routing-identity does NOT substitute for your read. Deliberately placed where a quick yes/no costs the least attention.
-→ its own recorded ruling.
+## 5. interpersonal_effectiveness trim confirm — ✅ DONE 2026-07-10 (not on this sitting)
+Vee confirmed the 591 trimmed rendering out-of-band on 2026-07-10 (side-by-side against the 762). **Closed — removed from the sitting.** The bundle is now FOUR items (1-4 above), which also eases the five-item complexity risk this agenda flags at the top. (Record + correction: `2026-07-09-clinician-approval-queue.md` item 5 — the trim was already LIVE in prod, not held.)
 
 ---
 

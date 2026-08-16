@@ -1,0 +1,19 @@
+{
+  "article_id": "s2c-b7",
+  "language": "en",
+  "title": "Grief-related anger",
+  "content": "Anger is a valid and common part of grief, at the person who died, at the circumstances, at other people, at yourself, or at something bigger like fate. It doesn't mean you're grieving wrong; anger is often just another way pain comes out.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "s2c",
+    "article_family": "understanding_grief",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "Grief-related anger",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "S2c – UNDERSTANDING GRIEF, §3 Content Library, item 7"
+    }
+  }
+}

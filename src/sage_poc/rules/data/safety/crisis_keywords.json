@@ -3,6 +3,7 @@
   "rules": [
     {
       "rule_id": "SK-EN-001",
+      "approved_by": "clinical_lead",
       "version": "1.0.0",
       "authored_by": "sage_clinics",
       "effective_date": "2026-05-21",
@@ -44,6 +45,7 @@
     },
     {
       "rule_id": "SK-AZ-001",
+      "approved_by": "clinical_lead",
       "version": "1.0.0",
       "authored_by": "sage_clinics",
       "effective_date": "2026-05-21",
@@ -77,6 +79,7 @@
     },
     {
       "rule_id": "SK-AR-001",
+      "approved_by": "clinical_lead",
       "version": "1.0.0",
       "authored_by": "sage_clinics",
       "effective_date": "2026-05-21",
@@ -120,6 +123,7 @@
     },
     {
       "rule_id": "SK-EN-003",
+      "approved_by": "clinical_lead",
       "version": "1.0.0",
       "category": "safety",
       "authored_by": "sage_clinics",
@@ -151,6 +155,7 @@
     },
     {
       "rule_id": "SK-EN-004",
+      "approved_by": "clinical_lead",
       "version": "1.0.0",
       "category": "safety",
       "authored_by": "sage_clinics",
@@ -184,6 +189,7 @@
     },
     {
       "rule_id": "CK-CH-001",
+      "approved_by": "clinical_lead",
       "version": "1.0.0",
       "authored_by": "sage_clinics",
       "approved_by": null,
@@ -214,6 +220,7 @@
     },
     {
       "rule_id": "CK-CH-002",
+      "approved_by": "clinical_lead",
       "version": "1.0.0",
       "authored_by": "sage_clinics",
       "approved_by": null,
@@ -235,6 +242,7 @@
     },
     {
       "rule_id": "SK-EN-006",
+      "approved_by": "clinical_lead",
       "version": "1.0.0",
       "authored_by": "sage_clinics",
       "approved_by": null,
@@ -333,11 +341,11 @@
     },
     {
       "rule_id": "SK-EN-HTO-001",
-      "version": "0.1.0",
-      "authored_by": "PENDING_CLINICIAN_SIGNOFF",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
       "effective_date": "2026-07-09",
-      "active": false,
-      "description": "Harm-to-others EXPLICIT INTENT — Node-1 deterministic backstop for the LLM crisis classifier (Layer 2 #219). Group A (explicit intent) ONLY; Group B (figurative/anger-adjacent) HELD pending clinician ruling because the FP direction here is INVERTED vs the shipped vetoes: a false positive is a crisis card served to someone venting, an over-escalation that damages trust. Fires as an s1 keyword flag -> T2 via existing s1_any tier rule. active:false until clinician approves Group A. See 2026-07-09-clinician-approval-queue.md #2.",
+      "active": true,
+      "description": "Harm-to-others EXPLICIT INTENT — Node-1 deterministic backstop for the LLM crisis classifier (Layer 2 #219). Group A (explicit intent) ONLY; Group B (figurative/anger-adjacent) HELD pending clinician ruling because the FP direction here is INVERTED vs the shipped vetoes: a false positive is a crisis card served to someone venting, an over-escalation that damages trust. Fires as an s1 keyword flag -> T2 via existing s1_any tier rule. Group A clinician-APPROVED 2026-07-09. See 2026-07-09-clinician-approval-queue.md #2.",
       "category": "safety",
       "match_type": "keyword",
       "patterns": [

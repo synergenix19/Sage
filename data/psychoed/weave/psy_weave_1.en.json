@@ -1,0 +1,15 @@
+{
+  "version": "0.1.0-draft",
+  "status": "draft-pending-clinician",
+  "design_extension_flag": "deflection_to_crisis_is_design_added_must_be_ratified_by_name",
+  "evaluation_semantics": {
+    "order": ["contradiction_markers_first", "clear_negative_patterns_fullmatch"],
+    "default": "fail_closed_to_crisis",
+    "note": "normalization = resolver normalization (case/punctuation); markers are substring hits on the normalized reply; patterns are regex fullmatch"
+  },
+  "clear_negative_patterns": [
+    "no", "no nothing like that", "no not at all", "no alhamdulillah",
+    "no i haven't( why)?", "no never", "nothing like that", "no thank god"
+  ],
+  "contradiction_markers": ["but", "sometimes", "kind of", "maybe", "a little", "not really"]
+}

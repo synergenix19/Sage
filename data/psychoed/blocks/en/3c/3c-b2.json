@@ -1,0 +1,19 @@
+{
+  "article_id": "3c-b2",
+  "language": "en",
+  "title": "Why can't I just \"snap out of it\"?",
+  "content": "Depression isn't a mood you can choose your way out of, any more than you could 'snap out of' a broken bone. It involves real changes in brain functioning that affect energy, motivation, and how rewarding things feel, which is exactly why willpower alone often doesn't work, and why that expectation can leave people feeling even worse about themselves for still struggling.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "3c",
+    "article_family": "understanding_depression",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "Why can't I just \"snap out of it\"?",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "3c – UNDERSTANDING DEPRESSION, §4 Content Library, item 2"
+    }
+  }
+}

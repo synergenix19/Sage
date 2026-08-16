@@ -1,0 +1,19 @@
+{
+  "article_id": "7c-b2",
+  "language": "en",
+  "title": "How to make friends as an adult",
+  "content": "Friendship tends to form through a mix of proximity, repetition, and gradually opening up, seeing the same people regularly, like through a class, hobby group, or recurring activity, and sharing a bit more of yourself over time. That's why joining something ongoing tends to work better than one-off events, the repeated contact does a lot of the work on its own.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "7c",
+    "article_family": "how_do_i_connect",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "How to make friends as an adult",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "7c – HOW DO I CONNECT, §3 Content Library, item 2"
+    }
+  }
+}

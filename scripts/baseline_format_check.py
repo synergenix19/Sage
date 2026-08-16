@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# DEPRECATED-DIRECT-INVOKE: invokes the graph directly; output is NOT evidence under
+# the signed instrument-parity rule (2026-07-28). Migrate to scripts/instrument/graph_evidence.py.
 """
 FORMAT VIOLATION baseline run — structured 10-turn conversation.
 Covers all major graph paths. Captures [FORMAT VIOLATION] hits per turn.

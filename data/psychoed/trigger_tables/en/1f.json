@@ -1,0 +1,47 @@
+{
+  "category": "1f",
+  "language": "en",
+  "rows": [
+    {
+      "row_id": "1f-t1",
+      "type": "curiosity_abstract",
+      "framing": "abstract",
+      "route": "standard",
+      "row_provenance": "inferred",
+      "phrases": [
+        "What is anxiety?",
+        "Can you explain fight or flight?",
+        "What's the difference between worry and anxiety?"
+      ]
+    },
+    {
+      "row_id": "1f-t2",
+      "type": "curiosity_personal",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "inferred",
+      "phrases": [
+        "Why do I feel this way?",
+        "What's happening to me?",
+        "Why does my body react like this?",
+        "Why do I keep worrying?"
+      ]
+    },
+    {
+      "row_id": "1f-t3",
+      "type": "formal_diagnosis_request",
+      "framing": "personal",
+      "route": "formal_diagnosis",
+      "row_provenance": "inferred",
+      "phrases": [
+        "do I have GAD",
+        "do I have panic disorder"
+      ]
+    }
+  ],
+  "provenance_note": "Doc §1f recognition section is a bulleted phrase list with no Type column; row typing/framing inferred, pending clinician ratification (packet ask 6).",
+  "source_citation": {
+    "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+    "section": "1f – UNDERSTANDING ANXIETY, §0 Trigger Words / Recognition (rows 1-3) + §5 Guard, formal diagnosis (row 3)"
+  }
+}

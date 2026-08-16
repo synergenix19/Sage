@@ -1,0 +1,24 @@
+{
+  "article_id": "s2c-b8",
+  "language": "en",
+  "title": "How long does grief last?",
+  "content": "There's no fixed timeline, grief tends to evolve rather than end, becoming less constant and less overwhelming over time for most people, while still resurfacing at meaningful moments indefinitely. If it's been a long time and things feel just as intense and unchanging as at the start, with real impact on daily life, that's worth extra support rather than something to just wait out.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "s2c",
+    "article_family": "understanding_grief",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "How long does grief last?",
+    "block_guard": {
+      "id": "prolonged_grief_support_note",
+      "behavior": "append_support_note_no_diagnosis_naming",
+      "note": "If it's been a long time and things feel just as intense and unchanging as at the start, with real impact on daily life, that's worth extra support rather than something to just wait out."
+    },
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "S2c – UNDERSTANDING GRIEF, §3 Content Library, item 8"
+    }
+  }
+}

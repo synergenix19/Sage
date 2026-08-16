@@ -66,6 +66,10 @@ def _ss_state(**overrides):
         "conversation_history": [], "skill_match_method": None, "semantic_score": None,
     }
     base.update(overrides)
+    # For an EN session raw_message IS the input (no translation); mirror it so the veto — which
+    # now reads raw via safety_text() per the #330 language contract — sees the utterance.
+    if not base["raw_message"] and base["message_en"]:
+        base["raw_message"] = base["message_en"]
     return base
 
 

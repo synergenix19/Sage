@@ -1,0 +1,19 @@
+{
+  "article_id": "4b-b1",
+  "language": "en",
+  "title": "Why we have emotions at all",
+  "content": "Emotions aren't random noise, they evolved because they're useful. Each one carries information and nudges you toward a response: fear alerts you to threat, anger signals a boundary's been crossed, sadness signals a loss. Even uncomfortable emotions are doing a job, even when they feel bigger than the situation seems to call for.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "4b",
+    "article_family": "understanding_emotions",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "Why we have emotions at all",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "4b – UNDERSTANDING EMOTIONS, §3 Content Library, item 1"
+    }
+  }
+}

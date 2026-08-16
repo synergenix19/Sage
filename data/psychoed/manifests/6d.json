@@ -1,0 +1,12 @@
+{
+  "category": "6d",
+  "delivery_shape": "answer_first",
+  "safety_weave": false,
+  "framing_statement": "It's a great thing to want to understand. Assertiveness isn't about being blunt or pushy, it's about finding a way to express what you need that still feels like you. Let's start with what you're asking.",
+  "menu_offer": "Want to go deeper into any of this? I can walk through: what assertiveness actually is, the four communication styles, why people-pleasing patterns develop in the first place, how to build assertiveness as a skill, how it connects to boundaries, or how culture shapes what 'assertive' even looks like.",
+  "check_in": "Does that help clarify things? Want to explore another angle, or would it help to actually practice this with a specific situation you're facing?",
+  "blocks": ["6d-b1", "6d-b2", "6d-b3", "6d-b4", "6d-b5", "6d-b6"],
+  "bridge_map": [],
+  "guards": ["acute_distress", "diagnosis_guard", "crisis_override"],
+  "source_citation": {"file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md", "section": "6d – UNDERSTANDING ASSERTIVENESS"}
+}

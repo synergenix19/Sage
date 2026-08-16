@@ -1,0 +1,106 @@
+{
+  "category": "s2c",
+  "language": "en",
+  "rows": [
+    {
+      "row_id": "s2c-t1",
+      "type": "Abstract/definitional",
+      "framing": "abstract",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "What is grief?",
+        "Can you explain grief?",
+        "What are the stages of grief?",
+        "Is there a right way to grieve?",
+        "How long does grief last?"
+      ]
+    },
+    {
+      "row_id": "s2c-t2",
+      "type": "Normalcy-checking",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "Is what I'm feeling normal?",
+        "Is this part of grief?",
+        "I don't understand why I'm reacting this way."
+      ]
+    },
+    {
+      "row_id": "s2c-t3",
+      "type": "Wave-like nature",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "Why does grief come in waves?",
+        "Why do I feel okay one day and awful the next?",
+        "Why hasn't it got easier?"
+      ]
+    },
+    {
+      "row_id": "s2c-t4",
+      "type": "Persistent emotional symptoms",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "Why am I still grieving?",
+        "Why do I still feel so sad?",
+        "Why do I keep crying?",
+        "Why do I miss them so much?",
+        "Why do I keep thinking about them?",
+        "Why does grief affect me so much?",
+        "Why do I feel so emotional?"
+      ]
+    },
+    {
+      "row_id": "s2c-t5",
+      "type": "Numbness",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "Why do I feel numb?"
+      ]
+    },
+    {
+      "row_id": "s2c-t6",
+      "type": "Guilt",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "Why do I feel guilty?"
+      ]
+    },
+    {
+      "row_id": "s2c-t7",
+      "type": "Anger",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "Why am I angry since they died?"
+      ]
+    },
+    {
+      "row_id": "s2c-t8",
+      "type": "General understanding-seeking",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "I want to understand grief.",
+        "I want to understand what I'm going through."
+      ]
+    }
+  ],
+  "provenance_note": "Doc S2c §0 Trigger Words/Recognition is a real Type|Examples pipe table with 8 rows, all 8 transcribed 1:1 (no added/inferred rows needed, unlike 1f/3c). Framing: row 1 (Abstract/definitional) is topic-phrased ('What is grief?', stages/right-way/how-long questions) -> abstract; rows 2-8 are self-referential ('I', 'me', 'my') -> personal. 'Why do I feel numb?' (row 5, Numbness) present per requirement; known collision with 3c-t3 (same phrase, same framing) declared for Task 10, not resolved here. The doc's grief-coded crisis phrasing ('wanting to be with the person who died', §6 Guard line: 'Any self-harm, suicidal, or crisis content appears, including hopelessness or wanting to be with the person who died -> universal crisis override, exit immediately') is deliberately excluded from this table: it is Node-1/crisis-lexicon territory (P0 item elsewhere), not a psychoed trigger row.",
+  "source_citation": {
+    "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+    "section": "S2c – UNDERSTANDING GRIEF, §0 Trigger Words / Recognition (rows 1-8)"
+  }
+}

@@ -1,10 +1,10 @@
-"""Knowledge package — backward-compatible re-export of static lookup.
+"""Knowledge package.
 
-After Track 2, the knowledge_lookup tool uses PostgresKnowledgeRepository.
-Composer.py L4 block reads from state (knowledge_passages) rather than
-calling lookup_knowledge directly. The static exports here remain for any
-test fixtures or fallback paths that still reference them.
+Retrieval is served by PostgresKnowledgeRepository (Track 2); the freeflow L4 block reads
+`knowledge_passages` from state rather than any in-process lookup. Import the repositories from
+their own modules directly.
+
+The legacy static EN-only lookup (`knowledge/static.py`, `lookup_knowledge` / `KNOWLEDGE_DICT`) was
+REMOVED 2026-07-10 (audit #7): it had no production caller, and if ever rewired as a "fallback" it
+would have served English canned text to Arabic users — a latent foot-gun with no upside.
 """
-from sage_poc.knowledge.static import lookup_knowledge, KNOWLEDGE_DICT
-
-__all__ = ["lookup_knowledge", "KNOWLEDGE_DICT"]

@@ -1,0 +1,19 @@
+{
+  "article_id": "4b-b5",
+  "language": "en",
+  "title": "Why your body reacts before you can think",
+  "content": "There's a fast brain pathway that can trigger a physical reaction, racing heart, tension, the urge to flee or fight, before the slower, more thoughtful part of your brain has finished processing what happened. That's why a reaction can feel like it's happening before you've consciously decided anything: the body's alarm system is built to act first and think later, because that used to matter for survival.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "4b",
+    "article_family": "understanding_emotions",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "Why your body reacts before you can think",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "4b – UNDERSTANDING EMOTIONS, §3 Content Library, item 5"
+    }
+  }
+}

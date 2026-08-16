@@ -137,9 +137,9 @@
   ],
   "escalation_matrix": {
     "L1": "Exit gracefully if user requests to stop or says check-in is not helpful. No persuasion.",
-    "L2": "Add clinician_review flag if mood score is consistently 1-2 across multiple sessions, or if user discloses trauma during check-in.",
-    "L3": "Exit immediately to crisis protocol if any crisis signal detected during check-in.",
-    "L4": "Trigger human handoff if user explicitly requests a human or shows 3 or more consecutive crisis sessions."
+    "L2": "[STORED_ONLY — enforced by output_gate._log_clinical_review -> clinician_review_queue, not by this string] Documented clinical intent (not runtime-enforced): Add clinician_review flag if mood score is consistently 1-2 across multiple sessions, or if user discloses trauma during check-in.",
+    "L3": "[STORED_ONLY — enforced by the safety graph (_route_after_safety -> _crisis_response_node), not by this string] Documented clinical intent (not runtime-enforced): Exit immediately to crisis protocol if any crisis signal detected during check-in.",
+    "L4": "[NOT_IMPLEMENTED — human-handoff automation deferred per 2026-07-10 decision record; no live call routing in POC; OR-7 response floor covers explicit human requests; 3+ crises/30d trigger deferred to the D4(a) exposure gate] Documented clinical intent (not runtime-enforced): Trigger human handoff if user explicitly requests a human or shows 3 or more consecutive crisis sessions."
   },
   "cultural_overrides": {
     "self_rating_shame": "Assigning a number to one's emotional state may feel uncomfortable or invasive for Gulf users for whom emotional disclosure is culturally private, particularly for male users. Do not frame the scale as a formal self-assessment or clinical score. Prefer phrasing like 'how are you tracking today' or 'give me a number, kif inta el youm' over 'rate your mood on a scale of 1 to 10.'",
