@@ -299,9 +299,22 @@ def _rerank_route(
     from sage_poc.nodes.skill_rerank_model import score_pairs
     from sage_poc.skills.schema import load_skill
     bi_score = dict(ranked)
-    pairs = [(message_en, load_skill(sid).semantic_description or sid) for sid, _ in topk]
-    rr_scores = score_pairs(pairs)
-    reranked = sorted(((sid, rr) for (sid, _), rr in zip(topk, rr_scores)), key=lambda x: -x[1])
+    # ONE recognition surface, second call site (2026-08-16; the keyword veto got this on
+    # round 2, and the semantic-side rerank missed it the same day: 'overstepping' has no
+    # keyword, routes semantically, and the anchor-carried recognition was invisible to
+    # this cross-encoder pass — measured live, K3-b abstained while K3-a offered). Score
+    # description AND every anchor, max per skill, exactly as the veto now does.
+    pairs, owners = [], []
+    for sid, _ in topk:
+        sk = load_skill(sid)
+        for text in [sk.semantic_description or sid] + list(sk.semantic_anchors or []):
+            pairs.append((message_en, text))
+            owners.append(sid)
+    flat = score_pairs(pairs)
+    per_skill: dict = {}
+    for sid, rr in zip(owners, flat):
+        per_skill[sid] = max(per_skill.get(sid, float("-inf")), rr)
+    reranked = sorted(per_skill.items(), key=lambda x: -x[1])
     top_sid, top_rr = reranked[0]
     if top_rr >= _rerank_tau(lang):
         return top_sid, bi_score.get(top_sid, 0.0), runner_up(top_sid)
