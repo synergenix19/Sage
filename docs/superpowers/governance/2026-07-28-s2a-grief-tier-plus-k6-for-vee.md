@@ -32,3 +32,21 @@ phrasings, this is one register wider (non-restorative sleep is a direct sleep-q
 K6 lands with the K1–K5 batch's shape (per-category fixture, disposition-ownership check). S2a's split becomes
 a follow-up PR once you confirm the exemplar sort. Neither is a served-behavior change until the deploy-owner
 authorizes the push.
+
+---
+
+## DIAGNOSIS UPDATE (2026-07-29, from the served prod measurement) — S2a has TWO surfaces, not one
+The pinned prod-HTTP measurement (served 9/36, `09013f19`) surfaced that S2a's fresh-grief-→-presence is
+undermined by two distinct surfaces, so the tier split alone will not fully fix it:
+1. **Over-broad grief exemplars (the K5 territory):** fresh-grief announcements over-route to a skill offer
+   (`semantic_offer`/`keyword_offer` on grief_loss). The fresh-vs-processing split above addresses this.
+2. **intent_route over-reads "can't cope" as CRISIS:** the variant *"My loved one passed away and I can't
+   cope"* routes to the **crisis card** (`intent=crisis`, `fired_safety_routes=-` — so it is NOT the passive-SI
+   lexicon, it is the LLM classifier). A bereaved user announcing a loss plus "can't cope" gets an
+   emergency-framed response. Same class as the §1c intent_route over-fire, on the most common presentation.
+
+So the S2a ruling has a second, safety-adjacent limb: **"can't cope" in a bereavement context is grief
+distress, not a crisis** — presence/support, not the crisis card. This is a behavioral-policy line
+(intent_route prompt plus both-direction fixtures: grief-"can't cope" -> presence; genuine harm-in-grief
+"I can't cope, I want to join them" -> still crisis). Same clinician-sign-off shape as the tier split.
+> confirm "can't cope in bereavement = grief distress, not crisis" (I'll bring the intent_route prompt line + fixtures)  |  edit  |  discuss
