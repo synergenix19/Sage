@@ -104,6 +104,7 @@ The live probe pair (the gate's final rung) caught two defects the local gate mi
    > colleague; preparing the apology or repair conversation with them, owning the
    > behavior and what will be different, using the same DEARMAN structure and
    > self-respect skills."
-   **PENDING VEE'S RE-ADOPTION** — the words changed, so the signature must renew; the
-   deploy carrying this wording waits on her tick. Full gate re-run green (289 tests,
-   test_skill_select included this round).
+   **RE-ADOPTED as written (Vee + PO deploy go, one relay, 2026-08-16: "We have
+   approved it") — the wording was presented verbatim as the approval artifact, so
+   approve-as-written is the adoption under the established draft-adoption mechanism.**
+   Full gate green (289 tests, test_skill_select included this round); deploy follows.
