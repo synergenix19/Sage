@@ -1,0 +1,19 @@
+{
+  "article_id": "4b-b7",
+  "language": "en",
+  "title": "Shutting down or avoiding",
+  "content": "Shutting down, going quiet, or avoiding something isn't a character flaw, it's one of the nervous system's built-in responses to overwhelm, often called freeze, alongside fight and flight. It shows up when fighting or fleeing don't feel like real options, and the system defaults to disengaging instead. It's a genuine protective response, even when it doesn't feel helpful in the moment.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "4b",
+    "article_family": "understanding_emotions",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "Shutting down or avoiding",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "4b – UNDERSTANDING EMOTIONS, §3 Content Library, item 7"
+    }
+  }
+}

@@ -1,3 +1,5 @@
+# DEPRECATED-DIRECT-INVOKE: invokes the graph/LLM directly; output is NOT evidence under
+# the signed instrument-parity rule (2026-07-28). Migrate to scripts/instrument/graph_evidence.py.
 """
 POC Re-Benchmark: 7 Evaluation Scenarios
 Verifies Doc 4 prompt quality improvements post-migration.

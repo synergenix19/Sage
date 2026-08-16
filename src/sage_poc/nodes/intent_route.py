@@ -1,3 +1,4 @@
+import hashlib
 import json
 import re
 from sage_poc.state import SageState
@@ -7,6 +8,10 @@ from sage_poc.nodes.directive_detect import detect_directive_request
 from sage_poc.skills.keyword_matcher import ranked_skill_matches
 from sage_poc.conversation_stall import detect_stall
 from sage_poc.nodes.self_reference_detect import detect_self_reference
+from sage_poc.nodes.venting_detect import detect_venting
+from sage_poc.nodes.panic_override import should_ground_over_crisis
+from sage_poc.nodes.grief_override import should_defer_grief_over_crisis
+from sage_poc import config as _cfg
 
 # SINGLE-POINT-OF-FAILURE WARNING: The general_chat classification below is the sole
 # gate preventing bare emotional words ("stressed", "depressed", "anxious", "I feel sad")
@@ -120,7 +125,38 @@ def _safe_int(value, default: int) -> int:
         return default
 
 
+def _classifier_context_hash(messages: list[dict]) -> str:
+    """sha256 hex over a canonical JSON serialization of the EXACT assembled classifier
+    prompt messages. Deterministic (sort_keys + compact separators + ensure_ascii=False)
+    so the same assembled context always hashes identically — this is the audit key that
+    makes a classifier decision reconstructable despite the prompt embedding stochastic
+    temp-0.7 responder history (bistability finding cause 1)."""
+    canonical = json.dumps(
+        messages, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 async def intent_route_node(state: SageState, llm=None) -> dict:
+    # EMR Phase 1 (plan 2026-07-28, gate closed 2026-08-11): the deterministic
+    # explicit-modality-request detector runs at the HEAD of this node, BEFORE and
+    # independently of the LLM classification (placement rider: not in safety_check —
+    # crisis/medical turns terminate before this node, so precedence is untouched).
+    # One detector, three Phase-2 consumers; flag OFF -> channel None, byte-identical.
+    _emr = None
+    _presentation = None
+    if _cfg.MODALITY_REQUEST_ROUTING_ENABLED:
+        from sage_poc.matching import (  # noqa: PLC0415
+            detect_explicit_modality_request, update_presentation_context)
+        _emr = detect_explicit_modality_request(
+            state.get("message_en", ""), state.get("raw_message", ""),
+            state.get("detected_language", "en"))
+        # EMR Phase 2 foundation: session-scoped screening accumulation (M1 stand-in),
+        # same deterministic head, same flag. OFF omits the key entirely (byte-identical).
+        _presentation = update_presentation_context(
+            state.get("recent_presentation"), state.get("message_en", ""),
+            state.get("detected_language", "en"))
+
     if llm is None:
         llm = get_classifier()
     fallback_llm = get_fallback_classifier()
@@ -129,8 +165,16 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
         {"role": "system", "content": INTENT_SYSTEM},
         {"role": "user", "content": build_intent_prompt(state)},
     ]
+    # Classifier provenance (SAGE_AUDIT_CLASSIFIER_PROVENANCE, default OFF): hash the
+    # exact assembled messages IMMEDIATELY before invocation, and capture the response
+    # metadata via meta_out. Flag OFF -> neither computed nor written; this node's state
+    # update is byte-identical to today (dark).
+    _provenance_on = _cfg.AUDIT_CLASSIFIER_PROVENANCE_ENABLED
+    _ctx_hash = _classifier_context_hash(messages) if _provenance_on else None
+    _meta: dict = {}
     raw = await resilient_invoke(
-        llm, messages, node="intent_route", fallback_llm=fallback_llm
+        llm, messages, node="intent_route", fallback_llm=fallback_llm,
+        meta_out=_meta if _provenance_on else None,
     )
 
     match = re.search(r'\{.*\}', raw, re.DOTALL)
@@ -138,12 +182,26 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
         data = json.loads(match.group(0)) if match else {}
     except json.JSONDecodeError:
         data = {}
+    # `classifier_degraded` POSITIVE path marker (fast-follow ledger 2026-07-28, Q-a).
+    # Detection = the static-fallback shape: no parseable JSON in the reply (the pinned
+    # classifier chain exhausted and resilient_invoke served the static neutral copy, or
+    # the reply was truncated garbage) — everything below then resolves to the neutral
+    # defaults (general_chat @ 0.5). C3 discipline: assert the positive path, don't leave
+    # the degraded route distinguishable only by silence-shaped inference (empty meta_out,
+    # confidence exactly 0.5). A VALID parse that merely omits fields is NOT degraded —
+    # genuine low-confidence classifications must never carry this marker (RT-1 depends
+    # on the two populations staying separate). Pure additive marker, no flag.
+    _classifier_degraded = not data
 
     primary_intent = data.get("primary_intent", "general_chat")
     _directive_posture = detect_directive_request(state, primary_intent=primary_intent)
     _intent_route_path = state["path"] + ["intent_route"]
+    if _classifier_degraded:
+        _intent_route_path = _intent_route_path + ["classifier_degraded"]
     if _directive_posture:
         _intent_route_path = _intent_route_path + ["directive_posture_set"]
+    if _emr is not None and _emr.get("requested"):
+        _intent_route_path = _intent_route_path + ["modality_request_detected"]
     result = {
         "primary_intent": primary_intent,
         "secondary_intent": data.get("secondary_intent"),
@@ -162,7 +220,52 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
         ),
         # Deterministic recall signal; sole consumer is the composer eviction-exemption.
         "self_reference": detect_self_reference(state),
+        # F6: deterministic PI-VI-001 don't-fix signal, now given routing authority
+        # (previously only injected a hold-space note into freeflow with no say over
+        # whether a skill gets imposed — same detection-without-authority class as B1).
+        "venting_detected": detect_venting(
+            state.get("message_en", ""), state.get("raw_message", ""), state.get("detected_language", "en")
+        ),
+        # Part A (Vee-signed 2026-07-28) — deterministic panic-grounding override. Stamped here (code
+        # decides), honoured by _route_after_intent. Flag-gated kill-switch; OFF -> always False (byte-
+        # identical). Fires only when safety_check was CLEAN and this turn's crisis is a panic over-escalation
+        # with no harm-adjacency -> restore the deterministic clean verdict instead of the LLM's crisis.
+        "panic_grounding_override": (
+            _cfg.PANIC_GROUNDING_OVERRIDE_ENABLED
+            and should_ground_over_crisis({**state, "primary_intent": primary_intent})
+        ),
+        # EMR Phase 1: written EVERY turn (None when flag OFF) — per-turn semantics live
+        # at this write site, same contract as panic_grounding_override above.
+        "explicit_modality_request": _emr,
+        # S2a (sweep row 13, built inert 2026-08-04) — deterministic grief-presence deference. Same
+        # stamp/honor pattern as panic_grounding_override immediately above: code decides here,
+        # _route_after_intent honours it. Flag-gated kill-switch; OFF -> always False (byte-identical).
+        "grief_presence_override": (
+            _cfg.GRIEF_DEFERENCE_ENABLED
+            and should_defer_grief_over_crisis({**state, "primary_intent": primary_intent})
+        ),
     }
+    if _presentation is not None:
+        # EMR Phase 2 (flag ON only): session-scoped screening accumulation; OFF never
+        # writes the key, so the state update is byte-identical to the pre-EMR shape.
+        result["recent_presentation"] = _presentation
+    if _provenance_on:
+        # DECLARED channels (classifier_context_hash / classifier_provider in SageState;
+        # LangGraph drops undeclared keys — the SG-2 seam class). Read by
+        # audit._build_session_audit_row on the output_gate turn-close. Provider chain:
+        # OpenRouter's top-level "provider" response field if the client surfaces it,
+        # else the configured pin, else None. NOTE: langchain-openai's hardcoded
+        # "model_provider": "openai" metadata key is the API SHAPE, not the upstream
+        # provider — deliberately not consulted.
+        result["classifier_context_hash"] = _ctx_hash
+        result["classifier_provider"] = (
+            _meta.get("provider") or _cfg.OPENROUTER_PROVIDER_PIN or None
+        )
+        # Q-b (seed honor, not seed request): a requested seed proves intent; only the
+        # response tells us what backend served the call. system_fingerprint is the sole
+        # honor signal the OpenAI-family response exposes. langchain-openai defaults a
+        # missing fingerprint to "" — normalized to None (recorded null, never fabricated).
+        result["classifier_system_fingerprint"] = _meta.get("system_fingerprint") or None
     # v7.2 Node-2 keyword pre-pass (rules-first, Cardinal Rule 5). Deterministic skill-trigger match
     # emitting a routing HINT only — the classifier above still owns primary_intent + engagement/
     # intensity. _route_after_intent redirects a would-be-freeflow general_chat turn to skill_select
@@ -173,7 +276,36 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
     result["prepass_matched"] = _prepass
     result["prepass_rule_id"] = "prepass_kw_v1" if _prepass else None
     offered = state.get("offered_skill_ids") or []
-    if offered:
+    if offered and _emr is not None and _emr.get("requested"):
+        # EMR surface 3 (offer-reply resolution; addendum 2026-07-28, Option A SIGNED,
+        # clinical confirmation via the 2026-08-11 A1 pin). Deterministic resolution
+        # REPLACES the LLM offer-reply classification whenever the detector fired:
+        #   1. promote-if-member: the binding table's skills for the hint (or the
+        #      first-line default) intersected with the pending offer, first in
+        #      binding order wins -> acceptance of that member via the EXISTING
+        #      promotion path (offer_promoted semantics, entry screens preserved).
+        #   2. route-with-release: no member -> release the offer. Marker is
+        #      offer_released_modality_request, NOT offer_ignored (the user engaged,
+        #      with a different ask), and released skills NEVER enter declined_skills
+        #      (release must never quietly become decline; reoffer-eligible). The
+        #      request then reaches skill_select via the router's EMR redirect.
+        # Genuine ignores/declines carry requested=False and take the LLM path below
+        # unchanged (both-direction guards).
+        from sage_poc.matching import BINDING_TABLE  # noqa: PLC0415
+        _cands = list(BINDING_TABLE.get(_emr.get("modality_hint") or "default")
+                      or BINDING_TABLE["default"])
+        _member = next((s for s in _cands if s in offered), None)
+        if _member is not None:
+            result["offer_response"] = "accept"
+            result["offer_choice_skill_id"] = _member
+            result["path"] = result["path"] + ["modality_request_routed:offer_reply", "offer_accepted"]
+            result["offer_count"] = 0
+        else:
+            result["offered_skill_ids"] = None
+            result["path"] = result["path"] + ["modality_request_routed:offer_reply",
+                                               "offer_released_modality_request"]
+            result["offer_count"] = 0
+    elif offered:
         offer_response = data.get("offer_response")
         if offer_response not in ("accept", "decline", "other"):
             if "offer_response" in data:

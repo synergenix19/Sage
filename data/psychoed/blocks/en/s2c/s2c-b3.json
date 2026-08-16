@@ -1,0 +1,19 @@
+{
+  "article_id": "s2c-b3",
+  "language": "en",
+  "title": "The \"stages\" of grief",
+  "content": "The idea of stages, denial, anger, bargaining, depression, acceptance, came from research on people facing their own terminal illness, not from studying how people grieve losing someone else, and it was never meant to be a fixed, universal, in-order checklist. Current understanding treats these as possible experiences that can show up in any order, more than once, or not at all, rather than stages everyone must pass through.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "s2c",
+    "article_family": "understanding_grief",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "The \"stages\" of grief",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "S2c – UNDERSTANDING GRIEF, §3 Content Library, item 3"
+    }
+  }
+}

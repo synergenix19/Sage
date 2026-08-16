@@ -1,0 +1,244 @@
+{
+  "family_id": "emr-request-family-v1",
+  "authored": "2026-07-29",
+  "purpose": "EMR Phase-0 distributional baseline for explicit-modality-request handling (docs/superpowers/plans/2026-07-28-explicit-modality-request-handling.md). Three-surface trajectories + 12 naturalistic EN request paraphrases + 3 stable controls. Driven ONLY via scripts/instrument/graph_evidence.py (signed instrument-parity rule).",
+  "independence_note": "No message in this family is copied from any request-phrase lexicon (the v3 plan's rules/data/skill_matching/skill_request_phrases.json concept). Enforced by tests/test_emr_request_family_fixture.py (anti-tautology guard; recall-fixture-independence rule from the E7 verbatim-match gap).",
+  "cases": [
+    {
+      "case_id": "EMR-S1-000",
+      "surface": "s1_active_skill_absorption",
+      "provenance": "live transcript 2026-07-28, naturalistic, VERBATIM (source: tests/fixtures/conformance/1a_transcript_replay.json case 1A-NAT-000-observed on branch 1a-gap-phase0); NOT lexicon-derived",
+      "turns": [
+        "I'm feeling anxious",
+        "can you tell me how to manage my anxiety",
+        "are there any exercises i can do"
+      ],
+      "spec_expectation": {
+        "expected": "final turn resolves the explicit exercise request: self_help_skill offer of box_breathing or grounding_5_4_3_2_1 (BOT BEHAVIOUR §1a step 4), after the §1a screen; the request must not be absorbed into an active/psychoed flow",
+        "observed_defect_class": "surface 1: active-skill absorption via skill_continuation -> executor exploration step",
+        "basis": "BOT BEHAVIOUR §1a step 4; re-plan defect class, surface 1"
+      }
+    },
+    {
+      "case_id": "EMR-S2-001",
+      "surface": "s2_cold_request",
+      "provenance": "authored 2026-07-29 for EMR Phase 0; disclosure + the observed request phrase VERBATIM but COLD (no intervening psychoed-activating ask, no active skill) to isolate the surface variable; NOT lexicon-derived",
+      "turns": [
+        "I'm feeling anxious",
+        "are there any exercises i can do"
+      ],
+      "spec_expectation": {
+        "expected": "explicit request with no active skill resolves to a first-line offer (box_breathing or grounding_5_4_3_2_1) through the consent gate; must not early-return through info_request -> KB abstain -> freeflow",
+        "observed_defect_class": "surface 2: request classified info_request -> early-return -> KB abstain -> freeflow",
+        "basis": "re-plan defect class, surface 2"
+      }
+    },
+    {
+      "case_id": "EMR-S3-002",
+      "surface": "s3_over_pending_offer",
+      "provenance": "authored 2026-07-29 for EMR Phase 0; turn 1 is a symptom-specific disclosure intended to elicit a pending skill offer, turn 2 is an explicit request phrased so it lands OVER that pending offer; NOT lexicon-derived",
+      "turns": [
+        "I keep lying awake at night with my heart pounding and my thoughts racing",
+        "can you just give me an exercise to do right now"
+      ],
+      "spec_expectation": {
+        "expected": "request over a pending offer resolves against the pending candidates and the binding table (requested modality in offer -> promote; else first-line re-offer, declined-filtering preserved); must not be classified offer_ignored and released",
+        "observed_defect_class": "surface 3: request over a pending offer classified offer_ignored",
+        "basis": "re-plan defect class, surface 3; note: turn 1 offer elicitation is itself distributional (the offer may not fire in every sample) - the per-sample records show whether a pending offer existed, so surface-3 exposure is measured, not assumed"
+      }
+    },
+    {
+      "case_id": "EMR-PARA-001",
+      "surface": "paraphrase",
+      "provenance": "authored 2026-07-29 for EMR Phase 0; naturalistic EN request paraphrase, independent of any request-phrase lexicon",
+      "turns": [
+        "I'm feeling anxious",
+        "is there something practical i could try right now"
+      ],
+      "spec_expectation": {
+        "expected": "explicit modality request -> first-line offer through consent gate (binding table), not freeflow/psychoed-only",
+        "basis": "BOT BEHAVIOUR §1a step 4"
+      }
+    },
+    {
+      "case_id": "EMR-PARA-002",
+      "surface": "paraphrase",
+      "provenance": "authored 2026-07-29 for EMR Phase 0; naturalistic EN request paraphrase, independent of any request-phrase lexicon",
+      "turns": [
+        "I'm feeling anxious",
+        "do you have any techniques for calming down"
+      ],
+      "spec_expectation": {
+        "expected": "explicit modality request -> first-line offer through consent gate (binding table), not freeflow/psychoed-only",
+        "basis": "BOT BEHAVIOUR §1a step 4"
+      }
+    },
+    {
+      "case_id": "EMR-PARA-003",
+      "surface": "paraphrase",
+      "provenance": "authored 2026-07-29 for EMR Phase 0; naturalistic EN request paraphrase, independent of any request-phrase lexicon",
+      "turns": [
+        "I'm feeling anxious",
+        "could you walk me through an exercise or something"
+      ],
+      "spec_expectation": {
+        "expected": "explicit modality request -> first-line offer through consent gate (binding table), not freeflow/psychoed-only",
+        "basis": "BOT BEHAVIOUR §1a step 4"
+      }
+    },
+    {
+      "case_id": "EMR-PARA-004",
+      "surface": "paraphrase",
+      "provenance": "authored 2026-07-29 for EMR Phase 0; naturalistic EN request paraphrase, independent of any request-phrase lexicon",
+      "turns": [
+        "I'm feeling anxious",
+        "got any tools i can use when it hits me like this"
+      ],
+      "spec_expectation": {
+        "expected": "explicit modality request -> first-line offer through consent gate (binding table), not freeflow/psychoed-only",
+        "basis": "BOT BEHAVIOUR §1a step 4"
+      }
+    },
+    {
+      "case_id": "EMR-PARA-005",
+      "surface": "paraphrase",
+      "provenance": "authored 2026-07-29 for EMR Phase 0; naturalistic EN request paraphrase, independent of any request-phrase lexicon",
+      "turns": [
+        "I'm feeling anxious",
+        "what can i actually do in the moment to settle myself"
+      ],
+      "spec_expectation": {
+        "expected": "explicit modality request -> first-line offer through consent gate (binding table), not freeflow/psychoed-only",
+        "basis": "BOT BEHAVIOUR §1a step 4"
+      }
+    },
+    {
+      "case_id": "EMR-PARA-006",
+      "surface": "paraphrase",
+      "provenance": "authored 2026-07-29 for EMR Phase 0; naturalistic EN request paraphrase, independent of any request-phrase lexicon",
+      "turns": [
+        "I'm feeling anxious",
+        "could you teach me a way to cope with this"
+      ],
+      "spec_expectation": {
+        "expected": "explicit modality request -> first-line offer through consent gate (binding table), not freeflow/psychoed-only",
+        "basis": "BOT BEHAVIOUR §1a step 4"
+      }
+    },
+    {
+      "case_id": "EMR-PARA-007",
+      "surface": "paraphrase",
+      "provenance": "authored 2026-07-29 for EMR Phase 0; naturalistic EN request paraphrase, independent of any request-phrase lexicon",
+      "turns": [
+        "I'm feeling anxious",
+        "i want something i can practice, not just talk about it"
+      ],
+      "spec_expectation": {
+        "expected": "explicit modality request -> first-line offer through consent gate (binding table), not freeflow/psychoed-only",
+        "basis": "BOT BEHAVIOUR §1a step 4"
+      }
+    },
+    {
+      "case_id": "EMR-PARA-008",
+      "surface": "paraphrase",
+      "provenance": "authored 2026-07-29 for EMR Phase 0; naturalistic EN request paraphrase, independent of any request-phrase lexicon",
+      "turns": [
+        "I'm feeling anxious",
+        "show me how to calm my body down"
+      ],
+      "spec_expectation": {
+        "expected": "explicit modality request -> first-line offer through consent gate (binding table), not freeflow/psychoed-only",
+        "basis": "BOT BEHAVIOUR §1a step 4"
+      }
+    },
+    {
+      "case_id": "EMR-PARA-009",
+      "surface": "paraphrase",
+      "provenance": "authored 2026-07-29 for EMR Phase 0; naturalistic EN request paraphrase, independent of any request-phrase lexicon",
+      "turns": [
+        "I'm feeling anxious",
+        "any tips or exercises for when my chest gets tight"
+      ],
+      "spec_expectation": {
+        "expected": "explicit modality request -> first-line offer through consent gate (binding table), not freeflow/psychoed-only",
+        "basis": "BOT BEHAVIOUR §1a step 4"
+      }
+    },
+    {
+      "case_id": "EMR-PARA-010",
+      "surface": "paraphrase",
+      "provenance": "authored 2026-07-29 for EMR Phase 0; naturalistic EN request paraphrase (named-modality variant), independent of any request-phrase lexicon",
+      "turns": [
+        "I'm feeling anxious",
+        "is there a breathing thing or something i could do"
+      ],
+      "spec_expectation": {
+        "expected": "explicit modality request naming breathing -> binding-table candidate honouring the named modality (box_breathing family) through consent gate",
+        "basis": "BOT BEHAVIOUR §1a step 4; re-plan binding-table ownership (DF-1)"
+      }
+    },
+    {
+      "case_id": "EMR-PARA-011",
+      "surface": "paraphrase",
+      "provenance": "authored 2026-07-29 for EMR Phase 0; naturalistic EN request paraphrase (named-modality variant), independent of any request-phrase lexicon",
+      "turns": [
+        "I'm feeling anxious",
+        "can we try one of those grounding methods"
+      ],
+      "spec_expectation": {
+        "expected": "explicit modality request naming grounding -> binding-table candidate honouring the named modality (grounding_5_4_3_2_1 family) through consent gate",
+        "basis": "BOT BEHAVIOUR §1a step 4; re-plan binding-table ownership (DF-1)"
+      }
+    },
+    {
+      "case_id": "EMR-PARA-012",
+      "surface": "paraphrase",
+      "provenance": "authored 2026-07-29 for EMR Phase 0; naturalistic EN request paraphrase, independent of any request-phrase lexicon",
+      "turns": [
+        "I'm feeling anxious",
+        "what should i do when this happens, like actual steps i can follow"
+      ],
+      "spec_expectation": {
+        "expected": "explicit modality request -> first-line offer through consent gate (binding table), not freeflow/psychoed-only",
+        "basis": "BOT BEHAVIOUR §1a step 4"
+      }
+    },
+    {
+      "case_id": "EMR-CTRL-001",
+      "surface": "control",
+      "provenance": "authored 2026-07-29 for EMR Phase 0; stable control - curiosity ask, NOT a modality request (re-plan Phase 1 negative case); NOT lexicon-derived",
+      "turns": [
+        "I'm feeling anxious",
+        "why does my body react like this?"
+      ],
+      "spec_expectation": {
+        "expected": "curiosity ask is NOT an explicit modality request: psychoeducation/freeflow response acceptable; no forced skill delivery; any future detector must NOT set the flag here",
+        "basis": "re-plan Phase 1 behaviour-anchored negative case"
+      }
+    },
+    {
+      "case_id": "EMR-CTRL-002",
+      "surface": "control",
+      "provenance": "authored 2026-07-29 for EMR Phase 0; stable control - bare affect opener, single word; NOT lexicon-derived",
+      "turns": [
+        "anxious"
+      ],
+      "spec_expectation": {
+        "expected": "bare affect is general_chat/freeflow exploration first (intent prompt: brief opening disclosure without symptoms/duration/frequency); no skill offer required; any future detector must NOT set the flag here",
+        "basis": "re-plan Phase 1 behaviour-anchored negative case; intent_route general_chat definition"
+      }
+    },
+    {
+      "case_id": "EMR-CTRL-003",
+      "surface": "control",
+      "provenance": "authored 2026-07-29 for EMR Phase 0; stable control - genuine info ask that must keep reaching the info/knowledge path; NOT lexicon-derived",
+      "turns": [
+        "what's the crisis helpline number?"
+      ],
+      "spec_expectation": {
+        "expected": "genuine info ask still reaches the info/knowledge path and is answered with the helpline (single-source CRISIS_RESOURCES copy); must NOT be treated as a modality request; positive-path guard for re-plan Phase 2 surface 2",
+        "basis": "re-plan Phase 2 surface 2 guard (asserted positively, C3)"
+      }
+    }
+  ]
+}

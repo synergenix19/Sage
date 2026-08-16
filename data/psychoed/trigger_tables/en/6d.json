@@ -1,0 +1,89 @@
+{
+  "category": "6d",
+  "language": "en",
+  "rows": [
+    {
+      "row_id": "6d-t1",
+      "type": "Abstract/definitional",
+      "framing": "abstract",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "What is assertiveness?",
+        "Can you explain assertiveness?",
+        "What's the difference between assertive and aggressive?"
+      ]
+    },
+    {
+      "row_id": "6d-t2",
+      "type": "Self-assessment",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "Am I being too passive?",
+        "I don't know if I'm being too nice.",
+        "I think I'm a people pleaser."
+      ]
+    },
+    {
+      "row_id": "6d-t3",
+      "type": "Skill-building goal",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "How do I become more assertive?",
+        "I want to learn how to be more assertive.",
+        "I want to communicate better.",
+        "I want to be more confident in conversations.",
+        "I want to become more confident."
+      ]
+    },
+    {
+      "row_id": "6d-t4",
+      "type": "Specific struggles",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "I struggle to stand up for myself.",
+        "I find it hard to express my needs.",
+        "I don't know how to communicate confidently.",
+        "I always avoid conflict.",
+        "I don't know how to speak up for myself.",
+        "I worry about saying the wrong thing.",
+        "I don't know how to say no.",
+        "I don't know how to ask for what I need."
+      ]
+    },
+    {
+      "row_id": "6d-t5",
+      "type": "Boundaries-related",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "How can I set healthy boundaries?",
+        "How do I stop people walking all over me?",
+        "I want to stop people pleasing."
+      ]
+    },
+    {
+      "row_id": "6d-t6",
+      "type": "Balance-seeking",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "How do I stand up for myself without being rude?",
+        "I don't want to be aggressive, but I don't want to stay quiet either."
+      ]
+    }
+  ],
+  "provenance_note": "Doc §6d §0 Trigger Words/Recognition is a real Type|Examples pipe table; all 6 rows transcribed with Type verbatim. Unlike 3c-t4, none of the 6 Type labels here needed a judgment call: row 1 (Abstract/definitional) is explicitly abstract by its own label and its phrases are all 'What is/Can you explain' questions; rows 2-6 (Self-assessment, Skill-building goal, Specific struggles, Boundaries-related, Balance-seeking) are all first-person 'I'/'how do I' phrasing referring to the speaker's own experience or goal, unambiguously personal from the phrases themselves. All row_provenance = doc_table; no row required 'inferred'. No diagnosis-seeking phrase found in this section (there is no clinical/diagnostic label like 'assertiveness disorder' to seek a diagnosis of), so all rows route standard.",
+  "source_citation": {
+    "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+    "section": "6d – UNDERSTANDING ASSERTIVENESS, §0 Trigger Words / Recognition"
+  }
+}

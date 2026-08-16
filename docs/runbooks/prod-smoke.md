@@ -44,3 +44,16 @@ Produce the storage-state via the **cdai Playwright auth harness** (it owns logi
 ## Wiring to deploy (the point of this suite)
 
 "The app responds" is not health for this product; "the crisis route fires with correct resources" is. So: **the smoke run is part of the deploy, not the calendar.** After `railway up`, run the suite; treat a must-pass `FAIL` as a failed deploy. This pairs with the CI-on-PR task — CI catches breakage before merge, the smoke suite catches it after deploy. Zero-user mode makes prod the right place to run it (no user is disturbed by test traffic).
+
+## Evidence-run credit isolation (2026-08-12 incident rule)
+
+Evidence/measurement runs (the EMR baseline runner, graph_evidence drivers, any
+N-sample campaign) consume LLM credits at campaign scale (~500+ calls per full-family
+run). The 2026-08-12 incident: two same-day campaign runs on the SHARED OpenRouter key
+exhausted the account (402) and degraded PROD — every live non-crisis turn fell to the
+static fallback until the top-up (the deterministic crisis path held, probed).
+
+Rule: evidence runs use a SEPARATE OpenRouter key with its own credit limit, never the
+key prod serves on. Until a dedicated key exists in the evidence environment's .env,
+check the account balance BEFORE any full-family run and treat a shared-key campaign
+as a deploy-class action (deploy-owner awareness, not just authorization of the run).

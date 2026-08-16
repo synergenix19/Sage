@@ -23,6 +23,18 @@ on:
       # on deploy, so a malformed/mistagged/clinically-wrong chunk must be gated like
       # code. Pairs with test_corpus_integrity.py in CANDIDATES below.
       - 'data/knowledge_corpus/**'
+      # Psychoed content is the same content-as-code class as the knowledge corpus above
+      # (clinician-editable trigger phrases/blocks/collision table that drive a clinical
+      # serving surface): a PR editing ONLY data/psychoed/** must be gated like code.
+      # Pairs with test_psychoed_content_integrity.py in CANDIDATES below (final review
+      # Important 1/2, 2026-08-05).
+      - 'data/psychoed/**'
+      # Flags are config-as-code (2026-07-29 signed-flag gate): a PR editing ONLY
+      # config/prod_flags.yaml is exactly the PR the signed-value check exists for, so
+      # it must trigger the gate (test_prod_flags_register.py). scripts/ is likewise a
+      # tested surface now (helper-only grep, apply/watchdog logic, prod_smoke guard).
+      - 'config/**'
+      - 'scripts/**'
   # Runs on EVERY PR (no path filter) so the required "Safety-surface unit tests" check
   # ALWAYS reports. A path-filtered REQUIRED check never reports on a docs-only PR, and
   # strict branch protection would then deadlock that PR's merge forever (9 open docs/
@@ -42,7 +54,7 @@ jobs:
           fetch-depth: 0   # need base history to diff which paths changed
 
       # Guard: does this PR touch the safety-surface paths the heavy suite protects?
-      # If not (docs/scripts/.github-only), skip install+pytest but STILL succeed, so the
+      # If not (docs/.github-only), skip install+pytest but STILL succeed, so the
       # required check reports green and the PR is not deadlocked. If yes, run the full gate.
       - name: Detect safety-surface changes
         id: detect
@@ -54,7 +66,7 @@ jobs:
             CHANGED=$(git diff --name-only "${{ github.event.before }}...${{ github.sha }}" 2>/dev/null || echo "src/sage_poc/_forcerun")
           fi
           echo "changed files:"; echo "$CHANGED"
-          if echo "$CHANGED" | grep -qE '^(src/sage_poc/|tests/|data/knowledge_corpus/)|^pyproject\.toml$'; then
+          if echo "$CHANGED" | grep -qE '^(src/sage_poc/|tests/|data/knowledge_corpus/|data/psychoed/|config/|scripts/)|^pyproject\.toml$'; then
             echo "code=true" >> "$GITHUB_OUTPUT"
           else
             echo "code=false" >> "$GITHUB_OUTPUT"
@@ -71,12 +83,46 @@ jobs:
         if: steps.detect.outputs.code == 'true'
         run: pip install -e ".[dev]"
 
+      - name: Static — SageState channel contract (no undeclared node->node channels)
+        # Fails the build if any key written by a node and read by another is not a declared
+        # SageState channel — LangGraph silently drops undeclared keys (the SG-2 node->node seam,
+        # 4th instance of the "components green, seam broken" class). Structural enforcement so
+        # this failure mode is impossible, not merely tested.
+        if: steps.detect.outputs.code == 'true'
+        run: python scripts/check_state_channels.py
+
+      - name: Static — safety trigger-file language parity (no EN-only safety lists)
+        # Fails the build if a safety trigger file carries English triggers but no Arabic coverage
+        # (bilingual product). Root class of #329 (a live AR medical red-flag bypass) and #330.
+        # EXEMPT entries carry a tracking ticket, so debt stays visible while the gate stays green —
+        # the never-disarm principle with a workable escape valve.
+        if: steps.detect.outputs.code == 'true'
+        run: python scripts/check_safety_language_parity.py
+      - name: Static — safety detectors read RAW input (language contract)
+        # Fails the build if a safety detector call passes translated message_en without raw. Root
+        # class of #329/#330 (AR safety bypasses via the translation path). ADR 2026-07-16. Allowlist
+        # entries carry tickets (EXEMPT pattern) so transitional debt stays visible, not silent.
+        if: steps.detect.outputs.code == 'true'
+        run: python scripts/check_safety_reads_raw.py
+      - name: Static — safety disposition-ownership (no un-reconciled overlap)
+        # Fails if two safety mechanisms' match sets overlap into DIFFERENT dispositions without a declared
+        # owner in disposition_ownership.json. Third refusal-property; born from the 2026-07-28 §1c conflict
+        # (CF-010 referral vs panic_override ground on the same utterance, both clinician-signed).
+        if: steps.detect.outputs.code == 'true'
+        run: python scripts/check_disposition_ownership.py
+
       - name: Run curated deterministic safety-surface suites
         if: steps.detect.outputs.code == 'true'
         env:
           # Suites mock the LLM or do not call it; a dummy key prevents import-time
           # failures in llm.py. No real network/DB is touched.
           OPENROUTER_API_KEY: dummy-ci
+          # The safety gate must NEVER download BGE-M3 (~2GB) — that Hub download hung CI
+          # for 30+ min (#298). Force offline so the warm-load fails FAST to the loud stub
+          # (conftest _warm_bge_m3_once). Non-slow tests run on the zero-vector stub; @slow
+          # tests that need real embeddings are excluded here and would fail-loud if run.
+          HF_HUB_OFFLINE: "1"
+          TRANSFORMERS_OFFLINE: "1"
         run: |
           set -euo pipefail
           CANDIDATES="
@@ -92,6 +138,8 @@ jobs:
             tests/test_v2_crisis_guardrail.py
             tests/test_skill_matching_rules.py
             tests/test_skill_executor.py
+            tests/test_state_channel_survival.py
+            tests/test_server_helpers.py
             tests/test_schema_conformance.py
             tests/test_intent_route_node.py
             tests/test_engagement_templates.py
@@ -103,17 +151,114 @@ jobs:
             tests/test_phase2_t1_containment_state.py
             tests/test_phase2_t2_contain_action.py
             tests/test_phase2_t3_crisis_supremacy.py
+            tests/test_deploy_build_lock.py
+            tests/test_signed_fields_manifest.py
+            tests/test_conformance_flag_parity.py
+            tests/test_prod_flags_register.py
+            tests/test_health_version_full_readback.py
+            tests/test_classifier_degraded_marker.py
+            tests/test_instrument_helper_only.py
+            scripts/prod_smoke/tests/test_tier_b_credential_guard.py
+            tests/test_harm_to_others_node1_backstop.py
+            tests/test_crisis_availability_consistency.py
+            tests/test_crisis_config_cross_stack.py
+            tests/test_sg2_caveat_firing.py
+            tests/test_medical_screen.py
+            tests/test_medical_screen_wiring.py
+            tests/test_medical_screen_callsite.py
+            tests/test_medical_screen_shadow.py
+            tests/test_medical_screen_audit.py
+            tests/test_medical_screen_serve_resume.py
+            tests/test_screen_response_node.py
+            tests/test_screen_serve_resume_graph.py
+            tests/test_health_version_d1_readback.py
+            tests/test_hr_neutrality_gate.py
+            tests/test_medical_redflag_ar_329.py
+            tests/test_medical_redflag_guard.py
+            tests/test_safety_language_parity.py
+            tests/test_ocd_compulsion_raw_path.py
+            tests/test_ocd_compulsion_ar_330.py
+            tests/test_safety_reads_raw.py
+            tests/test_safety_copy_urgency.py
+            tests/test_rules_safety_hr.py
+            tests/test_hr_distress_parse.py
+            tests/test_hr_copy_variants.py
+            tests/test_hr_terminal.py
+            tests/test_hr_crisis_precedence.py
+            tests/test_hr_routing.py
+            tests/test_hr_audit.py
+            tests/test_psychoed_fixtures_ci.py
+            tests/test_measure_psychoed_families_safety.py
+            tests/test_psychoed_f5_flow.py
+            tests/test_psychoed_f7_integrity.py
+            tests/test_psychoed_graph.py
+            tests/test_psychoed_gate.py
+            tests/test_psychoed_skill_select.py
+            tests/test_psychoed_knowledge_retrieve.py
+            tests/test_psychoed_flag_off.py
+            tests/test_psychoed_mechanism_a.py
+            tests/test_psychoed_store.py
+            tests/test_psychoed_weave_eval.py
+            tests/test_psychoed_classifiers.py
+            tests/test_psychoed_resolver.py
+            tests/test_psychoed_serve.py
+            tests/test_psychoed_carry_forward.py
+            tests/test_psychoed_content_integrity.py
           "
+          # Psychoed suites added 2026-08-04 (Phase 3 Task 9, closing the fact-sheet §7 gap):
+          # the Phase 2 psychoed suites (graph/gate/skill_select/knowledge_retrieve/flag_off/
+          # mechanism_a/store/weave_eval/classifiers/resolver/serve/carry_forward) were green
+          # and CI-invoked by their own dedicated test files but sat OUTSIDE this required gate
+          # — a suite that exists and passes but isn't watched by the hard gate provides the
+          # same false assurance as the #15 blind spot above. test_psychoed_fixtures_ci.py
+          # (Phase 3 Tasks 1-8's CI-tier driver, F1-F4/F6/F8-F10 corpus families) and
+          # test_psychoed_f5_flow.py / test_psychoed_f7_integrity.py (F5/F7 procedural
+          # families, no corpus rows — see their own module docstrings) join for the same
+          # reason. All 15 verified green in this exact CANDIDATES set (uv run pytest, same
+          # OPENROUTER_API_KEY=dummy-ci / HF_HUB_OFFLINE=1 env this job sets) before wiring —
+          # see task-9-report.md for the flaky-suite characterization that precondition this
+          # addition on (4 psychoed-adjacent tests were failing under a wider LOCAL run before
+          # characterization; none reproduce in THIS curated file set — traced to a real
+          # os.environ leak in tests/test_graph_evidence.py, a file this gate does not run in
+          # this order, plus two genuinely pre-existing, unrelated, non-flaky findings — see
+          # the report; nothing was wired in with known flakiness).
+          # test_measure_psychoed_families_safety.py added same day (Task 9 fix round 1,
+          # review findings): permanent regression guard for two Important review findings in
+          # the flip-tier runner (scripts/bot_behaviour_audit/measure_psychoed_families.py) —
+          # (a) the undefeatable --live + pre-import-key-snapshot gate (proves a planted
+          # parent .env cannot forge a live run), (b) the six-site write_session_audit
+          # patch-coverage static guard (fails loudly if a future terminal-response-node
+          # addition reopens a live-DB-write hole). No live LLM, no API key, no network call.
+          # test_psychoed_content_integrity.py added 2026-08-05 (final-review Important 1/2):
+          # validates the psychoed CLINICAL CONTENT DATA itself (data/psychoed/blocks/**,
+          # trigger_tables/**, manifests, collision table -- schema, em-dash-free served copy,
+          # source citation, per-category coverage). It was in-repo, green (138 tests, no
+          # network/DB), and CI-invoked by its own file, but was missed from Task 9's sweep and
+          # sat outside this required gate -- the same false-assurance gap named above, for the
+          # single most valuable suite to gate given data/psychoed/** is now also a change-
+          # detection path (see the "Corpus is content-as-code" comment on data/psychoed/**
+          # above): without both fixes together, a PR editing ONLY clinical content reported a
+          # green fast-pass and ran neither the gate's Detect step nor this suite.
+          # test_crisis_availability_consistency.py (H4): fail-closed guard that no crisis-copy
+          # string asserts 24/7 / "24 hours" / "متاح كل وقت" adjacent to the 8am-8pm National line.
+          # test_crisis_config_cross_stack.py (H4): MERGE-BLOCKING entry-for-entry parity between
+          # backend CRISIS_RESOURCES and the frontend crisis-config.ts. NOTE: it SKIPS (does not
+          # block) unless the cdai frontend is present at ../cdai relative to this repo root — CI
+          # must checkout the coupled frontend into that path for this gate to actually bite. Until
+          # that checkout is wired it is a no-op skip; it is verified green + negative-checked locally.
           # test_nodes.py added 2026-06-13: it carries the skill-selection acute-routing
           # assertions (which skill a presentation routes to) that previously sat OUTSIDE
           # the gate — the blind spot that let #15 (overwhelm -> dbt_tipp, a C1-violating
           # production routing defect) stay red invisibly for weeks. A control that does not
           # watch the surface it exists to protect reads as protection while providing none.
-          # NOTE: this suite is currently RED solely on #15
-          # (test_selects_grounding_for_overwhelmed_phrasing), a tracked PRE-EXISTING
-          # production defect under clinical adjudication, NOT introduced by this branch.
-          # It clears when #15's clinically-signed fix lands (separate master PR). Do not
-          # silence the assertion to make the gate green.
+          # NOTE (updated 2026-08-05, final review Minor 6): #15
+          # (test_selects_grounding_for_overwhelmed_phrasing) was RED when this suite was
+          # wired (2026-06-13); verified GREEN as of this update (162 passed, 0 failed,
+          # full CANDIDATES run). #15's clinically-signed fix has since landed on a separate
+          # master PR. Left here (rather than deleted) as a live record that this suite
+          # watches a surface that has previously gone quietly wrong in production -- do not
+          # silence a future assertion here to make the gate green without the same
+          # clinical-adjudication rigor #15 went through.
           FILES=""
           SKIPPED=""
           for f in $CANDIDATES; do

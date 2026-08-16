@@ -31,6 +31,9 @@ from sage_poc.observability import stage_timer
 from sage_poc.rules import engine as rules_engine
 from sage_poc.nodes.post_crisis_classifier import evaluate_s7
 from sage_poc.safety.s3_semantic import check_s3, check_s3_bilingual, S3_THRESHOLD
+from sage_poc.safety.medical_redflag import detect_medical_redflag
+from sage_poc.safety.medical_screen import consume_pending_screen
+from sage_poc.safety.cardiac_escalation import cardiac_ambiguous_present, CARDIAC_FLAG_ID
 
 _log = logging.getLogger(__name__)
 
@@ -175,6 +178,19 @@ async def safety_check_node(state: SageState) -> dict:
             "[safety_check] S3 check failed: %s; crisis detection degraded to S1 only", exc
         )
 
+    # Node-1 cardiac-ambiguous deterministic escalation (item-3 realization; BUILT INERT 2026-07-31,
+    # flag default OFF). Death-fear x air-hunger co-occurrence -> deterministic crisis flag, BEFORE the
+    # LLM classifier ever sees the turn (the measured miss: the pinned classifier routes this class to
+    # freeflow with no crisis resources in a window-dependent 6/20 — inc2 record addendum). Skipped when
+    # a third-party pattern fired (consistent with the S1 third-party-overrides-direct rule above);
+    # deliberately independent of crisis_suppress actions (those were authored for the semantic tier —
+    # this deterministic rule fails toward escalation, Vee's conservative dial).
+    from sage_poc import config as _cfg  # noqa: PLC0415 — deferred like the tiering import below; the
+    # function re-imports config locally (line ~255), so a module-level alias would be shadowed-unbound here.
+    if _cfg.CARDIAC_ESCALATION_ENABLED and not third_party_flags:
+        if cardiac_ambiguous_present(message_en, raw):
+            new_crisis_flags.append(CARDIAC_FLAG_ID)
+
     trajectory, escalating = _update_distress_trajectory(state)
     engagement_trajectory, engagement_declining = _update_engagement_trajectory(state)
 
@@ -275,13 +291,28 @@ async def safety_check_node(state: SageState) -> dict:
         "clinical_flags": all_clinical,
     })
 
+    # B1 interim medical red-flag guard: English-only deterministic phrase match over
+    # the BOT BEHAVIOUR §1 emergency phrase list. Stopgap, not the full E3 detector.
+    # Uses the locally-computed message_en/raw (this turn's values), NOT state.get() —
+    # state["message_en"] is the incoming (previous-turn) value at this point in the node;
+    # the detector's own docstring documents Arabic reaching it only via the translation
+    # produced right here (L92-97), so reading the stale state value would silently break
+    # that one documented path for AR turns.
+    medical_flags = detect_medical_redflag(message_en, raw)
+
     return {
         **tier_update,
         **precedence_update,
+        # #338 D1: consume a persisted screen_pending at graph entry → per-turn answering_screen + clear
+        # pending THIS turn. Runs unconditionally every turn (empty dict when nothing pending, so a
+        # non-screen turn is byte-identical). This is the structural guarantee that a held screen outlives
+        # exactly one turn regardless of how this turn routes (crisis short-circuit here, veto, or answer).
+        **consume_pending_screen(state),
         "detected_language": lang,
         "message_en": message_en,
         "is_safe": len(new_crisis_flags) == 0,
         "crisis_flags": new_crisis_flags,
+        "medical_flags": medical_flags,
         "s3_score": s3_score,  # advisory; recorded in audit for clinical reviewers
         "third_party_crisis": bool(third_party_flags),
         "new_clinical_flags_turn": new_clinical_flags,

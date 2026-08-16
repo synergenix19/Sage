@@ -1,0 +1,19 @@
+{
+  "article_id": "6d-b1",
+  "language": "en",
+  "title": "What is assertiveness?",
+  "content": "Assertiveness means expressing your own needs, thoughts, or feelings clearly and respectfully, while also respecting the other person's. It's often described as the middle ground between two extremes: passive, going along with things at your own expense, and aggressive, getting what you want at someone else's expense.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "6d",
+    "article_family": "understanding_assertiveness",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "What is assertiveness?",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "6d – UNDERSTANDING ASSERTIVENESS, §3 Content Library, item 1"
+    }
+  }
+}

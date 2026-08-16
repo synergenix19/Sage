@@ -173,3 +173,13 @@ def test_build_state_resets_offer_response_fields():
     assert state["offer_choice_skill_id"] is None
     assert "offered_skill_ids" not in state, "checkpoint-persisted, must not be reset per turn"
     assert "declined_skills" not in state, "checkpoint-persisted, must not be reset per turn"
+
+
+def test_build_state_resets_step_mandatory_caveat_per_turn():
+    # SG-2: step_mandatory_caveat is a declared (persisted) channel. It MUST reset to "" per turn
+    # so a caveat set on a prior skill turn cannot be pinned onto a later non-skill turn (stale
+    # caveat). skill_executor sets it fresh only when a caveated step runs this turn.
+    from sage_poc.server_helpers import _build_state, _RequestLike, _MessageLike
+    req = _RequestLike(messages=[_MessageLike(role="user", content="hi")], session_id="s1")
+    state = _build_state(req)
+    assert state["step_mandatory_caveat"] == "", "caveat must reset per turn or it goes stale"

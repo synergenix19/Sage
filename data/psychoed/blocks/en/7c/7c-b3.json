@@ -1,0 +1,19 @@
+{
+  "article_id": "7c-b3",
+  "language": "en",
+  "title": "How to deepen existing relationships",
+  "content": "Relationships deepen through gradually increasing openness, sharing something a bit more personal and having it received well, then a bit more next time. It also helps to actively show up: remembering details, following up on things they mentioned, and being the one to initiate sometimes rather than always waiting to be invited.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "7c",
+    "article_family": "how_do_i_connect",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "How to deepen existing relationships",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "7c – HOW DO I CONNECT, §3 Content Library, item 3"
+    }
+  }
+}

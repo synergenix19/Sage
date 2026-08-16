@@ -14,7 +14,7 @@ from sage_poc.config import AUDIT_LOG_ENABLED, CRISIS_LINE_UAE, CRISIS_CONFIG, C
 from sage_poc.llm import get_classifier
 from sage_poc.rules import engine as rules_engine
 from sage_poc.prompts.summarizer import summarise_history
-from sage_poc.audit import write_session_audit, write_identity_substitution_audit
+from sage_poc.audit import write_session_audit, write_identity_substitution_audit, derive_psychoed_weave_state
 
 _log = logging.getLogger(__name__)
 
@@ -100,7 +100,7 @@ def _pin_mood_anchor(text: str, executed_step_id: str | None, lang: str) -> str:
 
 # #218 (Layer 2): the vetoed-OCD abstain must carry the spec §1d professional-referral signpost.
 # Pinned VERBATIM post-generation at Node 8 (mirrors the mood-anchor pin) so the clinician-approved
-# ERP wording is un-paraphrasable + audit-visible. EN only; AR referral filed to the AR track.
+# ERP wording is un-paraphrasable + audit-visible. Clinician-approved EN (#218, Vee 2026-07-09).
 _OCD_ERP_REFERRAL_EN = (
     "It sounds like these thoughts are really distressing and hard to sit with. Thoughts like these "
     "often respond well to support from a mental health professional who offers ERP (exposure and "
@@ -108,17 +108,90 @@ _OCD_ERP_REFERRAL_EN = (
     "meantime if that would help."
 )
 
+# #4-AR: native Arabic twin of the ERP referral, appended verbatim (bypasses translate-out, mirroring
+# _OCD_ERP_REFERRAL_EN) so Arabic vetoed-OCD users get the §1d signpost too. CLINICIAN-SIGNED
+# (Vee / sage_clinics) 2026-07-13; mirrors the approved EN #218 copy.
+_OCD_ERP_REFERRAL_AR = (
+    "يبدو أن هذه الأفكار مزعجة فعلاً وصعبة تجلس معها. غالباً أفكار من هذا النوع تستجيب بشكل جيد لدعم "
+    "من مختص في الصحة النفسية يقدّم العلاج بالتعرّض ومنع الاستجابة (ERP) للوسواس القهري، وهو أسلوب "
+    "له أدلة قوية على فعاليته. وأنا هني معك لو حاب نكمل الحديث في هذه الأثناء."
+)
+# Distinctive fragment for the idempotency (already-present) guard in each language.
+_OCD_ERP_MARKER_EN = "exposure and response prevention"
+_OCD_ERP_MARKER_AR = "التعرّض ومنع الاستجابة"
+
 
 def _pin_ocd_referral(text: str, abstain_referral: str | None, lang: str) -> str:
     """Node-8 post-generation append of the pinned OCD/ERP professional-referral signpost on a
     vetoed-OCD abstain turn (spec §1d; #218). Verbatim, never through the LLM — the approved wording
-    ships exactly and is audit-visible. EN only (AR referral -> AR track); already-present or other
-    turns/langs -> no-op."""
-    if abstain_referral != "ocd_erp" or lang != "en":
+    ships exactly and is audit-visible. EN and AR twins (#4-AR); other directives/langs or an
+    already-present referral -> no-op (byte-identical)."""
+    if abstain_referral != "ocd_erp":
         return text
-    if "exposure and response prevention" in text.lower():
-        return text
-    return text.rstrip() + "\n\n" + _OCD_ERP_REFERRAL_EN
+    if lang == "en":
+        if _OCD_ERP_MARKER_EN in text.lower():
+            return text
+        return text.rstrip() + "\n\n" + _OCD_ERP_REFERRAL_EN
+    if lang == "ar":
+        if _OCD_ERP_MARKER_AR in text:
+            return text
+        return text.rstrip() + "\n\n" + _OCD_ERP_REFERRAL_AR
+    return text
+
+
+# ── HR §5 content-neutrality gate (Node 8) — Vee-ratified seed 2026-07-18 ────────────────────────
+# The psychotic-referral terminal is LLM-composed, so a §5 drift (stating the feared content as FACT:
+# "you're experiencing [content]", "feeling like [content]") can be sampled (1/4 post-interim). Unlike
+# the interim prompt-nudge (probabilistic reduction), this deterministic gate makes it ELIMINATION:
+# the referral MUST open with a ratified account-frame; if not, it drifted -> replace with the signed
+# templated fallback. ALLOWLIST (require a neutral frame) not denylist (enumerate bad frames) — allowlist
+# makes "cannot vary" a property. SCOPED to the HR referral terminal ONLY: applying §5 globally would
+# false-reject legitimate reflective statements in the anxiety/low-mood tracks (reflecting a user's
+# account back is a core therapeutic move) — the same over-catch shape, at Node 8. On reject the gate
+# NEVER regenerates (latency/loop risk) and NEVER fails open/empty; it emits the fixed signed fallback.
+# Rejections are returned so the caller audit-logs them — the drift RATE is the metric that says whether
+# the upstream prompt is still degrading.
+_HR_NEUTRAL_FRAMES_EN = (
+    "what you're describing", "what you've shared", "the experience you're describing",
+    "what you're going through", "what you're sharing", "you're describing",
+)
+_HR_NEUTRAL_FRAMES_AR = ("ما تصفه", "اللي تصفه", "اللي تشاركه", "اللي تحس فيه", "أسمعك")
+
+
+# The fallback TEMPLATES are the psychotic_referral terminal's ratified account-frame examples[0]/[3]
+# VERBATIM (with the {{crisis_*}} placeholders), so the "signed" copy has a single source (the skill)
+# and cannot drift into a hand-typed paraphrase. test_hr_neutral_fallback_is_ratified_source_verbatim
+# fails CI if either diverges from the skill example -- integrity tied to Vee's ratified SOURCE, not a
+# hash snapshot. The helpline single-sources from CRISIS_CONFIG at render so a GL reversal can't desync
+# it. Vee ratified this seed frame + the never-restate-content invariant 2026-07-18/21 (Option A).
+_HR_NEUTRAL_FALLBACK_TEMPLATE_EN = "What you're describing sounds really important, and it's something to talk through with a mental health professional who can give you the right kind of support. In the UAE, you can reach the {{crisis_label}} on {{crisis_number}}, free, {{crisis_hours}}; and at any hour, day or night, the Abu Dhabi support line 800-SAKINA (800-725462) is available free, 24/7. If you or someone else is in immediate danger, call emergency services on {{crisis_emergency}}. You don't have to navigate this alone."
+_HR_NEUTRAL_FALLBACK_TEMPLATE_AR = 'ما تصفه مهم وتحتاج فيه دعم من متخصص يقدر يساعدك بشكل صحيح. في الإمارات، تقدر تتواصل مع خط الدعم النفسي الوطني على {{crisis_number}}، مجاناً، من الساعة ٨ الصبح إلى ٨ المسا يومياً؛ وفي أي وقت، ليل أو نهار، خط سكينة في أبوظبي 800-SAKINA (800-725462) متوفر مجاناً على مدار الساعة. وإذا كنت أنت أو أي شخص ثاني في خطر مباشر، اتصل بخدمات الطوارئ على {{crisis_emergency}}. ما أنت لوحدك في هذا.'
+
+
+def _hr_neutral_fallback(lang: str) -> str:
+    """Signed templated fallback = the ratified template above, single-sourcing the helpline via
+    CRISIS_CONFIG. Verbatim from psychotic_referral example[0]/[3]; Vee seed ratification 2026-07-18/21."""
+    from sage_poc.config import CRISIS_CONFIG as _cc
+    t = _HR_NEUTRAL_FALLBACK_TEMPLATE_AR if lang == "ar" else _HR_NEUTRAL_FALLBACK_TEMPLATE_EN
+    return (t.replace("{{crisis_label}}", _cc.get("label", _cc["number"]))
+             .replace("{{crisis_number}}", _cc["number"])
+             .replace("{{crisis_hours}}", _cc["hours"])
+             .replace("{{crisis_emergency}}", _cc["emergency"]))
+
+
+def _enforce_hr_neutrality(text: str, is_hr_referral: bool, lang: str) -> tuple[str, bool]:
+    """Node-8 deterministic §5 content-neutrality on the HR/psychotic-referral terminal ONLY. Returns
+    (text, rejected). If the referral output does not carry a ratified account-frame (allowlist), it has
+    drifted to stating the feared content as fact -> replace with the signed templated fallback and flag
+    the rejection for the audit row. Byte-identical no-op when clean or off-scope. NEVER fails open,
+    NEVER emits nothing (the fallback is a complete signed message)."""
+    if not is_hr_referral or not text:
+        return text, False
+    frames = _HR_NEUTRAL_FRAMES_AR if lang == "ar" else _HR_NEUTRAL_FRAMES_EN
+    low = text.lower()
+    if any(f in low for f in frames):
+        return text, False  # account-framed -> clean, unchanged
+    return _hr_neutral_fallback(lang), True  # drifted -> signed templated fallback
 
 
 _OPENER_REWRITE_DISTRESS_CEILING = 9  # severe distress (9-10/10) -> suppress rewrite (pass through);
@@ -150,6 +223,35 @@ SCOPE_REFUSAL_RESPONSE = (
     "I want to make sure you get accurate information. I can help you think through "
     "how you're feeling about it, or find some general information. Would either of those help?"
 )
+
+# PS-2 (BOT BEHAVIOUR.docx L694, condition-generic wording). A diagnosis request
+# ("do I have X") gets the verbatim no-diagnose script; other out-of-scope requests
+# (medication, prescription) keep the generic SCOPE_REFUSAL_RESPONSE above. Source em
+# dash -> comma per the no-em-dash-in-output convention (would be stripped by T6 anyway).
+DIAGNOSIS_DECLINE_RESPONSE = (
+    "I'm here to help you understand what you're experiencing and offer tools that might "
+    "help, but I'm not able to diagnose any mental health condition. A diagnosis needs a "
+    "full picture from a qualified professional who can properly assess what's going on. "
+    "If you're wondering whether something has a clinical name, that's worth bringing to a "
+    "doctor or therapist directly."
+)
+
+_DIAGNOSIS_REQUEST_MARKERS = (
+    "do i have", "do you think i have", "think i have", "think i might have",
+    "could i have", "have i got", "do i suffer from", "what do i have",
+    "diagnos", "is this depression", "is it depression", "is this anxiety",
+)
+
+
+def _scope_refusal_response(message_en: str) -> str:
+    """Route a scope-refusal turn: diagnosis requests ('do I have X') get the verbatim
+    no-diagnose script; medication/prescription and other out-of-scope asks keep the
+    generic copy. message_en is the EN-normalised user message, so Arabic diagnosis
+    requests route correctly and the reply is translated out downstream."""
+    haystack = (message_en or "").lower()
+    if any(marker in haystack for marker in _DIAGNOSIS_REQUEST_MARKERS):
+        return DIAGNOSIS_DECLINE_RESPONSE
+    return SCOPE_REFUSAL_RESPONSE
 
 _FORMAT_VIOLATIONS = re.compile(
     r"—"                            # em dash
@@ -283,6 +385,15 @@ _LATIN_ALLOWLIST = {"cbt", "act", "dbt", "tipp", "sage", "youtube"}
 
 def _has_english_bleed(text: str) -> bool:
     return any(w.lower() not in _LATIN_ALLOWLIST for w in _LATIN_WORD_RE.findall(text))
+
+
+# #5: native-AR failsafe for TOTAL translate-out failure (the util fell open to untranslated English).
+# Served only when final_response == response_en after the strict retry, so a merely-imperfect Arabic
+# reply is never replaced. Presence-first, no content claim, invites a retry. CLINICIAN-SIGNED
+# (Vee / sage_clinics) 2026-07-13.
+_AR_TRANSLATE_FAILSAFE = (
+    "عذراً، واجهت مشكلة بسيطة في الرد عليك بالعربي هالحين. أنا هني معك، ممكن نجرب من جديد بعد لحظات."
+)
 
 
 _BANNED_OPENER_CORRECTION = (
@@ -498,6 +609,35 @@ async def _persist_session_summary(
         _log.warning("[output_gate] write_persisted_clinical_flags failed: %s", exc)
 
 
+def _pin_contraindication_caveat(
+    response: str, caveat: str | None, skill_id: str = "", step_id: str = ""
+) -> str:
+    """SG-2 / Contraindication-Firing. Deliver a step's mandatory contraindication caveat VERBATIM at
+    the gate, prepended ahead of any technique content — bypassing LLM discretion the same way
+    scope_refusal does (Cardinal Rule: the LLM renders language, it does NOT decide whether safety
+    copy fires). No-op when the executed step carries no caveat. Idempotent — won't double a caveat the
+    LLM happened to surface. Runs on the English text before translate-out, so the Arabic render
+    inherits it (same placement discipline as question-discipline).
+
+    Observability: emits a structured `sg2_caveat_delivery` log line recording WHICH path fired —
+    `llm_complied` (the LLM already surfaced the caveat, gate no-op) vs `gate_injected` (the gate
+    prepended it, bypassing the LLM). Queryable in prod for the gate-inject rate: a nonzero
+    gate-inject rate means the composer instruction isn't landing (tuning signal); a zero rate on a
+    skill known to fire means the backstop is untested in the wild. One field, free observability on
+    a brand-new safety mechanism."""
+    if not caveat or not caveat.strip():
+        return response
+    caveat = caveat.strip()
+    if not response or not response.strip():
+        _log.info("sg2_caveat_delivery path=%s skill=%s step=%s", "gate_injected", skill_id, step_id)
+        return caveat
+    if caveat[:40] in response:   # already surfaced — don't double it
+        _log.info("sg2_caveat_delivery path=%s skill=%s step=%s", "llm_complied", skill_id, step_id)
+        return response
+    _log.info("sg2_caveat_delivery path=%s skill=%s step=%s", "gate_injected", skill_id, step_id)
+    return f"{caveat} {response}"
+
+
 async def output_gate_node(state: SageState) -> dict:
     gate_path = state.get("gate_path")
     # Per-turn latency for session_audit. turn_started_at is stamped before ainvoke (server.py);
@@ -521,7 +661,7 @@ async def output_gate_node(state: SageState) -> dict:
     user_id = state.get("user_id")
 
     if gate_path == "scope_refusal":
-        response_en = SCOPE_REFUSAL_RESPONSE
+        response_en = _scope_refusal_response(state.get("message_en") or "")
     elif gate_path == "jailbreak":
         response_en = JAILBREAK_RESPONSE
     else:
@@ -731,6 +871,17 @@ async def output_gate_node(state: SageState) -> dict:
         # em-dash preserved inside a quoted span) — not a leak to act on.
         _log.warning("[output_gate] format tokens after strip: %s", violations)
 
+    # SG-2 / Contraindication-Firing (Cardinal Rule: the LLM renders language, it does NOT decide
+    # whether safety copy fires). Deliver the executed step's mandatory contraindication caveat
+    # VERBATIM here, ahead of any technique content, bypassing LLM discretion. Runs on the English
+    # text before translate-out so the Arabic render inherits it. No-op for every step without a caveat.
+    response_en = _pin_contraindication_caveat(
+        response_en,
+        state.get("step_mandatory_caveat"),
+        skill_id=state.get("active_skill_id") or state.get("completed_skill_id") or "",
+        step_id=state.get("executed_step_id") or "",
+    )
+
     if lang == "ar" and not _response_en_is_arabic:
         # §5 served-arm latency timer: brackets ONLY the translate-out operation (plus its
         # strict-retry, when it fires) -- not the surrounding gate work (cultural check,
@@ -746,7 +897,17 @@ async def output_gate_node(state: SageState) -> dict:
             final_response = await async_translate_to_arabic(response_en, strict=True, gender=_gender_marked)
             path = path + ["arabic_token_guard_retranslate"]
             if _has_english_bleed(final_response):
-                _log.warning("[output_gate] English bleed persists after strict re-translate (telemetry only)")
+                if final_response.strip() == response_en.strip():
+                    # Total translate-out failure: the util fell open to the untranslated English
+                    # (both attempts returned the input verbatim). Serve a native-AR failsafe rather
+                    # than ship an English wall of text to an Arabic user (#5). A stray Latin token in
+                    # an otherwise-Arabic reply is NOT this case (final_response != response_en) and
+                    # ships as-is, as before.
+                    final_response = _AR_TRANSLATE_FAILSAFE
+                    path = path + ["arabic_translate_failsafe"]
+                    _log.warning("[output_gate] translate-out failed outright; served native-AR failsafe")
+                else:
+                    _log.warning("[output_gate] English bleed persists after strict re-translate (telemetry only)")
         state = {**state, "translate_out_ms": int((time.monotonic() - _translate_t0) * 1000)}
     else:
         final_response = response_en
@@ -758,6 +919,92 @@ async def output_gate_node(state: SageState) -> dict:
     final_response = _pin_mood_anchor(final_response, state.get("executed_step_id"), lang)
     final_response = _pin_ocd_referral(final_response, state.get("abstain_referral"), lang)  # #218
 
+    # Node-8 §5 content-neutrality gate on the HR/psychotic-referral terminal (Vee Option A 2026-07-21).
+    # Flag-gated; scoped to the HR referral only (skill_match_method marker); replaces a non-account-framed
+    # output with the signed fallback and audit-logs the rejection (the drift RATE is the metric).
+    _hr_neutrality_rejected = False
+    if _cfg.HR_NEUTRALITY_GATE_ENABLED and state.get("skill_match_method") == "psychotic_disclosure_auto_select":
+        final_response, _hr_neutrality_rejected = _enforce_hr_neutrality(final_response, True, lang)
+        if _hr_neutrality_rejected:
+            _log.warning("[output_gate] HR §5 neutrality gate: non-account-framed referral replaced "
+                         "with signed fallback (session=%s)", session_id)
+
+    # ── Psychoed verbatim hash gate (Node-8; spec §6.2 refinement; Phase 2 Task 11) ────────────
+    # Placed immediately after the HR §5 neutrality gate: same Node-8 discretion-elimination
+    # discipline (the LLM/pipeline renders language, it does NOT decide whether ratified copy
+    # survives verbatim). A psychoed_serve turn carrying a block_id emitted ratified copy from the
+    # in-process store this turn -- recompute the block's sha256 and confirm its content is a
+    # verbatim substring of final_response.
+    #   PASS       -> no-op.
+    #   MISMATCH   -> the emitted text drifted from the ratified block (upstream corruption,
+    #                 translation, or a pinning bug) -- BLOCK the emission and re-serve the pinned
+    #                 recomposition from the store (never patch or paraphrase the drifted text).
+    #   CORRUPTION -> the block_id itself is no longer in the store (data loss, not merely a text
+    #                 drift) -- drop ALL psychoed copy. A post-hoc "normal freeflow" result does
+    #                 not exist to fall back to, so serve only the manifest's own already-pinned
+    #                 check_in question (spec §6.2 refinement of the generic "neutral referral
+    #                 template": the store is in-process, so a fetch-fail here IS data corruption,
+    #                 and the fallback must itself be already-ratified copy, never composed text).
+    # Flag-gated; a turn with no psychoed_serve block_id never reaches either branch below.
+    psychoed_gate_action: str | None = None
+    _psychoed_turn = state.get("psychoed_serve") or {}
+    _psychoed_block_id = _psychoed_turn.get("block_id")
+    if _cfg.PSYCHOED_PATHWAYS_ENABLED and _psychoed_block_id:
+        from sage_poc.psychoed import store as psy_store, serve as psy_serve  # noqa: PLC0415
+        if _psychoed_block_id not in psy_store.block_ids():
+            _emitted_hash = hashlib.sha256(final_response.encode()).hexdigest()[:16]
+            _log.error(
+                "psychoed_integrity_incident kind=corruption block_id=%s recomputed_hash=None "
+                "emitted_hash=%s session=%s",
+                _psychoed_block_id, _emitted_hash, session_id,
+            )
+            # Mechanical fallback chain (controller checkpoint fix, plan-level gap): category =
+            # the payload's own category, else the turn's psychoed_active_category. Both current
+            # payload constructors (skill_select's resolver hit, knowledge_retrieve's outcome-2
+            # backstop) always set "category" on the payload, so both being missing here is
+            # unreachable by construction -- but "never emit unverified psychoed copy" must hold
+            # MECHANICALLY, not by convention, so the chain still resolves a category (an always-
+            # enabled store category, never invented text) even if that invariant were ever
+            # violated upstream.
+            _category = _psychoed_turn.get("category") or state.get("psychoed_active_category")
+            if _category:
+                final_response = psy_store.manifest(_category)["check_in"]
+            else:
+                _log.critical(
+                    "psychoed_integrity_incident kind=corruption_no_category block_id=%s "
+                    "recomputed_hash=None emitted_hash=%s session=%s",
+                    _psychoed_block_id, _emitted_hash, session_id,
+                )
+                _fallback_category = (
+                    sorted(_cfg.PSYCHOED_CATEGORIES)[0] if _cfg.PSYCHOED_CATEGORIES else "1f"
+                )
+                final_response = psy_store.manifest(_fallback_category)["check_in"]
+            psychoed_gate_action = "fallback"
+        else:
+            _recomputed_hash = psy_store.block_sha256(_psychoed_block_id)
+            _block_content = psy_store.get_block(_psychoed_block_id)["content"]
+            if _block_content in final_response:
+                psychoed_gate_action = "pass"
+            else:
+                _emitted_hash = hashlib.sha256(final_response.encode()).hexdigest()[:16]
+                _log.error(
+                    "psychoed_integrity_incident kind=mismatch block_id=%s recomputed_hash=%s "
+                    "emitted_hash=%s session=%s",
+                    _psychoed_block_id, _recomputed_hash, _emitted_hash, session_id,
+                )
+                final_response = psy_serve.compose_turn1(_psychoed_turn)["text"]
+                psychoed_gate_action = "reserved"
+
+    _psychoed_audit_present = bool(
+        _psychoed_turn
+        or state.get("psychoed_matched_row_id") is not None
+        or state.get("psychoed_collision_path") is not None
+        or state.get("psychoed_framing") is not None
+        or state.get("psychoed_weave_pending")
+        or state.get("psychoed_weave_fired")
+        or psychoed_gate_action is not None
+    )
+
     if AUDIT_LOG_ENABLED:
         audit = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -768,6 +1015,7 @@ async def output_gate_node(state: SageState) -> dict:
             "primary_intent": state.get("primary_intent"),
             "active_skill": state.get("active_skill_id") or state.get("completed_skill_id"),
             "skill_match_method": state.get("skill_match_method"),
+            "hr_neutrality_rejected": _hr_neutrality_rejected,  # Node-8 §5 gate fired (drift-rate metric)
             "prepass_rule_id": state.get("prepass_rule_id"),  # v7.2 Node-2 keyword pre-pass provenance
             "semantic_score": state.get("semantic_score"),
             "executed_step": state.get("executed_step_id"),
@@ -795,6 +1043,14 @@ async def output_gate_node(state: SageState) -> dict:
             ),
             "banned_opener_violation": banned_opener_violation,
         }
+        if _psychoed_audit_present:
+            audit["psychoed_block_ids"] = [_psychoed_block_id] if _psychoed_block_id else []
+            audit["psychoed_matched_row_id"] = state.get("psychoed_matched_row_id")
+            audit["psychoed_collision_path"] = state.get("psychoed_collision_path")
+            audit["psychoed_framing"] = state.get("psychoed_framing")
+            audit["psychoed_weave_state"] = derive_psychoed_weave_state(state)
+            audit["psychoed_template_version"] = _psychoed_turn.get("template_version")
+            audit["psychoed_gate_action"] = psychoed_gate_action
         _log.info("[output_gate] AUDIT %s", json.dumps(audit))
 
         if state.get("clinical_flags"):
@@ -861,7 +1117,9 @@ async def output_gate_node(state: SageState) -> dict:
             if not t.cancelled() and t.exception() else None
         )
 
-    _audit_task = asyncio.create_task(write_session_audit({**state, "path": path, "gate_path": gate_path or "standard"}))
+    _audit_task = asyncio.create_task(write_session_audit(
+        {**state, "path": path, "gate_path": gate_path or "standard", "hr_neutrality_rejected": _hr_neutrality_rejected,
+         "psychoed_gate_action": psychoed_gate_action}))
     _audit_task.add_done_callback(
         lambda t: _log.warning("[output_gate] session audit error: %s", t.exception())
         if not t.cancelled() and t.exception() else None
@@ -872,6 +1130,7 @@ async def output_gate_node(state: SageState) -> dict:
         "response_en": response_en,
         "gate_path": gate_path or "standard",
         "path": path,
+        "hr_neutrality_rejected": _hr_neutrality_rejected,  # declared channel (Node-8 §5 gate; SG-2 rule)
         "turn_count": next_turn,
         # Persist THIS turn's intent as next turn's prev, for consecutive-info_request
         # ("lookup mode") detection in the composer. Mirrors prev_step_id: lives in

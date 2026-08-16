@@ -1,0 +1,19 @@
+{
+  "article_id": "6d-b5",
+  "language": "en",
+  "title": "Assertiveness and boundaries",
+  "content": "A boundary is really assertiveness applied to a limit, deciding what you're willing to do, and communicating that clearly. It's not about controlling what someone else does; it's about being clear on what you will or won't do in response.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "6d",
+    "article_family": "understanding_assertiveness",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "Assertiveness and boundaries",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "6d – UNDERSTANDING ASSERTIVENESS, §3 Content Library, item 5"
+    }
+  }
+}

@@ -22,20 +22,151 @@ RESISTANCE_MODEL = os.getenv("SAGE_RESISTANCE_MODEL", CLASSIFIER_MODEL)
 # Default ON — crisis activations must leave an audit trail unless explicitly disabled.
 AUDIT_LOG_ENABLED = os.getenv("SAGE_AUDIT_LOG", "true").lower() == "true"
 
+# Node-2 determinism pins (bistability finding 2026-07-28,
+# docs/superpowers/governance/2026-07-28-node2-intent-bistability-finding.md).
+# DARK by default: unset/empty/unparseable -> None -> the constructor sends
+# NOTHING extra (request payload byte-identical to today). Applies ONLY to the
+# classifier family (classifier, fallback_classifier, translator); the responder
+# family's temp-0.7 stochasticity is deliberate and is never pinned.
+_classifier_seed_raw = os.getenv("SAGE_CLASSIFIER_SEED")
+CLASSIFIER_SEED: int | None
+try:
+    CLASSIFIER_SEED = int(_classifier_seed_raw) if _classifier_seed_raw else None
+except ValueError:
+    _log.warning(
+        "SAGE_CLASSIFIER_SEED unexpected value %r — applying safe default (no seed sent).",
+        _classifier_seed_raw,
+    )
+    CLASSIFIER_SEED = None
+# OpenRouter provider pin (e.g. "openai"): when set, classifier-family calls carry
+# OpenRouter provider routing {"provider": {"order": [pin], "allow_fallbacks": false}}
+# so gpt-4o-mini cannot be silently routed across upstream providers between runs
+# (provider-level nondeterminism, finding cause 2). Unset/empty -> no provider block.
+OPENROUTER_PROVIDER_PIN: str | None = (
+    os.getenv("SAGE_OPENROUTER_PROVIDER_PIN", "").strip() or None
+)
+# Classifier provenance in the session-audit row (finding consequence 3, PDPL
+# auditability): ON -> the row gains classifier_model / classifier_provider /
+# classifier_seed / classifier_context_hash (conditional-column discipline, migration
+# 012 style; migration 016 is the flag-flip deploy gate). Default OFF: flag-OFF rows
+# are byte-identical to today (asserted by test_audit_classifier_provenance.py).
+AUDIT_CLASSIFIER_PROVENANCE_ENABLED: bool = (
+    os.getenv("SAGE_AUDIT_CLASSIFIER_PROVENANCE", "false").lower() == "true"
+)
+
 # UAE crisis helpline — the SINGLE source for every crisis-copy site. Crisis-copy files carry
 # {{crisis_*}} placeholders (not literals), resolved from this dict at load (crisis_copy.py); the
 # graph/output_gate Python fail-safes read it directly. Change a value HERE and every surface
 # follows — a true single-config edit. Defense in depth: the boot guard (server.py lifespan) fails
 # the app if any {{crisis_*}} stays unresolved, and the conformance test asserts the resolved output
 # carries this value. Frontend mirror: cdai apps/web/lib/crisis-config.ts (cross-stack test).
-# ✅ VALUES VERIFIED FINAL (PO, 2026-07-08: "I have verified this number" + "24/7 is also verified"):
-# `number` = "800 46342" confirmed (G8 transcription question 46342-vs-4673 RESOLVED by
-# verification), `hours` = "24/7" confirmed. If a value ever changes, change this ONE dict.
+# CRISIS_RESOURCES — structured resource directory (H4). CRISIS_CONFIG below is DERIVED from this
+# list (primary national + emergency entries), so every existing consumer keeps working unchanged.
+# ✅ VALUES ADOPTED 2026-07-10 (ALL GATES CLEARED): the doc's verified composition is now LIVE.
+#   - Dial-test confirmed all 5 numbers 2026-07-10; GL-1 reversal confirmed; crisis-freeze lifted;
+#     clinical sign-off (Vee). The prior "800 46342 / 24/7" verified-final set is SUPERSEDED — the
+#     dial-test is the primary record and it resolved the 46342-vs-4673 question in favour of the
+#     National Mental Support Line (800-HOPE / 800-4673, 8am-8pm daily).
+#   - CRISIS_CONFIG.number is therefore now the NATIONAL line (8am-8pm), NOT a 24/7 number. This is
+#     SAFE ONLY because the frontend multi-resource crisis card (coupled PR) always renders a 24/7
+#     line (999 + SAKINA + DHA) alongside it; select_crisis_resources() below guarantees a 24/7
+#     option is present in the top set at every hour (property-tested). Do not surface the single
+#     derived number alone on any always-open surface.
+#   - If a value ever changes, change this ONE list; every surface follows.
+# select_crisis_resources() implements the doc lead-logic + always-pair-24/7 (never leads with a
+# closed line, always includes a dialable 24/7 option regardless of the clock).
+CRISIS_RESOURCES = [
+    {"name": "National Mental Support Line", "number": "800-HOPE (800-4673)", "hours": "8am–8pm daily", "scope": "national"},
+    {"name": "Emergency Services", "number": "999", "hours": "24/7", "scope": "emergency"},
+    {"name": "Abu Dhabi 24/7 crisis line", "number": "800-SAKINA (800-725462)", "hours": "24/7", "scope": "regional"},
+    {"name": "Dubai Health Authority helpline", "number": "800 111", "hours": "24/7", "scope": "regional"},
+    {"name": "Sharjah Child & Youth Mental Health Helpline", "number": "800 51115", "hours": "9am–5pm Mon–Fri", "scope": "youth"},
+    {"name": "Nearest hospital emergency department", "number": "999 / nearest ER", "hours": "immediate danger or outside helpline hours", "scope": "emergency"},
+]
+
+
+def _hours_window(hours: str):
+    """(start, end) 24h ints for a 'Nam-Mpm' daily window; None for 24/7 or unparseable (both
+    treated as always-available so a parse failure never hides a resource)."""
+    import re  # noqa: PLC0415
+    if not hours or "24/7" in hours:
+        return None
+    m = re.search(r"(\d{1,2})\s*(am|pm)\s*[-–]\s*(\d{1,2})\s*(am|pm)", hours.lower())
+    if not m:
+        return None
+
+    def _to24(h, ap):
+        return int(h) % 12 + (12 if ap == "pm" else 0)
+
+    return (_to24(m.group(1), m.group(2)), _to24(m.group(3), m.group(4)))
+
+
+def _is_out_of_hours(hours: str, now) -> bool:
+    win = _hours_window(hours)
+    if win is None:
+        return False
+    start, end = win
+    return not (start <= now.hour < end)
+
+
+def select_crisis_resources(resources=None, *, immediate_danger: bool = False, now=None) -> list[dict]:
+    """Ordered crisis-card resources (BOT BEHAVIOUR lead-logic L2146 + hours-awareness).
+
+    immediate_danger -> emergency (999) leads. Otherwise the national line leads IF open, else a
+    24/7 alternative leads (never lead with a closed line). The result ALWAYS contains a 24/7 option
+    (999 is 24/7), so the card is never left with only an out-of-hours number regardless of the
+    clock. `now` defaults to Asia/Dubai wall-clock; injectable for deterministic tests.
+    """
+    from datetime import datetime  # noqa: PLC0415
+    from zoneinfo import ZoneInfo  # noqa: PLC0415
+    resources = list(resources if resources is not None else CRISIS_RESOURCES)
+    if now is None:
+        now = datetime.now(ZoneInfo("Asia/Dubai"))
+
+    def _is_247(r):
+        return _hours_window(r.get("hours", "")) is None
+
+    def _open(r):
+        return not _is_out_of_hours(r.get("hours", ""), now)
+
+    emergency = [r for r in resources if r.get("scope") == "emergency"]
+    national = [r for r in resources if r.get("scope") == "national"]
+    others = [r for r in resources if r.get("scope") not in ("emergency", "national")]
+
+    ordered: list[dict] = []
+    if immediate_danger:
+        ordered += emergency
+    open_national = [r for r in national if _open(r)]
+    if open_national:
+        ordered += open_national
+    else:  # national closed -> lead with a 24/7 alternative, not the closed line
+        ordered += [r for r in (others + national) if _is_247(r)]
+    for r in national + others + emergency:
+        if r not in ordered:
+            ordered.append(r)
+    # always-pair guarantee: at least one 24/7 line must be present (999 is 24/7).
+    if emergency and not any(_is_247(r) or r.get("scope") == "emergency" for r in ordered):
+        ordered += emergency
+    return ordered
+
+
+def _primary_resource() -> dict:
+    return next((r for r in CRISIS_RESOURCES if r.get("scope") == "national"), CRISIS_RESOURCES[0])
+
+
+def _emergency_resource() -> dict:
+    return next((r for r in CRISIS_RESOURCES if r.get("scope") == "emergency"), CRISIS_RESOURCES[-1])
+
+
+# Back-compat shim: CRISIS_CONFIG stays the four-key dict every consumer expects, DERIVED from the
+# primary national + emergency entries. Byte-identical to the prior literal while the values are the
+# current verified set (so crisis_copy placeholders, the graph/output_gate fail-safes, and the
+# byte-identical/conformance/cross-stack tests are all unchanged).
 CRISIS_CONFIG = {
-    "number": "800 46342",
-    "label": "MoHAP Counselling Line",
-    "hours": "24/7",
-    "emergency": "999",
+    "number": _primary_resource()["number"],
+    "label": _primary_resource()["name"],
+    "hours": _primary_resource()["hours"],
+    "emergency": _emergency_resource()["number"],
 }
 # Back-compat alias for existing importers during the migration.
 CRISIS_LINE_UAE = CRISIS_CONFIG["number"]
@@ -76,6 +207,67 @@ if _precedence_raw is not None and _precedence_raw.strip().lower() not in ("true
     _log.warning(
         "SAGE_ROUTE_PRECEDENCE unexpected value %r — applying safe default (precedence OFF); "
         "only 'true' enables.", _precedence_raw,
+    )
+
+# Part A — §1c panic-grounding override (Vee-signed 2026-07-28). KILL-SWITCH, DEFAULT OFF, same strict
+# parse: only a LITERAL "true" enables. OFF is byte-identical (intent_route crisis routes to crisis as
+# today). ON -> when safety_check is CLEAN but intent_route re-flags a clear panic disclosure (no harm) as
+# crisis, the deterministic override force-grounds it, restoring the deterministic tier's clean verdict.
+# Fires only on a safety_check-clean turn, so it can never suppress a crisis the deterministic tier caught.
+_panic_override_raw = os.getenv("SAGE_PANIC_GROUNDING_OVERRIDE")
+PANIC_GROUNDING_OVERRIDE_ENABLED = (
+    _panic_override_raw is not None and _panic_override_raw.strip().lower() == "true"
+)
+if _panic_override_raw is not None and _panic_override_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_PANIC_GROUNDING_OVERRIDE unexpected value %r — applying safe default (override OFF); "
+        "only 'true' enables.", _panic_override_raw,
+    )
+
+# Node-1 cardiac-ambiguous deterministic escalation (item-3 realization, BUILT INERT 2026-07-31).
+# KILL-SWITCH, DEFAULT OFF, same strict parse: only a LITERAL "true" enables. OFF is byte-identical.
+# ON -> death-fear x air-hunger co-occurrence sets a deterministic crisis flag at safety_check, BEFORE
+# the LLM classifier — closing the measured window-dependent miss (N=20: 6/20 freeflow-no-resources).
+# Activation gated on Vee's one-tick (her item-3 ruling already assigned the class to crisis).
+_cardiac_escalation_raw = os.getenv("SAGE_CARDIAC_ESCALATION")
+CARDIAC_ESCALATION_ENABLED = (
+    _cardiac_escalation_raw is not None and _cardiac_escalation_raw.strip().lower() == "true"
+)
+if _cardiac_escalation_raw is not None and _cardiac_escalation_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_CARDIAC_ESCALATION unexpected value %r — applying safe default (escalation OFF); "
+        "only 'true' enables.", _cardiac_escalation_raw,
+    )
+
+# EMR Phase 1 modality-request detector (plan 2026-07-28, clinical gate closed 2026-08-11).
+# DEFAULT OFF, strict parse: only a LITERAL "true" enables. OFF is byte-identical (channel written
+# as None, no path marker, no behavior change anywhere). ON in Phase 1 -> DETECTION ONLY: the
+# deterministic detector writes the explicit_modality_request channel at the head of intent_route;
+# no consumer exists until Phase 2, so even ON changes no served behavior yet. Flip gated on
+# clinician sign-off of the request lexicon (draft-pending-review).
+_modality_request_raw = os.getenv("SAGE_MODALITY_REQUEST_ROUTING")
+MODALITY_REQUEST_ROUTING_ENABLED = (
+    _modality_request_raw is not None and _modality_request_raw.strip().lower() == "true"
+)
+if _modality_request_raw is not None and _modality_request_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_MODALITY_REQUEST_ROUTING unexpected value %r — applying safe default (routing OFF); "
+        "only 'true' enables.", _modality_request_raw,
+    )
+
+# S2a grief-presence deference (sweep row 13, BUILT INERT 2026-08-04). KILL-SWITCH, DEFAULT OFF, same
+# strict parse: only a LITERAL "true" enables. OFF is byte-identical (intent_route crisis routes to crisis
+# as today). ON -> a safety_check-CLEAN bereavement disclosure the LLM re-flags as crisis restores the
+# clean verdict (presence-mode grief_loss path via skill_select) instead of the crisis card. Harm set
+# single-sourced from panic_override; activation gated on Vee's boundary-sheet ruling.
+_grief_deference_raw = os.getenv("SAGE_GRIEF_DEFERENCE")
+GRIEF_DEFERENCE_ENABLED = (
+    _grief_deference_raw is not None and _grief_deference_raw.strip().lower() == "true"
+)
+if _grief_deference_raw is not None and _grief_deference_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_GRIEF_DEFERENCE unexpected value %r — applying safe default (deference OFF); "
+        "only 'true' enables.", _grief_deference_raw,
     )
 
 # E7 — BOT BEHAVIOUR §6a coercive-control / relationship-safety pre-emption. KILL-SWITCH, DEFAULT
@@ -166,3 +358,154 @@ CHECKPOINT_POOL_MAX_SIZE = int(os.getenv("SAGE_CHECKPOINT_POOL_MAX_SIZE", "20"))
 # as the ① pool measurement). Default on — shipped only because the equivalence gate
 # (test_embed_cache_equivalence.py) asserts crisis output is byte-identical with the cache.
 EMBED_CACHE_ENABLED: bool = os.getenv("SAGE_EMBED_CACHE_ENABLED", "true").lower() == "true"
+
+# B1 interim medical red-flag guard. Default OFF; flip only when the must-NOT-fire
+# controls are green (see plan Task 6). Not frozen; touches no signed field.
+MEDICAL_REDFLAG_GUARD_ENABLED: bool = os.getenv("SAGE_MEDICAL_REDFLAG_GUARD", "false").lower() == "true"
+
+# HR-1 Stage 1: gates mania_disclosure / dissociation_disclosure HR-class
+# routing (psychotic_disclosure routing is unconditional and unaffected by
+# this flag; see safety/hr_disclosure.py). Default OFF.
+HIGH_RISK_DETECTION_ENABLED: bool = os.getenv("SAGE_HIGH_RISK_DETECTION", "false").lower() == "true"
+# Node-8 §5 content-neutrality gate on the HR/psychotic-referral terminal (Vee ruled Option A 2026-07-21:
+# accept the template swap -> the referral is one deterministic signed message). Default OFF, inert until
+# flip. ON -> output_gate replaces a non-account-framed HR-referral output with the signed fallback.
+HR_NEUTRALITY_GATE_ENABLED: bool = os.getenv("SAGE_HR_NEUTRALITY_GATE", "false").lower() == "true"
+
+# Q1-terminal default: the MEDICAL guard wording (doc lines 62/81/131 / Section 6):
+# "prompt to seek in-person/medical/emergency evaluation; treat as a possible medical
+# emergency." NOT doc L1477 (that is the psychiatric-crisis line rule, a different guard).
+# NUMBER: lead with 998 = UAE AMBULANCE. 999 is UAE POLICE and must NOT lead a medical/cardiac
+# emergency (the earlier "999" default was inherited from the psychiatric-crisis Resources
+# table, where police co-response is appropriate). The crisis pathway's 999 is unchanged;
+# this is the MEDICAL terminal only. Regression-guarded by test_medical_referral_uses_998.
+# PROVENANCE (do not overclaim): 998=ambulance / 999=police are the standard published UAE
+# emergency numbers (PO-sourced + flagged 2026-07-15). A documented verification record —
+# dial-test or cited authority, per the GL-1 crisis-number precedent — is a PRE-FLIP gate,
+# tracked in the crisis/medical numbers verification ticket. Do not flip on the comment alone.
+# Single blocking parameter, pending clinician ratification of wording.
+MEDICAL_REFERRAL_TEXT: str = os.getenv(
+    "SAGE_MEDICAL_REFERRAL_TEXT",
+    "The symptoms you're describing can be signs of a medical emergency. "
+    "Please seek in-person medical evaluation now. Call 998 (ambulance) in the UAE, "
+    "or go to the nearest emergency department. I'm not able to assess "
+    "physical symptoms, and this needs a medical professional right away.",
+)
+# F6 venting-suppression authority. Default OFF; changes live routing (Routing-SF-2).
+VENTING_SUPPRESSION_ENABLED: bool = os.getenv("SAGE_VENTING_SUPPRESSION", "false").lower() == "true"
+D1_SCREEN_ENABLED: bool = os.getenv("SAGE_D1_SCREEN", "false").lower() == "true"  # #338 medical screen; default-OFF (flag-off == identity routing)
+# #338 SILENT shadow: observe the would-be screen decision into the audit, NEVER alter the served route
+# (route-identity, proven byte-for-byte). Enforce takes precedence over shadow. Default-OFF. Measures
+# FIRE-VOLUME only — a safety screen cannot be shadowed by letting the harm through, so the answer-class
+# distribution (RULING 3) is a post-flip monitored-enforce gate, not a shadow gate.
+D1_SCREEN_SHADOW: bool = os.getenv("SAGE_D1_SCREEN_SHADOW", "false").lower() == "true"
+
+# HR-1 Stage 2 (docs/superpowers/specs/2026-07-16-hr1-stage2-terminal-design.md):
+# migrates HR delivery out of the LLM-rendered psychotic_referral skill into a
+# dedicated deterministic two-turn node (high_risk_response). KILL-SWITCH, DEFAULT
+# OFF, same inverted strict parse as ROUTE_PRECEDENCE_ENABLED above: only a LITERAL
+# "true" enables; unset / empty / whitespace / garbage -> OFF. Distinct from
+# HIGH_RISK_DETECTION_ENABLED (Stage 1, gates which HR classes route here at all) so
+# the Stage-2 delivery upgrade can flip independently of Stage-1 detection. OFF =
+# Stage-1 behavior (byte-identical). Flip is governed: clinician sign-off on the
+# §HR fixed copy below + the two-turn state-machine design.
+_hr_terminal_raw = os.getenv("SAGE_HIGH_RISK_TERMINAL")
+HIGH_RISK_TERMINAL_ENABLED = (
+    _hr_terminal_raw is not None and _hr_terminal_raw.strip().lower() == "true"
+)
+if _hr_terminal_raw is not None and _hr_terminal_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_HIGH_RISK_TERMINAL unexpected value %r — applying safe default (terminal OFF); "
+        "only 'true' enables.", _hr_terminal_raw,
+    )
+
+# §1c Part A (Vee RULED 2026-07-21, docs/superpowers/governance/2026-07-18-vee-open-decisions-approval-sheet.md):
+# a Node-1 derealization clinical flag (CF-010, flag_id=derealization) routed at the SAFETY altitude (before
+# intent_route, so the LLM never decides it — the Rule-4 closure of the §1c crisis over-escalation) to a NEW
+# safety-exit terminal: the softer ANXIETY-TRACK referral (1b), reserved OFF the §HR-11 psychosis register.
+# Precedence rank 4: crisis > medical > hr > derealization. KILL-SWITCH, DEFAULT OFF, strict literal-"true"
+# parse (same as HIGH_RISK_TERMINAL). OFF => the derealization flag still SETS (CF-010 active) but routes
+# nowhere = byte-identical to today; the mechanism is inert until the terminal copy is Vee-signed + flipped
+# (2026-07-28-1c-anxiety-referral-copy-for-vee.md). Distinct from HIGH_RISK_DETECTION so it flips independently.
+_derealization_raw = os.getenv("SAGE_DEREALIZATION_DETECTION")
+DEREALIZATION_DETECTION_ENABLED = (
+    _derealization_raw is not None and _derealization_raw.strip().lower() == "true"
+)
+if _derealization_raw is not None and _derealization_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_DEREALIZATION_DETECTION unexpected value %r — applying safe default (OFF); "
+        "only 'true' enables.", _derealization_raw,
+    )
+
+# §HR fixed copy (verbatim from the design doc's "Fixed copy" section) has moved to
+# src/sage_poc/safety/hr_copy.py: each single string below is now a POOL of
+# clinician-ratifiable variants (HR_DISTRESS_QUESTION_POOL, HR_SUPPORTIVE_MESSAGE_POOL,
+# HR_REDIRECT_HIGHER_POOL, HR_REDIRECT_LOWER_POOL, HR_REASK_POOL), picked
+# deterministically per (session_id, slot_key) by hr_copy.pick_hr_variant -- still
+# SINGLE-SOURCED, still never LLM-rendered, no runtime randomness. The pools are marked
+# DRAFT pending clinician ratification (mirrors CF-007/008/009's active:false/unsigned
+# convention); SAGE_HIGH_RISK_TERMINAL stays default-OFF until sign-off. The
+# high_risk_response node reads from hr_copy, not from literals here.
+
+# Psychoed Mechanism-A (docs/superpowers/specs/2026-07-17-psychoed-mechanism-a-design.md):
+# gates skill_select.py's info_request-branch consult (keyword+semantic matching against
+# INFO_REQUEST_SKILL_CONSULT_SET before the KB short-circuit). KILL-SWITCH, DEFAULT OFF,
+# same inverted strict parse as ROUTE_PRECEDENCE_ENABLED above: only a LITERAL "true"
+# enables; unset / empty / whitespace / garbage -> OFF (survives the Railway empty-string
+# env-injection bug). OFF must be byte-identical to today's info_request -> knowledge_retrieve
+# path: the consult matching never runs, no skill is ever selected via
+# "info_request_skill_consult", so graph.py's _route_after_skill_select diversion to
+# skill_executor is unreachable. Flip is governed: clinician sign-off on the consult set's
+# disposition scoping (INFO_REQUEST_SKILL_CONSULT_SET) per the design doc.
+_info_request_consult_raw = os.getenv("SAGE_INFO_REQUEST_CONSULT")
+INFO_REQUEST_CONSULT_ENABLED = (
+    _info_request_consult_raw is not None and _info_request_consult_raw.strip().lower() == "true"
+)
+if _info_request_consult_raw is not None and _info_request_consult_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_INFO_REQUEST_CONSULT unexpected value %r — applying safe default (consult OFF); "
+        "only 'true' enables.", _info_request_consult_raw,
+    )
+
+# --- Psychoed pathways (Phase 2 mechanism; spec 2026-07-23 §7.3). Default OFF. ---
+_psychoed_raw = os.getenv("SAGE_PSYCHOED_PATHWAYS")
+PSYCHOED_PATHWAYS_ENABLED = (
+    _psychoed_raw is not None and _psychoed_raw.strip().lower() == "true"
+)
+if _psychoed_raw is not None and _psychoed_raw.strip().lower() not in ("true", "false"):
+    logging.getLogger(__name__).warning(
+        "SAGE_PSYCHOED_PATHWAYS=%r is neither 'true' nor 'false'; treating as OFF", _psychoed_raw
+    )
+
+_PSYCHOED_VALID_CATEGORIES = frozenset({"1f", "3c", "4b", "6d", "7c", "s2c"})
+_categories_raw = os.getenv("SAGE_PSYCHOED_CATEGORIES", "")
+_parsed = {c.strip().lower() for c in _categories_raw.split(",") if c.strip()}
+for _bad in sorted(_parsed - _PSYCHOED_VALID_CATEGORIES):
+    logging.getLogger(__name__).warning("SAGE_PSYCHOED_CATEGORIES: unknown category %r dropped", _bad)
+PSYCHOED_CATEGORIES: frozenset[str] = (
+    frozenset(_parsed & _PSYCHOED_VALID_CATEGORIES) if PSYCHOED_PATHWAYS_ENABLED else frozenset()
+)
+
+def psychoed_enabled_for(category: str) -> bool:
+    return PSYCHOED_PATHWAYS_ENABLED and category in PSYCHOED_CATEGORIES
+
+# C1 interim Further-Reading cards on consult turns (v7.3 amendment record, named open item;
+# ruling: governance/2026-07-29-consult-further-reading-delivery-shape-ask.md, Option 1 APPROVED).
+# Gates the knowledge_retrieve_cards insertion on consult-selected turns: cards-only retrieval
+# whose passages populate X-Sage-Sources + the audit row and NEVER enter the prompt (the composer
+# reads knowledge_passages, which this path never writes — the signed conversational reply stays
+# byte-untouched). KILL-SWITCH, DEFAULT OFF, same inverted strict parse as the consult flag above.
+# OFF is byte-identical to master: the cards node is unreachable, no retrieval runs on consult
+# turns, the audit row carries no purpose column. TRANSITIONAL like its parent mechanism: each
+# Phase-2 category flip retires this path's predicate together with the category's consult-set
+# entry (same change — the ruling's disjointness condition). Migration 018 is the flag-flip
+# deploy gate (audit purpose column).
+_consult_sources_raw = os.getenv("SAGE_CONSULT_SOURCES")
+CONSULT_SOURCES_ENABLED = (
+    _consult_sources_raw is not None and _consult_sources_raw.strip().lower() == "true"
+)
+if _consult_sources_raw is not None and _consult_sources_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_CONSULT_SOURCES unexpected value %r — applying safe default (cards OFF); "
+        "only 'true' enables.", _consult_sources_raw,
+    )

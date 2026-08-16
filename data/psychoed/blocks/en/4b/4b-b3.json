@@ -1,0 +1,19 @@
+{
+  "article_id": "4b-b3",
+  "language": "en",
+  "title": "Why reactions differ in intensity (comparison to others)",
+  "content": "How intensely someone reacts to the same situation depends on temperament, past experience, and how much is already on their plate. If your stress 'bucket' is already fairly full, poor sleep, other stress, a past experience that primed you to react to something like this, a small trigger can produce a bigger reaction than the situation alone explains. That's not a character flaw; it's how a nervous system under load behaves. And you're only ever seeing the outside of how other people are coping, not what's going on for them underneath.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "4b",
+    "article_family": "understanding_emotions",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "Why reactions differ in intensity (comparison to others)",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "4b – UNDERSTANDING EMOTIONS, §3 Content Library, item 3"
+    }
+  }
+}
