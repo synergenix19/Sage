@@ -944,6 +944,8 @@ async def health_version(_: None = Depends(require_api_key)):
         "cardiac_escalation_raw_env": os.environ.get("SAGE_CARDIAC_ESCALATION"),
         "grief_deference_enabled": _c.GRIEF_DEFERENCE_ENABLED,
         "grief_deference_raw_env": os.environ.get("SAGE_GRIEF_DEFERENCE"),
+        "modality_request_routing_enabled": _c.MODALITY_REQUEST_ROUTING_ENABLED,
+        "modality_request_routing_raw_env": os.environ.get("SAGE_MODALITY_REQUEST_ROUTING"),
         # Node-2 determinism pins + audit provenance flag (bistability finding 2026-07-28):
         # resolved + raw, same pattern. classifier_seed / openrouter_provider_pin report the
         # RESOLVED module values (int-or-null / string-or-null — unset is null, never fabricated)

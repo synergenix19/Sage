@@ -109,6 +109,12 @@ flags:
     signed_value: "true"
     signature_ref: "Vee boundary-sheet ruling 2026-08-06 (PO relay, three ticks against 2026-08-04-grief-deference-boundary-to-vee.md: defer set as proposed; grief+harm always-escalate as proposed; tick-3 line as built - 'can't cope' defers / 'can't go on' escalates) + deploy-owner authorization same relay"
     note: "ACTIVATED 2026-08-06 (register change #5): S2a deterministic grief-presence deference — safety_check-clean bereavement disclosure the LLM re-flags as crisis restores the presence path. Measured basis: grief->crisis over-fire 1/5 live (diagnosis PR#380). Mechanism merged inert PR#408 (a58267c1); harm set single-sourced with panic_override (grief+harm always escalates). Rollback = value false via register PR + apply (instant-off)"
+  SAGE_MODALITY_REQUEST_ROUTING:
+    value: "true"
+    class: feature
+    signed_value: "true"
+    signature_ref: "Vee lexicon sign-off 2026-08-12 (PO relay; record 2026-08-12-emr-lexicon-signoff-and-flip.md, blobs pinned) + PO flip authorization same session; evidence: Phase-3 deltas report (drop 28/30 -> 0/30, loop first-line 1.00 x30, controls neutral)"
+    note: "EMR LIVE (register change #6): deterministic explicit-modality-request handling end-to-end — detector, signed adaptive screen (screen-first, duration mandatory), three consumers (executor rehand, info_request early-return, offer-reply Option A), resumption hold. Rollback = value false via register PR + apply (instant-off, byte-identical)"
   SAGE_PANIC_GROUNDING_OVERRIDE:
     value: "true"
     class: safety

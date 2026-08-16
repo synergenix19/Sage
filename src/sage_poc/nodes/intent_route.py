@@ -138,6 +138,25 @@ def _classifier_context_hash(messages: list[dict]) -> str:
 
 
 async def intent_route_node(state: SageState, llm=None) -> dict:
+    # EMR Phase 1 (plan 2026-07-28, gate closed 2026-08-11): the deterministic
+    # explicit-modality-request detector runs at the HEAD of this node, BEFORE and
+    # independently of the LLM classification (placement rider: not in safety_check —
+    # crisis/medical turns terminate before this node, so precedence is untouched).
+    # One detector, three Phase-2 consumers; flag OFF -> channel None, byte-identical.
+    _emr = None
+    _presentation = None
+    if _cfg.MODALITY_REQUEST_ROUTING_ENABLED:
+        from sage_poc.matching import (  # noqa: PLC0415
+            detect_explicit_modality_request, update_presentation_context)
+        _emr = detect_explicit_modality_request(
+            state.get("message_en", ""), state.get("raw_message", ""),
+            state.get("detected_language", "en"))
+        # EMR Phase 2 foundation: session-scoped screening accumulation (M1 stand-in),
+        # same deterministic head, same flag. OFF omits the key entirely (byte-identical).
+        _presentation = update_presentation_context(
+            state.get("recent_presentation"), state.get("message_en", ""),
+            state.get("detected_language", "en"))
+
     if llm is None:
         llm = get_classifier()
     fallback_llm = get_fallback_classifier()
@@ -181,6 +200,8 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
         _intent_route_path = _intent_route_path + ["classifier_degraded"]
     if _directive_posture:
         _intent_route_path = _intent_route_path + ["directive_posture_set"]
+    if _emr is not None and _emr.get("requested"):
+        _intent_route_path = _intent_route_path + ["modality_request_detected"]
     result = {
         "primary_intent": primary_intent,
         "secondary_intent": data.get("secondary_intent"),
@@ -213,6 +234,9 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
             _cfg.PANIC_GROUNDING_OVERRIDE_ENABLED
             and should_ground_over_crisis({**state, "primary_intent": primary_intent})
         ),
+        # EMR Phase 1: written EVERY turn (None when flag OFF) — per-turn semantics live
+        # at this write site, same contract as panic_grounding_override above.
+        "explicit_modality_request": _emr,
         # S2a (sweep row 13, built inert 2026-08-04) — deterministic grief-presence deference. Same
         # stamp/honor pattern as panic_grounding_override immediately above: code decides here,
         # _route_after_intent honours it. Flag-gated kill-switch; OFF -> always False (byte-identical).
@@ -221,6 +245,10 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
             and should_defer_grief_over_crisis({**state, "primary_intent": primary_intent})
         ),
     }
+    if _presentation is not None:
+        # EMR Phase 2 (flag ON only): session-scoped screening accumulation; OFF never
+        # writes the key, so the state update is byte-identical to the pre-EMR shape.
+        result["recent_presentation"] = _presentation
     if _provenance_on:
         # DECLARED channels (classifier_context_hash / classifier_provider in SageState;
         # LangGraph drops undeclared keys — the SG-2 seam class). Read by
@@ -248,7 +276,36 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
     result["prepass_matched"] = _prepass
     result["prepass_rule_id"] = "prepass_kw_v1" if _prepass else None
     offered = state.get("offered_skill_ids") or []
-    if offered:
+    if offered and _emr is not None and _emr.get("requested"):
+        # EMR surface 3 (offer-reply resolution; addendum 2026-07-28, Option A SIGNED,
+        # clinical confirmation via the 2026-08-11 A1 pin). Deterministic resolution
+        # REPLACES the LLM offer-reply classification whenever the detector fired:
+        #   1. promote-if-member: the binding table's skills for the hint (or the
+        #      first-line default) intersected with the pending offer, first in
+        #      binding order wins -> acceptance of that member via the EXISTING
+        #      promotion path (offer_promoted semantics, entry screens preserved).
+        #   2. route-with-release: no member -> release the offer. Marker is
+        #      offer_released_modality_request, NOT offer_ignored (the user engaged,
+        #      with a different ask), and released skills NEVER enter declined_skills
+        #      (release must never quietly become decline; reoffer-eligible). The
+        #      request then reaches skill_select via the router's EMR redirect.
+        # Genuine ignores/declines carry requested=False and take the LLM path below
+        # unchanged (both-direction guards).
+        from sage_poc.matching import BINDING_TABLE  # noqa: PLC0415
+        _cands = list(BINDING_TABLE.get(_emr.get("modality_hint") or "default")
+                      or BINDING_TABLE["default"])
+        _member = next((s for s in _cands if s in offered), None)
+        if _member is not None:
+            result["offer_response"] = "accept"
+            result["offer_choice_skill_id"] = _member
+            result["path"] = result["path"] + ["modality_request_routed:offer_reply", "offer_accepted"]
+            result["offer_count"] = 0
+        else:
+            result["offered_skill_ids"] = None
+            result["path"] = result["path"] + ["modality_request_routed:offer_reply",
+                                               "offer_released_modality_request"]
+            result["offer_count"] = 0
+    elif offered:
         offer_response = data.get("offer_response")
         if offer_response not in ("accept", "decline", "other"):
             if "offer_response" in data:

@@ -1,0 +1,47 @@
+{
+  "_meta": {
+    "purpose": "EMR Phase-3 EXTENSION family: the post-screen offer leg the request family cannot measure (its sessions end at the request turn, so under the signed screen-first rules the terminal is the screen question). Each case continues past the screen with a naturalistic answer supplying onset+duration, measuring the full loop: request -> screen -> answer -> first-line offer.",
+    "comparator_note": "NOT a comparator against the 2026-07-31 baseline (different turn structure). Cited only as the loop-closure measurement in the Phase-3 packet.",
+    "fixture_independence": "answer turns are naturalistic phrasings; no turn is a lexicon entry verbatim (CI-checked by the detector suite's family scan pattern)."
+  },
+  "cases": [
+    {
+      "case_id": "EMR-SC-001",
+      "surface": "s2_cold_request_screen_completed",
+      "provenance": "authored 2026-08-12 for the screen-completion leg; request turn = the observed transcript phrasing, answer turn naturalistic",
+      "turns": [
+        "are there any exercises i can do",
+        "honestly it just kicked off this afternoon after a rough call with my boss"
+      ],
+      "spec_expectation": {
+        "expected": "turn 1 serves the screen question (duration); turn 2 supplies onset+duration (acute) -> cleared -> first-line pair offered (box_breathing, grounding_5_4_3_2_1)"
+      }
+    },
+    {
+      "case_id": "EMR-SC-002",
+      "surface": "s1_absorption_screen_completed",
+      "provenance": "authored 2026-08-12; mirrors EMR-S1-000 (psychoed active via consult) then completes the screen",
+      "turns": [
+        "I'm feeling anxious",
+        "can you tell me how to manage my anxiety",
+        "are there any exercises i can do",
+        "it started this morning after i saw the project deadline moved up"
+      ],
+      "spec_expectation": {
+        "expected": "turn 3 exits psychoed (rehand) and serves the screen; turn 4 supplies onset+duration (acute) -> cleared -> first-line pair offered"
+      }
+    },
+    {
+      "case_id": "EMR-SC-003",
+      "surface": "chronic_screen_completed_referral_alongside",
+      "provenance": "authored 2026-08-12; the signed 'alongside' reading measured end-to-end",
+      "turns": [
+        "could you walk me through an exercise or something",
+        "this has been going on for months really, ever since we moved cities"
+      ],
+      "spec_expectation": {
+        "expected": "turn 1 screens; turn 2 supplies chronic duration + onset -> cleared WITH referral_alongside -> first-line offer with modality_request_referral_context marker"
+      }
+    }
+  ]
+}

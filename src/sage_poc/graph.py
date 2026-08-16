@@ -294,6 +294,17 @@ def _route_after_intent(state: SageState) -> str:
     from sage_poc import config as _psy_cfg  # noqa: PLC0415
     if _psy_cfg.PSYCHOED_PATHWAYS_ENABLED and state.get("psychoed_weave_pending"):
         return "skill_select"
+    # EMR screen resumption (2026-08-12): a turn answering the modality screen must reach
+    # skill_select so the held request can deliver (or the adaptive screen continue) —
+    # the same seam class as answering_screen/weave directly above (answers classify as
+    # general_chat and would fall to freeflow, starving the hold). Same priority slot:
+    # below crisis (crisis intent already returned above), below the D1 answer redirect
+    # (disjoint by construction — EMR screens never set D1's screen_pending). Guarded on
+    # active_skill_id; flag OFF -> the channel is never set, byte-identical.
+    if (_psy_cfg.MODALITY_REQUEST_ROUTING_ENABLED
+            and state.get("modality_screen_pending")
+            and not state.get("active_skill_id")):
+        return "skill_select"
     if intent == "scope_refusal":
         return "gate"
     if intent == "jailbreak":
@@ -369,6 +380,19 @@ def _route_after_intent(state: SageState) -> str:
             and not state.get("active_skill_id")
             and (state.get("prepass_matched") or [])):
         return "skill_select"
+    # EMR redirect (plan 2026-07-28: "an explicit modality request, in a screened context,
+    # always resolves against the clinical binding table — regardless of which way the LLM
+    # intent classifier lands"). Same slot + guards as the prepass hint above, but for ALL
+    # intents that would otherwise miss skill_select (incl. the route-with-release turn,
+    # whose classification is unpredictable by design). Guarded on active_skill_id: a
+    # mid-skill request is surface-1 (executor) territory and falls through unchanged.
+    # Subordinate by ORDER to crisis, the D1/weave redirects, monitoring, the psychotic/HR
+    # referral, and the F6 venting hold above — all of them return before this line.
+    # Flag OFF -> the channel is None, branch unreachable, routing byte-identical.
+    if (_cfg.MODALITY_REQUEST_ROUTING_ENABLED
+            and not state.get("active_skill_id")
+            and (state.get("explicit_modality_request") or {}).get("requested")):
+        return "skill_select"
     if confidence < 0.6:
         return "low_confidence"
     if intent == "exit_skill":
@@ -416,8 +440,11 @@ def _route_after_skill_select(state: SageState) -> str:
     # #338 D1: a SERVED screen question is terminal for this turn. apply_screen_at_route (enforce path) set
     # screen_question_text + active_skill_id=None on an ask_screen decision; the question IS this turn's
     # output. Below containment (crisis > vetoes > containment > screen > routing), above skill routing.
-    # Flag-gated upstream: screen_question_text is only ever set when SAGE_D1_SCREEN (enforce) is on, so this
-    # branch is unreachable with the flag off and the graph is byte-identical to master.
+    # Flag-gated upstream: screen_question_text is set only when SAGE_D1_SCREEN (enforce) is on, OR — since
+    # EMR Phase 2 surface 2 — when SAGE_MODALITY_REQUEST_ROUTING is on and the section-1a screen is pending
+    # (skill_select serves the signed screen question through this same verbatim terminal; audit rows are
+    # distinguished by the modality_request_screen_pending path marker). Both flags off -> unreachable,
+    # graph byte-identical to master.
     if state.get("screen_question_text"):
         return "screen_response"
     # V2 reranker ABSTAIN (below-τ semantic OR keyword-veto) → Node 3 low_confidence_respond, NOT
@@ -465,6 +492,13 @@ def _route_after_skill_select(state: SageState) -> str:
 def _route_after_skill_executor(state: SageState) -> str:
     if state.get("re_escalation_within_monitoring"):
         return "crisis"
+    # EMR surface 1 rehand: the executor exited on a request-for-alternative (its own
+    # escalation record carries the action) -> the request reaches skill_select, where
+    # the shared delivery gate produces the screened binding-table offer. Below crisis
+    # (unchanged, first). The action string is only ever written under
+    # SAGE_MODALITY_REQUEST_ROUTING, so flag-off routing is byte-identical.
+    if (state.get("escalation_triggered") or {}).get("action") == "exit_with_rehand":
+        return "skill_select"
     return "freeflow"
 
 
@@ -535,6 +569,7 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     graph.add_conditional_edges("skill_executor", _route_after_skill_executor, {
         "crisis": "crisis_response",
         "freeflow": "freeflow_respond",
+        "skill_select": "skill_select",   # EMR surface-1 rehand (exit_with_rehand only)
     })
     graph.add_edge("freeflow_respond", "output_gate")
     graph.add_conditional_edges("output_gate", _route_after_output_gate, {

@@ -360,6 +360,37 @@ def build_local_graph(warm: bool = True):
     return app
 
 
+async def invoke_turn(app, state_in: dict, thread_id: str) -> dict:
+    """Single-turn graph invocation, given a FULLY-CONSTRUCTED state dict and a thread_id.
+
+    `thread_id` is REQUIRED, not optional: `build_local_graph()` always compiles the graph
+    WITH a checkpointer (MemorySaver, mirroring the committed layer1 runner's own
+    `build_graph(MemorySaver())` pattern), and LangGraph raises `ValueError: "Checkpointer
+    requires one or more of the following 'configurable' keys: thread_id, ..."` on ANY
+    `ainvoke()` call that omits `config={'configurable': {'thread_id': ...}}` when a
+    checkpointer is present -- structurally, before any node runs, independent of what the
+    caller's own state-carry strategy is. This function's first version omitted `config`
+    entirely (Task 9 fix-round-3 incident: a live run crashed on its very first invocation --
+    the amendment-8 smoke case runs before any of the 196 corpus rows -- with zero rows
+    driven and no output doc written). Mirrors measure_layer1_fullgraph.py's own
+    `drive(app, msg, tid)` (`config={"configurable": {"thread_id": tid}}`) -- the established,
+    working convention this codebase's OTHER checkpointer-backed driver already uses; not a
+    new pattern invented here.
+
+    The caller owns state construction (e.g. make_e2e_state/carry_state, or hand-built
+    overrides) -- this function's only job is the actual `app.ainvoke(...)` call, kept here
+    per the instrument-parity standing rule (rule 1, 2026-07-28): every graph invocation whose
+    output feeds a decision/memo/matrix-row/escalation goes through this file, never
+    re-implemented at the call site (test_instrument_helper_only.py enforces this by static
+    scan). Added for Task 9's psychoed flip-tier runner (scripts/bot_behaviour_audit/
+    measure_psychoed_families.py), which needs per-turn `state_overrides` and manual
+    turn-to-turn carry (test_psychoed_fixtures_ci.py's own `_carry` pattern) rather than
+    run_fixture()'s flat-message-list/N-sample shape below -- generic, not psychoed-specific,
+    so any future instrument needing single-turn control can reuse it instead of re-deriving
+    a direct ainvoke() call."""
+    return await app.ainvoke(state_in, config={"configurable": {"thread_id": thread_id}})
+
+
 async def attach_db_pool():
     """Serving-parity DB pool for the KB path. knowledge_retrieve resolves its pool
     from server.app.state._db_pool — created only by the FastAPI lifespan, which a
@@ -424,6 +455,31 @@ def _record(turn_no: int, user_msg: str, state: dict) -> dict:
     return rec
 
 
+def _prod_turn_state(msg: str, thread_id: str) -> dict:
+    """SERVING-PARITY per-turn input: the REAL server_helpers._build_state — the same
+    function prod calls on every /chat turn — via a minimal request shim, so the
+    instrument's per-turn resets can NEVER drift from serving's (single-source).
+
+    Incident this closes (2026-08-12, screen-completion family): run_fixture passed
+    only {raw_message, path} per turn, none of _build_state's ~30 per-turn resets;
+    prod resets screen_question_text every turn, the instrument did not, and the
+    stale turn-1 screen text routed the answer turn back to screen_response, which
+    nulled the freshly made offer — behavior that CANNOT occur in serving. Import is
+    deferred (after export_env, same rule as build_local_graph)."""
+    from sage_poc.server_helpers import _build_state  # noqa: PLC0415
+
+    class _Msg:  # noqa: N801
+        role = "user"
+        content = msg
+
+    class _Req:  # noqa: N801
+        messages = [_Msg]
+        session_id = thread_id
+        user_id = None
+
+    return _build_state(_Req)
+
+
 async def run_fixture(app, session_turns: list, n: int,
                       thread_prefix: str = "evidence") -> dict:
     """Drive a multi-turn session N times, each on an INDEPENDENT session thread
@@ -435,7 +491,7 @@ async def run_fixture(app, session_turns: list, n: int,
         records = []
         for i, msg in enumerate(session_turns, start=1):
             state = await app.ainvoke(
-                {"raw_message": msg, "path": []},
+                _prod_turn_state(msg, tid),
                 config={"configurable": {"thread_id": tid}})
             rec = _record(i, msg, state)
             degraded += int(rec["degraded"])
@@ -580,18 +636,44 @@ def write_artifact(path: str, header: dict, body_md: str, title: str | None = No
 
 def prepare_evidence_env(base_url: str = DEFAULT_BASE_URL,
                          railway_service: str = "sage-api",
-                         allow_deploy_window: bool = False) -> tuple:
+                         allow_deploy_window: bool = False,
+                         flag_overrides: dict | None = None) -> tuple:
     """The one-call setup: readback -> railway -> derive (refusals raise) -> export.
-    Returns (derived, readback_health)."""
+    Returns (derived, readback_health).
+
+    flag_overrides (Phase-3 fix-arm measurement, 2026-08-12): DELIBERATE per-flag
+    deltas applied AFTER serving-parity export, for measuring dark code with its flag
+    ON while everything else stays serving-derived. Every override is stamped into the
+    resolved set (coverage source "deliberate_override"), and a LOUD parity note names
+    each one — the artifact is a counterfactual measurement arm and must never read as
+    a serving-parity baseline. Empty/None = byte-identical to before."""
     readback = fetch_readback(base_url)
     desired = fetch_railway_desired(railway_service)
     if desired is None:
         print("LOUD: railway (desired) unavailable — proceeding readback-only; "
               "deploy-window check skipped.", flush=True)
     derived = derive_flag_set(readback, desired, allow_deploy_window=allow_deploy_window)
+    for var, val in (flag_overrides or {}).items():
+        # BOTH maps, or the header lies about the run (2026-08-12 first-arm incident:
+        # effective/coverage said true, resolved_env — the map export_env actually
+        # exports — kept the var unset, and the artifact's flag table diverged from
+        # the process env; caught by the zero-marker readout, now self-checked below).
+        derived["effective"][var] = val
+        derived["resolved_env"][var] = val
+        derived["coverage"][var] = "deliberate_override"
+        derived["notes"].append(
+            f"DELIBERATE FLAG OVERRIDE (fix-arm measurement): {var}={val!r} — serving "
+            f"carries a different value; this run is a COUNTERFACTUAL arm, not a "
+            f"serving-parity baseline. Cite only against its paired baseline.")
     for note in derived["notes"]:
         print(note, flush=True)
     export_env(derived)
+    for var, val in (flag_overrides or {}).items():
+        if os.environ.get(var) != val:
+            raise ParityRefusal(
+                f"REFUSING: override {var}={val!r} did not reach the process env "
+                f"(got {os.environ.get(var)!r}) — the artifact would claim a flag "
+                "state the run does not have.")
     return derived, readback
 
 

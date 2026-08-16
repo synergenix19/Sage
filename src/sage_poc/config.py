@@ -239,6 +239,22 @@ if _cardiac_escalation_raw is not None and _cardiac_escalation_raw.strip().lower
         "only 'true' enables.", _cardiac_escalation_raw,
     )
 
+# EMR Phase 1 modality-request detector (plan 2026-07-28, clinical gate closed 2026-08-11).
+# DEFAULT OFF, strict parse: only a LITERAL "true" enables. OFF is byte-identical (channel written
+# as None, no path marker, no behavior change anywhere). ON in Phase 1 -> DETECTION ONLY: the
+# deterministic detector writes the explicit_modality_request channel at the head of intent_route;
+# no consumer exists until Phase 2, so even ON changes no served behavior yet. Flip gated on
+# clinician sign-off of the request lexicon (draft-pending-review).
+_modality_request_raw = os.getenv("SAGE_MODALITY_REQUEST_ROUTING")
+MODALITY_REQUEST_ROUTING_ENABLED = (
+    _modality_request_raw is not None and _modality_request_raw.strip().lower() == "true"
+)
+if _modality_request_raw is not None and _modality_request_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_MODALITY_REQUEST_ROUTING unexpected value %r — applying safe default (routing OFF); "
+        "only 'true' enables.", _modality_request_raw,
+    )
+
 # S2a grief-presence deference (sweep row 13, BUILT INERT 2026-08-04). KILL-SWITCH, DEFAULT OFF, same
 # strict parse: only a LITERAL "true" enables. OFF is byte-identical (intent_route crisis routes to crisis
 # as today). ON -> a safety_check-CLEAN bereavement disclosure the LLM re-flags as crisis restores the
