@@ -8,6 +8,13 @@ a pen in the room beats four weeks of relays (the A1 lesson).
 
 ## Agenda, in priority order
 
+0. **SF-1 fixture family sign-off** (charter condition 1 — possibly the most important
+   item on this sheet): the passive/veiled SI taxonomy with negative twins
+   (`sf1_veiled_si_family_DRAFT.jsonl`): the set, each fixture's expected disposition
+   (two CLINICAL CALL rows flagged: P05 'point of staying', P06 bare burdensomeness),
+   the EN/AR split; AR rows also need her validator pass. Nothing is measured against
+   it until this signature.
+
 1. **Psychoed Phase-3 sign-off round — the 8 open items** (sheet:
    `2026-08-11-psychoed-phase3-signoff-round.md`; items 1, 2, 3, 13 URGENT — they gate
    everything else in that round; items 6, 8, 12, 14 follow; plus the countersign of the

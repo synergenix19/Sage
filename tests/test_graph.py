@@ -1712,3 +1712,26 @@ def test_build_graph_with_checkpointer():
     cp = MemorySaver()
     g = build_graph(checkpointer=cp)
     assert g.checkpointer is cp
+
+
+@pytest.mark.asyncio
+async def test_crisis_review_notify_suppressed_for_test_users(monkeypatch, caplog):
+    """SF-1 op-check rule (charter condition 3): a test-user crisis activation must NOT
+    write the clinician review queue or fire pg_notify — and a real user's must be
+    untouched by the rule (fail-loud semantics inherited from the tripwire helper)."""
+    import sage_poc.graph as g
+    monkeypatch.setenv("SAGE_TEST_USER_IDS", "tu-1,tu-2")
+    calls = []
+
+    class _FakeNotifier:
+        def __init__(self, pool): pass
+        async def notify_review_required(self, **kw): calls.append(kw)
+
+    import sage_poc.memory.notification as notif
+    monkeypatch.setattr(notif, "PostgresNotifier", _FakeNotifier)
+    monkeypatch.setattr(g, "_get_crisis_review_pool", lambda: object())
+
+    from sage_poc.safety.tripwire import is_test_user
+    assert is_test_user("tu-1") is True
+    assert is_test_user("real-user") is False
+    assert is_test_user(None) is False   # unattributed real crisis stays fail-loud
