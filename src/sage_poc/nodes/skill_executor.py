@@ -18,6 +18,37 @@ _OPERATOR_MAP = {
     "==": lambda a, b: a == b,
 }
 
+def _psychoed_family_exposure(state: SageState, skill: Skill) -> int:
+    """Family-exposure carry-forward (Phase 2 §4.4 as amended; declared session channel).
+
+    Counts occurrences of `skill`'s kb_ref *family* in state["psychoed_family_exposures"]
+    (Task 3 declared channel, session-scoped; APPEND happens on serve in
+    knowledge_retrieve.py -- Task 10). Returns 0 when the skill has no kb_ref attribute/
+    value, or the kb_ref does not resolve to a known article family (store.family_of_kb_ref
+    returns None). Never touches therapeutic_profile["techniques_used"] -- see the seam
+    comment beside `prior_exposure` below.
+
+    Local import (noqa: PLC0415, matches the repo's call-time-import convention e.g.
+    ipv_preempt.py, graph.py): this function is called unconditionally for every skill
+    turn regardless of any psychoed flag, so the import is NOT flag-gated. sage_poc.psychoed
+    .store loads data/psychoed/** (blocks, manifests, shared scripts, weave data) once per
+    process on first use and is cached thereafter (module-level singleton, see store.py
+    _s()) -- a one-time, local-disk, no-network cost paid on the first skill_executor call
+    of any process. Flag-gating the import would silently zero out this term when a
+    psychoed flag is off, which is a worse failure mode than the one-time load; documented
+    here per the dispatch rather than hidden.
+    """
+    kb_ref = getattr(skill, "kb_ref", None)
+    if not kb_ref:
+        return 0
+    from sage_poc.psychoed import store  # noqa: PLC0415
+    family = store.family_of_kb_ref(kb_ref)
+    if family is None:
+        return 0
+    exposures = state.get("psychoed_family_exposures") or []
+    return exposures.count(family)
+
+
 _RESISTANCE_PROMPT_PATH = (
     Path(__file__).parent.parent
     / "rules" / "data" / "resistance_scoring" / "resistance_prompt.json"
@@ -545,6 +576,37 @@ async def skill_executor_node(state: SageState) -> dict:
             **crisis_update,
         }
 
+    # EMR surface 1 (plan 2026-07-28 Phase 2, consumer 1; A1 gate closed 2026-08-11):
+    # an explicit modality request mid-skill is the user-initiated departure family
+    # ("request-for-alternative" = the same L1 family as spec 9.2 rule 5), evaluated
+    # BEFORE step advancement so the active skill can never absorb it into an
+    # exploration step (the observed turn-3 defect). Expressed as escalation-matrix L1
+    # data: the exit instruction is the skill's OWN clinician-authorable L1 text, the
+    # capability is generic (exit-with-warm-handoff -> skill_select via the rehand
+    # router branch), no per-skill code. Subordinate to a real L1 (exit phrase /
+    # exit_skill intent wins above — a user asking to STOP is honored as a plain exit
+    # even if the same turn also asks for an alternative: conservative, no re-offer on
+    # an exit). Both-direction guard: mid-skill affirmations carry requested=False.
+    from sage_poc import config as _emr_cfg  # noqa: PLC0415
+    _emr_req = state.get("explicit_modality_request") or {}
+    if _emr_cfg.MODALITY_REQUEST_ROUTING_ENABLED and _emr_req.get("requested"):
+        matrix_instruction = skill.escalation_matrix.get("L1", "Follow escalation protocol.")
+        return {
+            "step_instruction":    f"[L1] {matrix_instruction}",
+            "executed_step_id":    step_id,
+            "active_step_id":      None,
+            "active_skill_id":     None,
+            "escalation_triggered": {"level": "L1",
+                                     "reason": "modality_request:request_for_alternative",
+                                     "action": "exit_with_rehand"},
+            "resistance_score":    None,
+            "criteria_hold_count": 0,
+            "criteria_hold_step_id": None,
+            "rule_hold_count":     0,
+            "rule_hold_step_id":   None,
+            "path": state["path"] + ["skill_executor", "modality_request_routed:executor"],
+        }
+
     resistance_history    = list(state.get("resistance_history") or [])
     engagement_trajectory = list(state.get("engagement_trajectory") or [])
     re_escalation_detected = state.get("s7_result") == "NEW_CRISIS"
@@ -554,7 +616,14 @@ async def skill_executor_node(state: SageState) -> dict:
     # updated at end-of-session, so within a first session prior_exposure=0.
     therapeutic_profile = state.get("therapeutic_profile") or {}
     techniques_used = therapeutic_profile.get("techniques_used") or []
-    prior_exposure = techniques_used.count(skill_id)
+    # SEAM (verified 2026-07-28, binding finding carried into Phase 2 Task 9): techniques_used
+    # has no writer anywhere in the codebase and no DB column (postgres_repository.py:16-40),
+    # so techniques_used.count(skill_id) is always 0 in practice -- this read is dead. max()
+    # is additive-only: it keeps that dead read harmless (never lowers the value below what the
+    # live signal would give) while _psychoed_family_exposure supplies the actual carry-forward
+    # via the declared psychoed_family_exposures channel (spec §4.4 as amended). The counted
+    # unit is the kb_ref FAMILY, never the skill_id -- do not read this as prior_exposure[skill_id].
+    prior_exposure = max(techniques_used.count(skill_id), _psychoed_family_exposure(state, skill))
 
     # prev_step_id: the step executed on the PREVIOUS turn (persists via LangGraph checkpoint;
     # absent from _build_state so it is NOT reset each turn). When prev_step_id == step_id,

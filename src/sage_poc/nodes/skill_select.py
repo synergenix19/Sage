@@ -299,9 +299,22 @@ def _rerank_route(
     from sage_poc.nodes.skill_rerank_model import score_pairs
     from sage_poc.skills.schema import load_skill
     bi_score = dict(ranked)
-    pairs = [(message_en, load_skill(sid).semantic_description or sid) for sid, _ in topk]
-    rr_scores = score_pairs(pairs)
-    reranked = sorted(((sid, rr) for (sid, _), rr in zip(topk, rr_scores)), key=lambda x: -x[1])
+    # ONE recognition surface, second call site (2026-08-16; the keyword veto got this on
+    # round 2, and the semantic-side rerank missed it the same day: 'overstepping' has no
+    # keyword, routes semantically, and the anchor-carried recognition was invisible to
+    # this cross-encoder pass — measured live, K3-b abstained while K3-a offered). Score
+    # description AND every anchor, max per skill, exactly as the veto now does.
+    pairs, owners = [], []
+    for sid, _ in topk:
+        sk = load_skill(sid)
+        for text in [sk.semantic_description or sid] + list(sk.semantic_anchors or []):
+            pairs.append((message_en, text))
+            owners.append(sid)
+    flat = score_pairs(pairs)
+    per_skill: dict = {}
+    for sid, rr in zip(owners, flat):
+        per_skill[sid] = max(per_skill.get(sid, float("-inf")), rr)
+    reranked = sorted(per_skill.items(), key=lambda x: -x[1])
     top_sid, top_rr = reranked[0]
     if top_rr >= _rerank_tau(lang):
         return top_sid, bi_score.get(top_sid, 0.0), runner_up(top_sid)
@@ -319,7 +332,21 @@ def _keyword_rerank_veto(candidates: list[str], message: str, lang: str) -> bool
     from sage_poc.nodes.skill_rerank_model import score_pairs
     from sage_poc.skills.schema import load_skill
     cands = candidates[:_RERANK_K]
-    scores = score_pairs([(message, load_skill(sid).semantic_description or sid) for sid in cands])
+    # ONE recognition surface (M2, applied to the veto 2026-08-16): the veto scores the
+    # SAME signed texts Tier-2 ranks — semantic_description AND every semantic_anchors
+    # entry — max per skill. Before this, an anchor-carried recognition clause (K3's
+    # self-as-transgressor anchor, Vee-adopted) was invisible to the veto: Tier-2 agreed,
+    # the keyword agreed, and the veto still killed the offer against the description
+    # alone (measured live 3/3, keyword_rerank_veto on 'i need to stop crossing a line').
+    # Widening is max-over-texts: it can only make the veto LESS aggressive, and only for
+    # skills carrying signed anchors; the id_oos ABSTAIN floor suites gate the change.
+    pairs, owners = [], []
+    for sid in cands:
+        sk = load_skill(sid)
+        for text in [sk.semantic_description or sid] + list(sk.semantic_anchors or []):
+            pairs.append((message, text))
+            owners.append(sid)
+    scores = score_pairs(pairs)
     return bool(scores) and max(scores) < _rerank_tau(lang)
 
 
@@ -499,6 +526,7 @@ def _resolve_entry(
                 "skill_match_method": method,
                 "semantic_score": semantic_score,
                 "path": state["path"] + ["skill_select", "arabic_offer_excluded"],
+                **_psychoed_pathway_clear(state),  # Task 8 gap 1: non-psychoed skill activation
             }
 
     eval_result = rules_engine.evaluate("skill_matching", {
@@ -525,6 +553,7 @@ def _resolve_entry(
                 "skill_match_method": method,
                 "semantic_score": semantic_score,
                 "path": state["path"] + audit_markers,
+                **_psychoed_pathway_clear(state),  # Task 8 gap 1: non-psychoed skill activation
             }
         # The matched acute skill was declined this session. on_declined decides:
         # substitute within a clinician-ordered pool, or (legacy/default) fall to consent.
@@ -542,6 +571,7 @@ def _resolve_entry(
                     "skill_match_method": method,
                     "semantic_score": semantic_score,
                     "path": state["path"] + audit_markers + ["acute_substitute_declined"],
+                    **_psychoed_pathway_clear(state),  # Task 8 gap 1: non-psychoed skill activation
                 }
             # Whole pool declined — safety floor: enter the matched (declined) skill directly.
             skill = _SKILLS[primary]
@@ -551,12 +581,25 @@ def _resolve_entry(
                 "skill_match_method": method,
                 "semantic_score": semantic_score,
                 "path": state["path"] + audit_markers + ["acute_safety_floor_all_declined"],
+                **_psychoed_pathway_clear(state),  # Task 8 gap 1: non-psychoed skill activation
             }
         # on_declined == "offer" (legacy/default): consent fallback wins, and the audit
         # trail must say so, the fired rule's action and the action taken differ this turn.
         audit_markers.append("enter_direct_declined_fallback")
 
     offerable = [sid for sid in candidates if sid not in declined]
+    # K4 bin-(b) grief exclusion (Vee-authored boundary, adopted 2026-08-15): grief-driven
+    # reconnection belongs to grief territory, not behavioral_activation. Deterministic:
+    # when BA would be offered and the turn carries the bereavement signature (the SAME
+    # single-sourced _GRIEF_TERMS the S2a deference uses — never a second list), the offer
+    # becomes grief_loss. Both-direction guarded: clean reconnection wishes still reach BA.
+    if "behavioral_activation" in offerable:
+        from sage_poc.nodes.grief_override import _has_grief_signature  # noqa: PLC0415
+        if _has_grief_signature(state.get("message_en", "")):
+            offerable = list(dict.fromkeys(
+                ["grief_loss" if s == "behavioral_activation" else s for s in offerable]))
+            offerable = [s for s in offerable if s not in declined]
+            audit_markers.append("ba_grief_exclusion_swap")
     offerable = offerable[: int(action.get("max_offered", 2))]
     if not offerable:
         return {
@@ -629,7 +672,210 @@ async def _consult_top_match(state: SageState) -> str | None:
     return semantic_skill
 
 
+def store_manifest_weave(category: str) -> bool:
+    """True when `category`'s manifest declares `safety_weave` (PSY-WEAVE-1 gates a
+    'personal'-framed serve in this category behind the weave check before it fires). Reads
+    store.manifest(cat)["safety_weave"] BY REFERENCE — content-owned data, never hardcoded here.
+    """
+    from sage_poc.psychoed import store as psy_store  # noqa: PLC0415
+    return bool(psy_store.manifest(category).get("safety_weave"))
+
+
+def _psychoed_grief_context(state: SageState) -> bool:
+    """Deterministic grief-context signal for the resolver's collision-table `context_winner`
+    tier (spec §5.1/§5.2 cross-category exact-phrase ties, e.g. a phrase shared between S2c-grief
+    and another category). Two live signals, checked in this order (the first is LED with because
+    it is the one populatable today):
+
+      1. `grief_loss` was recently offered or is the active skill — Mechanism-A's info_request
+         consult has populated `active_skill_id` / `offered_skill_ids` with `grief_loss` since
+         2026-07-23, so this is a real signal already flowing through state, not a guess.
+      2. `psychoed_active_category == "s2c"` — the user is already inside the grief psychoed
+         pathway this session.
+
+    A third signal (a clinical_flags-based grief marker) was considered per the amended plan, but
+    verified against rules/data/safety/clinical_flag_patterns.json (checked 2026-07-28): no
+    grief-coded flag_id exists in the deployed flag set. Referencing a nonexistent flag id would
+    silently no-op forever (a disarmed-alarm shape), so this ships with only the two live signals
+    above; add the third signal only once the safety lane declares one.
+    """
+    if state.get("active_skill_id") == "grief_loss":
+        return True
+    if "grief_loss" in (state.get("offered_skill_ids") or []):
+        return True
+    return state.get("psychoed_active_category") == "s2c"
+
+
+def _psychoed_pathway_clear(state: SageState) -> dict:
+    """Pathway-clear-on-exit (Phase 2 plan amendment, gap 1). When a NON-psychoed path activates
+    a skill, or the weave escalates to crisis_response, while a psychoed pathway is mid-flight, the
+    pathway's per-pathway channels must not leak into the new skill's / crisis turn's state.
+    `psychoed_blocks_served` and `psychoed_family_exposures` are audit / carry-forward (session-
+    scoped) and deliberately SURVIVE clearing — see state.py's channel comment block. Returns {}
+    (a no-op merge) when no pathway is active, so every call site can spread this unconditionally.
+    """
+    if not state.get("psychoed_active_category"):
+        return {}
+    return {
+        "psychoed_active_category": None,
+        "psychoed_delivery_shape": None,
+        "psychoed_menu_offered": False,
+        "psychoed_weave_fired": False,
+        "psychoed_weave_pending": False,
+        "psychoed_matched_row_id": None,
+        "psychoed_collision_path": None,
+        "psychoed_framing": None,
+    }
+
+
+def _modality_request_delivery(state: SageState, emr: dict, surface: str) -> dict | None:
+    """Shared EMR delivery gate (plan 2026-07-28 Phase 2; one implementation, every
+    surface). Screening gates delivery: cleared -> binding-table offer through the R1
+    consent shape (declined-filtering preserved); unscreened -> the signed screen
+    question served verbatim via the D1 screen_question_text terminal, with the
+    request HELD in modality_screen_pending so it survives to the answer turn (the
+    2026-08-12 resumption fix); red-flag context, all-candidates-declined, or
+    nothing-askable -> None (caller decides: fall through on a fresh request, abandon
+    the hold on a pending one)."""
+    from sage_poc.matching import (  # noqa: PLC0415
+        BINDING_TABLE, empty_presentation_context, next_screen_question)
+    ctx = state.get("recent_presentation") or empty_presentation_context()
+    pending = state.get("modality_screen_pending") or {}
+    hint = (emr.get("modality_hint") if emr.get("requested") else None) \
+        or pending.get("modality_hint")
+    if ctx.get("red_flag_language"):
+        return None
+    if ctx.get("cleared"):
+        declined = set(state.get("declined_skills") or [])
+        cands = list(BINDING_TABLE.get(hint or "default") or BINDING_TABLE["default"])
+        offerable = [s for s in cands if s not in declined][:2]
+        if not offerable:
+            return None
+        markers = [f"modality_request_routed:{surface}"]
+        if ctx.get("referral_alongside"):
+            markers.append("modality_request_referral_context")
+        return {
+            "active_skill_id": None,
+            "active_step_id": None,
+            "offered_skill_ids": offerable,
+            "offer_count": 1,
+            "last_offer_turn": state.get("turn_count", 0),
+            "skill_match_method": "modality_request_offer",
+            "semantic_score": None,
+            "modality_screen_pending": None,   # the held request is delivered
+            "path": state["path"] + ["skill_select"] + markers + ["skill_offer_made"],
+            **_psychoed_pathway_clear(state),
+        }
+    q = next_screen_question(ctx)
+    if q is None:
+        return None
+    new_ctx = dict(ctx)
+    new_ctx["screen_asked"] = list(new_ctx.get("screen_asked") or []) + [q["key"]]
+    return {
+        "active_skill_id": None,
+        "active_step_id": None,
+        "skill_match_method": None,
+        "semantic_score": None,
+        "screen_question_text": f'{q["lead_in"]} {q["question"]}',
+        "recent_presentation": new_ctx,
+        "modality_screen_pending": {"modality_hint": hint},   # the request survives
+        "path": state["path"] + ["skill_select", "modality_request_screen_pending"],
+    }
+
+
+def _modality_screen_abandon(state: SageState) -> dict:
+    """The hold ends honestly: pending but nothing deliverable or askable (off-topic
+    answers exhausted the adaptive screen, or red-flag language arrived — the medical
+    surface owns that turn). Clears the hold with its own marker; the turn proceeds to
+    presence/KB unchanged."""
+    return {
+        "active_skill_id": None,
+        "active_step_id": None,
+        "skill_match_method": None,
+        "semantic_score": None,
+        "modality_screen_pending": None,
+        "path": state["path"] + ["skill_select", "modality_request_screen_abandoned"],
+    }
+
+
 async def skill_select_node(state: SageState) -> dict:
+    # --- Psychoed pathway (spec §2.1; Phase 2 Task 8; flag-gated, default OFF). ORDER IS BINDING:
+    # (1) PSY-WEAVE-1 evaluation on a weave-pending turn runs BEFORE any matching — a pending weave
+    # question is a live safety check on the PREVIOUS turn's serve, not a routing decision, so it
+    # must never be starved by a resolver hit or by the D1/info_request logic below it. (2) active-
+    # skill suppression stands: the resolver never fires over an already-active skill (no hijack of
+    # a skill already in progress). (3) the resolver, gated by (4) Classifier A's acute-distress veto
+    # (ambiguity fails to acute, per classifiers.py's module doc). (5) no hit / veto / a weave-clear-
+    # negative with no new trigger / flag-off all fall through unchanged to the existing node body.
+    # This block sits at the literal TOP of the function — before the D1 answering_screen check and
+    # the info_request bypass below — which is what guarantees the resolver wins before Mechanism-A's
+    # info_request consult (the no-double-claim property between the two psychoed mechanisms). Flag-
+    # off (PSYCHOED_PATHWAYS_ENABLED default False): this whole block is skipped, so the rest of the
+    # function is byte-identical to pre-Task-8 behavior.
+    from sage_poc import config  # noqa: PLC0415 — local import so monkeypatch.setattr(config, ...) takes effect
+    if config.PSYCHOED_PATHWAYS_ENABLED:
+        from sage_poc.psychoed import resolver as psy_resolver, classifiers as psy_cls, weave as psy_weave  # noqa: PLC0415
+
+        # (1) PSY-WEAVE-1 precedence: evaluate BEFORE any matching on weave-pending turns.
+        if state.get("psychoed_weave_pending"):
+            verdict = psy_weave.evaluate(state.get("message_en") or "")
+            if verdict == "crisis":
+                return {"psychoed_weave_pending": False, "psychoed_weave_escalation": True,
+                        "skill_match_method": "psychoed_weave_escalation",
+                        "path": state["path"] + ["skill_select"]}
+            weave_cleared = True   # clear negative: proceed; menu re-offer handled by continuation
+        else:
+            weave_cleared = False
+
+        # (2) Active-skill suppression stands. EN-only pathway entry (controller checkpoint fix,
+        # spec §3.7/§7.3): psychoed AR copy ships only once faithfulness-graded under its own
+        # future flag -- until then, entry via the resolver must not fire on a non-English turn,
+        # or a downstream translate-out of the EN block would serve ungraded machine-translated
+        # clinical copy. Scoped to ENTRY only: the weave-pending evaluation above (1) and this
+        # active-skill check stay language-UNgated -- translate-in already normalizes any reply
+        # into message_en, so a pending weave (a live safety check on a PREVIOUS turn's serve)
+        # must still evaluate on an AR reply; starving it here would be a fail-open, not fail-closed.
+        if not state.get("active_skill_id") and (state.get("detected_language") or "en") == "en":
+            hit = psy_resolver.resolve(
+                state.get("message_en") or "",
+                active_category=state.get("psychoed_active_category"),
+                grief_context=_psychoed_grief_context(state),
+                enabled_categories=config.PSYCHOED_CATEGORIES,
+            )
+            # (3) hit + (4) Classifier A precedence
+            if hit and psy_cls.acute_distress(state, state.get("message_en") or ""):
+                hit = None   # acute: fall through to coping routes; offer deferred to check-in
+            if hit:
+                framing = hit["framing"] or psy_cls.FRAMING_FALLBACK
+                weave_due = (framing == "personal"
+                             and store_manifest_weave(hit["category"])
+                             and not state.get("psychoed_weave_fired"))
+                payload = {"category": hit["category"], "block_id": hit["block_id"],
+                           "route": hit["route"], "framing": framing, "weave_due": weave_due,
+                           "matched_row_id": hit["row_id"], "collision_path": hit["collision_path"],
+                           # HIGH-2 (final review): carry the resolver's menu_pick flag through to the
+                           # served payload -- serve.compose_turn1 needs it to tell a fresh menu-first
+                           # trigger (row_id != "menu_pick", framing-then-menu turn) apart from a reply
+                           # that picked a specific topic OFF an already-offered menu (row_id ==
+                           # "menu_pick", resolver.py's active_category branch), which must serve that
+                           # topic's block content instead of re-offering the menu.
+                           "menu_pick": hit["menu_pick"]}
+                return {"psychoed_serve": payload,
+                        "psychoed_active_category": hit["category"],
+                        "psychoed_delivery_shape": "menu_first" if hit["block_id"] is None else "answer_first",
+                        "psychoed_matched_row_id": hit["row_id"],
+                        "psychoed_collision_path": hit["collision_path"],
+                        "psychoed_framing": framing,
+                        "psychoed_weave_pending": bool(weave_due),
+                        "psychoed_weave_fired": bool(weave_due) or state.get("psychoed_weave_fired", False),
+                        "skill_match_method": "psychoed_resolver",
+                        "path": state["path"] + ["skill_select"]}
+        if weave_cleared:
+            # clear-negative reply, no new trigger: emit the deferred menu via continuation
+            return {"psychoed_weave_pending": False, "skill_match_method": "psychoed_menu_after_weave",
+                    "path": state["path"] + ["skill_select"]}
+        # (5) fall through unchanged to the existing node body below.
+
     # #338 D1 ANSWER TURN: when this turn answers a pending screen (answering_screen was set by
     # consume_pending_screen at graph entry, only ever in enforce mode), classify + route the answer
     # DETERMINISTICALLY before any skill matching. The answer ("no, same as always") usually matches no
@@ -655,6 +901,29 @@ async def skill_select_node(state: SageState) -> dict:
         if not state.get("active_skill_id"):
             result["active_skill_id"] = None
             result["active_step_id"] = None
+            # EMR surface 2 (info_request early-return; plan 2026-07-28 Phase 2, consumer 2;
+            # A1 gate closed 2026-08-11): an explicit modality request that the classifier
+            # labelled info_request must NOT fall into the KB short-circuit. Runs BEFORE the
+            # Mechanism-A consult: an explicit request for a tool outranks a psychoed consult
+            # (psychoed absorption of requests is exactly the surface-1 defect class).
+            # Deterministic input only: the Phase-1 detector channel, never re-detection.
+            # Screening gates delivery: cleared -> binding-table offer through the existing
+            # R1 consent machinery (declined-filtering preserved, never re-offers declined);
+            # not cleared -> the signed screen question served VERBATIM via the D1
+            # screen_question_text terminal (same served-bytes mechanism, no LLM rendering);
+            # red-flag language -> fall through untouched (the medical guard surface owns
+            # that turn, the screen goes silent per the foundation contract). Guard (C3):
+            # genuine info asks carry requested=False and reach KB exactly as today.
+            from sage_poc import config as _config_emr  # noqa: PLC0415
+            _emr_req = state.get("explicit_modality_request") or {}
+            if _config_emr.MODALITY_REQUEST_ROUTING_ENABLED and (
+                    _emr_req.get("requested") or state.get("modality_screen_pending")):
+                _emr_delivery = _modality_request_delivery(state, _emr_req, surface="info_request")
+                if _emr_delivery is not None:
+                    return _emr_delivery
+                if state.get("modality_screen_pending"):
+                    return _modality_screen_abandon(state)
+                # fresh-request None (red-flag / all-declined): fall through to KB
             # Psychoed Mechanism-A consult (2026-07-17 design doc): BEFORE force-routing to
             # knowledge_retrieve, consult the SAME keyword+semantic matching the
             # non-info_request path uses. A top match inside INFO_REQUEST_SKILL_CONSULT_SET
@@ -682,6 +951,9 @@ async def skill_select_node(state: SageState) -> dict:
                     result["active_skill_id"] = top_match
                     result["active_step_id"] = skill.steps[0].step_id
                     result["skill_match_method"] = "info_request_skill_consult"
+                    # Pathway-clear-on-exit (Task 8, gap 1): this consult just activated a
+                    # non-psychoed skill; a mid-flight psychoed pathway must not leak into it.
+                    result.update(_psychoed_pathway_clear(state))
         return result
 
     # Post-crisis auto-select bypasses keyword and semantic matching
@@ -696,11 +968,13 @@ async def skill_select_node(state: SageState) -> dict:
         # Guard: if the check-in is already active, pass through to executor without
         # re-initialising. Prevents step regression when active_skill_id is cleared
         # mid-check-in by a blended intent, low-confidence path.
+        # Pathway-clear-on-exit (Task 8, gap 1): post-crisis check-in is a non-psychoed skill
+        # activation; a mid-flight psychoed pathway must not leak into it.
         if state.get("active_skill_id") == skill_id:
-            return {**base, "active_step_id": state.get("active_step_id")}
+            return {**base, "active_step_id": state.get("active_step_id"), **_psychoed_pathway_clear(state)}
         # Not yet active — start from step 1.
         skill = _SKILLS[skill_id]
-        return {**base, "active_step_id": skill.steps[0].step_id}
+        return {**base, "active_step_id": skill.steps[0].step_id, **_psychoed_pathway_clear(state)}
 
     # Psychotic disclosure auto-select: fires when CF-006 flag is active AND referral not yet delivered.
     # Post-crisis auto-select above takes precedence.
@@ -725,7 +999,25 @@ async def skill_select_node(state: SageState) -> dict:
             "skill_match_method": "psychotic_disclosure_auto_select",
             "semantic_score": None,
             "path": state["path"] + ["skill_select"],
+            **_psychoed_pathway_clear(state),  # Task 8 gap 1: non-psychoed skill activation (HR referral)
         }
+
+    # EMR delivery, generic entry (surfaces routed here by the graph's EMR redirect —
+    # incl. the surface-3 route-with-release turn; the info_request branch above has its
+    # own call). Subordinate by ORDER to post-crisis and psychotic/HR auto-selects (both
+    # return before this line); skips accept-promotion turns (the pending offer's
+    # promotion machinery below owns those, offer_promoted semantics preserved); never
+    # fires mid-skill (surface-1 territory). None -> normal matching runs unchanged.
+    _emr_generic = state.get("explicit_modality_request") or {}
+    if (config.MODALITY_REQUEST_ROUTING_ENABLED
+            and (_emr_generic.get("requested") or state.get("modality_screen_pending"))
+            and not state.get("active_skill_id")
+            and not ((state.get("offered_skill_ids") or []) and state.get("offer_response") == "accept")):
+        _emr_delivery = _modality_request_delivery(state, _emr_generic, surface="select")
+        if _emr_delivery is not None:
+            return _emr_delivery
+        if state.get("modality_screen_pending"):
+            return _modality_screen_abandon(state)
 
     # E7 §6a IPV pre-emption (flag-gated SAGE_IPV_PREEMPTION). When domestic_situation is set, the §6
     # coaching_confrontation skills (assertive_communication, interpersonal_effectiveness) are
@@ -781,6 +1073,7 @@ async def skill_select_node(state: SageState) -> dict:
                 "skill_match_method": "offer_accept",
                 "semantic_score": None,
                 "path": state["path"] + ["skill_select", "offer_promoted"],
+                **_psychoed_pathway_clear(state),  # Task 8 gap 1: accepting an offer exits the pathway
             }
         # Stale checkpoint after a skill rename: no offered id resolves to a known
         # skill. Clear the offer (via the returned dict, not a local rebind) and

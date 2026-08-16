@@ -1,0 +1,19 @@
+{
+  "article_id": "7c-b1",
+  "language": "en",
+  "title": "How to start conversations",
+  "content": "A good opener doesn't need to be clever, commenting on the shared situation ('this line is taking forever') or asking an open question about something right in front of you works well. The goal isn't a perfect line, it's opening a door; most people are happy to walk through it if you do.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "7c",
+    "article_family": "how_do_i_connect",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "How to start conversations",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "7c – HOW DO I CONNECT, §3 Content Library, item 1"
+    }
+  }
+}

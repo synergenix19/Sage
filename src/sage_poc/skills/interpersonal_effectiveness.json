@@ -26,7 +26,6 @@
     "relationship repair",
     "managing competing loyalties",
     "set boundaries",
-    "setting limits in",
     "setting limits",
     "how to set limits",
     "I don't know how to say no",
@@ -45,7 +44,9 @@
     "hard talk",
     "set a boundary",
     "rehearse what to say",
-    "practice what to say"
+    "practice what to say",
+    "crossing a line",
+    "stop crossing a line"
   ],
   "semantic_description": "Interpersonal effectiveness DEARMAN skill for preparing a specific difficult, tough, or hard conversation, setting a boundary you need to raise, and rehearsing out loud what to say before that conversation. DBT interpersonal effectiveness skills module. DEAR MAN assertiveness technique. GIVE skills: Gentle, Interested, Validate, Easy manner. FAST skills: Fair, Apologies, Stick to values, Truthful. Assertiveness in family and close relationships. Expressing needs without shame or guilt. Saying no without destroying the relationship. Balancing relationship, self-respect, and objectives.",
   "steps": [
@@ -169,5 +170,8 @@
     "face_saving_as_skill": "Indirect communication and face-saving are not failures of assertiveness in Gulf culture. They are skilled relational moves that preserve relationships while still communicating meaning. Frame them within GIVE as culturally competent interpersonal effectiveness, not as avoidance or passivity.",
     "wasta_and_mediation": "In Gulf contexts, wasta (using a trusted intermediary to navigate a conflict or request) is a legitimate and respected form of relationship repair. If the user mentions wanting a third party to help mediate, treat this as valid interpersonal strategy within GIVE, not as a workaround to avoid.",
     "gender_role_pressures": "Interpersonal expectations differ significantly by gender in Gulf contexts. Men may face pressure around provision, protection, and decisiveness. Women may face pressure around deference, family harmony, and not appearing to challenge authority. Acknowledge these real pressures without reinforcing them. Explore what self-respect means within the user's actual context, not an idealized one."
-  }
+  },
+  "semantic_anchors": [
+    "Crossing a line or overstepping with a partner, family member, friend, or colleague; preparing the apology or repair conversation with them, owning the behavior and what will be different, using the same DEARMAN structure and self-respect skills."
+  ]
 }

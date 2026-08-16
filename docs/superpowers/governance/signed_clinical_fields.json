@@ -65,26 +65,42 @@
     {
       "id": "safety_rule_activation_map",
       "selector": "safeactive:src/sage_poc/rules/data/safety/crisis_keywords.json,src/sage_poc/rules/data/safety/passive_si_patterns.json,src/sage_poc/rules/data/safety/clinical_flag_patterns.json",
-      "sha256": "09bd5d1f847b4a08b84da89908fd45fa13cbe2c57794063b818e698878a567b2",
-      "signed_by": "clinical lead (HR-1 ratification 2026-07-17, consolidated approval sheet A1) + safety lane",
-      "signed_date": "2026-07-17",
-      "signoff": "The {rule_id: active} map across all safety rule files (born from the #218 clobber). RE-SIGNED 2026-07-17 UNDER CLINICAL-LEAD AUTHORITY (HR-1 ratification, consolidated approval sheet A1): CF-007 (mania_disclosure), CF-008 (dissociation_disclosure), CF-009 (psychotic_disclosure variants) flipped active:true + approved_by:clinical_lead. This is the atomic-flip re-sign the 2026-07-16 (PR #325) entry required ('when that flips them active:true this map changes again and MUST be re-signed WITH the clinical lead') -- now satisfied. CF-006 and every prior active crisis control unchanged. The routing flip (SAGE_HIGH_RISK_DETECTION=true) is a coordinated prod env change at deploy, verified live post-flip (B1 pattern). Prior baseline: safety lane (crisis sprint) + clinical lead 2026-07-13."
+      "sha256": "b6858394c871dafc082b9f29015f6e030de752bbf91fe1bbd0e3a9e8ba539c7c",
+      "signed_by": "clinical lead (§1c Part A ratification, Vee 2026-07-21, approval sheet 1a-1d) + prior HR-1 2026-07-17",
+      "signed_date": "2026-07-28",
+      "signoff": "The {rule_id: active} map across all safety rule files (born from the #218 clobber). RE-SIGNED 2026-07-28 UNDER CLINICAL-LEAD AUTHORITY (§1c Part A, Vee RULED 1a-1d 2026-07-21, 2026-07-18-vee-open-decisions-approval-sheet.md): CF-010 (derealization) added active:true + approved_by:clinical_lead — Vee ratified the mechanism (1a) and the strings (1d). Its ROUTING is separately gated by DEREALIZATION_DETECTION_ENABLED (default OFF, inert until the terminal copy 2026-07-28-1c-anxiety-referral-copy-for-vee.md is signed + flipped), so activating the rule does NOT change served behaviour. Prior RE-SIGN 2026-07-17 (HR-1 A1): CF-007/008/009 active:true (unchanged here). CF-006 and every prior active crisis control unchanged."
     },
     {
       "id": "hr_neutrality_fallback_en",
       "selector": "pyconst:sage_poc.nodes.output_gate:_HR_NEUTRAL_FALLBACK_TEMPLATE_EN",
-      "sha256": "de5e724b935d9930d2090a6e771dfd7b0a139fbaaa96eb1a0e60e9bd7a5eaa1f",
-      "signed_by": "clinical lead (Vee) — §5 seed ratification",
-      "signed_date": "2026-07-21",
-      "signoff": "HR §5 neutrality fallback template — the ONE message the psychosis referral shows when the Node-8 gate is on (Vee Option A 2026-07-21). VERBATIM from psychotic_referral example[0] (drift-guarded by test_hr_neutral_fallback_is_ratified_source_verbatim). Integrity = this pin; ACCURACY = Vee's §5 seed ratification 2026-07-18 (the account-frame + never-restate-content invariant), NOT a fresh eng sign-off."
+      "sha256": "316d18e0beea5d3ed4e764571dd41b27a78d259d0387d947993835423b22a19f",
+      "signed_by": "clinical lead (Vee) — hours+24/7 wording ratification",
+      "signed_date": "2026-07-22",
+      "signoff": "HR §5 neutrality fallback template — the ONE message the psychosis referral shows when the Node-8 gate is on. VERBATIM from psychotic_referral example[0] (drift-guarded by test_hr_neutral_fallback_is_ratified_source_verbatim). Integrity = this pin; ACCURACY = Vee's re-authored wording ratification 2026-07-22 (2026-07-22-hr-referral-template-hours-vee.md): pairs the 24/7 Abu Dhabi line 800-SAKINA (800-725462) alongside the 8am-8pm National line so a 3am referral is not a dead-end, keeping the account-frame + never-restate-content invariant. Capability change (added a 24/7 resource) re-signed, not carried from the §5 seed."
     },
     {
       "id": "hr_neutrality_fallback_ar",
       "selector": "pyconst:sage_poc.nodes.output_gate:_HR_NEUTRAL_FALLBACK_TEMPLATE_AR",
-      "sha256": "9a5c836f44a21815952a1c5aaac776cdf4c6347b04e94d3fcb13210eaedc8ca4",
-      "signed_by": "clinical lead (Vee) — §5 seed ratification",
-      "signed_date": "2026-07-21",
-      "signoff": "HR §5 neutrality fallback template — the ONE message the psychosis referral shows when the Node-8 gate is on (Vee Option A 2026-07-21). VERBATIM from psychotic_referral example[3] (drift-guarded by test_hr_neutral_fallback_is_ratified_source_verbatim). Integrity = this pin; ACCURACY = Vee's §5 seed ratification 2026-07-18 (the account-frame + never-restate-content invariant), NOT a fresh eng sign-off."
+      "sha256": "58e1fb57b8821b90f656d12db0faf8e54b1cc0ced9443f4b64cc62294c5346cb",
+      "signed_by": "clinical lead (Vee) — hours+24/7 wording ratification",
+      "signed_date": "2026-07-22",
+      "signoff": "HR §5 neutrality fallback template (Arabic) — the ONE message the psychosis referral shows when the Node-8 gate is on. VERBATIM from psychotic_referral example[3] (drift-guarded by test_hr_neutral_fallback_is_ratified_source_verbatim). Integrity = this pin; ACCURACY = Vee's re-authored wording ratification 2026-07-22 (2026-07-22-hr-referral-template-hours-vee.md): localizes the National-line hours to Khaleeji Arabic AND pairs the 24/7 Abu Dhabi line 800-SAKINA (800-725462) so a 3am referral is not a dead-end, keeping the account-frame + never-restate-content invariant. Latin mnemonic kept (digits authoritative). Capability change (localized hours + added a 24/7 resource) re-signed, not carried from the §5 seed."
+    },
+    {
+      "id": "derealization_referral_en",
+      "selector": "pyconst:sage_poc.safety.derealization_copy:DEREALIZATION_REFERRAL_EN",
+      "sha256": "dca7d07d661c03b8abbca79731796f63c31fa49f801159a871e4541eaeb3c79c",
+      "signed_by": "clinical lead (Vee) — §1c anxiety-track referral copy ratification",
+      "signed_date": "2026-07-28",
+      "signoff": "§1c anxiety-track derealization referral — the ONE deterministic message the CF-010 derealization terminal renders. Vee RULED 1a-1d (2026-07-21) + copy wording + resource set (2026-07-28, 2026-07-28-1c-anxiety-referral-copy-for-vee.md). Integrity = this pin (all phone numbers are {{crisis_*}} placeholders, NO literals, single-sourced from CRISIS_CONFIG/CRISIS_RESOURCES). Resource set = National line + SAKINA 24/7, NO 999 — the see-someone referral tier per BOT BEHAVIOUR §1c L151 ('escalate to referral'); 999 is reserved for the crisis/danger tier (L1830) and this terminal is reached only when NOT a crisis. Account-frame preserved."
+    },
+    {
+      "id": "derealization_referral_ar",
+      "selector": "pyconst:sage_poc.safety.derealization_copy:DEREALIZATION_REFERRAL_AR",
+      "sha256": "b7edd01bfc074c90c60aa37095c0d1dc3a4408aaacbc7d7e477fc1cc3f217963",
+      "signed_by": "clinical lead (Vee) — §1c anxiety-track referral copy ratification",
+      "signed_date": "2026-07-28",
+      "signoff": "§1c anxiety-track derealization referral (Arabic Khaleeji) — the ONE deterministic message the CF-010 terminal renders in AR. Vee RULED 1a-1d (2026-07-21) + wording + resource set (2026-07-28). Integrity = this pin; numbers are {{crisis_*}} placeholders (no literals). Resource set = National + SAKINA 24/7, no 999 (doc L151/L1830). AR strings interim pending native review (#313); EN carries the ratification. Account-frame preserved (ما تصفه)."
     }
   ]
 }

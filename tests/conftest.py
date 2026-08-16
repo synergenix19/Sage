@@ -222,6 +222,30 @@ def _stub_bge_m3(request):
     check_s3 would build a zero-vector index from the mock model. Without
     save/restore, s3_warmed finds _embedding_index is not None and skips
     rebuilding, leaving slow tests with a corrupted all-zero index.
+
+    ...and s3_semantic._query_embedding_cache, for exactly the same reason, one
+    layer further in (2026-08-06 deflake). That cache is a module-global LRU keyed
+    by sha256(exact text); s3_semantic.get_embedding encodes through
+    skill_select._embed_model — the SAME global this fixture swaps for the
+    zero-vector mock. So every query text a non-slow test touches is MEMOISED AS A
+    ZERO VECTOR, and the entry outlived the test because only the index/phrase
+    globals above were restored. config.EMBED_CACHE_ENABLED is True, so
+    _semantic_match_with_runner_up reads that poisoned zero vector on a LATER test,
+    every raw score is 0.0, `score > skill_scores.get(sid, 0.0)` is never true,
+    skill_scores comes back EMPTY and the semantic tier returns (None, 0.0, None) —
+    silently dead, with a real model resident and a healthy anchor index. That is
+    what made tests/test_psychoed_mechanism_a.py's two @slow semantic-consult tests
+    pass solo and fail inside the unit-gate CANDIDATES batch: an earlier non-slow
+    suite drives the same layer1_trigger_corpus utterances (317 of 329 cache entries
+    were zero vectors at the point of failure). Deterministic cross-test global-state
+    leak, NOT embedding nondeterminism.
+
+    Same discipline as the device="cpu" pin in _warm_bge_m3_once above (2026-06-05):
+    when the semantic layer's answer depends on process-global model state, PIN THE
+    STATE in the harness rather than tolerate an order-dependent test. Restoring the
+    snapshot after every test means no test's cache writes can ever escape it, and
+    @slow tests additionally start from a cleared cache so they always encode against
+    the real model instead of inheriting anything.
     """
     import sage_poc.nodes.skill_select as ss
     import sage_poc.safety.s3_semantic as s3
@@ -231,6 +255,7 @@ def _stub_bge_m3(request):
     saved_ids = ss._anchor_skill_ids[:]
     saved_s3_index = s3._embedding_index
     saved_s3_phrases = list(s3._phrase_texts)
+    saved_query_cache = s3._query_embedding_cache.copy()
 
     if request.node.get_closest_marker("slow"):
         if _BGE_M3_STUBBED:
@@ -246,6 +271,11 @@ def _stub_bge_m3(request):
         # right at the boundary — causing intermittent embedding_timeout failures.
         # Each test only needs to encode its own query phrase (~2.25s first JIT
         # compilation, 0.07s thereafter), well within the 10s window.
+        #
+        # Start from an EMPTY query-embedding cache so a @slow test's semantic
+        # assertions are always computed from the real resident model, never from a
+        # value some earlier test memoised (see the docstring). Restored below.
+        s3.reset_query_embedding_cache()
         yield
     else:
         from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP
@@ -273,6 +303,11 @@ def _stub_bge_m3(request):
     ss._anchor_skill_ids = saved_ids
     s3._embedding_index = saved_s3_index
     s3._phrase_texts = saved_s3_phrases
+    # Mutate in place (do NOT rebind): cached_get_embedding guards this exact object
+    # with _query_embedding_cache_lock, and _query_embedding_cache_lock is bound to
+    # the object identity by convention, not by the name.
+    s3._query_embedding_cache.clear()
+    s3._query_embedding_cache.update(saved_query_cache)
 
 
 @pytest.fixture(scope="session")

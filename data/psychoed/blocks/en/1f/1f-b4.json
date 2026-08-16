@@ -1,0 +1,19 @@
+{
+  "article_id": "1f-b4",
+  "language": "en",
+  "title": "The anxiety maintenance cycle",
+  "content": "Anxiety often gets kept going not by the original trigger, but by how we respond to it. Avoiding a feared situation, seeking constant reassurance, or relying on 'safety behaviors' can bring relief in the moment, but it also teaches your brain that the situation really was dangerous and needed to be escaped, which reinforces the fear for next time. That's the cycle: trigger → anxious thought → physical/emotional response → avoidance or safety behavior → short-term relief → the fear gets stronger, not weaker.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "1f",
+    "article_family": "understanding_anxiety",
+    "delivery_shape": "menu_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "The anxiety maintenance cycle",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "1f – UNDERSTANDING ANXIETY, Content per Topic, item 4"
+    }
+  }
+}

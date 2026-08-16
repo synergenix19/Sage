@@ -10,18 +10,20 @@ from sage_poc.state import SageState
 from sage_poc.nodes.safety_check import safety_check_node
 from sage_poc.nodes.intent_route import intent_route_node
 from sage_poc.nodes.low_confidence_respond import low_confidence_respond_node
-from sage_poc.nodes.skill_select import skill_select_node
+from sage_poc.nodes.skill_select import skill_select_node, _psychoed_pathway_clear
 from sage_poc.nodes.skill_executor import skill_executor_node
 from sage_poc.nodes.freeflow_respond import freeflow_respond_node
-from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
+from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node, knowledge_retrieve_cards_node
 from sage_poc.nodes.medical_response import medical_response_node
 from sage_poc.nodes.screen_response import screen_response_node
 from sage_poc.nodes.high_risk_response import high_risk_response_node
+from sage_poc.nodes.derealization_response import derealization_response_node
 from sage_poc.config import CRISIS_LINE_UAE, CRISIS_CONFIG
 from sage_poc.nodes.output_gate import output_gate_node
 from sage_poc.config import AUDIT_LOG_ENABLED
 from sage_poc.audit import write_session_audit
 from sage_poc.safety.hr_disclosure import hr_disclosure_present
+from sage_poc.safety.derealization_disclosure import derealization_disclosure_present
 
 _log = logging.getLogger(__name__)
 
@@ -71,6 +73,11 @@ async def _crisis_response_node(state: SageState) -> dict:
     # complete on the one path with the tightest budget — traceability admits no per-path exception
     # (verified 2026-07-08: crisis turns had latency_ms=NULL, 0/18, vs 56/56 non-crisis).
     _tsa = state.get("turn_started_at")
+    # Psychoed Task 8 escalation exit: a PSY-WEAVE-1 escalation must persist its psychoed facts to
+    # the audit row BEFORE the pathway state is cleared below (persist-before-clear, at the code
+    # level, in that order). The psychoed_* facts are already in state, so **state already carries
+    # them into the audit dict; this only patches on the disposition marker.
+    _weave_escalation = bool(state.get("psychoed_weave_escalation"))
     _audit_task = asyncio.create_task(write_session_audit({
         **state,
         "path": path,
@@ -78,6 +85,7 @@ async def _crisis_response_node(state: SageState) -> dict:
         "crisis_state": "monitoring",
         "re_escalation_within_monitoring": is_reescalation,
         "latency_ms": int((time.monotonic() - _tsa) * 1000) if _tsa is not None else state.get("latency_ms"),
+        **({"psychoed_weave_state": "escalated"} if _weave_escalation else {}),
     }))
     _audit_task.add_done_callback(
         lambda t: _log.warning("[crisis_response] session audit error: %s", t.exception())
@@ -162,6 +170,13 @@ async def _crisis_response_node(state: SageState) -> dict:
         # active_skill_id precedent and _route_after_safety's HR re-entry check below).
         "hr_terminal_step": None,
         "hr_escalate_regardless": False,
+        # Psychoed Task 8 escalation exit: ONLY when this turn is a PSY-WEAVE-1 escalation, AFTER
+        # the audit above has persisted the psychoed facts, clear the pathway (survivors:
+        # psychoed_blocks_served / psychoed_family_exposures) and reset the escalation flag so it
+        # does not leak into the next turn. Scoped to the escalation case per the plan amendment —
+        # an ordinary (non-weave) crisis intercept is out of this task's scope.
+        **(_psychoed_pathway_clear(state) if _weave_escalation else {}),
+        **({"psychoed_weave_escalation": False} if _weave_escalation else {}),
     }
 
 
@@ -217,6 +232,15 @@ def _route_after_safety(state: SageState) -> str:
     # so a later turn never silently resumes a stale await_distress/reask step.
     if _cfg.HIGH_RISK_TERMINAL_ENABLED and state.get("hr_terminal_step"):
         return "high_risk"
+    # §1c Part A: 4th SAFETY-EXIT member (derealization_response), rank 4 — placed AFTER the crisis,
+    # medical, and hr checks above so those still win on a multi-hit turn (precedence
+    # crisis > medical > hr > derealization). Gated on DEREALIZATION_DETECTION_ENABLED so this block
+    # is inert when OFF (byte-identical). One-shot guard mirrors hr_referral_delivered: clinical_flags
+    # persist for the session, so without it the referral would re-fire every later turn.
+    if _cfg.DEREALIZATION_DETECTION_ENABLED and derealization_disclosure_present(
+        state.get("clinical_flags") or [], flag_enabled=_cfg.DEREALIZATION_DETECTION_ENABLED
+    ) and not state.get("derealization_referral_delivered"):
+        return "derealization"
     return "safe"
 
 
@@ -225,12 +249,61 @@ def _route_after_intent(state: SageState) -> str:
     confidence = state.get("intent_confidence", 1.0)
 
     if intent == "crisis":
+        # Part A (Vee-signed 2026-07-28): deterministic panic-grounding override. When safety_check CLEARED
+        # this turn but intent_route re-flagged a clear panic disclosure (no harm-adjacency) as crisis, restore
+        # the deterministic verdict -> grounding via skill_select instead of crisis_response. Flag-gated: the
+        # stamp is False when OFF, so this is byte-identical when disabled. Fires only on a safety_check-clean
+        # turn, so it can NEVER suppress a crisis the deterministic tier caught (that path never reaches here as
+        # intent=='crisis' with panic_grounding_override True — crisis_flags being set makes the override False).
+        if state.get("panic_grounding_override"):
+            return "skill_select"
+        # S2a grief-presence deference (built inert 2026-08-04): identical semantics one line down the
+        # same crisis branch — safety_check CLEARED the turn, intent_route re-flagged a clear bereavement
+        # disclosure (no harm-adjacency) as crisis; restore the clean verdict -> grief_loss presence path
+        # via skill_select instead of crisis_response. Flag-gated (stamp is False when OFF, byte-identical);
+        # crisis_flags being set (incl. the cardiac Node-1 flag) makes the stamp False, so this can never
+        # suppress a crisis the deterministic tier caught.
+        if state.get("grief_presence_override"):
+            return "skill_select"
         return "crisis"
     # #338 D1 ANSWER TURN: a turn answering a pending screen must reach skill_select so its answering_screen
     # handler classifies+routes the answer, REGARDLESS of intent (the answer usually reads as general_chat and
     # would otherwise go to freeflow unclassified — the 2026-07-20 seam). Below crisis (crisis supremacy), above
     # all intent routing. answering_screen is only ever set in enforce mode, so flag-off is byte-identical.
     if state.get("answering_screen"):
+        return "skill_select"
+    # HIGH-1 (final review, psychoed Phase 2): a PSY-WEAVE-1 weave-pending reply must ALWAYS reach
+    # skill_select, REGARDLESS of intent — modeled exactly on the answering_screen redirect immediately
+    # above (same seam: a reply to a pending in-band question usually classifies as general_chat and
+    # would otherwise fall through to freeflow, where PSY-WEAVE-1 never runs and the pending safety
+    # check on the PREVIOUS turn's serve is silently starved -- the 2026-07-20 seam, spec §6.1). Placed
+    # at the SAME priority as answering_screen (immediately below crisis, above all intent routing) --
+    # not above it, and not above the crisis-intent check at the top of this function: if a weave-pending
+    # turn ALSO classifies as intent=="crisis", the crisis branch above already returned "crisis" before
+    # this line ever runs, so weave-pending correctly yields to a crisis intent classification (fail-
+    # closed -- the reply still reaches crisis_response, just via the crisis branch, not skill_select).
+    # skill_select_node's own PSY-WEAVE-1 evaluation (order item 1, spec §2.1 step 1) is what actually
+    # judges the reply; this router only guarantees the reply ARRIVES there. This is graph-level ROUTING
+    # decided from state TOWARD the evaluator -- the permitted direction (routing decisions may read
+    # psychoed_* keys to decide where to send a turn); the safety NODES themselves (safety_check,
+    # crisis_response, high_risk_response, derealization_response) still never read psychoed_* keys, so
+    # the never-disarm invariant (state.py channel doc; handoff notes §I.4) is unaffected. Gated on
+    # PSYCHOED_PATHWAYS_ENABLED (local import, same established per-turn-effective pattern as the
+    # hr_disclosure_present check below): psychoed_weave_pending is only ever set by skill_select_node
+    # under that same flag, so with the flag off this branch is unreachable and routing is byte-identical.
+    from sage_poc import config as _psy_cfg  # noqa: PLC0415
+    if _psy_cfg.PSYCHOED_PATHWAYS_ENABLED and state.get("psychoed_weave_pending"):
+        return "skill_select"
+    # EMR screen resumption (2026-08-12): a turn answering the modality screen must reach
+    # skill_select so the held request can deliver (or the adaptive screen continue) —
+    # the same seam class as answering_screen/weave directly above (answers classify as
+    # general_chat and would fall to freeflow, starving the hold). Same priority slot:
+    # below crisis (crisis intent already returned above), below the D1 answer redirect
+    # (disjoint by construction — EMR screens never set D1's screen_pending). Guarded on
+    # active_skill_id; flag OFF -> the channel is never set, byte-identical.
+    if (_psy_cfg.MODALITY_REQUEST_ROUTING_ENABLED
+            and state.get("modality_screen_pending")
+            and not state.get("active_skill_id")):
         return "skill_select"
     if intent == "scope_refusal":
         return "gate"
@@ -307,6 +380,19 @@ def _route_after_intent(state: SageState) -> str:
             and not state.get("active_skill_id")
             and (state.get("prepass_matched") or [])):
         return "skill_select"
+    # EMR redirect (plan 2026-07-28: "an explicit modality request, in a screened context,
+    # always resolves against the clinical binding table — regardless of which way the LLM
+    # intent classifier lands"). Same slot + guards as the prepass hint above, but for ALL
+    # intents that would otherwise miss skill_select (incl. the route-with-release turn,
+    # whose classification is unpredictable by design). Guarded on active_skill_id: a
+    # mid-skill request is surface-1 (executor) territory and falls through unchanged.
+    # Subordinate by ORDER to crisis, the D1/weave redirects, monitoring, the psychotic/HR
+    # referral, and the F6 venting hold above — all of them return before this line.
+    # Flag OFF -> the channel is None, branch unreachable, routing byte-identical.
+    if (_cfg.MODALITY_REQUEST_ROUTING_ENABLED
+            and not state.get("active_skill_id")
+            and (state.get("explicit_modality_request") or {}).get("requested")):
+        return "skill_select"
     if confidence < 0.6:
         return "low_confidence"
     if intent == "exit_skill":
@@ -326,6 +412,12 @@ def _route_after_intent(state: SageState) -> str:
 
 
 def _route_after_skill_select(state: SageState) -> str:
+    # Psychoed Task 8, TOP priority: PSY-WEAVE-1 escalated a weave-pending reply to crisis. This
+    # must win over every other branch below (containment, screen, abstain, info_request, active
+    # skill) — a live safety escalation is never allowed to be shadowed by a routing decision.
+    # skill_select_node sets this only under PSYCHOED_PATHWAYS_ENABLED, so flag-off is unreachable.
+    if state.get("psychoed_weave_escalation"):
+        return "crisis_response"
     # Phase-2 T3: a fired containment directive routes to the containment pathway —
     # knowledge_retrieve seeds the family KB, then the existing knowledge_retrieve→freeflow edge
     # composes the L3/L4 template (validate→psychoeducate→differentiate→refer→engage). Checked
@@ -339,11 +431,20 @@ def _route_after_skill_select(state: SageState) -> str:
     # skill_executor route would be dead — the reference OCD family uses the KB path below.
     if state.get("containment_directive"):
         return "knowledge_retrieve"
+    # Psychoed Task 8: a resolver serve, or the deferred menu-after-weave continuation, routes to
+    # knowledge_retrieve the same way an info_request does — the composer renders the psychoed
+    # payload / menu there. skill_select_node sets these only under PSYCHOED_PATHWAYS_ENABLED, so
+    # flag-off is unreachable and this branch never fires with the flag off.
+    if state.get("psychoed_serve") or state.get("skill_match_method") == "psychoed_menu_after_weave":
+        return "knowledge_retrieve"
     # #338 D1: a SERVED screen question is terminal for this turn. apply_screen_at_route (enforce path) set
     # screen_question_text + active_skill_id=None on an ask_screen decision; the question IS this turn's
     # output. Below containment (crisis > vetoes > containment > screen > routing), above skill routing.
-    # Flag-gated upstream: screen_question_text is only ever set when SAGE_D1_SCREEN (enforce) is on, so this
-    # branch is unreachable with the flag off and the graph is byte-identical to master.
+    # Flag-gated upstream: screen_question_text is set only when SAGE_D1_SCREEN (enforce) is on, OR — since
+    # EMR Phase 2 surface 2 — when SAGE_MODALITY_REQUEST_ROUTING is on and the section-1a screen is pending
+    # (skill_select serves the signed screen question through this same verbatim terminal; audit rows are
+    # distinguished by the modality_request_screen_pending path marker). Both flags off -> unreachable,
+    # graph byte-identical to master.
     if state.get("screen_question_text"):
         return "screen_response"
     # V2 reranker ABSTAIN (below-τ semantic OR keyword-veto) → Node 3 low_confidence_respond, NOT
@@ -369,6 +470,18 @@ def _route_after_skill_select(state: SageState) -> str:
     # "knowledge_retrieve" for info_request exactly as before the consult existed.
     if state.get("primary_intent") == "info_request":
         if state.get("skill_match_method") == "info_request_skill_consult":
+            # C1 (SAGE_CONSULT_SOURCES, ruling 2026-07-29): a consult-selected turn detours
+            # through cards-only retrieval, then proceeds to skill_executor via the static
+            # knowledge_retrieve_cards -> skill_executor edge. SEQUENTIAL insertion, not a
+            # parallel branch, deliberately: skill_executor's conditional router
+            # (_route_after_skill_executor) must remain the SOLE post-executor authority — a
+            # parallel cards branch would carry its own unconditional edge into the join and
+            # fire even on a crisis re-escalation diversion, re-opening the state-channel-seam
+            # class. Retrieval is a sub-second DB call; topology safety wins over §10 fan-out
+            # purity here. Local import so monkeypatch.setattr(config, ...) works in tests.
+            from sage_poc import config  # noqa: PLC0415
+            if config.CONSULT_SOURCES_ENABLED:
+                return "knowledge_retrieve_cards"
             return "skill_executor"
         return "knowledge_retrieve"
     if state.get("active_skill_id"):
@@ -379,6 +492,13 @@ def _route_after_skill_select(state: SageState) -> str:
 def _route_after_skill_executor(state: SageState) -> str:
     if state.get("re_escalation_within_monitoring"):
         return "crisis"
+    # EMR surface 1 rehand: the executor exited on a request-for-alternative (its own
+    # escalation record carries the action) -> the request reaches skill_select, where
+    # the shared delivery gate produces the screened binding-table offer. Below crisis
+    # (unchanged, first). The action string is only ever written under
+    # SAGE_MODALITY_REQUEST_ROUTING, so flag-off routing is byte-identical.
+    if (state.get("escalation_triggered") or {}).get("action") == "exit_with_rehand":
+        return "skill_select"
     return "freeflow"
 
 
@@ -397,12 +517,14 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     graph.add_node("low_confidence_respond", low_confidence_respond_node)
     graph.add_node("skill_select", skill_select_node)
     graph.add_node("knowledge_retrieve", knowledge_retrieve_node)
+    graph.add_node("knowledge_retrieve_cards", knowledge_retrieve_cards_node)  # C1 cards-only (SAGE_CONSULT_SOURCES)
     graph.add_node("skill_executor", skill_executor_node)
     graph.add_node("freeflow_respond", freeflow_respond_node)
     graph.add_node("output_gate", output_gate_node)
     graph.add_node("crisis_response", _crisis_response_node)
     graph.add_node("medical_response", medical_response_node)
     graph.add_node("high_risk_response", high_risk_response_node)
+    graph.add_node("derealization_response", derealization_response_node)  # §1c Part A anxiety-track terminal
     graph.add_node("screen_response", screen_response_node)  # #338 D1 terminal (enforce path)
 
     graph.set_entry_point("safety_check")
@@ -412,10 +534,12 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
         "crisis": "crisis_response",
         "medical": "medical_response",
         "high_risk": "high_risk_response",
+        "derealization": "derealization_response",
     })
     graph.add_edge("crisis_response", END)
     graph.add_edge("medical_response", END)
     graph.add_edge("high_risk_response", END)
+    graph.add_edge("derealization_response", END)
 
     graph.add_conditional_edges("intent_route", _route_after_intent, {
         "skill_select": "skill_select",
@@ -430,16 +554,22 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     graph.add_conditional_edges("skill_select", _route_after_skill_select, {
         "skill_executor": "skill_executor",
         "knowledge_retrieve": "knowledge_retrieve",
+        "knowledge_retrieve_cards": "knowledge_retrieve_cards",  # C1: consult turn detour, flag-gated in the router
         "low_confidence": "low_confidence_respond",
         "freeflow": "freeflow_respond",
         "screen_response": "screen_response",   # #338 D1: served screen question → terminal
+        "crisis_response": "crisis_response",   # Psychoed Task 8: PSY-WEAVE-1 escalation
     })
     graph.add_edge("screen_response", END)
     graph.add_edge("knowledge_retrieve", "freeflow_respond")
+    # C1: cards retrieval is a sequential detour INTO skill_executor, whose conditional router
+    # stays the sole post-executor authority (crisis re-escalation etc.) — see the router comment.
+    graph.add_edge("knowledge_retrieve_cards", "skill_executor")
 
     graph.add_conditional_edges("skill_executor", _route_after_skill_executor, {
         "crisis": "crisis_response",
         "freeflow": "freeflow_respond",
+        "skill_select": "skill_select",   # EMR surface-1 rehand (exit_with_rehand only)
     })
     graph.add_edge("freeflow_respond", "output_gate")
     graph.add_conditional_edges("output_gate", _route_after_output_gate, {

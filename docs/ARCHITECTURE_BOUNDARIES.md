@@ -250,3 +250,53 @@ design that keeps generating false positives. The posture held (zero exposure); 
 graph MUST use fresh session_ids per run — a reused thread carries per-session state across runs and produces
 artifacts. The convergence gate's serve-uniformity drive already does this (fresh sessions); that is why it
 passed clean while the reused-session acceptance probe went red on the same fleet.
+
+## A detection recall number is meaningless unless its fixtures are independent of the detector's pattern source
+
+**Rule:** any safety-route recall claim MUST cite **naturalistic / paraphrased** fixtures, independent of the
+patterns the detector matches on. **Verbatim-fixture recall — a fixture whose utterances ARE the detector's own
+pattern strings — measures the detector against itself: a tautology, not a measurement.** It reports ~100%
+regardless of real-world coverage. This is the paraphrase-variant rule already in force for harm-gate cases,
+now binding on **every** detection route by name: no recall figure enters a go/no-go packet, a ratification
+ask, or a deploy gate unless its corpus is independent of the pattern source and reflects how real users
+phrase the disclosure.
+
+**Why:** substring/keyword detectors (CF-005 family, E7, the OCD/harm lexicons) match fixed strings. If the
+recall corpus is built from those same strings, recall is 1.0 by construction and tells you nothing about the
+naturalistic disclosures the route exists to catch. The gap between the two is the entire safety question.
+
+**Citation — E7 §6a IPV (2026-07-22):** E7 was ratified for go-live on a "100/100 recall" that was measured on
+`ipv_e7_recall.json`, whose 19 utterances are the 19 verbatim §6a sentences `_matches_expansion` substring-
+matches. Enabled on prod, E7 fired on **none** of three naturalistic coercive-control paraphrases (probe
+measured: matcher True on the fixture sentence, False on every paraphrase). The tautology was invisible in the
+packet and cost a clinician signature obtained on a false premise (corrected same day,
+`2026-07-22-e7-premise-correction-to-vee.md`). Same class as Clinical-Flag Detection Gap #65 (keyword tier, no
+semantic matching, naturalistic disclosures miss). **The recall rule that existed for harm-gate cases was not
+applied to E7; it now applies to all detection routes.**
+
+**Operational corollary (deploy-storm, 2026-07-22):** a live-verify is only valid against a *converged* fleet.
+The conformance runner's `serving == desired` guard protects measurement from a mid-transition fleet, but the
+same stale-window exposure applies to **every** live check — live-verifies, conformance probes, any step-3
+readback. During a rolling deploy `/health` and `/chat` can hit different replicas (see the serve-path
+convergence rule above). **Any live-verify MUST confirm `serving == desired` before trusting its own reading**,
+the same discipline the runner enforces — otherwise it may measure a superposition and record a stale result as
+current.
+
+## An instrument's noise floor must be characterized before its readings gate a decision
+
+**Rule:** a measurement whose run-to-run variance is unknown cannot support a regression, neutrality, or
+acceptance claim — the reading might be signal or might be inside the noise band. Any number that gates a
+decision (a drift gate, a build's acceptance, a go/no-go) must FIRST have its instrument's noise floor
+published: N≥3 repeat runs at a **fixed, fully-specified input**, per-cell stability, the variance band named.
+And "fixed input" means fixed CONFIG, not just fixed SHA — an uncontrolled config var (see the cosine-threshold
+confound below) invalidates a same-SHA comparison as surely as a code change would.
+
+**Citation — four-for-four this month, one root (a number used before its instrument's properties were
+known):** (1) E7 recall measured against its own pattern strings (tautology, not a measurement); (2) the
+conformance "8→7→6 trend" read off single runs (refuted by a same-SHA run landing 8/36); (3) the E7
+ratification pressed on that recall number without asking what corpus produced it; (4) two v5 runs both passing
+the flag-parity guard as VERIFIED while differing on `SAGE_COSINE_ABSTAIN_THRESHOLD` (0.0 vs prod 0.42) —
+because the guard asserted parity only on the 8 vars `/health` exposes, not the ~19 it does not. The instrument
+itself had an uncharacterized property (partial readback coverage), and its "VERIFIED" was trusted past what it
+covered. The variance-characterization run (fixed prod config, N≥3) operationalizes this rule for the
+conformance instrument; the parity-guard coverage fix closes the property gap that hid confound #4.

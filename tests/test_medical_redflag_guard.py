@@ -169,14 +169,35 @@ async def test_medical_response_clears_active_skill():
     assert out["offered_skill_ids"] is None
 
 
-def test_honesty_notes_ship_verbatim():
+def test_honesty_disclosure_reflects_actual_arabic_state():
+    """Behavior-anchored (replaces a stale prose-assert on 'ZERO native Arabic' that #329 falsified
+    while this test was ungated — a false safety-capability disclosure that drifted red invisibly).
+    The shipped Arabic honesty disclosure (_meta['arabic'] AND the module docstring) must MATCH the
+    guard's ACTUAL native-Arabic detection: it may not claim ZERO native coverage while the guard
+    fires on native Arabic, and it must still mark itself INTERIM, not full coverage. A future
+    capability change updates the guard + the disclosure together, by construction."""
     import json
     from pathlib import Path
     import sage_poc.safety.medical_redflag as mr
+    mr._patterns.cache_clear()
     meta = json.loads(Path(mr._PHRASES_PATH).read_text())["_meta"]
-    assert "Not coverage" in meta["status"]
-    assert "ZERO native Arabic" in meta["arabic"]
-    assert "Arabic" in mr.__doc__ and "ZERO native coverage" in mr.__doc__
+    disclosure = (meta["arabic"] + " " + (mr.__doc__ or "")).lower()
+
+    # (1) never claims full coverage — interim harm-floor by design
+    assert "not coverage" in meta["status"].lower() or "interim" in meta["status"].lower()
+    assert "do not present this as coverage" in disclosure or "not coverage" in disclosure
+
+    # (2) the Arabic claim must match ACTUAL detection behavior (anchor on the guard, not a string)
+    fires_on_native_arabic = bool(mr.detect_medical_redflag("ألم ضاغط في صدري"))  # crushing chest pain (AR)
+    if fires_on_native_arabic:
+        assert "zero native" not in disclosure, \
+            "guard DETECTS native Arabic but the disclosure claims ZERO native coverage (false capability claim)"
+        assert "native" in disclosure and "arabic" in disclosure, \
+            "guard detects native Arabic but the disclosure omits it"
+        assert "interim" in disclosure, "native-Arabic layer must be disclosed as INTERIM, not full coverage"
+    else:
+        assert "zero native" in disclosure or "english-only" in disclosure, \
+            "guard has no native-Arabic detection but the disclosure implies it does"
 
 
 def test_medical_referral_uses_998_not_999_lead():

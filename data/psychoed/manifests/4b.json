@@ -1,0 +1,15 @@
+{
+  "category": "4b",
+  "delivery_shape": "answer_first",
+  "safety_weave": false,
+  "framing_statement": "It makes sense you'd want to understand your reactions a bit better, emotions can feel like they come out of nowhere, but there's usually a real reason behind the size and shape of a reaction, even when it feels confusing in the moment. Let's start with what you're asking.",
+  "menu_offer": "Want to go deeper into any of this? I can walk through: why we have emotions at all, what different emotions are actually signaling, why intensity varies so much between people, what getting 'triggered' really means, why your body reacts before you can think, the difference between responding and reacting, or why shutting down/avoiding is a real protective response rather than a flaw.",
+  "check_in": "Does that help make more sense of it? Want to explore another topic, or is there something specific going on right now you'd want help with?",
+  "blocks": ["4b-b1", "4b-b2", "4b-b3", "4b-b4", "4b-b5", "4b-b6", "4b-b7"],
+  "bridge_map": [
+    {"block_id": "4b-b6", "skill_id": "box_breathing", "offer": "optional", "doc_route": "1a"},
+    {"block_id": "4b-b6", "skill_id": "grounding_5_4_3_2_1", "offer": "optional", "doc_route": "1a"}
+  ],
+  "guards": ["acute_distress", "diagnosis_guard", "crisis_override"],
+  "source_citation": {"file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md", "section": "4b – UNDERSTANDING EMOTIONS"}
+}

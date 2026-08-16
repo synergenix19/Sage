@@ -1,0 +1,19 @@
+{
+  "article_id": "s2c-b1",
+  "language": "en",
+  "title": "What is grief?",
+  "content": "Grief is the natural response to loss, not just sadness, but a whole-person reaction that can show up emotionally, physically, mentally, and even socially. It reflects how much the relationship or the person mattered; the intensity of grief is really a measure of that connection, not a sign anything's wrong with you.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "s2c",
+    "article_family": "understanding_grief",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "What is grief?",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "S2c – UNDERSTANDING GRIEF, §3 Content Library, item 1"
+    }
+  }
+}

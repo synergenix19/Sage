@@ -1,0 +1,74 @@
+{
+  "category": "7c",
+  "language": "en",
+  "rows": [
+    {
+      "row_id": "7c-t1",
+      "type": "How-to / practical",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "How do I make friends?",
+        "How do I meet new people?",
+        "How do I build relationships?",
+        "How do I connect with people?",
+        "How do I create meaningful connections?",
+        "How do I stop feeling disconnected?"
+      ]
+    },
+    {
+      "row_id": "7c-t2",
+      "type": "Goals / desires",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "I want to make more friends.",
+        "I want to feel more connected.",
+        "I want deeper relationships.",
+        "I want closer friendships.",
+        "I want to expand my social circle.",
+        "I want to feel like I belong.",
+        "I want to strengthen my relationships.",
+        "I want better relationships.",
+        "I want to connect more with my family.",
+        "I want to feel closer to people."
+      ]
+    },
+    {
+      "row_id": "7c-t3",
+      "type": "Specific struggles",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "I don't know how to start conversations.",
+        "I struggle to connect with people.",
+        "I find it hard to make friends.",
+        "I don't know how to get to know people.",
+        "I feel awkward around people.",
+        "I don't know how to keep a conversation going.",
+        "I find it hard to open up.",
+        "I don't know how to build meaningful relationships.",
+        "I don't know how to maintain friendships."
+      ]
+    },
+    {
+      "row_id": "7c-t4",
+      "type": "Confidence / skills",
+      "framing": "personal",
+      "route": "standard",
+      "row_provenance": "doc_table",
+      "phrases": [
+        "I want to improve my social skills.",
+        "I want to become more confident socially."
+      ]
+    }
+  ],
+  "provenance_note": "Doc §7c §0 Trigger Words/Recognition is a real Type|Examples pipe table; all 4 rows transcribed with Type verbatim. Every phrase in every row is explicitly first-person self-facing ('how do I', 'I want', 'I don't know how to', 'I struggle', 'I feel'), unlike 3c-t4 which mixed self-facing and topic-facing phrasing under one Type label; no framing judgment call was needed here, so all 4 rows are framing=personal, row_provenance=doc_table (same unambiguous pattern as 4b, not the 3c-t4/t5 inferred pattern). No diagnosis-seeking or formal-diagnosis phrase found in this section; all rows route standard.",
+  "source_citation": {
+    "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+    "section": "7c – HOW DO I CONNECT, §0 Trigger Words / Recognition"
+  }
+}

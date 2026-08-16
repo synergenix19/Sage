@@ -1,0 +1,19 @@
+{
+  "article_id": "1f-b2",
+  "language": "en",
+  "title": "Fight, flight, or freeze",
+  "content": "When your brain detects a threat, it triggers a rapid chain reaction, stress hormones like adrenaline get released to prepare your body to fight the danger, run from it, or freeze until it passes. This system evolved for physical threats, like an animal encounter. The tricky part is it still fires for modern, non-physical 'threats', a work deadline, a social situation, an argument, even though there's nothing to physically fight or flee from.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "1f",
+    "article_family": "understanding_anxiety",
+    "delivery_shape": "menu_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "Fight, flight, or freeze",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "1f – UNDERSTANDING ANXIETY, Content per Topic, item 2"
+    }
+  }
+}

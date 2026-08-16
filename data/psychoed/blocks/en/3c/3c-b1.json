@@ -1,0 +1,19 @@
+{
+  "article_id": "3c-b1",
+  "language": "en",
+  "title": "What is depression? (bio-psycho-social model)",
+  "content": "Depression isn't just 'feeling sad', it usually comes from an interacting mix of biological factors (brain chemistry, genetics, physical health), psychological factors (thought patterns, past experiences, coping style), and social factors (relationships, stress, life circumstances). That's why there's rarely one single cause, and why it isn't something you can just decide your way out of.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "3c",
+    "article_family": "understanding_depression",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "What is depression? (bio-psycho-social model)",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "3c – UNDERSTANDING DEPRESSION, §4 Content Library, item 1"
+    }
+  }
+}
