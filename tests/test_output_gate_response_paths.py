@@ -208,13 +208,13 @@ async def test_crisis_passthrough_path():
     """Crisis response text from crisis_response_node must flow through the standard path unchanged."""
     from sage_poc.nodes.output_gate import output_gate_node
 
-    crisis_text = "I hear you. Please reach out: UAE MoHAP 800 46342."
+    crisis_text = "I hear you. Please reach out: UAE National Mental Support Line 800-4673."
     state = make_state(gate_path=None, response_en=crisis_text, crisis_state="active")
 
     with patch("sage_poc.nodes.output_gate._log_clinical_review", new=AsyncMock()):
         result = await output_gate_node(state)
 
-    assert "800 46342" in result["response"], (
+    assert "800-4673" in result["response"], (
         f"Crisis hotline number must be preserved through standard path, got: {result['response']!r}"
     )
 

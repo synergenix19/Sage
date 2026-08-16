@@ -1,0 +1,19 @@
+{
+  "article_id": "3c-b4",
+  "language": "en",
+  "title": "Why things can feel numb or empty (anhedonia)",
+  "content": "One of the core features of depression is a reduced ability to feel pleasure, even from things that used to matter, sometimes called anhedonia. That's not the same as not caring; it's more like the emotional volume has been turned down on everything, which is also why some people describe it as numbness or emptiness rather than sadness.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "3c",
+    "article_family": "understanding_depression",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "Why things can feel numb or empty (anhedonia)",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "3c – UNDERSTANDING DEPRESSION, §4 Content Library, item 4"
+    }
+  }
+}

@@ -7,8 +7,6 @@
   "self_evolution": "manual_only",
   "target_presentations": [
     "i need to breathe",
-    "need to breathe right now",
-    "do with my breathing",
     "breathing exercise",
     "breathing technique",
     "box breathing",
@@ -69,6 +67,7 @@
         "Let's do this together. Inhale through your nose: one... two... three... four. Now hold gently: one... two... three... four. You've got this — let me know when you're ready to continue."
       ],
       "contraindications": "Do NOT instruct rapid breathing. Do NOT advance to exhale if the user signals they are hyperventilating, cannot control their breath, or has flagged respiratory conditions, asthma, or a heart condition. Offer to skip the hold and go straight to a slow natural exhale. Do NOT begin this technique if the user's message contained action-seeking language ('what can I do', 'how do I handle this', 'give me a strategy', 'I want to deal with this'). When action-seeking language is present, acknowledge the feeling and ask what kind of support they are looking for before proceeding.",
+      "mandatory_caveat": "Before we start — if you have asthma, a breathing condition, or a heart condition, we'll keep this gentle and skip the breath-hold. Just let me know and we'll adjust.",
       "completion_criteria": "User confirms they completed both the inhale and the hold, or responds in a way that shows they did both without distress."
     },
     {
@@ -150,9 +149,9 @@
   ],
   "escalation_matrix": {
     "L1": "Exit skill gracefully if user requests to stop. No persuasion. Acknowledge the attempt.",
-    "L2": "Add clinician_review flag if user mentions asthma, heart condition, respiratory illness, or if they report the exercise made them feel worse (not just neutral).",
-    "L3": "Exit immediately to crisis protocol if any crisis signal detected during the exercise.",
-    "L4": "Trigger human handoff if 3+ crises detected in last 30 days, or if user explicitly requests a human."
+    "L2": "[STORED_ONLY — enforced by output_gate._log_clinical_review -> clinician_review_queue, not by this string] Documented clinical intent (not runtime-enforced): Add clinician_review flag if user mentions asthma, heart condition, respiratory illness, or if they report the exercise made them feel worse (not just neutral).",
+    "L3": "[STORED_ONLY — enforced by the safety graph (_route_after_safety -> _crisis_response_node), not by this string] Documented clinical intent (not runtime-enforced): Exit immediately to crisis protocol if any crisis signal detected during the exercise.",
+    "L4": "[NOT_IMPLEMENTED — human-handoff automation deferred per 2026-07-10 decision record; no live call routing in POC; OR-7 response floor covers explicit human requests; 3+ crises/30d trigger deferred to the D4(a) exposure gate] Documented clinical intent (not runtime-enforced): Trigger human handoff if 3+ crises detected in last 30 days, or if user explicitly requests a human."
   },
   "cultural_overrides": {
     "halal_framing": "Box breathing is a physiological technique with no spiritual or religious content. It can be offered without qualification to Muslim users. If a user asks whether it conflicts with Islamic practice, the accurate answer is that it does not, it is simply regulated breathing that activates the parasympathetic nervous system, the same mechanism as the long exhalations in recited Quran.",

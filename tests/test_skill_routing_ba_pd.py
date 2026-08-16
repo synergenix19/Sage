@@ -69,7 +69,8 @@ _KNOWN_SUBSTRING_SHADOWS: frozenset[tuple[str, str, str, str]] = frozenset({
     # Pre-existing on trunk, surfaced 2026-07-07 during MM registration (no CI caught them — the
     # deploy-pipeline gap's third form). Documented so the invariant holds; NOT introduced here.
     # Flagged as a Lane 1 routing-baseline item to fix, not to accept forever.
-    ("setting limits",  "assertive_communication", "setting limits in",              "interpersonal_effectiveness"),
+    # ("setting limits" / "setting limits in") RESOLVED 2026-07-31: the IE fragment was
+    # reverted per Vee's sign-off sheet item 7d — entry removed per this ledger's own rule.
     ("thought record",  "cbt_thought_record",      "thought records aren't helping", "act_psychological_flexibility"),
     ("thought records", "cbt_thought_record",      "thought records aren't helping", "act_psychological_flexibility"),
 })

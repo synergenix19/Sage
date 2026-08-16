@@ -13,10 +13,14 @@
       "crisis_level": "acute",
       "action": {
         "type": "crisis_response",
-        "response_text": "I'm really concerned about what you've shared. Please reach out for support now. In the UAE: MoHAP Counselling Line {{crisis_number}} (free, {{crisis_hours}}), or emergency services: {{crisis_emergency}}. You don't have to face this alone.",
+        "response_text": "I'm really concerned about what you've shared. Please reach out for support now. In the UAE: {{crisis_label}} {{crisis_number}} (free, {{crisis_hours}}), or emergency services: {{crisis_emergency}}. You don't have to face this alone.",
         "resources": [
-          {"name": "MoHAP Counselling Line", "number": "{{crisis_number}}", "available": "{{crisis_hours}}"},
-          {"name": "Emergency Services", "number": "{{crisis_emergency}}", "available": "{{crisis_hours}}"}
+          {"name": "{{crisis_label}}", "number": "{{crisis_number}}", "available": "{{crisis_hours}}"},
+          {"name": "Emergency Services", "number": "{{crisis_emergency}}", "available": "24/7"},
+          {"name": "Abu Dhabi 24/7 crisis line", "number": "800-SAKINA (800-725462)", "available": "24/7"},
+          {"name": "Dubai Health Authority helpline", "number": "800 111", "available": "24/7"},
+          {"name": "Sharjah Child & Youth Mental Health Helpline", "number": "800 51115", "available": "9am–5pm Mon–Fri"},
+          {"name": "Nearest hospital emergency department", "number": "999 / nearest ER", "available": "immediate danger or outside helpline hours"}
         ]
       }
     },
@@ -32,11 +36,11 @@
       "crisis_level": "extended",
       "action": {
         "type": "crisis_response",
-        "response_text": "Here are crisis and mental health resources in the UAE:\n- MoHAP Counselling Line: {{crisis_number}} (free, {{crisis_hours}})\n- CDA Mental Health Support: 800 4888\n- Emergency Services: {{crisis_emergency}}\n- Al Amal Psychiatric Hospital: in-person psychiatric support\n- Lighthouse Arabia, Camali Clinic, American Center for Psychiatry and Neurology: therapy in Dubai\n\nIf you're in immediate danger, please call {{crisis_emergency}} or go to your nearest emergency room.",
+        "response_text": "Here are crisis and mental health resources in the UAE:\n- {{crisis_label}}: {{crisis_number}} (free, {{crisis_hours}})\n- CDA Mental Health Support: 800 4888\n- Emergency Services: {{crisis_emergency}}\n- Al Amal Psychiatric Hospital: in-person psychiatric support\n- Lighthouse Arabia, Camali Clinic, American Center for Psychiatry and Neurology: therapy in Dubai\n\nIf you're in immediate danger, please call {{crisis_emergency}} or go to your nearest emergency room.",
         "resources": [
-          {"name": "MoHAP Counselling Line", "number": "{{crisis_number}}", "available": "{{crisis_hours}}"},
+          {"name": "{{crisis_label}}", "number": "{{crisis_number}}", "available": "{{crisis_hours}}"},
           {"name": "CDA Mental Health Support", "number": "800 4888"},
-          {"name": "Emergency Services", "number": "{{crisis_emergency}}", "available": "{{crisis_hours}}"},
+          {"name": "Emergency Services", "number": "{{crisis_emergency}}", "available": "24/7"},
           {"name": "Al Amal Psychiatric Hospital", "type": "in-person"},
           {"name": "Lighthouse Arabia", "type": "therapy"},
           {"name": "Camali Clinic", "type": "therapy"},
@@ -57,9 +61,9 @@
       "crisis_level": "monitoring_fallback",
       "action": {
         "type": "crisis_response",
-        "response_text": "I'm still here with you. If things get harder, please reach out right now, the UAE MoHAP support line on {{crisis_number}}, or {{crisis_emergency}} for an emergency.",
+        "response_text": "I'm still here with you. If things get harder, please reach out right now, the UAE {{crisis_label}} on {{crisis_number}}, or {{crisis_emergency}} for an emergency.",
         "resources": [
-          {"name": "MoHAP Counselling Line", "number": "{{crisis_number}}", "available": "{{crisis_hours}}"},
+          {"name": "{{crisis_label}}", "number": "{{crisis_number}}", "available": "{{crisis_hours}}"},
           {"name": "Emergency Services", "number": "{{crisis_emergency}}"}
         ]
       }

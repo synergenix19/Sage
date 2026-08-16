@@ -13,9 +13,11 @@ class SageState(TypedDict):
 
     is_safe: bool
     crisis_flags: list[str]
+    medical_flags: list[str]    # B1/E3: verbatim §1 red-flag phrase ids fired this turn; empty until the interim guard or full detector populates it. Declared channel (LangGraph drops undeclared keys).
     s3_score: Optional[float]    # advisory BGE-M3 cosine similarity; 0 recall adds at 0.8059 per CRADLE sweep
     clinical_flags: list[str]   # substance_use, trauma_indicator, eating_concern, medication_mention
     new_clinical_flags_turn: list[str]  # flags detected THIS turn only; reset each turn in _build_state()
+    medical_flags: list[str]    # E3 medical red-flag channel read by safety_precedence._medical_fired; empty until B1 (medical red-flag screen) writes it. Declared now so B1's write survives the node->node seam (would otherwise be dropped like SG-2's step_mandatory_caveat).
     third_party_crisis: bool    # user is concerned about someone else's safety, not their own
 
     crisis_state: str              # "none" | "active" | "monitoring" | "resolved"
@@ -56,12 +58,20 @@ class SageState(TypedDict):
     active_skill_id: Optional[str]
     completed_skill_id: Optional[str]  # set on skill_complete turn for audit attribution; reset to None each turn via _build_state
     active_step_id: Optional[str]      # step the NEXT turn will start from
+    hr_terminal_step: Optional[str]    # HR-1 Stage 2: high_risk_response's own 2-3 turn step machinery ("await_distress" | "reask" | None); persists via checkpoint like active_step_id. Declared channel (LangGraph drops undeclared keys between nodes -- the SG-2 bug).
+    hr_escalate_regardless: bool       # HR-1 Stage 2 Finding 1: mania_behavior_underway(message_en) computed at HR entry, persisted across the protocol so a later low numeric distress score can never mask risky-behavior-already-underway evidence (resolve_hr_branch ORs this in). Declared channel, same reason as hr_terminal_step.
+    hr_branch: Optional[str]           # HR-1 Stage 2 Task 3: "higher" | "lower", set the turn high_risk_response resolves the distress branch. Task 3's node-level tests called the node directly and never caught that this was undeclared -- LangGraph silently dropped it between nodes (found by Task 4's full-graph wiring, the same SG-2 seam class). Declared channel, per-turn (only present on the delivery turn).
+    hr_distress_score: Optional[int]   # HR-1 Stage 2 Task 3: parsed 0-10 distress score on the delivery turn; same undeclared-channel gap as hr_branch above, same fix.
+    hr_referral_delivered: Optional[bool]  # HR-1 Stage 2 Task 4 fix: True once high_risk_response delivers a terminal branch ("higher"/"lower"); persists via checkpoint for the session. One-shot guard on _route_after_safety's HR ENTRY check, mirroring Stage 1's psychotic_referral_delivered -- without it, clinical_flags' session-lifetime persistence (never cleared) re-fires the ENTRY branch and re-asks the distress question on every later turn. Declared channel (LangGraph drops undeclared keys between nodes, the SG-2 bug class).
+    derealization_referral_delivered: Optional[bool]  # §1c Part A: True once derealization_response delivers the anxiety-track referral; one-shot guard on _route_after_safety's derealization ENTRY check, mirroring hr_referral_delivered (clinical_flags persist for the session, so without it the referral re-fires every later turn). Declared channel (SG-2 bug class).
     executed_step_id: Optional[str]    # step whose instruction was used THIS turn (for audit)
     step_instruction: Optional[str]
+    step_mandatory_caveat: str         # SG-2: executed step's contraindication caveat, written by skill_executor and read by output_gate to deliver VERBATIM. MUST be a declared channel — LangGraph drops undeclared keys between nodes (fixed 2026-07-15; the node->node seam that silently no-op'd SG-2 for all skills). Empty for non-safety steps.
     rule_fired: Optional[bool]         # True when a step_policy rule override replaced the default step instruction; reset each turn
     prev_step_id: Optional[str]        # step executed on the PREVIOUS turn; persists via LangGraph checkpoint for continuation detection
     prev_primary_intent: Optional[Intent]  # primary_intent of the PREVIOUS turn; persists via checkpoint (absent from _build_state, not reset). Used to detect a CONSECUTIVE info_request ("lookup mode") so the composer switches info_request from the question-close base to the statement-bridge repeat variant. An intervening non-info_request turn resets it, restoring the question-close (re-triage after a context switch).
-    skill_match_method: Optional[str]   # "keyword" | "semantic" | None
+    skill_match_method: Optional[str]   # "keyword" | "semantic" | "post_crisis_auto_select" | "psychotic_disclosure_auto_select" | "info_request_skill_consult" | None
+    hr_neutrality_rejected: Optional[bool]  # Node-8 §5 gate: True when output_gate replaced a non-account-framed HR-referral output with the signed fallback (Vee Option A). Audit-logged so the drift RATE is visible. Declared channel (LangGraph drops undeclared keys between nodes -- the SG-2 bug class).
     semantic_score: Optional[float]     # cosine similarity if semantic match
     offered_skill_ids: Optional[list[str]]  # R1: 1-2 skills offered, pending accept/decline; persists via checkpoint; cleared on accept (skill_select), decline/ignore (intent_route), crisis (crisis_response), stale gap
     last_offer_turn: Optional[int]           # D3: turn_count when the last skill offer was made; used by offer cooldown in skill_select
@@ -87,8 +97,15 @@ class SageState(TypedDict):
     knowledge_query_raw: str        # query as submitted (pre-normalization)
     knowledge_query_searched: str   # query actually searched (post-normalization)
     knowledge_top_similarity: float | None  # best cosine sim in the returned pack; drives abstain
+    # C1 cards-only retrieval (SAGE_CONSULT_SOURCES): populates Further-Reading cards + audit on
+    # consult turns. SEPARATE channels from knowledge_passages BY DESIGN — the composer's L4 block
+    # and _allow_light_structure read knowledge_passages, so keeping cards out of that channel is
+    # what makes "the prompt is byte-untouched" structural rather than a convention.
+    cards_knowledge_passages: list[dict]      # same passage shape as knowledge_passages
+    cards_knowledge_abstain: bool             # ABSTAIN floor applies: abstain -> no cards
+    cards_knowledge_top_similarity: float | None
 
-    gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak", "crisis"]]
+    gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak", "crisis", "medical", "high_risk", "derealization"]]
 
     response_en: Optional[str]
     response: Optional[str]
@@ -106,6 +123,7 @@ class SageState(TypedDict):
     translate_out_ms: Optional[int]  # served translate-out time (async_translate_to_arabic + strict retry), ms; set by output_gate_node, None when translate-out doesn't run; written to session_audit
     conversation_history: list[dict]
     stall_detected: Optional[bool]       # deterministic stall-guard signal (per-turn); set in intent_route, read by composer
+    venting_detected: bool   # F6: deterministic PI-VI-001 don't-fix signal; consumed by _route_after_intent to suppress skill imposition (route to presence). Declared channel.
     therapeutic_profile: Optional[dict]  # loaded at turn start; injected into L5
     user_id:    Optional[str]            # authenticated user UUID from request
     session_id: Optional[str]            # = thread_id; needed by tools and summary persistence
@@ -118,3 +136,108 @@ class SageState(TypedDict):
     banned_opener_correction: Optional[str]
     banned_opener_violation: bool          # True if banned opener persisted after retry AND passed through to user (no fallback)
     banned_opener_fallback_used: bool      # True when _VETTED_FALLBACK_RESPONSE substituted after exhausted retry
+
+    # D1 medical screen (#338) — declared channels (LangGraph drops undeclared keys; declare-before-write,
+    # the state-channel lesson). ACCEPTANCE: a contraindication decision must be traceable to its rule +
+    # answer for the PDPL right-to-object story. Written by the screen wiring; empty for non-screen turns.
+    screen_asked: bool                     # the D1 discriminating question was asked this turn (per-turn)
+    screen_answer_class: Optional[str]     # clear_no | red_flag | contraindication_disclosed | yes | unclear | no_answer (per-turn audit)
+    screen_branch_taken: Optional[str]     # proceed | medical_guard | grounding | abandoned_crisis (per-turn)
+    # #338 SILENT shadow observation (per-turn): the would-be screen decision when D1_SCREEN_SHADOW is on and
+    # enforce is off. Written by apply_screen_at_route, READ by _build_session_audit_row -> the per-turn audit
+    # row. DECLARED here so LangGraph does not drop them between skill_select and output_gate (the SG-2 seam
+    # class). Anonymised class+route only (PDPL-approved 2026-07-17); no message content ever.
+    screen_question_text: Optional[str]        # PER-TURN: the signed screen question, set by apply_screen_at_route
+                                               # on an ask_screen decision and READ by _route_after_skill_select
+                                               # (routes to screen_response) + the terminal. DECLARED because it
+                                               # crosses skill_select -> router; the 2026-07-20 enforce-flip
+                                               # incident was this exact drop (undeclared -> served freeflow).
+    screen_shadow_action: Optional[str]        # ask_screen | proceed | reroute_grounding | to_medical_guard | abandon_crisis
+    screen_shadow_answer_class: Optional[str]  # the would-be answer class (None on a fire/ask turn)
+    screen_shadow_branch: Optional[str]        # the would-be branch (None on a fire/ask turn)
+    # PER-SESSION (persist across turns via the checkpointer — NOT reset per-turn, unlike the directives
+    # above). A clear_no once → never re-screened this session; a not-cleared answer → never re-offered TIPP.
+    session_screen_answer: Optional[str]   # the session's settled screen answer class; None = not yet screened
+    screen_pending: bool                   # a screen question was asked; set on the emit turn, consumed next turn
+    screen_held_skill: Optional[str]       # PER-SESSION: the contraindicated skill held while the screen is
+                                           # pending; resumed on a clear_no answer, cleared on any release
+    answering_screen: bool                 # PER-TURN: set by consume_pending_screen at graph entry when a
+                                           # screen was pending; the structural guarantee the hold outlives
+                                           # exactly one turn (screen_pending cleared the same turn)
+    # Classifier provenance (SAGE_AUDIT_CLASSIFIER_PROVENANCE, default OFF — Node-2 bistability finding
+    # 2026-07-28). PER-TURN, reset in _build_state. Written by intent_route ONLY when the flag is ON
+    # (flag-OFF state update is byte-identical to today), read by audit._build_session_audit_row.
+    # MUST be declared channels: LangGraph drops undeclared keys between nodes (the SG-2 seam class),
+    # which here would silently record NULL provenance while every component test stays green.
+    classifier_context_hash: Optional[str]  # sha256 hex of the exact assembled classifier prompt messages, computed in intent_route immediately before invocation
+    classifier_provider: Optional[str]      # upstream provider: response metadata "provider" if OpenRouter returns it, else the SAGE_OPENROUTER_PROVIDER_PIN value, else None
+    classifier_system_fingerprint: Optional[str]  # Q-b (seed HONOR, not seed request): system_fingerprint echoed by the provider, or None when absent/empty — the only available signal of the backend config that served the call; a requested seed proves intent, this records what came BACK
+    panic_grounding_override: bool         # PER-TURN (Part A): set by intent_route when the deterministic
+                                           # panic-grounding override applies (safety_check clean + clear panic
+                                           # + no harm + intent=crisis). Declared channel so _route_after_intent
+                                           # reads it (SG-2: undeclared keys are dropped between nodes).
+    modality_screen_pending: Optional[dict]  # HOLD (EMR screen resumption, 2026-08-12): set when the EMR
+                                           # screen question is served ({"modality_hint": str|None} = the
+                                           # pending request's hint), so the request SURVIVES to the answer
+                                           # turn; the router redirects pending turns to skill_select and the
+                                           # delivery gate fires on pending OR a fresh request. Cleared on
+                                           # offer delivery or screen abandonment. DISJOINT from D1's
+                                           # screen_pending by construction (screen_response preserves, never
+                                           # forces, the D1 hold).
+    recent_presentation: Optional[dict]    # SESSION-SCOPED (EMR Phase 2, M1 stand-in for the Active Issues
+                                           # List): deterministic screening/presentation accumulation from
+                                           # matching.update_presentation_context, written by intent_route each
+                                           # turn ONLY when SAGE_MODALITY_REQUEST_ROUTING is ON (OFF omits the
+                                           # key entirely; checkpoint carries prior value). Monotonic latches
+                                           # (red_flag_language never un-sets); cleared/referral_alongside are
+                                           # DERIVED fields. Consumers gate all skill delivery on cleared=True.
+    explicit_modality_request: Optional[dict]  # PER-TURN (EMR Phase 1): {"requested": bool, "modality_hint":
+                                           # str|None} from matching.detect_explicit_modality_request, written
+                                           # at the head of intent_route BEFORE the LLM call, every turn (None
+                                           # when flag OFF; describes THIS turn only, unlike recent_presentation).
+                                           # ONE detector, THREE Phase-2 consumers (executor rehand, info_request
+                                           # early-return, offer-reply resolution) read this same channel.
+    grief_presence_override: bool          # PER-TURN (S2a, built inert 2026-08-04): set by intent_route when
+                                           # the deterministic grief-presence deference applies (safety_check
+                                           # clean + clear bereavement + no harm + intent=crisis). Same declared-
+                                           # channel contract as panic_grounding_override directly above.
+
+    # --- Psychoed pathway channel (spec 2026-07-23 §4.2; Phase 2). ---
+    # psychoed_serve is PER-TURN: reset each turn in _build_state(). All others are
+    # pathway-scoped (cleared on pathway exit by skill_select/output_gate, after audit
+    # persist) except psychoed_family_exposures which is session-scoped (carry-forward,
+    # schema-extension follow-up to spec §10 item 7).
+    psychoed_serve: Optional[dict]
+    psychoed_active_category: Optional[str]
+    psychoed_delivery_shape: Optional[str]
+    psychoed_blocks_served: list[str]
+    psychoed_menu_offered: bool
+    psychoed_weave_fired: bool
+    psychoed_weave_pending: bool
+    psychoed_matched_row_id: Optional[str]
+    psychoed_collision_path: Optional[str]
+    psychoed_framing: Optional[str]
+    psychoed_family_exposures: list[str]
+    psychoed_weave_escalation: bool  # PER-TURN (Task 8): True for exactly the turn PSY-WEAVE-1
+                                     # (weave.evaluate) classifies a weave-pending reply as anything
+                                     # other than a clear negative (fail-closed-to-crisis). Consumed by
+                                     # _route_after_skill_select (-> crisis_response, TOP priority) and
+                                     # reset to False by _crisis_response_node's return, AFTER the
+                                     # escalation is persisted to the session audit (persist-before-clear).
+                                     # Declared because it crosses skill_select -> router -> crisis_response
+                                     # (the SG-2 seam class: LangGraph drops undeclared keys between nodes).
+
+
+def safety_text(state: SageState) -> str:
+    """The text every safety-critical detector MUST read: the RAW user input in its original
+    language, NEVER the translated message_en.
+
+    Language contract (ADR 2026-07-16): crisis lexicon, clinical flags, vetoes, red-flag guards,
+    and contraindication triggers operate on raw input; message_en exists for therapeutic
+    processing / LLM rendering only, and is never a safety-detection input. Routing a safety
+    decision through the translator makes recall hostage to translation quality on distress-register
+    Khaleeji — the #329 (medical red-flag) and #330 (OCD-compulsion) live prod bypasses. Detectors
+    call this accessor so the safe path is the ONLY path and new detectors inherit raw by
+    construction. Enforced by scripts/check_safety_reads_raw.py.
+    """
+    return state.get("raw_message") or ""

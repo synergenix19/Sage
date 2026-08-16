@@ -1,0 +1,19 @@
+{
+  "article_id": "6d-b4",
+  "language": "en",
+  "title": "How to build assertiveness as a skill",
+  "content": "Like any skill, assertiveness gets easier with repetition, not by feeling confident first. Starting with lower-stakes situations, a small preference, a minor no, builds the muscle before you need it for something bigger. Some discomfort along the way is normal, not a sign you're doing it wrong.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "6d",
+    "article_family": "understanding_assertiveness",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "How to build assertiveness as a skill",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "6d – UNDERSTANDING ASSERTIVENESS, §3 Content Library, item 4"
+    }
+  }
+}

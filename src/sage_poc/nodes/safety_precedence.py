@@ -11,6 +11,8 @@ themselves (E3 medical, E4 HR, E7 IPV) land in Phase B behind this wiring.
 """
 from __future__ import annotations
 
+from sage_poc.safety.hr_disclosure import hr_disclosure_present
+
 # §4.5 order — RATIFIED (clinical lead Rohan Sarda, 2026-07-04, relay via PO; see
 # docs/superpowers/governance/2026-07-04-review-cycle-package.md §E + §A-REV).
 # crisis-first is spec-mandated (BOT BEHAVIOUR §C/§F: crisis "overrides everything" /
@@ -21,7 +23,10 @@ from __future__ import annotations
 # governed step (audit-column migration + a route actually consuming the winner); today no route
 # consults it, so flipping it is inert-plus-risk. Route flags (SAGE_IPV_PREEMPTION, etc.) flip
 # only when that route's ≥95% recall gate is MET — approval does not waive the gate.
-SAFETY_ROUTE_ORDER: tuple[str, ...] = ("crisis", "medical", "hr", "ipv")
+# §1c Part A: "derealization" (anxiety-track) inserted at rank 4, AFTER hr — Vee 1a/1b/1c ruling
+# (crisis > medical > hr > derealization). A psychosis-context disclosure that also matches a
+# derealization string resolves to hr, never the softer anxiety terminal.
+SAFETY_ROUTE_ORDER: tuple[str, ...] = ("crisis", "medical", "hr", "derealization", "ipv")
 
 
 def _crisis_fired(state) -> bool:
@@ -35,8 +40,25 @@ def _medical_fired(state) -> bool:
 
 
 def _hr_fired(state) -> bool:
-    # E4 §HR. Today only psychotic_disclosure; B2b expands to mania/dissociation.
-    return "psychotic_disclosure" in (state.get("clinical_flags") or [])
+    # E4 §HR. HR-1 Stage 1 Task 3: psychotic_disclosure always fires; mania_disclosure
+    # and dissociation_disclosure are gated behind HIGH_RISK_DETECTION_ENABLED (call-time
+    # read, matching apply_precedence's kill-switch honouring below).
+    from sage_poc import config  # noqa: PLC0415
+
+    return hr_disclosure_present(
+        state.get("clinical_flags") or [], flag_enabled=config.HIGH_RISK_DETECTION_ENABLED
+    )
+
+
+def _derealization_fired(state) -> bool:
+    # §1c Part A. CF-010 derealization flag, gated behind DEREALIZATION_DETECTION_ENABLED
+    # (call-time read, matching _hr_fired's kill-switch honouring).
+    from sage_poc import config  # noqa: PLC0415
+    from sage_poc.safety.derealization_disclosure import derealization_disclosure_present
+
+    return derealization_disclosure_present(
+        state.get("clinical_flags") or [], flag_enabled=config.DEREALIZATION_DETECTION_ENABLED
+    )
 
 
 def _ipv_fired(state) -> bool:
@@ -51,6 +73,7 @@ def fired_safety_routes(state) -> list[str]:
         ("crisis", _crisis_fired),
         ("medical", _medical_fired),
         ("hr", _hr_fired),
+        ("derealization", _derealization_fired),
         ("ipv", _ipv_fired),
     )
     return [name for name, fired in checks if fired(state)]

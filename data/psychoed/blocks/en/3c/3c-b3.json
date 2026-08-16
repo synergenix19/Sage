@@ -1,0 +1,19 @@
+{
+  "article_id": "3c-b3",
+  "language": "en",
+  "title": "Why depression affects motivation and energy",
+  "content": "Depression affects the brain's reward systems, the ones that normally make effort feel worth it. When those systems are underactive, even simple tasks can feel like they take enormous energy, because the usual payoff of feeling good afterward doesn't come through the way it used to. It's a real shift, not laziness.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "3c",
+    "article_family": "understanding_depression",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "Why depression affects motivation and energy",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "3c – UNDERSTANDING DEPRESSION, §4 Content Library, item 3"
+    }
+  }
+}

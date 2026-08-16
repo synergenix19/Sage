@@ -142,9 +142,9 @@
   ],
   "escalation_matrix": {
     "L1": "Exit skill gracefully if user requests to stop.",
-    "L2": "Add clinician_review flag if the user describes flooding in response to trauma content.",
-    "L3": "Exit immediately to crisis protocol if any crisis signal during the exercise.",
-    "L4": "Trigger human handoff if user explicitly requests a human or 3+ crises in last 30 days."
+    "L2": "[STORED_ONLY — enforced by output_gate._log_clinical_review -> clinician_review_queue, not by this string] Documented clinical intent (not runtime-enforced): Add clinician_review flag if the user describes flooding in response to trauma content.",
+    "L3": "[STORED_ONLY — enforced by the safety graph (_route_after_safety -> _crisis_response_node), not by this string] Documented clinical intent (not runtime-enforced): Exit immediately to crisis protocol if any crisis signal during the exercise.",
+    "L4": "[NOT_IMPLEMENTED — human-handoff automation deferred per 2026-07-10 decision record; no live call routing in POC; OR-7 response floor covers explicit human requests; 3+ crises/30d trigger deferred to the D4(a) exposure gate] Documented clinical intent (not runtime-enforced): Trigger human handoff if user explicitly requests a human or 3+ crises in last 30 days."
   },
   "cultural_overrides": {
     "family_honour_context": "In Gulf culture, reactive behaviour including verbal outbursts or impulsive actions may occur in the context of family honour (ird, karama): situations involving perceived slights to family reputation, a relative's behaviour, or perceived public shame. These situations carry real social and relational weight. When the STOP technique is delivered in this context, do not frame the impulse as irrational or the situation as ordinary frustration. Acknowledge that the situation is genuinely difficult and the pressure is real, then invite reflection on what action would best serve the user's own values and longer-term interests.",

@@ -1,0 +1,15 @@
+{
+  "category": "1f",
+  "delivery_shape": "menu_first",
+  "safety_weave": false,
+  "framing_statement": "It can really help to understand what's going on when anxiety shows up, knowing why your body and mind react this way often makes it feel less alarming. What would be most useful to explore?",
+  "menu_offer": "Present as selectable options rather than launching into one topic, let the person pick what's relevant to them:",
+  "check_in": "Does that make sense? Want to explore another topic, or would it help to try something related now?",
+  "blocks": ["1f-b1", "1f-b2", "1f-b3", "1f-b4", "1f-b5"],
+  "bridge_map": [
+    {"block_id": "1f-b4", "skill_id": null, "doc_target": "Worry Tree", "offer": "optional", "status": "pending_clinician_no_registry_skill"},
+    {"block_id": "1f-b2", "skill_id": "box_breathing", "offer": "optional"}
+  ],
+  "guards": ["acute_distress", "diagnosis_guard", "crisis_override"],
+  "source_citation": {"file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md", "section": "1f – UNDERSTANDING ANXIETY"}
+}

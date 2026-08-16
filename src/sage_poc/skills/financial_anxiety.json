@@ -145,9 +145,9 @@
   ],
   "escalation_matrix": {
     "L1": "Exit skill gracefully if user requests to stop. No persuasion.",
-    "L2": "Add clinician_review flag if financial distress appears to be reaching hopelessness, or if job loss or deportation risk is described alongside expressions of worthlessness or despair.",
-    "L3": "Exit immediately to crisis protocol if any crisis signal is detected. Financial despair is a recognised precipitant of acute crisis, particularly in migrant worker populations.",
-    "L4": "Trigger human handoff if 3 or more crises detected in the last 30 days, or if user explicitly requests a human clinician."
+    "L2": "[STORED_ONLY — enforced by output_gate._log_clinical_review -> clinician_review_queue, not by this string] Documented clinical intent (not runtime-enforced): Add clinician_review flag if financial distress appears to be reaching hopelessness, or if job loss or deportation risk is described alongside expressions of worthlessness or despair.",
+    "L3": "[STORED_ONLY — enforced by the safety graph (_route_after_safety -> _crisis_response_node), not by this string] Documented clinical intent (not runtime-enforced): Exit immediately to crisis protocol if any crisis signal is detected. Financial despair is a recognised precipitant of acute crisis, particularly in migrant worker populations.",
+    "L4": "[NOT_IMPLEMENTED — human-handoff automation deferred per 2026-07-10 decision record; no live call routing in POC; OR-7 response floor covers explicit human requests; 3+ crises/30d trigger deferred to the D4(a) exposure gate] Documented clinical intent (not runtime-enforced): Trigger human handoff if 3 or more crises detected in the last 30 days, or if user explicitly requests a human clinician."
   },
   "cultural_overrides": {
     "kafala_structural_reality": "The kafala system and visa-linked employment insecurity are real structural stressors for migrant workers in the UAE, not cognitive distortions to be challenged. Validate these as legitimate sources of anxiety before any psychological reframing. Never imply that the anxiety about kafala-linked job loss is irrational.",

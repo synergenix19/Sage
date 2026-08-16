@@ -200,9 +200,9 @@
   ],
   "escalation_matrix": {
     "L1": "Exit skill gracefully if user requests to stop, grounding is voluntary",
-    "L2": "Add clinician_review flag if trauma or substance mention detected during exercise",
-    "L3": "Exit immediately to crisis protocol if any crisis signal",
-    "L4": "Trigger human handoff if 3+ crises detected in last 30 days"
+    "L2": "[STORED_ONLY — enforced by output_gate._log_clinical_review -> clinician_review_queue, not by this string] Documented clinical intent (not runtime-enforced): Add clinician_review flag if trauma or substance mention detected during exercise",
+    "L3": "[STORED_ONLY — enforced by the safety graph (_route_after_safety -> _crisis_response_node), not by this string] Documented clinical intent (not runtime-enforced): Exit immediately to crisis protocol if any crisis signal",
+    "L4": "[NOT_IMPLEMENTED — human-handoff automation deferred per 2026-07-10 decision record; no live call routing in POC; OR-7 response floor covers explicit human requests; 3+ crises/30d trigger deferred to the D4(a) exposure gate] Documented clinical intent (not runtime-enforced): Trigger human handoff if 3+ crises detected in last 30 days"
   },
   "cultural_overrides": {
     "gender_touch": "For users who may feel discomfort with sensory touch prompts involving the face or body, redirect to furniture, fabric texture, or temperature. The see_5 and touch_4 steps are most affected.",

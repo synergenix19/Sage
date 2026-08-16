@@ -1,0 +1,14 @@
+{
+  "version": "0.1.0-draft",
+  "status": "engineering-proposal-pending-clinician (packet ask 7)",
+  "distress_markers": [
+    "right now", "can't breathe", "cant breathe", "heart is racing", "heart racing",
+    "panicking", "panic attack", "shaking", "can't calm down", "cant calm down",
+    "help me now", "chest is tight"
+  ],
+  "structural": {
+    "fragment_max_len": 12,
+    "fragment_min_count": 3,
+    "numeric_self_report_pattern": "\\b([7-9]|10)\\s*/\\s*10\\b"
+  }
+}

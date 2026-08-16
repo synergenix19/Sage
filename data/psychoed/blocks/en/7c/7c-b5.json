@@ -1,0 +1,19 @@
+{
+  "article_id": "7c-b5",
+  "language": "en",
+  "title": "Feeling awkward / social skills",
+  "content": "Feeling awkward in social situations is extremely common, even for people who look confident, it tends to fade with familiarity and practice, not by waiting to feel ready first. A few things that help broadly: asking open follow-up questions, showing genuine curiosity about the other person, and not worrying too much about silences, which usually feel longer to you than to them.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "7c",
+    "article_family": "how_do_i_connect",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "Feeling awkward / social skills",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "7c – HOW DO I CONNECT, §3 Content Library, item 5"
+    }
+  }
+}

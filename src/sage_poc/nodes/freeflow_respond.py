@@ -238,6 +238,75 @@ def _build_llm_tools(state: SageState, user_id, session_id) -> list:
 
 
 async def freeflow_respond_node(state: SageState, llm=None) -> dict:
+    # Psychoed no-LLM serve transit (spec §4.1; Phase 2 Task 11; flag-gated, default OFF -> this
+    # whole block is skipped and the function is byte-identical to pre-Task-11 behavior). Node 4
+    # (skill_select) or Node 6 (knowledge_retrieve) already resolved a deterministic psychoed_serve
+    # payload -- ratified copy, composed by serve.compose_turn1 from the in-process store. Never
+    # route this through the LLM (Cardinal Rule: the model does not decide whether ratified copy
+    # fires, and it must not paraphrase it either). blocks_served/family_exposures were already
+    # appended by knowledge_retrieve for this turn -- do NOT append them again here.
+    from sage_poc import config  # noqa: PLC0415 — local import so monkeypatch.setattr(config, ...) takes effect
+    if config.PSYCHOED_PATHWAYS_ENABLED:
+        # Defensive invariant (reviewer Medium finding, controller-adjudicated 2026-07-28): this
+        # branch needs no language gate of its own. A psychoed_serve payload cannot be CREATED on
+        # a non-English turn post-FIX-2 -- its only two constructors, skill_select's resolver and
+        # knowledge_retrieve's outcome-2 backstop, both gate entry on detected_language == "en".
+        # Asserted here rather than silently trusted: the menu-after-weave branch below is the
+        # counter-example this fix closes -- PSY-WEAVE-1's weave evaluation is correctly language-
+        # UNgated, so THAT branch can reach here on an AR turn even though this one cannot.
+        serve_payload = state.get("psychoed_serve")
+        if serve_payload:
+            from sage_poc.psychoed import serve as psy_serve  # noqa: PLC0415
+            out = psy_serve.compose_turn1(serve_payload)
+            return {
+                "response_en": out["text"],
+                "psychoed_menu_offered": out["menu_offered"],
+                # Wiring choice (Task 11 / Node-8 audit): enrich the payload IN STATE with the
+                # template_version compose_turn1 just resolved -- mirrors knowledge_retrieve's own
+                # content_hash enrichment one node earlier (same "payload is in state, patch it
+                # cleanly" pattern). compose_turn1 is the only caller of the templates file, so this
+                # is the first point template_version is known; Node-8's audit then reads it
+                # straight off state["psychoed_serve"]["template_version"] rather than threading a
+                # brand-new channel through the graph for a single audit-only fact.
+                "psychoed_serve": {**serve_payload, "template_version": out["template_version"]},
+                "path": (state.get("path") or []) + ["freeflow_respond"],
+            }
+        if state.get("skill_match_method") == "psychoed_menu_after_weave":
+            # Third English-ratified-copy path (reviewer Medium finding, controller-adjudicated
+            # 2026-07-28; spec §3.7). Unlike psychoed_serve above, PSY-WEAVE-1's weave evaluation
+            # (skill_select, order item 1) is correctly language-UNgated -- it's a live safety
+            # check on the PREVIOUS turn's serve, and starving it on an AR reply would be fail-
+            # open, not fail-closed. That means a clear-negative reply CAN set
+            # psychoed_menu_after_weave on a non-English turn even after FIX 2's entry gates. The
+            # verbatim manifest menu_offer is EN-ratified copy, though: serving it raw (or a
+            # downstream machine-translation of it) is exactly the "ungraded machine-translated
+            # clinical copy" spec §3.7 rules out until AR ships under its own faithfulness-graded
+            # flag. Fall through to the normal LLM freeflow path instead -- the LLM handles the AR
+            # user conversationally, with no ratified-copy claim.
+            if (state.get("detected_language") or "en") != "en":
+                _log.info(
+                    "[freeflow] psychoed_menu_after_weave on a non-English turn; falling through "
+                    "to normal freeflow (spec §3.7: EN ratified copy must not be machine-translated out)"
+                )
+            else:
+                category = state.get("psychoed_active_category")
+                if category is not None:
+                    from sage_poc.psychoed import store as psy_store  # noqa: PLC0415
+                    manifest = psy_store.manifest(category)
+                    return {
+                        "response_en": manifest["menu_offer"],  # verbatim, framing-less re-offer
+                        "psychoed_menu_offered": True,
+                        "path": (state.get("path") or []) + ["freeflow_respond"],
+                    }
+                # Defensive: a PSY-WEAVE-1 clear-negative with no recorded active category should
+                # not happen per skill_select's own psychoed_active_category lifecycle, but this
+                # must never crash and must never invent copy -- fall through to the normal LLM
+                # freeflow path below.
+                _log.warning(
+                    "[freeflow] psychoed_menu_after_weave with no psychoed_active_category set; "
+                    "falling through to normal freeflow"
+                )
+
     if llm is None:
         llm = get_responder()
     fallback_llm = get_fallback_responder()
@@ -246,7 +315,23 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
 
     prior_context = await _get_prior_context(state)
 
-    system_str, user_str, prompt_layers = compose_prompt(state)
+    # MEDIUM (final review): continuation template reachability. Reaching this point means the
+    # turn was NOT a serve (psychoed_serve was falsy above) and NOT a handled menu-after-weave
+    # re-offer (either skill_match_method wasn't that, or it was but fell through on a non-English
+    # turn per spec §3.7 above) -- i.e. an ORDINARY LLM turn while a psychoed pathway is still
+    # active (psychoed_active_category set). L2_psychoed_continuation.json exists and is loadable
+    # (get_intent_template("psychoed_continuation")) but was never reachable: nothing passed
+    # l2_intent_override for this turn shape, so every mid-pathway ordinary turn fell to the
+    # generic per-primary_intent template with no awareness it was inside a served psychoed
+    # category. This wires the override only -- no served/remaining-menu_labels variable
+    # injection: L2_psychoed_continuation.json declares "variables": [] today, so there is no
+    # variables/format path to inject into without inventing new template machinery (handoff
+    # notes Section VI, delta 15; that injection is deferred to Phase 3). Byte-identical when the
+    # flag is off or no pathway is active (l2_override stays None, matching every other caller).
+    l2_override = "psychoed_continuation" if (
+        config.PSYCHOED_PATHWAYS_ENABLED and state.get("psychoed_active_category")
+    ) else None
+    system_str, user_str, prompt_layers = compose_prompt(state, l2_intent_override=l2_override)
 
     if prior_context:
         system_str = system_str + "\n\nPRIOR SESSION CONTEXT (share naturally, not verbatim):\n" + prior_context

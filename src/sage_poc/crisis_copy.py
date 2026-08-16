@@ -7,10 +7,10 @@ so changing a number is a single-config edit. This module replaces those placeho
 every load point so the RESOLVED text is what reaches the LLM / user.
 
 Placeholders (all optional in any file; only the ones present are substituted):
-  ``{{crisis_number}}``    -> CRISIS_CONFIG["number"]    (e.g. "800 46342")
+  ``{{crisis_number}}``    -> CRISIS_CONFIG["number"]    (e.g. "800-HOPE (800-4673)")
   ``{{crisis_emergency}}`` -> CRISIS_CONFIG["emergency"] (e.g. "999")
-  ``{{crisis_hours}}``     -> CRISIS_CONFIG["hours"]      (e.g. "24/7")
-  ``{{crisis_label}}``     -> CRISIS_CONFIG["label"]      (e.g. "MoHAP Counselling Line")
+  ``{{crisis_hours}}``     -> CRISIS_CONFIG["hours"]      (e.g. "8am-8pm daily")
+  ``{{crisis_label}}``     -> CRISIS_CONFIG["label"]      (e.g. "National Mental Support Line")
 
 Defense in depth (both required, neither sufficient alone):
   * BOOT GUARD  (assert_crisis_copy_resolves) — every crisis-copy source, in resolved form,
@@ -26,7 +26,15 @@ import json
 from pathlib import Path
 from typing import Any
 
-from sage_poc.config import CRISIS_CONFIG
+from sage_poc.config import CRISIS_CONFIG, CRISIS_RESOURCES
+
+# The regional 24/7 line (Abu Dhabi 800-SAKINA), DERIVED from CRISIS_RESOURCES (not a new number
+# source) so a terminal that pairs a 24/7 alternative references it via {{crisis_alt_24_7}} instead of
+# a hardcoded literal — the source-of-truth rule extended to the paired 24/7 number.
+_ALT_24_7 = next(
+    (r["number"] for r in CRISIS_RESOURCES if r.get("scope") == "regional" and "24/7" in r.get("hours", "")),
+    "",
+)
 
 # Locales that MUST have a native twin for every served crisis level. A crisis string shipped in one
 # locale without its twin here would reach the other locale's users via machine translation — the RCA
@@ -54,6 +62,7 @@ _PLACEHOLDERS: dict[str, str] = {
     "{{crisis_emergency}}": CRISIS_CONFIG["emergency"],
     "{{crisis_hours}}": CRISIS_CONFIG["hours"],
     "{{crisis_label}}": CRISIS_CONFIG["label"],
+    "{{crisis_alt_24_7}}": _ALT_24_7,
 }
 
 # Roots scanned by the boot guard. Any crisis-copy JSON under these — present or future —
