@@ -131,3 +131,35 @@ a follow-up decision, not part of this adoption.
 2. Deploy convergence keys on the deployment-status API + a behavioral probe of the
    change itself, NEVER build_sha (third SHA-lie instance this month; the variable-
    restart window serves old code under the new SHA).
+
+## Addendum — round-3 governance ruling executed (2026-08-16, post-close)
+
+**Breach, recorded as a breach:** the round-3 deploy (#441, the semantic-side rerank
+widening) served under a purpose-scoped stretch of the round-2 change-scoped
+authorization, and without the full signed gate — the same door-vs-purpose class every
+incident in this stream began with. The PO advisor's ruling supplies the authorization
+for that deploy, CONDITIONAL on the gate running; this addendum is the record of both.
+
+**The gate, run against serving (6cae3379) vs the pre-change comparator (71bd6fc2, clean
+temp worktree, prod-parity flags SKILL_ROUTING_V2/RERANK/fp32):**
+
+| cell | comparator | serving | verdict |
+|---|---|---|---|
+| en/id_oos abstain | 0.9375 | 0.9375 | IDENTICAL — floor 0.906 holds, unmoved |
+| en/in_scope recall / misroute | 0.4896 / 0.1719 | 0.4896 / 0.1719 | IDENTICAL — no-regress holds |
+| en/far_oos abstain | 1.0000 | 0.9688 | ONE flip, named below |
+
+**The one cost, named verbatim:** "is it whom or who in the sentence i gave the book to"
+now routes to interpersonal_effectiveness — a grammar question pulled over the rerank
+floor by the anchor's conversation-preparation language. Benign content, wrong offer;
+no clinical exposure; 1/32 far_oos. Recorded as the widening's measured cost. If a
+far_oos floor is ever ruled, this is its first datum.
+
+**Point 3 executed in-cycle:** `scripts/deploy_converge.sh` — convergence = deployment-
+status SUCCESS + two consecutive passes of a behavioral probe of the change itself;
+build_sha is banned as a convergence signal (three lie instances). deploy_prod.sh's
+mandatory next-steps now name it.
+
+**Confirmed standing state:** K3-a offers live 3/3; K4 + all four exclusion bins + CBT
+fixture hold; K3-b = visible xfail (V2 bi-encoder rank boundary); id_oos/in_scope
+unmoved. The arc closes governed.
