@@ -1,0 +1,19 @@
+{
+  "article_id": "3c-b6",
+  "language": "en",
+  "title": "Why it can feel like \"no reason\"",
+  "content": "Depression doesn't always have a single identifiable trigger, it can build gradually from a mix of biology, chronic stress, and circumstances, which is why it can feel confusing or even guilt-inducing when there's nothing obvious to point to. Not having a clear cause doesn't make it less real.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "3c",
+    "article_family": "understanding_depression",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "Why it can feel like \"no reason\"",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "3c – UNDERSTANDING DEPRESSION, §4 Content Library, item 6"
+    }
+  }
+}

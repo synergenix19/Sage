@@ -1,0 +1,19 @@
+{
+  "article_id": "3c-b7",
+  "language": "en",
+  "title": "Why seeking help is worth it (destigmatizing)",
+  "content": "Reaching out for support, a doctor, a therapist, or someone you trust, isn't a sign of weakness or failure; it's the same thing you'd do for any other health issue that isn't resolving on its own. Depression is one of the most treatable mental health conditions, and most people who get support see real improvement, even if it takes some trial and error to find what works.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "3c",
+    "article_family": "understanding_depression",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "Why seeking help is worth it (destigmatizing)",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "3c – UNDERSTANDING DEPRESSION, §4 Content Library, item 7"
+    }
+  }
+}

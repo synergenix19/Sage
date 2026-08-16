@@ -44,6 +44,16 @@ ENV SAGE_BUILD_SHA=$RAILWAY_GIT_COMMIT_SHA
 # Source code — busts cache on every change, but the model layers above are preserved.
 COPY . .
 
+# #258 — BUILD-SIDE deploy-lock enforcement (the "prevent" to deploy_tripwire.sh's "detect").
+# DEFAULT-OFF: ENFORCE_DEPLOY_LOCK defaults to 0, so this is a dormant warn-and-pass on every build
+# today (no behavior change; safe to merge). When flipped to 1 (after the staging build test confirms
+# Railway passes LOCKED_DEPLOY_LOG into the build — see prod-deploy-control.md), it FAILS the build if
+# the SHA being built never claimed the deploy lock, preventing a direct `railway up` that bypassed
+# scripts/deploy_prod.sh. Placed after COPY so the script is present; before the app is finalized.
+ARG ENFORCE_DEPLOY_LOCK=0
+ARG LOCKED_DEPLOY_LOG=""
+RUN bash scripts/verify_build_lock.sh "$RAILWAY_GIT_COMMIT_SHA" "$LOCKED_DEPLOY_LOG" "$ENFORCE_DEPLOY_LOCK"
+
 # CRITICAL (root cause of the 2026-07-03 "code changes don't deploy" saga): `uv sync` at line 13
 # ran BEFORE the source was copied, installing a snapshot of sage_poc into the venv. That layer is
 # cached whenever pyproject.toml/uv.lock are unchanged, so pure-Python edits under src/sage_poc/

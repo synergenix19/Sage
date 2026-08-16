@@ -1,0 +1,19 @@
+{
+  "article_id": "s2c-b2",
+  "language": "en",
+  "title": "Why grief comes in waves",
+  "content": "Grief rarely moves in a straight line. It's common to feel okay one moment and be hit by intense sadness the next, often triggered by something small, a smell, a song, a date on the calendar. Grief isn't something you move through once and finish; it resurfaces, often unpredictably, especially early on.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "s2c",
+    "article_family": "understanding_grief",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "Why grief comes in waves",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "S2c – UNDERSTANDING GRIEF, §3 Content Library, item 2"
+    }
+  }
+}

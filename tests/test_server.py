@@ -512,6 +512,35 @@ def test_health_version_reports_crisis_copy_templated(monkeypatch, client):
     assert res.json()["crisis_copy_templated"] is True
 
 
+def test_health_version_build_sha_fallback(monkeypatch, client):
+    """build_sha resolves with EXPLICIT ordering: SAGE_BUILD_SHA (if set) → RAILWAY_GIT_COMMIT_SHA →
+    'unknown', and NEVER a silent empty string. A manual `railway up` leaves SAGE_BUILD_SHA stale and
+    RAILWAY_GIT_COMMIT_SHA unset; a git-integration deploy sets RAILWAY_GIT_COMMIT_SHA. Regression guard
+    for the 2026-07-03 lying-version incident — a version endpoint that cannot answer must say so loudly."""
+    monkeypatch.setenv("SAGE_API_KEY", "test-secret")
+    h = {"X-Sage-Api-Key": "test-secret"}
+
+    # explicit pin wins when set
+    monkeypatch.setenv("SAGE_BUILD_SHA", "pinned111")
+    monkeypatch.setenv("RAILWAY_GIT_COMMIT_SHA", "gitsha222")
+    body = client.get("/health/version", headers=h).json()
+    assert body["build_sha"] == "pinned111"
+    assert body["build_sha_source"] == "SAGE_BUILD_SHA"
+
+    # empty pin is NOT "set" — falls through to the git-integration SHA, never a silent empty
+    monkeypatch.setenv("SAGE_BUILD_SHA", "")
+    body = client.get("/health/version", headers=h).json()
+    assert body["build_sha"] == "gitsha222"
+    assert body["build_sha_source"] == "RAILWAY_GIT_COMMIT_SHA"
+
+    # neither present → loud "unknown", never ""
+    monkeypatch.delenv("SAGE_BUILD_SHA", raising=False)
+    monkeypatch.delenv("RAILWAY_GIT_COMMIT_SHA", raising=False)
+    body = client.get("/health/version", headers=h).json()
+    assert body["build_sha"] == "unknown"
+    assert body["build_sha_source"] == "unknown"
+
+
 def test_chat_bypasses_key_check_when_sage_api_key_unset(monkeypatch, client, session_id):
     """No SAGE_API_KEY in env → check is disabled. Preserves backward compatibility
     for local dev where the key is not configured.

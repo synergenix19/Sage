@@ -1,0 +1,2682 @@
+{
+  "header": {
+    "instrument": "graph_evidence.py FULL-GRAPH app.ainvoke, N independent session threads per fixture; flags derived from /health/version serving readback (refuse-on-gap, refuse-on-deploy-window); signed instrument-parity standing rule 2026-07-28",
+    "generated_at": "2026-08-12T08:22:55+00:00",
+    "base_url": "https://sage-api-production-3328.up.railway.app",
+    "build_sha": "07056b3a3a6af8b52cb5cae6269ccf28bc7df941",
+    "build_sha_source": "SAGE_BUILD_SHA",
+    "local_tree_sha": "b69f5b13565e344835088e6c48502211b9eaf0c5",
+    "resolved_flag_set": {
+      "SAGE_AUDIT_CLASSIFIER_PROVENANCE": "true",
+      "SAGE_CARDIAC_ESCALATION": "true",
+      "SAGE_CLASSIFIER_MODEL": "openai/gpt-4o-mini",
+      "SAGE_CLASSIFIER_SEED": "20260728",
+      "SAGE_CONSULT_SOURCES": "true",
+      "SAGE_COSINE_ABSTAIN_THRESHOLD": "0.42",
+      "SAGE_CRISIS_TIERING": null,
+      "SAGE_D1_SCREEN": "true",
+      "SAGE_D1_SCREEN_SHADOW": "true",
+      "SAGE_D5_ACUITY_FLOOR": "8",
+      "SAGE_D5_ACUITY_GATE": "false",
+      "SAGE_DEREALIZATION_DETECTION": "true",
+      "SAGE_FALLBACK_CLASSIFIER_MODEL": "openai/gpt-4o-mini",
+      "SAGE_FALLBACK_RESPONDER_MODEL": "openai/gpt-4o",
+      "SAGE_GRIEF_DEFERENCE": "true",
+      "SAGE_HIGH_RISK_DETECTION": "true",
+      "SAGE_HIGH_RISK_TERMINAL": null,
+      "SAGE_HR_NEUTRALITY_GATE": "true",
+      "SAGE_INFO_REQUEST_CONSULT": "true",
+      "SAGE_IPV_PREEMPTION": "false",
+      "SAGE_KNOWLEDGE_ABSTAIN_THRESHOLD": "0.015",
+      "SAGE_MEDICAL_REDFLAG_GUARD": "true",
+      "SAGE_MEDICAL_REFERRAL_TEXT": "The symptoms you're describing can be signs of a medical emergency. ",
+      "SAGE_MODALITY_REQUEST_ROUTING": "true",
+      "SAGE_NATIVE_ARABIC_SHADOW": "false",
+      "SAGE_OPENROUTER_PROVIDER_PIN": "openai",
+      "SAGE_PANIC_GROUNDING_OVERRIDE": "true",
+      "SAGE_PSYCHOED_CATEGORIES": "",
+      "SAGE_PSYCHOED_PATHWAYS": null,
+      "SAGE_RESISTANCE_MODEL": null,
+      "SAGE_RESPONDER_MODEL": "openai/gpt-4o",
+      "SAGE_ROUTE_PRECEDENCE": "true",
+      "SAGE_SKILL_OFFER_COOLDOWN_ENABLED": "true",
+      "SAGE_SKILL_OFFER_COOLDOWN_TURNS": "2",
+      "SAGE_SKILL_RUNNER_UP_MARGIN": "0.05",
+      "SAGE_SKILL_RUNNER_UP_MIN": "0.50",
+      "SAGE_TRANSLATOR_MODEL": "openai/gpt-4o-mini",
+      "SAGE_VENTING_SUPPRESSION": "true"
+    },
+    "flag_coverage": {
+      "SAGE_AUDIT_CLASSIFIER_PROVENANCE": "serving_readback",
+      "SAGE_CARDIAC_ESCALATION": "serving_readback",
+      "SAGE_CLASSIFIER_MODEL": "serving_readback",
+      "SAGE_CLASSIFIER_SEED": "serving_readback",
+      "SAGE_CONSULT_SOURCES": "serving_readback",
+      "SAGE_COSINE_ABSTAIN_THRESHOLD": "serving_readback",
+      "SAGE_CRISIS_TIERING": "serving_readback",
+      "SAGE_D1_SCREEN": "serving_readback",
+      "SAGE_D1_SCREEN_SHADOW": "serving_readback",
+      "SAGE_D5_ACUITY_FLOOR": "serving_readback",
+      "SAGE_D5_ACUITY_GATE": "serving_readback",
+      "SAGE_DEREALIZATION_DETECTION": "serving_readback",
+      "SAGE_FALLBACK_CLASSIFIER_MODEL": "serving_readback",
+      "SAGE_FALLBACK_RESPONDER_MODEL": "serving_readback",
+      "SAGE_GRIEF_DEFERENCE": "serving_readback",
+      "SAGE_HIGH_RISK_DETECTION": "serving_readback",
+      "SAGE_HIGH_RISK_TERMINAL": "serving_readback",
+      "SAGE_HR_NEUTRALITY_GATE": "serving_readback",
+      "SAGE_INFO_REQUEST_CONSULT": "serving_readback",
+      "SAGE_IPV_PREEMPTION": "serving_readback",
+      "SAGE_KNOWLEDGE_ABSTAIN_THRESHOLD": "serving_readback",
+      "SAGE_MEDICAL_REDFLAG_GUARD": "serving_readback",
+      "SAGE_MEDICAL_REFERRAL_TEXT": "serving_readback",
+      "SAGE_MODALITY_REQUEST_ROUTING": "deliberate_override",
+      "SAGE_NATIVE_ARABIC_SHADOW": "serving_readback",
+      "SAGE_OPENROUTER_PROVIDER_PIN": "serving_readback",
+      "SAGE_PANIC_GROUNDING_OVERRIDE": "serving_readback",
+      "SAGE_PSYCHOED_CATEGORIES": "serving_readback",
+      "SAGE_PSYCHOED_PATHWAYS": "serving_readback",
+      "SAGE_RESISTANCE_MODEL": "serving_readback",
+      "SAGE_RESPONDER_MODEL": "serving_readback",
+      "SAGE_ROUTE_PRECEDENCE": "serving_readback",
+      "SAGE_SKILL_OFFER_COOLDOWN_ENABLED": "serving_readback",
+      "SAGE_SKILL_OFFER_COOLDOWN_TURNS": "serving_readback",
+      "SAGE_SKILL_RUNNER_UP_MARGIN": "serving_readback",
+      "SAGE_SKILL_RUNNER_UP_MIN": "serving_readback",
+      "SAGE_TRANSLATOR_MODEL": "serving_readback",
+      "SAGE_VENTING_SUPPRESSION": "serving_readback"
+    },
+    "classifier_model": "openai/gpt-4o-mini",
+    "openrouter_provider_pin": "openai",
+    "classifier_seed": "20260728",
+    "seed_honor": {
+      "status": "fingerprint_stable",
+      "distinct_fingerprints": [
+        "fp_c400bf5046"
+      ],
+      "turns_with_fingerprint": 80,
+      "turns_total": 80
+    },
+    "n_per_fixture": 10,
+    "degraded_turn_count": 0,
+    "db_pool_available": true,
+    "railway_desired_available": true,
+    "deploy_window_checked": true,
+    "parity_notes": [
+      "readback coverage hole (1 var(s) asserted via railway, not the serving readback): SAGE_MODALITY_REQUEST_ROUTING — widen /health/version *_raw_env to close (standing-rule 3 pattern).",
+      "DELIBERATE FLAG OVERRIDE (fix-arm measurement): SAGE_MODALITY_REQUEST_ROUTING='true' — serving carries a different value; this run is a COUNTERFACTUAL arm, not a serving-parity baseline. Cite only against its paired baseline.",
+      "NOTE: LOCAL tree b69f5b13565e != SERVING build 07056b3a3a6a — flags are serving-derived but the code under measurement is the local tree; cite accordingly.",
+      "quiescence attestation: cause=item1-condition-a; deploy cycle spanned: deployment id changed 543fd26a-7d5c-424b-a1b4-922108d758c1 -> 90cd7f83-d9c1-4c59-85d8-2601db2fd444 between clean checks 2026-07-29T19:30:51+00:00 / 2026-07-29T19:51:35+00:00",
+      "quiescence refusal log: empty (no refusals recorded)"
+    ],
+    "quiescence_attestation": {
+      "cause": "item1-condition-a",
+      "detail": "deploy cycle spanned: deployment id changed 543fd26a-7d5c-424b-a1b4-922108d758c1 -> 90cd7f83-d9c1-4c59-85d8-2601db2fd444 between clean checks 2026-07-29T19:30:51+00:00 / 2026-07-29T19:51:35+00:00",
+      "clean_checks": [
+        {
+          "ts": "2026-07-29T19:30:51+00:00",
+          "clean": true,
+          "detail": "serving == desired on all readback-covered vars",
+          "build_sha": "dec4a9e7f4de3ad4bd4c560db81f1f499c890787",
+          "flags_checked": [
+            "SAGE_AUDIT_CLASSIFIER_PROVENANCE",
+            "SAGE_CLASSIFIER_SEED",
+            "SAGE_CONSULT_SOURCES",
+            "SAGE_COSINE_ABSTAIN_THRESHOLD",
+            "SAGE_CRISIS_TIERING",
+            "SAGE_D1_SCREEN",
+            "SAGE_D1_SCREEN_SHADOW",
+            "SAGE_DEREALIZATION_DETECTION",
+            "SAGE_HIGH_RISK_DETECTION",
+            "SAGE_HR_NEUTRALITY_GATE",
+            "SAGE_INFO_REQUEST_CONSULT",
+            "SAGE_IPV_PREEMPTION",
+            "SAGE_MEDICAL_REDFLAG_GUARD",
+            "SAGE_OPENROUTER_PROVIDER_PIN",
+            "SAGE_PANIC_GROUNDING_OVERRIDE",
+            "SAGE_ROUTE_PRECEDENCE",
+            "SAGE_VENTING_SUPPRESSION"
+          ],
+          "mismatches": [],
+          "deployment_id": "543fd26a-7d5c-424b-a1b4-922108d758c1",
+          "deployment_created_at": "2026-07-29T19:22:46.205Z"
+        },
+        {
+          "ts": "2026-07-29T19:51:35+00:00",
+          "clean": true,
+          "detail": "serving == desired on all readback-covered vars",
+          "build_sha": "dec4a9e7f4de3ad4bd4c560db81f1f499c890787",
+          "flags_checked": [
+            "SAGE_AUDIT_CLASSIFIER_PROVENANCE",
+            "SAGE_CLASSIFIER_SEED",
+            "SAGE_CONSULT_SOURCES",
+            "SAGE_COSINE_ABSTAIN_THRESHOLD",
+            "SAGE_CRISIS_TIERING",
+            "SAGE_D1_SCREEN",
+            "SAGE_D1_SCREEN_SHADOW",
+            "SAGE_DEREALIZATION_DETECTION",
+            "SAGE_HIGH_RISK_DETECTION",
+            "SAGE_HR_NEUTRALITY_GATE",
+            "SAGE_INFO_REQUEST_CONSULT",
+            "SAGE_IPV_PREEMPTION",
+            "SAGE_MEDICAL_REDFLAG_GUARD",
+            "SAGE_OPENROUTER_PROVIDER_PIN",
+            "SAGE_PANIC_GROUNDING_OVERRIDE",
+            "SAGE_ROUTE_PRECEDENCE",
+            "SAGE_VENTING_SUPPRESSION"
+          ],
+          "mismatches": [],
+          "deployment_id": "90cd7f83-d9c1-4c59-85d8-2601db2fd444",
+          "deployment_created_at": "2026-07-29T19:33:51.546Z"
+        },
+        {
+          "ts": "2026-07-29T20:10:22+00:00",
+          "clean": true,
+          "detail": "serving == desired on all readback-covered vars",
+          "build_sha": "dec4a9e7f4de3ad4bd4c560db81f1f499c890787",
+          "flags_checked": [
+            "SAGE_AUDIT_CLASSIFIER_PROVENANCE",
+            "SAGE_CLASSIFIER_SEED",
+            "SAGE_CONSULT_SOURCES",
+            "SAGE_COSINE_ABSTAIN_THRESHOLD",
+            "SAGE_CRISIS_TIERING",
+            "SAGE_D1_SCREEN",
+            "SAGE_D1_SCREEN_SHADOW",
+            "SAGE_DEREALIZATION_DETECTION",
+            "SAGE_HIGH_RISK_DETECTION",
+            "SAGE_HR_NEUTRALITY_GATE",
+            "SAGE_INFO_REQUEST_CONSULT",
+            "SAGE_IPV_PREEMPTION",
+            "SAGE_MEDICAL_REDFLAG_GUARD",
+            "SAGE_OPENROUTER_PROVIDER_PIN",
+            "SAGE_PANIC_GROUNDING_OVERRIDE",
+            "SAGE_ROUTE_PRECEDENCE",
+            "SAGE_VENTING_SUPPRESSION"
+          ],
+          "mismatches": [],
+          "deployment_id": "90cd7f83-d9c1-4c59-85d8-2601db2fd444",
+          "deployment_created_at": "2026-07-29T19:33:51.546Z"
+        },
+        {
+          "ts": "2026-07-30T19:14:33+00:00",
+          "clean": true,
+          "detail": "serving == desired on all readback-covered vars",
+          "build_sha": "2ab5d9a37430bcbdce837da1a15d729d6da622b4",
+          "flags_checked": [
+            "SAGE_AUDIT_CLASSIFIER_PROVENANCE",
+            "SAGE_CLASSIFIER_MODEL",
+            "SAGE_CLASSIFIER_SEED",
+            "SAGE_CONSULT_SOURCES",
+            "SAGE_COSINE_ABSTAIN_THRESHOLD",
+            "SAGE_CRISIS_TIERING",
+            "SAGE_D1_SCREEN",
+            "SAGE_D1_SCREEN_SHADOW",
+            "SAGE_D5_ACUITY_FLOOR",
+            "SAGE_D5_ACUITY_GATE",
+            "SAGE_DEREALIZATION_DETECTION",
+            "SAGE_FALLBACK_CLASSIFIER_MODEL",
+            "SAGE_FALLBACK_RESPONDER_MODEL",
+            "SAGE_HIGH_RISK_DETECTION",
+            "SAGE_HIGH_RISK_TERMINAL",
+            "SAGE_HR_NEUTRALITY_GATE",
+            "SAGE_INFO_REQUEST_CONSULT",
+            "SAGE_IPV_PREEMPTION",
+            "SAGE_KNOWLEDGE_ABSTAIN_THRESHOLD",
+            "SAGE_MEDICAL_REDFLAG_GUARD",
+            "SAGE_MEDICAL_REFERRAL_TEXT",
+            "SAGE_NATIVE_ARABIC_SHADOW",
+            "SAGE_OPENROUTER_PROVIDER_PIN",
+            "SAGE_PANIC_GROUNDING_OVERRIDE",
+            "SAGE_PSYCHOED_CATEGORIES",
+            "SAGE_PSYCHOED_PATHWAYS",
+            "SAGE_RESISTANCE_MODEL",
+            "SAGE_RESPONDER_MODEL",
+            "SAGE_ROUTE_PRECEDENCE",
+            "SAGE_SKILL_OFFER_COOLDOWN_ENABLED",
+            "SAGE_SKILL_OFFER_COOLDOWN_TURNS",
+            "SAGE_SKILL_RUNNER_UP_MARGIN",
+            "SAGE_SKILL_RUNNER_UP_MIN",
+            "SAGE_TRANSLATOR_MODEL",
+            "SAGE_VENTING_SUPPRESSION"
+          ],
+          "mismatches": [],
+          "deployment_id": "51a9921c-8491-408d-b068-0e9889ef5d0c",
+          "deployment_created_at": "2026-07-30T19:02:59.772Z"
+        },
+        {
+          "ts": "2026-08-12T08:17:50+00:00",
+          "clean": true,
+          "detail": "serving == desired on all readback-covered vars",
+          "build_sha": "07056b3a3a6af8b52cb5cae6269ccf28bc7df941",
+          "flags_checked": [
+            "SAGE_AUDIT_CLASSIFIER_PROVENANCE",
+            "SAGE_CARDIAC_ESCALATION",
+            "SAGE_CLASSIFIER_MODEL",
+            "SAGE_CLASSIFIER_SEED",
+            "SAGE_CONSULT_SOURCES",
+            "SAGE_COSINE_ABSTAIN_THRESHOLD",
+            "SAGE_CRISIS_TIERING",
+            "SAGE_D1_SCREEN",
+            "SAGE_D1_SCREEN_SHADOW",
+            "SAGE_D5_ACUITY_FLOOR",
+            "SAGE_D5_ACUITY_GATE",
+            "SAGE_DEREALIZATION_DETECTION",
+            "SAGE_FALLBACK_CLASSIFIER_MODEL",
+            "SAGE_FALLBACK_RESPONDER_MODEL",
+            "SAGE_GRIEF_DEFERENCE",
+            "SAGE_HIGH_RISK_DETECTION",
+            "SAGE_HIGH_RISK_TERMINAL",
+            "SAGE_HR_NEUTRALITY_GATE",
+            "SAGE_INFO_REQUEST_CONSULT",
+            "SAGE_IPV_PREEMPTION",
+            "SAGE_KNOWLEDGE_ABSTAIN_THRESHOLD",
+            "SAGE_MEDICAL_REDFLAG_GUARD",
+            "SAGE_MEDICAL_REFERRAL_TEXT",
+            "SAGE_NATIVE_ARABIC_SHADOW",
+            "SAGE_OPENROUTER_PROVIDER_PIN",
+            "SAGE_PANIC_GROUNDING_OVERRIDE",
+            "SAGE_PSYCHOED_CATEGORIES",
+            "SAGE_PSYCHOED_PATHWAYS",
+            "SAGE_RESISTANCE_MODEL",
+            "SAGE_RESPONDER_MODEL",
+            "SAGE_ROUTE_PRECEDENCE",
+            "SAGE_SKILL_OFFER_COOLDOWN_ENABLED",
+            "SAGE_SKILL_OFFER_COOLDOWN_TURNS",
+            "SAGE_SKILL_RUNNER_UP_MARGIN",
+            "SAGE_SKILL_RUNNER_UP_MIN",
+            "SAGE_TRANSLATOR_MODEL",
+            "SAGE_VENTING_SUPPRESSION"
+          ],
+          "mismatches": [],
+          "deployment_id": "e0abdf17-d377-45bc-a76d-c0b35fecd4b4",
+          "deployment_created_at": "2026-08-06T11:54:05.409Z"
+        }
+      ],
+      "refusal_log": []
+    }
+  },
+  "per_case": {
+    "EMR-SC-001": {
+      "n": 10,
+      "offer_rate": 1.0,
+      "first_line_offer_rate": 1.0,
+      "mechanism_counts": {
+        "general_chat|safety_check>intent_route>skill_select>modality_request_routed:select>skill_offer_made>freeflow_respond>output_gate>output_gate_opener_rewritten": 5,
+        "general_chat|safety_check>intent_route>skill_select>modality_request_routed:select>skill_offer_made>freeflow_respond>output_gate": 4,
+        "general_chat|safety_check>intent_route>skill_select>modality_request_routed:select>skill_offer_made>freeflow_respond>output_gate>output_gate_opener_rewritten>question_discipline_applied": 1
+      },
+      "mechanism_flip_rate": 0.5,
+      "trajectory_freqs": {
+        "t1:info_request|safety_check>intent_route>modality_request_detected>skill_select>modality_request_screen_pending>screen_response ;; t2:general_chat|safety_check>intent_route>skill_select>modality_request_routed:select>skill_offer_made>freeflow_respond>output_gate>output_gate_opener_rewritten": 5,
+        "t1:info_request|safety_check>intent_route>modality_request_detected>skill_select>modality_request_screen_pending>screen_response ;; t2:general_chat|safety_check>intent_route>skill_select>modality_request_routed:select>skill_offer_made>freeflow_respond>output_gate": 4,
+        "t1:info_request|safety_check>intent_route>modality_request_detected>skill_select>modality_request_screen_pending>screen_response ;; t2:general_chat|safety_check>intent_route>skill_select>modality_request_routed:select>skill_offer_made>freeflow_respond>output_gate>output_gate_opener_rewritten>question_discipline_applied": 1
+      },
+      "trajectory_flip_rate": 0.5,
+      "degraded_turn_count": 0,
+      "final_turn_offered_detail": [
+        {
+          "sample": 0,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 1,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 2,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 3,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 4,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 5,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 6,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 7,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 8,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 9,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        }
+      ],
+      "surface": "s2_cold_request_screen_completed",
+      "spec_expectation": {
+        "expected": "turn 1 serves the screen question (duration); turn 2 supplies onset+duration (acute) -> cleared -> first-line pair offered (box_breathing, grounding_5_4_3_2_1)"
+      }
+    },
+    "EMR-SC-002": {
+      "n": 10,
+      "offer_rate": 1.0,
+      "first_line_offer_rate": 1.0,
+      "mechanism_counts": {
+        "new_skill|safety_check>intent_route>skill_select>modality_request_routed:select>skill_offer_made>freeflow_respond>output_gate": 5,
+        "new_skill|safety_check>intent_route>skill_select>modality_request_routed:select>skill_offer_made>freeflow_respond>output_gate>output_gate_opener_rewritten": 5
+      },
+      "mechanism_flip_rate": 0.5,
+      "trajectory_freqs": {
+        "t1:general_chat|safety_check>intent_route>freeflow_respond>output_gate ;; t2:info_request|safety_check>intent_route>directive_posture_set>skill_select>knowledge_retrieve_cards>skill_executor>freeflow_respond>output_gate ;; t3:skill_continuation|safety_check>intent_route>modality_request_detected>skill_executor>modality_request_routed:executor>skill_select>modality_request_screen_pending>screen_response ;; t4:new_skill|safety_check>intent_route>skill_select>modality_request_routed:select>skill_offer_made>freeflow_respond>output_gate": 4,
+        "t1:general_chat|safety_check>intent_route>freeflow_respond>output_gate ;; t2:info_request|safety_check>intent_route>directive_posture_set>skill_select>knowledge_retrieve_cards>skill_executor>freeflow_respond>output_gate ;; t3:skill_continuation|safety_check>intent_route>modality_request_detected>skill_executor>modality_request_routed:executor>skill_select>modality_request_screen_pending>screen_response ;; t4:new_skill|safety_check>intent_route>skill_select>modality_request_routed:select>skill_offer_made>freeflow_respond>output_gate>output_gate_opener_rewritten": 2,
+        "t1:general_chat|safety_check>intent_route>freeflow_respond>output_gate ;; t2:info_request|safety_check>intent_route>directive_posture_set>skill_select>knowledge_retrieve_cards>skill_executor>freeflow_respond>output_gate ;; t3:new_skill|safety_check>intent_route>modality_request_detected>skill_executor>modality_request_routed:executor>skill_select>modality_request_screen_pending>screen_response ;; t4:new_skill|safety_check>intent_route>skill_select>modality_request_routed:select>skill_offer_made>freeflow_respond>output_gate>output_gate_opener_rewritten": 2,
+        "t1:general_chat|safety_check>intent_route>freeflow_respond>output_gate>output_gate_opener_rewritten ;; t2:info_request|safety_check>intent_route>directive_posture_set>skill_select>knowledge_retrieve_cards>skill_executor>freeflow_respond>output_gate ;; t3:skill_continuation|safety_check>intent_route>modality_request_detected>skill_executor>modality_request_routed:executor>skill_select>modality_request_screen_pending>screen_response ;; t4:new_skill|safety_check>intent_route>skill_select>modality_request_routed:select>skill_offer_made>freeflow_respond>output_gate": 1,
+        "t1:general_chat|safety_check>intent_route>freeflow_respond>output_gate ;; t2:new_skill|safety_check>intent_route>directive_posture_set>skill_select>skill_matching_rule:default_offer>skill_offer_made>freeflow_respond>output_gate>output_gate_opener_rewritten ;; t3:info_request|safety_check>intent_route>modality_request_detected>modality_request_routed:offer_reply>offer_released_modality_request>skill_select>modality_request_screen_pending>screen_response ;; t4:new_skill|safety_check>intent_route>skill_select>modality_request_routed:select>skill_offer_made>freeflow_respond>output_gate>output_gate_opener_rewritten": 1
+      },
+      "trajectory_flip_rate": 0.6,
+      "degraded_turn_count": 0,
+      "final_turn_offered_detail": [
+        {
+          "sample": 0,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 1,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 2,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 3,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 4,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 5,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 6,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 7,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 8,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 9,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        }
+      ],
+      "surface": "s1_absorption_screen_completed",
+      "spec_expectation": {
+        "expected": "turn 3 exits psychoed (rehand) and serves the screen; turn 4 supplies onset+duration (acute) -> cleared -> first-line pair offered"
+      }
+    },
+    "EMR-SC-003": {
+      "n": 10,
+      "offer_rate": 1.0,
+      "first_line_offer_rate": 1.0,
+      "mechanism_counts": {
+        "new_skill|safety_check>intent_route>skill_select>modality_request_routed:select>modality_request_referral_context>skill_offer_made>freeflow_respond>output_gate": 7,
+        "new_skill|safety_check>intent_route>skill_select>modality_request_routed:select>modality_request_referral_context>skill_offer_made>freeflow_respond>output_gate>output_gate_opener_rewritten": 2,
+        "new_skill|safety_check>intent_route>skill_select>modality_request_routed:select>modality_request_referral_context>skill_offer_made>freeflow_respond>output_gate>question_discipline_applied": 1
+      },
+      "mechanism_flip_rate": 0.30000000000000004,
+      "trajectory_freqs": {
+        "t1:new_skill|safety_check>intent_route>modality_request_detected>skill_select>modality_request_screen_pending>screen_response ;; t2:new_skill|safety_check>intent_route>skill_select>modality_request_routed:select>modality_request_referral_context>skill_offer_made>freeflow_respond>output_gate": 7,
+        "t1:new_skill|safety_check>intent_route>modality_request_detected>skill_select>modality_request_screen_pending>screen_response ;; t2:new_skill|safety_check>intent_route>skill_select>modality_request_routed:select>modality_request_referral_context>skill_offer_made>freeflow_respond>output_gate>output_gate_opener_rewritten": 2,
+        "t1:new_skill|safety_check>intent_route>modality_request_detected>skill_select>modality_request_screen_pending>screen_response ;; t2:new_skill|safety_check>intent_route>skill_select>modality_request_routed:select>modality_request_referral_context>skill_offer_made>freeflow_respond>output_gate>question_discipline_applied": 1
+      },
+      "trajectory_flip_rate": 0.30000000000000004,
+      "degraded_turn_count": 0,
+      "final_turn_offered_detail": [
+        {
+          "sample": 0,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 1,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 2,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 3,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 4,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 5,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 6,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 7,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 8,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        },
+        {
+          "sample": 9,
+          "offered_skill_ids": [
+            "box_breathing",
+            "grounding_5_4_3_2_1"
+          ],
+          "active_skill_id": null,
+          "skill_match_method": "modality_request_offer"
+        }
+      ],
+      "surface": "chronic_screen_completed_referral_alongside",
+      "spec_expectation": {
+        "expected": "turn 1 screens; turn 2 supplies chronic duration + onset -> cleared WITH referral_alongside -> first-line offer with modality_request_referral_context marker"
+      }
+    }
+  },
+  "raw_samples": {
+    "EMR-SC-001": [
+      {
+        "sample": 0,
+        "thread_id": "emr-07056b3-EMR-SC-001-s0-9e183aa1",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "are there any exercises i can do",
+            "primary_intent": "info_request",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "honestly it just kicked off this afternoon after a rough call with my boss",
+            "primary_intent": "general_chat",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate",
+              "output_gate_opener_rewritten"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 1,
+        "thread_id": "emr-07056b3-EMR-SC-001-s1-6b41c706",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "are there any exercises i can do",
+            "primary_intent": "info_request",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "honestly it just kicked off this afternoon after a rough call with my boss",
+            "primary_intent": "general_chat",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate",
+              "output_gate_opener_rewritten",
+              "question_discipline_applied"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 2,
+        "thread_id": "emr-07056b3-EMR-SC-001-s2-79f8d7eb",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "are there any exercises i can do",
+            "primary_intent": "info_request",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "honestly it just kicked off this afternoon after a rough call with my boss",
+            "primary_intent": "general_chat",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 3,
+        "thread_id": "emr-07056b3-EMR-SC-001-s3-8888e7b6",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "are there any exercises i can do",
+            "primary_intent": "info_request",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "honestly it just kicked off this afternoon after a rough call with my boss",
+            "primary_intent": "general_chat",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate",
+              "output_gate_opener_rewritten"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 4,
+        "thread_id": "emr-07056b3-EMR-SC-001-s4-56803b67",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "are there any exercises i can do",
+            "primary_intent": "info_request",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "honestly it just kicked off this afternoon after a rough call with my boss",
+            "primary_intent": "general_chat",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 5,
+        "thread_id": "emr-07056b3-EMR-SC-001-s5-1c86db2a",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "are there any exercises i can do",
+            "primary_intent": "info_request",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "honestly it just kicked off this afternoon after a rough call with my boss",
+            "primary_intent": "general_chat",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate",
+              "output_gate_opener_rewritten"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 6,
+        "thread_id": "emr-07056b3-EMR-SC-001-s6-eebe7190",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "are there any exercises i can do",
+            "primary_intent": "info_request",
+            "secondary_intent": null,
+            "confidence": 0.8,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "honestly it just kicked off this afternoon after a rough call with my boss",
+            "primary_intent": "general_chat",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate",
+              "output_gate_opener_rewritten"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 7,
+        "thread_id": "emr-07056b3-EMR-SC-001-s7-64aac7bb",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "are there any exercises i can do",
+            "primary_intent": "info_request",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "honestly it just kicked off this afternoon after a rough call with my boss",
+            "primary_intent": "general_chat",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 8,
+        "thread_id": "emr-07056b3-EMR-SC-001-s8-2eb74ae8",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "are there any exercises i can do",
+            "primary_intent": "info_request",
+            "secondary_intent": null,
+            "confidence": 0.8,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "honestly it just kicked off this afternoon after a rough call with my boss",
+            "primary_intent": "general_chat",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 9,
+        "thread_id": "emr-07056b3-EMR-SC-001-s9-9a1182f9",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "are there any exercises i can do",
+            "primary_intent": "info_request",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "honestly it just kicked off this afternoon after a rough call with my boss",
+            "primary_intent": "general_chat",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate",
+              "output_gate_opener_rewritten"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      }
+    ],
+    "EMR-SC-002": [
+      {
+        "sample": 0,
+        "thread_id": "emr-07056b3-EMR-SC-002-s0-c75e9c02",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "I'm feeling anxious",
+            "primary_intent": "general_chat",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "freeflow_respond",
+              "output_gate",
+              "output_gate_opener_rewritten"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "can you tell me how to manage my anxiety",
+            "primary_intent": "info_request",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "directive_posture_set",
+              "skill_select",
+              "knowledge_retrieve_cards",
+              "skill_executor",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": "psychoed_anxiety",
+            "completed_skill_id": null,
+            "skill_match_method": "info_request_skill_consult",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 3,
+            "user_message": "are there any exercises i can do",
+            "primary_intent": "skill_continuation",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_executor",
+              "modality_request_routed:executor",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 4,
+            "user_message": "it started this morning after i saw the project deadline moved up",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 1,
+        "thread_id": "emr-07056b3-EMR-SC-002-s1-c9fbb67f",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "I'm feeling anxious",
+            "primary_intent": "general_chat",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "can you tell me how to manage my anxiety",
+            "primary_intent": "info_request",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "directive_posture_set",
+              "skill_select",
+              "knowledge_retrieve_cards",
+              "skill_executor",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": "psychoed_anxiety",
+            "completed_skill_id": null,
+            "skill_match_method": "info_request_skill_consult",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 3,
+            "user_message": "are there any exercises i can do",
+            "primary_intent": "skill_continuation",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_executor",
+              "modality_request_routed:executor",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 4,
+            "user_message": "it started this morning after i saw the project deadline moved up",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate",
+              "output_gate_opener_rewritten"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 2,
+        "thread_id": "emr-07056b3-EMR-SC-002-s2-dad1b456",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "I'm feeling anxious",
+            "primary_intent": "general_chat",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "can you tell me how to manage my anxiety",
+            "primary_intent": "info_request",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "directive_posture_set",
+              "skill_select",
+              "knowledge_retrieve_cards",
+              "skill_executor",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": "psychoed_anxiety",
+            "completed_skill_id": null,
+            "skill_match_method": "info_request_skill_consult",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 3,
+            "user_message": "are there any exercises i can do",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_executor",
+              "modality_request_routed:executor",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 4,
+            "user_message": "it started this morning after i saw the project deadline moved up",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate",
+              "output_gate_opener_rewritten"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 3,
+        "thread_id": "emr-07056b3-EMR-SC-002-s3-c8d0881c",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "I'm feeling anxious",
+            "primary_intent": "general_chat",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "can you tell me how to manage my anxiety",
+            "primary_intent": "info_request",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "directive_posture_set",
+              "skill_select",
+              "knowledge_retrieve_cards",
+              "skill_executor",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": "psychoed_anxiety",
+            "completed_skill_id": null,
+            "skill_match_method": "info_request_skill_consult",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 3,
+            "user_message": "are there any exercises i can do",
+            "primary_intent": "skill_continuation",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_executor",
+              "modality_request_routed:executor",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 4,
+            "user_message": "it started this morning after i saw the project deadline moved up",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 4,
+        "thread_id": "emr-07056b3-EMR-SC-002-s4-86fdd1b4",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "I'm feeling anxious",
+            "primary_intent": "general_chat",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "can you tell me how to manage my anxiety",
+            "primary_intent": "info_request",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "directive_posture_set",
+              "skill_select",
+              "knowledge_retrieve_cards",
+              "skill_executor",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": "psychoed_anxiety",
+            "completed_skill_id": null,
+            "skill_match_method": "info_request_skill_consult",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 3,
+            "user_message": "are there any exercises i can do",
+            "primary_intent": "skill_continuation",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_executor",
+              "modality_request_routed:executor",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 4,
+            "user_message": "it started this morning after i saw the project deadline moved up",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 5,
+        "thread_id": "emr-07056b3-EMR-SC-002-s5-9c828958",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "I'm feeling anxious",
+            "primary_intent": "general_chat",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "can you tell me how to manage my anxiety",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "directive_posture_set",
+              "skill_select",
+              "skill_matching_rule:default_offer",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate",
+              "output_gate_opener_rewritten"
+            ],
+            "offered_skill_ids": [
+              "psychoed_anxiety",
+              "worry_time"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "semantic_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 3,
+            "user_message": "are there any exercises i can do",
+            "primary_intent": "info_request",
+            "secondary_intent": null,
+            "confidence": 0.8,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "modality_request_routed:offer_reply",
+              "offer_released_modality_request",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 4,
+            "user_message": "it started this morning after i saw the project deadline moved up",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate",
+              "output_gate_opener_rewritten"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 6,
+        "thread_id": "emr-07056b3-EMR-SC-002-s6-5fdb4edf",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "I'm feeling anxious",
+            "primary_intent": "general_chat",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "can you tell me how to manage my anxiety",
+            "primary_intent": "info_request",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "directive_posture_set",
+              "skill_select",
+              "knowledge_retrieve_cards",
+              "skill_executor",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": "psychoed_anxiety",
+            "completed_skill_id": null,
+            "skill_match_method": "info_request_skill_consult",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 3,
+            "user_message": "are there any exercises i can do",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_executor",
+              "modality_request_routed:executor",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 4,
+            "user_message": "it started this morning after i saw the project deadline moved up",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate",
+              "output_gate_opener_rewritten"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 7,
+        "thread_id": "emr-07056b3-EMR-SC-002-s7-63b9c458",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "I'm feeling anxious",
+            "primary_intent": "general_chat",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "can you tell me how to manage my anxiety",
+            "primary_intent": "info_request",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "directive_posture_set",
+              "skill_select",
+              "knowledge_retrieve_cards",
+              "skill_executor",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": "psychoed_anxiety",
+            "completed_skill_id": null,
+            "skill_match_method": "info_request_skill_consult",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 3,
+            "user_message": "are there any exercises i can do",
+            "primary_intent": "skill_continuation",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_executor",
+              "modality_request_routed:executor",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 4,
+            "user_message": "it started this morning after i saw the project deadline moved up",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 8,
+        "thread_id": "emr-07056b3-EMR-SC-002-s8-8c3e8606",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "I'm feeling anxious",
+            "primary_intent": "general_chat",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "can you tell me how to manage my anxiety",
+            "primary_intent": "info_request",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "directive_posture_set",
+              "skill_select",
+              "knowledge_retrieve_cards",
+              "skill_executor",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": "psychoed_anxiety",
+            "completed_skill_id": null,
+            "skill_match_method": "info_request_skill_consult",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 3,
+            "user_message": "are there any exercises i can do",
+            "primary_intent": "skill_continuation",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_executor",
+              "modality_request_routed:executor",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 4,
+            "user_message": "it started this morning after i saw the project deadline moved up",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate",
+              "output_gate_opener_rewritten"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 9,
+        "thread_id": "emr-07056b3-EMR-SC-002-s9-5709b9ad",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "I'm feeling anxious",
+            "primary_intent": "general_chat",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "can you tell me how to manage my anxiety",
+            "primary_intent": "info_request",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "directive_posture_set",
+              "skill_select",
+              "knowledge_retrieve_cards",
+              "skill_executor",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": "psychoed_anxiety",
+            "completed_skill_id": null,
+            "skill_match_method": "info_request_skill_consult",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 3,
+            "user_message": "are there any exercises i can do",
+            "primary_intent": "skill_continuation",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_executor",
+              "modality_request_routed:executor",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 4,
+            "user_message": "it started this morning after i saw the project deadline moved up",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      }
+    ],
+    "EMR-SC-003": [
+      {
+        "sample": 0,
+        "thread_id": "emr-07056b3-EMR-SC-003-s0-d7af854b",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "could you walk me through an exercise or something",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "this has been going on for months really, ever since we moved cities",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "modality_request_referral_context",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 1,
+        "thread_id": "emr-07056b3-EMR-SC-003-s1-7f5810cd",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "could you walk me through an exercise or something",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "this has been going on for months really, ever since we moved cities",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "modality_request_referral_context",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 2,
+        "thread_id": "emr-07056b3-EMR-SC-003-s2-92bd6ff5",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "could you walk me through an exercise or something",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "this has been going on for months really, ever since we moved cities",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "modality_request_referral_context",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate",
+              "question_discipline_applied"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 3,
+        "thread_id": "emr-07056b3-EMR-SC-003-s3-aa4a230b",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "could you walk me through an exercise or something",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "this has been going on for months really, ever since we moved cities",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "modality_request_referral_context",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 4,
+        "thread_id": "emr-07056b3-EMR-SC-003-s4-d2cef583",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "could you walk me through an exercise or something",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "this has been going on for months really, ever since we moved cities",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "modality_request_referral_context",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 5,
+        "thread_id": "emr-07056b3-EMR-SC-003-s5-84cf33f1",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "could you walk me through an exercise or something",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "this has been going on for months really, ever since we moved cities",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "modality_request_referral_context",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 6,
+        "thread_id": "emr-07056b3-EMR-SC-003-s6-b505496b",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "could you walk me through an exercise or something",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "this has been going on for months really, ever since we moved cities",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "modality_request_referral_context",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate",
+              "output_gate_opener_rewritten"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 7,
+        "thread_id": "emr-07056b3-EMR-SC-003-s7-b8cde780",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "could you walk me through an exercise or something",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "this has been going on for months really, ever since we moved cities",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "modality_request_referral_context",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 8,
+        "thread_id": "emr-07056b3-EMR-SC-003-s8-0e4c0a85",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "could you walk me through an exercise or something",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "this has been going on for months really, ever since we moved cities",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "modality_request_referral_context",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate",
+              "output_gate_opener_rewritten"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "sample": 9,
+        "thread_id": "emr-07056b3-EMR-SC-003-s9-8a3a2bed",
+        "records": [
+          {
+            "turn": 1,
+            "user_message": "could you walk me through an exercise or something",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "modality_request_detected",
+              "skill_select",
+              "modality_request_screen_pending",
+              "screen_response"
+            ],
+            "offered_skill_ids": null,
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": null,
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          },
+          {
+            "turn": 2,
+            "user_message": "this has been going on for months really, ever since we moved cities",
+            "primary_intent": "new_skill",
+            "secondary_intent": null,
+            "confidence": 0.9,
+            "path": [
+              "safety_check",
+              "intent_route",
+              "skill_select",
+              "modality_request_routed:select",
+              "modality_request_referral_context",
+              "skill_offer_made",
+              "freeflow_respond",
+              "output_gate"
+            ],
+            "offered_skill_ids": [
+              "box_breathing",
+              "grounding_5_4_3_2_1"
+            ],
+            "active_skill_id": null,
+            "completed_skill_id": null,
+            "skill_match_method": "modality_request_offer",
+            "classifier_system_fingerprint": "fp_c400bf5046",
+            "degraded": false
+          }
+        ]
+      }
+    ]
+  },
+  "faults": []
+}

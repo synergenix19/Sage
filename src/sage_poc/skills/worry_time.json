@@ -138,9 +138,9 @@
   ],
   "escalation_matrix": {
     "L1": "Exit gracefully if user requests to stop or finds the framework unhelpful. No persuasion.",
-    "L2": "Add clinician_review flag if worry is focused on specific trauma events, or if user describes obsessive themes or compulsive checking behaviors (possible OCD presentation, not GAD).",
-    "L3": "Exit immediately to crisis protocol if any crisis signal detected.",
-    "L4": "Trigger human handoff if 3 or more crises in last 30 days or user explicitly requests human."
+    "L2": "[STORED_ONLY — enforced by output_gate._log_clinical_review -> clinician_review_queue, not by this string] Documented clinical intent (not runtime-enforced): Add clinician_review flag if worry is focused on specific trauma events, or if user describes obsessive themes or compulsive checking behaviors (possible OCD presentation, not GAD).",
+    "L3": "[STORED_ONLY — enforced by the safety graph (_route_after_safety -> _crisis_response_node), not by this string] Documented clinical intent (not runtime-enforced): Exit immediately to crisis protocol if any crisis signal detected.",
+    "L4": "[NOT_IMPLEMENTED — human-handoff automation deferred per 2026-07-10 decision record; no live call routing in POC; OR-7 response floor covers explicit human requests; 3+ crises/30d trigger deferred to the D4(a) exposure gate] Documented clinical intent (not runtime-enforced): Trigger human handoff if 3 or more crises in last 30 days or user explicitly requests human."
   },
   "cultural_overrides": {
     "tawakkul_framing": "For religious users, the idea of scheduling worry may initially feel like it conflicts with tawakkul, trust in Allah's plan and acceptance of His will. Clarify that worry time is not about dismissing God's will or treating anxiety as a problem to be solved by willpower alone. Frame it as using one's reason and self-discipline as God intended, taking practical action while trusting in the outcome. Scheduling worry is an act of responsible stewardship of the mind, not a rejection of reliance on Allah.",

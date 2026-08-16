@@ -1,0 +1,12 @@
+{
+  "category": "3c",
+  "delivery_shape": "answer_first",
+  "safety_weave": true,
+  "framing_statement": "It makes sense you'd want to understand what's going on. Low mood or depression can be confusing, especially when it doesn't feel like straightforward sadness. Just to note - I'm here to help you understand what you're experiencing and offer tools that might help, but I'm not able to diagnose any mental health condition. A diagnosis needs a full picture from a qualified professional who can properly assess what's going on. If you're wondering whether something has a clinical name, that's worth bringing to a doctor or therapist directly. Let's start with what you're asking, and I can go deeper into anything else that would help.",
+  "menu_offer": "Want to go deeper into any of this? I can walk through: what depression actually is, why 'snap out of it' doesn't work, why it hits motivation and energy, why things can feel numb, how it's different from ordinary sadness, why it can happen with no clear reason, or why reaching out for support is worth it.",
+  "check_in": "Does that help make sense of things? Want to explore another topic, or is there something else on your mind?",
+  "blocks": ["3c-b1", "3c-b2", "3c-b3", "3c-b4", "3c-b5", "3c-b6", "3c-b7"],
+  "bridge_map": [],
+  "guards": ["acute_distress", "diagnosis_guard", "crisis_override", "safety_weave"],
+  "source_citation": {"file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md", "section": "3c – UNDERSTANDING DEPRESSION"}
+}

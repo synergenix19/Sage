@@ -1,0 +1,19 @@
+{
+  "article_id": "1f-b3",
+  "language": "en",
+  "title": "Why anxiety causes physical symptoms",
+  "content": "When fight-flight-freeze kicks in, your body redirects resources toward survival: blood flow shifts to your muscles, your heart beats faster and breathing quickens to get oxygen where it thinks you'll need it, and digestion slows down, which is why anxiety can bring on a racing heart, tight chest, or an upset stomach. These symptoms aren't random or 'just in your head'. They're your body doing exactly what it's designed to do, just in response to a threat that isn't physical.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "1f",
+    "article_family": "understanding_anxiety",
+    "delivery_shape": "menu_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "Why anxiety causes physical symptoms",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "1f – UNDERSTANDING ANXIETY, Content per Topic, item 3"
+    }
+  }
+}

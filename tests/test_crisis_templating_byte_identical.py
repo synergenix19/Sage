@@ -1,16 +1,17 @@
-"""Byte-identical proof for crisis-number templating.
+"""Byte-identical snapshot proof for crisis-copy templating.
 
 The crisis-copy source files carry ``{{crisis_*}}`` placeholders instead of re-embedded phone
-numbers. This test proves the templating mechanism is provably BYTE-IDENTICAL to the pre-templating
-output before any value rides on it: for each of the 8 files, resolving the (now templated) live
-file must reconstruct the ORIGINAL bytes captured from origin/master, character-for-character.
+numbers. This test proves the templating mechanism is provably BYTE-IDENTICAL to an authorized
+snapshot: for each of the 8 files, resolving the (now templated) live file must reconstruct the
+snapshot bytes in tests/fixtures/crisis_originals/ character-for-character. Any accidental drift in
+the served crisis text (a stray edit, a lost placeholder, a value that fell out of sync) fails CI.
 
-The originals live in tests/fixtures/crisis_originals/ (captured from origin/master @2272073,
-2026-07-08, BEFORE templating). Because CRISIS_CONFIG holds exactly the current literals
-("800 46342", "999", "24/7", "MoHAP Counselling Line"), resolve(templated) == original must hold
-EXACTLY. If a value in CRISIS_CONFIG ever changes, this test is expected to fail — that is correct:
-it is the anchor proving the mechanism reproduced *today's* output, and it should be retired/updated
-deliberately alongside any future number change, never silently.
+SNAPSHOT REGENERATED 2026-07-10 for the H4 value adoption (all gates cleared): the snapshots now
+carry the doc's verified composition (National Mental Support Line 800-HOPE (800-4673) 8am-8pm,
+999, SAKINA/DHA/Sharjah/ER) — SUPERSEDING the pre-adoption origin/master originals ("800 46342" /
+"24/7" / "MoHAP Counselling Line"). If a value in CRISIS_RESOURCES ever changes again, this test is
+expected to fail — that is correct: it is the anchor proving the mechanism reproduces the AUTHORIZED
+output, and the snapshot must be regenerated deliberately alongside the change, never silently.
 """
 from pathlib import Path
 

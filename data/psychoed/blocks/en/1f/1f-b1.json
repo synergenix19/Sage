@@ -1,0 +1,19 @@
+{
+  "article_id": "1f-b1",
+  "language": "en",
+  "title": "What is anxiety?",
+  "content": "Anxiety is your body's natural alarm system, a response to perceived threat or uncertainty that's designed to protect you. It's not a sign that something's wrong with you; it's a fundamentally protective system. It becomes a problem when it's out of proportion to the actual risk, shows up too often, or starts getting in the way of daily life.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "1f",
+    "article_family": "understanding_anxiety",
+    "delivery_shape": "menu_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "What is anxiety?",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "1f – UNDERSTANDING ANXIETY, Content per Topic, item 1"
+    }
+  }
+}

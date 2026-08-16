@@ -1,0 +1,19 @@
+{
+  "article_id": "1f-b5",
+  "language": "en",
+  "title": "What is worry?",
+  "content": "Worry is the thinking part of anxiety, a stream of 'what if' thoughts about things that might go wrong, often an attempt to feel more prepared or in control. It's a bit different from anxiety as a whole, which includes the full body response. A little worry can be useful for planning ahead, but worry about things outside your control tends to just loop without actually solving anything, which is often what makes it feel so exhausting.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "1f",
+    "article_family": "understanding_anxiety",
+    "delivery_shape": "menu_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "What is worry?",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "1f – UNDERSTANDING ANXIETY, Content per Topic, item 5"
+    }
+  }
+}

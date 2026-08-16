@@ -675,23 +675,6 @@ async def test_skill_executor_l2_flag_on_clinical_signal():
     assert result["active_skill_id"] == "cbt_thought_record"
 
 
-# Task 12A: knowledge module
-from sage_poc.knowledge import lookup_knowledge
-
-def test_knowledge_lookup_exact_phrase():
-    result = lookup_knowledge("what is anxiety")
-    assert result is not None
-    assert len(result) > 20
-
-def test_knowledge_lookup_embedded_phrase():
-    result = lookup_knowledge("Can you tell me what is CBT and how does it work?")
-    assert result is not None
-
-def test_knowledge_lookup_no_match_returns_none():
-    result = lookup_knowledge("I feel sad today")
-    assert result is None
-
-
 # Task 11 / Sprint 4: freeflow_respond node — compose_prompt returns (system_str, user_str)
 from sage_poc.nodes.freeflow_respond import freeflow_respond_node, compose_prompt
 

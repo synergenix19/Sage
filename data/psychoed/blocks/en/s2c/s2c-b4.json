@@ -1,0 +1,19 @@
+{
+  "article_id": "s2c-b4",
+  "language": "en",
+  "title": "Is there a \"right\" way to grieve?",
+  "content": "There isn't one normal way to grieve, how it looks depends on the relationship, the circumstances of the loss, your personality, culture, and even practical factors happening at the time. Some people grieve openly and intensely; others process more quietly or practically. Neither is wrong.",
+  "is_crisis_content": false,
+  "psychoed": {
+    "category": "s2c",
+    "article_family": "understanding_grief",
+    "delivery_shape": "answer_first",
+    "verbatim": true,
+    "atomic": true,
+    "menu_label": "Is there a \"right\" way to grieve?",
+    "source_citation": {
+      "file": "docs/superpowers/specs/bot-behaviour-oracle/bot_behaviour_full.md",
+      "section": "S2c – UNDERSTANDING GRIEF, §3 Content Library, item 4"
+    }
+  }
+}

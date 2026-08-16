@@ -1,3 +1,5 @@
+# DEPRECATED-DIRECT-INVOKE: invokes the graph/LLM directly; output is NOT evidence under
+# the signed instrument-parity rule (2026-07-28). Migrate to scripts/instrument/graph_evidence.py.
 """Proof 2 — per-case tiering NON-INFERIORITY regression (the design gate).
 
 For every true-SI CRADLE case, run the real detectors (S1 rules + real BGE-M3 S3), then resolve
