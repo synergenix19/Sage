@@ -83,3 +83,27 @@ banned. This PR is not license for gate-free description edits.
 **Remaining before serving:** prod deploy under lock + live behavioral probe pair
 (description/anchor changes are LIVE routing changes once deployed — no flag gates them;
 rollback = revert PR). EN-only this pass; AR rides the AR track.
+
+## Addendum — gate round 2 (2026-08-16, post-deploy findings)
+
+The live probe pair (the gate's final rung) caught two defects the local gate missed:
+
+1. **The veto could not see the anchor** (measured 3/3 live: `keyword_rerank_veto` killed
+   the K3 offer against the description alone). Mechanism fix: the veto now scores the
+   SAME signed texts Tier-2 ranks — description AND anchors, max per skill (M2's one-
+   recognition-surface principle applied to the veto). Monotonically less aggressive,
+   only for skills carrying signed anchors; id_oos/abstain suites green.
+2. **The adopted anchor's opening over-matched self-critical schema phrasings**
+   (test_skill_select's CBT fixture ranked IE 0.4926 — a latent matcher regression that
+   shipped in #438 because that suite was omitted from the final gate batch; my
+   omission, recorded. Live impact none on probe: the classifier routes the fixture
+   phrasing to freeflow before matching). Fix: the anchor wording NARROWED, scored
+   empirically for separation (K3 targets 0.587/0.568; CBT fixture 0.4742 < CBT's own
+   0.4843 — CBT reclaims it):
+   > "Crossing a line or overstepping with a partner, family member, friend, or
+   > colleague; preparing the apology or repair conversation with them, owning the
+   > behavior and what will be different, using the same DEARMAN structure and
+   > self-respect skills."
+   **PENDING VEE'S RE-ADOPTION** — the words changed, so the signature must renew; the
+   deploy carrying this wording waits on her tick. Full gate re-run green (289 tests,
+   test_skill_select included this round).

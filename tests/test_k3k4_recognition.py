@@ -95,3 +95,14 @@ def test_dearman_prep_recognition_not_burned():
     boundary prep) still resolves to IE with the anchor present."""
     sid, score = _top("i need to prepare for a hard conversation about setting a boundary with my sister")
     assert sid == "interpersonal_effectiveness", f"-> {sid} ({score:.4f})"
+
+
+def test_rerank_veto_sees_the_signed_anchor():
+    """The live 3/3 finding (2026-08-16): the veto scored descriptions only, so the
+    K3 anchor was invisible and the offer died at keyword_rerank_veto despite Tier-2
+    and the keyword agreeing. The veto's view now includes anchors: the K3 phrase
+    must NOT be vetoed for an IE-containing candidate list."""
+    from sage_poc.nodes.skill_select import _keyword_rerank_veto
+    vetoed = _keyword_rerank_veto(["interpersonal_effectiveness"],
+                                  "i need to stop crossing a line", "en")
+    assert vetoed is False, "anchor still invisible to the veto"

@@ -319,7 +319,21 @@ def _keyword_rerank_veto(candidates: list[str], message: str, lang: str) -> bool
     from sage_poc.nodes.skill_rerank_model import score_pairs
     from sage_poc.skills.schema import load_skill
     cands = candidates[:_RERANK_K]
-    scores = score_pairs([(message, load_skill(sid).semantic_description or sid) for sid in cands])
+    # ONE recognition surface (M2, applied to the veto 2026-08-16): the veto scores the
+    # SAME signed texts Tier-2 ranks — semantic_description AND every semantic_anchors
+    # entry — max per skill. Before this, an anchor-carried recognition clause (K3's
+    # self-as-transgressor anchor, Vee-adopted) was invisible to the veto: Tier-2 agreed,
+    # the keyword agreed, and the veto still killed the offer against the description
+    # alone (measured live 3/3, keyword_rerank_veto on 'i need to stop crossing a line').
+    # Widening is max-over-texts: it can only make the veto LESS aggressive, and only for
+    # skills carrying signed anchors; the id_oos ABSTAIN floor suites gate the change.
+    pairs, owners = [], []
+    for sid in cands:
+        sk = load_skill(sid)
+        for text in [sk.semantic_description or sid] + list(sk.semantic_anchors or []):
+            pairs.append((message, text))
+            owners.append(sid)
+    scores = score_pairs(pairs)
     return bool(scores) and max(scores) < _rerank_tau(lang)
 
 
