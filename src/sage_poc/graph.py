@@ -101,6 +101,18 @@ async def _crisis_response_node(state: SageState) -> dict:
                 "(session=%s) — manual follow-up required", session_id_val
             )
             return
+        # SF-1 charter condition 3 (op-check finding, 2026-08-16): every crisis activation
+        # wrote the clinician_review_queue AND fired pg_notify with NO test-user exclusion —
+        # a measurement campaign would page/numb the human reviewer surface at volume.
+        # Same allowlist + same fail-loud semantics as the tripwire (is_test_user: empty
+        # user_id is NON-test, so an unattributed real crisis still notifies).
+        from sage_poc.safety.tripwire import is_test_user  # noqa: PLC0415
+        if is_test_user(user_id):
+            _log.info(
+                "[crisis_response] test-user crisis activation (session=%s) — clinician "
+                "review-queue notify SUPPRESSED (SF-1 op-check rule 2026-08-16)", session_id_val
+            )
+            return
         try:
             from sage_poc.memory.notification import PostgresNotifier  # noqa: PLC0415
             pool = _get_crisis_review_pool()
