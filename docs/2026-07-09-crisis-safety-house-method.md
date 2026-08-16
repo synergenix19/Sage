@@ -1,0 +1,82 @@
+# The crisis-safety house method — three moves that resolved #191, #205, and the copy-gate catches
+
+**Status:** Adopted as engineering policy 2026-07-09. Short, deliberately. This codifies a pattern that
+recurred three times in one week and worked every time — so the next contributor inherits it as method,
+not folklore.
+
+## The three moves
+
+Every safety-critical fix this week composed the same three moves. Apply them in order.
+
+1. **Put the invariant at the boundary the data actually crosses — not where the spec says a boundary
+   *should* be.** #191's crisis state was fixed by making the render decision follow an out-of-band flag
+   at the render boundary; #205's crisis affordance was fixed by making the card/role follow the routing
+   path at the `server.py` emit boundary (because `crisis_response → END` bypasses `output_gate` — the
+   spec's nominal gate). The rule: find the point that *every* relevant turn provably passes through, and
+   enforce there. If that isn't where the spec drew the gate, record the deviation (see the ADR
+   `2026-07-08-crisis-emit-boundary-invariant.md`) rather than pretending the graph matches the doc.
+
+2. **Put a permanent, deterministic backstop behind the probabilistic layer.** A classifier with ≥95%
+   recall still misses ≤5%. The architecture's answer is never "make the classifier perfect" — it's a
+   deterministic layer that catches the miss (Cardinal Rule 4). #205's backstop fires when a crisis
+   response ships without crisis affordances; it is a pure structural check (path vs emitted metadata,
+   zero text heuristics), so it has no false-positive surface, and it stays in the architecture forever —
+   it should approach never-firing as the classifier improves, which is the correct steady state for a
+   backstop, not a reason to remove it.
+
+3. **Run a driven verification before relying on green suites.** A green unit suite proves the code does
+   what the test says; it does not prove the *system* does the right thing on the path a real turn takes.
+   Every incident this week was caught or confirmed by a driven run (a real request through the deployed
+   stack, asserted against the real DB), not by the suite. #205's continuation miss was invisible to unit
+   tests and visible immediately in the audit trail. Drive the exact failing scenario, on the real
+   artifact, and assert on the durable record — before you call it done.
+
+## The flywheel — backstop misses feed the fix
+
+The deterministic backstop (move 2) writes an L2 clinical-review flag on every catch. Each flag is also a
+**labelled miss**: the exact input the classifier should have caught. Those flags are the collection
+mechanism for the continuation-context retraining set (the TD3 / Component-2 work). So the backstop is not
+only a safety net — it is the data pipeline that eventually shrinks its own firing rate. Wire the two
+together deliberately: a backstop whose catches are not harvested is a net with no feedback loop.
+
+## The conformance register is a living record — write-back rule
+
+Any PR that closes or moves a matrix-tracked deviation **MUST update that register row (status + evidence
+link + date) in the same PR**. The BOT BEHAVIOUR conformance register is a living record, not a
+point-in-time audit. The failure mode this prevents: a remediation stream ships conformance-relevant
+fixes to prod while the register goes stale, so the next "how conformant are we?" reading is wrong in
+both directions — it misses fixes that landed AND rubber-stamps fixes that didn't achieve their goal. A
+recurring "re-run the whole matrix" task is the smell that this rule is missing. Corollary (move 3
+applied to the register itself): a row may only move to CONFORMS on driven/instrument evidence, never on
+a code-read — "the fix is in the file" is the exact false assurance this whole method exists to reject.
+
+## Never disarm the gate
+
+**Never unblock a deploy by removing, skipping, or `slow`-marking the test that gates it.** Making a failing safety check pass by deleting the check is the CI form of shipping crisis values on conversational authority — the gate exists precisely for the case you are tempted to bypass. Fix the test or the environment, never the gate. (2026-07-14: the BGE-M3 safety-suite CI hang was fixed by making model provisioning honest — fail-fast to a *loud* stub, `@slow` embedding tests fail-not-skip when stubbed — not by dropping `test_sg2_caveat_firing` from the strict candidate list. Proposing that shortcut and rejecting it in the same breath is the discipline working.)
+
+## Primary sources ground decisions; derived summaries only route attention
+
+**Verify a decision against the primary record, never against a summary that quotes it.** A conformance matrix, a plan, a governance note — these route your attention to the right place, but they are not the place. Reasoning that is *correct-by-luck* (the summary happened to quote the doc accurately) is indistinguishable from reasoning that is *correct-by-verification* — right up until the day the summary is wrong, and by then the decision has shipped. This failure mode has worn three costumes already: #205's correct-by-de-escalation (a boundary deviation that read as safe), the GL-1 "verification" that checked internal consistency instead of ground truth, and the 2026-07-15 SG-2 disposition argued from the conformance summary before the actual BOT BEHAVIOUR.docx was opened (it agreed — but that was luck, not method; reading the source then upgraded the finding from a style call to an explicit rule violation, L71). Make the right habit the easy one: when a source document exists, extract it into the working context and cite it by line, so the next decision checks the primary by default.
+
+## When to apply
+
+Any change on a safety-critical path (crisis, clinical-flag, safety routing). For ordinary feature work,
+moves 1 and 3 still pay off; move 2 is reserved for paths where a silent miss reaches a user as harm.
+
+## Evidence
+
+- #191 — in-band crisis-signalling render fix (move 1 + move 3).
+- #205 — crisis affordance follows routing path + path-consistency backstop (all three) + ADR for the
+  boundary deviation.
+- Copy-gate catches — driven review surfaced defects the aggregate suite hid (move 3).
+- §6c write-back exhibit (2026-07-14) — a routing fix recorded as "rehomed + shipped prod" measured
+  still 4/5 deviating on prod; the register never absorbed either the claim or its failure. The
+  strongest case for the write-back rule; reopened as #312, measured in v2 register
+  `docs/2026-07-14-bot-behaviour-conformance-matrix-v2.md`.
+- SG-2 arc (the project's epistemic argument in miniature) — the cardiac caveat passed through six
+  states: content-in-JSON → LLM-discretionary → mechanism-built → mechanism-inert (undeclared
+  node→node channel) → firing-but-duplicated → verified live (verbatim, once, EN+AR, doc-conformant
+  by the doc's own L71). Each state was discovered only by the verification layer that the previous
+  state's green pipeline had claimed to make unnecessary. This one arc minted the three standing
+  rules now recorded above as house law: **write-back**, **never-disarm-the-gate**, and
+  **primary-sources-ground-decisions**.
