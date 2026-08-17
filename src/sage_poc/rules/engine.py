@@ -98,12 +98,14 @@ def _eval_safety(rules: list[SafetyRule], context: dict) -> EvalResult:
                 # all Arabizi crisis signals. Fallback to norm_en preserves backwards
                 # compatibility for direct engine callers that don't supply text_raw.
                 text_to_check = norm_raw if norm_raw else norm_en
+                matched_surface = "raw" if norm_raw else "en"
             else:
                 # For "any" rules: route Arabic-script patterns to norm_ar, others to norm_en
                 is_arabic_pattern = lang == "ar" or (
                     lang == "any" and any('؀' <= ch <= 'ۿ' for ch in pattern)
                 )
                 text_to_check = norm_ar if is_arabic_pattern else norm_en
+                matched_surface = "ar" if is_arabic_pattern else "en"
 
             if not text_to_check:
                 continue
@@ -134,6 +136,7 @@ def _eval_safety(rules: list[SafetyRule], context: dict) -> EvalResult:
                 version=rule.version,
                 action=rule.action,
                 matched_span=(idx, span_end),
+                matched_surface=matched_surface,
             ))
             matched = True
 
