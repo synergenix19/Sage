@@ -1,4 +1,5 @@
 from __future__ import annotations
+import asyncio
 import json
 import logging
 from sage_poc.config import KNOWLEDGE_ABSTAIN_THRESHOLD, COSINE_ABSTAIN_THRESHOLD
@@ -76,6 +77,8 @@ LIMIT $6
 
 
 def _get_embedding(text: str) -> list[float]:
+    # Kept as the patchable seam (test_knowledge_repository, experiment_4_5 patch it);
+    # _search offloads it via asyncio.to_thread — see F3 note there.
     from sage_poc.memory.embedding import get_embedding
     return get_embedding(text)
 
@@ -93,7 +96,11 @@ class PostgresKnowledgeRepository(KnowledgeRepository):
         # 'simple' tokenises on whitespace (language-agnostic); 'english' adds stemming+stopwords.
         tsconfig = "simple" if language == "ar" else "english"
         try:
-            embedding = _get_embedding(query)
+            # F3 (code_review.md 2026-08-17): BGE-M3 inference offloaded, never inline on
+            # the event loop — this was the one request-path embedding call site bypassing
+            # the get_embedding_async pattern, stalling every concurrent request
+            # (crisis-path turns included) for the duration of a CPU encode.
+            embedding = await asyncio.to_thread(_get_embedding, query)
             embedding_str = "[" + ",".join(str(v) for v in embedding) + "]"
             async with self._pool.acquire() as conn:
                 rows = await conn.fetch(
