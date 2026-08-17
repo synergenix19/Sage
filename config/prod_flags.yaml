@@ -124,7 +124,9 @@ flags:
   SAGE_MEDICAL_REFERRAL_TEXT:
     value: null
     class: safety
-    note: "medical-terminal copy; unset = config.py default (998 ambulance wording); pending clinician ratification"
+    signed_value: null
+    signature_ref: "Vee session 2026-08-17 (PO relay, sheet Part 4): config.py default 998 ambulance wording RATIFIED as the serving copy"
+    note: "medical-terminal copy; unset = config.py default (998 ambulance wording), clinician-ratified 2026-08-17"
 
   # ---- audit / provenance -------------------------------------------------------
   SAGE_AUDIT_LOG:
