@@ -6,6 +6,12 @@ a pen in the room beats four weeks of relays (the A1 lesson).
 
 **Requested: a calendar date.** Estimated 60-75 minutes.
 
+## CONSUMPTION ORDER IF THE HOUR RUNS SHORT (owner ruling 2026-08-17, decided here so the room never decides it live)
+
+1st: SF-1 fixtures (patient safety, gates a stream). 2nd: psychoed's urgent items
+(2, 3, 13 — items 1 and 12 are pre-resolved by her own prior rulings, see notes).
+Everything else as time allows, with EXPLICIT carry-over recorded per skipped item.
+
 ## Agenda, in priority order
 
 0. **SF-1 fixture family sign-off** (charter condition 1 — possibly the most important
