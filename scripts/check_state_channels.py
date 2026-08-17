@@ -61,13 +61,25 @@ def _is_state_update_target(t: ast.expr) -> bool:
     return False
 
 
-def scan_nodes() -> tuple[dict[str, set[str]], dict[str, set[str]]]:
+def scan_nodes() -> tuple[dict[str, set[str]], dict[str, set[str]], dict[str, set[str]]]:
     writes: dict[str, set[str]] = {}
     reads: dict[str, set[str]] = {}
+    # F4 (code_review.md 2026-08-17): keys returned by a GRAPH NODE function (*_node) are state
+    # writes even with NO in-package reader yet — LangGraph drops them silently, so the emitted
+    # signal is dead while looking live (embedding_timeout was the 1-offender instance; external
+    # instruments already consumed it off direct node returns, masking the drop). Scoped to
+    # *_node functions so helper dicts (audit rows, API payloads) are not false positives.
+    node_writes: dict[str, set[str]] = {}
     for f in sorted(SCAN_ROOT.rglob("*.py")):
         if f.name in _SKIP:
             continue
         tree = ast.parse(f.read_text())
+        for fn in ast.walk(tree):
+            if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)) and fn.name.endswith("_node"):
+                for inner in ast.walk(fn):
+                    if isinstance(inner, ast.Return) and isinstance(inner.value, ast.Dict):
+                        for k in _dict_string_keys(inner.value):
+                            node_writes.setdefault(k, set()).add(f"{f.name}:{fn.name}")
         for node in ast.walk(tree):
             # WRITES: a returned dict literal (a node function's state update) — any module.
             if isinstance(node, ast.Return) and isinstance(node.value, ast.Dict):
@@ -113,14 +125,16 @@ def scan_nodes() -> tuple[dict[str, set[str]], dict[str, set[str]]]:
                 and isinstance(node.slice.value, str)
             ):
                 reads.setdefault(node.slice.value, set()).add(f.name)
-    return writes, reads
+    return writes, reads, node_writes
 
 
 def main() -> int:
     declared = declared_channels()
-    writes, reads = scan_nodes()
+    writes, reads, node_writes = scan_nodes()
     channels = set(writes) & set(reads)  # keys both written and read = cross-node channels
     violations = sorted(k for k in channels if k not in declared)
+    # F4 class closure: any key a *_node function returns must be declared, reader or not.
+    write_only = sorted(k for k in node_writes if k not in declared and k not in violations)
     if violations:
         print("FAIL: undeclared SageState channels (written by a node, read by a node, "
               "absent from SageState — LangGraph DROPS these; the reader gets None):")
@@ -128,7 +142,17 @@ def main() -> int:
             print(f"  - {k}: written in {sorted(writes[k])}; read in {sorted(reads[k])}")
         print(f"\nDeclare each in {STATE_FILE.relative_to(REPO)} (SageState TypedDict).")
         return 1
-    print(f"OK: all {len(channels)} written+read state keys are declared SageState channels.")
+    if write_only:
+        print("FAIL: undeclared keys RETURNED BY A GRAPH NODE (no in-package reader yet, but "
+              "LangGraph DROPS them in the merge — the emitted signal is dead while looking "
+              "live, and the first future reader inherits a silent None):")
+        for k in write_only:
+            print(f"  - {k}: returned by {sorted(node_writes[k])}")
+        print(f"\nDeclare each in {STATE_FILE.relative_to(REPO)} (SageState TypedDict), "
+              f"or remove the key from the node's return.")
+        return 1
+    print(f"OK: all {len(channels)} written+read state keys and "
+          f"{len(set(node_writes) & declared)} node-returned keys are declared SageState channels.")
     return 0
 
 
