@@ -1,0 +1,21 @@
+{
+ "_meta": {
+  "id": "SS3a stage-2 transient-presenter fixture set (R3 two-stage gate, stage-2 instrument)",
+  "status": "TO BE AUTHORED BY VEE at the v2 signing (sitting ask 6, owner-directed 2026-08-18). Clinician-signed vocabulary under the SAME governance as the oracle: signature block with version/date/review-by trigger (R2), manifest pin, versioned never mutated. The relocated zero-tolerance property (no woven-SI question reaches a transient presenter) is asserted at CONVERSATION level on these fixtures; see docs/superpowers/governance/2026-08-18-f5-gate-preregistration.md.",
+  "boundary": "Each phrase is a presentation Vee wants GUARANTEED to exit at the preliminary-question stage (duration/scope/context) and never reach the SI probe: transience markers, mildness qualifiers, situational attribution."
+ },
+ "_signature_block": {
+  "version": 1,
+  "signed_by": "PENDING — Vee (clinical lead)",
+  "signed_date": "PENDING",
+  "review_by_trigger": "PENDING — set at signing (R2 class rule)"
+ },
+ "engineering_observed_candidates": {
+  "note": "OBSERVED, not authored — measured false-positives from the baseline of record, offered for her consideration; they enter the fixture set only by her word.",
+  "candidates": [
+   "feeling a bit down after a rough week",
+   "nothing fun to do right now"
+  ]
+ },
+ "transient_presenter_fixtures": []
+}

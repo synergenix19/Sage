@@ -25,6 +25,9 @@ EXEMPT: dict[str, str] = {
     "harm_intrusive_patterns.json": "#330 — AR triggers pending clinician authoring (iatrogenic-harm veto)",
     "ocd_compulsion_patterns.json": "#330 — AR triggers pending clinician authoring (iatrogenic-harm veto)",
     "ipv_preempt_expansion.json": "#330 — AR triggers pending clinician authoring (IPV pre-emption)",
+    "low_mood_3a_stage2_transients.json": "Stage-2 transient-presenter fixture set (R3 gate): "
+        "EN-by-design this phase, same rationale and Khaleeji-lane ticket as the oracle; listed "
+        "proactively because its fixture keys escape the trigger-key scan by naming (the v1 class).",
     "low_mood_3a_triggers_v2.json": "§3a oracle is EN-by-design this phase: the screen interception "
         "is EN-gated FIRST-CLASS (never enter a screen whose SI answer we cannot parse; AR falls "
         "through to arabic_offer_excluded direct entry). AR §3a unit rides the Khaleeji lane "
