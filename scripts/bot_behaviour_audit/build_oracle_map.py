@@ -15,6 +15,8 @@ arm-independent veto in skill_select itself (harm-intrusive / OCD -> ABSTAIN).
 """
 import json, pathlib
 
+REPO = pathlib.Path(__file__).resolve().parents[2]  # scripts/bot_behaviour_audit/ -> repo root; never a sibling worktree
+
 SPEC_SHA = "56fde86"
 
 # canonical = phrase(s) drawn verbatim/near-verbatim from the spec trigger tables.
@@ -204,7 +206,7 @@ def build():
 
 if __name__ == "__main__":
     oracle_rows, corpus = build()
-    gov = pathlib.Path("/Users/knowledgebase/Documents/Sage/sage-poc-v2live/docs/superpowers/governance")
+    gov = REPO / "docs/superpowers/governance"
     out = {"spec_version_sha": SPEC_SHA,
            "source": "docs/superpowers/specs/bot-behaviour-oracle/bot-behaviour-spec-source-2026-07-08.md",
            "prescribed_disposition_vocab": ["self_help_skill","professional_referral","escalate_crisis","guard_then_skill","presence_only"],
@@ -216,7 +218,7 @@ if __name__ == "__main__":
              "upstream_crisis": "C: crisis is handled by safety_check UPSTREAM of skill_select and never reaches it in prod -> NOT measurable by this Layer-1 instrument"},
            "categories": oracle_rows}
     (gov/"2026-07-08-bot-behaviour-oracle-map.json").write_text(json.dumps(out, indent=2, ensure_ascii=False))
-    corp = pathlib.Path("/Users/knowledgebase/Documents/Sage/sage-poc-v2live/tests/fixtures/bot_behaviour_audit")
+    corp = REPO / "tests/fixtures/bot_behaviour_audit"
     corp.mkdir(parents=True, exist_ok=True)
     with (corp/"layer1_trigger_corpus.jsonl").open("w") as f:
         for r in corpus:
