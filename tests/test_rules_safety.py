@@ -1,7 +1,8 @@
 # tests/test_rules_safety.py
 import pytest
 from sage_poc.rules import engine
-from sage_poc.rules.loader import reload_all
+from sage_poc.rules.engine import _eval_safety
+from sage_poc.rules.loader import get_rules, reload_all
 
 
 @pytest.fixture(autouse=True)
@@ -866,3 +867,42 @@ def test_arabizi_passive_si_fires_when_language_classified_as_arabic(arabizi_tex
         f"SK-AZ-002 SPOF regression: '{arabizi_text}' must fire via text_raw path "
         f"when language='ar'."
     )
+
+
+# ── az-first-in-order UnboundLocalError regression (is_arabic_pattern binding) ──
+#
+# engine.py's az branch never assigned is_arabic_pattern (only the else branch did).
+# Python locals are function-scoped, not loop-scoped, so the keyword-match branch
+# below (which reads is_arabic_pattern) only worked by accident: it inherited
+# whatever a *previous* non-az rule in the same _eval_safety() call happened to
+# leave behind. When an az keyword rule is the first rule evaluated — no prior
+# rule to leak a value — this raises UnboundLocalError. Direct callers (see
+# test_rules_safety_hr.py, test_derealization_flag.py, etc.) own list ordering,
+# so passing an az-only rule list reproduces the crash deterministically.
+
+def test_arabizi_rule_first_in_order_does_not_crash_and_fires():
+    """SK-AZ keyword rules must evaluate deterministically even when an az rule
+    is the first (and only) rule evaluated — the engine must not depend on
+    loop-variable leakage from a preceding non-az rule for is_arabic_pattern."""
+    az_rules = [r for r in get_rules("safety") if r.language == "az" and r.match_type == "keyword"]
+    assert az_rules, "expected shipped SK-AZ keyword rules"
+    pattern = az_rules[0].patterns[0]
+    # naturalistic sentence CONTAINING the pattern (recall-fixture-independence).
+    # Pattern placed at the start of the sentence, with no negation words ahead
+    # of it, since all SK-AZ rules carry the negation_check modifier and a
+    # preceding negation word (e.g. "can't") would legitimately suppress the fire
+    # — that would test negation handling, not the is_arabic_pattern binding.
+    result = _eval_safety(az_rules, {
+        "text_raw": f"{pattern}, wallah, nobody around me even notices anymore",
+        "language": "az",
+    })
+    assert any(f.rule_id.startswith("SK-AZ") for f in result.fired)
+
+
+def test_arabizi_benign_does_not_fire():
+    az_rules = [r for r in get_rules("safety") if r.language == "az"]
+    result = _eval_safety(az_rules, {
+        "text_raw": "el yoga class kan helw today, I feel good",
+        "language": "az",
+    })
+    assert not result.fired
