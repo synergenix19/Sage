@@ -908,6 +908,10 @@ async def health_version(_: None = Depends(require_api_key)):
         "venting_suppression_raw_env": os.environ.get("SAGE_VENTING_SUPPRESSION"),
         "ipv_preemption_enabled": _c.IPV_PREEMPTION_ENABLED,
         "ipv_preemption_raw_env": os.environ.get("SAGE_IPV_PREEMPTION"),
+        # §3a low-mood screen (hard-OFF deferral scaffolding): resolved + raw, same pattern, so
+        # the readback proves the flag state and the register-coverage gates stay closed.
+        "low_mood_screen_enabled": _c.LOW_MOOD_SCREEN_ENABLED,
+        "low_mood_screen_raw_env": os.environ.get("SAGE_LOW_MOOD_SCREEN"),
         # D1 medical screen (#338): BOTH flags, resolved + raw, same pattern. So a deploy smoke can VERIFY
         # (not infer) the flag state — enforce OFF / shadow ON during the shadow window; enforce ON at flip.
         # The endpoint is the truth of what the deployed process's config actually reads.
