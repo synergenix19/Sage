@@ -26,12 +26,23 @@ and precisely the semantic-reach rows recovered.
 
 - Confidence: mechanism-level (code + row-pattern consistency). Formal confirmation is
   now CHEAP because F4's channel is declared: any future run can read
-  `embedding_timeout` per turn from audit/state. Assert it false on baseline runs —
-  proposed as a standing instrument check in `measure_layer1_prod_http.py`.
+  `embedding_timeout` per turn from audit/state.
+- **REQUIRED (owner ruling, 2026-08-18 — promoted from proposed):** the mechanism
+  violates two North Star principles at once — auditability (degraded routing with no
+  signal) and deterministic behavior (routing quality varied invisibly with load).
+  Therefore:
+  (a) `measure_layer1_prod_http.py` asserting `embedding_timeout == false` across the
+  run is a **VALIDITY PRECONDITION** — a baseline with timeouts fired, or with the
+  column unobservable, is provisional by definition. Shipped: PR #463 (audit-row key,
+  migration 019 as its deploy gate, instrument check reads before the purge).
+  (b) serving-side alerting on the channel is a **PRODUCTION REQUIREMENT**, mirroring
+  the v7 audit-trail obligation that every response be traceable — including which
+  routing tier produced it. OPEN until wired; the audit column from (a) is the signal
+  it alerts on.
 - SERVING implication beyond measurement: real users during load spikes were receiving
   keyword-only routing with no observability until F4. Same family as the
   warmup-silent-failure finding (2026-06): semantic-tier degradation is silent by
-  default. The F4 channel is the observability fix; alerting on it is open.
+  default.
 - Claim discipline holds: still no "improved by F1/F2" claims; the recovered rows are
   "measured without degradation for the first time," which is also why v6→v7 deltas
   remain indicative rather than improvement evidence.
