@@ -38,3 +38,19 @@ LIST B (look-alike, n=15): FP=0.133  [pre-registered <= 0.0]
    SPURIOUS-BA  via tier=semantic_offer (score=0.8137) :: nothing fun to do right now
 
 RESULT: recall_ok=False fp_ok=False -> FAIL (vs pre-registered criteria)
+
+# ── ROW-LEVEL DELTA ATTRIBUTION vs the fork-era run (owner-directed, 2026-08-18) ──
+# List A (misses 15 → 16, recall 24/39 → 23/39):
+#   newly MISSED (3): "nothing feels rewarding" · "I just want to be on my own" · "I feel empty"
+#   newly HIT    (2): "I don't want to talk to anyone" · "I feel flat"
+# List B (FPs 3 → 2, FP 0.200 → 0.133):
+#   REMOVED (2): "didn't sleep well so I've no energy today" (the KEYWORD-tier FP — the
+#                targeted-lexicon leak scoped in packet 1 item 4 NO LONGER EXISTS on this
+#                substrate; master's target_presentations evolution since the fork removed it)
+#              · "don't feel like going to the gym today" (semantic, 0.7475)
+#   NEW     (1): "feeling a bit down after a rough week" (semantic, 0.7629) — a mild-transient
+#                phrase now BA-offerable; precision-relevant input for Vee's gate design.
+#   PERSISTS(1): "nothing fun to do right now" (semantic, 0.8146 → 0.8137)
+# Attribution: fork→master routing-surface delta (K3/K4 anchor/exemplar adoptions +
+# target_presentations evolution) — the pre-stated caveat. All remaining FPs are semantic-tier:
+# there is no keyword-tier leak on the baseline of record.
