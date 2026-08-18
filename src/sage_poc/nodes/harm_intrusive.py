@@ -30,6 +30,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from sage_poc.rules.normalize import normalize_text
+
 _DATA_PATH = (
     Path(__file__).resolve().parents[1] / "rules" / "data" / "safety" / "harm_intrusive_patterns.json"
 )
@@ -38,11 +40,16 @@ _data = json.loads(_DATA_PATH.read_text(encoding="utf-8"))
 # Public: the verbatim harm-intrusive-veto lexicon. Single-sourced so the production copy and any test
 # ground truth cannot diverge.
 HARM_INTRUSIVE_PATTERNS: tuple[str, ...] = tuple(_data["patterns"])
-_NORMALIZED: tuple[str, ...] = tuple(p.lower() for p in HARM_INTRUSIVE_PATTERNS)
+# F2 (code_review.md 2026-08-17): normalize_text on BOTH sides, not bare .lower() —
+# invisible chars (ZWSP etc.) silently disarmed the veto; smart-quote folding also
+# future-proofs apostrophe-bearing patterns. Normalization only, never a lexicon
+# change; input is normalized locally, never written back to state.
+_NORMALIZED: tuple[str, ...] = tuple(normalize_text(p) for p in HARM_INTRUSIVE_PATTERNS)
 
 
 def is_harm_intrusive(*texts: str) -> bool:
-    """True when ANY provided text contains a harm-intrusive pattern (case-insensitive substring).
+    """True when ANY provided text contains a harm-intrusive pattern (normalized substring;
+    smart quotes, invisible chars, NFKC, lowercase via rules.normalize.normalize_text).
 
     Deterministic, no model call, no LLM. LANGUAGE CONTRACT: safety detection reads the RAW input,
     not only the translated message_en — callers pass (message_en, raw_message). Today the Arabic
@@ -50,5 +57,5 @@ def is_harm_intrusive(*texts: str) -> bool:
     change makes the raw path AVAILABLE for the clinician-authored AR patterns (#330, harm_intrusive
     standard cadence) without waiting on a second code change. Empty/None ignored; no args -> False.
     """
-    hay = " \n ".join(t for t in texts if t).lower()
+    hay = normalize_text(" \n ".join(t for t in texts if t))
     return any(phrase in hay for phrase in _NORMALIZED)
