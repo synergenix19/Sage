@@ -29,6 +29,7 @@ from sage_poc.state import SageState
 from sage_poc.language import detect_language, async_translate_to_english
 from sage_poc.observability import stage_timer
 from sage_poc.rules import engine as rules_engine
+from sage_poc.rules.schemas import FiredRule
 from sage_poc.nodes.post_crisis_classifier import evaluate_s7
 from sage_poc.safety.s3_semantic import check_s3, check_s3_bilingual, S3_THRESHOLD
 from sage_poc.safety.medical_redflag import detect_medical_redflag
@@ -87,6 +88,38 @@ def _update_engagement_trajectory(state: SageState) -> tuple[list[int], bool]:
     return trajectory, declining
 
 
+def _suppressed_by_third_party(
+    si_rule: FiredRule, third_party_rules: list[FiredRule]
+) -> bool:
+    """True when a third-party crisis match suppresses this direct crisis match.
+
+    T-10 semantics (v7 §5.1 OR-fusion expressed as a tie-breaking rule): a
+    third-party report suppresses ONLY the direct-crisis match fully CONTAINED
+    in its own matched span ("my sister is suicidal" absorbing the "is
+    suicidal" hit). Containment is deliberately tighter than
+    _apply_suppressions' any-overlap rule: a partial overlap is ambiguous
+    geometry, and every ambiguous case FAILS TOWARD CRISIS and suppresses
+    nothing:
+      - partial span overlap: the direct match extends beyond the third-party
+        phrase, so it may carry first-person content; the flag survives;
+      - missing span on either side: missing position data is not grounds for
+        hiding a crisis signal (same stance as _apply_suppressions);
+      - spans from different matched surfaces (EN translation vs Arabic raw):
+        the coordinates index different strings and are not comparable.
+    The default in every ambiguous case is that crisis fires.
+    """
+    si_span = si_rule.matched_span
+    for tp_rule in third_party_rules:
+        tp_span = tp_rule.matched_span
+        if si_span is None or tp_span is None:
+            continue
+        if si_rule.matched_surface != tp_rule.matched_surface:
+            continue
+        if tp_span[0] <= si_span[0] and si_span[1] <= tp_span[1]:
+            return True
+    return False
+
+
 async def safety_check_node(state: SageState) -> dict:
     raw = state["raw_message"]
     code_switching = bool(_HAS_ARABIC_RE.search(raw) and _HAS_LATIN_RE.search(raw))
@@ -106,19 +139,26 @@ async def safety_check_node(state: SageState) -> dict:
         "text_raw": raw,  # lang="az" rules always match against the original message
     })
 
-    new_crisis_flags = [
-        a["flag_id"] for a in safety_result.actions if a.get("type") == "crisis_flag"
-    ]
     new_clinical_flags = [
         a["flag_id"] for a in safety_result.actions if a.get("type") == "clinical_flag"
     ]
-    third_party_flags = [
-        a["flag_id"] for a in safety_result.actions if a.get("type") == "third_party_crisis"
-    ]
 
-    # Third-party crisis overrides direct crisis — more specific pattern wins
-    if third_party_flags:
-        new_crisis_flags = []
+    # F1 (code_review.md 2026-08-17, v7 §5.1 / T-10): third-party suppression is
+    # SPAN-SCOPED, never message-scoped. The pre-F1 full-flag wipe silently
+    # dropped a first-person disclosure co-occurring with a third-party mention.
+    # A third-party match now suppresses only the direct-crisis match contained
+    # in its own span; _suppressed_by_third_party encodes the fail-toward-crisis
+    # tie-breaks (missing span, cross-surface, partial overlap).
+    _fired_active = [r for r in safety_result.fired if not r.suppressed]
+    _third_party_rules = [
+        r for r in _fired_active if r.action.get("type") == "third_party_crisis"
+    ]
+    third_party_flags = [r.action["flag_id"] for r in _third_party_rules]
+    new_crisis_flags = [
+        r.action["flag_id"] for r in _fired_active
+        if r.action.get("type") == "crisis_flag"
+        and not _suppressed_by_third_party(r, _third_party_rules)
+    ]
 
     # S3: semantic crisis detection — OR-fusion with S1
     # Two-path: max(EN score, AR score) so Arabic crisis phrases in crisis_phrases.json

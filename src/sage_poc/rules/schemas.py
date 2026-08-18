@@ -176,6 +176,10 @@ class FiredRule:
     action: dict
     suppressed: bool = False
     matched_span: tuple[int, int] | None = None  # (start, end) of match in normalised text
+    # Which normalised surface matched_span indexes into: "en" (text_en), "ar" (text_ar),
+    # or "raw" (untranslated input, lang="az" rules). Spans from different surfaces are
+    # NOT comparable; suppression logic must treat cross-surface overlap as unknown.
+    matched_surface: str | None = None
 
 
 @dataclass
