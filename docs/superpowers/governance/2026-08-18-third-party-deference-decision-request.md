@@ -5,6 +5,20 @@ birth, readback pair live) · **Content:** `CC-EN-TP-001` in
 `rules/data/crisis_content/en_uae.json` — **DRAFT, unsigned; serves nothing until the flag
 flips, and the flip is gated on her signature + manifest pin.**
 
+## Build spec — where deference applies (owner Scoping 1, 2026-08-18)
+
+Deference operates at **response-content selection, not at routing**. The live T-10
+finding was intent_route's LLM re-flag routing a Layer-1-clean third-party turn to
+`crisis_response` — and per the don't-remove-the-arm principle, **the routing was
+arguably correct; the template was wrong** (the T-11 class). So the flag gates a content
+path: given Layer-1-clean + third-party-detected, `crisis_response` delivers the
+helper-support content instead of the first-person script. The LLM arm's defense-in-depth
+stays intact, the fix is deterministic at the point of delivery, and both hard boundaries
+are testable as content assertions (Layer-1-clean + third-party → helper content; any
+first-person signal → first-person script, no exceptions). The build below complies with
+this spec by construction — the selection lives in `_crisis_response_node`'s content
+lookup; no routing edge, node, or intent path changed.
+
 ## What is built (dark)
 
 Per her R4 spec: when the flag is ON, a **Layer-1-clean** turn (`crisis_flags` empty)
