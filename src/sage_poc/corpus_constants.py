@@ -11,8 +11,8 @@ DEFERRED_AR: dict[str, str] = {
     "trauma-001":    "requires clinical review — same gate as crisis content",
     "grounding-001": "covered by grounding_5_4_3_2_1 skill; KB pair low value",
     "breathing-001": "covered by box_breathing skill; KB pair low value",
-    "cbt-001":       "covered by psychoed skills and cbt_thought_record skill",
     "cbt-002":       "covered by psychoed skills and cbt_thought_record skill",
+    "emotions-001":  "new topic in 2026-08 refresh; AR translation pending clinician-gated lane",
 }
 
 # These four never get AR pairs without dual-clinician sign-off.

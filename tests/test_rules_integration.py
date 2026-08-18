@@ -186,13 +186,13 @@ def test_collectivist_framing_injected_when_family_keyword_present():
 def test_clinical_adaptation_substance_injected_from_flag():
     state = _freeflow_state(clinical_flags=["substance_use"])
     system_str, _, _ = compose_prompt(state)
-    assert "motivational interviewing" in system_str.lower() or "substance" in system_str.lower()
+    assert "motivational interviewing" in system_str.lower()
 
 
 def test_substance_use_uae_legal_context_injected():
     state = _freeflow_state(clinical_flags=["substance_use"])
     system_str, _, _ = compose_prompt(state)
-    assert "legal" in system_str.lower() or "uae" in system_str.lower(), (
+    assert "legal" in system_str.lower(), (
         "PI-CF-001 must include UAE legal context for substance use"
     )
 
@@ -242,8 +242,8 @@ def test_no_secondary_intent_framing_when_none():
 def test_domestic_situation_adaptation_injected():
     state = _freeflow_state(clinical_flags=["domestic_situation"])
     system_str, _, _ = compose_prompt(state)
-    assert "safety" in system_str.lower() or "800111" in system_str or "domestic" in system_str.lower(), (
-        "Domestic situation adaptation must reference safety or UAE resource"
+    assert "domestic" in system_str.lower() or "800111" in system_str, (
+        "Domestic situation adaptation must reference the domestic context or the UAE resource"
     )
 
 
