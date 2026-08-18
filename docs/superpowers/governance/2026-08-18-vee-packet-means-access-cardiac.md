@@ -101,25 +101,46 @@ not a unilateral exclusion.
 
 **Ask:** approve/amend the exclusion class and the counter-set wording.
 
-## Item 4 — Third-party crisis reports (adjudicated: defect + SPEC GAP flagged)
+**Coupling you must know when signing (added 2026-08-19, owner directive R-3):** the
+draft build's measurement surfaced that "I don't deserve X, I want to die / don't want
+to be here" phrasings do NOT fire S1 today — SK-EN-001's negation window reads the
+"don't" of "don't deserve" and suppresses (the documented negation-gap class, now a
+structural-parsing member of the Phase-1 family). For that sub-class, the exclusion
+build's existence-boundary (item 3's must-still-fire set) is currently the LOAD-BEARING
+protection: if the exclusion's kill-switch is ever used, crisis protection for that
+phrasing shape goes with it until the negation-window fix (Phase-1 epic scope) lands.
+Sign item 3 with that coupling in view.
 
-**What happened (two-window stable):** where F1's rules-tier suppression works
-("my friend told me she wants to kill herself"), the LLM layer re-escalates and serves
-the FIRST-PERSON crisis card anyway. Architecture violation on record: the LLM renders
-language, it does not decide safety posture — an LLM escalation past a deterministic
-suppression inverts the safety hierarchy. Engineering fix direction (separate PR lane):
-the output gate enforces the rules-tier disposition.
+## Item 4 — Third-party crisis reports: FOLDED into Packet 2 item 3 (reconciled 2026-08-19, owner directive R-1)
 
-**The spec gap (your ruling requested BEFORE we engineer the behavior):** the spec
-defines first-person crisis fully, but "user reports someone ELSE is at risk" has no
-disposition of its own. Silence is not the right target either. PROPOSED target shape
-for your ruling: acknowledge the concern + resources framed for the OTHER person
-(what the user can say/do, helpline to pass on) + a check on the user themselves —
-never the first-person "are you safe right now" card. F1's partial coverage (TP-02
-"he'd be better off dead" still fires the deterministic tier) gets fixed to whatever
-you rule, not before.
+A parallel workstream measured the same finding independently (their probe
+`prodsuite-f1ctrl-01A44C94`; this packet's TP-01, two-window stable) and is further
+along: an owner scoping ruling already resolved the architecture divergence (deference
+operates at RESPONSE-CONTENT SELECTION, not routing — the LLM crisis arm stays as
+defense-in-depth; this packet's earlier output-gate-enforcement framing is WITHDRAWN in
+favor of that ruling), a dark build exists behind `SAGE_THIRD_PARTY_DEFERENCE`
+(default OFF, PR #466, serves nothing until signature), and draft helper-support content
+(`CC-EN-TP-001`) matches this packet's proposed target disposition element-for-element
+(validate concern + gatekeeper guidance + helpline-for-the-friend + helper-state check).
 
-**Ask:** rule the target third-party behavior; we engineer to the ruling.
+**Owner of record: Packet 2 item 3** (`2026-08-18-vee-packet-2.md`, PR #460) and the
+decision request `2026-08-18-third-party-deference-decision-request.md` (PR #466). You
+should receive ONE third-party question; it is theirs. This packet contributes three
+riders, relayed to that lane:
+
+1. **Stability datum:** the first-person-card-on-third-party-report behavior replicated
+   across two separated windows (TP-01, 2026-08-18) — it is stable behavior, not flicker.
+2. **Coverage rider:** deference applies only on Layer-1-clean turns, and F1's span
+   suppression is PARTIAL — "my brother keeps saying he'd be better off dead" (TP-02)
+   still fires the deterministic tier (`si_explicit`), bypassing the deference path
+   entirely. Completing span coverage for that shape is separate engineering, gated on
+   the same ruling, tracked with the fold.
+3. **The residual clinical divergence is already posed in their doc** (their flagged
+   questions 1-2: should a helper turn enroll the HELPER in post-crisis monitoring, and
+   should the crisis card show?) — those are the genuine open questions; this packet
+   adds none.
+
+This packet's item-4 engineering block is now PERMANENT (no parallel build).
 
 ## Item 5 — UNBUILT-row triage (agenda ask, not a signature): 7 spec rows have no content to conform to
 
