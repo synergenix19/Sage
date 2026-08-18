@@ -1,0 +1,12 @@
+{
+  "case_id": "1A-NAT-000-observed",
+  "provenance": "live transcript 2026-07-28, naturalistic, NOT lexicon-derived",
+  "turns": [
+    "I'm feeling anxious",
+    "can you tell me how to manage my anxiety",
+    "are there any exercises i can do"
+  ],
+  "spec_expectation": {
+    "turn_3": "self_help_skill offer: box_breathing or grounding_5_4_3_2_1 (BOT BEHAVIOUR §1a step 4), AFTER §1a screen"
+  }
+}
