@@ -58,7 +58,7 @@ _CLEAR_NO_MARKERS = (
     "same as always", "nothing different", "not different", "feels the same", "just my usual",
     "just anxiety", "like usual", "the usual",
 )
-_UNCLEAR_MARKERS = ("both", "not sure", "don't know", "dont know", "idk", "hard to say", "no idea")
+_UNCLEAR_MARKERS = ("both", "not sure", "don't know", "dont know", "idk", "hard to say", "no idea", "no clue")
 _YES_MARKERS = ("yes", "yeah", "yep", "kind of", "kinda", "a bit different", "little different",
                 "seems different", "feels different", "bit off", "maybe")
 
@@ -68,8 +68,10 @@ def classify_screen_answer(text: str) -> str:
     clear_no | red_flag | contraindication_disclosed | yes | unclear | no_answer. Order matters:
     red-flag ACUTE quality wins over everything (emergency); a disclosed chronic condition
     (heart/pregnancy) is next and MUST win over any surface 'no' (else "same as always, but I have a heart
-    condition" collapses to clear_no and proceeds to TIPP); then plain negation-of-difference is clear_no;
-    hedge/both/unknown is unclear. Reads the user's raw answer."""
+    condition" collapses to clear_no and proceeds to TIPP); then hedge/both/unknown ('no idea', 'no clue',
+    'not sure', 'both') is unclear — checked BEFORE clear_no (P0-5) because "no idea"/"no clue" begin with
+    the "no " prefix and would otherwise false-positive into clear_no→proceed; only what remains is plain
+    negation-of-difference, clear_no. Reads the user's raw answer."""
     t = (text or "").strip().lower()
     if not t:
         return "no_answer"
@@ -77,10 +79,11 @@ def classify_screen_answer(text: str) -> str:
         return "red_flag"
     if any(m in t for m in _CONTRAINDICATION_MARKERS):
         return "contraindication_disclosed"     # L194: routes AWAY (grounding), never proceeds — beats clear_no
-    if any(m in t for m in _CLEAR_NO_MARKERS) or t in ("no", "nope", "nah") or t.startswith(("no,", "no ", "nope")):
-        return "clear_no"
     if any(m in t for m in _UNCLEAR_MARKERS):
-        return "unclear"
+        return "unclear"    # hoisted above clear_no: "no idea"/"no clue" start with "no " (P0-5, fail-open)
+    if any(m in t for m in _CLEAR_NO_MARKERS) or t in ("no", "nope", "nah") or t.startswith(("no,", "nope ")) \
+            or (t.startswith("no ") and t.split()[0] == "no"):
+        return "clear_no"
     if any(m in t for m in _YES_MARKERS):
         return "yes"
     return "no_answer"  # topic-change / non-answer

@@ -26,6 +26,21 @@ def test_classify_screen_answer(text, expect):
     assert ms.classify_screen_answer(text) == expect
 
 
+# ── P0-5 (fail-open, both-direction): "no idea"/"no clue" start with the "no " prefix but are NOT a clear
+# negation — they must route unclear (→ grounding), never clear_no (→ proceed). The guard direction (plain
+# "no" and its ordinary negation forms) is pinned in the same test so a future edit can't re-collapse either
+# way. See docs/superpowers/sdd/2026-08-18-p0-correctness-batch/task-10-brief.md.
+@pytest.mark.parametrize("text,expect", [
+    ("no idea", "unclear"),                 # THE failure case: "no "-prefix false-positive on clear_no
+    ("no clue", "unclear"),                 # same class as above
+    ("no", "clear_no"),                     # guard: plain negation still clears
+    ("no, feels normal", "clear_no"),       # guard: "no," prefix negation still clears
+    ("not sure", "unclear"),                # guard: already-passing hedge, pinned
+])
+def test_classify_screen_answer_no_idea_vs_clear_no(text, expect):
+    assert ms.classify_screen_answer(text) == expect
+
+
 # ── L194 contraindication half: the disclosed-condition class (heart/pregnancy → grounding, NOT 998) ──
 @pytest.mark.parametrize("text,expect", [
     # THE failure case: symptom-quality is clear_no, but a contraindication is disclosed. The disclosure
