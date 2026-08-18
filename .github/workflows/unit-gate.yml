@@ -148,6 +148,9 @@ jobs:
             tests/test_state_channel_survival.py
             tests/test_server_helpers.py
             tests/test_schema_conformance.py
+            tests/test_offer_blurb_doc_conformance.py
+            tests/test_offer_discipline_conformance.py
+            tests/test_crisis_helpline_conformance.py
             tests/test_intent_route_node.py
             tests/test_engagement_templates.py
             tests/test_composer_intensity.py
