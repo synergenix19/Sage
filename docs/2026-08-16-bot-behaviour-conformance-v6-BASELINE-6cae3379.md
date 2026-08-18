@@ -14,8 +14,10 @@ direct-offer conformant this phase) and the 2026-08-06 S2a `accept_offer_form` r
 
 ## Reading the number honestly
 
-11/36 under a STRICT all-5 criterion. Nine further categories sit at 4/5 — one utterance
-off. The month's shipped work is all visible at row level: §3a/§3b (K1/K2) 5/5, §6b (K3)
+11/36 under a STRICT all-5 criterion. Six further categories sit at 4/5 — one utterance
+off (S1a, S1b, §1d, §1e, §3c, §6d; full distribution 5/5×11, 4/5×6, 3/5×2, 2/5×4,
+1/5×8, 0/5×5 — correction 2026-08-18: this paragraph originally said "nine," which
+disagreed with the row table in the companion matrix doc; the table was and is correct). The month's shipped work is all visible at row level: §3a/§3b (K1/K2) 5/5, §6b (K3)
 5/5, §7b (K4) 5/5, §1f/§6d (consult set) 5/5, §7a/§3d presence rows 5/5, S2a 5/5 under
 its ruling. The remainder concentrates in the known open classes: §4a (Mechanism-B) 0/5,
 §7c 0/5, §5a/§5b (structured-skill reach), §6c (reverted margin-burn attempt), S4x/S5a
@@ -30,10 +32,14 @@ Vee sheet).
    §1d 5v4): the live-unpinned local classifier measures a different system. The
    prod-HTTP number is the only citable one; local runs are diagnostic-only, as the
    guard enforces.
+3. (added 2026-08-18) The run's 14 HTTP errors are recorded only as a count in the
+   evidence JSON (`errors: 14`) with no per-row attribution — it is not knowable which
+   rows are error-tainted. The provisional rider therefore applies to the whole matrix,
+   not a scopeable subset, and a future clean re-run cannot be narrowed to affected rows.
 
 ## Variance note
 
-Single prod run under strict criterion; the 4/5 band (9 categories) is the flip-sensitive
+Single prod run under strict criterion; the 4/5 band (6 categories) is the flip-sensitive
 zone — treat single-row movements in future re-runs as within-band until an N-sample
 characterization exists for the near-miss rows. Deltas vs this baseline should be read at
 row level, not headline level.
