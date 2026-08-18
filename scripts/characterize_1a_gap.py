@@ -211,6 +211,14 @@ async def main() -> None:
     prov = {"sha": sha, "case_id": fixture["case_id"], "fixture": os.path.relpath(args.fixture, REPO),
             "instrument": "FULL-GRAPH app.ainvoke, one session thread (measure_layer1_fullgraph pattern); "
                           "tier readouts are post-hoc re-runs of skill_select's own matcher helpers",
+            # The artifact carries its own epistemic status (owner condition, 2026-08-18) — same
+            # principle as the oracle stamp printing verbatim: the record must not overclaim.
+            "epistemic_status": "SINGLE-WINDOW LLM-routed replay: the intent classifier is live and "
+                                "unpinned, so LLM-classified rows are evidence-not-bound; pins "
+                                "stabilize within-window only, and stability claims require >=2 "
+                                "separated windows (window-bounded verification rule). Deterministic-"
+                                "tier readouts (keyword matches, semantic scores under the stamped "
+                                "config) do not carry this caveat.",
             "resolved_flags": flags}
     print_block("PROVENANCE + RESOLVED FLAG SET", prov)
 
