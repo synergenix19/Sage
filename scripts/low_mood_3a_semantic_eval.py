@@ -92,7 +92,18 @@ FP_MAX     = 0.00      # List B: err-toward-not-asking -> ZERO spurious BA-offer
 # F13: root-anchored (was cwd-relative — launching from any other directory failed to find
 # the oracle and silently stamped "uncommitted-or-untracked" provenance).
 REPO = Path(__file__).resolve().parents[1]
-TRIGGERS = REPO / "src/sage_poc/rules/data/safety/low_mood_3a_triggers.json"
+# Oracle versioning (owner directive 7, 2026-08-18): the oracle is never mutated in place;
+# CD1/CD3/R4 land as v2 (a NEW signed artifact), v1 stays the untouched oracle of record.
+# Selection: SAGE_3A_ORACLE_VERSION (default "1"); every run stamps the version it measured
+# against. An UNSIGNED oracle hard-aborts unless SAGE_3A_ALLOW_UNSIGNED_ORACLE=1 is set
+# explicitly (design-time runs only; the override is stamped) — measurement against a draft
+# must be a stated act, never a default.
+_ORACLE_VERSION_REQUESTED = os.environ.get("SAGE_3A_ORACLE_VERSION", "1")
+TRIGGERS = REPO / (
+    "src/sage_poc/rules/data/safety/low_mood_3a_triggers.json"
+    if _ORACLE_VERSION_REQUESTED == "1"
+    else f"src/sage_poc/rules/data/safety/low_mood_3a_triggers_v{_ORACLE_VERSION_REQUESTED}.json"
+)
 
 def ba_offerable(msg: str):
     """End-to-end (requirement 3): run the real routing node, read the offerable set it produces."""
@@ -129,6 +140,15 @@ def main():
     _ob = TRIGGERS.read_bytes()
     _oracle = json.loads(_ob)  # single read; List A/B below reuse this object
     _ostatus = _oracle.get("_meta", {}).get("status", "unknown")
+    _oversion = _oracle.get("version", 1)
+    _unsigned_override = os.environ.get("SAGE_3A_ALLOW_UNSIGNED_ORACLE") == "1"
+    if "SIGNED" not in _ostatus.split("—")[0].upper() or _ostatus.upper().startswith("DRAFT"):
+        if not _unsigned_override:
+            raise SystemExit(
+                f"ABORT: oracle v{_oversion} status is not SIGNED ({_ostatus[:80]!r}). "
+                "Measurement against a draft oracle must be explicit: set "
+                "SAGE_3A_ALLOW_UNSIGNED_ORACLE=1 (the override is stamped)."
+            )
     try:
         _ogit = subprocess.check_output(
             ["git", "rev-parse", "--short", f"HEAD:{TRIGGERS.relative_to(REPO)}"],
@@ -145,7 +165,9 @@ def main():
         "embedding_timeout_s": ss.EMBEDDING_TIMEOUT_SECONDS, "bge_revision": ss._BGE_M3_REVISION,
         "anchor_index_shape": idx, "low_mood_screen_flag": config.LOW_MOOD_SCREEN_ENABLED,
         "pre_registered": {"recall_min_listA": RECALL_MIN, "fp_max_listB": FP_MAX},
-        "oracle_file": str(TRIGGERS), "oracle_content_sha256_12": hashlib.sha256(_ob).hexdigest()[:12],
+        "oracle_file": str(TRIGGERS), "oracle_version": _oversion,
+        "oracle_unsigned_override": _unsigned_override,
+        "oracle_content_sha256_12": hashlib.sha256(_ob).hexdigest()[:12],
         # F14: _meta.status VERBATIM — the previous hardcoded "PROPOSED, NOT Vee-signed"
         # suffix contradicted the JSON's updated SIGNED status in every stamp.
         "oracle_git_blob": _ogit, "oracle_status": _ostatus,

@@ -1,12 +1,12 @@
 {
  "_meta": {
   "id": "SS3a low-mood disclosure trigger set (Node 4 skill_select low-mood screen interception)",
-  "status": "SIGNED by clinician (Vee), 2026-07-10 — via CD1-CD5 evidence packet + R1-R7. Now the SIGNED eval oracle for the §3a semantic boundary. Apply on next iteration: CD1 tiering (strong anhedonia/energy vs weak social-withdrawal/procrastination) and CD3/R4 exclusions (I feel numb / I feel stuck / I don't feel like myself EXCLUDED from BA-enrichment, cross-category).",
+  "status": "DRAFT v2 — NOT SIGNED; NOT a measurement oracle until Vee signs. Mechanically applies Vee's recorded 2026-07-10 next-iteration instruction (confirmed via consolidated packet 2026-08-18): CD3/R4 exclusions applied (fire denominator 36); CD1 tier scaffold at family level from her recorded axis, assignments pending her signature. v1 remains the signed oracle of record for all measurements until v2 is signed.",
   "discriminator": "SS3a fires on GLOBAL, PERVASIVE, PERSISTENT loss of interest/energy/motivation/connection across life (across the board / lately / in general). It must NOT fire on LOCAL, situational, task-specific, or physical look-alikes (this one thing / today / after X). See list B for the precision boundary.",
   "fire_families": "Transcribed verbatim from governance doc list A (BOT BEHAVIOUR SS3a trigger tables): energy_effort, anhedonia_interest, motivation, social_withdrawal, affective_flatness, meaning_going_through_motions, explicit_ask.",
   "lookalike_categories": "Transcribed verbatim from governance doc list B (engineering-proposed precision boundary, needs clinician tick most): situational_transient, task_specific, physical_literal, ordinary_boredom, growth_values.",
   "match": "This file is the clinician-owned vocabulary source and the SIGNED eval oracle. The matching mechanism is engineering-owned — see the nodes/low_mood_detect.py module documentation for the current mechanism and its status. Do NOT add trigger vocabulary beyond list A here, and do NOT remove or weaken list B rows to make anything pass.",
-  "signed_by": "clinician (Vee), relayed by PO 2026-07-10"
+  "signed_by": "UNSIGNED (draft; v1 signature does not transfer)"
  },
  "fire_families": {
   "energy_effort": [
@@ -47,17 +47,14 @@
   ],
   "affective_flatness": [
    "I feel flat",
-   "I feel numb",
    "I don't really care anymore",
    "I feel disconnected from everything",
    "I feel emotionally drained",
-   "I feel empty",
-   "I don't feel like myself"
+   "I feel empty"
   ],
   "meaning_going_through_motions": [
    "I'm just going through the motions",
-   "everything feels pointless",
-   "I feel stuck"
+   "everything feels pointless"
   ],
   "explicit_ask": [
    "build a better routine"
@@ -88,6 +85,32 @@
   "growth_values": [
    "I want to make a change",
    "I want to grow as a person"
+  ]
+ },
+ "version": 2,
+ "supersedes": "v1 (low_mood_3a_triggers.json) — v1 retained untouched as the signed oracle of record",
+ "cd3_r4_excluded": {
+  "note": "EXCLUDED from BA-enrichment, cross-category (Vee's recorded instruction 2026-07-10, confirmed via consolidated packet 2026-08-18). Not fire, not lookalike: excluded.",
+  "phrases": [
+   "I feel numb",
+   "I feel stuck",
+   "I don't feel like myself"
+  ]
+ },
+ "_cd1_tiers": {
+  "note": "DRAFT scaffold from Vee's recorded axis ('strong anhedonia/energy vs weak social-withdrawal/procrastination'); family-level assignments PENDING her signature.",
+  "strong": [
+   "anhedonia_interest",
+   "energy_effort"
+  ],
+  "weak": [
+   "social_withdrawal",
+   "motivation"
+  ],
+  "unassigned_pending_vee": [
+   "affective_flatness",
+   "meaning_going_through_motions",
+   "explicit_ask"
   ]
  }
 }

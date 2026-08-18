@@ -35,3 +35,33 @@ def test_harness_module_loads_from_any_cwd():
         )
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert "SMOKE-OK" in proc.stdout
+
+
+def test_oracle_version_selection():
+    # Owner directive 7: oracle versioned, never mutated in place. Default = v1
+    # (the signed oracle of record); SAGE_3A_ORACLE_VERSION=2 selects the v2
+    # draft, which the harness hard-aborts on unless the unsigned override is
+    # explicitly set (proven live 2026-08-18; module-level selection pinned here).
+    import importlib.util
+    import os
+
+    def load(env_version):
+        old = os.environ.get("SAGE_3A_ORACLE_VERSION")
+        try:
+            if env_version is None:
+                os.environ.pop("SAGE_3A_ORACLE_VERSION", None)
+            else:
+                os.environ["SAGE_3A_ORACLE_VERSION"] = env_version
+            spec = importlib.util.spec_from_file_location("lm3a_ver_smoke", str(SCRIPT))
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            return mod.TRIGGERS.name
+        finally:
+            if old is None:
+                os.environ.pop("SAGE_3A_ORACLE_VERSION", None)
+            else:
+                os.environ["SAGE_3A_ORACLE_VERSION"] = old
+
+    assert load(None) == "low_mood_3a_triggers.json"
+    assert load("2") == "low_mood_3a_triggers_v2.json"
+    assert (REPO / "src/sage_poc/rules/data/safety/low_mood_3a_triggers_v2.json").is_file()
