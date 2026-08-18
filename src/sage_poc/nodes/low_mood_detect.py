@@ -25,6 +25,8 @@ screen whose SI answer we cannot parse.
 """
 from __future__ import annotations
 
+from sage_poc.rules.normalize import normalize_text
+
 LOW_MOOD_PATTERNS: tuple[str, ...] = (
     "lost interest in everything",
     "no energy to do anything",
@@ -37,7 +39,12 @@ LOW_MOOD_PATTERNS: tuple[str, ...] = (
     "feel empty",
     "withdrawing from everyone",
 )
-_NORMALIZED: tuple[str, ...] = tuple(p.lower() for p in LOW_MOOD_PATTERNS)
+# F8 (code_review.md 2026-08-17, rides the F2 seam; landed per P3 sequencing 2026-08-18):
+# normalize_text on BOTH sides, not bare .lower() — U+2019 (iOS/Android apostrophe) and
+# invisible chars silently defeated the trigger vocabulary. NORMALIZATION ONLY, never a
+# vocabulary change: the pattern list above is untouched; input is normalized locally and
+# never written back to state.
+_NORMALIZED: tuple[str, ...] = tuple(normalize_text(p) for p in LOW_MOOD_PATTERNS)
 
 
 def is_low_mood_disclosure(message_en: str) -> bool:
@@ -48,5 +55,5 @@ def is_low_mood_disclosure(message_en: str) -> bool:
     skill_select.py gates on detected_language == "en" before calling this).
     Empty/None -> False.
     """
-    normalized = (message_en or "").lower()
+    normalized = normalize_text(message_en or "")
     return any(phrase in normalized for phrase in _NORMALIZED)

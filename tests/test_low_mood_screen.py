@@ -53,6 +53,32 @@ def test_is_low_mood_disclosure_importable():
     assert callable(is_low_mood_disclosure)
 
 
+def test_is_low_mood_disclosure_u2019_apostrophe_fires():
+    # F8 (code_review.md, rides the F2 normalization seam): U+2019 — the default
+    # iOS/Android apostrophe — must match the signed "don't feel like doing
+    # anything" trigger. Normalization, not a vocabulary change.
+    from sage_poc.nodes.low_mood_detect import is_low_mood_disclosure
+
+    assert is_low_mood_disclosure("I don’t feel like doing anything") is True
+
+
+def test_is_low_mood_disclosure_ascii_pin_unchanged():
+    # Regression-by-improvement pin on the unchanged direction: ASCII input
+    # behaves byte-identically (both apostrophe variants in the pattern data).
+    from sage_poc.nodes.low_mood_detect import is_low_mood_disclosure
+
+    assert is_low_mood_disclosure("I don't feel like doing anything") is True
+    assert is_low_mood_disclosure("i dont feel like doing anything") is True
+    assert is_low_mood_disclosure("today was a completely ordinary day") is False
+
+
+def test_is_low_mood_disclosure_curly_quote_negative_stays_negative():
+    # Normalization must not create false fires.
+    from sage_poc.nodes.low_mood_detect import is_low_mood_disclosure
+
+    assert is_low_mood_disclosure("I’d love to go dancing tonight") is False
+
+
 def test_is_low_mood_disclosure_none_and_empty_are_false():
     from sage_poc.nodes.low_mood_detect import is_low_mood_disclosure
 
