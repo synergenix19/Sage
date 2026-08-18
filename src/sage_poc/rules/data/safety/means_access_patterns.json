@@ -1,0 +1,103 @@
+{
+  "category": "safety",
+  "_meta": {
+    "status": "DRAFT, gated on Vee signature (packet item 1, due 2026-08-25)",
+    "packet": "docs/superpowers/governance/2026-08-18-vee-packet-means-access-cardiac.md item 1 (MSK-02 live prod miss)",
+    "scope": "Deterministic pattern surface for means-access rehearsal phrasing: first-person counting / checking / getting-out / keeping / collecting of {pills, medication, tablets, blades, rope}, with proximity riders (just to know they're there / just in case / so I have them). Zero-affect behavioral-sign class: no SI verb, no distress vocabulary, so S1/S3 never see it. Fires as an S1 crisis_flag so the existing safety_check -> _route_after_safety escalate path (and T2 via the s1_any tier rule) applies on EVERY turn, including mid-skill skill_continuation turns (safety_check is the graph entry node and reads raw input).",
+    "counter_direction": "Explicitly excluded (FP-rich, the reason this needs the clinician signature): disposal ('threw out my old pills', 'got rid of the blades'), routine adherence ('counted out my pills for the week', refill / prescription / pill-organizer phrasings, suppressed by FPE-MA-001 and the counted-out lookahead), third-party custody ('my mom keeps my medication for me', excluded by the first-person anchor).",
+    "vocabulary_ownership": "ALL pattern lists below are PROPOSED, awaiting Vee signature 2026-08-25, packet item 1. Vocabulary is clinician-owned; the drafts exist to make the decision concrete. approved_by stays null until the signature lands; the loader's UNAPPROVED ACTIVE warning is the intended visible state on this DRAFT branch."
+  },
+  "rules": [
+    {
+      "rule_id": "SK-EN-MA-001",
+      "version": "0.1.0-draft",
+      "authored_by": "sage_engineering (DRAFT for clinician review)",
+      "approved_by": null,
+      "effective_date": "2026-08-18",
+      "active": true,
+      "description": "PROPOSED, awaiting Vee signature 2026-08-25, packet item 1. Means-access rehearsal, verb class: first-person counting / checking / getting-out of {pills, medication, tablets, blades, rope}. Pattern 1: i + count/check/take-out verb then means noun (counted-out is excluded by lookahead: 'counted out my pills for the week' is adherence, a signed must-NOT-fire). Pattern 2: i + got/took the means noun out (means-before-out order; 'out of' excluded so 'got out of the house' cannot bridge to a later means mention). Pattern 3: i ... means noun ... and counted/checked them/each/every (elided-subject second clause, MSK-02 shape). No negation_check: over-detection is the safe posture on the crisis path (SK-EN-006 precedent), and the negation classes here ('I have not counted them') are for Vee to rule on.",
+      "category": "safety",
+      "match_type": "regex",
+      "patterns": [
+        "\\bi\\b[^.?!]{0,24}\\b(?:count(?:ed|ing|s)?(?!\\s+out\\b)|check(?:ed|ing|s)?(?:\\s+on)?)\\b[^.?!]{0,40}\\b(?:pills?|medications?|tablets?|blades?|rope)\\b",
+        "\\bi\\b[^.?!]{0,24}\\b(?:took|take|taking|takes|got|get|getting|gets)\\s+out\\b(?!\\s+of\\b)[^.?!]{0,40}\\b(?:pills?|medications?|tablets?|blades?|rope)\\b",
+        "\\bi\\b[^.?!]{0,24}\\b(?:took|take|taking|takes|got|get|getting|gets)\\s+(?:my|the|them|those|these)?\\s*(?:old\\s+|sleeping\\s+|spare\\s+|leftover\\s+)?(?:pills?|medications?|tablets?|blades?|rope)\\s+(?:back\\s+)?out\\b",
+        "\\bi\\b[^.?!]{0,60}\\b(?:pills?|medications?|tablets?|blades?|rope)\\b[^.?!]{0,40}\\b(?:and|then|so)\\s+(?:i\\s+)?(?:count(?:ed|ing)?(?!\\s+out\\b)|check(?:ed|ing)?)\\s+(?:them|it|each|every)\\b"
+      ],
+      "language": "en",
+      "modifiers": [],
+      "action": {
+        "type": "crisis_flag",
+        "flag_id": "means_access_rehearsal"
+      }
+    },
+    {
+      "rule_id": "SK-EN-MA-002",
+      "version": "0.1.0-draft",
+      "authored_by": "sage_engineering (DRAFT for clinician review)",
+      "approved_by": null,
+      "effective_date": "2026-08-18",
+      "active": true,
+      "description": "PROPOSED, awaiting Vee signature 2026-08-25, packet item 1. Means-access rehearsal, keeping/collecting class: fires ONLY with a proximity rider (just in case / just to know they're there / so I have them / if I need them), because bare first-person keeping of medication is ordinary adherence. Pattern 1: i + keep/collect verb then means noun then rider. Pattern 2: means noun then rider across a sentence boundary (rehearsal framing detached from the verb, 'my pills are still in the drawer. just to know they're there'), riders restricted to the unambiguous they're-there / so-i-have-them forms. Third-party custody ('my mom keeps my medication for me') is excluded by the first-person anchor before the verb.",
+      "category": "safety",
+      "match_type": "regex",
+      "patterns": [
+        "\\bi\\b[^.?!]{0,24}\\b(?:keep|keeps|keeping|kept|collect(?:ed|ing|s)?)\\b[^.?!]{0,40}\\b(?:pills?|medications?|tablets?|blades?|rope)\\b[^.?!]{0,60}\\b(?:just in case|in case i (?:ever )?need|just to know|so (?:that )?i have them|so (?:that )?i know (?:they(?:'re| are)|it(?:'s| is)) (?:there|here)|if i (?:ever )?need (?:them|it))",
+        "\\b(?:pills?|medications?|tablets?|blades?|rope)\\b[\\s\\S]{0,80}\\b(?:just to know (?:they(?:'re| are)|it(?:'s| is)) there|so (?:that )?i have them|so (?:that )?i know (?:they(?:'re| are)|it(?:'s| is)) (?:there|here|still there))"
+      ],
+      "language": "en",
+      "modifiers": [],
+      "action": {
+        "type": "crisis_flag",
+        "flag_id": "means_access_rehearsal"
+      }
+    },
+    {
+      "rule_id": "FPE-MA-001",
+      "version": "0.1.0-draft",
+      "authored_by": "sage_engineering (DRAFT for clinician review)",
+      "approved_by": null,
+      "effective_date": "2026-08-18",
+      "active": true,
+      "description": "PROPOSED, awaiting Vee signature 2026-08-25, packet item 1. Adherence/logistics suppression for the means-access surface (span-scoped, engine _apply_suppressions semantics): a means mention bound to organizer / for-the-week / refill / prescription / pharmacy / as-prescribed context suppresses ONLY the overlapping means_access_rehearsal match. Suppresses nothing outside its own span; si_explicit / si_passive / si_method are deliberately NOT in the suppresses list, so this can never soften the signed S1 surfaces.",
+      "category": "safety",
+      "match_type": "regex",
+      "patterns": [
+        "\\b(?:pills?|medications?|tablets?)\\b[^.?!]{0,40}\\b(?:organi[sz]ers?|dosette|for the week|for each day|into the (?:organi[sz]er|box for)|refill(?:ed|s)?|prescription|pharmacy|pharmacist|as prescribed|dose schedule)",
+        "\\b(?:organi[sz]ers?|dosette|refill(?:ed|s)?|prescription|pharmacy|pharmacist)\\b[^.?!]{0,40}\\b(?:pills?|medications?|tablets?)\\b"
+      ],
+      "language": "en",
+      "modifiers": [],
+      "action": {
+        "type": "crisis_suppress",
+        "suppresses": ["means_access_rehearsal"]
+      }
+    },
+    {
+      "rule_id": "SK-AR-MA-001",
+      "version": "0.1.0-draft",
+      "authored_by": "sage_engineering (DRAFT for clinician review)",
+      "approved_by": null,
+      "effective_date": "2026-08-18",
+      "active": false,
+      "description": "PROPOSED AR pattern slots, pending clinician authoring and Vee signature (packet item 1; same lane as the CF-006 inactive-null precedent). INACTIVE until a native-speaker clinical pass lands: Arabic crisis keywords are load-bearing (S3 does not generalise for AR at the deployed threshold), so draft AR strings must not go live un-reviewed. Candidate Gulf/MSA means-access rehearsal phrasings, alef-normalized, for Vee to confirm/extend/replace.",
+      "category": "safety",
+      "match_type": "keyword",
+      "patterns": [
+        "عديت الحبوب",
+        "عديت حبوبي",
+        "طلعت الحبوب القديمة",
+        "طلعت حبوبي وعديتها",
+        "احتفظ بالحبوب عشان تكون عندي",
+        "خليت الحبوب عندي احتياط",
+        "ابقي الحبوب قريبة مني عشان اعرف انها موجودة"
+      ],
+      "language": "ar",
+      "modifiers": [],
+      "action": {
+        "type": "crisis_flag",
+        "flag_id": "means_access_rehearsal"
+      }
+    }
+  ]
+}
