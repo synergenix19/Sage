@@ -15,36 +15,12 @@
         "type": "crisis_response",
         "response_text": "I'm really concerned about what you've shared. Please reach out for support now. In the UAE: {{crisis_label}} {{crisis_number}} (free, {{crisis_hours}}), or emergency services: {{crisis_emergency}}. You don't have to face this alone.",
         "resources": [
-          {
-            "name": "{{crisis_label}}",
-            "number": "{{crisis_number}}",
-            "available": "{{crisis_hours}}"
-          },
-          {
-            "name": "Emergency Services",
-            "number": "{{crisis_emergency}}",
-            "available": "24/7"
-          },
-          {
-            "name": "Abu Dhabi 24/7 crisis line",
-            "number": "800-SAKINA (800-725462)",
-            "available": "24/7"
-          },
-          {
-            "name": "Dubai Health Authority helpline",
-            "number": "800 111",
-            "available": "24/7"
-          },
-          {
-            "name": "Sharjah Child & Youth Mental Health Helpline",
-            "number": "800 51115",
-            "available": "9am–5pm Mon–Fri"
-          },
-          {
-            "name": "Nearest hospital emergency department",
-            "number": "999 / nearest ER",
-            "available": "immediate danger or outside helpline hours"
-          }
+          {"name": "{{crisis_label}}", "number": "{{crisis_number}}", "available": "{{crisis_hours}}"},
+          {"name": "Emergency Services", "number": "{{crisis_emergency}}", "available": "24/7"},
+          {"name": "Abu Dhabi 24/7 crisis line", "number": "800-SAKINA (800-725462)", "available": "24/7"},
+          {"name": "Dubai Health Authority helpline", "number": "800 111", "available": "24/7"},
+          {"name": "Sharjah Child & Youth Mental Health Helpline", "number": "800 51115", "available": "9am–5pm Mon–Fri"},
+          {"name": "Nearest hospital emergency department", "number": "999 / nearest ER", "available": "immediate danger or outside helpline hours"}
         ]
       }
     },
@@ -62,36 +38,13 @@
         "type": "crisis_response",
         "response_text": "Here are crisis and mental health resources in the UAE:\n- {{crisis_label}}: {{crisis_number}} (free, {{crisis_hours}})\n- CDA Mental Health Support: 800 4888\n- Emergency Services: {{crisis_emergency}}\n- Al Amal Psychiatric Hospital: in-person psychiatric support\n- Lighthouse Arabia, Camali Clinic, American Center for Psychiatry and Neurology: therapy in Dubai\n\nIf you're in immediate danger, please call {{crisis_emergency}} or go to your nearest emergency room.",
         "resources": [
-          {
-            "name": "{{crisis_label}}",
-            "number": "{{crisis_number}}",
-            "available": "{{crisis_hours}}"
-          },
-          {
-            "name": "CDA Mental Health Support",
-            "number": "800 4888"
-          },
-          {
-            "name": "Emergency Services",
-            "number": "{{crisis_emergency}}",
-            "available": "24/7"
-          },
-          {
-            "name": "Al Amal Psychiatric Hospital",
-            "type": "in-person"
-          },
-          {
-            "name": "Lighthouse Arabia",
-            "type": "therapy"
-          },
-          {
-            "name": "Camali Clinic",
-            "type": "therapy"
-          },
-          {
-            "name": "American Center for Psychiatry and Neurology",
-            "type": "therapy"
-          }
+          {"name": "{{crisis_label}}", "number": "{{crisis_number}}", "available": "{{crisis_hours}}"},
+          {"name": "CDA Mental Health Support", "number": "800 4888"},
+          {"name": "Emergency Services", "number": "{{crisis_emergency}}", "available": "24/7"},
+          {"name": "Al Amal Psychiatric Hospital", "type": "in-person"},
+          {"name": "Lighthouse Arabia", "type": "therapy"},
+          {"name": "Camali Clinic", "type": "therapy"},
+          {"name": "American Center for Psychiatry and Neurology", "type": "therapy"}
         ]
       }
     },
@@ -110,27 +63,19 @@
         "type": "crisis_response",
         "response_text": "I'm still here with you. If things get harder, please reach out right now, the UAE {{crisis_label}} on {{crisis_number}}, or {{crisis_emergency}} for an emergency.",
         "resources": [
-          {
-            "name": "{{crisis_label}}",
-            "number": "{{crisis_number}}",
-            "available": "{{crisis_hours}}"
-          },
-          {
-            "name": "Emergency Services",
-            "number": "{{crisis_emergency}}"
-          }
+          {"name": "{{crisis_label}}", "number": "{{crisis_number}}", "available": "{{crisis_hours}}"},
+          {"name": "Emergency Services", "number": "{{crisis_emergency}}"}
         ]
       }
     },
     {
       "rule_id": "CC-EN-TP-001",
       "version": "0.1.0-draft",
-      "category": "crisis_content",
       "authored_by": "engineering_from_vee_r4_spec",
-      "approved_by": null,
       "effective_date": "2026-08-18",
-      "active": true,
-      "description": "DRAFT pending Vee signature (R4 spec, 2026-08-18): third-party helper-support response for Layer-1-clean turns the LLM arm flags as crisis with a third-party signal. Serves ONLY under SAGE_THIRD_PARTY_DEFERENCE (default OFF). Content structure is her R4 spec verbatim-intent: validate the helper's concern; gatekeeper guidance (ask directly, listen without fixing, help connect); helpline framed as a resource for the friend; one brief helper-state check.",
+      "active": false,
+      "description": "DRAFT pending Vee signature (R4 spec, 2026-08-18): third-party helper-support response for Layer-1-clean turns the LLM arm flags as crisis with a third-party signal. INACTIVE until (a) Vee signs the EN content and (b) a NATIVELY-AUTHORED ar_uae twin exists (crisis locale parity boot guard: no crisis level may be active in one locale only; machine translation never serves a crisis string). Serves only under SAGE_THIRD_PARTY_DEFERENCE (default OFF). Structure per her R4 spec: validate the helper's concern; gatekeeper guidance (ask directly, listen without fixing, help connect); helpline framed as a resource for the friend; one brief helper-state check.",
+      "category": "crisis_content",
       "locale": "en_uae",
       "crisis_level": "third_party",
       "action": {
