@@ -1,0 +1,38 @@
+# §3a semantic-boundary harness — corrected re-run (P2 evidence of record)
+# Date: 2026-08-18 | Instrument: scripts/low_mood_3a_semantic_eval.py
+# Ran from: feat/low-mood-3a-impl @ d2c4070438ebee840cf7641638ad63fcd0fe4b2e (post F12+F13+F14)
+# Command: uv run python scripts/low_mood_3a_semantic_eval.py (defaults; prod-arm setdefaults)
+# Supersedes: all prior outputs of this harness (non-citable, code_review.md §C)
+#
+CONFIG: {"routing": "V2", "reranker_enabled": true, "exemplars_in_anchors": true, "semantic_threshold": 0.4593, "embedding_timeout_s": 10.0, "bge_revision": "5617a9f61b028005a4858fdac845db406aefb181", "anchor_index_shape": [996, 1024], "low_mood_screen_flag": false, "pre_registered": {"recall_min_listA": 0.9, "fp_max_listB": 0.0}, "oracle_file": "/Users/knowledgebase/Documents/Sage/sage-poc/src/sage_poc/rules/data/safety/low_mood_3a_triggers.json", "oracle_content_sha256_12": "62ee47ff1c69", "oracle_git_blob": "46199ded", "oracle_status": "SIGNED by clinician (Vee), 2026-07-10 \u2014 via CD1-CD5 evidence packet + R1-R7. Now the SIGNED eval oracle for the \u00a73a semantic boundary. Apply on next iteration: CD1 tiering (strong anhedonia/energy vs weak social-withdrawal/procrastination) and CD3/R4 exclusions (I feel numb / I feel stuck / I don't feel like myself EXCLUDED from BA-enrichment, cross-category)."}
+CALIBRATION PASSED (3 anchors)
+
+JOINT-PATH PROOF (skill_select_node = keyword Tier 1 + semantic Tier 2):
+  List A tier distribution (all 39): {'semantic_offer': 28, 'no_match': 7, 'keyword_offer': 4}
+  List A BA-offerable hits by tier : {'semantic_offer': 20, 'keyword_offer': 4}   <- if any 'keyword_offer' here, Tier 1 was live
+
+LIST A (fire, n=39): JOINT recall=0.615  [pre-registered >= 0.9]
+  RESIDUAL — §3a markers that survive BOTH tiers (this is the real gap, for Vee's read):
+   MISS  (tier=None, score=None) :: everything feels like an effort
+   MISS  (tier=semantic_offer, score=0.6655) :: even small tasks feel difficult
+   MISS  (tier=semantic_offer, score=0.7356) :: I can't seem to get going
+   MISS  (tier=None, score=None) :: I just want to stay under the covers
+   MISS  (tier=None, score=None) :: nothing sounds enjoyable
+   MISS  (tier=None, score=None) :: I can't be bothered
+   MISS  (tier=semantic_offer, score=0.677) :: I keep putting everything off
+   MISS  (tier=None, score=None) :: I don't want to talk to anyone
+   MISS  (tier=semantic_offer, score=0.7061) :: I feel flat
+   MISS  (tier=None, score=None) :: I feel numb
+   MISS  (tier=None, score=None) :: I feel disconnected from everything
+   MISS  (tier=semantic_offer, score=0.7368) :: I don't feel like myself
+   MISS  (tier=semantic_offer, score=0.709) :: I'm just going through the motions
+   MISS  (tier=semantic_offer, score=0.8028) :: I feel stuck
+   MISS  (tier=semantic_offer, score=0.6374) :: build a better routine
+LIST B (look-alike, n=15): FP=0.200  [pre-registered <= 0.0]
+   SPURIOUS-BA  via tier=semantic_offer (score=0.7475) :: don't feel like going to the gym today
+   SPURIOUS-BA  via tier=keyword_offer (score=None) :: didn't sleep well so I've no energy today
+   SPURIOUS-BA  via tier=semantic_offer (score=0.8146) :: nothing fun to do right now
+
+RESULT: recall_ok=False fp_ok=False -> FAIL (vs pre-registered criteria)
+NOTE: 1 FP(s) attributable to the KEYWORD tier (target_presentations) -> targeted fix, not a classifier: ["didn't sleep well so I've no energy today"]
+exit=0
