@@ -23,13 +23,16 @@ outlive the clinical picture it encodes.
 Stage 1 (detector): sensitive, holds ≥0.90 recall. Stage 2 (her §3a preliminary
 questions — duration, scope, context): specific; deterministic exclusion rules on
 transience markers, mildness qualifiers, situational attribution — authored by her as
-Rules Service JSON (signed = executed). The zero-tolerance boundary relocates to where it
-clinically belongs: **no woven-SI question reaches a transient presenter**; the
-detector-level ≤0.00 bar is retired as the screening-practice misconfiguration it was.
-**Condition:** her confirmation of the flow property (a false-fire exits at the
-preliminary stage). **Fallback if unconfirmed:** she sets an explicit detector-level FP
-tolerance she can live with. The new semantic FP on the baseline of record ("feeling a
-bit down after a rough week", 0.7629) is exactly the case stage 2 exists to exit.
+Rules Service JSON (signed = executed). Under R3 the zero-tolerance boundary relocates to
+where it clinically belongs: **no woven-SI question reaches a transient presenter**.
+**Retirement of the detector-level ≤0.00 bar is PROPOSED, effective on her confirmation
+of the flow property** (a false-fire exits at the preliminary stage) — until that
+confirmation lands, the pre-registered gate (≥0.90 / ≤0.00 against the governing oracle)
+**remains formally in force** (correction 2026-08-18: an earlier phrasing of this record
+declared the bar retired ahead of her ruling — the record must never pre-empt the signer).
+**Fallback if unconfirmed:** she sets an explicit detector-level FP tolerance she can live
+with. The new semantic FP on the baseline of record ("feeling a bit down after a rough
+week", 0.7629) is exactly the case stage 2 exists to exit.
 
 ## R4 — third-party deference: distinct helper-support path — RECORDED; next dark build
 Content spec (hers, verbatim intent): validate the helper's concern; gatekeeper guidance
@@ -58,5 +61,14 @@ cross-oracle comparison; enforced by the harness's version-stamp and unsigned-ab
 ## What returns to her at the v2 signing (one sitting)
 1. Tick or amend the two proposed CD1 assignments (R1). 2. Set the review-by trigger
 (R2). 3. Confirm the R3 flow property (or set the fallback tolerance). 4. Author the
-Gulf Arabic passive-SI phrases (R6). 5. Sign the block. R4's content JSON arrives as its
-own draft-for-signature when the dark build lands.
+Gulf Arabic passive-SI phrases (R6). 5. Sign the block. **6. Seed the transient-presenter
+phrases for the stage-2 fixture set** (the "feeling a bit down after a rough week" class —
+the boundary cases she wants guaranteed never to reach the SI probe; her vocabulary by the
+same logic as the oracle, and without it the R3-confirmed gate stalls on an unsigned
+instrument the moment F5 needs measuring). R4's content JSON arrives as its own
+draft-for-signature (dark build landed; separate PR cycle).
+
+## Post-sitting sequence (fully determined, owner-ratified 2026-08-18)
+Signing artifact (written, per the acceptance standard) → v2 baseline on the pre-F5
+detector, prediction first → pre-register the revised gate → F5 build → measure through
+the fixed harness only. R4 proceeds in parallel on its own PR cycle.
