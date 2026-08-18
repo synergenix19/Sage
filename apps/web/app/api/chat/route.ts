@@ -152,7 +152,8 @@ export async function POST(req: Request) {
   const skillMediaHeader = sageRes.headers.get('X-Sage-Skill-Media')
 
   const intensityStr       = sageRes.headers.get('X-Sage-Emotional-Intensity')
-  const emotionalIntensity = intensityStr ? (parseInt(intensityStr, 10) || null) : null
+  const parsedIntensity    = intensityStr ? parseInt(intensityStr, 10) : NaN
+  const emotionalIntensity = Number.isNaN(parsedIntensity) ? null : parsedIntensity
 
   const semanticScoreStr = sageRes.headers.get('X-Sage-Semantic-Score')
   const semanticScore    = (() => {
@@ -163,7 +164,8 @@ export async function POST(req: Request) {
   const promptLayers  = parseJsonHeader<string[] | null>(sageRes.headers.get('X-Sage-Prompt-Layers'), null)
   const tokenUsage    = parseJsonHeader<object | null>(sageRes.headers.get('X-Sage-Token-Usage'), null)
   const turnNumberStr = sageRes.headers.get('X-Sage-Turn-Number')
-  const turnNumber    = turnNumberStr ? (parseInt(turnNumberStr, 10) || null) : null
+  const parsedTurn    = turnNumberStr ? parseInt(turnNumberStr, 10) : NaN
+  const turnNumber    = Number.isNaN(parsedTurn) ? null : parsedTurn
 
   const aiMessageId = crypto.randomUUID()
 
