@@ -22,25 +22,38 @@ Usage (flags below mirror the prod serving set; everything else = config.py defa
 """
 import os
 
-# Prod serving flag parity (per prod deploy record, 2026-07-28): these three are true in prod;
-# every other flag rides its config.py default. setdefault so an operator export still wins,
-# and the resolved set is printed below either way. MUST run before any sage_poc import —
-# config.py reads the environment at import time.
-os.environ.setdefault("SAGE_HIGH_RISK_DETECTION", "true")
-os.environ.setdefault("SAGE_HR_NEUTRALITY_GATE", "true")
-os.environ.setdefault("SAGE_INFO_REQUEST_CONSULT", "true")
-# F10 (code_review.md 2026-08-17): the V2 routing flags are read from os.environ at CALL
-# TIME inside skill_select / skill_rerank_model — NOT config.py — and prod has served
-# V2+reranker since 07-08 (V2-live register). Omitting them here was the 3rd recurrence
-# of the recorded "V2-off locals false-passed" instrument defect: the replay measured a
-# V1/reranker-off router while the header asserted parity. setdefault: operator wins.
-os.environ.setdefault("SKILL_ROUTING_V2", "1")
-os.environ.setdefault("SKILL_RERANK_ENABLED", "1")
-os.environ.setdefault("SKILL_RERANK_PRECISION", "fp32")
+# Prod serving flag parity — DERIVED FROM THE DEPLOYED-FLAGS REGISTER (owner Decision 1,
+# 2026-08-18): no hand-maintained flag list anywhere in an instrument, ever. The previous
+# three-flag block was a 07-28 operator-recall snapshot; prod activated medical-redflag /
+# cardiac / grief after it (register changes #4/#5) and the Q6 readout silently measured a
+# guard-off arm. The register (config/prod_flags.yaml) is the authoritative, SHA-citable
+# record — read from the committed file, never a live endpoint, so the instrument runs when
+# prod is unreachable and reproduces after prod moves; the stamp records the blob it read.
+# setdefault: an operator export still wins — and register_parity() then flags it and marks
+# every row non-citable-as-prod. MUST run before any sage_poc import (config.py reads the
+# environment at import time). This also closes the config-tier/env-tier gap: the register
+# carries both (incl. SKILL_ROUTING_V2 / SKILL_RERANK_ENABLED / SKILL_RERANK_PRECISION,
+# the F10 trio), and scripts/check_env_register_coverage.py enforces name coverage.
+import yaml as _yaml
+_REPO_EARLY = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+with open(os.path.join(_REPO_EARLY, "config", "prod_flags.yaml")) as _f:
+    _REGISTER = _yaml.safe_load(_f)
+for _name, _row in _REGISTER["flags"].items():
+    if _row.get("value") is not None:
+        os.environ.setdefault(_name, str(_row["value"]))
+
 # Local-instrument deviation (recorded, non-routing): suppress session_audit writes so a local
 # characterization run never inserts rows into the prod Supabase audit table. AUDIT_LOG_ENABLED
 # gates nothing on the routing path; write_session_audit also no-ops without SUPABASE_URL.
-os.environ.setdefault("SAGE_AUDIT_LOG", "false")
+os.environ["SAGE_AUDIT_LOG"] = "false"
+
+# Recorded local-instrument deviations from the register (non-routing): the parity check
+# reports these as deviations, never as citability breaks. Anything ELSE diverging marks
+# the run non-citable-as-prod.
+INSTRUMENT_DEVIATIONS = {
+    "SAGE_AUDIT_LOG": "audit writes suppressed locally — a characterization run must never "
+                      "insert rows into the prod Supabase audit table (non-routing)",
+}
 
 import argparse
 import asyncio
@@ -66,6 +79,46 @@ def _git_sha() -> str:
         return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=REPO, text=True).strip()
     except Exception:
         return "unknown"
+
+
+def register_parity() -> dict:
+    """Effective-env vs deployed-flags-register comparison (owner Decision 1, 2026-08-18:
+    the instrument polices itself). The register (config/prod_flags.yaml) is the
+    authoritative, SHA-citable record of prod flag state — never a live endpoint, so the
+    instrument stays runnable when prod is unreachable and reproducible after prod moves.
+    Any divergence outside INSTRUMENT_DEVIATIONS marks the run NON-CITABLE-AS-PROD in the
+    output itself (the Q6 failure mode becomes machine-detected, not operator-noticed);
+    desired-unverified riders are carried as caveats per the register's own semantics."""
+    try:
+        blob = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD:config/prod_flags.yaml"],
+            cwd=REPO, text=True, stderr=subprocess.DEVNULL).strip()
+    except Exception:
+        blob = "uncommitted-or-untracked"
+    divergences, deviations, riders = [], [], []
+    for name, row in _REGISTER["flags"].items():
+        reg_val = row.get("value")
+        env_val = os.environ.get(name)
+        if row.get("serving_verified") is False:
+            riders.append(name)
+        diverged = (reg_val is None and env_val is not None) or \
+                   (reg_val is not None and env_val != str(reg_val))
+        if diverged:
+            entry = {"flag": name, "register": reg_val, "effective_env": env_val}
+            if name in INSTRUMENT_DEVIATIONS:
+                entry["recorded_deviation"] = INSTRUMENT_DEVIATIONS[name]
+                deviations.append(entry)
+            else:
+                divergences.append(entry)
+    return {
+        "register_file": "config/prod_flags.yaml",
+        "register_git_blob": blob,
+        "register_schema": _REGISTER.get("schema"),
+        "divergences": divergences,
+        "recorded_deviations": deviations,
+        "desired_unverified_riders": sorted(riders),
+        "citable_as_prod": not divergences,
+    }
 
 
 def resolved_flags() -> dict:
@@ -198,7 +251,20 @@ async def main() -> None:
     ap.add_argument("--fixture", default=FIXTURE)
     ap.add_argument("--json", default=None)
     ap.add_argument("--skip-q6", action="store_true")
+    ap.add_argument("--parity-only", action="store_true",
+                    help="print the register-parity verdict and exit (0=citable-as-prod, 1=diverged); no LLM needed")
     args = ap.parse_args()
+
+    parity = register_parity()
+    if args.parity_only:
+        print_block("REGISTER PARITY", parity)
+        sys.exit(0 if parity["citable_as_prod"] else 1)
+    if not parity["citable_as_prod"]:
+        print("⚠️  EFFECTIVE FLAGS DIVERGE FROM THE DEPLOYED-FLAGS REGISTER — every row in this "
+              "run is marked citable_as_prod=false. Divergences:", file=sys.stderr)
+        for dv in parity["divergences"]:
+            print(f"     {dv['flag']}: register={dv['register']!r} effective={dv['effective_env']!r}",
+                  file=sys.stderr)
 
     if not os.getenv("OPENROUTER_API_KEY"):
         print("FATAL: OPENROUTER_API_KEY missing — the graph's intent classifier cannot run. "
@@ -219,7 +285,8 @@ async def main() -> None:
                                 "separated windows (window-bounded verification rule). Deterministic-"
                                 "tier readouts (keyword matches, semantic scores under the stamped "
                                 "config) do not carry this caveat.",
-            "resolved_flags": flags}
+            "resolved_flags": flags,
+            "register_parity": parity}
     print_block("PROVENANCE + RESOLVED FLAG SET", prov)
 
     t0 = time.time()
@@ -244,6 +311,10 @@ async def main() -> None:
         except Exception as e:  # noqa: BLE001
             block = {"turn": i, "user_message": msg, "FAULT": repr(e)[:400]}
             out["faults"].append(block)
+        block["citable_as_prod"] = parity["citable_as_prod"]
+        if not parity["citable_as_prod"]:
+            block["non_citable_reason"] = ("effective flags diverge from config/prod_flags.yaml; "
+                                           "see provenance.register_parity.divergences")
         out["session_turns"].append(block)
         print_block(f"TURN {i}/3 (session thread {tid})", block)
 
@@ -257,6 +328,10 @@ async def main() -> None:
         except Exception as e:  # noqa: BLE001
             q6 = {"user_message": Q6_PROBE, "FAULT": repr(e)[:400]}
             out["faults"].append(q6)
+        q6["citable_as_prod"] = parity["citable_as_prod"]
+        if not parity["citable_as_prod"]:
+            q6["non_citable_reason"] = ("effective flags diverge from config/prod_flags.yaml; "
+                                        "see provenance.register_parity.divergences")
         out["q6_probe"] = q6
         print_block(f"Q6 PROBE (separate thread {q6_tid})", q6)
 
