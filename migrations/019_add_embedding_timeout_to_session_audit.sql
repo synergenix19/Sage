@@ -1,0 +1,13 @@
+-- Add embedding_timeout to session_audit (F4 degradation auditability; 2026-08-18 v6→v7 delta
+-- characterization). When skill_select's BGE-M3 embed times out, routing silently falls back to
+-- keyword-only for that turn — pre-F4 this was invisible, and it violated both auditability
+-- (responses not traceable to the routing tier that produced them) and deterministic-behavior
+-- (routing quality varied with load, unobserved). audit.py writes this column ONLY on a turn
+-- where the timeout actually fired, so every normal row stays byte-identical to master (same
+-- discipline as migrations 006/008/012/013/016/017/018). This migration is a DEPLOY GATE for the
+-- audit.py change that writes the key: apply before deploying, or a degraded turn's audit write
+-- fails — losing the audit row on exactly the turns this column exists to record.
+-- Consumers: measure_layer1_prod_http.py treats embedding_timeout=true during a baseline run as
+-- a VALIDITY-PRECONDITION failure (run is provisional); serving-side alerting on this column is
+-- a production requirement (see 2026-08-18-v6-v7-delta-characterization.md).
+ALTER TABLE session_audit ADD COLUMN IF NOT EXISTS embedding_timeout boolean;
