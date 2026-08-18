@@ -74,10 +74,15 @@ def _eval_safety(rules: list[SafetyRule], context: dict) -> EvalResult:
     """
     text_en = context.get("text_en", "")
     text_ar = context.get("text_ar") or ""
+    # text_raw: the original unmodified user message, used by lang="az" (Arabizi) rules.
+    # Arabizi is Latin-script Arabic; it must never be translated before keyword matching
+    # or the raw numeral-letter patterns (3/7/9 substitutions) are lost.
+    text_raw = context.get("text_raw") or ""
     language = context.get("language", "en")
 
     norm_en = normalize_text(text_en)
     norm_ar = normalize_arabic(text_ar) if text_ar else ""
+    norm_raw = normalize_text(text_raw) if text_raw else ""
 
     result = EvalResult()
 
@@ -88,11 +93,18 @@ def _eval_safety(rules: list[SafetyRule], context: dict) -> EvalResult:
         for pattern in rule.patterns:
             if matched:
                 break
-            # For "any" rules: route Arabic-script patterns to norm_ar, others to norm_en
-            is_arabic_pattern = lang == "ar" or (
-                lang == "any" and any('؀' <= ch <= 'ۿ' for ch in pattern)
-            )
-            text_to_check = norm_ar if is_arabic_pattern else norm_en
+            # lang="az": Arabizi rules always run on the raw untranslated message so
+            # numeral-letter substitutions (abi amoot, ma7ad y7tajni) survive regardless
+            # of what detect_language returns. Fall back to norm_en when text_raw is absent
+            # (direct engine tests, backwards-compatible callers).
+            if lang == "az":
+                text_to_check = norm_raw if norm_raw else norm_en
+            else:
+                # For "any" rules: route Arabic-script patterns to norm_ar, others to norm_en
+                is_arabic_pattern = lang == "ar" or (
+                    lang == "any" and any('؀' <= ch <= 'ۿ' for ch in pattern)
+                )
+                text_to_check = norm_ar if is_arabic_pattern else norm_en
 
             if not text_to_check:
                 continue

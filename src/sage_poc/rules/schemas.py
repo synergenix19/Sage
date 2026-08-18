@@ -15,7 +15,7 @@ class SafetyRule(BaseModel):
     description: str = ""
     match_type: Literal["keyword", "regex"]
     patterns: list[str]
-    language: Literal["en", "ar", "any"] = "any"
+    language: Literal["en", "ar", "az", "any"] = "any"
     modifiers: list[str] = []
     action: dict
 

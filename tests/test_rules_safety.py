@@ -739,6 +739,192 @@ def test_sk_en_002_v1_2_0_documented_over_triggers(text):
     )
 
 
+# ── Arabizi lang=az routing: text_raw path ───────────────────────────────────
+# These tests verify that az rules fire when the raw Arabizi text is supplied via
+# text_raw, which is the path used by safety_check_node for Arabic-classified input.
+# This is the failure mode fixed in 2026-06-05: Arabizi input classified as "ar" by
+# detect_language was previously sent to the translator and never reached SK-AZ rules.
+
+@pytest.mark.parametrize("arabizi_text", [
+    "abi amoot",
+    "wallah i want to die",
+    "ta3abt mn el7ayat",
+])
+def test_arabizi_az_rules_fire_via_text_raw(arabizi_text):
+    """SK-AZ-001 fires on text_raw when language is 'ar' (simulates detect_language SPOF)."""
+    result = engine.evaluate("safety", {
+        "text_en": "some arabic translation",  # translated — would not match Arabizi patterns
+        "text_ar": "بعض النص العربي",
+        "text_raw": arabizi_text,              # raw Arabizi must be checked by az rules
+        "language": "ar",
+    })
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert crisis_actions, (
+        f"SK-AZ-001 must fire on text_raw even when language='ar': {arabizi_text!r}\n"
+        "This is the Arabizi SPOF regression guard — do not remove."
+    )
+
+
+@pytest.mark.parametrize("arabizi_text", [
+    "ma7ad y7tajni",
+    "hayati khalsa",
+    "mafi fayda",
+])
+def test_arabizi_passive_az_rules_fire_via_text_raw(arabizi_text):
+    """SK-AZ-002 fires on text_raw when language is 'ar'."""
+    result = engine.evaluate("safety", {
+        "text_en": "some arabic translation",
+        "text_ar": "بعض النص العربي",
+        "text_raw": arabizi_text,
+        "language": "ar",
+    })
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert crisis_actions, (
+        f"SK-AZ-002 must fire on text_raw even when language='ar': {arabizi_text!r}\n"
+        "This is the Arabizi SPOF regression guard — do not remove."
+    )
+
+
+# ── Arabic SI method references (SK-AR-004) ───────────────────────────────────
+
+@pytest.mark.parametrize("arabic_text", [
+    "كيف اخذ حبوب عشان اموت",
+    "كم حبة تقتلني",
+    "اقفز من الجسر",
+    "اشق معصمي",
+    "اقطع معصمي",
+    "اشنق نفسي",
+    "طرق انهاء حياتي",
+    "كيف اوذي نفسي بشكل خطير",
+    "طريقة اقتل نفسي",
+])
+def test_arabic_method_reference_triggers_si_method(arabic_text):
+    result = engine.evaluate("safety", {
+        "text_en": "how to hurt myself",
+        "text_ar": arabic_text,
+        "language": "ar",
+    })
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert crisis_actions, f"SK-AR-004: expected si_method for: {arabic_text!r}"
+    assert any(a.get("flag_id") == "si_method" for a in crisis_actions), (
+        f"Expected flag_id='si_method' for: {arabic_text!r}"
+    )
+
+
+@pytest.mark.parametrize("arabic_text,english_gloss", [
+    ("ما هي الجرعة المناسبة", "what is the appropriate dose — legitimate medical question"),
+    ("كيف اخذ الدواء بشكل صحيح", "how to take medication correctly — clinical query"),
+    ("اسأل عن الحبوب", "asking about pills — non-crisis"),
+])
+def test_arabic_method_rules_no_fp_on_medical_questions(arabic_text, english_gloss):
+    result = engine.evaluate("safety", {
+        "text_en": english_gloss,
+        "text_ar": arabic_text,
+        "language": "ar",
+    })
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert not crisis_actions, (
+        f"FALSE POSITIVE (SK-AR-004): medical question should not fire: {arabic_text!r}"
+    )
+
+
+# ── Arabizi SI method references (SK-AZ-003) ──────────────────────────────────
+
+@pytest.mark.parametrize("arabizi_text", [
+    "kam 7abba 3shan amoot",
+    "kam 7abba tgtel",
+    "agfez mn aljsr",
+    "t5ana2 nafsi",
+])
+def test_arabizi_method_reference_triggers_si_method(arabizi_text):
+    result = engine.evaluate("safety", {"text_en": arabizi_text, "language": "en"})
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert crisis_actions, f"SK-AZ-003: expected si_method for: {arabizi_text!r}"
+    assert any(a.get("flag_id") == "si_method" for a in crisis_actions), (
+        f"Expected flag_id='si_method' for: {arabizi_text!r}"
+    )
+
+
+@pytest.mark.parametrize("arabizi_text", [
+    "kam 7abba lazm akhod", "how many pills should i take today",
+])
+def test_arabizi_method_no_fp_on_dosage_questions(arabizi_text):
+    result = engine.evaluate("safety", {"text_en": arabizi_text, "language": "en"})
+    crisis_actions = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    assert not crisis_actions, (
+        f"FALSE POSITIVE (SK-AZ-003): dosage question should not fire: {arabizi_text!r}"
+    )
+
+
+# ── Arabic third-party crisis (SK-AR-005) ────────────────────────────────────
+
+@pytest.mark.parametrize("arabic_text", [
+    "صديقتي قالت تبغى تموت",
+    "صديقتي تبغى تنتحر",
+    "صديقي قال يبي ينهي حياته",
+    "اخوي يريد ان يموت",
+    "اختي تريد ان تموت",
+    "واحد اعرفه يريد ينهي حياته",
+    "اخوي يتكلم عن الانتحار",
+    "رفيقتي ذكرت انها تريد الموت",
+])
+def test_arabic_third_party_fires_third_party_action(arabic_text):
+    result = engine.evaluate("safety", {
+        "text_en": "my friend is in crisis",
+        "text_ar": arabic_text,
+        "language": "ar",
+    })
+    third_party_actions = [a for a in result.actions if a.get("type") == "third_party_crisis"]
+    assert third_party_actions, (
+        f"SK-AR-005: expected third_party_crisis action for: {arabic_text!r}"
+    )
+
+
+def test_arabic_third_party_does_not_fire_crisis_flag():
+    """T-10: Arabic third-party report must set third_party_crisis, NOT crisis_flag for speaker."""
+    arabic_text = "صديقتي قالت تبغى تموت"
+    result = engine.evaluate("safety", {
+        "text_en": "my friend said she wants to die",
+        "text_ar": arabic_text,
+        "language": "ar",
+    })
+    direct_crisis = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    third_party = [a for a in result.actions if a.get("type") == "third_party_crisis"]
+    assert third_party, "Expected third_party_crisis action for Arabic third-party report"
+    assert not direct_crisis, (
+        "T-10 VIOLATION: Arabic third-party report must not fire crisis_flag for speaker\n"
+        "This would incorrectly trigger the user's own crisis protocol."
+    )
+
+
+# ── Arabizi third-party crisis (SK-AZ-004) ───────────────────────────────────
+
+@pytest.mark.parametrize("arabizi_text", [
+    "sa7abi gal yabi ymoot",
+    "sa7ebti tabgha tmoot",
+    "a5oi y7ki 3n alintikhar",
+    "sa7bi yabi ynahi 7ayata",
+])
+def test_arabizi_third_party_fires_third_party_action(arabizi_text):
+    result = engine.evaluate("safety", {"text_en": arabizi_text, "language": "en"})
+    third_party_actions = [a for a in result.actions if a.get("type") == "third_party_crisis"]
+    assert third_party_actions, (
+        f"SK-AZ-004: expected third_party_crisis action for: {arabizi_text!r}"
+    )
+
+
+def test_arabizi_third_party_does_not_fire_crisis_flag():
+    """T-10: Arabizi third-party report must not fire crisis_flag for speaker."""
+    arabizi_text = "sa7abi gal yabi ymoot"
+    result = engine.evaluate("safety", {"text_en": arabizi_text, "language": "en"})
+    direct_crisis = [a for a in result.actions if a.get("type") == "crisis_flag"]
+    third_party = [a for a in result.actions if a.get("type") == "third_party_crisis"]
+    assert third_party, "Expected third_party_crisis action for Arabizi third-party report"
+    assert not direct_crisis, (
+        "T-10 VIOLATION: Arabizi third-party report must not fire crisis_flag for speaker."
+    )
+
+
 # ── SK-EN-002 v1.2.0 clinical_decision_pending: FP vs recall gap ──────────────
 
 

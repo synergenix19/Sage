@@ -282,6 +282,51 @@ class TestCodeSwitchingNodeLevel:
 
 # ── B-2: S3 silent failure observability ─────────────────────────────────────
 
+# ── Arabizi SPOF regression: must fire even when detect_language returns "ar" ──
+# Prior to 2026-06-05, SK-AZ rules were lang="en" and matched against message_en,
+# which is the translated text when language=="ar". Arabizi sent to the translator
+# produces Arabic-script output, not Arabizi — so the raw patterns never matched.
+# Fix: lang="az" rules route to text_raw (raw, untranslated message) unconditionally.
+
+class TestArabiziLanguageClassificationIndependence:
+    """Arabizi crisis must fire regardless of what detect_language returns."""
+
+    async def test_arabizi_explicit_si_fires_when_classified_as_arabic(self):
+        # Simulate detect_language returning "ar" for Arabizi input.
+        # The translation mock returns Arabic text — the raw Arabizi patterns must still fire.
+        state = make_state(raw_message="abi amoot wallah")
+        with patch(
+            "sage_poc.nodes.safety_check.detect_language",
+            return_value="ar",
+        ), patch(
+            "sage_poc.nodes.safety_check.async_translate_to_english",
+            return_value="أبي أموت والله",  # realistic translation output — no Arabizi
+        ):
+            result = await safety_check_node(state)
+        assert result["is_safe"] is False, (
+            "Arabizi explicit SI 'abi amoot wallah' must fire even when detect_language='ar'\n"
+            "Regression guard for the lang=az SPOF fix (2026-06-05)."
+        )
+        assert len(result["crisis_flags"]) > 0, (
+            "Expected at least one crisis flag for Arabizi 'abi amoot wallah' with lang='ar'"
+        )
+
+    async def test_arabizi_passive_si_fires_when_classified_as_arabic(self):
+        state = make_state(raw_message="hayati khalsa ma fi amal")
+        with patch(
+            "sage_poc.nodes.safety_check.detect_language",
+            return_value="ar",
+        ), patch(
+            "sage_poc.nodes.safety_check.async_translate_to_english",
+            return_value="حياتي خلصت ما في أمل",
+        ):
+            result = await safety_check_node(state)
+        assert result["is_safe"] is False, (
+            "Arabizi passive SI 'hayati khalsa' must fire even when detect_language='ar'\n"
+            "Regression guard for the lang=az SPOF fix (2026-06-05)."
+        )
+
+
 async def test_s3_timeout_emits_warning(caplog):
     """S3 TimeoutError must log a warning; S1 crisis detection still fires."""
     state = make_state(
