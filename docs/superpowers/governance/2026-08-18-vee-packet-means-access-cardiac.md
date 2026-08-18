@@ -121,6 +121,27 @@ you rule, not before.
 
 **Ask:** rule the target third-party behavior; we engineer to the ruling.
 
+## Item 5 — UNBUILT-row triage (agenda ask, not a signature): 7 spec rows have no content to conform to
+
+§4a (Emotions Wheel), §4b (emotions psychoed library), §5b (Wins-Log), §7c (connection
+psychoed library), S2c (grief psychoed content — currently proxy-routed), S4a (Kind
+Self-Talk), S4c (Setbacks Guide): the spec prescribes content/skills that were never
+authored, so these rows can never conform regardless of engineering. Per the spec's
+division of labor this is clinician-owned content. **Ask (triage ruling, one line per
+row is enough): build for MVP / defer to Full Build / descope with a signed record.**
+The builds themselves can be post-MVP; the ruling is what unblocks honest reporting
+(these rows are carried as "UNBUILT", separate from non-conformance, per the
+2026-08-18 assessment).
+
+## Item 6 — Arabic corpus ETA (date ask)
+
+The entire spec is unmeasured in Arabic — the largest single line in the coverage
+denominator, structural until the ratified Khaleeji corpus lands (batch-1 draft is
+PR #364, your lane; we have not fabricated an interim corpus and will not). For a
+Khaleeji-first product this gate should not float undated. **Ask: an ETA (or the
+blocking constraint) for corpus batch-1.** When it lands, the AR baseline is the
+already-registered next measurement trigger.
+
 ## Dates
 
 - Packet delivered: 2026-08-18 (today; findings same-day).

@@ -261,6 +261,24 @@ def test_build_session_audit_row_carries_served_latency_stages():
     assert row_absent["translate_out_ms"] is None
 
 
+def test_build_session_audit_row_embedding_timeout_conditional():
+    """F4 degradation auditability (migration 019): the embedding_timeout key rides the row
+    ONLY on a turn where the fallback actually fired — a normal turn's row must stay
+    byte-identical to master (no key at all, not a null), same conditional discipline as
+    tiering/precedence/medical/screen."""
+    from sage_poc.audit import _build_session_audit_row
+
+    row_fired = _build_session_audit_row(make_audit_state(embedding_timeout=True))
+    assert row_fired["embedding_timeout"] is True
+
+    row_normal = _build_session_audit_row(make_audit_state())
+    assert "embedding_timeout" not in row_normal
+
+    # Falsy state value (per-turn reset writes None) must also leave the row byte-identical.
+    row_reset = _build_session_audit_row(make_audit_state(embedding_timeout=None))
+    assert "embedding_timeout" not in row_reset
+
+
 @pytest.mark.asyncio
 async def test_crisis_response_schedules_audit_write(monkeypatch):
     """crisis_response must schedule a write_session_audit task on crisis paths."""
