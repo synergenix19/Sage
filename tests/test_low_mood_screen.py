@@ -12,7 +12,6 @@ defers that offer (screen_stage="validated") instead of emitting it, so a
 later flow (built in other tasks) can validate -> screen -> ask the woven SI
 question. This task does NOT build that later flow, only the interception.
 """
-import inspect
 
 import pytest
 
@@ -33,13 +32,54 @@ def test_state_declares_screen_fields():
 
 
 def test_screen_fields_not_in_per_turn_reset():
-    # CROSS-TURN invariant: neither field may appear in _build_state's per-turn
-    # reset block, or the probe clears before safety_check reads the answer.
-    import sage_poc.server_helpers as sh
+    # F9 (code_review.md): behavioral form of the CROSS-TURN invariant — the old
+    # inspect.getsource assertion violated the assert-on-behavior convention
+    # (red on a docstring mention, green on a reset performed elsewhere).
+    # _build_state is pure: its OUTPUT must not carry either screen field, or
+    # the probe clears before safety_check reads the answer turn.
+    from sage_poc.server_helpers import _build_state, _RequestLike, _MessageLike
 
-    src = inspect.getsource(sh._build_state)
-    assert "screen_stage" not in src
-    assert "safety_probe_asked" not in src
+    state = _build_state(
+        _RequestLike(messages=[_MessageLike(role="user", content="hi")], session_id="s1")
+    )
+    assert "screen_stage" not in state
+    assert "safety_probe_asked" not in state
+
+
+def test_screen_fields_survive_two_turns_through_the_graph():
+    # Two-turn persistence: turn 1 writes the screen fields; turn 2's input is
+    # the REAL _build_state output (which must not clear them), and a reader
+    # observes the persisted values after the checkpoint merge — the exact seam
+    # a stray reset anywhere would break while the old source-text test stayed
+    # green.
+    from langgraph.checkpoint.memory import MemorySaver
+    from langgraph.graph import StateGraph, START, END
+
+    from sage_poc.server_helpers import _build_state, _RequestLike, _MessageLike
+    from sage_poc.state import SageState
+
+    def node(state):
+        if not state.get("screen_stage"):
+            return {"screen_stage": "validated", "safety_probe_asked": True,
+                    "gate_path": "wrote"}
+        return {"gate_path": f"read:{state.get('screen_stage')}:{state.get('safety_probe_asked')}"}
+
+    g = StateGraph(SageState)
+    g.add_node("node", node)
+    g.add_edge(START, "node")
+    g.add_edge("node", END)
+    app = g.compile(checkpointer=MemorySaver())
+    cfg = {"configurable": {"thread_id": "screen-persist-t1"}}
+
+    req = _RequestLike(messages=[_MessageLike(role="user", content="hi")], session_id="s1")
+    out1 = app.invoke(_build_state(req), cfg)
+    assert out1.get("gate_path") == "wrote"
+
+    out2 = app.invoke(_build_state(req), cfg)
+    assert out2.get("gate_path") == "read:validated:True", (
+        "screen_stage/safety_probe_asked did not survive to the next turn — "
+        "a per-turn reset (anywhere) breaks the cross-turn SI-probe contract"
+    )
 
 
 # ---------------------------------------------------------------------------
