@@ -1,5 +1,13 @@
 """Phase 0 characterization of the BOT BEHAVIOUR §1a presence_only gap (skill-request delivery).
 
+DEPRECATED-DIRECT-INVOKE: this script invokes the graph directly and is allowlisted as a
+FROZEN legacy entry under the SIGNED instrument-parity standing rule (2026-07-28, rule 1;
+tests/test_instrument_helper_only.py). Any future evidence run migrates to
+scripts/instrument/graph_evidence.py — the helper's SERVING-readback flag derivation
+(refuse-on-gap, refuse-on-deploy-window) supersedes this script's register-file
+readback (register_parity below) for new runs; the register mechanism remains the frozen
+record of how the 2026-08-18 evidence was produced. Do not extend this script's scope.
+
 Replays the observed 3-turn transcript (tests/fixtures/conformance/1a_transcript_replay.json)
 through the REAL compiled graph (app.ainvoke, one session thread), reusing the same invocation
 pattern as scripts/bot_behaviour_audit/measure_layer1_fullgraph.py (NOT skill_select isolation).
