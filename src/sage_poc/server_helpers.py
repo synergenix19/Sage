@@ -168,6 +168,7 @@ def _build_state(req: _RequestLike) -> dict:
         "path":               [],
         "skill_select_abstained": False,   # per-turn reset (like path) — no cross-turn abstain leak
         "abstain_referral": None,   # #218 per-turn reset (like skill_select_abstained)
+        "embedding_timeout": None,   # F4 per-turn reset — a turn-N timeout must not read as a turn-N+1 timeout
         "containment_directive": None,   # Phase-2 T1 per-turn reset (inert until T2-T4)
         "code_switching":     False,
         "directive_posture":  False,
