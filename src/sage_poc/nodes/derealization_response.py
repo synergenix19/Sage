@@ -47,7 +47,7 @@ async def derealization_response_node(state: SageState) -> dict:
 
     return {
         "response": text,
-        "response_en": text if lang != "ar" else state.get("response_en"),
+        "response_en": text,
         "gate_path": "derealization",
         "derealization_referral_delivered": True,
         "path": path,
