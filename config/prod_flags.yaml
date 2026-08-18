@@ -121,6 +121,10 @@ flags:
     signed_value: "true"
     signature_ref: "Vee §1c-A/§1c-B boundary sheet 2026-07-28 (2026-07-28-part-a-1c-boundary-to-vee.md, SIGNED-OFF header: force-ground set + never-regress + conservative dial)"
     note: "Part A panic-grounding override. SCOPE-BACK RULED 2026-07-30 (item-1, PO relay): _PANIC_TERMS narrows to pure panic (breathing/heart/dizzy/panic-attack) removing derealization + HR-family terms, and the cardiac 'going to die + can't breathe' class stays at crisis (item-3, no downgrade without a clean screen) — remediation = increment 2, code PR, staging-first. Flag value itself stays true (the signed capability survives narrowed)"
+  SAGE_THIRD_PARTY_DEFERENCE:
+    value: null
+    class: safety
+    note: "PRESUMED safety (2026-07-28 taxonomy: alters crisis-path delivery). R4 third-party helper-support deference (Vee spec 2026-08-18); unset = config default OFF. Content rule CC-EN-TP-001 is DRAFT pending Vee signature + manifest pin; flip is its own decision request carrying the signed content + the two hard-boundary tests"
   SAGE_MEDICAL_REFERRAL_TEXT:
     value: null
     class: safety

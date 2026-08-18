@@ -30,7 +30,7 @@ class CrisisContentRule(BaseModel):
     active: bool = True
     description: str = ""
     locale: str
-    crisis_level: Literal["acute", "extended", "monitoring_fallback"]
+    crisis_level: Literal["acute", "extended", "monitoring_fallback", "third_party"]
     action: dict
 
 

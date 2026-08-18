@@ -277,6 +277,21 @@ if _grief_deference_raw is not None and _grief_deference_raw.strip().lower() not
 # and drive the active §6 (coaching_confrontation) pre-emption. Flip is governed: E7 recall >=95% on the
 # fixture set + clinician CMS approval (Rohan's CF-005 workflow is the precedent) before permanent ON,
 # at which point the expansion folds into CF-005 vNext and this flag-gated side-path retires.
+# R4 (Vee 2026-08-18): third-party deference — Layer-1-clean turns the LLM arm flags as
+# crisis with a third-party signal serve the helper-support content instead of the
+# first-person crisis script. Default OFF; content rule is DRAFT until Vee signs; flip is
+# its own decision request. Strict parse, same pattern as the safety kill-switches.
+_third_party_deference_raw = os.getenv("SAGE_THIRD_PARTY_DEFERENCE")
+THIRD_PARTY_DEFERENCE_ENABLED = (
+    _third_party_deference_raw is not None
+    and _third_party_deference_raw.strip().lower() == "true"
+)
+if _third_party_deference_raw is not None and _third_party_deference_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_THIRD_PARTY_DEFERENCE unexpected value %r — applying safe default (deference OFF); "
+        "only 'true' enables.", _third_party_deference_raw,
+    )
+
 _ipv_preempt_raw = os.getenv("SAGE_IPV_PREEMPTION")
 IPV_PREEMPTION_ENABLED = (
     _ipv_preempt_raw is not None and _ipv_preempt_raw.strip().lower() == "true"

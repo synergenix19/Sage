@@ -51,10 +51,31 @@ async def _crisis_response_node(state: SageState) -> dict:
 
     lang = state.get("detected_language", "en")
 
+    # R4 (Vee 2026-08-18, SAGE_THIRD_PARTY_DEFERENCE, default OFF): a Layer-1-clean turn
+    # carrying a third-party signal serves the helper-support content, never the
+    # first-person crisis script. HARD boundaries (both tested): deference applies ONLY
+    # when crisis_flags is empty — a co-occurring first-person flag means the
+    # deterministic layer fired (F1's span-scoped suppression guarantees the compound
+    # case), so the first-person script serves; and a locale with no signed third-party
+    # content falls back toward crisis (acute script), never a missing-content hole.
+    # Stage 1 is DELIVERY-CONTENT-ONLY: monitoring entry, gate path, audit, and the
+    # review-queue notify are identical to the first-person case (monitoring semantics
+    # for helper turns = flagged clinical question in the R4 decision request).
+    from sage_poc import config as _cfg  # noqa: PLC0415 — call-time read of the kill-switch
+    _third_party_deference = (
+        _cfg.THIRD_PARTY_DEFERENCE_ENABLED
+        and bool(state.get("third_party_crisis"))
+        and not state.get("crisis_flags")
+    )
     crisis_result = rules_engine.evaluate("crisis_content", {
         "language": lang,
-        "crisis_level": "acute",
+        "crisis_level": "third_party" if _third_party_deference else "acute",
     })
+    if _third_party_deference and not crisis_result.fired:
+        crisis_result = rules_engine.evaluate("crisis_content", {
+            "language": lang,
+            "crisis_level": "acute",
+        })
 
     if crisis_result.fired:
         response_text = crisis_result.fired[0].action["response_text"]

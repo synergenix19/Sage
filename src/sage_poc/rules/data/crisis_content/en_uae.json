@@ -67,6 +67,53 @@
           {"name": "Emergency Services", "number": "{{crisis_emergency}}"}
         ]
       }
+    },
+    {
+      "rule_id": "CC-EN-TP-001",
+      "version": "0.1.0-draft",
+      "authored_by": "engineering_from_vee_r4_spec",
+      "effective_date": "2026-08-18",
+      "active": false,
+      "description": "DRAFT pending Vee signature (R4 spec, 2026-08-18): third-party helper-support response for Layer-1-clean turns the LLM arm flags as crisis with a third-party signal. INACTIVE until (a) Vee signs the EN content and (b) a NATIVELY-AUTHORED ar_uae twin exists (crisis locale parity boot guard: no crisis level may be active in one locale only; machine translation never serves a crisis string). Serves only under SAGE_THIRD_PARTY_DEFERENCE (default OFF). Structure per her R4 spec: validate the helper's concern; gatekeeper guidance (ask directly, listen without fixing, help connect); helpline framed as a resource for the friend; one brief helper-state check.",
+      "category": "crisis_content",
+      "locale": "en_uae",
+      "crisis_level": "third_party",
+      "action": {
+        "type": "crisis_response",
+        "response_text": "I can hear how much you care about them, and carrying that worry is heavy. You can help. Ask them directly how they are feeling, including whether they are thinking of ending their life; asking directly does not plant the idea. Listen without trying to fix everything. And help them connect with support: {{crisis_label}} {{crisis_number}} (free, {{crisis_hours}}) can support them, and in an emergency call {{crisis_emergency}}. You matter here too. How are you holding up?",
+        "resources": [
+          {
+            "name": "{{crisis_label}}",
+            "number": "{{crisis_number}}",
+            "available": "{{crisis_hours}}"
+          },
+          {
+            "name": "Emergency Services",
+            "number": "{{crisis_emergency}}",
+            "available": "24/7"
+          },
+          {
+            "name": "Abu Dhabi 24/7 crisis line",
+            "number": "800-SAKINA (800-725462)",
+            "available": "24/7"
+          },
+          {
+            "name": "Dubai Health Authority helpline",
+            "number": "800 111",
+            "available": "24/7"
+          },
+          {
+            "name": "Sharjah Child & Youth Mental Health Helpline",
+            "number": "800 51115",
+            "available": "9am–5pm Mon–Fri"
+          },
+          {
+            "name": "Nearest hospital emergency department",
+            "number": "999 / nearest ER",
+            "available": "immediate danger or outside helpline hours"
+          }
+        ]
+      }
     }
   ]
 }
