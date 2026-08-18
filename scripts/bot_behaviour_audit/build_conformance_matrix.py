@@ -7,7 +7,7 @@ guards are Layer-2/3 (logged as coverage limits, not scored here).
 import json, pathlib
 from collections import defaultdict, Counter
 
-REPO = pathlib.Path("/Users/knowledgebase/Documents/Sage/sage-poc-v2live")
+REPO = pathlib.Path(__file__).resolve().parents[2]  # scripts/bot_behaviour_audit/ -> repo root; never a sibling worktree
 RES = REPO/"tests/fixtures/bot_behaviour_audit/layer1_results.jsonl"
 ORACLE = json.load(open(REPO/"docs/superpowers/governance/2026-07-08-bot-behaviour-oracle-map.json"))
 rows = [json.loads(l) for l in open(RES) if l.strip()]

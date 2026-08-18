@@ -7,7 +7,7 @@ observed disposition is fully attributable. Emits results.jsonl + per-category c
 """
 import json, os, time, sys, pathlib
 
-REPO = "/Users/knowledgebase/Documents/Sage/sage-poc-v2live"
+REPO = str(pathlib.Path(__file__).resolve().parents[2])  # scripts/bot_behaviour_audit/ -> repo root; never a sibling worktree
 CORPUS = f"{REPO}/tests/fixtures/bot_behaviour_audit/layer1_trigger_corpus.jsonl"
 OUT = f"{REPO}/tests/fixtures/bot_behaviour_audit/layer1_results.jsonl"
 
