@@ -177,6 +177,155 @@ describe('POST /api/chat', () => {
     })
   })
 
+  // ── P0 Task 8: intensity/turn header value "0" must persist as 0, not NULL ──
+  // parseInt('0', 10) is falsy, so `parseInt(x, 10) || null` collapsed a legitimate
+  // 0 into null — which then vanished from _fetchMoodTrajectory's `.not('emotional_
+  // intensity', 'is', null)` filter. Number.isNaN(...) distinguishes "parsed to 0"
+  // from "did not parse" the same way the semanticScore handling already does.
+  it('persists emotional_intensity 0 as 0, not null', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      makeSageResponse('hello', { 'X-Sage-Emotional-Intensity': '0' })
+    )
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'hello' }],
+        sessionId: VALID_SESSION_UUID,
+      }),
+    })
+    await POST(req)
+    await new Promise((r) => setImmediate(r))
+    await new Promise((r) => setImmediate(r))
+
+    const calls = mockInsert.mock.calls
+    const batchCall = calls.find((c) => Array.isArray(c[0]))
+    expect(batchCall).toBeDefined()
+    const rows = batchCall![0] as Array<Record<string, unknown>>
+    const aiRow = rows.find((r) => r.role === 'ai' || r.role === 'crisis')
+    expect(aiRow).toBeDefined()
+    expect(aiRow!.emotional_intensity).toBe(0)
+  })
+
+  it('persists emotional_intensity as null when the header is absent', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      makeSageResponse('hello', { 'X-Sage-Emotional-Intensity': '' })
+    )
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'hello' }],
+        sessionId: VALID_SESSION_UUID,
+      }),
+    })
+    await POST(req)
+    await new Promise((r) => setImmediate(r))
+    await new Promise((r) => setImmediate(r))
+
+    const calls = mockInsert.mock.calls
+    const batchCall = calls.find((c) => Array.isArray(c[0]))
+    expect(batchCall).toBeDefined()
+    const rows = batchCall![0] as Array<Record<string, unknown>>
+    const aiRow = rows.find((r) => r.role === 'ai' || r.role === 'crisis')
+    expect(aiRow).toBeDefined()
+    expect(aiRow!.emotional_intensity).toBeNull()
+  })
+
+  it('persists emotional_intensity 7 as 7', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      makeSageResponse('hello', { 'X-Sage-Emotional-Intensity': '7' })
+    )
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'hello' }],
+        sessionId: VALID_SESSION_UUID,
+      }),
+    })
+    await POST(req)
+    await new Promise((r) => setImmediate(r))
+    await new Promise((r) => setImmediate(r))
+
+    const calls = mockInsert.mock.calls
+    const batchCall = calls.find((c) => Array.isArray(c[0]))
+    expect(batchCall).toBeDefined()
+    const rows = batchCall![0] as Array<Record<string, unknown>>
+    const aiRow = rows.find((r) => r.role === 'ai' || r.role === 'crisis')
+    expect(aiRow).toBeDefined()
+    expect(aiRow!.emotional_intensity).toBe(7)
+  })
+
+  it('persists turn_number 0 as 0, not null', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      makeSageResponse('hello', { 'X-Sage-Turn-Number': '0' })
+    )
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'hello' }],
+        sessionId: VALID_SESSION_UUID,
+      }),
+    })
+    await POST(req)
+    await new Promise((r) => setImmediate(r))
+    await new Promise((r) => setImmediate(r))
+
+    const calls = mockInsert.mock.calls
+    const batchCall = calls.find((c) => Array.isArray(c[0]))
+    expect(batchCall).toBeDefined()
+    const rows = batchCall![0] as Array<Record<string, unknown>>
+    const aiRow = rows.find((r) => r.role === 'ai' || r.role === 'crisis')
+    expect(aiRow).toBeDefined()
+    expect(aiRow!.turn_number).toBe(0)
+  })
+
+  it('persists turn_number as null when the header is absent', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      makeSageResponse('hello', { 'X-Sage-Turn-Number': '' })
+    )
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'hello' }],
+        sessionId: VALID_SESSION_UUID,
+      }),
+    })
+    await POST(req)
+    await new Promise((r) => setImmediate(r))
+    await new Promise((r) => setImmediate(r))
+
+    const calls = mockInsert.mock.calls
+    const batchCall = calls.find((c) => Array.isArray(c[0]))
+    expect(batchCall).toBeDefined()
+    const rows = batchCall![0] as Array<Record<string, unknown>>
+    const aiRow = rows.find((r) => r.role === 'ai' || r.role === 'crisis')
+    expect(aiRow).toBeDefined()
+    expect(aiRow!.turn_number).toBeNull()
+  })
+
+  it('persists turn_number 7 as 7', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      makeSageResponse('hello', { 'X-Sage-Turn-Number': '7' })
+    )
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'hello' }],
+        sessionId: VALID_SESSION_UUID,
+      }),
+    })
+    await POST(req)
+    await new Promise((r) => setImmediate(r))
+    await new Promise((r) => setImmediate(r))
+
+    const calls = mockInsert.mock.calls
+    const batchCall = calls.find((c) => Array.isArray(c[0]))
+    expect(batchCall).toBeDefined()
+    const rows = batchCall![0] as Array<Record<string, unknown>>
+    const aiRow = rows.find((r) => r.role === 'ai' || r.role === 'crisis')
+    expect(aiRow).toBeDefined()
+    expect(aiRow!.turn_number).toBe(7)
+  })
+
   // ── Lane 2 Item 1.5 (a): stored == rendered ────────────────────────────
   // Persist EXACTLY the parsed X-Sage-Sources list (deduped/capped/typed), not raw
   // passages, onto the AI message row so a reopened conversation shows the same card.
