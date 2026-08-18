@@ -20,7 +20,21 @@ FALLBACK_CLASSIFIER_MODEL = os.getenv("SAGE_FALLBACK_CLASSIFIER_MODEL", "openai/
 RESISTANCE_MODEL = os.getenv("SAGE_RESISTANCE_MODEL", CLASSIFIER_MODEL)
 
 # Default ON — crisis activations must leave an audit trail unless explicitly disabled.
-AUDIT_LOG_ENABLED = os.getenv("SAGE_AUDIT_LOG", "true").lower() == "true"
+# STRICT parse (inverse-polarity twin of SAGE_CRISIS_TIERING at config.py:184-190): only a
+# literal "false" disables. Unset/empty/whitespace/garbage -> the signed default (ON). A
+# Railway env-injection bug can deliver an EMPTY string to the container, which under a
+# `== "true"` parse would silently disable the audit trail with no visible signal.
+_audit_log_raw = os.getenv("SAGE_AUDIT_LOG")
+if _audit_log_raw is not None and _audit_log_raw.strip().lower() == "false":
+    AUDIT_LOG_ENABLED = False
+else:
+    if _audit_log_raw is not None and _audit_log_raw.strip().lower() != "true":
+        _log.warning(
+            "SAGE_AUDIT_LOG=%r is neither 'true' nor 'false'; keeping default ON "
+            "(strict parse — empty-string injection must not silently disable the audit trail)",
+            _audit_log_raw,
+        )
+    AUDIT_LOG_ENABLED = True
 
 # Node-2 determinism pins (bistability finding 2026-07-28,
 # docs/superpowers/governance/2026-07-28-node2-intent-bistability-finding.md).
@@ -372,7 +386,22 @@ CHECKPOINT_POOL_MAX_SIZE = int(os.getenv("SAGE_CHECKPOINT_POOL_MAX_SIZE", "20"))
 # skill_select, so EMBED-CACHE before/after is one build with a flag flip (same discipline
 # as the ① pool measurement). Default on — shipped only because the equivalence gate
 # (test_embed_cache_equivalence.py) asserts crisis output is byte-identical with the cache.
-EMBED_CACHE_ENABLED: bool = os.getenv("SAGE_EMBED_CACHE_ENABLED", "true").lower() == "true"
+# STRICT parse (inverse-polarity twin of SAGE_CRISIS_TIERING at config.py:184-190): only a
+# literal "false" disables. Unset/empty/whitespace/garbage -> the signed default (ON). A
+# Railway env-injection bug can deliver an EMPTY string to the container, which under a
+# `== "true"` parse would silently disable the cache wiring with no visible signal.
+_embed_cache_raw = os.getenv("SAGE_EMBED_CACHE_ENABLED")
+EMBED_CACHE_ENABLED: bool
+if _embed_cache_raw is not None and _embed_cache_raw.strip().lower() == "false":
+    EMBED_CACHE_ENABLED = False
+else:
+    if _embed_cache_raw is not None and _embed_cache_raw.strip().lower() != "true":
+        _log.warning(
+            "SAGE_EMBED_CACHE_ENABLED=%r is neither 'true' nor 'false'; keeping default ON "
+            "(strict parse — empty-string injection must not silently disable the cache wiring)",
+            _embed_cache_raw,
+        )
+    EMBED_CACHE_ENABLED = True
 
 # B1 interim medical red-flag guard. Default OFF; flip only when the must-NOT-fire
 # controls are green (see plan Task 6). Not frozen; touches no signed field.

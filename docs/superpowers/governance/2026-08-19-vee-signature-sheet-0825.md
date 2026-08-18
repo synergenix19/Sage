@@ -15,9 +15,15 @@ described here — what you rule on is what is running / what will run.
 
 ## 1. Means-access rehearsal surface (packet item 1 · staged: PR #470, draft)
 
-**Approving:** a deterministic S1-tier surface for means-access rehearsal phrasing
-("took out my old pills and counted them"), firing crisis, including mid-skill; with the
-must-NOT-fire exclusions (disposal, adherence, third-party custody).
+**Approving:** an AMENDMENT TO THE SPEC'S CANONICAL TRIGGER TABLE (C §0 — "This table
+is the canonical list"): a new behavioral-sign row for means-access rehearsal phrasing
+("took out my old pills and counted them"), firing crisis deterministically, including
+mid-skill; with the must-NOT-fire exclusions (disposal, adherence, third-party custody).
+Clinical basis inside the protocol itself: C §2's permitted safety question IS
+means-access assessment ("Do you have access to something you could use to hurt
+yourself?" — "standard means-restriction safety practice"); this surface escalates when
+a user volunteers the affirmative answer unprompted. Today the table has no behavioral
+class at all — that absence is the measured zero-affect gap.
 **Full text:** `2026-08-18-vee-packet-means-access-cardiac.md` item 1; build on PR #470.
 **Recommendation:** approve scope + both fixture sets as staged. Two boundary calls
 flagged for you inside: (a) "counted out" is excluded (adherence reading) — a rehearsal
@@ -30,10 +36,14 @@ null deliberately — no fabricated sign-off).
 
 ## 2. Cardiac disposition re-sign as a phrasing-class (packet item 2)
 
-**Approving:** re-signing the #413 cardiac escalation against the spec's cardiac
-red-flag phrasing FAMILY (hammering heart / can't get air / chest + fear-of-dying /
-"something is really wrong" somatic framing) instead of exemplar strings — measured
-live: the signed wording fires, a plain paraphrase does not.
+**Approving:** re-signing the #413 cardiac escalation against the spec's OWN enumerated
+family — the "⚠ Universal red-flag override (applies at every tier)": chest
+pressure/heaviness, "crushing"/"stabbing"/"searing" chest pain, pain spreading to
+arm/jaw/back, one-sided numbness/weakness — plus §1c's guard distinction "real
+inability to breathe rather than panic-related breathlessness", which is the
+NOT-boundary ready-made (panic breathlessness must not auto-escalate). Measured live:
+the signed wording fires, a plain paraphrase does not. The disposition itself
+(escalate_crisis) is already ruled (#413); this re-sign is the phrasing-class only.
 **Full text:** packet item 2.
 **Recommendation:** approve the class-based re-sign with the fixture-independence
 requirement (eval fixtures are paraphrases, never the surface's own strings). You name
@@ -45,10 +55,14 @@ presence cells sit adjacent).
 ## 3. S4b self-worth FP exclusion (packet item 3 · staged: PR #471, draft, flag OFF)
 
 **Approving:** a protective exclusion so deservingness framings WITHOUT existence
-content ("I don't deserve kindness") stop drawing the crisis card (measured: stable
-across three windows), while deservingness + death/absence ("I don't deserve to be
-here / to exist", "better off without me") MUST STILL escalate — the counter-set is
-part of what you sign.
+content stop drawing the crisis card (measured: stable across three windows). Spec
+alignment is verbatim: "I don't deserve kindness" appears word-for-word in S4b §0's
+deservingness-based-refusal trigger row — the false positive serves the crisis card
+against the spec's own pathway-trigger vocabulary, so this exclusion protects the
+spec's trigger table. The counter-set — deservingness + death/absence ("I don't
+deserve to be here / to exist", "better off without me") MUST STILL escalate — maps to
+C §0's passive-ideation and burden rows and S4b's guard route (severe/safety-relevant →
+3b's protocol). The counter-set is part of what you sign.
 **Full text:** packet item 3 (including the coupling caveat added 2026-08-19).
 **Recommendation:** approve as staged, WITH the coupling in view: "I don't deserve X, I
 want to die" phrasings do not fire S1 today (negation-window defect, now in the Phase-1
@@ -69,10 +83,13 @@ HELPER enroll in post-crisis monitoring, and does the crisis card show on helper
 (PR #466). Riders from the conformance lane: the behavior is two-window stable, and
 "he'd be better off dead" third-party shapes still fire the deterministic tier
 (bypassing deference) — span-coverage completion follows your ruling.
-**Recommendation:** approve the path and content as drafted; on the two questions,
-ratify the conservative defaults already encoded (helper enrolls in monitoring =
-fail-toward-support; card shows) unless your clinical read says otherwise — both are
-one-line reversals later.
+**Recommendation:** approve the path and content as drafted; on Q1 (helper
+monitoring), ratify the encoded default (enrolls = fail-toward-support). Q2 (crisis
+card) is a REAL trade-off, not a rubber stamp: the card's first-person framing is part
+of the original calibration error, so showing it beside helper-support content partially
+recreates that error — but hiding it removes the helpline surface from the turn. Your
+call between resource-visibility and framing-consistency; the encoded default (shows)
+errs toward resources. Either way is a one-line reversal later.
 
 > APPROVE ITEM 4 (path + content): ______  · Q1 helper monitoring: ______  · Q2 card: ______
 
@@ -102,9 +119,14 @@ the wall-punch-near-spouse class your 2026-07-09 ruling held) — activation the
 the pre-committed 72h time-boxed canary (`2026-08-18-219-canary-plan.md`: one
 must-NOT-fire trip = rollback, no averaging; active probe cells at every checkpoint).
 Group A ("want to hurt X") is live and untouched.
-**Recommendation:** sign the pattern set in the canary plan's cell definitions; the
-must-NOT-fire wording (venting without harm content, media references, idioms) is
-marked PROPOSED for exactly this signature.
+**Recommendation:** sign the pattern set in the canary plan's cell definitions. This
+guard is SPEC-MANDATED, not an extension: §4b's guard reads "anger with potential for
+harm to self or others … is safety-relevant, not a neutral psychoeducation moment;
+escalate appropriately." One judgment your signature resolves: the spec's examples are
+stated-intent shapes ("I want to hurt someone"), while the live miss was action-evidence
+without stated intent (wall-punch near a spouse) — covered by the guard's principle,
+unreached by its examples. The must-NOT-fire wording (venting without harm content,
+media references, idioms) is marked PROPOSED for exactly this signature.
 
 > APPROVE SK-EN-HTO-002 patterns: ______  · amendments: ______
 
