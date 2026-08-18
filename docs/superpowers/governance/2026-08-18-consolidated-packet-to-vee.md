@@ -7,6 +7,9 @@ JSON key" is most likely to be misread in isolation — it is a question about a
 artifact, **not** an assertion that her sign-off record is corrupted — and her answer to it
 may reframe how she reads items 1, 3 and 4. Open with item 2's framing, then take the rest
 in order.
+**Form (owner direction, 2026-08-18):** every item arrives **pre-answered from the git
+record** — timeline, signing commits, and approval-sheet references — with a concrete
+recommendation, so each ask is a one-tick confirm (or edit), never open-ended research.
 **Why one packet:** four queued items share context (the §3a oracle, its harness, and the
 safety-rule record); bundling them lets Vee rule once with the full picture instead of three
 trickles. Each item carries its evidence SHA. Items 1, 2 and 3 are **record questions**
@@ -40,9 +43,28 @@ matcher was **rejected on adversarial review** and reverted in `055f4516`; the m
 header NOTE records this). So the signed record describes a mechanism the running system
 does not have.
 
-**Asked of Vee:** confirm the corrected `_meta.match` wording (we will draft it to state the
-placeholder mechanism + the pending redesign, for her sign-off) — the signed artifact is
-never edited without her word.
+**What the history shows (pre-answered):** the prose was true for exactly twelve minutes.
+`30de34cc` (2026-07-10 00:48) wrote `_meta.match` describing the family/token-aware matcher
+it shipped; `055f4516` (01:00) reverted the matcher on adversarial review but did not touch
+the JSON; the signing commit `f1bb1b52` (02:57) carried the already-stale prose forward. So
+this is a record-maintenance correction of text that was stale at signing through an
+engineering revert — not a signing error, and not a question about what Vee approved
+(her sign-off was R1–R7 + CD1–CD5, the vocabulary and criteria, which are untouched).
+
+**Recommendation — proposed replacement `_meta.match`, for one-tick approval:**
+
+> "Matching code lives in nodes/low_mood_detect.py: MINIMAL PLACEHOLDER — deterministic
+> substring match over the 10 patterns in that module, input normalized via
+> rules/normalize.normalize_text (no LLM). The family/token-aware generalizing matcher
+> previously described here was rejected on adversarial review (13.3% novel recall / 20%
+> novel FP) and reverted in 055f4516 before this file was signed. Robust §3a detection is
+> a pending redesign (semantic recall + clinician-owned precision gate); the deterministic
+> crisis-firing guarantee stays on safety_check's SI-answer catch. This file is the
+> clinician-owned vocabulary source and the SIGNED eval oracle. Do NOT add trigger
+> vocabulary beyond list A here."
+
+**Asked of Vee:** approve the replacement wording above (or edit it) — the signed artifact
+is never edited without her word.
 **Not asked:** any change to the 39 trigger phrases or the lookalike lists.
 
 ## Item 2 — duplicate `approved_by` keys: which is the true record?
@@ -54,15 +76,29 @@ and the loader logs all eight as **UNAPPROVED ACTIVE** on every boot:
 - `crisis_keywords.json`: SK-EN-003, SK-EN-004, CK-CH-001, CK-CH-002, SK-EN-006
 - `passive_si_patterns.json`: SK-AZ-002, SK-AR-003, SK-EN-005
 
-These eight are exactly the rules on the approved_by governance burn-down — meaning the
-burn-down may be partly an artifact of this JSON defect rather than genuinely missing
-sign-offs. We cannot determine from the file alone whether `"clinical_lead"` reflects a real
-recorded sign-off that a later edit clobbered, or was added in error against rules that were
-never signed.
+These eight are exactly the rules on the approved_by governance burn-down.
 
-**Asked of Vee / PO:** the true-record determination per rule (signed or not), against
-whatever primary sign-off records exist. Engineering then removes the duplicate keys to
-match her answer — one commit, no content change beyond the key.
+**What the history shows (pre-answered — the determination is in the record):**
+commit `f4ed6740` — "clinical(GOV-270): sign all 16 active safety rules (clinician-approved
+2026-07-15)" — recorded the clinical lead's ratification per the GOV-270 approval sheet
+(`docs/escalations/2026-07-15-270-approval-sheet.md`, landed in `ea49af17`, merged via
+PR #323). Its diff **inserted** `"approved_by": "clinical_lead"` as a new first line in each
+rule object **without removing the scaffold `"approved_by": null`** already present further
+down — so JSON last-key-wins silently discarded each signature the moment it was recorded.
+All eight flagged rules are inside GOV-270's enumerated sixteen (CF-001..004, CK-CH-001/002,
+SK-AR-001/003, SK-AZ-001/002, SK-EN-001/003/004/005/006, SK-EN-HTO-001). The other eight of
+the sixteen were subsequently cleaned by unrelated edits (e.g. `bed4260e`,
+`d9b978b1` — SK-EN-HTO-001 deliberately manifest-signed instead); these eight are simply the
+ones where the scaffold null survived.
+
+**Recommendation, for one-tick approval:** the true record is **SIGNED — all eight**
+(`clinical_lead`, GOV-270 approval sheet, 2026-07-15). Engineering deletes the surviving
+`null` key from each of the eight (one commit, no other change), the loader's
+UNAPPROVED-ACTIVE warnings clear, and the approved_by burn-down closes entirely as a
+mechanical artifact of the signing commit.
+
+**Asked of Vee / PO:** confirm the GOV-270 record covers these eight as history shows (or
+name any rule whose sign-off she considers open despite it).
 **Not asked:** any judgement on the rules' clinical content.
 
 ## Item 3 — CD3/R4 tiering: the denominator question (no gate pressure)
@@ -84,8 +120,17 @@ decision that belongs to Vee alone (the same rule as item 1).
 either denominator (0.615 and 0.667 both fail), and FP 0.200 fails ≤ 0.00 independently.
 Her tiering call can be made on clinical merits with zero pressure that it flips a verdict.
 
-**Asked of Vee:** whether the CD3/R4 exclusion (and CD1 tiering) applies to the oracle's
-next iteration, i.e. the denominator for future measurements.
+**What the history shows (pre-answered):** the "Apply on next iteration" sentence entered
+`_meta.status` in the signing commit itself (`f1bb1b52`, 2026-07-10) — it is **Vee's own
+recorded instruction at signing**, not a new proposal. Confirming it is executing her
+recorded direction, not making a fresh clinical call.
+
+**Recommendation, for one-tick approval:** apply the tiering as she instructed on 2026-07-10
+— the CD3/R4 exclusions (and CD1 tiering) take effect for the oracle's next iteration, so
+the denominator for future measurements is 36; the 2026-08-18 result stands as measured on
+the signed 39.
+
+**Asked of Vee:** confirm her recorded 2026-07-10 instruction still stands (or revise it).
 **Not asked:** any revision of the 2026-08-18 result — it stands as measured on the signed
 oracle either way.
 
