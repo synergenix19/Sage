@@ -205,6 +205,27 @@ async def test_intercept_defers_offer(monkeypatch):
     assert out["screen_stage"] == "validated"
 
 
+@pytest.mark.asyncio
+async def test_intercept_fires_for_declined_ba_user(monkeypatch):
+    # F7 (code_review.md; pulled forward 2026-08-18): screen eligibility keys on
+    # the DISCLOSURE, not offer plumbing. A user who declined
+    # behavioral_activation earlier and later makes a fresh unambiguous §3a
+    # disclosure is exactly the disengaged-then-disclosing user the clinical
+    # flow targets — the screen must still fire even though declined_skills
+    # filtering removes BA from the offerable set.
+    monkeypatch.setattr("sage_poc.config.LOW_MOOD_SCREEN_ENABLED", True)
+    out = await skill_select_node(_ss_state(
+        message_en="I've lost interest in everything and I can't get myself to do anything anymore",
+        declined_skills=["behavioral_activation"],
+    ))
+    assert out.get("screen_stage") == "validated", (
+        "declined-BA user's fresh §3a disclosure must still be screened — "
+        "eligibility must not depend on the post-filter offerable set"
+    )
+    assert out.get("offered_skill_ids") is None
+    assert out.get("active_skill_id") is None
+
+
 # ---------------------------------------------------------------------------
 # AC2 — lang == "en" gate on the interception itself, as a tested invariant.
 # ---------------------------------------------------------------------------

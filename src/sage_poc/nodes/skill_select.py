@@ -534,27 +534,23 @@ def _resolve_entry(
         # trail must say so, the fired rule's action and the action taken differ this turn.
         audit_markers.append("enter_direct_declined_fallback")
 
-    offerable = [sid for sid in candidates if sid not in declined]
-    offerable = offerable[: int(action.get("max_offered", 2))]
-    if not offerable:
-        return {
-            "active_skill_id": None,
-            "active_step_id": None,
-            "offer_count": 0,
-            "skill_match_method": None,
-            "semantic_score": None,
-            "path": state["path"] + audit_markers + ["all_candidates_declined"],
-        }
-
     # §3a low-mood validate-first interception (Task 2, SAGE_LOW_MOOD_SCREEN, default OFF).
     # A §3a low-mood/anhedonia disclosure must not receive the immediate behavioral_activation
     # offer today's flow gives it -- that skips the clinician-mandated screening + safety
     # question. Defer the offer (screen_stage="validated") so a later flow (built in other
     # tasks) can validate -> screen -> ask the woven SI question. This block only defers; it
     # does not build the screen itself.
+    #
+    # F7 (code_review.md; pulled forward 2026-08-18): eligibility keys on the DISCLOSURE,
+    # never on offer plumbing — this block sits BEFORE declined_skills filtering and
+    # max_offered truncation, so a declined-BA user's fresh disclosure still screens (the
+    # disengaged-then-disclosing user the flow targets). Precedence deliberately preserved:
+    # the Arabic-exclusion gate and acute enter_direct above still return first
+    # (acute-vs-screen ordering is clinical scope — F6/Vee); the SKILL_OFFER_COOLDOWN
+    # early-return in skill_select_node also precedes this block — its interaction is F6
+    # consuming-side scope, recorded in the review doc.
     if config.LOW_MOOD_SCREEN_ENABLED and state.get("detected_language") == "en" \
             and not state.get("screen_stage") \
-            and "behavioral_activation" in (offerable or []) \
             and is_low_mood_disclosure(state.get("message_en")):
         # lang gate is FIRST-CLASS, not defence-in-depth: never enter a screen whose SI
         # answer we cannot parse. AR §3a falls through to today's direct-entry
@@ -566,6 +562,18 @@ def _resolve_entry(
             "screen_stage": "validated",
             "skill_match_method": "low_mood_screen",
             "path": state["path"] + ["skill_select", "low_mood_screen"],
+        }
+
+    offerable = [sid for sid in candidates if sid not in declined]
+    offerable = offerable[: int(action.get("max_offered", 2))]
+    if not offerable:
+        return {
+            "active_skill_id": None,
+            "active_step_id": None,
+            "offer_count": 0,
+            "skill_match_method": None,
+            "semantic_score": None,
+            "path": state["path"] + audit_markers + ["all_candidates_declined"],
         }
 
     return {
