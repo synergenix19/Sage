@@ -316,3 +316,83 @@ async def test_crisis_response_schedules_audit_write(monkeypatch):
     assert write_calls[0].get("session_id") == "crisis-sess"
     assert "crisis_response" in write_calls[0].get("path", [])
     assert write_calls[0].get("crisis_state") == "monitoring"
+
+
+def test_build_session_audit_row_gate_path_unconditional():
+    """P0-7: gate_path must ride the base row on EVERY turn, not just medical/derealization
+    turns. A crisis-terminal state (no medical_flags, node_path without
+    derealization_response) must still carry gate_path — pre-fix this key was absent
+    entirely (silent NULL on crisis/HR/screen/standard rows)."""
+    from sage_poc.audit import _build_session_audit_row
+
+    crisis_row = _build_session_audit_row(make_audit_state(
+        gate_path="crisis",
+        medical_flags=None,
+        path=["safety_check", "crisis_response"],
+    ))
+    assert crisis_row["gate_path"] == "crisis"
+
+    # Both-direction: a plain standard turn with no gate_path set must still carry the key,
+    # value None (never simply absent).
+    standard_row = _build_session_audit_row(make_audit_state(gate_path=None))
+    assert "gate_path" in standard_row
+    assert standard_row["gate_path"] is None
+
+
+def _old_shape_row(state: dict) -> dict:
+    """Reconstructs the pre-fix (2026-08-18 P0-7) row shape for the row-equality matrix
+    below, WITHOUT importing the old audit.py: gate_path used to ride the row only inside
+    the medical_flags conditional or the derealization_response conditional. Every other
+    stanza is untouched by this fix (see task-4 brief), so taking the current row and
+    stripping gate_path when neither old trigger held exactly reproduces the old shape.
+    """
+    from sage_poc.audit import _build_session_audit_row
+
+    row = _build_session_audit_row(state)
+    had_medical_flags = bool(state.get("medical_flags"))
+    had_derealization = "derealization_response" in (row.get("node_path") or [])
+    old_row = dict(row)
+    if not (had_medical_flags or had_derealization):
+        old_row.pop("gate_path", None)
+    return old_row
+
+
+def test_build_session_audit_row_matches_old_shape_except_gate_path():
+    """Row-equality matrix (byte-identity discipline): across flag/state combinations, the
+    new row must equal the old row on every key EXCEPT gate_path. This pins that the fix
+    touched ONLY gate_path's placement and nothing else in the row."""
+    from sage_poc.audit import _build_session_audit_row
+
+    matrix = [
+        # crisis-terminal: old row had no gate_path key at all; new row must carry it.
+        make_audit_state(gate_path="crisis", medical_flags=None, path=["safety_check", "crisis_response"]),
+        # plain standard turn: same as above, key newly present with value None.
+        make_audit_state(gate_path=None),
+        # medical turn: old row already had gate_path (unchanged trigger) — same both sides.
+        make_audit_state(gate_path="medical_review", medical_flags=["chest_pain"], path=["safety_check", "medical_flag_response"]),
+        # derealization terminal: old row already had gate_path via the dedicated conditional.
+        make_audit_state(gate_path="derealization_referral", medical_flags=None, path=["safety_check", "derealization_response"]),
+        # HR terminal, no medical_flags, no derealization: old row lacked gate_path.
+        make_audit_state(gate_path="hr_stage2", medical_flags=None, path=["safety_check", "high_risk_response"], hr_branch="stage2_distress", hr_distress_score=7),
+        # screen turn, no medical_flags, no derealization: old row lacked gate_path.
+        make_audit_state(gate_path="screen", medical_flags=None, path=["safety_check", "screen_node"], screen_asked=True, screen_answer_class="no", screen_branch_taken="continue"),
+    ]
+
+    for state in matrix:
+        new_row = _build_session_audit_row(state)
+        old_row = _old_shape_row(state)
+
+        new_keys_minus_gate = {k: v for k, v in new_row.items() if k != "gate_path"}
+        old_keys_minus_gate = {k: v for k, v in old_row.items() if k != "gate_path"}
+        assert new_keys_minus_gate == old_keys_minus_gate, f"non-gate_path keys diverged for state {state.get('gate_path')!r}"
+
+        # gate_path itself: new row always carries the key; old row carries it only when
+        # medical_flags or derealization_response triggered.
+        assert "gate_path" in new_row
+        had_medical_flags = bool(state.get("medical_flags"))
+        had_derealization = "derealization_response" in (state.get("path") or [])
+        if had_medical_flags or had_derealization:
+            assert "gate_path" in old_row
+            assert new_row["gate_path"] == old_row["gate_path"]
+        else:
+            assert "gate_path" not in old_row
