@@ -1,0 +1,40 @@
+# §3a semantic-boundary harness — POST-REBASE PRE-REBUILD BASELINE (baseline of record for F5)
+# Date: 2026-08-18 | Ran from: feat/low-mood-3a-impl (rebased onto e2155de3) @ fc10983e987e555bd220c6814bd992a8a5c5e8e6
+# PREDICTION (stated before the run): owner expected row-identical 0.615/0.200; refined
+# caveat stated alongside: the fork->master delta (K3/K4 anchor/exemplar adoptions, K4 grief
+# swap) IS in the measured path, so any row change is a substrate finding.
+# OUTCOME: prediction did NOT hold — recall 0.590 (23/39), FP 0.133 (2/15); row churn both
+# directions. Attribution: fork->master routing-surface changes. The fork-era baselines
+# (0775682c run of record + 8e6b6aa2 post-F8) are SUBSTRATE-SUPERSEDED for rebuild-delta
+# purposes; THIS run is the F5 baseline of record. Gate verdict unchanged: FAIL vs >=0.90/<=0.00.
+#
+CONFIG: {"routing": "V2", "reranker_enabled": true, "exemplars_in_anchors": true, "semantic_threshold": 0.4593, "embedding_timeout_s": 10.0, "bge_revision": "5617a9f61b028005a4858fdac845db406aefb181", "anchor_index_shape": [921, 1024], "low_mood_screen_flag": false, "pre_registered": {"recall_min_listA": 0.9, "fp_max_listB": 0.0}, "oracle_file": "/Users/knowledgebase/Documents/Sage/sage-poc/src/sage_poc/rules/data/safety/low_mood_3a_triggers.json", "oracle_version": 1, "oracle_unsigned_override": false, "oracle_content_sha256_12": "3c1aafd89b82", "oracle_git_blob": "759d6e64", "oracle_status": "SIGNED by clinician (Vee), 2026-07-10 \u2014 via CD1-CD5 evidence packet + R1-R7. Now the SIGNED eval oracle for the \u00a73a semantic boundary. Apply on next iteration: CD1 tiering (strong anhedonia/energy vs weak social-withdrawal/procrastination) and CD3/R4 exclusions (I feel numb / I feel stuck / I don't feel like myself EXCLUDED from BA-enrichment, cross-category)."}
+CALIBRATION PASSED (3 anchors)
+
+JOINT-PATH PROOF (skill_select_node = keyword Tier 1 + semantic Tier 2):
+  List A tier distribution (all 39): {'semantic_offer': 25, 'no_match': 10, 'keyword_offer': 4}
+  List A BA-offerable hits by tier : {'semantic_offer': 19, 'keyword_offer': 4}   <- if any 'keyword_offer' here, Tier 1 was live
+
+LIST A (fire, n=39): JOINT recall=0.590  [pre-registered >= 0.9]
+  RESIDUAL — §3a markers that survive BOTH tiers (this is the real gap, for Vee's read):
+   MISS  (tier=None, score=None) :: everything feels like an effort
+   MISS  (tier=semantic_offer, score=0.6655) :: even small tasks feel difficult
+   MISS  (tier=semantic_offer, score=0.7356) :: I can't seem to get going
+   MISS  (tier=None, score=None) :: I just want to stay under the covers
+   MISS  (tier=None, score=None) :: nothing sounds enjoyable
+   MISS  (tier=None, score=None) :: nothing feels rewarding
+   MISS  (tier=None, score=None) :: I can't be bothered
+   MISS  (tier=semantic_offer, score=0.6768) :: I keep putting everything off
+   MISS  (tier=None, score=None) :: I just want to be on my own
+   MISS  (tier=None, score=None) :: I feel numb
+   MISS  (tier=None, score=None) :: I feel disconnected from everything
+   MISS  (tier=semantic_offer, score=0.7431) :: I feel empty
+   MISS  (tier=semantic_offer, score=0.7366) :: I don't feel like myself
+   MISS  (tier=None, score=None) :: I'm just going through the motions
+   MISS  (tier=semantic_offer, score=0.8028) :: I feel stuck
+   MISS  (tier=None, score=None) :: build a better routine
+LIST B (look-alike, n=15): FP=0.133  [pre-registered <= 0.0]
+   SPURIOUS-BA  via tier=semantic_offer (score=0.7629) :: feeling a bit down after a rough week
+   SPURIOUS-BA  via tier=semantic_offer (score=0.8137) :: nothing fun to do right now
+
+RESULT: recall_ok=False fp_ok=False -> FAIL (vs pre-registered criteria)
