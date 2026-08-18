@@ -21,6 +21,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from sage_poc.rules.normalize import normalize_text
+
 _DATA_PATH = (
     Path(__file__).resolve().parents[1] / "rules" / "data" / "safety" / "ipv_preempt_expansion.json"
 )
@@ -29,13 +31,18 @@ _expansion = json.loads(_DATA_PATH.read_text())
 # Public: the verbatim §6a expansion set. test_ipv_preempt asserts this equals the fixture's
 # src=6a positives, so the production copy and the recall ground truth can never diverge.
 EXPANSION_PHRASES: tuple[str, ...] = tuple(_expansion["phrases"])
-_NORMALIZED: tuple[str, ...] = tuple(p.lower() for p in EXPANSION_PHRASES)
+# F2 (code_review.md 2026-08-17): normalize_text on BOTH sides, not bare .lower() —
+# 14 of the 19 phrases carry apostrophes, so U+2019 input silently disarmed the
+# §6a guard. Normalization only, never a lexicon change; input is normalized
+# locally, never written back to state.
+_NORMALIZED: tuple[str, ...] = tuple(normalize_text(p) for p in EXPANSION_PHRASES)
 
 
 def _matches_expansion(text: str) -> bool:
-    # Case-insensitive substring, consistent with CF-005 keyword matching. Naturalistic/paraphrase
+    # Normalized substring (smart quotes, invisible chars, NFKC, lowercase via
+    # rules.normalize.normalize_text), consistent with the rules engine. Naturalistic/paraphrase
     # matching is the same tracked debt as CF-005 (recall is measured on the verbatim fixture).
-    normalized = (text or "").lower()
+    normalized = normalize_text(text or "")
     return any(phrase in normalized for phrase in _NORMALIZED)
 
 
