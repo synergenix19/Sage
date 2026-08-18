@@ -237,6 +237,15 @@ def _build_session_audit_row(state: SageState) -> dict:
         row["screen_asked"] = bool(state.get("screen_asked"))
         row["screen_answer_class"] = state.get("screen_answer_class")
         row["screen_branch_taken"] = state.get("screen_branch_taken")
+    # F4 embedding-timeout degradation (same conditional discipline as tiering/precedence/medical/
+    # HR/screen above): included ONLY on a turn where skill_select's BGE-M3 embed timed out and
+    # routing fell back to keyword-only, so every normal row stays byte-identical to master.
+    # skill_match_method alone cannot distinguish DEGRADED-keyword from legitimately-keyword-won;
+    # this key makes the fallback tier auditable per the v7 traceability obligation (2026-08-18
+    # delta characterization: the degradation was serving-visible and silent pre-F4). Migration 019
+    # is the deploy gate for this column.
+    if state.get("embedding_timeout"):
+        row["embedding_timeout"] = True
     # Classifier provenance (flag-gated, same discipline as tiering/precedence/medical/HR/screen
     # above; Node-2 bistability finding 2026-07-28, consequence 3 — PDPL auditability): included
     # ONLY when SAGE_AUDIT_CLASSIFIER_PROVENANCE is ON, so a flag-OFF row stays byte-identical to

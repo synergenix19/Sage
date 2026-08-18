@@ -126,6 +126,28 @@ def _purge(db, sids):
                    capture_output=True, text=True)
 
 
+def _embedding_timeout_precondition(db, sids):
+    """Validity precondition (2026-08-18 delta characterization, REQUIRED): a baseline run during
+    which skill_select degraded to keyword-only measures a degraded system — v6's depressed rows
+    and its 14 errors shared this root. Returns (observable: bool, fired: int). Column absent
+    (migration 019 not applied) => unobservable, and the run must be stamped provisional: absence
+    of the signal is not absence of the degradation."""
+    col = subprocess.run(
+        ["psql", db, "-tAc",
+         "SELECT 1 FROM information_schema.columns "
+         "WHERE table_name='session_audit' AND column_name='embedding_timeout';"],
+        capture_output=True, text=True).stdout.strip()
+    if col != "1":
+        return False, 0
+    ids = "','".join(sids)
+    fired = subprocess.run(
+        ["psql", db, "-tAc",
+         f"SELECT count(*) FROM session_audit WHERE session_id IN ('{ids}') "
+         "AND embedding_timeout IS TRUE;"],
+        capture_output=True, text=True).stdout.strip()
+    return True, int(fired or 0)
+
+
 def main():
     ap = argparse.ArgumentParser(description="BOT BEHAVIOUR Layer-1 conformance — PROD-HTTP method of record")
     ap.add_argument("--corpus", required=True)
@@ -186,11 +208,17 @@ def main():
                 print(f"[{time.time()-t0:.0f}s] {i}/{len(corpus)} {r['spec_id']} obs={o} pres={pres}", flush=True)
     finally:
         if sids:
+            # Validity precondition MUST read before the purge deletes the evidence.
+            et_observable, et_fired = _embedding_timeout_precondition(db, sids)
             _purge(db, sids)  # synthetic test sessions never persist as clinical data
+        else:
+            et_observable, et_fired = False, 0
 
     cats = sorted(per.items())
     conforming = [s for s, c in cats if c["conform"] == c["n"] and c["n"] > 0]
     res = {"method": "PROD-HTTP (method of record)", "stamp": stamp, "errors": errors,
+           "embedding_timeout_observable": et_observable,
+           "embedding_timeout_fired": et_fired,
            "en_conforming": len(conforming), "en_categories": len(cats),
            "conforming_ids": sorted(conforming),
            "categories": {s: {"prescribed": c["pres"], "conform": c["conform"], "n": c["n"],
@@ -205,6 +233,17 @@ def main():
                 "(prod pins its classifier; app.ainvoke does not) — see its header.\n\n")
         if errors:
             f.write(f"> **⚠️ {errors} HTTP error(s) during the run — treat as provisional until re-run clean.**\n\n")
+        if not et_observable:
+            f.write("> **⚠️ VALIDITY PRECONDITION UNOBSERVABLE: `embedding_timeout` column absent "
+                    "(migration 019 not applied) — semantic-tier degradation during this run cannot "
+                    "be ruled out. Run is PROVISIONAL.**\n\n")
+        elif et_fired:
+            f.write(f"> **⚠️ VALIDITY PRECONDITION FAILED: embedding_timeout fired on {et_fired} "
+                    "turn(s) — the run measured a load-degraded system (v6 root cause). "
+                    "Run is PROVISIONAL; re-run required.**\n\n")
+        else:
+            f.write("> Validity precondition PASSED: embedding_timeout fired on 0 turns "
+                    "(semantic tier undegraded throughout the run).\n\n")
         f.write("## Serving stamp (/health/version readback)\n")
         for k in sorted(stamp):
             f.write(f"- `{k}` = `{stamp[k]}`\n")
