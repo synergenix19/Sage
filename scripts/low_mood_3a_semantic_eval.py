@@ -44,27 +44,55 @@ the four requirements that turned a real signal into a flat-band artifact last t
       precision direction strict (err-toward-not-asking: a spurious §3a fires an SI
       question at a benign user near the still-broken GL-1 card).
 
-Run: SKILL_RERANK_ENABLED=1 SKILL_RERANK_PRECISION=fp32 .venv/bin/python <this>
+Run (from any directory; flags are setdefault'd to the prod arm, an operator export wins):
+    uv run python scripts/low_mood_3a_semantic_eval.py
 """
 import os, json, asyncio, hashlib, subprocess
 from pathlib import Path
 
-# ---- prod-parity config, set BEFORE import so warmup builds exemplar anchors ----
+# ---- prod-parity config, set BEFORE import (F12/F13, code_review.md 2026-08-17) ----
+# SKILL_ROUTING_V2 must be set in the ENVIRONMENT: every runtime V2 behavior (per-route
+# thresholds, argmax tau condition, anchor debias feeding the reranker) gates on
+# _v2_enabled(), which re-reads os.environ — assigning the module constant
+# (ss.SKILL_ROUTING_V2 = True, the previous approach) widened the warmup anchors only and
+# measured a hybrid config matching neither prod arm while stamping "V2".
+os.environ.setdefault("SKILL_ROUTING_V2", "1")
 os.environ.setdefault("SKILL_RERANK_ENABLED", "1")
 os.environ.setdefault("SKILL_RERANK_PRECISION", "fp32")
 
 import sage_poc.config as config
 config.LOW_MOOD_SCREEN_ENABLED = False          # measure RAW BA-offerability, upstream of the §3a interception
 import sage_poc.nodes.skill_select as ss
-ss.SKILL_ROUTING_V2 = True                       # exemplar anchors at warmup (was the impoverished knob last time)
 import numpy as np
-from tests.test_skill_select import _ss_state as _mk
+
+
+def _mk(**overrides):
+    # Mirror of tests/test_skill_select._ss_state, inlined (F13): the editable install
+    # exposes only src/, so `from tests...` raised ModuleNotFoundError under the script's
+    # own documented invocation (pyproject's pythonpath is pytest-only). Keep in sync.
+    base = {
+        "raw_message": "", "detected_language": "en", "message_en": "",
+        "is_safe": True, "crisis_flags": [], "clinical_flags": [], "crisis_state": "none",
+        "s7_result": None, "s7_method": None,
+        "primary_intent": None, "secondary_intent": None, "intent_confidence": 1.0,
+        "emotional_intensity": 5, "engagement": 7,
+        "active_skill_id": None, "active_step_id": None, "executed_step_id": None,
+        "step_instruction": None, "escalation_triggered": None, "gate_path": None,
+        "response_en": None, "response": None, "path": [], "turn_count": 0,
+        "conversation_history": [], "skill_match_method": None, "semantic_score": None,
+        "distress_trajectory": [], "code_switching": False,
+    }
+    base.update(overrides)
+    return base
 
 # ---- (4) PRE-REGISTERED PASS CRITERIA (clinician-adjustable; frozen before the run) ----
 RECALL_MIN = 0.90      # List A: semantic routing must make BA offerable for >= 90% of the signed fire set
 FP_MAX     = 0.00      # List B: err-toward-not-asking -> ZERO spurious BA-offers; any FP is tier-attributed
 
-TRIGGERS = Path("src/sage_poc/rules/data/safety/low_mood_3a_triggers.json")
+# F13: root-anchored (was cwd-relative — launching from any other directory failed to find
+# the oracle and silently stamped "uncommitted-or-untracked" provenance).
+REPO = Path(__file__).resolve().parents[1]
+TRIGGERS = REPO / "src/sage_poc/rules/data/safety/low_mood_3a_triggers.json"
 
 def ba_offerable(msg: str):
     """End-to-end (requirement 3): run the real routing node, read the offerable set it produces."""
@@ -99,30 +127,35 @@ def main():
 
     # ---- oracle provenance + signing state (amendment c): which List A/B produced these numbers ----
     _ob = TRIGGERS.read_bytes()
-    _ostatus = json.loads(_ob).get("_meta", {}).get("status", "unknown")
+    _oracle = json.loads(_ob)  # single read; List A/B below reuse this object
+    _ostatus = _oracle.get("_meta", {}).get("status", "unknown")
     try:
-        _ogit = subprocess.check_output(["git", "rev-parse", "--short", f"HEAD:{TRIGGERS}"],
-                                        text=True, stderr=subprocess.DEVNULL).strip()
+        _ogit = subprocess.check_output(
+            ["git", "rev-parse", "--short", f"HEAD:{TRIGGERS.relative_to(REPO)}"],
+            cwd=REPO, text=True, stderr=subprocess.DEVNULL,
+        ).strip()
     except Exception:
         _ogit = "uncommitted-or-untracked"
 
-    # (2) config stamped, bound to the numbers below
+    # (2) config stamped, bound to the numbers below — EFFECTIVE values only (F12): every
+    # entry reflects what the runtime readers compute, never an import-time module constant.
     cfg = {
-        "routing": "V2" if ss.SKILL_ROUTING_V2 else "V1", "reranker_enabled": ss._rerank_enabled(),
+        "routing": "V2" if ss._v2_enabled() else "V1", "reranker_enabled": ss._rerank_enabled(),
         "exemplars_in_anchors": ss.SKILL_ROUTING_V2, "semantic_threshold": ss.SEMANTIC_THRESHOLD,
         "embedding_timeout_s": ss.EMBEDDING_TIMEOUT_SECONDS, "bge_revision": ss._BGE_M3_REVISION,
         "anchor_index_shape": idx, "low_mood_screen_flag": config.LOW_MOOD_SCREEN_ENABLED,
         "pre_registered": {"recall_min_listA": RECALL_MIN, "fp_max_listB": FP_MAX},
         "oracle_file": str(TRIGGERS), "oracle_content_sha256_12": hashlib.sha256(_ob).hexdigest()[:12],
-        "oracle_git_blob": _ogit, "oracle_status": f"{_ostatus} — PROPOSED, NOT Vee-signed (design-confirmation only)",
+        # F14: _meta.status VERBATIM — the previous hardcoded "PROPOSED, NOT Vee-signed"
+        # suffix contradicted the JSON's updated SIGNED status in every stamp.
+        "oracle_git_blob": _ogit, "oracle_status": _ostatus,
     }
     print("CONFIG:", json.dumps(cfg, default=str))
 
     calibrate()   # aborts here if the path is not the real, warm, discriminating one
 
-    data = json.loads(TRIGGERS.read_text())
-    fire  = [p for fam in data["fire_families"].values() for p in fam]           # List A (39)
-    looks = [p for cat in data["lookalike_categories"].values() for p in cat]    # List B (15)
+    fire  = [p for fam in _oracle["fire_families"].values() for p in fam]         # List A (39)
+    looks = [p for cat in _oracle["lookalike_categories"].values() for p in cat]  # List B (15)
 
     def measure(items):
         rows = []
