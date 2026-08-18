@@ -1,6 +1,12 @@
 # Consolidated packet to Vee — §3a records + measurement (2026-08-18)
 
 **Route:** PO relay, per house convention.
+**Relay recommendation (owner, 2026-08-18): walk Vee through this packet LIVE, not async.**
+Item 2 is the reason: "eight of your signed rules read as unsigned because of a duplicate
+JSON key" is most likely to be misread in isolation — it is a question about a file-format
+artifact, **not** an assertion that her sign-off record is corrupted — and her answer to it
+may reframe how she reads items 1, 3 and 4. Open with item 2's framing, then take the rest
+in order.
 **Why one packet:** four queued items share context (the §3a oracle, its harness, and the
 safety-rule record); bundling them lets Vee rule once with the full picture instead of three
 trickles. Each item carries its evidence SHA. Items 1, 2 and 3 are **record questions**
