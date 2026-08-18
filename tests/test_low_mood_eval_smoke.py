@@ -42,25 +42,30 @@ def test_oracle_version_selection():
     # (the signed oracle of record); SAGE_3A_ORACLE_VERSION=2 selects the v2
     # draft, which the harness hard-aborts on unless the unsigned override is
     # explicitly set (proven live 2026-08-18; module-level selection pinned here).
-    import importlib.util
+    #
+    # SUBPROCESS-ISOLATED (rebase lesson 2026-08-18): the harness's module top
+    # level setdefaults SKILL_ROUTING_V2 / SKILL_RERANK_ENABLED into the live
+    # environment and mutates config.LOW_MOOD_SCREEN_ENABLED — loading it
+    # in-process leaked V2+rerank into every later test in the session and
+    # broke master's routing suite. Never exec_module this script in-process.
     import os
 
     def load(env_version):
-        old = os.environ.get("SAGE_3A_ORACLE_VERSION")
-        try:
-            if env_version is None:
-                os.environ.pop("SAGE_3A_ORACLE_VERSION", None)
-            else:
-                os.environ["SAGE_3A_ORACLE_VERSION"] = env_version
-            spec = importlib.util.spec_from_file_location("lm3a_ver_smoke", str(SCRIPT))
-            mod = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(mod)
-            return mod.TRIGGERS.name
-        finally:
-            if old is None:
-                os.environ.pop("SAGE_3A_ORACLE_VERSION", None)
-            else:
-                os.environ["SAGE_3A_ORACLE_VERSION"] = old
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("SAGE_3A_ORACLE_VERSION", "SKILL_ROUTING_V2", "SKILL_RERANK_ENABLED")}
+        if env_version is not None:
+            env["SAGE_3A_ORACLE_VERSION"] = env_version
+        code = (
+            "import importlib.util\n"
+            f"spec = importlib.util.spec_from_file_location('lm3a_ver_smoke', {str(SCRIPT)!r})\n"
+            "mod = importlib.util.module_from_spec(spec)\n"
+            "spec.loader.exec_module(mod)\n"
+            "print('TRIGGERS=' + mod.TRIGGERS.name)\n"
+        )
+        proc = subprocess.run([sys.executable, "-c", code], env=env,
+                              capture_output=True, text=True, timeout=120)
+        assert proc.returncode == 0, proc.stdout + proc.stderr
+        return proc.stdout.strip().split("TRIGGERS=")[-1]
 
     assert load(None) == "low_mood_3a_triggers.json"
     assert load("2") == "low_mood_3a_triggers_v2.json"
