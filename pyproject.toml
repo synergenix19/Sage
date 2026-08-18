@@ -52,6 +52,14 @@ addopts = "-m 'not integration and not clinical_decision_pending and not governa
 packages = ["src/sage_poc"]
 
 [dependency-groups]
+# Keep in sync with [project.optional-dependencies].dev: CI installs the EXTRA
+# (`pip install -e ".[dev]"` in unit-gate.yml), while a plain local `uv sync` installs only
+# this GROUP — before the sync, a fresh worktree failed every async test with
+# "async def functions are not natively supported" (code_review.md D2, F13-class).
 dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
     "pytest-xdist>=3.8.0",
+    "requests>=2.32.0,<3.0.0",
+    "httpx>=0.27.0,<1.0.0",
 ]

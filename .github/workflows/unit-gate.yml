@@ -91,6 +91,13 @@ jobs:
         if: steps.detect.outputs.code == 'true'
         run: python scripts/check_state_channels.py
 
+      - name: Static — env-flag enumeration (parity stamps see every call-time flag)
+        # Fails the build if a SAGE_*/SKILL_* env flag is read outside config.py without being
+        # enumerated in sage_poc.env_flags (the "V2-off locals false-passed" instrument-defect
+        # class, 3rd recurrence — code_review.md P2 class closure, owner-required).
+        if: steps.detect.outputs.code == 'true'
+        run: python scripts/check_env_flag_enumeration.py
+
       - name: Static — safety trigger-file language parity (no EN-only safety lists)
         # Fails the build if a safety trigger file carries English triggers but no Arabic coverage
         # (bilingual product). Root class of #329 (a live AR medical red-flag bypass) and #330.
