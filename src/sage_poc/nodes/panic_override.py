@@ -89,6 +89,9 @@ def should_ground_over_crisis(state) -> bool:
     threshold, no medical_flags); a clear panic signature is present; and there is NO harm-adjacency. Any harm
     hint, any safety_check signal, or absent panic signature -> False (escalation stands).
     """
+    if (state.get("detected_language") or "en") != "en":
+        return False   # EN-only term lists; AR rides the AR track (docstring contract).
+                       # Translated text must not drive a crisis downgrade (#329/#330 class).
     if state.get("primary_intent") != "crisis":
         return False
     if state.get("crisis_flags"):

@@ -103,6 +103,24 @@ def test_override_requires_intent_crisis():
     assert should_ground_over_crisis(st) is False
 
 
+def test_language_gate_blocks_ar_turn_from_grounding():
+    """First-rung language gate (#329/#330 class): an AR-language turn's message_en (machine translation)
+    must never drive the override, even carrying the pure-panic signature that would force-ground on EN."""
+    st = _clean_state("I feel like I'm going to die, my heart is pounding out of my chest")
+    st["detected_language"] = "ar"
+    assert should_ground_over_crisis(st) is False
+
+
+def test_language_gate_leaves_en_turn_unchanged():
+    """EN direction pinned: same text, detected_language absent or 'en' still force-grounds."""
+    text = "I feel like I'm going to die, my heart is pounding out of my chest"
+    st_absent = _clean_state(text)
+    assert should_ground_over_crisis(st_absent) is True
+    st_en = _clean_state(text)
+    st_en["detected_language"] = "en"
+    assert should_ground_over_crisis(st_en) is True
+
+
 def test_derealization_turn_audits_gate_path():
     """Increment-1 finding: a served derealization referral must audit gate_path='derealization'
     (it was NULL — only medical turns persisted gate_path — and the method-of-record driver

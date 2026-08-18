@@ -65,6 +65,24 @@ def test_requires_intent_crisis():
     assert should_defer_grief_over_crisis(st) is False
 
 
+def test_language_gate_blocks_ar_turn_from_deferring():
+    """First-rung language gate (#329/#330 class): an AR-language turn's message_en (machine translation)
+    must never drive the deference, even carrying the bereavement signature that would defer on EN."""
+    st = _clean_state("my mother passed away and I can't cope")
+    st["detected_language"] = "ar"
+    assert should_defer_grief_over_crisis(st) is False
+
+
+def test_language_gate_leaves_en_turn_unchanged():
+    """EN direction pinned: same text, detected_language absent or 'en' still defers."""
+    text = "my mother passed away and I can't cope"
+    st_absent = _clean_state(text)
+    assert should_defer_grief_over_crisis(st_absent) is True
+    st_en = _clean_state(text)
+    st_en["detected_language"] = "en"
+    assert should_defer_grief_over_crisis(st_en) is True
+
+
 def test_harm_set_single_sourced_with_panic_override():
     """The harm language that stops panic-grounding stops grief-deference — imported identity."""
     from sage_poc.nodes import grief_override as go
