@@ -48,6 +48,34 @@ if [ "$ENV" = "production" ]; then
   uv run python scripts/apply_prod_flags.py --apply \
     || { echo "❌ ABORT: flag register apply refused." >&2; rw variables delete DEPLOY_LOCK >/dev/null 2>&1||true; exit 5; }
   echo "✅ flag register re-asserted (idempotent apply; drift, if any, corrected pre-build)"
+  # 5b. EMBEDDING-TIMEOUT ALERT GATE (owner ruling R-5, 2026-08-19): the serving-side alert on
+  # session_audit.embedding_timeout is a PRODUCTION REQUIREMENT (delta characterization, REQUIRED
+  # item (b)). Enforcement is structural, not a status-report sentence: every production deploy
+  # EXECUTES the alert path here. Missing script (alert unwired at the deploy tree) or unexplained
+  # degradation events ABORT unless a committed owner waiver exists at this SHA.
+  if [ -f scripts/embedding_timeout_watch.py ]; then
+    WATCH_OUT=$(python3 scripts/embedding_timeout_watch.py --days 7 2>&1); WATCH_RC=$?
+    echo "$WATCH_OUT"
+    if [ $WATCH_RC -ne 0 ]; then
+      if ls docs/superpowers/governance/waivers/embedding-timeout-alert-waiver-*.md >/dev/null 2>&1; then
+        echo "⚠️  embedding-timeout gate: nonzero (rc=$WATCH_RC) but a committed owner waiver exists — proceeding under waiver."
+      else
+        echo "❌ ABORT: embedding-timeout alert gate failed (rc=$WATCH_RC: 1=degradation events found, 2=cannot check)." >&2
+        echo "   Investigate the events (or apply migration 019), or commit an owner waiver at" >&2
+        echo "   docs/superpowers/governance/waivers/embedding-timeout-alert-waiver-<date>.md" >&2
+        rw variables delete DEPLOY_LOCK >/dev/null 2>&1||true; exit 6
+      fi
+    else
+      echo "✅ embedding-timeout alert gate passed (alert path executed; window quiet)"
+    fi
+  else
+    if ls docs/superpowers/governance/waivers/embedding-timeout-alert-waiver-*.md >/dev/null 2>&1; then
+      echo "⚠️  embedding-timeout watch ABSENT at this deploy tree — proceeding under committed owner waiver."
+    else
+      echo "❌ ABORT: scripts/embedding_timeout_watch.py absent at deploy tree and no owner waiver committed (R-5 gate)." >&2
+      rw variables delete DEPLOY_LOCK >/dev/null 2>&1||true; exit 6
+    fi
+  fi
 fi
 echo ""
 echo "NEXT (still yours to run, the lock is held ${TTL}s): from a worktree detached at origin/master ($SHA):"
