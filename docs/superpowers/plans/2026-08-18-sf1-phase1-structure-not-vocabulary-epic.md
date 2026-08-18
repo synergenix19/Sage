@@ -51,6 +51,24 @@ belongs to the same class from the other direction: item 3 of the class is inten
 the surfaces cannot see; the cardiac cell is a signed disposition whose surface
 sees only one string. Both are structure-versus-string failures.
 
+## 1a. Fifth member, added 2026-08-19 (owner directive R-3): the negation-window parsing defect
+
+Draft-build measurement (PR #471 work session) surfaced that "I don't deserve X, I want
+to die / don't want to be here" phrasings do not fire SK-EN-001: the rule's negation
+window reads the "don't" of "don't deserve" and suppresses the SI clause. This is crisis
+intent defeated by STRUCTURAL PARSING — the same family as the other four members, from
+the parser's side. In scope for this epic:
+
+- Fix shape: scope the negation window to the NEGATED CLAUSE, not the utterance.
+- Same signed treatment as every other surface here: the window semantics ship as a
+  phrasing-class with must-fire ("I don't deserve kindness, I want to die" fires) and
+  must-NOT-fire ("I don't want to die, I just want the pain to stop" keeps its
+  negation-aware handling per the SK-EN-001 clinical design) sets, tested on paraphrases.
+- Record note: SK-EN-001's "behaviorally closed on this build" verdict (v7 record)
+  now carries this known sub-class exception; until the fix lands, the #471 exclusion's
+  existence-boundary is the load-bearing protection for the sub-class (coupling recorded
+  in Vee packet item 3).
+
 ## 2. Deliverable
 
 Deterministic surfaces for the class, through the signed loop:
