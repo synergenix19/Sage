@@ -908,6 +908,9 @@ async def health_version(_: None = Depends(require_api_key)):
         "venting_suppression_raw_env": os.environ.get("SAGE_VENTING_SUPPRESSION"),
         "ipv_preemption_enabled": _c.IPV_PREEMPTION_ENABLED,
         "ipv_preemption_raw_env": os.environ.get("SAGE_IPV_PREEMPTION"),
+        # R4 third-party deference (dark, DRAFT content): resolved + raw, same pattern.
+        "third_party_deference_enabled": _c.THIRD_PARTY_DEFERENCE_ENABLED,
+        "third_party_deference_raw_env": os.environ.get("SAGE_THIRD_PARTY_DEFERENCE"),
         # D1 medical screen (#338): BOTH flags, resolved + raw, same pattern. So a deploy smoke can VERIFY
         # (not infer) the flag state — enforce OFF / shadow ON during the shadow window; enforce ON at flip.
         # The endpoint is the truth of what the deployed process's config actually reads.
