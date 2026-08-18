@@ -50,14 +50,17 @@ def test_parse_distress_must_parse(text: str, expected: int) -> None:
 # parse_distress: must-NOT-parse (dead-leg-to-ER controls, Finding 2)
 # ---------------------------------------------------------------------------
 
+_MUST_NOT_PARSE = (
+    "I haven't slept for 4 days",
+    "there are 3 of them outside",
+    "I've spent 10 thousand",
+    "15",
+)
+
+
 @pytest.mark.parametrize(
     "text",
-    [
-        "I haven't slept for 4 days",
-        "there are 3 of them outside",
-        "I've spent 10 thousand",
-        "15",  # out of range, even though it's a bare number
-    ],
+    _MUST_NOT_PARSE,
 )
 def test_parse_distress_must_not_parse(text: str) -> None:
     result = parse_distress(text)
@@ -68,15 +71,7 @@ def test_parse_distress_must_not_parse(text: str) -> None:
 
 def test_must_not_parse_count_is_four() -> None:
     """Explicit count so this safety-critical control list can't silently shrink."""
-    controls = [
-        "I haven't slept for 4 days",
-        "there are 3 of them outside",
-        "I've spent 10 thousand",
-        "15",
-    ]
-    assert len(controls) == 4
-    for text in controls:
-        assert parse_distress(text).score is None
+    assert len(_MUST_NOT_PARSE) == 4
 
 
 # ---------------------------------------------------------------------------
