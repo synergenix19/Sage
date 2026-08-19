@@ -7,6 +7,30 @@ load_dotenv()
 
 _log = logging.getLogger(__name__)
 
+
+def _strict_flag(env_name: str, *, default_on: bool = False, label: str = "") -> bool:
+    """Strict kill-switch parse (Railway empty-string RCA, 2026-07-28 discipline).
+    default_on=False: only literal 'true' enables; anything else warns (if non-empty
+    and not 'false') and stays OFF. default_on=True: only literal 'false' disables;
+    anything else warns (if not 'true') and stays ON. Never silently flips a signed default.
+
+    CONVENTION (binding): at every call site, keep default_on as the FIRST kwarg,
+    immediately after the env-name positional arg (never label before default_on). Five
+    source-scanning regexes depend on this exact keyword order to recover a flag's default
+    from static text (scripts/instrument/graph_evidence.py, scripts/bot_behaviour_audit/
+    measure_layer1_fullgraph.py, tests/test_prod_flags_register.py,
+    tests/test_health_version_full_readback.py, scripts/check_env_register_coverage.py) —
+    reordering the kwargs silently mis-derives that flag's prod-parity default."""
+    raw = os.getenv(env_name)
+    want = "false" if default_on else "true"
+    if raw is not None and raw.strip().lower() == want:
+        return not default_on
+    if raw is not None and raw.strip().lower() not in ("true", "false"):
+        _log.warning("%s=%r is neither 'true' nor 'false'; keeping signed default %s (%s)",
+                     env_name, raw, "ON" if default_on else "OFF", label or env_name)
+    return default_on
+
+
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
@@ -25,17 +49,7 @@ RESISTANCE_MODEL = os.getenv("SAGE_RESISTANCE_MODEL", CLASSIFIER_MODEL)
 # literal "false" disables. Unset/empty/whitespace/garbage -> the signed default (ON). A
 # Railway env-injection bug can deliver an EMPTY string to the container, which under a
 # `== "true"` parse would silently disable the audit trail with no visible signal.
-_audit_log_raw = os.getenv("SAGE_AUDIT_LOG")
-if _audit_log_raw is not None and _audit_log_raw.strip().lower() == "false":
-    AUDIT_LOG_ENABLED = False
-else:
-    if _audit_log_raw is not None and _audit_log_raw.strip().lower() != "true":
-        _log.warning(
-            "SAGE_AUDIT_LOG=%r is neither 'true' nor 'false'; keeping default ON "
-            "(strict parse — empty-string injection must not silently disable the audit trail)",
-            _audit_log_raw,
-        )
-    AUDIT_LOG_ENABLED = True
+AUDIT_LOG_ENABLED = _strict_flag("SAGE_AUDIT_LOG", default_on=True, label="audit trail")
 
 # Node-2 determinism pins (bistability finding 2026-07-28,
 # docs/superpowers/governance/2026-07-28-node2-intent-bistability-finding.md).
@@ -196,13 +210,7 @@ CRISIS_LINE_UAE = CRISIS_CONFIG["number"]
 # empty / whitespace / garbage -> the signed default (ON). A Railway env-injection bug delivered an
 # EMPTY string to the container, which under a `== "true"` parse silently flipped the crisis path OFF
 # to a state nobody signed. This inverts that: disabling the crisis-tier routing now requires INTENT.
-_tiering_raw = os.getenv("SAGE_CRISIS_TIERING")
-CRISIS_TIERING_ENABLED = not (_tiering_raw is not None and _tiering_raw.strip().lower() == "false")
-if _tiering_raw is not None and _tiering_raw.strip().lower() not in ("true", "false"):
-    _log.warning(
-        "SAGE_CRISIS_TIERING unexpected value %r — applying signed default (tiering ON); "
-        "only 'false' disables.", _tiering_raw,
-    )
+CRISIS_TIERING_ENABLED = _strict_flag("SAGE_CRISIS_TIERING", default_on=True, label="tiering")
 # Boot-observable log of the resolved state lives in server.py lifespan (guaranteed-visible after
 # logging is configured): "[sage/startup] CRISIS_TIERING_ENABLED=... raw_env=...".
 
@@ -214,45 +222,21 @@ if _tiering_raw is not None and _tiering_raw.strip().lower() not in ("true", "fa
 # routing), the same class of failure that motivated the tiering strict parse above. Flipping ON
 # is the governed step gated on the §4.5 clinical-lead signature + each route's ≥95% recall gate;
 # the resolver and its wiring may land (OFF) before those clear.
-_precedence_raw = os.getenv("SAGE_ROUTE_PRECEDENCE")
-ROUTE_PRECEDENCE_ENABLED = (
-    _precedence_raw is not None and _precedence_raw.strip().lower() == "true"
-)
-if _precedence_raw is not None and _precedence_raw.strip().lower() not in ("true", "false"):
-    _log.warning(
-        "SAGE_ROUTE_PRECEDENCE unexpected value %r — applying safe default (precedence OFF); "
-        "only 'true' enables.", _precedence_raw,
-    )
+ROUTE_PRECEDENCE_ENABLED = _strict_flag("SAGE_ROUTE_PRECEDENCE", label="precedence")
 
 # Part A — §1c panic-grounding override (Vee-signed 2026-07-28). KILL-SWITCH, DEFAULT OFF, same strict
 # parse: only a LITERAL "true" enables. OFF is byte-identical (intent_route crisis routes to crisis as
 # today). ON -> when safety_check is CLEAN but intent_route re-flags a clear panic disclosure (no harm) as
 # crisis, the deterministic override force-grounds it, restoring the deterministic tier's clean verdict.
 # Fires only on a safety_check-clean turn, so it can never suppress a crisis the deterministic tier caught.
-_panic_override_raw = os.getenv("SAGE_PANIC_GROUNDING_OVERRIDE")
-PANIC_GROUNDING_OVERRIDE_ENABLED = (
-    _panic_override_raw is not None and _panic_override_raw.strip().lower() == "true"
-)
-if _panic_override_raw is not None and _panic_override_raw.strip().lower() not in ("true", "false"):
-    _log.warning(
-        "SAGE_PANIC_GROUNDING_OVERRIDE unexpected value %r — applying safe default (override OFF); "
-        "only 'true' enables.", _panic_override_raw,
-    )
+PANIC_GROUNDING_OVERRIDE_ENABLED = _strict_flag("SAGE_PANIC_GROUNDING_OVERRIDE", label="override")
 
 # Node-1 cardiac-ambiguous deterministic escalation (item-3 realization, BUILT INERT 2026-07-31).
 # KILL-SWITCH, DEFAULT OFF, same strict parse: only a LITERAL "true" enables. OFF is byte-identical.
 # ON -> death-fear x air-hunger co-occurrence sets a deterministic crisis flag at safety_check, BEFORE
 # the LLM classifier — closing the measured window-dependent miss (N=20: 6/20 freeflow-no-resources).
 # Activation gated on Vee's one-tick (her item-3 ruling already assigned the class to crisis).
-_cardiac_escalation_raw = os.getenv("SAGE_CARDIAC_ESCALATION")
-CARDIAC_ESCALATION_ENABLED = (
-    _cardiac_escalation_raw is not None and _cardiac_escalation_raw.strip().lower() == "true"
-)
-if _cardiac_escalation_raw is not None and _cardiac_escalation_raw.strip().lower() not in ("true", "false"):
-    _log.warning(
-        "SAGE_CARDIAC_ESCALATION unexpected value %r — applying safe default (escalation OFF); "
-        "only 'true' enables.", _cardiac_escalation_raw,
-    )
+CARDIAC_ESCALATION_ENABLED = _strict_flag("SAGE_CARDIAC_ESCALATION", label="escalation")
 
 # EMR Phase 1 modality-request detector (plan 2026-07-28, clinical gate closed 2026-08-11).
 # DEFAULT OFF, strict parse: only a LITERAL "true" enables. OFF is byte-identical (channel written
@@ -260,30 +244,14 @@ if _cardiac_escalation_raw is not None and _cardiac_escalation_raw.strip().lower
 # deterministic detector writes the explicit_modality_request channel at the head of intent_route;
 # no consumer exists until Phase 2, so even ON changes no served behavior yet. Flip gated on
 # clinician sign-off of the request lexicon (draft-pending-review).
-_modality_request_raw = os.getenv("SAGE_MODALITY_REQUEST_ROUTING")
-MODALITY_REQUEST_ROUTING_ENABLED = (
-    _modality_request_raw is not None and _modality_request_raw.strip().lower() == "true"
-)
-if _modality_request_raw is not None and _modality_request_raw.strip().lower() not in ("true", "false"):
-    _log.warning(
-        "SAGE_MODALITY_REQUEST_ROUTING unexpected value %r — applying safe default (routing OFF); "
-        "only 'true' enables.", _modality_request_raw,
-    )
+MODALITY_REQUEST_ROUTING_ENABLED = _strict_flag("SAGE_MODALITY_REQUEST_ROUTING", label="routing")
 
 # S2a grief-presence deference (sweep row 13, BUILT INERT 2026-08-04). KILL-SWITCH, DEFAULT OFF, same
 # strict parse: only a LITERAL "true" enables. OFF is byte-identical (intent_route crisis routes to crisis
 # as today). ON -> a safety_check-CLEAN bereavement disclosure the LLM re-flags as crisis restores the
 # clean verdict (presence-mode grief_loss path via skill_select) instead of the crisis card. Harm set
 # single-sourced from panic_override; activation gated on Vee's boundary-sheet ruling.
-_grief_deference_raw = os.getenv("SAGE_GRIEF_DEFERENCE")
-GRIEF_DEFERENCE_ENABLED = (
-    _grief_deference_raw is not None and _grief_deference_raw.strip().lower() == "true"
-)
-if _grief_deference_raw is not None and _grief_deference_raw.strip().lower() not in ("true", "false"):
-    _log.warning(
-        "SAGE_GRIEF_DEFERENCE unexpected value %r — applying safe default (deference OFF); "
-        "only 'true' enables.", _grief_deference_raw,
-    )
+GRIEF_DEFERENCE_ENABLED = _strict_flag("SAGE_GRIEF_DEFERENCE", label="deference")
 
 # S4b — deterministic self-worth presence deference (DRAFT, gated on Vee signature, packet item 3,
 # due 2026-08-25). KILL-SWITCH, default OFF, same strict parse as GRIEF_DEFERENCE directly above:
@@ -292,15 +260,7 @@ if _grief_deference_raw is not None and _grief_deference_raw.strip().lower() not
 # other people, not me" -> crisis card with crisis_flags=[]) is restored to the deterministic clean
 # verdict (self-compassion pathway via skill_select) instead of the crisis card. Existence/harm content
 # always keeps the escalation; term lists PROPOSED pending Vee (selfworth_override.py).
-_selfworth_exclusion_raw = os.getenv("SAGE_SELFWORTH_FP_EXCLUSION")
-SELFWORTH_FP_EXCLUSION_ENABLED = (
-    _selfworth_exclusion_raw is not None and _selfworth_exclusion_raw.strip().lower() == "true"
-)
-if _selfworth_exclusion_raw is not None and _selfworth_exclusion_raw.strip().lower() not in ("true", "false"):
-    _log.warning(
-        "SAGE_SELFWORTH_FP_EXCLUSION unexpected value %r — applying safe default (exclusion OFF); "
-        "only 'true' enables.", _selfworth_exclusion_raw,
-    )
+SELFWORTH_FP_EXCLUSION_ENABLED = _strict_flag("SAGE_SELFWORTH_FP_EXCLUSION", label="exclusion")
 
 # E7 — BOT BEHAVIOUR §6a coercive-control / relationship-safety pre-emption. KILL-SWITCH, DEFAULT
 # OFF, same inverted strict parse as ROUTE_PRECEDENCE: only a LITERAL "true" enables; unset / empty /
@@ -313,26 +273,9 @@ if _selfworth_exclusion_raw is not None and _selfworth_exclusion_raw.strip().low
 # crisis with a third-party signal serve the helper-support content instead of the
 # first-person crisis script. Default OFF; content rule is DRAFT until Vee signs; flip is
 # its own decision request. Strict parse, same pattern as the safety kill-switches.
-_third_party_deference_raw = os.getenv("SAGE_THIRD_PARTY_DEFERENCE")
-THIRD_PARTY_DEFERENCE_ENABLED = (
-    _third_party_deference_raw is not None
-    and _third_party_deference_raw.strip().lower() == "true"
-)
-if _third_party_deference_raw is not None and _third_party_deference_raw.strip().lower() not in ("true", "false"):
-    _log.warning(
-        "SAGE_THIRD_PARTY_DEFERENCE unexpected value %r — applying safe default (deference OFF); "
-        "only 'true' enables.", _third_party_deference_raw,
-    )
+THIRD_PARTY_DEFERENCE_ENABLED = _strict_flag("SAGE_THIRD_PARTY_DEFERENCE", label="deference")
 
-_ipv_preempt_raw = os.getenv("SAGE_IPV_PREEMPTION")
-IPV_PREEMPTION_ENABLED = (
-    _ipv_preempt_raw is not None and _ipv_preempt_raw.strip().lower() == "true"
-)
-if _ipv_preempt_raw is not None and _ipv_preempt_raw.strip().lower() not in ("true", "false"):
-    _log.warning(
-        "SAGE_IPV_PREEMPTION unexpected value %r — applying safe default (pre-emption OFF); "
-        "only 'true' enables.", _ipv_preempt_raw,
-    )
+IPV_PREEMPTION_ENABLED = _strict_flag("SAGE_IPV_PREEMPTION", label="pre-emption")
 
 # Knowledge abstain gates. RRF is pure RANK fusion: its minimum meaningful score is
 # 1/(k+1) = 1/61 = 0.0164 (k=60), and the whole top-5 single-list range (1/61..1/65 =
@@ -439,18 +382,7 @@ CHECKPOINT_POOL_MAX_SIZE = int(os.getenv("SAGE_CHECKPOINT_POOL_MAX_SIZE", "20"))
 # literal "false" disables. Unset/empty/whitespace/garbage -> the signed default (ON). A
 # Railway env-injection bug can deliver an EMPTY string to the container, which under a
 # `== "true"` parse would silently disable the cache wiring with no visible signal.
-_embed_cache_raw = os.getenv("SAGE_EMBED_CACHE_ENABLED")
-EMBED_CACHE_ENABLED: bool
-if _embed_cache_raw is not None and _embed_cache_raw.strip().lower() == "false":
-    EMBED_CACHE_ENABLED = False
-else:
-    if _embed_cache_raw is not None and _embed_cache_raw.strip().lower() != "true":
-        _log.warning(
-            "SAGE_EMBED_CACHE_ENABLED=%r is neither 'true' nor 'false'; keeping default ON "
-            "(strict parse — empty-string injection must not silently disable the cache wiring)",
-            _embed_cache_raw,
-        )
-    EMBED_CACHE_ENABLED = True
+EMBED_CACHE_ENABLED: bool = _strict_flag("SAGE_EMBED_CACHE_ENABLED", default_on=True, label="cache wiring")
 
 # B1 interim medical red-flag guard. Default OFF; flip only when the must-NOT-fire
 # controls are green (see plan Task 6). Not frozen; touches no signed field.
@@ -502,15 +434,7 @@ D1_SCREEN_SHADOW: bool = os.getenv("SAGE_D1_SCREEN_SHADOW", "false").lower() == 
 # the Stage-2 delivery upgrade can flip independently of Stage-1 detection. OFF =
 # Stage-1 behavior (byte-identical). Flip is governed: clinician sign-off on the
 # §HR fixed copy below + the two-turn state-machine design.
-_hr_terminal_raw = os.getenv("SAGE_HIGH_RISK_TERMINAL")
-HIGH_RISK_TERMINAL_ENABLED = (
-    _hr_terminal_raw is not None and _hr_terminal_raw.strip().lower() == "true"
-)
-if _hr_terminal_raw is not None and _hr_terminal_raw.strip().lower() not in ("true", "false"):
-    _log.warning(
-        "SAGE_HIGH_RISK_TERMINAL unexpected value %r — applying safe default (terminal OFF); "
-        "only 'true' enables.", _hr_terminal_raw,
-    )
+HIGH_RISK_TERMINAL_ENABLED = _strict_flag("SAGE_HIGH_RISK_TERMINAL", label="terminal")
 
 # §1c Part A (Vee RULED 2026-07-21, docs/superpowers/governance/2026-07-18-vee-open-decisions-approval-sheet.md):
 # a Node-1 derealization clinical flag (CF-010, flag_id=derealization) routed at the SAFETY altitude (before
@@ -520,15 +444,7 @@ if _hr_terminal_raw is not None and _hr_terminal_raw.strip().lower() not in ("tr
 # parse (same as HIGH_RISK_TERMINAL). OFF => the derealization flag still SETS (CF-010 active) but routes
 # nowhere = byte-identical to today; the mechanism is inert until the terminal copy is Vee-signed + flipped
 # (2026-07-28-1c-anxiety-referral-copy-for-vee.md). Distinct from HIGH_RISK_DETECTION so it flips independently.
-_derealization_raw = os.getenv("SAGE_DEREALIZATION_DETECTION")
-DEREALIZATION_DETECTION_ENABLED = (
-    _derealization_raw is not None and _derealization_raw.strip().lower() == "true"
-)
-if _derealization_raw is not None and _derealization_raw.strip().lower() not in ("true", "false"):
-    _log.warning(
-        "SAGE_DEREALIZATION_DETECTION unexpected value %r — applying safe default (OFF); "
-        "only 'true' enables.", _derealization_raw,
-    )
+DEREALIZATION_DETECTION_ENABLED = _strict_flag("SAGE_DEREALIZATION_DETECTION", label="derealization")
 
 # §HR fixed copy (verbatim from the design doc's "Fixed copy" section) has moved to
 # src/sage_poc/safety/hr_copy.py: each single string below is now a POOL of
@@ -550,25 +466,10 @@ if _derealization_raw is not None and _derealization_raw.strip().lower() not in 
 # "info_request_skill_consult", so graph.py's _route_after_skill_select diversion to
 # skill_executor is unreachable. Flip is governed: clinician sign-off on the consult set's
 # disposition scoping (INFO_REQUEST_SKILL_CONSULT_SET) per the design doc.
-_info_request_consult_raw = os.getenv("SAGE_INFO_REQUEST_CONSULT")
-INFO_REQUEST_CONSULT_ENABLED = (
-    _info_request_consult_raw is not None and _info_request_consult_raw.strip().lower() == "true"
-)
-if _info_request_consult_raw is not None and _info_request_consult_raw.strip().lower() not in ("true", "false"):
-    _log.warning(
-        "SAGE_INFO_REQUEST_CONSULT unexpected value %r — applying safe default (consult OFF); "
-        "only 'true' enables.", _info_request_consult_raw,
-    )
+INFO_REQUEST_CONSULT_ENABLED = _strict_flag("SAGE_INFO_REQUEST_CONSULT", label="consult")
 
 # --- Psychoed pathways (Phase 2 mechanism; spec 2026-07-23 §7.3). Default OFF. ---
-_psychoed_raw = os.getenv("SAGE_PSYCHOED_PATHWAYS")
-PSYCHOED_PATHWAYS_ENABLED = (
-    _psychoed_raw is not None and _psychoed_raw.strip().lower() == "true"
-)
-if _psychoed_raw is not None and _psychoed_raw.strip().lower() not in ("true", "false"):
-    logging.getLogger(__name__).warning(
-        "SAGE_PSYCHOED_PATHWAYS=%r is neither 'true' nor 'false'; treating as OFF", _psychoed_raw
-    )
+PSYCHOED_PATHWAYS_ENABLED = _strict_flag("SAGE_PSYCHOED_PATHWAYS", label="pathways")
 
 _PSYCHOED_VALID_CATEGORIES = frozenset({"1f", "3c", "4b", "6d", "7c", "s2c"})
 _categories_raw = os.getenv("SAGE_PSYCHOED_CATEGORIES", "")
@@ -593,12 +494,4 @@ def psychoed_enabled_for(category: str) -> bool:
 # Phase-2 category flip retires this path's predicate together with the category's consult-set
 # entry (same change — the ruling's disjointness condition). Migration 018 is the flag-flip
 # deploy gate (audit purpose column).
-_consult_sources_raw = os.getenv("SAGE_CONSULT_SOURCES")
-CONSULT_SOURCES_ENABLED = (
-    _consult_sources_raw is not None and _consult_sources_raw.strip().lower() == "true"
-)
-if _consult_sources_raw is not None and _consult_sources_raw.strip().lower() not in ("true", "false"):
-    _log.warning(
-        "SAGE_CONSULT_SOURCES unexpected value %r — applying safe default (cards OFF); "
-        "only 'true' enables.", _consult_sources_raw,
-    )
+CONSULT_SOURCES_ENABLED = _strict_flag("SAGE_CONSULT_SOURCES", label="cards")
