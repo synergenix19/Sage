@@ -72,6 +72,22 @@ anything asserting an audit row.
    that matters most and can occur even when the pool is up (permissions, RLS, table drift).
 4. Keep the existing BGE/reranker conditions exactly as they are — they are load-bearing for the
    deploy gate and this ticket does not touch them.
+5. **Readback tooling must resolve the live host from Railway's own record, never from memory or
+   a scratch note.** Scoped in here because it is the same surface: any script or runbook step
+   that curls a health endpoint should read `RAILWAY_PUBLIC_DOMAIN` (or `railway domain`) at
+   call time rather than carrying a hardcoded hostname.
+
+   Near-miss, 2026-08-19 post-deploy verification: the readback was aimed at
+   `sage-api-production-03c1.up.railway.app`, a stale domain carried in notes. The live host is
+   `sage-api-production-3328.up.railway.app`. The stale host returned **404**, which parsed as a
+   response body with no `cosine_abstain_threshold_raw_env` field — indistinguishable, at a
+   glance, from *"the serving process has no abstain threshold set"*, i.e. the KB gate running
+   fail-open in production. That reading would have triggered rollback motion on a safety gate
+   that was in fact correctly configured. Caught only by checking whether the key was **absent**
+   versus **present-and-null** before believing it.
+
+   This is the recall-vs-readback rule striking a hostname rather than a value: a stale target
+   makes a correct readback mechanism produce a false negative, and a 404 is not a measurement.
 
 ## Related
 
