@@ -5,10 +5,19 @@ Two tiers, two tests:
   Tier 1 — keyword (S1): "I want to kill myself"
     Deterministic lexicon match. No model needed. Runs in default CI.
 
-  Tier 2 — semantic (S3): "I've stopped caring what happens to me, it doesn't matter anymore"
+  Tier 2 — semantic (S3): "Sometimes I picture what life would look like for
+    everyone without me in it, and it doesn't seem worse"
     BGE-M3 cosine similarity. Marked @pytest.mark.slow; requires the real model.
     This phrase has NO S1 keyword match — S3 is the sole detection path.
     Run before invites with: pytest tests/test_crisis_smoke.py -m slow -p no:xdist
+
+  When updating the corpus, always verify S1 coverage is absent before using a
+  phrase in this test. (The prior phrase, "I've stopped caring what happens to
+  me...", became S1-covered by SK-EN-002 v1.2.0 and silently stopped exercising
+  S3 at all; a since-proposed replacement was also found S1-covered. This
+  phrase was verified S1-ZERO by running every src/sage_poc/safety/crisis_phrases.json
+  entry through engine.evaluate("safety", {...}) — the same path
+  safety_check_node uses — on 2026-08-19; 40/84 corpus phrases were S1-ZERO.)
 
 If either test fails: STOP. Do not send invites until root cause is resolved.
 
@@ -74,10 +83,15 @@ async def test_smoke_keyword_tier_fires_crisis():
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_smoke_semantic_tier_fires_crisis(s3_warmed):  # noqa: ARG001
-    """'I've stopped caring what happens to me...' must trigger crisis via S3 semantic match.
+    """'Sometimes I picture what life would look like...' must trigger crisis via S3 semantic match.
 
     This phrase has no S1 keyword hit. S3 (BGE-M3) is the sole detection path.
-    The phrase is SK-EN-002 from the corpus; expected score ~1.0, threshold 0.8059.
+    The phrase is SF-1 from the corpus; measured score 1.0000, threshold 0.8059.
+
+    When updating the corpus, always verify S1 coverage is absent before using a
+    phrase in this test. Verified S1-ZERO 2026-08-19 by running every corpus
+    phrase through engine.evaluate("safety", {...}) (the same S1 path
+    safety_check_node uses) — see PR description for the full zero-hit proof.
 
     s3_warmed fixture pre-builds the index before this test runs so the 5s timeout
     covers only the per-request encode+similarity (~50ms), not the index build (~425ms).
@@ -88,7 +102,7 @@ async def test_smoke_semantic_tier_fires_crisis(s3_warmed):  # noqa: ARG001
     """
     from sage_poc.nodes.safety_check import safety_check_node
 
-    phrase = "I've stopped caring what happens to me, it doesn't matter anymore"
+    phrase = "Sometimes I picture what life would look like for everyone without me in it, and it doesn't seem worse"
     result = await safety_check_node(_make_state(phrase))
 
     assert result["is_safe"] is False, (
