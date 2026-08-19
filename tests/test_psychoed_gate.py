@@ -9,6 +9,8 @@ analog to this task's Node-8 gate, sharing the same placement (~925-930) and the
 import asyncio
 import logging
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import sage_poc.config as config

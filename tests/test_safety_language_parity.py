@@ -1,6 +1,9 @@
 """Regression guard for the safety-file AR-parity gate (#329/#330)."""
 import sys
 from pathlib import Path
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 import check_safety_language_parity as parity
 

@@ -5,6 +5,9 @@ The consumer branch + params reader exist; NO family declares skill_select_dispo
 wired AND dormant, and that contain would take precedence over abstain when a family declares it.
 """
 from sage_poc.nodes import skill_select as ss
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 
 def test_dormant_on_master_no_contain_flags():

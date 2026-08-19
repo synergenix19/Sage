@@ -14,6 +14,9 @@ import os
 
 import server
 from sage_poc import config
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 
 def _version():
@@ -31,9 +34,21 @@ _PARITY_INFRA_DENYLIST = {
 
 
 def _parity_vars():
+    """Same alternation as the parity runner's regex (scripts/instrument/graph_evidence.py::
+    config_sage_vars / measure_layer1_fullgraph.py::_config_sage_vars): matches both the raw
+    os.getenv("SAGE_...") idiom and the single strict-flag parser _strict_flag("SAGE_...",
+    default_on=...) (K2.1, src/sage_poc/config.py), so a flag migrated to the shared helper
+    stays covered by this readback-completeness gate. KEYWORD-ORDER-FRAGILE: only the name is
+    needed here, but the _strict_flag branch mirrors the other four scanners' pattern."""
     src = open(os.path.join(_REPO, "src", "sage_poc", "config.py"), encoding="utf-8").read()
-    return sorted({m.group(1) for m in re.finditer(r'os\.getenv\(\s*"(SAGE_[A-Z0-9_]+)"', src)}
-                  - _PARITY_INFRA_DENYLIST)
+    names = set()
+    for m in re.finditer(
+        r'os\.getenv\(\s*"(SAGE_[A-Z0-9_]+)"\s*(?:,\s*"([^"]*)")?'
+        r'|_strict_flag\(\s*"(SAGE_[A-Z0-9_]+)"(?:\s*,\s*default_on\s*=\s*(True))?',
+        src,
+    ):
+        names.add(m.group(1) or m.group(3))
+    return sorted(names - _PARITY_INFRA_DENYLIST)
 
 
 def _served_sage_vars(v):

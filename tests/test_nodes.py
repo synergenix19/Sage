@@ -1,5 +1,7 @@
 # tests/test_nodes.py
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from sage_poc.nodes.safety_check import safety_check_node
 
 def make_state(**kwargs):

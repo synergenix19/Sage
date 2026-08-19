@@ -1,5 +1,7 @@
 """D1 call-site (#338) — the two precision points as red-verify, not assumption."""
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from sage_poc import config
 from sage_poc.safety import medical_screen as ms
 

@@ -1,5 +1,7 @@
 from pathlib import Path
 import json, pytest
+
+pytestmark = pytest.mark.safety_gate
 from scripts.psychoed_ingest import schemas
 
 def _blocks():

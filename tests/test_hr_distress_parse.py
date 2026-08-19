@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc.safety.hr_distress import (
     HR_HIGH_FLOOR,
     DistressParse,

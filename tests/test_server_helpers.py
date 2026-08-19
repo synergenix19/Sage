@@ -1,5 +1,7 @@
 """Tests for _stale_skill_overrides in server_helpers.py."""
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from datetime import datetime, timezone, timedelta
 from sage_poc.server_helpers import _stale_skill_overrides
 

@@ -1,5 +1,8 @@
 # tests/test_psychoed_weave_eval.py
 from sage_poc.psychoed import weave
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 OK = ["No", "no, nothing like that", "No, alhamdulillah", "no I haven't, why?", "no thank god"]
 BAD = ["kind of", "sometimes", "not really but...", "no, but sometimes",

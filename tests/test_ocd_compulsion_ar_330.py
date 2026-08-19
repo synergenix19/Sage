@@ -12,6 +12,8 @@ veto stays keyed on the compulsive ACTION/ritual, NOT on looping/repetition (whi
 legitimately owns) — so rumination must NOT false-fire (that would be its own iatrogenic harm).
 """
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from sage_poc.nodes.ocd_compulsion import is_ocd_compulsion
 
 # AR compulsions (checking/washing rituals) that MUST fire — first is the exact prod bypass probe.

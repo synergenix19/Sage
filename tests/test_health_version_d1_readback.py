@@ -3,6 +3,9 @@ smoke can VERIFY (not infer) shadow=on/enforce=off. Same resolved+raw pattern as
 import asyncio
 import server
 from sage_poc import config
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 
 def _version():

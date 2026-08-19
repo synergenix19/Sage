@@ -73,6 +73,8 @@ def test_higher_redirect_composes_from_crisis_pathway():
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc.nodes.high_risk_response import high_risk_response_node
 
 

@@ -31,6 +31,8 @@ import pathlib
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 import sage_poc.config as config
 from sage_poc.nodes.skill_select import skill_select_node
 from sage_poc.skills.info_request_consult_set import INFO_REQUEST_SKILL_CONSULT_SET

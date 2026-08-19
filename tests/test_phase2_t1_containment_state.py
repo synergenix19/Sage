@@ -5,6 +5,9 @@ So this is the inert scaffolding: a real deploy of T1 must be behavior-identical
 is gated on T2-T4 + the safeguarding sign-offs, per the never-build-live-ahead-of-sign-off rule).
 """
 from sage_poc.state import SageState
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 
 def test_field_declared_optional():
