@@ -138,11 +138,29 @@ The number is engineering's; the *judgement* is yours:
 
 | | |
 |---|---|
-| Threshold **0.58** — confirm / reverse / amend to: | ☐ |
-| If amended, value and reason: | |
-| Index removal (PR #512) — noted / objection: | ☐ |
-| Re-verification on AR corpus growth — agreed: | ☐ |
-| Date / signature: | |
+| Threshold **0.58** — confirm / reverse / amend to: | ☑ **CONFIRMED** |
+| If amended, value and reason: | n/a — approved as proposed |
+| Index removal (PR #512) — noted / objection: | ☑ **noted, no objection** |
+| Re-verification on AR corpus growth — agreed: | ☑ |
+| Date / signature: | 2026-08-19 — **relayed by the product owner** (see provenance below) |
 
-Nothing here reaches users until this sheet comes back and the owner gives a separate deploy
-instruction.
+### Provenance of this sign-off
+
+**Form: approval relayed by the product owner on 2026-08-19**, against this packet, covering
+both the threshold value 0.58 and the removal of the ivfflat index (cdai PR #512). Relayed
+approval is an accepted signature form on this project — the same form carries
+`SAGE_IPV_PREEMPTION`, `SAGE_HIGH_RISK_TERMINAL` and `SAGE_CARDIAC_ESCALATION` in
+`config/prod_flags.yaml`.
+
+⚠️ **Open: the one-line written confirmation named above is PENDING.** It should be attached
+to this record. Until it is, the primary record for this sign-off is the relay, and any
+artefact citing it should say so rather than implying a signed sheet exists. This is the same
+defect class as a rule that is written but not landed: an approval that lives only in
+conversation is not yet a record.
+
+Recorded in `config/prod_flags.yaml` as `signed_value: "0.58"` with the pending-confirmation
+caveat in `signature_ref`.
+
+Nothing here reaches users until the owner gives a separate deploy instruction, and the
+application order is load-bearing: **threshold to 0.58 first, migration second** — the
+intermediate states are not symmetric.
