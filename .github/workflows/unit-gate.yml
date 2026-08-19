@@ -19,6 +19,8 @@ name: unit-gate
 # batch that tagged the last hand-picked backlog before this switch, and each CANDIDATES-era
 # PR (referenced in prior git history of this file) for the per-suite rationale that used to
 # live here — that provenance is preserved in git blame/PR bodies, not duplicated in this file.
+# Owner ruling of record for the K1.5 IN/OUT adjudication (23 IN / 4 OUT, incl. this switch's
+# cross_stack OUT below): docs/superpowers/governance/2026-08-19-gate-adjudication-packet.md.
 
 on:
   push:

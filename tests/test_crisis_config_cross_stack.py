@@ -26,7 +26,8 @@ import pytest
 # the safety_gate marker selection (and from the prior CANDIDATES path list in the same PR) rather
 # than let the skip masquerade as a real check. Revisit as vendor-the-constant (option a) only on an
 # actual cross-stack drift incident — until then this stays an explicit, documented exclusion, not a
-# silent one.
+# silent one. Record of the ruling: docs/superpowers/governance/2026-08-19-gate-adjudication-packet.md
+# (§3 + "Owner rulings 2026-08-19" section, A2).
 
 try:  # H4 structured directory (PR #288+).
     from sage_poc.config import CRISIS_RESOURCES as _BACKEND_RESOURCES  # type: ignore
