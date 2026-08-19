@@ -170,6 +170,7 @@ jobs:
             tests/test_instrument_helper_only.py
             scripts/prod_smoke/tests/test_tier_b_credential_guard.py
             tests/test_harm_to_others_node1_backstop.py
+            tests/test_cardiac_escalation.py
             tests/test_crisis_availability_consistency.py
             tests/test_crisis_config_cross_stack.py
             tests/test_sg2_caveat_firing.py
