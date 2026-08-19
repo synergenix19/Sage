@@ -1,0 +1,75 @@
+-- 018_drop_ivfflat_knowledge_articles.sql
+-- Drop the approximate (ivfflat) vector index on knowledge_articles so the
+-- retrieval vector arm becomes an exact scan.
+--
+-- Ticket: docs/superpowers/tickets/2026-08-19-ivfflat-recall-holes-crisis-adjacent.md
+-- (sage-poc, merged PR #501). Owner disposition 2026-08-19: option 2 of that
+-- ticket -- drop the index rather than tune probes -- on the grounds that an
+-- approximate index at this corpus size makes prod diverge from every offline
+-- measurement the workstream has produced, and does so precisely on
+-- crisis-adjacent recall. Auditability over elegance.
+--
+-- WHAT WAS WRONG
+-- 007 created `using ivfflat (chunk_embedding vector_cosine_ops) with (lists=50)`
+-- on a table that holds ~258 rows. Postgres auto-named it
+-- knowledge_articles_chunk_embedding_idx. With the pgvector default
+-- ivfflat.probes = 1, a query probes 1 of 50 lists, so true nearest neighbours
+-- are frequently never examined. The retrieval SQL compounds this: the vector
+-- arm filters `WHERE language = $2` AFTER the ANN scan picks its list, so a
+-- probed list holding few or no rows of the requested language can return an
+-- empty vector arm entirely -- not merely a worse neighbour.
+--
+-- MEASURED ON PROD (tcekehffneiqcdyhzobi), 2026-08-19, read-only A/B over the
+-- 24-query PR #457 probe set, identical embeddings, arm B = `SET LOCAL
+-- ivfflat.probes = 50` (probes every list, so the ANN scan returns the exact
+-- neighbour set; behavioural stand-in for this DROP):
+--   * crisis-on-topic (n=4): crisis article in top-3 2/4 -> 4/4.
+--     "where can I get urgent mental health help in the UAE": vector arm returns
+--     ZERO rows today -> crisis-002-en at cosine 0.780.
+--     "what should I do in a mental health crisis": serves self-compassion-001
+--     at 0.474 today (above the abstain gate, so the wrong passage is served
+--     rather than withheld) -> crisis-001-en at 0.772.
+--   * relevant (n=12): expected-topic hit 11/12 -> 12/12. No regressions.
+--   * Cost, and it is real: off-topic similarities rise too, so the abstain
+--     gate must be recalibrated in the SAME change -- see below.
+--
+-- COUPLED CHANGE, NOT OPTIONAL
+-- SAGE_COSINE_ABSTAIN_THRESHOLD = 0.42 was calibrated against the DEGRADED
+-- similarity distribution this index produces. Removing the index shifts the
+-- whole distribution upward, and at 0.42 the off-topic abstain rate falls from
+-- 6/8 to 4/8 -- including "where can I find job platforms in the UAE" surfacing
+-- crisis-002-en at 0.544. Serving a crisis passage on an off-topic query is the
+-- exact hold trigger PR #457 verified against, so this migration MUST NOT ship
+-- without the threshold move. The same run measured the separation the exact
+-- scan makes available: max off-topic 0.544 vs min in-scope 0.617 (margin
+-- 0.073, versus 0.486/0.501 = 0.015 under the index today). Any threshold in
+-- (0.544, 0.617] yields 8/8 off-topic abstain AND 16/16 in-scope served;
+-- ~0.58 sits mid-band. The value is an owner/clinical decision, not a migration
+-- concern -- recorded here so the two changes stay welded together.
+--
+-- LATENCY (same run, EXPLAIN ANALYZE, vector arm, prod data)
+--   ivfflat probes=1 : 0.237 ms execution   (today)
+--   exact / seq scan : 1.207 ms execution   (after this migration)
+-- ~1 ms added per retrieval on a p50 ~17 s turn. Checked rather than assumed.
+--
+-- REINTRODUCTION CRITERION (this decision carries its own expiry)
+-- Exact scan is correct at this scale; it is NOT correct at every scale. An ANN
+-- index earns its way back when EITHER of these is measured to be true -- and
+-- when it returns, it returns with `probes` set deliberately and with this same
+-- 24-query A/B rerun as the acceptance gate, never on defaults:
+--   (1) public.knowledge_articles exceeds 10,000 chunks. (Corpus is ~258 now.
+--       The AR content lane and Full Build growth are the realistic paths to
+--       this; a re-check is due whenever a bulk corpus load lands.)
+--   (2) Vector-arm execution time exceeds 50 ms at p95 in prod, measured on the
+--       real retrieval SQL -- i.e. retrieval stops being free relative to the
+--       LLM turn it feeds.
+-- Neither is close today. Until one is met, do not reintroduce an ANN index on
+-- this table, and do not "restore" it as part of an unrelated migration.
+
+drop index if exists public.knowledge_articles_chunk_embedding_idx;
+
+-- Rollback: recreate exactly what 007 shipped. Note that doing so re-opens the
+-- recall holes documented above, so pair any rollback with restoring the
+-- abstain threshold to its pre-change value.
+--   create index on public.knowledge_articles
+--     using ivfflat (chunk_embedding vector_cosine_ops) with (lists = 50);
