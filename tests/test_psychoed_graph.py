@@ -22,6 +22,9 @@ from sage_poc.audit import _build_session_audit_row
 from sage_poc.graph import build_graph
 from sage_poc.psychoed import store
 from tests.test_graph import make_e2e_state, carry_state
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 _PSYCHOED_CARRY = (
     "psychoed_active_category", "psychoed_delivery_shape", "psychoed_menu_offered",

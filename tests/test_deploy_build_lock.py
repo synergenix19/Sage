@@ -6,6 +6,9 @@ enabling it (ENFORCE_DEPLOY_LOCK=1) is a staged step (see 2026-07-08-prod-deploy
 """
 import subprocess
 import pathlib
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 _SCRIPT = pathlib.Path(__file__).resolve().parent.parent / "scripts" / "verify_build_lock.sh"
 

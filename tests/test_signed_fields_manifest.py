@@ -7,6 +7,9 @@ signed field changes, THIS TEST goes red until the manifest is reconciled or the
 """
 import importlib.util
 import pathlib
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 _SCRIPT = pathlib.Path(__file__).resolve().parent.parent / "scripts" / "check_signed_fields.py"
 _spec = importlib.util.spec_from_file_location("check_signed_fields", _SCRIPT)

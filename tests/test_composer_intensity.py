@@ -6,6 +6,8 @@ GPT-4o's RLHF-encoded reflective paraphrase behavior, overriding L0's ban on
 """
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 
 def test_high_intensity_guidance_no_prioritise_validation():
     """'Prioritise validation' must not appear in the high-intensity guidance string."""

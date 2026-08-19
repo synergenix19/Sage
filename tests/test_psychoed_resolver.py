@@ -1,5 +1,8 @@
 # tests/test_psychoed_resolver.py
 from sage_poc.psychoed import resolver
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 ALL = frozenset({"1f", "3c", "4b", "6d", "7c", "s2c"})
 

@@ -115,6 +115,9 @@ from sage_poc.psychoed import serve as psy_serve, store
 from sage_poc.skills.schema import load_skill
 from tests.test_graph import make_e2e_state, carry_state
 from tests.test_psychoed_graph import _PSYCHOED_CARRY
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 
 def _carry_psychoed(prev: dict, raw_message: str, **overrides) -> dict:

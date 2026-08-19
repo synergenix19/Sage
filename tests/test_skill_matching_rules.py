@@ -2,6 +2,8 @@
 The fired rule's action drives skill_select's offer-vs-direct-entry decision;
 the fired rule_id goes into the audit path."""
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from pydantic import ValidationError
 
 from sage_poc.rules import engine as rules_engine

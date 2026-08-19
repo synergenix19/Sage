@@ -4,6 +4,8 @@ either offers (offered_skill_ids) or enters directly. Fired rule_id is audited
 in the path."""
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 import sage_poc.nodes.skill_select as ss
 from sage_poc.nodes.skill_select import skill_select_node
 from sage_poc.skills.schema import load_skill

@@ -4,6 +4,8 @@ and the hold releases in exactly one turn even when turn N+1 is a crisis (the by
 consume_pending_screen guards). Deterministic terminals only (screen_response, crisis_response) — no LLM.
 """
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from sage_poc import config
 from sage_poc.safety import medical_screen as ms
 

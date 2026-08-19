@@ -1,5 +1,8 @@
 # tests/test_psychoed_classifiers.py
 from sage_poc.psychoed import classifiers
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 def test_lexical_distress_is_acute():
     assert classifiers.acute_distress({}, "what is anxiety? I can't breathe right now")

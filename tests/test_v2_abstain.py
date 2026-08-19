@@ -17,6 +17,9 @@ Decision logic is unit-tested via _route_decision (no model load); flag-off byte
 proven end-to-end by the wrong-skill stash-control (240/250, same 10).
 """
 from sage_poc.nodes import skill_select as ss
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 
 def _cluster_ab(sid):

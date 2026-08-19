@@ -72,6 +72,8 @@ def test_never_fails_open_or_empty_on_reject():
 
 
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from unittest.mock import AsyncMock, patch
 
 

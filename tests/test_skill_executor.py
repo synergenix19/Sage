@@ -9,6 +9,8 @@
 # T7: for_turns temporal condition on resistance signal
 
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from unittest.mock import patch, AsyncMock
 
 from sage_poc.nodes.skill_executor import (

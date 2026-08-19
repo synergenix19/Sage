@@ -1,5 +1,7 @@
 # tests/test_skill_select.py
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from sage_poc.nodes.skill_select import skill_select_node, _SKILLS as _ALL_SKILLS
 
 
