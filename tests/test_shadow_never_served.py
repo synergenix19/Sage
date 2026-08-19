@@ -4,6 +4,7 @@ from unittest.mock import patch, AsyncMock
 import sage_poc.nodes.output_gate as og
 import sage_poc.state as state_mod
 import sage_poc.nodes.freeflow_respond as fr
+from sage_poc import config as _cfg
 from tests.test_freeflow_respond import fr_stub_llm
 
 _SENTINEL = "ZZZ_SHADOW_SENTINEL_ﷺ_NEVER_SERVE"
@@ -26,7 +27,7 @@ def test_freeflow_return_excludes_shadow_keys():
 
 
 def test_sentinel_never_in_served_response(monkeypatch):
-    monkeypatch.setattr(fr, "NATIVE_ARABIC_SHADOW_ENABLED", True)
+    monkeypatch.setattr(_cfg, "NATIVE_ARABIC_SHADOW_ENABLED", True)
     monkeypatch.setattr(fr, "_SHADOW_TIMEOUT_S", 0.05)
     payload = {"text": _SENTINEL, "prompt_hash": "x"*16, "exemplar_version": "0.1",
                "generation_language": "ar_native", "gen_latency_ms": 3}

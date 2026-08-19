@@ -421,11 +421,12 @@ def test_freeflow_gen_ms_captured_flag_on_arabic_concurrent_path():
     the English arm still runs and must still be timed."""
     from unittest.mock import patch
     import sage_poc.nodes.freeflow_respond as fr_mod
+    from sage_poc import config as _cfg
 
     state = {**_BASE_STATE, "detected_language": "ar", "raw_message": "تعبت"}
     payload = {"text": "مرحبا", "prompt_hash": "a" * 16, "exemplar_version": "0.1",
                "generation_language": "ar_native", "gen_latency_ms": 4}
-    with patch.object(fr_mod, "NATIVE_ARABIC_SHADOW_ENABLED", True), \
+    with patch.object(_cfg, "NATIVE_ARABIC_SHADOW_ENABLED", True), \
          patch.object(fr_mod, "generate_shadow_arabic", new=AsyncMock(return_value=payload)), \
          patch.object(fr_mod, "write_shadow_eval_row", new=AsyncMock()):
         result = asyncio.run(freeflow_respond_node(state, llm=fr_stub_llm()))

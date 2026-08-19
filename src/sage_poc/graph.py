@@ -20,7 +20,6 @@ from sage_poc.nodes.high_risk_response import high_risk_response_node
 from sage_poc.nodes.derealization_response import derealization_response_node
 from sage_poc.config import CRISIS_LINE_UAE, CRISIS_CONFIG
 from sage_poc.nodes.output_gate import output_gate_node
-from sage_poc.config import AUDIT_LOG_ENABLED
 from sage_poc.audit import write_session_audit
 from sage_poc.safety.hr_disclosure import hr_disclosure_present
 from sage_poc.safety.derealization_disclosure import derealization_disclosure_present
@@ -157,7 +156,7 @@ async def _crisis_response_node(state: SageState) -> dict:
         if not t.cancelled() and t.exception() else None
     )
 
-    if AUDIT_LOG_ENABLED:
+    if _cfg.AUDIT_LOG_ENABLED:
         audit = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "event": "CRISIS_RESPONSE",

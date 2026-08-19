@@ -1,6 +1,7 @@
 import asyncio
 from unittest.mock import patch, AsyncMock
 import sage_poc.nodes.freeflow_respond as fr
+from sage_poc import config as _cfg
 from tests.test_freeflow_respond import fr_stub_llm
 
 
@@ -10,7 +11,7 @@ def _ar():
 
 
 def test_writes_eval_row_when_flag_on(monkeypatch):
-    monkeypatch.setattr(fr, "NATIVE_ARABIC_SHADOW_ENABLED", True)
+    monkeypatch.setattr(_cfg, "NATIVE_ARABIC_SHADOW_ENABLED", True)
     monkeypatch.setattr(fr, "_SHADOW_TIMEOUT_S", 0.05)
     payload = {"text": "مرحبا", "prompt_hash": "a"*16, "exemplar_version": "0.1",
                "generation_language": "ar_native", "gen_latency_ms": 4}
@@ -25,7 +26,7 @@ def test_writes_eval_row_when_flag_on(monkeypatch):
 
 
 def test_timeout_writes_censored_row(monkeypatch):
-    monkeypatch.setattr(fr, "NATIVE_ARABIC_SHADOW_ENABLED", True)
+    monkeypatch.setattr(_cfg, "NATIVE_ARABIC_SHADOW_ENABLED", True)
     monkeypatch.setattr(fr, "_SHADOW_TIMEOUT_S", 0.01)
     async def _hang(*a, **k):
         await asyncio.sleep(10)
@@ -37,7 +38,7 @@ def test_timeout_writes_censored_row(monkeypatch):
 
 
 def test_no_shadow_when_flag_off(monkeypatch):
-    monkeypatch.setattr(fr, "NATIVE_ARABIC_SHADOW_ENABLED", False)
+    monkeypatch.setattr(_cfg, "NATIVE_ARABIC_SHADOW_ENABLED", False)
     writer = AsyncMock()
     with patch.object(fr, "write_shadow_eval_row", new=writer):
         asyncio.run(fr.freeflow_respond_node(_ar(), llm=fr_stub_llm()))
@@ -48,7 +49,7 @@ def test_generation_failure_writes_nothing(monkeypatch):
     # Clarification #1: non-timeout generation failure (shadow returns None, not timed out)
     # must NOT write a row — an invalid measurement must not pollute the sample. Distinct from
     # timeout (which DOES write a censored row per test_timeout_writes_censored_row).
-    monkeypatch.setattr(fr, "NATIVE_ARABIC_SHADOW_ENABLED", True)
+    monkeypatch.setattr(_cfg, "NATIVE_ARABIC_SHADOW_ENABLED", True)
     monkeypatch.setattr(fr, "_SHADOW_TIMEOUT_S", 5.0)  # not a timeout; generator just returns None
     writer = AsyncMock()
     with patch.object(fr, "generate_shadow_arabic", new=AsyncMock(return_value=None)), \
@@ -60,7 +61,7 @@ def test_generation_failure_writes_nothing(monkeypatch):
 
 def test_eval_write_failure_does_not_break_served_turn(monkeypatch):
     # Verification #1: a write raising/timing out must be swallowed; served turn intact.
-    monkeypatch.setattr(fr, "NATIVE_ARABIC_SHADOW_ENABLED", True)
+    monkeypatch.setattr(_cfg, "NATIVE_ARABIC_SHADOW_ENABLED", True)
     monkeypatch.setattr(fr, "_SHADOW_TIMEOUT_S", 0.05)
     payload = {"text": "مرحبا", "prompt_hash": "a"*16, "exemplar_version": "0.1",
                "generation_language": "ar_native", "gen_latency_ms": 4}

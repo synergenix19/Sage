@@ -10,7 +10,7 @@ from pathlib import Path
 from sage_poc.state import SageState
 from sage_poc.language import async_translate_to_arabic
 from sage_poc.gender_marker import detect_gender_marking
-from sage_poc.config import AUDIT_LOG_ENABLED, CRISIS_LINE_UAE, CRISIS_CONFIG, CLASSIFIER_MODEL
+from sage_poc.config import CRISIS_LINE_UAE, CRISIS_CONFIG, CLASSIFIER_MODEL
 from sage_poc.llm import get_classifier
 from sage_poc.rules import engine as rules_engine
 from sage_poc.prompts.summarizer import summarise_history
@@ -1005,7 +1005,7 @@ async def output_gate_node(state: SageState) -> dict:
         or psychoed_gate_action is not None
     )
 
-    if AUDIT_LOG_ENABLED:
+    if _cfg.AUDIT_LOG_ENABLED:
         audit = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "turn": state.get("turn_count", 0),

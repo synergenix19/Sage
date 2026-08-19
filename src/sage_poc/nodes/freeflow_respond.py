@@ -7,7 +7,6 @@ from sage_poc.llm import get_responder, get_fallback_responder
 from sage_poc.prompts import compose_prompt, PERSONA  # re-exported for backward compat
 from sage_poc.prompts.composer import _sanitize_assistant_turn  # re-exported for backward compat
 from sage_poc.resilience import resilient_invoke
-from sage_poc.config import NATIVE_ARABIC_SHADOW_ENABLED
 from sage_poc.shadow_arabic import generate_shadow_arabic
 from sage_poc.shadow_eval import write_shadow_eval_row
 
@@ -379,7 +378,8 @@ async def freeflow_respond_node(state: SageState, llm=None) -> dict:
         freeflow_gen_ms = int((time.monotonic() - _gen_t0) * 1000)
         return result
 
-    if NATIVE_ARABIC_SHADOW_ENABLED and state.get("detected_language") == "ar":
+    from sage_poc import config as _cfg  # noqa: PLC0415 — call-time read of the kill-switch
+    if _cfg.NATIVE_ARABIC_SHADOW_ENABLED and state.get("detected_language") == "ar":
         _timed_out = False
         async def _shadow_arm():
             nonlocal _timed_out
