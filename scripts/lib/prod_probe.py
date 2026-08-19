@@ -151,6 +151,10 @@ def _split_headers_and_payload(raw: str) -> tuple:
     remaining = raw
     last_header_text = ""
     found_any = False
+    # Theoretical edge: if the BODY itself happened to start with the literal text
+    # "HTTP/" (e.g. a proxied response echoing raw HTTP text as its payload), this loop
+    # would misread it as one more header block and keep consuming. Not something any
+    # of the five callers' /chat JSON bodies do in practice; noted as a known limit.
     while remaining.startswith("HTTP/"):
         split_at = None
         for sep in ("\r\n\r\n", "\n\n"):

@@ -180,7 +180,13 @@ def main():
             sids.append(sid)
             resp = _chat(args.url, key, ctx, r["utterance"], sid)
             if resp.startswith("__ERR__"):
+                # True exclusion (fix round 2, review Critical — not merely counted, EXCLUDED): a
+                # failed/errored turn has no real disposition to observe. Skip the audit-row poll
+                # (pointless on a request that never completed) and every downstream per-category
+                # aggregate (c["n"]/c["obs"]/c["conform"]) entirely — errors are reported top-line
+                # only, never folded into observed() as if they were a real presence_only turn.
                 errors += 1
+                continue
             # Condition-based wait (2026-07-30 instrument fix): deterministic terminals (derealization
             # referral) answer in <1s, so a fixed 0.5s sleep loses the race against the background audit
             # persist and the row reads back EMPTY -> misclassified presence_only. Poll until the row

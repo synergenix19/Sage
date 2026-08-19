@@ -283,12 +283,16 @@ def test_chat_status_takes_last_block_on_redirect(monkeypatch):
     delivered, not an intermediate 3xx/100-continue block."""
     raw = ("HTTP/1.1 301 Moved Permanently\r\nLocation: https://x/chat/\r\n\r\n"
            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n"
-           '{"message": "hi"}')
+           '{"message": "hi-after-redirect"}')
     monkeypatch.setattr(prod_probe.subprocess, "run", _fake_curl_run(raw))
     result = prod_probe.chat("sid-3", "hello", base_url="https://x", api_key="k")
     assert result.status == 200
     # the final block's headers, not the 301's, populate .headers
     assert result.headers.get("content-type") == "application/json"
+    # and the payload itself is the real body, not swallowed into the discarded 301 block
+    assert result.text == '{"message": "hi-after-redirect"}'
+    assert result.json == {"message": "hi-after-redirect"}
+    assert result.message == "hi-after-redirect"
 
 
 def test_chat_status_zero_on_malformed_response(monkeypatch):
