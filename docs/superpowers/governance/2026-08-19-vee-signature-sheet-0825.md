@@ -19,6 +19,7 @@ described here — what you rule on is what is running / what will run.
 is the canonical list"): a new behavioral-sign row for means-access rehearsal phrasing
 ("took out my old pills and counted them"), firing crisis deterministically, including
 mid-skill; with the must-NOT-fire exclusions (disposal, adherence, third-party custody).
+Tier consequence: fires T2 via your signed `s1_any` tier rule, like every S1 flag.
 Clinical basis inside the protocol itself: C §2's permitted safety question IS
 means-access assessment ("Do you have access to something you could use to hurt
 yourself?" — "standard means-restriction safety practice"); this surface escalates when
@@ -114,11 +115,20 @@ measurement trigger the moment the corpus lands.
 
 ## 7. Anger-with-harm Group-B patterns (canary lane — gates the 08-25 activation)
 
-**Approving:** the pattern content for the NEW rule `SK-EN-HTO-002` (anger-with-harm:
-the wall-punch-near-spouse class your 2026-07-09 ruling held) — activation then runs
-the pre-committed 72h time-boxed canary (`2026-08-18-219-canary-plan.md`: one
-must-NOT-fire trip = rollback, no averaging; active probe cells at every checkpoint).
-Group A ("want to hurt X") is live and untouched.
+**Approving:** the pattern content for the NEW rule `SK-EN-HTO-002`. Precision on your
+own record (2026-07-09 approval queue #2): you APPROVED Group A (explicit intent — live
+and untouched, fires T2 via your signed `s1_any` tier rule), and ratified the HOLD on
+the figurative Group-B list ("could kill him", "strangle", "could hurt him", "might do
+something I regret") with the recorded reason that a deterministic lexicon
+over-escalates figurative venting — your open ask was "rule Group B item-by-item".
+**The new patterns are a THIRD class, not the held list:** ACTION-EVIDENCE of harm
+proximity ("punched the wall next to her head" — physical acts near a person, no stated
+intent, nothing figurative). Your recorded over-escalation concern is honored by
+construction: the held figurative phrases sit in the canary's must-NOT-fire cells.
+Activation runs the pre-committed 72h time-boxed canary
+(`2026-08-18-219-canary-plan.md`: one must-NOT-fire trip = rollback, no averaging;
+active probe cells at every checkpoint). Like Group A, HTO-002 fires T2 via `s1_any` —
+signing includes that tier consequence.
 **Recommendation:** sign the pattern set in the canary plan's cell definitions. This
 guard is SPEC-MANDATED, not an extension: §4b's guard reads "anger with potential for
 harm to self or others … is safety-relevant, not a neutral psychoeducation moment;
@@ -128,7 +138,9 @@ without stated intent (wall-punch near a spouse) — covered by the guard's prin
 unreached by its examples. The must-NOT-fire wording (venting without harm content,
 media references, idioms) is marked PROPOSED for exactly this signature.
 
-> APPROVE SK-EN-HTO-002 patterns: ______  · amendments: ______
+> APPROVE SK-EN-HTO-002 (action-evidence) patterns: ______  · amendments: ______
+> OPTIONAL — your still-open 07-09 ask, if you want it closed in the same pass, Group B item-by-item:
+> "could kill him" __ · "strangle" __ · "could hurt him" __ · "might do something I regret" __ (blank = stays held)
 
 ## 8. Packet-2 items 1, 2, 4 (parallel lane — asks unchanged, listed for one walkthrough)
 
