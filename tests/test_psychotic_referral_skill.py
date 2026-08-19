@@ -1,3 +1,8 @@
+import pytest
+
+pytestmark = pytest.mark.safety_gate
+
+
 def test_psychotic_referral_skill_loads():
     from sage_poc.skills.schema import load_skill
     skill = load_skill("psychotic_referral")

@@ -10,6 +10,8 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc.prompts.composer import compose_prompt
 from sage_poc.skills.schema import Skill, SkillStep
 

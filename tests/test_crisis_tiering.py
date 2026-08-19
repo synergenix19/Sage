@@ -12,6 +12,8 @@ This file has two layers:
 import asyncio
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc.safety.crisis_tier import resolve_crisis_tier
 
 

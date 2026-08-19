@@ -10,6 +10,10 @@ Verbatim source (BOT BEHAVIOUR.docx, Category 3 High Anxiety > 3. Psychoeducatio
    If you have a heart condition, an irregular heartbeat, or you're pregnant, please
    skip those two steps or check with a doctor first."
 """
+import pytest
+
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc.skills.schema import load_skill
 
 

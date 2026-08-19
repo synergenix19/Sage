@@ -9,6 +9,8 @@ from sage_poc.rules.engine import _eval_safety
 from sage_poc.rules.schemas import SafetyRule
 from sage_poc.rules.loader import get_rules, reload_all
 
+pytestmark = pytest.mark.safety_gate
+
 
 def _make_cf006_rule(**overrides) -> SafetyRule:
     """Construct a live CF-006 rule for test use. active=True always."""

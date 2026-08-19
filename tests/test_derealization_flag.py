@@ -11,6 +11,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc.rules.engine import _eval_safety
 from sage_poc.rules.schemas import SafetyRule
 
