@@ -54,11 +54,16 @@ def should_defer_grief_over_crisis(state) -> bool:
     """True when the deterministic grief-presence deference applies this turn (pure; flag-checked by
     the caller, mirroring panic_override).
 
-    ALL must hold: intent_route returned crisis; safety_check was CLEAN (no crisis_flags — which
-    includes the cardiac Node-1 flag when active — no medical_flags, S3 below the hard threshold);
-    a clear bereavement signature is present; and there is NO harm-adjacency. Any harm hint, any
-    safety_check signal, or absent grief signature -> False (escalation stands).
+    ALL must hold: the turn is EN (detected_language == "en" or unset — non-EN turns never downgrade,
+    translated text must not drive a crisis downgrade, the #329/#330 class); intent_route returned crisis;
+    safety_check was CLEAN (no crisis_flags — which includes the cardiac Node-1 flag when active — no
+    medical_flags, S3 below the hard threshold); a clear bereavement signature is present; and there is
+    NO harm-adjacency. Any harm hint, any safety_check signal, absent grief signature, or a non-EN turn
+    -> False (escalation stands).
     """
+    if (state.get("detected_language") or "en") != "en":
+        return False   # EN-only term lists; AR rides the AR track (docstring contract).
+                       # Translated text must not drive a crisis downgrade (#329/#330 class).
     if state.get("primary_intent") != "crisis":
         return False
     if state.get("crisis_flags"):

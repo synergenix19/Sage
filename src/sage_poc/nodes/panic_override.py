@@ -85,10 +85,15 @@ def _has_panic_signature(text: str) -> bool:
 def should_ground_over_crisis(state) -> bool:
     """True when the deterministic panic-grounding override applies this turn (pure; flag-checked by caller).
 
-    ALL must hold: intent_route returned crisis; safety_check was CLEAN (no crisis_flags, S3 below the hard
-    threshold, no medical_flags); a clear panic signature is present; and there is NO harm-adjacency. Any harm
-    hint, any safety_check signal, or absent panic signature -> False (escalation stands).
+    ALL must hold: the turn is EN (detected_language == "en" or unset — non-EN turns never downgrade,
+    translated text must not drive a crisis downgrade, the #329/#330 class); intent_route returned crisis;
+    safety_check was CLEAN (no crisis_flags, S3 below the hard threshold, no medical_flags); a clear panic
+    signature is present; and there is NO harm-adjacency. Any harm hint, any safety_check signal, absent
+    panic signature, or a non-EN turn -> False (escalation stands).
     """
+    if (state.get("detected_language") or "en") != "en":
+        return False   # EN-only term lists; AR rides the AR track (docstring contract).
+                       # Translated text must not drive a crisis downgrade (#329/#330 class).
     if state.get("primary_intent") != "crisis":
         return False
     if state.get("crisis_flags"):
