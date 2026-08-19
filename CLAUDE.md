@@ -42,4 +42,11 @@ The rule, mechanical form:
 - If reading a working tree anyway, run `git branch --show-current` first and include the ref in the citation. A quote of "current" state from a non-master ref is not evidence.
 - This is the read-side twin of the existing compare rule (no bare stash; compare via `git show origin/master:` or a temp worktree).
 
-Origin: 2026-08-19 — a stale-checkout read of `config.py` (main checkout on a feature branch predating the H4 crisis-config adoption) produced a false safety finding that reached a PR record twice before being run to ground and retracted (PR #457). Convention to complete the fix: when the current feature branch on the main checkout lands, park the main checkout on master and keep it there.
+Origin: 2026-08-19 — a stale-checkout read of `config.py` (main checkout on a feature branch predating the H4 crisis-config adoption) produced a false safety finding that reached a PR record twice before being run to ground and retracted (PR #457).
+
+**Escalated the same day, after the class recurred on the WRITE side.** A targeted corpus repair run from that same parked checkout shipped pre-refresh Arabic articles into production, reverting two clinician-approved citation upgrades. It was caught by a post-write integrity comparison, not prevented. Two consequences:
+
+- **Writes are guarded in code, not by this rule.** `scripts/prod_write_guard.py` (`assert_source_ref`) refuses any prod write unless the guarded paths are byte-identical to `origin/master`, and is mandatory in `scripts/repair_corpus_articles.py`. This section remains the READ-side rule; the two are complementary, not redundant.
+- **Un-parking the main checkout is no longer deferred** to "when the current feature branch lands". That checkout has now caused a bad prod write, and 46 corpus files diverge on it. Park it on master this week, coordinated with whoever holds its state — do not yank another session's working tree.
+
+The scheduling lesson is worth stating plainly: this rule existed as an open, unmerged PR for the entire window in which the incident happened. **A defense that is written but not landed is indistinguishable from absent at the moment it is needed.**
