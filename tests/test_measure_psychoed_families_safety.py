@@ -74,6 +74,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 import sage_poc.config as config
 from tests.conftest import make_mock_llm
 

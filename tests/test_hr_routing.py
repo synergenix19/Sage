@@ -9,6 +9,8 @@ behind HIGH_RISK_DETECTION_ENABLED.
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 import sage_poc.config as config
 from sage_poc.safety.hr_disclosure import hr_disclosure_present
 

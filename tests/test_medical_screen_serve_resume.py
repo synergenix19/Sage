@@ -7,6 +7,8 @@ GATE 0 acceptance (2026-07-17-d1-serve-resume-gate0-acceptance.md), constraint 1
 """
 import hashlib, json, pathlib
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from sage_poc import config
 from sage_poc.safety import medical_screen as ms
 

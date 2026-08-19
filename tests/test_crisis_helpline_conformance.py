@@ -14,6 +14,9 @@ possibly-correct value).
 from pathlib import Path
 from sage_poc.config import CRISIS_CONFIG
 from sage_poc.crisis_copy import resolve_crisis_placeholders
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 _NUM = CRISIS_CONFIG["number"]
 _ROOT = Path(__file__).resolve().parents[1] / "src" / "sage_poc"

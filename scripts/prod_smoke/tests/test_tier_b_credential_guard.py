@@ -10,6 +10,9 @@ a missing storage state still gets the credential hygiene check.
 """
 import sys
 from pathlib import Path
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 _PROD_SMOKE_DIR = Path(__file__).resolve().parent.parent
 if str(_PROD_SMOKE_DIR) not in sys.path:

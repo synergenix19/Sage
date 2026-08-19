@@ -14,6 +14,8 @@ import re
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc.crisis_copy import resolve_crisis_placeholders
 from sage_poc.safety.hr_copy import (
     HR_DISTRESS_QUESTION_POOL,
