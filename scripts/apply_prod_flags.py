@@ -38,7 +38,21 @@ import urllib.request
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REGISTER_PATH = os.path.join(REPO, "config", "prod_flags.yaml")
-DEFAULT_BASE_URL = "https://sage-api-production-3328.up.railway.app"
+def _default_base_url() -> str:
+    """Prefer the host Railway reports over a hardcoded one.
+
+    The hardcoded value below is correct today, and this function exists for when it stops
+    being. A stale host does not error visibly — it 404s, and a 404 body simply has no
+    *_raw_env fields, which reads identically to "the serving process has that flag unset".
+    On 2026-08-19 a readback aimed at a superseded domain produced exactly that, and was
+    one step from being read as the KB abstain gate running fail-open in production.
+    A 404 is not a measurement, so resolve the target rather than remember it.
+    """
+    host = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "").strip()
+    return f"https://{host}" if host else "https://sage-api-production-3328.up.railway.app"
+
+
+DEFAULT_BASE_URL = _default_base_url()
 DEFAULT_SERVICE = "sage-api"
 
 
