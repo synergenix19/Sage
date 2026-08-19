@@ -209,10 +209,10 @@
     {
       "id": "gov270_rule_SK-EN-004",
       "selector": "saferule:src/sage_poc/rules/data/safety/crisis_keywords.json:SK-EN-004",
-      "sha256": "a63dc5faa73ff8c31e8aa6ca0ef046bb51c9567ca7d62d5010b30f9c1574f2c4",
+      "sha256": "05dad78d2c271506d152ae0ae6a718897bc67db6e87e990b1aefeb22823fae38",
       "signed_by": "Vee (clinical lead)",
       "signed_date": "2026-07-15",
-      "signoff": "GOV-270 approval sheet (docs/escalations/2026-07-15-270-approval-sheet.md, ea49af17, PR #323); duplicate-approved_by null artifact remediated + record confirmed via consolidated packet 2026-08-18 (Vee via PO relay)"
+      "signoff": "GOV-270 approval sheet (docs/escalations/2026-07-15-270-approval-sheet.md, ea49af17, PR #323); duplicate-approved_by null artifact remediated + record confirmed via consolidated packet 2026-08-18 (Vee via PO relay); kin-variant parity (sister/brother wants-to-die/kill-her/himself) ticked by Vee 2026-08-19 (r4-flip-review/2026-08-19-sitting-ticks-record.md B3) — closes the ADV1 lexicon accident"
     },
     {
       "id": "gov270_rule_SK-EN-005",

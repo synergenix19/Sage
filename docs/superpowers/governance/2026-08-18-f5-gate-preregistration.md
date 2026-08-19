@@ -38,3 +38,10 @@ against the governing oracle) stands unchanged.**
 If Vee does not confirm the flow property: R3's fallback applies — she sets an explicit
 detector-level FP tolerance, and this pre-registration is re-issued with that number in
 place of the stage-2 clause before any F5 measurement.
+
+**Condition status update (2026-08-19, sitting-ticks record):** condition (1) — Vee's
+confirmation of the flow property — is SATISFIED (A3 tick, with her PHQ-2→PHQ-9 two-stage
+citation). The revised gate becomes the gate of record when condition (2) lands: the
+clinician-signed transient-presenter fixture set (one clean candidate confirmed, the
+boundary candidate struck per A5, her own transience-marked phrases pending at signing).
+Until (2): the ≥0.90/≤0.00 gate remains formally in force.
