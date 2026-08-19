@@ -73,6 +73,55 @@ _bge_ready: bool = False
 # and separating), "failed" (headless/no-separation — readiness is also withheld → 503).
 _reranker_status: str = "pending"
 
+# Corpus sync + PR #519 integrity-gate outcome, surfaced on /health so the result is
+# READABLE rather than inferred from logs that are never emitted (see the sync block).
+# "not_run" is the honest starting state: it means exactly that, not "fine".
+_corpus_status: dict = {"state": "not_run", "integrity": "unknown", "detail": None}
+
+# Readiness DB probe cache: (monotonic_ts, ok, detail). Railway healthchecks run ONLY at
+# deploy time (documented: "not used for continuous monitoring"), so this cannot cause a
+# restart loop — the cache exists so repeated probes cannot hammer or hang the pool.
+_DB_PROBE_TTL_SECONDS = 5.0
+_DB_PROBE_TIMEOUT_SECONDS = 3.0
+_db_probe_cache: tuple[float, bool, str] | None = None
+
+
+async def _db_probe() -> tuple[bool, str]:
+    """Is the database actually reachable from this process? (SELECT 1, bounded.)
+
+    Bounded by design: a HUNG pool must not hang the health endpoint — that would turn a
+    database problem into an unresponsive service. A timeout is a failed probe, not a wait.
+    """
+    global _db_probe_cache
+    now = time.monotonic()
+    if _db_probe_cache and (now - _db_probe_cache[0]) < _DB_PROBE_TTL_SECONDS:
+        return _db_probe_cache[1], _db_probe_cache[2]
+
+    pool = getattr(app.state, "_db_pool", None)
+    if pool is None:
+        ok, detail = False, "no pool (startup database connection failed)"
+    else:
+        try:
+            async with asyncio.timeout(_DB_PROBE_TIMEOUT_SECONDS):
+                async with pool.acquire() as conn:
+                    await conn.fetchval("SELECT 1")
+            ok, detail = True, "ok"
+        except TimeoutError:
+            ok, detail = False, f"timeout after {_DB_PROBE_TIMEOUT_SECONDS}s (pool hung or saturated)"
+        except Exception as exc:
+            ok, detail = False, f"{type(exc).__name__}: {exc}"[:200]
+    _db_probe_cache = (now, ok, detail)
+    return ok, detail
+
+
+def _checkpointer_present() -> bool:
+    """False is the staging-2026-07-30 shape: graph built with checkpointer=None because
+    the database was unreachable at startup. Turns are then served with no persistence
+    and no conversation state, and the chat path swallows it (its checkpoint read is
+    deliberately non-fatal), so nothing surfaces."""
+    graph = getattr(app.state, "_graph", None)
+    return bool(graph is not None and getattr(graph, "checkpointer", None) is not None)
+
 
 async def require_api_key(x_sage_api_key: str | None = Header(default=None)) -> None:
     _expected_key = os.environ.get("SAGE_API_KEY", "")
@@ -318,11 +367,23 @@ async def _corpus_sync_task(pool) -> None:
         corpus_dir = os.environ.get("SAGE_CORPUS_DIR", str(default_dir))
         prune = os.environ.get("SAGE_CORPUS_PRUNE", "0") == "1"
         result = await sync_corpus(corpus_dir, pool, prune=prune)
+        # Record the outcome where a READBACK can see it. The success line below is
+        # _log.info on this module's logger, and only "sage.latency"/"sage_poc.resilience"
+        # are wired for INFO — so it is never emitted. That made the PR #519 integrity
+        # gate unobservable in prod: its absence from the logs was indistinguishable from
+        # "the gate never ran". A gate you cannot observe is half a gate.
+        _corpus_status.update({
+            "state": "ok", "ingested": result.ingested, "skipped": result.skipped,
+            "pruned": result.pruned, "chunks": result.chunks,
+            "locked_out": result.locked_out, "integrity": "verified", "detail": None,
+        })
         _log.info(
             "[sage/startup] corpus sync: ingested=%d skipped=%d pruned=%d chunks=%d locked_out=%s",
             result.ingested, result.skipped, result.pruned, result.chunks, result.locked_out,
         )
     except CorpusIntegrityError as exc:
+        _corpus_status.update({"state": "integrity_failure", "integrity": "MISMATCH",
+                               "detail": str(exc)[:500]})
         # The table does not match the corpus files. Serving continues on whatever
         # survived, so this must never read as a benign skip: name the articles.
         _log.error(
@@ -337,6 +398,8 @@ async def _corpus_sync_task(pool) -> None:
         # that mattered: a partially-applied sync leaves rows deleted, so retrieval
         # SERVES A PARTIAL CORPUS rather than abstaining. Fail-open plus an
         # inaccurate message is two layers of silence.
+        _corpus_status.update({"state": "sync_failed", "integrity": "unknown",
+                               "detail": str(exc)[:500]})
         _log.error(
             "[sage/startup] corpus sync FAILED — the corpus may be partially applied "
             "(this path deletes before it re-inserts). Serving continues on whatever "
@@ -869,6 +932,33 @@ async def health_ready():
             status_code=503,
             detail="Service warming up — BGE-M3 index not ready",
         )
+    # DATABASE ASSERTION (2026-08-19). Readiness previously gated on _bge_ready alone, so a
+    # process that could not reach Postgres reported healthy and was routed live traffic. Not
+    # hypothetical: staging ran exactly that way on 2026-07-30 — POST /chat answering 200 OK,
+    # every session_audit write failing, checkpointer None, /health/ready green throughout —
+    # and it went unnoticed for three weeks.
+    #
+    # Why FAIL rather than report-degraded: session_audit is the PDPL audit trail. Serving
+    # clinical turns with no audit record is not a state we should accept traffic in, so
+    # "healthy but unauditable" must not be representable here.
+    #
+    # Why this cannot cause a restart loop or an outage: Railway runs healthchecks ONLY at
+    # deploy time — "the healthcheck endpoint is currently not used for continuous
+    # monitoring" — so a 503 here blocks a BAD DEPLOY from going live and does nothing to an
+    # already-running container. That is also the limit of this control, and precisely why
+    # the same facts are surfaced on /health/version: for a running service nothing acts on
+    # this signal, so it must be observable instead.
+    db_ok, db_detail = await _db_probe()
+    ckpt_ok = _checkpointer_present()
+    if not (db_ok and ckpt_ok):
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Database not ready — refusing traffic rather than serving without an audit "
+                f"trail. database={db_detail}; checkpointer="
+                f"{'present' if ckpt_ok else 'ABSENT (graph built with checkpointer=None)'}"
+            ),
+        )
     # Two deploy-gate signals on one 200 (Task 10 two-endpoint gate):
     #  - routing_mode (master #138): truthful V1/V2 label so a set flag never advertises an absent reranker.
     #  - reranker_head_control (V2): "passed" (or "disabled" when off) confirms the deployed reranker is
@@ -957,6 +1047,19 @@ async def health_version(_: None = Depends(require_api_key)):
         # SERVED state the flag-parity guard could not assert (it fell back to DESIRED). Resolved + raw,
         # same pattern; the guard's _map_health_to_sage turns *_raw_env into the SAGE_ names it compares.
         "cosine_abstain_threshold": _c.COSINE_ABSTAIN_THRESHOLD,
+        # Runtime persistence + corpus state. Readiness only gates DEPLOYS (Railway does not
+        # poll it afterwards), so for a running service these fields are the ONLY way the
+        # 2026-07-30 shape — serving fine, persisting nothing — becomes visible. corpus_*
+        # also gives the PR #519 integrity gate an observable result: its success line is
+        # _log.info on an unconfigured logger and is never emitted, so "no log" previously
+        # meant "ran and passed" and "never ran" indistinguishably.
+        "db_reachable": (await _db_probe())[0],
+        "db_probe_detail": (await _db_probe())[1],
+        "checkpointer_present": _checkpointer_present(),
+        "corpus_sync_state": _corpus_status.get("state"),
+        "corpus_integrity": _corpus_status.get("integrity"),
+        "corpus_chunks_synced": _corpus_status.get("chunks"),
+        "corpus_detail": _corpus_status.get("detail"),
         "cosine_abstain_threshold_raw_env": os.environ.get("SAGE_COSINE_ABSTAIN_THRESHOLD"),
         # Whether this process is permitted to run the KB abstain gate OPEN with the
         # threshold unset. Readback-exposed so measurement parity can be asserted
