@@ -57,6 +57,16 @@ def resolve_creds(*, use_env: bool = True) -> Creds:
     the default — every one of the five originals honors an env override); otherwise (or
     when use_env=False) shells out to `railway variables --json`, matching the pattern all
     five callers already use for the production project.
+
+    The railway fallback is opt-in only: it pulls live prod credentials (a verification
+    run once had this fallback fire silently and land those credentials in a session
+    transcript). It runs ONLY when SAGE_ALLOW_RAILWAY_FALLBACK=1 is set in the env; otherwise,
+    with env vars absent, this raises RuntimeError telling the operator to export
+    SAGE_API_KEY/DATABASE_URL or set the gate var — never a silent live-credential pull.
+
+    Once the railway fallback does run, a variable missing from `railway variables --json`
+    raises immediately (fail-fast), naming the missing variable — it never silently
+    resolves to an empty string, matching the original scripts' dict-indexing behavior.
     """
     if use_env:
         api_key = os.environ.get("SAGE_API_KEY")
@@ -68,11 +78,25 @@ def resolve_creds(*, use_env: bool = True) -> Creds:
                 test_user_ids=os.environ.get("SAGE_TEST_USER_IDS", ""),
                 raw={},
             )
+    if os.environ.get("SAGE_ALLOW_RAILWAY_FALLBACK") != "1":
+        raise RuntimeError(
+            "resolve_creds(): SAGE_API_KEY / DATABASE_URL not both set in the environment, "
+            "and the `railway variables` fallback is not opted in. Either export "
+            "SAGE_API_KEY and DATABASE_URL yourself, or set SAGE_ALLOW_RAILWAY_FALLBACK=1 "
+            "to allow this to shell out to `railway variables --json` and pull live prod "
+            "credentials into this session."
+        )
     env = {**os.environ, "RAILWAY_CALLER": _RAILWAY_CALLER_TAG}
     raw = json.loads(subprocess.check_output(["railway", "variables", "--json"], text=True, env=env))
+    missing = [k for k in ("SAGE_API_KEY", "DATABASE_URL") if k not in raw]
+    if missing:
+        raise RuntimeError(
+            f"resolve_creds(): `railway variables --json` did not return: {', '.join(missing)}. "
+            "Check that the linked railway project/environment/service is correct."
+        )
     return Creds(
-        api_key=raw.get("SAGE_API_KEY", ""),
-        database_url=raw.get("DATABASE_URL", ""),
+        api_key=raw["SAGE_API_KEY"],
+        database_url=raw["DATABASE_URL"],
         test_user_ids=raw.get("SAGE_TEST_USER_IDS", ""),
         raw=raw,
     )
