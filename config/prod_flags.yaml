@@ -204,8 +204,24 @@ flags:
   # ---- retrieval / skill routing ------------------------------------------------
   SAGE_COSINE_ABSTAIN_THRESHOLD:
     value: "0.42"
-    class: feature
-    note: "authoritative KB abstain gate (PR#86); rollback = 0.0 (fail-open)"
+    class: safety
+    note: "authoritative KB abstain gate (PR#86); rollback = 0.0 (fail-open, must be written
+      explicitly since 2026-08-19 — unset now raises). RECLASSIFIED feature -> safety
+      2026-08-19: the PR #512 measurement showed this value is what stands between an
+      off-topic query and crisis content (at 0.42 without the ivfflat index, 'where can I
+      find job platforms in the UAE' surfaces crisis-002-en at 0.544). Under the 2026-07-28
+      taxonomy — screens/preempts/terminates on risk content -> safety — feature class was a
+      misclassification, and it meant this gate carried feature-flag change control. Pending
+      value 0.58 + clinician signature: see docs/governance/2026-08-19-vee-packet-retrieval-
+      abstain-threshold.md; signed_value to be added when Vee signs."
+  SAGE_ALLOW_UNSET_ABSTAIN_THRESHOLD:
+    value: null
+    class: safety
+    note: "MUST REMAIN UNSET IN PROD. Local-tooling escape hatch (2026-08-19): permits a
+      process to run with SAGE_COSINE_ABSTAIN_THRESHOLD unset, which means the KB abstain
+      gate is FAIL-OPEN (0.0) and retrieval never abstains. Logs at ERROR when used. Exists
+      so scripts that do not exercise retrieval need not carry the threshold; setting it on a
+      serving process would silently disable the gate this register classes as safety."
   SAGE_KNOWLEDGE_ABSTAIN_THRESHOLD:
     value: null
     class: feature

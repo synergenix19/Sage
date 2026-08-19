@@ -958,6 +958,11 @@ async def health_version(_: None = Depends(require_api_key)):
         # same pattern; the guard's _map_health_to_sage turns *_raw_env into the SAGE_ names it compares.
         "cosine_abstain_threshold": _c.COSINE_ABSTAIN_THRESHOLD,
         "cosine_abstain_threshold_raw_env": os.environ.get("SAGE_COSINE_ABSTAIN_THRESHOLD"),
+        # Whether this process is permitted to run the KB abstain gate OPEN with the
+        # threshold unset. Readback-exposed so measurement parity can be asserted
+        # mechanically: a non-null value here means retrieval never abstains, and any
+        # evidence produced against it is not comparable to production.
+        "allow_unset_abstain_threshold_raw_env": os.environ.get("SAGE_ALLOW_UNSET_ABSTAIN_THRESHOLD"),
         "panic_grounding_override_enabled": _c.PANIC_GROUNDING_OVERRIDE_ENABLED,
         "panic_grounding_override_raw_env": os.environ.get("SAGE_PANIC_GROUNDING_OVERRIDE"),
         "derealization_detection_enabled": _c.DEREALIZATION_DETECTION_ENABLED,

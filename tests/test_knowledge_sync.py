@@ -131,6 +131,34 @@ def test_plan_prune_disabled_keeps_db_only_articles():
 
 
 # ---------------------------------------------------------------------------
+# Abstain-gate fail-closed default (2026-08-19). The gate must not run open just
+# because nobody set the variable.
+# ---------------------------------------------------------------------------
+
+def test_abstain_threshold_raises_when_unset_outside_test_context(monkeypatch):
+    from sage_poc.config import _abstain_threshold
+    monkeypatch.delenv("SAGE_COSINE_ABSTAIN_THRESHOLD", raising=False)
+    monkeypatch.delenv("SAGE_ALLOW_UNSET_ABSTAIN_THRESHOLD", raising=False)
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    monkeypatch.setitem(__import__("sys").modules, "pytest", None)
+    monkeypatch.delitem(__import__("sys").modules, "pytest")
+    with pytest.raises(RuntimeError, match="SAGE_COSINE_ABSTAIN_THRESHOLD"):
+        _abstain_threshold()
+
+
+def test_abstain_threshold_explicit_zero_is_honoured_as_deliberate_rollback(monkeypatch):
+    from sage_poc.config import _abstain_threshold
+    monkeypatch.setenv("SAGE_COSINE_ABSTAIN_THRESHOLD", "0.0")
+    assert _abstain_threshold() == 0.0
+
+
+def test_abstain_threshold_reads_the_configured_value(monkeypatch):
+    from sage_poc.config import _abstain_threshold
+    monkeypatch.setenv("SAGE_COSINE_ABSTAIN_THRESHOLD", "0.58")
+    assert _abstain_threshold() == 0.58
+
+
+# ---------------------------------------------------------------------------
 # Post-sync integrity assertion (2026-08-19). Regression cover for the tear that
 # left anxiety-001-ar absent and wellbeing-001-ar truncated to 1 of 4 chunks in
 # prod: the sync deletes a prefix, commits, then re-inserts on a separate pooled
