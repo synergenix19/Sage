@@ -57,6 +57,9 @@ def _config_sage_vars():
     not narrow."""
     src = open(os.path.join(REPO, "src/sage_poc/config.py"), encoding="utf-8").read()
     out = {}
+    # KEYWORD-ORDER-FRAGILE: default_on must immediately follow the env-name positional arg in
+    # every _strict_flag(...) call site (config.py's stated convention above _strict_flag's def) —
+    # this regex only recovers the True/False default from that exact position.
     for m in re.finditer(
         r'os\.getenv\(\s*"(SAGE_[A-Z0-9_]+)"\s*(?:,\s*"([^"]*)")?'
         r'|_strict_flag\(\s*"(SAGE_[A-Z0-9_]+)"(?:\s*,\s*default_on\s*=\s*(True))?',

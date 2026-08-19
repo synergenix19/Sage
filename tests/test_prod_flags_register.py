@@ -46,9 +46,22 @@ def _register():
 
 
 def _config_sage_vars():
-    """Same enumeration principle as the parity runner's regex: every SAGE_* getenv in config.py."""
+    """Same enumeration principle as the parity runner's regex: every SAGE_* getenv OR
+    _strict_flag() call in config.py — identical alternation to
+    scripts/instrument/graph_evidence.py::config_sage_vars /
+    measure_layer1_fullgraph.py::_config_sage_vars (K2.1 migrated the strict-parse
+    flags onto the shared _strict_flag() helper, so a flag can be text-derived
+    from either idiom). KEYWORD-ORDER-FRAGILE: only the name is needed here, but the
+    _strict_flag branch mirrors the other four scanners' pattern for consistency."""
     src = open(_CONFIG, encoding="utf-8").read()
-    return sorted({m.group(1) for m in re.finditer(r'os\.getenv\(\s*"(SAGE_[A-Z0-9_]+)"', src)})
+    names = set()
+    for m in re.finditer(
+        r'os\.getenv\(\s*"(SAGE_[A-Z0-9_]+)"\s*(?:,\s*"([^"]*)")?'
+        r'|_strict_flag\(\s*"(SAGE_[A-Z0-9_]+)"(?:\s*,\s*default_on\s*=\s*(True))?',
+        src,
+    ):
+        names.add(m.group(1) or m.group(3))
+    return sorted(names)
 
 
 # ---------------------------------------------------------------------------

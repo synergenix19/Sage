@@ -25,10 +25,17 @@ REGISTER_PATH = os.path.join(REPO, "config", "prod_flags.yaml")
 
 # One pattern per read idiom; a literal-name read is the unit of coverage. Dynamic reads
 # (variable names) cannot be enumerated and must not be introduced for behavior flags.
+# The _strict_flag(...) pattern covers config.py's single strict-parse helper (K2.1): its
+# own internal os.getenv(env_name) call is a DYNAMIC read (env_name is a parameter, not a
+# literal) and would otherwise be invisible to the first three patterns, silently dropping
+# every migrated flag out of coverage. KEYWORD-ORDER-FRAGILE (name-only here, so this
+# pattern doesn't depend on default_on's position, but the other four SAGE_-scoped
+# scanners do — see the convention comment above _strict_flag in config.py).
 _READ_PATTERNS = (
     re.compile(r'os\.getenv\(\s*["\']([A-Z][A-Z0-9_]+)["\']'),
     re.compile(r'os\.environ\.get\(\s*["\']([A-Z][A-Z0-9_]+)["\']'),
     re.compile(r'os\.environ\[\s*["\']([A-Z][A-Z0-9_]+)["\']'),
+    re.compile(r'_strict_flag\(\s*["\']([A-Z][A-Z0-9_]+)["\']'),
 )
 
 _SOURCE_ROOTS = ("src", "server.py")

@@ -11,7 +11,15 @@ def _strict_flag(env_name: str, *, default_on: bool = False, label: str = "") ->
     """Strict kill-switch parse (Railway empty-string RCA, 2026-07-28 discipline).
     default_on=False: only literal 'true' enables; anything else warns (if non-empty
     and not 'false') and stays OFF. default_on=True: only literal 'false' disables;
-    anything else warns (if not 'true') and stays ON. Never silently flips a signed default."""
+    anything else warns (if not 'true') and stays ON. Never silently flips a signed default.
+
+    CONVENTION (binding): at every call site, keep default_on as the FIRST kwarg,
+    immediately after the env-name positional arg (never label before default_on). Five
+    source-scanning regexes depend on this exact keyword order to recover a flag's default
+    from static text (scripts/instrument/graph_evidence.py, scripts/bot_behaviour_audit/
+    measure_layer1_fullgraph.py, tests/test_prod_flags_register.py,
+    tests/test_health_version_full_readback.py, scripts/check_env_register_coverage.py) —
+    reordering the kwargs silently mis-derives that flag's prod-parity default."""
     raw = os.getenv(env_name)
     want = "false" if default_on else "true"
     if raw is not None and raw.strip().lower() == want:
