@@ -43,9 +43,10 @@
   },
   {
    "id": "cardiac_escalation",
-   "source": "src/sage_poc/safety/cardiac_escalation.py:_DEATH_FEAR",
+   "source": "src/sage_poc/safety/cardiac_escalation.py:CARDIAC_CLASS_PATTERNS",
    "disposition": "crisis",
-   "note": "Node-1 deterministic death-fear x air-hunger CONJUNCTION -> crisis (item-3 realization, BUILT INERT 2026-07-31, flag SAGE_CARDIAC_ESCALATION). Fires only on the co-occurrence; either term set alone stays with existing routing. Pattern source = panic_override's own tuples (imported, single-sourced) so the override's deference and this escalation cannot drift."
+   "note": "Node-1 deterministic cardiac red-flag escalation -> crisis (item-3 realization, BUILT INERT 2026-07-31, ACTIVATED register change #4, flag SAGE_CARDIAC_ESCALATION). RE-KEYED 2026-08-19 to the SIGNED phrasing CLASS (approval record item 2): the spec's universal red-flag family — chest pressure/heaviness (standalone); crushing/stabbing/searing x chest-region (conjunction); pain-spreading x arm/jaw/back x pain-context (conjunction); one-sided-site x numbness/weakness (conjunction); death-fear/somatic-wrongness x air-hunger-or-chest-symptom (conjunction). The original death-fear x air-hunger conjunction is KEPT verbatim (superset, never-narrow), still imported from panic_override's tuples (single-sourced, cannot drift). Exported flat set carries each arm's DISTINGUISHING terms (the original entry's own convention: it exported _DEATH_FEAR, not _AIR_HUNGER); bare context gates (_CHEST_REGION/_PAIN_CONTEXT/_AIR_HUNGER) are not triggers. NOT-boundary signed: panic breathlessness alone + the two §1c presence cells never fire; chest-TIGHTNESS phrasing deliberately absent from every tuple.",
+   "signed": "Vee (clinical lead) 2026-08-19 — PO relay; record: 2026-08-19-vee-approval-record-signature-sheet.md, item 2 (supersedes-and-extends item-3 2026-07-30; disposition unchanged)"
   },
   {
    "id": "grief_defer",
@@ -70,8 +71,14 @@
   {
    "a": "cardiac_escalation",
    "b": "panic_ground",
-   "resolution": "BY CONSTRUCTION, single-sourced: cardiac_escalation fires ONLY on the death-fear x air-hunger CONJUNCTION — the exact class panic_override's own deference refuses to ground (same imported tuples, cannot drift). Shared death-fear terms alone (no air-hunger) stay panic_ground's; the conjunction is cardiac_escalation's (crisis), enforced at Node-1 BEFORE the override's altitude. Ruling: Vee item-3 2026-07-30 (class stays at crisis).",
-   "signed": "Vee item-3 2026-07-30 (PO relay); activation tick pending (2026-07-31-cardiac-node1-one-tick-vee.md)"
+   "resolution": "ALTITUDE PRECEDENCE + single-sourcing. (a) Original conjunction: cardiac_escalation's death-fear x air-hunger arm uses panic_override's own imported tuples — the exact class the override's deference refuses to ground (cannot drift); shared death-fear terms alone (no air-hunger, no chest symptom) stay panic_ground's. (b) 2026-08-19 widening (approval record item 2): the red-flag family arms (chest pressure/heaviness, quality-x-chest, radiation, one-sided numb/weak, wrongness-x-somatic) fire at Node-1 BEFORE the override's altitude — the flag lands in crisis_flags and should_ground_over_crisis refuses any turn carrying crisis_flags, so a red-flag turn can never be grounded even where it also carries a panic term (e.g. the 1C-3 paraphrase's 'hammering'). Chest-TIGHTNESS phrasing is deliberately absent from cardiac's tuples so the §1c-A grounding surface survives (tested both directions, tests/test_cardiac_escalation.py).",
+   "signed": "Vee item-3 2026-07-30 (PO relay); widened under Vee (clinical lead) 2026-08-19 — PO relay; record: 2026-08-19-vee-approval-record-signature-sheet.md, item 2"
+  },
+  {
+   "a": "cardiac_escalation",
+   "b": "dissociation_disclosure",
+   "resolution": "Term-level witness only ('numb' is a substring of dissociation's 'i feel completely numb and absent'). Scoping: cardiac's numbness arm REQUIRES a one-sided body-site term co-occurring (one side / left-right side-arm-leg / half-of-face-body); emotional numbness without a side term stays CF-008's. On a turn carrying BOTH (e.g. dissociative numbness plus a one-sided site), both mechanisms may match and crisis precedence wins (SAFETY_ROUTE_ORDER: crisis before hr_referral) — the conservative direction for a possible stroke presentation.",
+   "signed": "Vee (clinical lead) 2026-08-19 — PO relay; record: 2026-08-19-vee-approval-record-signature-sheet.md, item 2 (family includes one-sided numbness/weakness)"
   },
   {
    "a": "dissociation_disclosure",
