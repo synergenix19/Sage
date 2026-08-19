@@ -45,3 +45,18 @@ deference does NOT apply during monitoring (first-person context wins; helper re
 may append; the acute-context framing never yields) — any ambiguity between third-party
 and first-person readings fails toward crisis, per the ratified boundary. No ambiguity
 case carries a fail-toward-support default anywhere in this package.
+
+**Amendment 3 (owner conditions restored, 2026-08-19):** two verify-before-launch lines
+join the prerequisites. (a) The immediate-danger third-party variant (999-led on
+plan/means/intent-now reports) is signed with its trigger boundary and native AR twin —
+the base helper content alone does not cover the "pills in her hand right now" report.
+(b) At flip time, the served crisis copy's hours claims are verified TRUE against the
+live resource (the helpline placeholder currently resolves to "8am–8pm daily") and the
+after-hours presentation (night variant / named 24/7 line) is a decided state, never a
+discovered one.
+
+**Process lesson (recorded here and in the practices list):** these two conditions were
+attached to the merge approval conversationally and were lost in transport before the
+merge landed — conditional approvals must name their conditions IN the PR description or
+merge commit, so no auto/watchdog merge can land an approval while shedding its
+conditions; the merge gate checks the condition list, not just the approval bit.

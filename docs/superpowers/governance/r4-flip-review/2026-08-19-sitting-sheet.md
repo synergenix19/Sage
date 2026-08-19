@@ -62,6 +62,30 @@ resolve to the live helpline):
 
 [ ] approve / edits: ____________
 
+**B1a. Immediate-danger third-party variant (owner condition, restored 2026-08-19).**
+The approved text above serves helpline-first. If a helper's report indicates plan, means,
+or intent NOW — "she has pills in her hand right now" — helpline-first is the wrong
+presentation: **RECOMMENDED: a 999-led variant** (emergency first; stay-with-them guidance;
+the helpline as follow-on), per the presentation rule of leading with the most urgent
+resource when urgency is indicated. Without this variant, the content as approved serves
+helpline-first to "pills in her hand right now" — and nobody will have decided that on
+purpose.
+- [ ] approve the 999-led variant principle (engineering drafts the text from your tick,
+  you sign it; it needs its own native `ar_uae` twin per the boot guard)
+- [ ] author/tick the trigger boundary: what in a helper's REPORT counts as intent-now
+  (your vocabulary, EN + Gulf Arabic, this sitting) — ambiguity fails toward the more
+  urgent presentation
+
+**B1b. After-hours coverage (owner condition, restored 2026-08-19).** Verified fact: the
+helpline placeholder resolves to "8am–8pm daily" — from 8pm to 8am, the line your helper
+content leads with is closed, while the text still presents it first.
+- [ ] **RECOMMENDED: hours-aware crisis copy** — a night variant leading with 999 (or a
+  named 24/7 line if you designate one) — OR [ ] name a 24/7 alternative resource for
+  CRISIS_RESOURCES / [ ] other: ____
+- Inherited into the flip predeclaration as a verify-before-launch line: at flip time,
+  the served copy's hours claims are verified true and the after-hours presentation is
+  decided — not discovered.
+
 **B2. Author the `ar_uae` twin natively** (the boot guard forbids EN-only activation);
 the AR adversarial fixture in the same sitting.
 
