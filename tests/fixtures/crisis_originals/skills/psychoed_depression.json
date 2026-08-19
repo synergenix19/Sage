@@ -151,9 +151,9 @@
   ],
   "escalation_matrix": {
     "L1": "Exit skill gracefully if user requests to stop. No persuasion. Acknowledge that looking at what depression is takes courage.",
-    "L2": "Add clinician_review flag if user describes symptoms consistent with moderate to severe depression affecting daily function, or if they mention it has lasted longer than 2 weeks with no relief.",
-    "L3": "Exit immediately to crisis protocol if any crisis signal or suicidal ideation is detected during the session.",
-    "L4": "Trigger human handoff if 3 or more crises detected in the last 30 days, or if user explicitly requests a human clinician."
+    "L2": "[STORED_ONLY — enforced by output_gate._log_clinical_review -> clinician_review_queue, not by this string] Documented clinical intent (not runtime-enforced): Add clinician_review flag if user describes symptoms consistent with moderate to severe depression affecting daily function, or if they mention it has lasted longer than 2 weeks with no relief.",
+    "L3": "[STORED_ONLY — enforced by the safety graph (_route_after_safety -> _crisis_response_node), not by this string] Documented clinical intent (not runtime-enforced): Exit immediately to crisis protocol if any crisis signal or suicidal ideation is detected during the session.",
+    "L4": "[NOT_IMPLEMENTED — human-handoff automation deferred per 2026-07-10 decision record; no live call routing in POC; OR-7 response floor covers explicit human requests; 3+ crises/30d trigger deferred to the D4(a) exposure gate] Documented clinical intent (not runtime-enforced): Trigger human handoff if 3 or more crises detected in the last 30 days, or if user explicitly requests a human clinician."
   },
   "cultural_overrides": {
     "somatic_first": "Depression in Gulf contexts is frequently somatized — users may present with fatigue, body aches, or 'no energy' rather than naming depression. Validate the somatic presentation and link it to the biology: the body carries what the brain is experiencing.",
