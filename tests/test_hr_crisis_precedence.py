@@ -29,6 +29,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 import sage_poc.config as config
 from sage_poc.rules.schemas import SafetyRule
 

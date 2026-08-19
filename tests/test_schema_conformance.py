@@ -1,5 +1,7 @@
 """Tests for the schema field conformance registry."""
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from sage_poc.skills.conformance import SCHEMA_CONFORMANCE, get_conformance_report
 from fastapi.testclient import TestClient
 

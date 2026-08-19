@@ -22,6 +22,9 @@ import os
 import re
 
 import yaml
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _REGISTER = os.path.join(_REPO, "config", "prod_flags.yaml")

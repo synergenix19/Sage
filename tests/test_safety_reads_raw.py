@@ -1,6 +1,9 @@
 """Regression guard for the safety-reads-raw language-contract gate (#330, ADR 2026-07-16)."""
 import sys
 from pathlib import Path
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 import check_safety_reads_raw as gate
 

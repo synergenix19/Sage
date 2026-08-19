@@ -202,6 +202,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 import sage_poc.config as config
 from sage_poc.audit import _build_session_audit_row
 from sage_poc.graph import build_graph

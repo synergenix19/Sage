@@ -5,6 +5,8 @@ import typing
 import os
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 def test_state_declares_medical_channel():
     from sage_poc.state import SageState
     hints = typing.get_type_hints(SageState)

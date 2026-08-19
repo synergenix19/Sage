@@ -11,6 +11,9 @@ import json
 from pathlib import Path
 
 import sage_poc
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 _PKG = Path(sage_poc.__file__).parent
 

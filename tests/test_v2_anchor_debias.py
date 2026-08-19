@@ -13,6 +13,9 @@ this scale. Likely a modest mover until the library grows divergent anchor count
 Called only under flag-on; flag-off byte-identical is proven end-to-end by the stash-control diff.
 """
 from sage_poc.nodes import skill_select as ss
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 
 def test_min_anchor_count_skill_is_unpenalized():

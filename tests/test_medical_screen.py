@@ -6,6 +6,8 @@ FAIL-SAFE invariant is the safety property: the screen routes AWAY, never CLEARS
 and only a red-flag-quality answer escalates; EVERYTHING else defaults to the contraindication-free skill.
 """
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from sage_poc.safety import medical_screen as ms
 
 

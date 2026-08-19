@@ -1,5 +1,8 @@
 # tests/test_psychoed_serve.py
 from sage_poc.psychoed import serve, store
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 def test_menu_first_composition():
     out = serve.compose_turn1({"category": "1f", "block_id": None, "route": "standard",

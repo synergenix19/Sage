@@ -14,6 +14,9 @@ import os
 
 import server
 from sage_poc import config
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 
 def _version():

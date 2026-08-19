@@ -45,31 +45,42 @@ sys.path.insert(0, str(_REPO))
 # ---------------------------------------------------------------------------
 # Stub corpus: source_id prefix → representative passage
 # Update when new seed articles are ingested.
+#
+# Refreshed 2026-08-19 with query_corpus.py (ticket
+# 2026-08-19-ivfflat-recall-holes-crisis-adjacent, PR #501). The previous entries
+# were invented passages under article IDs that have never existed in the corpus
+# ("anx-002-en", "mbct-003-en", "dbt-004-en"), carrying citations to real
+# literature the corpus does not cite. A log generated from those reads as
+# retrieval evidence for a corpus that is not ours, which is the wrong direction
+# for a record this project treats as evidence. Every entry below is now a real
+# article: ID, opening sentence and citation are taken from
+# data/knowledge_corpus/en/, and the topic mapping reflects what each query
+# actually retrieves on prod under exact scan (2026-08-19).
 # ---------------------------------------------------------------------------
 
 _STUB_CORPUS: dict[str, dict] = {
     "cbt-": {
-        "text": "Cognitive Behavioral Therapy (CBT) is an evidence-based psychological treatment developed by Aaron Beck.",
+        "text": "Cognitive Behavioural Therapy (CBT) is a structured, evidence-based form of psychological therapy that helps people understand the connection between thoughts, feelings and behaviour.",
         "source_id": "cbt-001-en",
-        "citation": "Beck (1979)",
+        "citation": "Hofmann, S. G., Asnaani, A., Vonk, I. J., Sawyer, A. T., & Fang, A. (2012).",
         "relevance_score": 0.88,
     },
-    "anx-": {
-        "text": "Exposure therapy is an evidence-based treatment for anxiety disorders that involves gradual exposure to feared stimuli.",
-        "source_id": "anx-002-en",
-        "citation": "Barlow (2002)",
+    "therapy-": {
+        "text": "Therapy is a structured conversation with a trained mental health professional.",
+        "source_id": "therapy-001-en",
+        "citation": "Wampold, B. E. (2015). How important are the common factors in psychotherapy?",
         "relevance_score": 0.82,
     },
-    "mbct-": {
-        "text": "Mindfulness-Based Cognitive Therapy (MBCT) combines mindfulness practices with CBT to reduce depressive relapse.",
-        "source_id": "mbct-003-en",
-        "citation": "Segal et al. (2002)",
+    "mindfulness-": {
+        "text": "Mindfulness is the practice of paying attention to the present moment with openness and curiosity.",
+        "source_id": "mindfulness-001-en",
+        "citation": "Maddock, A., & Blair, C. (2023).",
         "relevance_score": 0.79,
     },
-    "dbt-": {
-        "text": "Dialectical Behavior Therapy (DBT) was developed by Marsha Linehan to treat borderline personality disorder.",
-        "source_id": "dbt-004-en",
-        "citation": "Linehan (1993)",
+    "anxiety-": {
+        "text": "Anxiety is the mind and body's natural response to detecting possible danger or uncertainty.",
+        "source_id": "anxiety-001-en",
+        "citation": "Penninx, B. W., Pine, D. S., Holmes, E. A., & Reif, A. (2021).",
         "relevance_score": 0.85,
     },
 }
@@ -78,10 +89,15 @@ _TOPIC_TO_PREFIX: dict[str, str] = {
     "CBT": "cbt-",
     "CBT for depression": "cbt-",
     "CBT (Arabic query, English corpus)": "cbt-",
-    "exposure therapy / anxiety": "anx-",
-    "anxiety treatment": "anx-",
-    "MBCT": "mbct-",
-    "DBT": "dbt-",
+    # No exposure-therapy article exists; therapy-001 is the real nearest passage.
+    "exposure therapy / anxiety": "therapy-",
+    "anxiety treatment": "anxiety-",
+    # No MBCT-specific article; mindfulness-001 is what the query retrieves.
+    "MBCT": "mindfulness-",
+    # No DBT article at all. Both index and exact-scan arms return cbt-001 at
+    # cosine 0.498 on prod, so the stub mirrors that rather than inventing a
+    # dbt- article to satisfy the fixture.
+    "DBT": "cbt-",
     "therapy for depression (Arabic query)": "cbt-",
     "single-word known topic": "cbt-",
 }
