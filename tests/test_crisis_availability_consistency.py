@@ -25,6 +25,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc.config import CRISIS_CONFIG, CRISIS_RESOURCES
 from sage_poc.crisis_copy import crisis_copy_source_files, resolve_crisis_placeholders_deep
 

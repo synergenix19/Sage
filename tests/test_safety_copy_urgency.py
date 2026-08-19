@@ -10,6 +10,9 @@ import json
 import pathlib
 
 from sage_poc import config as _c
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 _NOW_MARKERS = ("now", "right away", "immediately", "don't wait", "dont wait", "straight to")
 

@@ -10,6 +10,8 @@ Pinned design (V + build notes 2026-07-17):
      record — the PDPL exposure the D-item closes. Induced-failure must fail LOUD.
 """
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from sage_poc.safety import medical_screen as ms
 
 CONTRA = "dbt_tipp"  # contraindicated-flagged acute skill

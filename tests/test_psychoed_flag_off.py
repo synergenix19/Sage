@@ -27,6 +27,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 
 def _reload_config(monkeypatch, **env):
     for k in ("SAGE_PSYCHOED_PATHWAYS", "SAGE_PSYCHOED_CATEGORIES"):

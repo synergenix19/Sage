@@ -2,6 +2,8 @@
 import asyncio
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 
 def make_state(**kwargs):
     defaults = {

@@ -7,6 +7,9 @@ separate PR — this file is the infrastructure proof, not the bypass closure.
 """
 from sage_poc.nodes.ocd_compulsion import is_ocd_compulsion
 from sage_poc.state import safety_text
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 
 def test_detector_reads_raw_position_not_only_first():

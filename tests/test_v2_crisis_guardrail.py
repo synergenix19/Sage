@@ -13,6 +13,8 @@ coach). The other clinical flags are undeclared and route as V1 until the crisis
 """
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc.nodes import skill_select as ss
 
 

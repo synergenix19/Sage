@@ -11,6 +11,8 @@ scripts/check_state_channels.py. They must run in the deterministic safety gate 
 node-isolation tests cannot catch this — the drop only happens in the compiled graph's merge.
 """
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from langgraph.graph import StateGraph, START, END
 
 from sage_poc.state import SageState
