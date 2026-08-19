@@ -19,6 +19,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 try:  # H4 structured directory (PR #288+).
     from sage_poc.config import CRISIS_RESOURCES as _BACKEND_RESOURCES  # type: ignore
 except ImportError:  # pre-H4 backend: derive the 2-entry pair from the flat CRISIS_CONFIG.

@@ -10,6 +10,8 @@ INTERIM safety-floor (transcription of the spec's §1 descriptor classes into Ar
 Gulf dialect / code-switched / full symptom vocabulary is the clinician-authored Tier-2 follow-up.
 """
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from sage_poc.safety.medical_redflag import detect_medical_redflag
 
 # AR cardiac red-flags that MUST fire (spec §1 descriptor classes: crushing/searing chest pain,

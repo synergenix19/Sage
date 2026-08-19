@@ -5,6 +5,8 @@ and _route_after_skill_select without invoking the full graph. They are fast,
 deterministic, and serve as the canonical documentation of routing logic.
 """
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from sage_poc.graph import _route_after_safety, _route_after_intent, _route_after_skill_select, _route_after_skill_executor
 
 

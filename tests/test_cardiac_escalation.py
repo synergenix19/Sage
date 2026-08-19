@@ -11,6 +11,9 @@ import os
 
 from sage_poc.safety.cardiac_escalation import cardiac_ambiguous_present, CARDIAC_FLAG_ID
 from sage_poc.nodes import panic_override
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 _FX = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                    "tests/fixtures/bot_behaviour_audit/part_a_1c_boundary_PROPOSED.json")

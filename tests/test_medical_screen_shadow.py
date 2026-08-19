@@ -11,6 +11,8 @@ exact harm D1 exists to prevent. So shadow measures FIRE-VOLUME only; the answer
 (RULING 3) is a POST-FLIP monitored-enforce gate, not a shadow gate. See the GATE 0 addendum.
 """
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from sage_poc import config
 from sage_poc.safety import medical_screen as ms
 

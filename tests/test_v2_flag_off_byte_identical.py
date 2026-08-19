@@ -16,6 +16,9 @@ from sage_poc.nodes.skill_select import (
     build_anchor_pairs, _SKILLS, _v2_enabled, routing_threshold, SEMANTIC_THRESHOLD,
 )
 from sage_poc.routing_eval.calibration import ThresholdTable
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 
 def _anchor_set(include_exemplars):

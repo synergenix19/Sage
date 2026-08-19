@@ -15,6 +15,9 @@ script tripping this test must go through the helper, not join the allowlist.
 """
 import os
 import re
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _SCRIPTS = os.path.join(_REPO, "scripts")

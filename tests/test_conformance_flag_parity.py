@@ -8,6 +8,9 @@ mismatch the same way --sha pins the tree.
 """
 import importlib.util
 import os
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 _RUNNER = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                        "scripts/bot_behaviour_audit/measure_layer1_fullgraph.py")

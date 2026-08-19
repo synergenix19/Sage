@@ -19,21 +19,30 @@ Drives are verbatim from tests/test_hr_routing.py so prod asserts the same phras
 Guardrails: TEST_USER is tripwire-muted + prodsuite-* tagged + self-cleaning (rows purged).
 Usage: python scripts/prod_smoke/hr1_stage1_verify.py --flag {off,on}
 """
-import argparse, json, os, subprocess, time, uuid
+import argparse, os, subprocess, sys, time
+from pathlib import Path
+
+# scripts/ (one directory up) holds lib/ — same bootstrap idiom as
+# scripts/prod_smoke/tier_a_safety.py / run.py use to reach a sibling of prod_smoke/.
+_SCRIPTS_DIR = Path(__file__).resolve().parent.parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+from lib import prod_probe  # noqa: E402 — shared prod-probe transport (PR #513)
 
 URL = os.environ.get("SAGE_API_URL", "https://sage-api-production-3328.up.railway.app")
 TEST_USER = "7b382b90-b0be-4cca-93dc-12e07c0b30bb"  # in prod SAGE_TEST_USER_IDS -> tripwire muted
 ROUTE_SIG = "psychotic_disclosure_auto_select"
-
-
-def _railway():
-    v = json.loads(subprocess.check_output(["railway", "variables", "--json"], text=True))
-    return v["SAGE_API_KEY"], v["DATABASE_URL"], v.get("SAGE_TEST_USER_IDS", "")
-
+AUDIT_COLUMNS = ("COALESCE(skill_match_method,'<none>'), COALESCE(active_skill_id,'<none>'), "
+                 "COALESCE(clinical_flags::text,'[]')")
 
 KEY, DB, TEST_IDS = os.environ.get("SAGE_API_KEY"), os.environ.get("DATABASE_URL"), ""
 if not KEY or not DB:
-    KEY, DB, TEST_IDS = _railway()
+    # Preserved as-is: TEST_IDS stays "" when SAGE_API_KEY/DATABASE_URL are already both
+    # in the environment — only this railway-fallback branch ever populates it, matching
+    # the original _railway()-only behavior. Transport-only swap; not this task's to fix.
+    creds = prod_probe.resolve_creds()
+    KEY, DB, TEST_IDS = creds.api_key, creds.database_url, creds.test_user_ids
 
 _SIDS, _RESULTS = [], []
 
@@ -49,26 +58,16 @@ CONTROLS = ["nothing's felt real since the funeral",
 
 
 def sid(tag):
-    return f"prodsuite-hr1-{tag}-{uuid.uuid4().hex[:8]}"
+    return prod_probe.new_session_id(f"prodsuite-hr1-{tag}")
 
 
 def chat(s, text):
     _SIDS.append(s)
-    body = json.dumps({"messages": [{"role": "user", "content": text}], "session_id": s, "user_id": TEST_USER})
-    r = subprocess.run(["curl", "-sS", "--max-time", "70", "-X", "POST", f"{URL}/chat",
-                        "-H", "Content-Type: application/json", "-H", f"X-Sage-Api-Key: {KEY}",
-                        "--data-binary", body], capture_output=True, text=True)
-    try:
-        d = json.loads(r.stdout); return d.get("message") or d.get("response") or r.stdout
-    except Exception:
-        return r.stdout or r.stderr
+    return prod_probe.chat(s, text, base_url=URL, api_key=KEY, user_id=TEST_USER, timeout=70).message
 
 
 def audit(s):
-    out = subprocess.run(["psql", DB, "-tAc",
-        "SELECT COALESCE(skill_match_method,'<none>'), COALESCE(active_skill_id,'<none>'), "
-        f"COALESCE(clinical_flags::text,'[]') FROM session_audit WHERE session_id='{s}' "
-        "ORDER BY turn_number DESC LIMIT 1;"], capture_output=True, text=True).stdout.strip()
+    out = prod_probe.audit(s, AUDIT_COLUMNS, database_url=DB)
     parts = [p.strip() for p in out.split("|")]
     while len(parts) < 3:
         parts.append("")
