@@ -202,6 +202,12 @@ class SageState(TypedDict):
                                            # the deterministic grief-presence deference applies (safety_check
                                            # clean + clear bereavement + no harm + intent=crisis). Same declared-
                                            # channel contract as panic_grounding_override directly above.
+    selfworth_presence_override: bool      # PER-TURN (S4b, DRAFT gated on Vee signature packet item 3): set by
+                                           # intent_route when the deterministic self-worth presence deference
+                                           # applies (safety_check clean + self-worth/deservingness signature +
+                                           # no existence content + no harm + intent=crisis). Same declared-
+                                           # channel contract as the two overrides above (SG-2: undeclared keys
+                                           # are dropped between nodes).
 
     # --- Psychoed pathway channel (spec 2026-07-23 §4.2; Phase 2). ---
     # psychoed_serve is PER-TURN: reset each turn in _build_state(). All others are

@@ -284,6 +284,23 @@ if _grief_deference_raw is not None and _grief_deference_raw.strip().lower() not
         "only 'true' enables.", _grief_deference_raw,
     )
 
+# S4b — deterministic self-worth presence deference (DRAFT, gated on Vee signature, packet item 3,
+# due 2026-08-25). KILL-SWITCH, default OFF, same strict parse as GRIEF_DEFERENCE directly above:
+# only a LITERAL "true" enables; unset / empty / garbage -> OFF (byte-identical). ON -> intent_route's
+# LLM re-flag of a safety_check-CLEAN self-worth/deservingness disclosure (S4B-FP-1: "kindness is for
+# other people, not me" -> crisis card with crisis_flags=[]) is restored to the deterministic clean
+# verdict (self-compassion pathway via skill_select) instead of the crisis card. Existence/harm content
+# always keeps the escalation; term lists PROPOSED pending Vee (selfworth_override.py).
+_selfworth_exclusion_raw = os.getenv("SAGE_SELFWORTH_FP_EXCLUSION")
+SELFWORTH_FP_EXCLUSION_ENABLED = (
+    _selfworth_exclusion_raw is not None and _selfworth_exclusion_raw.strip().lower() == "true"
+)
+if _selfworth_exclusion_raw is not None and _selfworth_exclusion_raw.strip().lower() not in ("true", "false"):
+    _log.warning(
+        "SAGE_SELFWORTH_FP_EXCLUSION unexpected value %r — applying safe default (exclusion OFF); "
+        "only 'true' enables.", _selfworth_exclusion_raw,
+    )
+
 # E7 — BOT BEHAVIOUR §6a coercive-control / relationship-safety pre-emption. KILL-SWITCH, DEFAULT
 # OFF, same inverted strict parse as ROUTE_PRECEDENCE: only a LITERAL "true" enables; unset / empty /
 # whitespace / garbage -> OFF. OFF is byte-identical v7 — only the approved CF-005 domestic_situation

@@ -54,7 +54,7 @@ _MUST_NOT_PARSE = (
     "I haven't slept for 4 days",
     "there are 3 of them outside",
     "I've spent 10 thousand",
-    "15",
+    "15",  # out of range, even though it's a bare number
 )
 
 
