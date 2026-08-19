@@ -128,6 +128,53 @@ jobs:
         if: steps.detect.outputs.code == 'true'
         run: python scripts/check_disposition_ownership.py
 
+      - name: Collection floor — the gate can no longer silently shrink
+        # K1.4 fatal miss (2026-08-19). Parses the collected count from the SAME expression +
+        # SAME explicit path roots the run step below uses, and fails HARD (not the old
+        # ::warning) below the floor or on any collection error — a missing/shrunk gated suite
+        # is a red gate now, never a silent pass. This is the fix for the exact failure mode
+        # Exhibit A in the K1.5 adjudication packet documents: an ungated pin (byte-identical
+        # snapshot, PR #527) sat silently red on master for five weeks because nothing watched
+        # it. A collection-count floor is watched on every run, by construction.
+        #
+        # FLOOR GOVERNANCE (Amendment 2, verbatim from the plan): the floor is a MINIMUM —
+        # additions never trip it. Therefore any PR that LOWERS .github/gate_floor.txt is by
+        # definition removing gated safety tests and is OWNER-GATED, no exceptions. A red gate
+        # is never "fixed" by adjusting the floor downward; the floor moves down only with an
+        # owner-signed removal decision recorded in the PR body. Raising the floor accompanies
+        # any PR that adds gated tests (one-line file change, reviewable).
+        if: steps.detect.outputs.code == 'true'
+        env:
+          OPENROUTER_API_KEY: dummy-ci
+          HF_HUB_OFFLINE: "1"
+          TRANSFORMERS_OFFLINE: "1"
+          # See the run step below for why this is required (scripts/prod_smoke/tests is now a
+          # directory path root; its collection-time import chain fail-closes on this being unset).
+          SAGE_API_KEY: dummy-ci
+        run: |
+          set -euo pipefail
+          COLLECT_OUT=$(pytest tests scripts/prod_smoke/tests \
+            -m "safety_gate and not integration and not clinical_decision_pending and not governance and not cradle and not slow" \
+            --collect-only -q 2>&1) || {
+            echo "$COLLECT_OUT"
+            echo "::error title=unit-gate floor::Collection FAILED (pytest exited non-zero) — treated as a red gate, not a warning. A collection error can hide an arbitrary number of dropped tests, so this is fatal regardless of the floor value."
+            exit 1
+          }
+          echo "$COLLECT_OUT"
+          N=$(echo "$COLLECT_OUT" | grep -oE '^[0-9]+' | tail -1)
+          # The summary line is either "N tests collected" or "N/M tests collected (K deselected)"
+          # depending on whether any deselection occurred; both start with the same leading integer.
+          FLOOR=$(cat .github/gate_floor.txt)
+          if [ -z "$N" ]; then
+            echo "::error title=unit-gate floor::Could not parse a collected count from pytest's collection summary — treated as a red gate, not a warning."
+            exit 1
+          fi
+          echo "Collected: $N   Floor: $FLOOR"
+          if [ "$N" -lt "$FLOOR" ]; then
+            echo "::error title=unit-gate floor::Collected count ($N) is BELOW the floor ($FLOOR) recorded in .github/gate_floor.txt. A gated safety suite silently shrank, was deselected, or dropped out. This is FATAL — the floor is a MINIMUM and this run is red. If gated tests were deliberately and legitimately removed, the PR that removes them lowers gate_floor.txt explicitly in the same diff, with an owner-signed removal decision recorded in the PR body — the floor is never lowered as a side effect of making a red run pass."
+            exit 1
+          fi
+
       - name: Run safety_gate-marked deterministic suites
         if: steps.detect.outputs.code == 'true'
         env:
