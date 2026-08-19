@@ -137,3 +137,27 @@ Two practices follow:
    accounted for** — which register entry, what coupled change, whether their build carries any
    code half, and who authorized it — rather than deploying onto it or reverting it blind. Both
    failure directions are worse than one question.
+
+## Post-deploy: prove persistence with the probe's own checkpoint row (standing, added 2026-08-19)
+
+After the T2 crisis fixture, confirm the probe session actually persisted:
+
+```sql
+SELECT count(*) FROM checkpoints WHERE thread_id = '<the T2 session_id>';   -- must be >= 1
+```
+(against `CHECKPOINT_DATABASE_URL`.)
+
+**Neither of the two signals an operator reaches for first can establish this:**
+
+- **A 200 from `/chat` cannot.** The chat path's checkpoint read is deliberately non-fatal, so a
+  `None` checkpointer is swallowed and the turn still answers 200. Staging demonstrated exactly
+  this on 2026-07-30: `AttributeError: 'NoneType' object has no attribute 'aget'` in the logs,
+  immediately followed by `POST /chat HTTP/1.1 200 OK`.
+- **Logs cannot.** The startup success lines are `_log.info` on module loggers, and only
+  `sage.latency` / `sage_poc.resilience` are wired for INFO — everything else falls through to
+  the WARNING-level `lastResort` and is never emitted. Absence of a log line is not evidence.
+
+The probe's own row is definitive: it exists only if the checkpointer was live for that turn.
+Since PR #539, `/health/version` also reports `checkpointer_present`, `db_reachable` and the
+corpus-sync/integrity result — read both; the row proves the write path end-to-end, the readback
+proves the process's own view.
