@@ -47,6 +47,14 @@
    "signoff": "clinician-approval-queue item 2 Group A; activated #244/aef9499; RESTORED 2026-07-13 after #218 stale-base clobber reverted it to active:false (see 2026-07-13 harm-to-others finding)"
   },
   {
+   "id": "harm_to_others_action_evidence_rule",
+   "selector": "saferule:src/sage_poc/rules/data/safety/crisis_keywords.json:SK-EN-HTO-002",
+   "sha256": "59c7f236a1fd223782cc12c56c8f113debe1876b41e061e97f712ec594b6ce00",
+   "signed_by": "Vee (clinical lead) 2026-08-19 — PO relay",
+   "signed_date": "2026-08-19",
+   "signoff": "2026-08-19-vee-approval-record-signature-sheet.md item 7: action-evidence harm proximity class ESCALATES; pattern set built per the canary plan's cell definitions (docs/superpowers/plans/2026-08-18-219-canary-plan.md sections 3+5), must-NOT-fire incl. the held Group-B figurative phrases (2026-07-09 ruling stays in force). Portability clause (E-1): signature attaches to the class-level disposition; pattern set = current implementation + permanent fixtures (tests/fixtures/safety/harm_proximity_hto002.jsonl). Merged DARK (active:false); the active:true flip is a separate atomic commit at canary T0, deploy-owner-executed, under the pre-committed 72h time-boxed canary."
+  },
+  {
    "id": "d1_screen_question_en",
    "selector": "pyconst:sage_poc.safety.medical_screen:_SIGNED_QUESTIONS:en",
    "sha256": "cc2e2b83a9087b5a605473803835635fe47ca302a22bfad57edd6a2cd5442aa6",
@@ -65,10 +73,10 @@
   {
    "id": "safety_rule_activation_map",
    "selector": "safeactive:src/sage_poc/rules/data/safety/crisis_keywords.json,src/sage_poc/rules/data/safety/passive_si_patterns.json,src/sage_poc/rules/data/safety/clinical_flag_patterns.json",
-   "sha256": "b6858394c871dafc082b9f29015f6e030de752bbf91fe1bbd0e3a9e8ba539c7c",
-   "signed_by": "clinical lead (§1c Part A ratification, Vee 2026-07-21, approval sheet 1a-1d) + prior HR-1 2026-07-17",
-   "signed_date": "2026-07-28",
-   "signoff": "The {rule_id: active} map across all safety rule files (born from the #218 clobber). RE-SIGNED 2026-07-28 UNDER CLINICAL-LEAD AUTHORITY (§1c Part A, Vee RULED 1a-1d 2026-07-21, 2026-07-18-vee-open-decisions-approval-sheet.md): CF-010 (derealization) added active:true + approved_by:clinical_lead — Vee ratified the mechanism (1a) and the strings (1d). Its ROUTING is separately gated by DEREALIZATION_DETECTION_ENABLED (default OFF, inert until the terminal copy 2026-07-28-1c-anxiety-referral-copy-for-vee.md is signed + flipped), so activating the rule does NOT change served behaviour. Prior RE-SIGN 2026-07-17 (HR-1 A1): CF-007/008/009 active:true (unchanged here). CF-006 and every prior active crisis control unchanged."
+   "sha256": "c259c69243411ed5725da1050f4852c8377ec9ab9fb52cbfdf84b521abf831ec",
+   "signed_by": "Vee (clinical lead) 2026-08-19 — PO relay (SK-EN-HTO-002 dark add) + prior §1c Part A 2026-07-28 + HR-1 2026-07-17",
+   "signed_date": "2026-08-19",
+   "signoff": "The {rule_id: active} map across all safety rule files (born from the #218 clobber). RE-SIGNED 2026-08-19: SK-EN-HTO-002 added active:false (DARK, inert — loader excludes it, served behaviour unchanged) per 2026-08-19-vee-approval-record-signature-sheet.md item 7; the active:true flip is a separate signed atomic commit at canary T0 (docs/superpowers/plans/2026-08-18-219-canary-plan.md section 7, deploy-owner-executed). Prior RE-SIGN 2026-07-28 UNDER CLINICAL-LEAD AUTHORITY (§1c Part A, Vee RULED 1a-1d 2026-07-21, 2026-07-18-vee-open-decisions-approval-sheet.md): CF-010 (derealization) added active:true + approved_by:clinical_lead — Vee ratified the mechanism (1a) and the strings (1d). Its ROUTING is separately gated by DEREALIZATION_DETECTION_ENABLED (default OFF, inert until the terminal copy 2026-07-28-1c-anxiety-referral-copy-for-vee.md is signed + flipped), so activating the rule does NOT change served behaviour. Prior RE-SIGN 2026-07-17 (HR-1 A1): CF-007/008/009 active:true (unchanged here). CF-006 and every prior active crisis control unchanged."
   },
   {
    "id": "hr_neutrality_fallback_en",
