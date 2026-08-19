@@ -203,17 +203,32 @@ flags:
 
   # ---- retrieval / skill routing ------------------------------------------------
   SAGE_COSINE_ABSTAIN_THRESHOLD:
-    value: "0.42"
+    value: "0.58"
     class: safety
+    signed_value: "0.58"
+    signature_ref: "Vee approval RELAYED BY PRODUCT OWNER 2026-08-19 against
+      docs/governance/2026-08-19-vee-packet-retrieval-abstain-threshold.md (scope: threshold
+      0.58 AND removal of the ivfflat index, cdai PR #512). ⚠️ The one-line WRITTEN
+      confirmation named in the packet's sign-off section is PENDING and must be attached to
+      that record — a relayed approval is the accepted form here (precedent: IPV_PREEMPTION,
+      HIGH_RISK_TERMINAL, CARDIAC_ESCALATION) but the written artefact closes it."
     note: "authoritative KB abstain gate (PR#86); rollback = 0.0 (fail-open, must be written
       explicitly since 2026-08-19 — unset now raises). RECLASSIFIED feature -> safety
       2026-08-19: the PR #512 measurement showed this value is what stands between an
       off-topic query and crisis content (at 0.42 without the ivfflat index, 'where can I
       find job platforms in the UAE' surfaces crisis-002-en at 0.544). Under the 2026-07-28
       taxonomy — screens/preempts/terminates on risk content -> safety — feature class was a
-      misclassification, and it meant this gate carried feature-flag change control. Pending
-      value 0.58 + clinician signature: see docs/governance/2026-08-19-vee-packet-retrieval-
-      abstain-threshold.md; signed_value to be added when Vee signs."
+      misclassification, and it meant this gate carried feature-flag change control.
+      APPLICATION ORDER IS LOAD-BEARING — this value and the cdai PR #512 migration that
+      drops the ivfflat index are ONE coupled change, and the two intermediate states are
+      NOT symmetric: 0.58 WITH the index over-abstains (visible, fail-safe, degraded but
+      harmless), whereas index-dropped AT 0.42 serves crisis content on off-topic queries
+      (the exact PR #457 hold trigger). So for prod: apply 0.58 FIRST, then deploy the
+      migration. A brief over-abstaining window is acceptable and self-resolves at the
+      migration deploy; the reverse window is not acceptable for any duration. Rollback of
+      this value alone is 0.42 while the index is still present; once the index is dropped,
+      rolling the threshold back to 0.42 REOPENS the off-topic crisis-surfacing path and
+      must be paired with recreating the index (see migration 018's rollback note)."
   SAGE_ALLOW_UNSET_ABSTAIN_THRESHOLD:
     value: null
     class: safety
