@@ -63,6 +63,22 @@ until some later sync happens to succeed. `wellbeing-001-ar` shows the same fail
 This is the same family as the warmup silent-failure finding: a background, fail-open path on a
 clinical surface that degrades quietly and reports success upstream.
 
+### The log line is part of the defect, not just its symptom
+
+```
+[sage/startup] corpus sync failed (retrieval will abstain): ...
+```
+
+**Retrieval did not abstain.** A partially-applied sync leaves rows deleted, so retrieval serves
+a *partial corpus* — which is worse than abstaining, because abstaining is visible and a quietly
+shortened answer is not. The message actively directed any reader toward the benign
+interpretation ("we lost retrieval for a bit") and away from the real one ("the corpus is now
+wrong and will stay wrong"). That is two layers of silence: fail-open behaviour plus an
+inaccurate account of what failed. Any fix that corrects the mechanism must also correct this
+line, or the next incident is read the same way.
+
+(Corrected in PR #519 along with the detection assertion.)
+
 ## Why safety-adjacent
 
 Nothing here is AR-specific or crisis-specific — the mechanism is language- and

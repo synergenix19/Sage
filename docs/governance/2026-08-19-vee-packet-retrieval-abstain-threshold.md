@@ -62,16 +62,23 @@ verified against, so the line must move in the same change.
 With the index removed, the two groups separate cleanly:
 
 ```
-off-topic questions   ...........  highest scored 0.544
+off-topic questions   ...........  highest scored 0.5444
                                     ^
                             proposed line: 0.58
                                     v
-in-scope questions    ...........  lowest scored 0.617
+in-scope questions    ...........  lowest scored 0.6168
 ```
 
-- Every off-topic question scores **at or below 0.544**.
-- Every question that *should* be answered scores **at or above 0.617**.
-- **0.58 sits in the middle of that gap** — 0.036 of room on one side, 0.037 on the other.
+- Every off-topic question scores **at or below 0.5444**.
+- Every question that *should* be answered scores **at or above 0.6168**.
+- **0.58 sits in the middle of that gap** — 0.0356 of room on one side, 0.0368 on the other.
+
+**Provenance of these numbers.** They were re-measured on 2026-08-19 *after* a corpus repair,
+against a knowledge base verified complete: **52 of 52 articles matching their source files,
+265 chunks, nothing missing or truncated**. An earlier run of the same measurement was taken
+while the database was quietly missing one Arabic article and holding another in truncated form;
+those numbers are superseded, and the band moved by less than 0.001 when measured against the
+corrected data. You are being shown the corrected run.
 
 At 0.58, on this question set:
 
@@ -93,11 +100,12 @@ The number is engineering's; the *judgement* is yours:
      something loosely related to an off-topic question.
    - **higher** (nearer 0.61) → Sage abstains more readily; more "I don't have information on
      that" on questions we could have answered.
-2. **One in-scope topic falls below the line.** "What is exposure therapy" scores 0.450 — the
-   corpus has no exposure-therapy article, and the nearest passage is a general therapy one. At
-   0.58 that question abstains. We read that as *correct* (we should not answer from material
-   that only looks adjacent), but it is a content gap you may want on the AR/EN authoring list
-   rather than a retrieval setting.
+2. **One topic outside this question set falls below the line.** All 16 in-scope questions in
+   the set above are answered at 0.58. Separately, in our retrieval test fixtures, "what is
+   exposure therapy" scores 0.450 — the corpus has no exposure-therapy article, and the nearest
+   passage is a general therapy one. At 0.58 that question would abstain. We read that as
+   *correct* (Sage should not answer from material that only looks adjacent), but it is a
+   **content gap** for the authoring list rather than an argument about the threshold.
 3. **This number has an expiry.** It was calibrated at the current corpus size. When the AR
    content lane lands, the distribution changes and 0.58 must be re-verified against this same
    question set. We have written that condition into the migration so it cannot be forgotten.
@@ -118,10 +126,13 @@ The number is engineering's; the *judgement* is yours:
 - The 24-question set is a sample. We found that which questions the old index answered well was
   substantially arbitrary — the same article was reachable by one phrasing of a question and
   unreachable by another. So the *measured* failure rate understates the real one.
-- Separately and unrelated to your decision: prod is currently missing one Arabic article
-  (`anxiety-001-ar`) and holds a truncated one (`wellbeing-001-ar`), from a sync defect filed
-  the same day. Neither is a crisis article. Being repaired; noted here so the corpus numbers in
-  this packet reconcile.
+- Separately, and now resolved: the knowledge base had been quietly missing one Arabic article
+  (`anxiety-001-ar`, on anxiety — a core clinical topic) and holding another in truncated form
+  (`wellbeing-001-ar`, 1 of 4 sections), caused by a deploy-time sync defect. Neither is a crisis
+  article. **Both are repaired and verified**, with the correct approved citations, and the
+  numbers in this packet were re-measured afterwards. A detection check now runs after every
+  sync so the same silence cannot recur. Noted here because it is the reason you may see two
+  different corpus sizes in surrounding records (258 vs 265).
 
 ## 8. Sign-off
 
