@@ -11,6 +11,7 @@ from sage_poc.nodes.self_reference_detect import detect_self_reference
 from sage_poc.nodes.venting_detect import detect_venting
 from sage_poc.nodes.panic_override import should_ground_over_crisis
 from sage_poc.nodes.grief_override import should_defer_grief_over_crisis
+from sage_poc.nodes.selfworth_override import should_restore_selfworth_presence
 from sage_poc import config as _cfg
 
 # SINGLE-POINT-OF-FAILURE WARNING: The general_chat classification below is the sole
@@ -243,6 +244,16 @@ async def intent_route_node(state: SageState, llm=None) -> dict:
         "grief_presence_override": (
             _cfg.GRIEF_DEFERENCE_ENABLED
             and should_defer_grief_over_crisis({**state, "primary_intent": primary_intent})
+        ),
+        # S4b (DRAFT, gated on Vee signature, packet item 3) — deterministic self-worth presence
+        # deference. Same stamp/honor pattern as panic_grounding_override and grief_presence_override
+        # above: code decides here, _route_after_intent honours it. Flag-gated kill-switch; OFF ->
+        # always False (byte-identical). Fires only when safety_check was CLEAN and the turn carries a
+        # self-worth/deservingness signature with NO existence content and NO harm-adjacency, so it can
+        # never suppress a crisis the deterministic tier caught (S4B-FP-1 fix, iatrogenic direction).
+        "selfworth_presence_override": (
+            _cfg.SELFWORTH_FP_EXCLUSION_ENABLED
+            and should_restore_selfworth_presence({**state, "primary_intent": primary_intent})
         ),
     }
     if _presentation is not None:
