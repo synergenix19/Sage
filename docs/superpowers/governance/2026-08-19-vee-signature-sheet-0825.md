@@ -30,6 +30,12 @@ class at all — that absence is the measured zero-affect gap.
 flagged for you inside: (a) "counted out" is excluded (adherence reading) — a rehearsal
 phrasing using "counting out" would be missed; (b) AR patterns are inactive PROPOSED
 slots pending native-speaker authoring (recorded as a gap, not coverage).
+**What the signature attaches to (portability clause):** the signed object is the
+CLINICAL DISPOSITION for this class — means-access rehearsal escalates. The pattern set
+is the current deterministic implementation AND the permanent evaluation fixture set. A
+superseding implementation (trained classifier per v7 Node 1) inherits this signature
+if it passes the same fixtures — no re-signing round; your fixture set becomes its
+acceptance test.
 **Condition on merge:** your signature value fills `approved_by` on the rules (left
 null deliberately — no fabricated sign-off).
 
@@ -70,6 +76,12 @@ want to die" phrasings do not fire S1 today (negation-window defect, now in the 
 epic), so this build's existence-boundary is currently the load-bearing protection for
 that sub-class, and the kill-switch carries that weight until the window fix lands.
 
+**What the signature attaches to (portability clause):** the signed object is the
+CLINICAL DISPOSITION for this class — deservingness-without-existence-content does NOT
+escalate; deservingness-with-existence-content MUST. The exclusion mechanism and both
+fixture sets are the current implementation and the permanent acceptance tests; a
+superseding implementation inherits this signature if it passes the same fixtures.
+
 > APPROVE ITEM 3 AS STAGED (coupling acknowledged): ______  · amendments: ______
 
 ## 4. Third-party crisis reports — one reconciled ruling (packet-2 item 3, owner of
@@ -85,12 +97,14 @@ HELPER enroll in post-crisis monitoring, and does the crisis card show on helper
 "he'd be better off dead" third-party shapes still fire the deterministic tier
 (bypassing deference) — span-coverage completion follows your ruling.
 **Recommendation:** approve the path and content as drafted; on Q1 (helper
-monitoring), ratify the encoded default (enrolls = fail-toward-support). Q2 (crisis
-card) is a REAL trade-off, not a rubber stamp: the card's first-person framing is part
-of the original calibration error, so showing it beside helper-support content partially
-recreates that error — but hiding it removes the helpline surface from the turn. Your
-call between resource-visibility and framing-consistency; the encoded default (shows)
-errs toward resources. Either way is a one-line reversal later.
+monitoring), ratify the encoded default (enrolls = fail-toward-support). On Q2 (crisis
+card): RATIFY THE ENCODED DEFAULT (card shows) — the product's own UX rules break the
+tie (crisis resources one tap away; no gates on crisis resources): removing the
+helpline surface from a turn where someone is describing a person at risk fails that
+principle, while a mis-framed card that still surfaces the helpline does not. NAMED
+FOLLOW-UP that dissolves the trade-off rather than choosing a side: a HELPER-FRAMED
+resource card — `CC-EN-TP-001` already contains the content (helpline framed for the
+friend). That is a content-authoring task on your existing signature, not a re-ruling.
 
 > APPROVE ITEM 4 (path + content): ______  · Q1 helper monitoring: ______  · Q2 card: ______
 
@@ -109,7 +123,12 @@ committing authoring time now.
 
 **Asking:** an ETA (or the blocking constraint) for Khaleeji corpus batch-1 (#364, your
 lane). The entire spec is unmeasured in Arabic; the AR baseline is the registered next
-measurement trigger the moment the corpus lands.
+measurement trigger the moment the corpus lands. **One upgrade to the ask's weight:**
+the corpus is also TD3/TD4 TRAINING DATA — the single input that lets crisis recognition
+GENERALIZE in Arabic (trained classifier lane) instead of requiring a parallel Arabic
+pattern-authoring lane per surface (item 1's inactive PROPOSED AR slots are that lane
+already being contemplated). It unblocks both the Arabic baseline and the architecture's
+actual crisis layer — which may change the priority calculus on your side.
 
 > ETA / blocker: ______
 
@@ -129,6 +148,11 @@ Activation runs the pre-committed 72h time-boxed canary
 (`2026-08-18-219-canary-plan.md`: one must-NOT-fire trip = rollback, no averaging;
 active probe cells at every checkpoint). Like Group A, HTO-002 fires T2 via `s1_any` —
 signing includes that tier consequence.
+**What the signature attaches to (portability clause):** the signed object is the
+CLINICAL DISPOSITION for this class — action-evidence harm proximity escalates. The
+pattern set is the current deterministic implementation and the permanent evaluation
+fixture set; a superseding implementation (trained classifier per v7 Node 1) inherits
+this signature if it passes the same fixtures.
 **Recommendation:** sign the pattern set in the canary plan's cell definitions. This
 guard is SPEC-MANDATED, not an extension: §4b's guard reads "anger with potential for
 harm to self or others … is safety-relevant, not a neutral psychoeducation moment;
