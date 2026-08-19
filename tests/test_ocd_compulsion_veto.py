@@ -13,6 +13,8 @@ import asyncio
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc.nodes.ocd_compulsion import is_ocd_compulsion
 from sage_poc.nodes.skill_select import skill_select_node
 

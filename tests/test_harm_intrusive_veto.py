@@ -17,6 +17,8 @@ import asyncio
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc.nodes.harm_intrusive import is_harm_intrusive
 from sage_poc.nodes.skill_select import skill_select_node
 

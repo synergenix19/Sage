@@ -14,6 +14,11 @@ adopted alongside the rules-JSON edits. These tests remain value-agnostic — th
 CODE sites reference CRISIS_CONFIG rather than re-embedding whatever digits it currently holds.
 """
 import pathlib
+
+import pytest
+
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc.config import CRISIS_CONFIG, CRISIS_LINE_UAE
 
 _SRC = pathlib.Path(__file__).resolve().parent.parent / "src" / "sage_poc"

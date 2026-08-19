@@ -21,6 +21,8 @@ import logging
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 
+pytestmark = pytest.mark.safety_gate
+
 
 def _base_state(skill_id: str, message: str) -> dict:
     return {

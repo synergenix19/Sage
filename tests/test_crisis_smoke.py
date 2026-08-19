@@ -27,6 +27,8 @@ pre-production safety blockers documented in safety_check.py §ARCHITECTURE WARN
 import pytest
 from unittest.mock import patch
 
+pytestmark = pytest.mark.safety_gate
+
 
 # ── Shared state factory ──────────────────────────────────────────────────────
 

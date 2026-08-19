@@ -9,6 +9,10 @@ The failure #205 caught: a monitoring-continuation turn ran crisis_response at c
 tier-only emit dropped the card, shipping crisis content with no tap-to-call. Affordance must follow
 the path; the mismatch must be surfaced for clinical review.
 """
+import pytest
+
+pytestmark = pytest.mark.safety_gate
+
 from server import _crisis_affordance_decision
 
 

@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc.crisis_copy import (
     assert_crisis_copy_resolves,
     crisis_copy_source_files,

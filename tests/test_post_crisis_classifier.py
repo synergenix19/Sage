@@ -3,6 +3,8 @@ import pytest
 from unittest.mock import AsyncMock, patch
 from sage_poc.nodes.post_crisis_classifier import evaluate_s7, _VALID_LABELS
 
+pytestmark = pytest.mark.safety_gate
+
 
 async def test_recovery_keyword_returns_recovering():
     label, method = await evaluate_s7("thank you, I'm feeling better now")

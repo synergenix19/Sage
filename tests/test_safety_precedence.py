@@ -7,9 +7,13 @@ built). Order `crisis > medical > HR > IPV` is the clinical decision deferred to
 §4.5 sign-off line; this suite pins the *mechanism* (highest-wins + all-fired-preserved),
 which is order-agnostic. Routes plug into the slots in Phase B (E3/E4/E7).
 """
+import pytest
+
 import sage_poc.config as config
 from sage_poc.audit import _build_session_audit_row
 from sage_poc.nodes.safety_precedence import apply_precedence, resolve_safety_precedence
+
+pytestmark = pytest.mark.safety_gate
 
 
 def _state(*, crisis=False, medical=False, hr=False, ipv=False):
