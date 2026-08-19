@@ -8,6 +8,8 @@ the *storage*state*.json glob, or the SAGE_SMOKE_STORAGE_STATE path when it poin
 inside the repo — the run FAILS. It runs BEFORE (and regardless of) Tier B auth, so
 a missing storage state still gets the credential hygiene check.
 """
+import pathlib
+import re
 import sys
 from pathlib import Path
 
@@ -86,3 +88,23 @@ def test_repo_is_currently_clean():
     """The real check against THIS repo's git index: no storage-state artifact is tracked."""
     r = tier_b_features._credential_guard()
     assert r.status == "PASS", r.detail
+
+
+# ---------------------------------------------------------------------------
+# 64-hex credential-shaped literal scan (Amendment B)
+# ---------------------------------------------------------------------------
+
+_HEX64 = re.compile(r"[0-9a-fA-F]{64}")
+_ALLOW = "# credential-guard: allow"
+_SCRIPTS = pathlib.Path(__file__).resolve().parents[2]  # scripts/
+
+
+def test_no_committed_64hex_credentials():
+    """No 64-hex literal (API-key shape) may be committed under scripts/ without
+    an explicit `# credential-guard: allow` marker on the same line."""
+    offenders = []
+    for p in _SCRIPTS.rglob("*.py"):
+        for i, line in enumerate(p.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):
+            if _HEX64.search(line) and _ALLOW not in line:
+                offenders.append(f"{p}:{i}")
+    assert not offenders, f"64-hex credential-shaped literals committed: {offenders}"
