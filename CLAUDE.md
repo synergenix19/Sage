@@ -31,3 +31,15 @@ Long sessions hit context limits and auto-summarize. When a rollover happens:
 This maps directly to how SageAI's own LangGraph is designed: one shared state object, transitions through controlled nodes — not parallel uncoordinated mutations. The same invariant applies to the tooling layer.
 
 Violating this rule under Gitex deadline pressure is exactly when it will cause the most damage.
+
+## Repo-State Reads: Assert the Ref Before Quoting
+
+**Never quote code or config state from a checkout's working tree without first asserting which ref it is on.** The main `sage-poc` checkout is routinely parked on a feature branch (worktree discipline means feature work lives elsewhere, but the main checkout itself is not pinned), so a read from it can serve stale state that looks current.
+
+The rule, mechanical form:
+
+- To cite current state, use `git show origin/master:<path>` (after `git fetch`), or read from a worktree created from `origin/master` for the task.
+- If reading a working tree anyway, run `git branch --show-current` first and include the ref in the citation. A quote of "current" state from a non-master ref is not evidence.
+- This is the read-side twin of the existing compare rule (no bare stash; compare via `git show origin/master:` or a temp worktree).
+
+Origin: 2026-08-19 — a stale-checkout read of `config.py` (main checkout on a feature branch predating the H4 crisis-config adoption) produced a false safety finding that reached a PR record twice before being run to ground and retracted (PR #457). Convention to complete the fix: when the current feature branch on the main checkout lands, park the main checkout on master and keep it there.
