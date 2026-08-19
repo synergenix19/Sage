@@ -224,19 +224,24 @@ def test_collectivist_framing_fires_on_arabic_keyword():
     )
 
 
-def test_secondary_intent_dialectical_framing_injected():
+def test_secondary_intent_ordered_framing_injected():
+    """PI-SI-001 v2.0.0 (2026-07-07, clinical lead Rohan Sarda): when a secondary intent
+    is present, the composer injects an ORDERED validate-then-inform contract into the
+    user-targeted prompt, structurally marked by the "SECONDARY NEED PRESENT" header
+    (src/sage_poc/rules/data/prompt_injection/secondary_intent.json). This replaces the
+    v1.0.0 "SECONDARY INTENT"/"dialectical" generic DBT framing the rule no longer emits."""
     state = _freeflow_state(
         primary_intent="new_skill",
         secondary_intent="info_request",
     )
     _, user_str, _ = compose_prompt(state)
-    assert "SECONDARY INTENT" in user_str or "dialectical" in user_str.lower()
+    assert "SECONDARY NEED PRESENT" in user_str
 
 
 def test_no_secondary_intent_framing_when_none():
     state = _freeflow_state(primary_intent="new_skill", secondary_intent=None)
     _, user_str, _ = compose_prompt(state)
-    assert "SECONDARY INTENT" not in user_str
+    assert "SECONDARY NEED PRESENT" not in user_str
 
 
 def test_domestic_situation_adaptation_injected():
