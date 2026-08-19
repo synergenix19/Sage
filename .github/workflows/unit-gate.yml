@@ -215,6 +215,7 @@ jobs:
             tests/test_psychoed_serve.py
             tests/test_psychoed_carry_forward.py
             tests/test_psychoed_content_integrity.py
+            tests/test_rules_safety.py
           "
           # Psychoed suites added 2026-08-04 (Phase 3 Task 9, closing the fact-sheet §7 gap):
           # the Phase 2 psychoed suites (graph/gate/skill_select/knowledge_retrieve/flag_off/
@@ -275,6 +276,18 @@ jobs:
           for f in $CANDIDATES; do
             if [ -f "$f" ]; then FILES="$FILES $f"; else SKIPPED="$SKIPPED $f"; fi
           done
+          # tests/test_rules_safety.py added 2026-08-19 (P0 fix-wave PR-A): it holds the
+          # ONLY regression guards for the az UnboundLocalError fix (PR #483, the pattern-
+          # binding crash that silently dropped 28 SK-AZ crisis patterns). It was in-repo
+          # and green but sat outside this required gate — the same false-assurance class
+          # named throughout this file (a suite that exists and passes but isn't watched
+          # provides no protection). Landed together with dropping the CLI -m override
+          # below: adding this file alone, with the CLI -m still overriding addopts, would
+          # have gone RED (its 2 clinical_decision_pending-marked functions, 5 parametrized
+          # IDs, are not marked slow and would have run-and-failed). Verified: with both
+          # changes together, full CANDIDATES set is 2180 passed / 0 failed / 4 skipped /
+          # 43 deselected (38 pre-existing @slow + these 5 clinical_decision_pending IDs)
+          # / 73 xfailed — collected-ID diff proves nothing else moves. See PR body.
           echo "Running existence-filtered suites:$FILES"
           # Visibility guard: a branch that deletes/renames a covered suite silently
           # drops it from the gate and still goes green. Surface the absent suites as a
@@ -284,4 +297,13 @@ jobs:
           if [ -n "$SKIPPED" ]; then
             echo "::warning title=unit-gate skipped suites::Not present on this branch (not run):$SKIPPED"
           fi
-          pytest $FILES -m "not slow" -p no:randomly --tb=short
+          # No CLI -m here: pytest resolves a single -m by last-occurrence, so a CLI
+          # -m "not slow" silently OVERRODE pyproject's addopts -m (which is now a strict
+          # superset: "not integration and not clinical_decision_pending and not governance
+          # and not cradle and not slow") rather than combining with it — the gate was
+          # running whatever addopts' three OTHER exclusion lanes would have caught.
+          # Dropping the CLI flag lets the gate inherit addopts in full. Verified by
+          # --collect-only -q test-ID diff (old vs new invocation, same file list): the
+          # new selection is a full superset of the old — nothing the old invocation
+          # collected is deselected here. See PR body for the enumerated deselection list.
+          pytest $FILES -p no:randomly --tb=short
