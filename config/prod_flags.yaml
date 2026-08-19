@@ -112,7 +112,7 @@ flags:
   SAGE_SELFWORTH_FP_EXCLUSION:
     value: null
     class: safety
-    note: "DRAFT surface, gated on Vee signature (packet item 3, due 2026-08-25): S4b self-worth presence deference (S4B-FP-1 crisis-card FP on self-compassion trigger vocabulary). unset = config.py strict-parse default OFF (only a literal 'true' enables; byte-identical inert). Activation returns as its own decision request + apply AFTER the signature; term lists PROPOSED in nodes/selfworth_override.py"
+    note: "SIGNED surface (Vee 2026-08-19, PO relay; record: 2026-08-19-vee-approval-record-signature-sheet.md item 3). unset = config.py strict-parse default OFF (only a literal 'true' enables; byte-identical inert). Activation = register flip to true + apply, deploy-owner-executed on the same record; term lists signed class-level in nodes/selfworth_override.py"
   SAGE_MODALITY_REQUEST_ROUTING:
     value: "true"
     class: feature

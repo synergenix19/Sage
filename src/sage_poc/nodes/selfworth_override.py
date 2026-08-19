@@ -30,7 +30,7 @@ encoded as _EXISTENCE_TERMS: any hit keeps the escalation, same conservative dia
 Single-sourcing (the grief/cardiac pattern): the harm set is IMPORTED from panic_override._HARM_TERMS —
 the same harm language that stops panic-grounding and grief-deference stops this deference, no drift.
 
-_SELFWORTH_TERMS and _EXISTENCE_TERMS are PROPOSED — awaiting Vee signature 2026-08-25, packet item 3.
+_SELFWORTH_TERMS and _EXISTENCE_TERMS: SIGNED 2026-08-19: Vee (clinical lead) — PO relay; record: 2026-08-19-vee-approval-record-signature-sheet.md, item 3. Class-level per the portability clause (deservingness-without-existence does NOT escalate; with-existence MUST); term lists = current implementation + permanent fixtures.
 Vocabulary is clinician-owned; Vee confirms/extends/narrows both lists on the packet decision.
 Matching is case-insensitive substring, the crisis-lexicon convention. EN-only (AR rides the AR track,
 same as grief_override).
@@ -42,7 +42,7 @@ from sage_poc.safety.s3_semantic import S3_THRESHOLD
 
 SELFWORTH_S3_SUB_THRESHOLD_CLEAN: float = S3_THRESHOLD
 
-# PROPOSED — awaiting Vee signature 2026-08-25, packet item 3.
+# SIGNED 2026-08-19: Vee (clinical lead) — PO relay; record: 2026-08-19-vee-approval-record-signature-sheet.md, item 3. Class-level per the portability clause (deservingness-without-existence does NOT escalate; with-existence MUST); term lists = current implementation + permanent fixtures.
 # Self-worth / deservingness framings WITHOUT existence content: the S4a/S4b trigger register.
 _SELFWORTH_TERMS: tuple[str, ...] = (
     "don't deserve kindness", "dont deserve kindness", "deserve kindness",
@@ -58,7 +58,7 @@ _SELFWORTH_TERMS: tuple[str, ...] = (
     "too hard on myself", "never good enough for anyone",
 )
 
-# PROPOSED — awaiting Vee signature 2026-08-25, packet item 3.
+# SIGNED 2026-08-19: Vee (clinical lead) — PO relay; record: 2026-08-19-vee-approval-record-signature-sheet.md, item 3. Class-level per the portability clause (deservingness-without-existence does NOT escalate; with-existence MUST); term lists = current implementation + permanent fixtures.
 # Existence / death / absence content: ANY hit keeps the escalation (the must-STILL-fire boundary:
 # "I don't deserve to be here", "I don't deserve to exist", "better off without me"). Deliberately
 # broad substrings — over-blocking the deference is the safe direction (escalation stands).
