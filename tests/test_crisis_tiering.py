@@ -12,6 +12,8 @@ This file has two layers:
 import asyncio
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc.safety.crisis_tier import resolve_crisis_tier
 
 
@@ -268,7 +270,17 @@ def test_strict_parse_garbage_is_ON_with_warning():
     # Unexpected value -> apply signed default (ON) AND warn (do not silently flip the crisis path).
     val, err = _config_flag_with_env({"SAGE_CRISIS_TIERING": "yes-ish"})
     assert val == "True", f"garbage value disabled tiering: {val!r} / {err!r}"
-    assert "SAGE_CRISIS_TIERING" in err and "unexpected" in err.lower(), f"no warning for garbage value: {err!r}"
+    # Assert on behavior, not prose (standing rule): a warning was emitted naming the flag and
+    # stating the value did not parse as a valid boolean — not on a specific removed adjective.
+    # PRE-EXISTING BREAKAGE (found while tagging this previously-ungated file 2026-08-19): PR #520's
+    # _strict_flag() consolidation standardized every flag's warning text to "is neither 'true' nor
+    # 'false'; keeping signed default ..." — this assertion pinned the pre-consolidation per-flag
+    # wording ("unexpected"), which no longer exists anywhere in the codebase. The FAIL-SAFE BEHAVIOR
+    # under test (garbage -> signed default ON, with a warning) is unchanged and correct; only the
+    # prose changed. Went undetected for the same reason this whole file was ungated: nothing watched it.
+    assert "SAGE_CRISIS_TIERING" in err and "true" in err.lower() and "false" in err.lower(), (
+        f"no warning naming the flag for garbage value: {err!r}"
+    )
 
 
 def test_strict_parse_false_whitespace_case_still_disables():

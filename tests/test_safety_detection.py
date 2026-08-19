@@ -24,6 +24,8 @@ import pytest
 from contextlib import contextmanager, nullcontext
 from unittest.mock import patch
 
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc.nodes.safety_check import safety_check_node
 from tests.fixtures.safety.cases import (
     SAFETY_CASES,

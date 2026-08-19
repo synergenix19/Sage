@@ -26,6 +26,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc.crisis_copy import resolve_crisis_placeholders
 
 # The 8 crisis-copy sites (verified 2026-07-08). Same inventory as the conformance test.

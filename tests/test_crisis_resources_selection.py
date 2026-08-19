@@ -8,6 +8,10 @@ CRISIS_RESOURCES across all 24 hours ("no stranded 02:00 user").
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import pytest
+
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc.config import CRISIS_CONFIG, CRISIS_RESOURCES, select_crisis_resources
 
 _DUBAI = ZoneInfo("Asia/Dubai")

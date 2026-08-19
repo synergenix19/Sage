@@ -17,10 +17,14 @@
 #   3. curly-quote negative: normalization must not create false vetoes
 # Plus an ASCII-invariance property check over all three lexicons.
 
+import pytest
+
 from sage_poc.nodes.ocd_compulsion import is_ocd_compulsion, COMPULSION_PATTERNS
 from sage_poc.nodes.harm_intrusive import is_harm_intrusive, HARM_INTRUSIVE_PATTERNS
 from sage_poc.nodes.ipv_preempt import _matches_expansion, EXPANSION_PHRASES
 from sage_poc.rules.normalize import normalize_text
+
+pytestmark = pytest.mark.safety_gate
 
 
 # ── OCD compulsion veto (lexicon: ocd_compulsion_patterns.json) ──────────────

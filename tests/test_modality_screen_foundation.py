@@ -9,6 +9,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc import config
 from sage_poc.matching import (
     SCREEN_LEAD_IN,

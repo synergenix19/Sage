@@ -9,6 +9,8 @@ translate-out path, the one crisis-number surface not deterministic end-to-end i
 """
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc.crisis_copy import assert_crisis_locale_parity
 
 

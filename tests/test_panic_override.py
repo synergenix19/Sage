@@ -10,6 +10,10 @@ harm-adjacency (conservative dial: defer to escalation on any harm hint). Fixtur
 import json
 import os
 
+import pytest
+
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc.nodes.panic_override import should_ground_over_crisis, S3_SUB_THRESHOLD_CLEAN
 
 _FX = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),

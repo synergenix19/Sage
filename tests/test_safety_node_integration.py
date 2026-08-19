@@ -15,6 +15,8 @@ import pytest
 from unittest.mock import patch, AsyncMock
 from sage_poc.nodes.safety_check import safety_check_node
 
+pytestmark = pytest.mark.safety_gate
+
 
 # ── State factory ─────────────────────────────────────────────────────────────
 
