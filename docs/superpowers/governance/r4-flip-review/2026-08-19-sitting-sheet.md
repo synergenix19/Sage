@@ -74,7 +74,11 @@ purpose.
   you sign it; it needs its own native `ar_uae` twin per the boot guard)
 - [ ] author/tick the trigger boundary: what in a helper's REPORT counts as intent-now
   (your vocabulary, EN + Gulf Arabic, this sitting) — ambiguity fails toward the more
-  urgent presentation
+  urgent presentation. **Owner-ratified 2026-08-19, pinned as a future fixture:** the
+  tie-break itself lands in the R4 regression set alongside your vocabulary — an
+  ambiguous immediacy signal ("she keeps talking about the pills") serves the 999-led
+  variant, never the helpline-led one; the invariant encoded, not incidental, exactly as
+  F1's containment tie-breaks were.
 
 **B1b. After-hours coverage (owner condition, restored 2026-08-19).** Verified fact: the
 helpline placeholder resolves to "8am–8pm daily" — from 8pm to 8am, the line your helper
