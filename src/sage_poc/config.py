@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -342,10 +343,41 @@ if _ipv_preempt_raw is not None and _ipv_preempt_raw.strip().lower() not in ("tr
 KNOWLEDGE_ABSTAIN_THRESHOLD = float(os.getenv("SAGE_KNOWLEDGE_ABSTAIN_THRESHOLD", "0.015"))
 
 # Authoritative abstain gate: cosine SIMILARITY (1 - pgvector distance) of the best passage
-# in the returned evidence pack. Abstain when best similarity < threshold. Default 0.0 is
-# FAIL-OPEN (never abstains = pre-fix behaviour); deploy sets SAGE_COSINE_ABSTAIN_THRESHOLD
-# to the calibrated value (spec 2026-07-03 Appendix A). Set to 0.0 to roll back instantly.
-COSINE_ABSTAIN_THRESHOLD = float(os.getenv("SAGE_COSINE_ABSTAIN_THRESHOLD", "0.0"))
+# in the returned evidence pack. Abstain when best similarity < threshold.
+#
+# 0.0 means FAIL-OPEN (never abstains). That remains the instant rollback — but it must now be
+# WRITTEN, not merely forgotten. Until 2026-08-19 this read
+#     float(os.getenv("SAGE_COSINE_ABSTAIN_THRESHOLD", "0.0"))
+# so an unset variable was indistinguishable from a decision to serve everything, on the gate
+# that stands between an off-topic query and crisis content. It bit: the PR #512 measurement
+# harness ran at 0.0 while prod served 0.42, and its numbers were only salvageable because it
+# happened to record raw similarities. A guardrail that depends on the operator remembering to
+# re-check is not a guardrail.
+#
+# Unset is therefore a hard error outside a test context. Rollback = set the variable to "0.0".
+def _abstain_threshold() -> float:
+    raw = os.getenv("SAGE_COSINE_ABSTAIN_THRESHOLD")
+    if raw is not None:
+        return float(raw)
+    if "PYTEST_CURRENT_TEST" in os.environ or "pytest" in sys.modules:
+        return 0.0  # unit tests construct their own thresholds; never a serving path
+    if os.getenv("SAGE_ALLOW_UNSET_ABSTAIN_THRESHOLD") == "1":
+        logging.getLogger(__name__).error(
+            "[config] SAGE_COSINE_ABSTAIN_THRESHOLD is UNSET and the gate is running FAIL-OPEN "
+            "(0.0) under SAGE_ALLOW_UNSET_ABSTAIN_THRESHOLD=1. Retrieval will never abstain. "
+            "Numbers produced in this process are NOT comparable to production."
+        )
+        return 0.0
+    raise RuntimeError(
+        "SAGE_COSINE_ABSTAIN_THRESHOLD is not set. This is the authoritative KB abstain gate; "
+        "an unset value would silently serve every retrieved passage, including on off-topic "
+        "queries. Set it to the calibrated value from config/prod_flags.yaml, or set it "
+        "explicitly to 0.0 to roll the gate open on purpose. For local tooling that genuinely "
+        "does not exercise retrieval, set SAGE_ALLOW_UNSET_ABSTAIN_THRESHOLD=1."
+    )
+
+
+COSINE_ABSTAIN_THRESHOLD = _abstain_threshold()
 
 # Skill-routing precision (feedback #6). A runner-up (second offer) must be strong AND close
 # to the primary, else only the primary is offered. Defaults conservative; confirm with clinical.
