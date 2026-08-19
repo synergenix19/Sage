@@ -906,3 +906,21 @@ def test_arabizi_benign_does_not_fire():
         "language": "az",
     })
     assert not result.fired
+
+
+# ── SK-EN-004 kin-variant parity (Vee tick 2026-08-19, sitting-ticks record) ──
+# ADV1 of the R4 adversarial pass served the first-person script by lexicon
+# accident: sister/brother "wants to die / wants to kill her/himself" were
+# absent while the friend variants existed. Parity closes the accident.
+
+@pytest.mark.parametrize("text", [
+    "my sister wants to die",
+    "my brother wants to die",
+    "my sister wants to kill herself",
+    "my brother wants to kill himself",
+])
+def test_third_party_kin_variants_fire(text):
+    result = engine.evaluate("safety", {"text_en": text, "text_ar": None,
+                                        "language": "en", "text_raw": text})
+    tp = [a for a in result.actions if a.get("type") == "third_party_crisis"]
+    assert tp, f"kin-variant must fire third_party_crisis: {text!r}"
