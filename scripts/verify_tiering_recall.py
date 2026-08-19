@@ -1,5 +1,10 @@
 # DEPRECATED-DIRECT-INVOKE: invokes the graph/LLM directly; output is NOT evidence under
 # the signed instrument-parity rule (2026-07-28). Migrate to scripts/instrument/graph_evidence.py.
+# STATUS (K3.3 archive sweep, 2026-08-19): campaign CLOSED (crisis-tier non-inferiority proof
+# delivered — the design gate this script exists to satisfy has run and passed). KEPT in place
+# (not archived) per F9 ruling: re-run is justified any time crisis-tier resolution logic
+# (sage_poc/safety/crisis_tier.py) or the S1/S3 detectors it drives change — this is the
+# regression instrument for that surface, not a one-off audit artifact.
 """Proof 2 — per-case tiering NON-INFERIORITY regression (the design gate).
 
 For every true-SI CRADLE case, run the real detectors (S1 rules + real BGE-M3 S3), then resolve
