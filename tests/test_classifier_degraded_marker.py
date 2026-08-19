@@ -16,6 +16,8 @@ Contract (behavior-anchored):
 Pure additive path marker, no flag (same class as existing lifecycle markers).
 """
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from unittest.mock import AsyncMock, patch
 
 

@@ -1,5 +1,7 @@
 # tests/test_rules_safety.py
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from sage_poc.rules import engine
 from sage_poc.rules.engine import _eval_safety
 from sage_poc.rules.loader import get_rules, reload_all

@@ -1,6 +1,9 @@
 """D1 shadow/enforce audit row (#338) — the shadow observation persists on the per-turn audit row, and a
 non-screen turn stays byte-identical to master. Anonymised class+route only (PDPL-approved 2026-07-17)."""
 from sage_poc.audit import _build_session_audit_row
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 
 def _base_state():

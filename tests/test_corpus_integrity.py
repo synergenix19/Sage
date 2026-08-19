@@ -8,6 +8,8 @@ import pathlib
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 ROOT = pathlib.Path(__file__).parent.parent
 EN_DIR = ROOT / "data" / "knowledge_corpus" / "en"
 AR_DIR = ROOT / "data" / "knowledge_corpus" / "ar"

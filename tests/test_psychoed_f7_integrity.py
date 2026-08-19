@@ -57,6 +57,8 @@ import asyncio
 import logging
 
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from unittest.mock import patch
 
 import sage_poc.config as config

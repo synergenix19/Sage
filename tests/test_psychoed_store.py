@@ -1,4 +1,6 @@
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from sage_poc.psychoed import store
 
 def test_all_40_blocks_load():

@@ -9,6 +9,9 @@ reappear, here on the live path.
 from sage_poc.nodes import skill_select as ss
 from sage_poc.nodes.skill_select import routing_threshold, SEMANTIC_THRESHOLD
 from sage_poc.routing_eval.calibration import ThresholdTable
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 
 def _table(per_route):

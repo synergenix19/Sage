@@ -14,6 +14,9 @@ deliver the protocol via the L3 step instruction.
 from unittest.mock import MagicMock, patch
 
 from sage_poc.prompts.composer import compose_prompt
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 
 def _no_rules_mock():

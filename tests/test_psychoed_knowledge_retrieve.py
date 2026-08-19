@@ -18,6 +18,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 import sage_poc.config as config
 from sage_poc.nodes.knowledge_retrieve import knowledge_retrieve_node
 from sage_poc.psychoed import store as psy_store

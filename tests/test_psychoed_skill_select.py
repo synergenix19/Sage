@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 import sage_poc.config as config
 from sage_poc.graph import _route_after_skill_select
 from sage_poc.nodes.skill_select import skill_select_node

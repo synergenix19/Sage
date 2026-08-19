@@ -16,6 +16,8 @@
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc.nodes.skill_executor import _psychoed_family_exposure, evaluate_step_policy
 from sage_poc.skills.schema import Skill, SkillStep, StepPolicyCondition, StepPolicyRule
 
