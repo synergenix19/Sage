@@ -1,3 +1,8 @@
+# STATUS (K3.3 archive sweep, 2026-08-19): campaign CLOSED (Check B byte-identical-surface
+# proof delivered for the flag-OFF branch/master comparison this script was built for). KEPT
+# in place (not archived) per F9 ruling: re-run is justified any time a flag-gated change to
+# routing/gate_path/crisis-copy logic needs a deterministic before/after surface diff — this
+# is the general-purpose instrument for that check class, not a one-off audit artifact.
 """Proof 1 harness — capture the DETERMINISTIC crisis-routing surface for a fixed corpus.
 
 Surfaces (all deterministic; generation + S3 stubbed): per-case routing decision, gate_path,

@@ -45,12 +45,7 @@ _SANCTIONED_DIRS = ("prod_smoke/", "instrument/")
 # marker below. Do NOT add entries: new scripts go through the helper.
 _DEPRECATION_MARKER = "DEPRECATED-DIRECT-INVOKE"
 _LEGACY = {
-    "baseline_format_check.py",
-    "benchmark_poc_scenarios.py",
-    "bot_behaviour_recall_baseline.py",
     "verify_tiering_recall.py",
-    "probe_freeflow_openers.py",   # llm.ainvoke (not the graph) — still not an evidence path
-    "benchmark_latency.py",        # docstring mention of graph.ainvoke() trips the grep
 }
 
 
@@ -109,6 +104,8 @@ def test_characterize_1a_gap_requires_deprecation_marker_when_present():
 
 
 def test_legacy_allowlist_is_not_silently_growable():
-    """The legacy set is FROZEN at the six pre-rule files. If this count changes, the change
-    must be a removal (migration to the helper), never an addition."""
-    assert len(_LEGACY) <= 6, "legacy allowlist grew — new scripts must use the helper"
+    """The legacy set started at six pre-rule files; five were archived in the K3.3 archive
+    sweep (2026-08-19), shrinking it to one. Shrinking is the sanctioned direction — this
+    test only guards against the count going back up. If this count changes, the change
+    must be a removal (migration to the helper or archival), never an addition."""
+    assert len(_LEGACY) <= 1, "legacy allowlist grew — new scripts must use the helper"
