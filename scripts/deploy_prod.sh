@@ -3,6 +3,11 @@
 # A control that exists beats a norm everyone must remember. Usage: deploy_prod.sh <staging|production> <full-sha>
 set -euo pipefail
 ENV="${1:?usage: deploy_prod.sh <staging|production> <full-40char-sha>}"; SHA="${2:?full deploy SHA required}"
+# HEAD assertion (SHA-lie instance #4, 2026-08-19): every downstream gate validates the SHA
+# ARGUMENT, but `railway up` uploads THIS WORKING TREE — they must be the same commit.
+ACTUAL=$(git rev-parse HEAD 2>/dev/null || echo none)
+[ "$ACTUAL" = "$SHA" ] || { echo "❌ ABORT: working tree HEAD ($ACTUAL) != deploy SHA ($SHA) — checkout the deploy worktree at the target SHA first (git checkout --detach $SHA). The upload ships the TREE, not the argument." >&2; exit 7; }
+git diff --quiet && git diff --cached --quiet || { echo "❌ ABORT: working tree at $SHA is DIRTY — the upload would ship uncommitted content." >&2; exit 7; }
 PROJECT=4f1811e7-cab2-4002-9107-a9f782f2f274; SERVICE=160e9f65-e3c8-409a-b647-fbe2339a265d
 HOLDER="${USER:-unknown}@$(hostname -s 2>/dev/null||echo host)-$$"; TTL=1200
 # railway CLI (this version) does NOT accept --project/--environment/--service on `variables` —
