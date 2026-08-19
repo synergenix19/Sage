@@ -15,7 +15,9 @@ railway run <venv>/python scripts/prod_smoke/run.py --tier all
 - **Tier B** (frontend card renders) and the Tier C non-KB chat check are **report-only** in v1 (visible, non-gating).
 - `XFAIL` never flips the exit code (see the two known XFAILs below).
 
-Run a single tier with `--tier a|b|c`. Override the target with `--base-url` or `SAGE_SMOKE_BASE_URL` (default: prod).
+Run a single tier with `--tier a|b|c`.
+
+> **⚠️ SAGE_API_KEY is now MANDATORY (fail-closed, 2026-08-19).** `functional_test_production.py`, `per_skill_routing_test.py`, and `functional_multiturn_prod.py` — and everything importing their `HEADERS` (all of `prod_smoke/` tiers A and C) — **exit immediately if `SAGE_API_KEY` is not exported.** The embedded fallback key was removed (PR #487). Export it before any run (`railway run` injects it if set as a service variable; local runs need `export SAGE_API_KEY=...`). Any cron/CI job invoking these scripts must carry the variable or it will exit 1 at import. Override the target with `--base-url` or `SAGE_SMOKE_BASE_URL` (default: prod).
 
 ## Reading the output
 
