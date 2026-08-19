@@ -98,6 +98,20 @@ class SyncResult:
     locked_out: bool = False  # another instance held the advisory lock
 
 
+class CorpusIntegrityError(RuntimeError):
+    """Stored chunks do not match the corpus files after a sync.
+
+    Distinct from a sync that merely failed: this means the DB is now in a state
+    the corpus does not describe — an article missing, or present but truncated.
+    Raised so the condition cannot be reported as a generic sync failure.
+    """
+
+    def __init__(self, mismatches: list[tuple[str, int, int]]):
+        self.mismatches = mismatches
+        detail = ", ".join(f"{p}: expected {e} chunks, stored {g}" for p, e, g in mismatches)
+        super().__init__(detail)
+
+
 def _prefix_of(article_id: str) -> str:
     """Map a stored chunk id (cbt-001-en-000 or cbt-001-en) back to its prefix."""
     return _CHUNK_SUFFIX_RE.sub("", article_id)
@@ -116,6 +130,35 @@ async def _load_existing_hashes(conn) -> dict[str, str]:
         if h:
             out[_prefix_of(r["article_id"])] = h
     return out
+
+
+async def verify_corpus_integrity(conn, articles: list[dict]) -> list[tuple[str, int, int]]:
+    """Compare stored chunk counts against what the corpus files produce.
+
+    Returns [(chunk_prefix, expected, stored), ...] for every article whose stored
+    row count is not what its file chunks to. Empty list = corpus and DB agree.
+
+    This exists because content_hash readback is not sufficient evidence: the hash
+    is written per row, so an article that lost rows AFTER a partial ingest still
+    presents a correct hash on the rows that survived. Counting is what catches a
+    truncated article; the 2026-08-19 wellbeing-001-ar tear was invisible to every
+    hash-based check and to the chunk-count total, which only moved by 3.
+    """
+    from sage_poc.knowledge.ingestion import chunk_text  # noqa: PLC0415
+
+    rows = await conn.fetch("SELECT article_id FROM public.knowledge_articles")
+    stored: dict[str, int] = {}
+    for r in rows:
+        stored[_prefix_of(r["article_id"])] = stored.get(_prefix_of(r["article_id"]), 0) + 1
+
+    mismatches: list[tuple[str, int, int]] = []
+    for art in articles:
+        prefix = chunk_prefix(art)
+        expected = len(chunk_text(art["content"], is_crisis_content=art["is_crisis_content"]))
+        got = stored.get(prefix, 0)
+        if got != expected:
+            mismatches.append((prefix, expected, got))
+    return mismatches
 
 
 async def _delete_prefix(conn, prefix: str) -> None:
@@ -154,6 +197,16 @@ async def sync_corpus(
             for prefix in plan.to_prune:
                 await _delete_prefix(conn, prefix)
                 result.pruned += 1
+
+            # Post-sync integrity assertion. The ingest loop above deletes a prefix
+            # and then re-inserts it on a SEPARATE pooled connection, with no
+            # transaction spanning the pair, so any failure in between (pool
+            # exhaustion is the observed one) leaves an article missing or
+            # truncated. Before this check, that outcome was silent: the sync's own
+            # counters report what it believed it did, not what the table holds.
+            mismatches = await verify_corpus_integrity(conn, articles)
+            if mismatches:
+                raise CorpusIntegrityError(mismatches)
         finally:
             await conn.execute("SELECT pg_advisory_unlock($1)", _LOCK_KEY)
     _log.info(
