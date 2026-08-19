@@ -49,7 +49,7 @@ disagree: if you edit one, check the other.
 | `gen_deterministic_surface.py` | instrument-of-record — **KEPT with status header (F9 ruling); campaign closed, re-run on any flag-gated routing/gate_path/crisis-copy change** | | `.venv/bin/python scripts/gen_deterministic_surface.py > surface.json` |
 | `ingest_knowledge.py` | instrument-of-record (prod knowledge-corpus load/refresh) | | see in-file `Usage:` block |
 | `knowledge_ar_recall_probe.py` | diagnostic | | `python scripts/knowledge_ar_recall_probe.py` |
-| `latency_baseline.py` | diagnostic | supersedes `archive/scripts/benchmark_latency.py`, `archive/scripts/benchmark_poc_scenarios.py` | see in-file `Usage:` block |
+| `latency_baseline.py` | diagnostic | supersedes `archive/scripts/benchmark_latency.py`, `archive/scripts/benchmark_poc_scenarios.py` (inferred — successor by audit classification, not self-stated: `latency_baseline.py`'s own docstring makes no supersession claim) | see in-file `Usage:` block |
 | `monitor_abstain_band.py` | diagnostic (monitor) | | `python scripts/monitor_abstain_band.py` |
 | `negatives_smoke.py` | diagnostic | | `python scripts/negatives_smoke.py` |
 | `passive_si_s3_precision.py` | diagnostic (#18 / LOCK-SF1-02 measurement) | | `uv run python scripts/passive_si_s3_precision.py` |
@@ -147,6 +147,11 @@ disagree: if you edit one, check the other.
 Moved outside `scripts/` — and outside `tests/test_instrument_helper_only.py`'s walk —
 because each is a closed-campaign or superseded probe with no live CI/test/doc
 reference at time of archival. Kept for history only; do not import or run from CI.
+
+**Primary record:** `archive/scripts/README.md` carries the full F5 disposition
+record (the audit table itself was never persisted before this sweep) — the same
+18 rows plus the 5 `lookup_*` PDPL deletions (PR #485) and the 2 kept-in-place
+files, with archive date and recovery path. The table below is a summary.
 
 | script (former path) | closed campaign / superseded by |
 |---|---|
