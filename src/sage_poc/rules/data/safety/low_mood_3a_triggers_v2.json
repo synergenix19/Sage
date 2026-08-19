@@ -100,35 +100,30 @@
  "_cd1_tiers": {
   "method": "R1 (Vee, 2026-08-18): assign by diagnostic specificity x cost-of-miss — two questions per family: specificity to a persistent low-mood cluster vs transient states, and consequence of a miss. Any family overlapping the 7b hopelessness markers ('no one would notice' class) tiers STRONG regardless of frequency.",
   "strong": [
+   "affective_flatness",
    "anhedonia_interest",
    "energy_effort"
   ],
   "strong_note": "R1-ratified axis: mirrors the two PHQ-2 core criteria.",
   "weak": [
-   "social_withdrawal",
-   "motivation"
+   "explicit_ask",
+   "motivation",
+   "social_withdrawal"
   ],
   "weak_note": "R1-ratified axis (social-withdrawal/procrastination side).",
   "strong_by_7b_overlap": [
    "meaning_going_through_motions"
   ],
   "strong_by_7b_overlap_evidence": "MECHANICAL: 'everything feels pointless' overlaps the VG-01 purposelessness class in passive_si_patterns.json (C-SSRS item-1 register: \"what's the point anymore\" family) — strong regardless of frequency per R1.",
-  "proposed_pending_tick": {
-   "affective_flatness": {
-    "proposal": "strong",
-    "rationale": "specificity moderate (flatness also appears in transient exhaustion) but cost-of-miss HIGH: flat affect masks and underreports distress — least-certain assignment, flagged first for your tick"
-   },
-   "explicit_ask": {
-    "proposal": "weak",
-    "rationale": "low specificity (help-seeking without mood disclosure); low cost-of-miss (a missed explicit ask still reaches BA via normal request handling)"
-   }
-  }
+  "confirmed_2026_08_19": "A1 CONFIRMED (Vee via PO relay, sitting-ticks record): affective_flatness STRONG (flat affect masks distress; BOT_BEHAVIOUR §3a trigger table treats flatness phrasing as core low-mood vocabulary; cost-of-miss governs). explicit_ask WEAK (explicit-ask route runs the full flow on entry; a tiering miss does not bypass the safety weave).",
+  "unassigned_pending_vee": [],
+  "note": "R1 (Vee, 2026-08-18): assign by diagnostic specificity x cost-of-miss — two questions per family: specificity to a persistent low-mood cluster vs transient states, and consequence of a miss. Any family overlapping the 7b hopelessness markers ('no one would notice' class) tiers STRONG regardless of frequency."
  },
  "_signature_block": {
   "version": 2,
   "signed_by": "PENDING — Vee (clinical lead)",
   "signed_date": "PENDING",
-  "review_by_trigger": "PENDING — Vee sets at signing (R2): a date or a named clinical-picture change that forces re-review; the artifact expires from 'current' status when the trigger fires."
+  "review_by_trigger": "CONFIRMED (A2, 2026-08-19): re-review on the earlier of 90 days from signing or any change to the §3a clinical picture Vee names (e.g. new naturalistic corpus, CD-series revision). Signature fields remain PENDING until A6."
  },
  "sf1_gulf_arabic_passive_si": {
   "status": "TO BE AUTHORED BY VEE AT THE v2 SIGNING (R6, same-sitting): the Khaleeji passive-SI idioms are hers to author; captured here they enter the signed record in one cycle and feed the F5 regression set directly.",

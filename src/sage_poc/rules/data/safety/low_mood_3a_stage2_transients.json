@@ -11,9 +11,11 @@
   "review_by_trigger": "PENDING — set at signing (R2 class rule)"
  },
  "engineering_observed_candidates": {
-  "note": "OBSERVED, not authored — measured false-positives from the baseline of record, offered for her consideration; they enter the fixture set only by her word.",
+  "note": "A5 ruling (2026-08-19, sitting-ticks record): 'feeling a bit down after a rough week' KEPT (clean: explicit transience + mildness). 'nothing fun to do right now' STRUCK - already signed List B (no protection lost) and it borders three signed fire phrases; a zero-tolerance instrument takes only unambiguous members. Vee adds 1-2 phrases of her own with explicit transience + attribution markers (the 'since X last week' shape) at signing.",
   "candidates": [
-   "feeling a bit down after a rough week",
+   "feeling a bit down after a rough week"
+  ],
+  "struck": [
    "nothing fun to do right now"
   ]
  },
