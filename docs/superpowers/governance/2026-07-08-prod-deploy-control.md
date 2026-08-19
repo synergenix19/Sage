@@ -110,3 +110,30 @@ layer-attribution + red-verify rules composed into a pre-deploy gate:
    any language whose signed content isn't ready holds the fail-safe default (grounding), verified by
    driving a turn in that language.
 "No go-live on an unverified safety path; don't sign green you haven't driven." Procedure, not vigilance.
+
+## Register merges are deploy-adjacent events (standing, added 2026-08-19)
+
+`deploy_prod.sh` **step 5** re-asserts the committed flag register (`apply_prod_flags.py --apply`)
+on every production deploy, before the build. That is by design — it is the drift control. The
+consequence is easy to miss and worth stating plainly:
+
+> **A merged change to `config/prod_flags.yaml` is armed for whoever deploys next, whether or not
+> they know about it.** The next deploy applies it, regardless of which session merged it or why.
+
+Demonstrated 2026-08-19. One session merged `SAGE_COSINE_ABSTAIN_THRESHOLD: 0.58` (Vee-signed,
+half of a coupled change with cdai migration 018). A *different* session then deployed
+`10e70ea9` for unrelated work, and its step-5 apply pushed 0.58 live. The outcome was benign —
+0.58 with the index still present is the fail-safe over-abstaining intermediate, and the ordering
+was the one that had been ruled — but it was applied by a session that had not authored it and
+initially could not account for it.
+
+Two practices follow:
+
+1. **Merging a register change is a scheduling act, not just a code act.** If the value must not
+   go live yet, do not merge it — the trap is a mergeable register row whose precondition is
+   unmet. If it *should* go live with the next deploy, say so where the next deployer will read
+   it (the register `note`, and the coupled change's PR).
+2. **A deployer who meets an unexplained register value at the gate should stop and get it
+   accounted for** — which register entry, what coupled change, whether their build carries any
+   code half, and who authorized it — rather than deploying onto it or reverting it blind. Both
+   failure directions are worse than one question.
