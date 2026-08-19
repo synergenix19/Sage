@@ -239,3 +239,67 @@ def test_resolve_creds_gate_set_fallback_works(monkeypatch):
     assert creds.api_key == "railway-key"
     assert creds.database_url == FAKE_DSN
     assert creds.test_user_ids == "u1,u2"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# chat() — ChatResult.status (review Critical: 4xx/5xx must be visible to callers,
+# not silently absorbed into headers/text as if it were a 2xx)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _fake_curl_run(stdout, returncode=0, stderr=""):
+    def fake_run(argv, capture_output, text):
+        class _R:
+            pass
+        r = _R()
+        r.stdout = stdout
+        r.returncode = returncode
+        r.stderr = stderr
+        return r
+    return fake_run
+
+
+def test_chat_status_200(monkeypatch):
+    monkeypatch.setattr(
+        prod_probe.subprocess, "run",
+        _fake_curl_run("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n"
+                       '{"message": "hi"}'))
+    result = prod_probe.chat("sid-1", "hello", base_url="https://x", api_key="k")
+    assert result.status == 200
+    assert result.message == "hi"
+
+
+def test_chat_status_500(monkeypatch):
+    monkeypatch.setattr(
+        prod_probe.subprocess, "run",
+        _fake_curl_run("HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\n"
+                       "upstream error"))
+    result = prod_probe.chat("sid-2", "hello", base_url="https://x", api_key="k")
+    assert result.status == 500
+
+
+def test_chat_status_takes_last_block_on_redirect(monkeypatch):
+    """curl -i on a redirected/relayed request emits one header block per hop, all
+    concatenated ahead of the body. status must reflect the FINAL response actually
+    delivered, not an intermediate 3xx/100-continue block."""
+    raw = ("HTTP/1.1 301 Moved Permanently\r\nLocation: https://x/chat/\r\n\r\n"
+           "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n"
+           '{"message": "hi"}')
+    monkeypatch.setattr(prod_probe.subprocess, "run", _fake_curl_run(raw))
+    result = prod_probe.chat("sid-3", "hello", base_url="https://x", api_key="k")
+    assert result.status == 200
+    # the final block's headers, not the 301's, populate .headers
+    assert result.headers.get("content-type") == "application/json"
+
+
+def test_chat_status_zero_on_malformed_response(monkeypatch):
+    """No parsable HTTP status line at all (e.g. a transport-level failure that still
+    put something on stdout) -> status=0, never a false 2xx."""
+    monkeypatch.setattr(prod_probe.subprocess, "run", _fake_curl_run("not an http response"))
+    result = prod_probe.chat("sid-4", "hello", base_url="https://x", api_key="k")
+    assert result.status == 0
+
+
+def test_chat_status_zero_on_empty_stdout(monkeypatch):
+    monkeypatch.setattr(prod_probe.subprocess, "run", _fake_curl_run(""))
+    result = prod_probe.chat("sid-5", "hello", base_url="https://x", api_key="k")
+    assert result.status == 0

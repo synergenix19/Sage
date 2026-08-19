@@ -72,6 +72,15 @@ def _chat(url, key, ctx, msg, sid):
     result = prod_probe.chat(sid, msg, base_url=url, api_key=key, user_id=TEST_USER, timeout=70)
     if result.returncode != 0:
         return f"__ERR__{result.stderr}"
+    # Reproduce the original urllib.request.urlopen semantics: urlopen raises HTTPError
+    # on any non-2xx response, which the original _chat() caught and turned into
+    # __ERR__ — so a delivered 4xx/5xx never reached observed() as if it were a real
+    # disposition. status == 0 (with returncode == 0, i.e. curl transferred SOMETHING
+    # but it wasn't a parsable HTTP response) gets the same fail-toward-__ERR__
+    # treatment, matching the original's posture of erring on the side of __ERR__ over
+    # a silent misclassification (review Critical, PR #526 fix round 1).
+    if result.status >= 400 or result.status == 0:
+        return f"__ERR__HTTP {result.status}"
     return result.text
 
 

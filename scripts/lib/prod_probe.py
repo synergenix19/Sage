@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import uuid
 from dataclasses import dataclass, field
@@ -112,6 +113,7 @@ class ChatResult:
     message: str              # best-effort extracted reply text: json message/response, else raw body/stdout
     headers: dict              # lower-cased response header name -> value
     json: Optional[dict]      # parsed JSON body, or None if the body wasn't valid JSON
+    status: int                # HTTP status code of the FINAL response (0 if missing/unparsable)
     returncode: int
     stderr: str
 
@@ -134,11 +136,49 @@ def _chat_argv(base_url: str, api_key: str, body: str, timeout: int) -> list:
 
 
 def _split_headers_and_payload(raw: str) -> tuple:
-    for sep in ("\r\n\r\n", "\n\n"):
-        if sep in raw:
-            header_text, _, payload = raw.partition(sep)
-            return header_text, payload
-    return "", raw
+    """Split curl -i output into (header_text of the FINAL header block, payload).
+
+    curl -i emits one full "HTTP/... status line + headers" block per response it
+    receives before the body — e.g. a redirect hop, or a 100-continue preamble ahead
+    of a POST — each terminated by a blank line, all concatenated ahead of the actual
+    body. Walking off leading blocks (as long as what remains still starts with
+    "HTTP/") and keeping the last one found means header_text always reflects the
+    response actually delivered to the caller, not an intermediate one.
+
+    Returns ("", raw) if raw doesn't start with a header block at all (e.g. curl
+    produced no output, or a transport failure left stdout empty/non-HTTP-shaped).
+    """
+    remaining = raw
+    last_header_text = ""
+    found_any = False
+    while remaining.startswith("HTTP/"):
+        split_at = None
+        for sep in ("\r\n\r\n", "\n\n"):
+            idx = remaining.find(sep)
+            if idx != -1 and (split_at is None or idx < split_at[0]):
+                split_at = (idx, sep)
+        if split_at is None:
+            break
+        idx, sep = split_at
+        last_header_text = remaining[:idx]
+        remaining = remaining[idx + len(sep):]
+        found_any = True
+    if not found_any:
+        return "", raw
+    return last_header_text, remaining
+
+
+def _parse_status(header_text: str) -> int:
+    """HTTP status code from the first line of a header block (e.g. 'HTTP/1.1 200 OK'
+    or 'HTTP/2 404'). Returns 0 if header_text is empty or the status line is
+    missing/unparsable — this never raises, callers treat 0 as "unknown/error"."""
+    if not header_text:
+        return 0
+    lines = header_text.splitlines()
+    if not lines:
+        return 0
+    m = re.match(r"^HTTP/\S+\s+(\d{3})", lines[0].strip())
+    return int(m.group(1)) if m else 0
 
 
 def chat(session_id: str, text: str, *, base_url: str = None, api_key: str = None,
@@ -160,6 +200,7 @@ def chat(session_id: str, text: str, *, base_url: str = None, api_key: str = Non
     r = subprocess.run(argv, capture_output=True, text=True)
 
     header_text, payload = _split_headers_and_payload(r.stdout)
+    status = _parse_status(header_text)
     headers = {}
     for line in header_text.splitlines()[1:]:  # [0] is the HTTP status line
         if ":" in line:
@@ -179,7 +220,7 @@ def chat(session_id: str, text: str, *, base_url: str = None, api_key: str = Non
     message = message or payload or r.stdout or r.stderr
 
     return ChatResult(text=payload, message=message, headers=headers, json=parsed,
-                       returncode=r.returncode, stderr=r.stderr)
+                       status=status, returncode=r.returncode, stderr=r.stderr)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
