@@ -31,3 +31,22 @@ Long sessions hit context limits and auto-summarize. When a rollover happens:
 This maps directly to how SageAI's own LangGraph is designed: one shared state object, transitions through controlled nodes — not parallel uncoordinated mutations. The same invariant applies to the tooling layer.
 
 Violating this rule under Gitex deadline pressure is exactly when it will cause the most damage.
+
+## Repo-State Reads: Assert the Ref Before Quoting
+
+**Never quote code or config state from a checkout's working tree without first asserting which ref it is on.** The main `sage-poc` checkout is routinely parked on a feature branch (worktree discipline means feature work lives elsewhere, but the main checkout itself is not pinned), so a read from it can serve stale state that looks current.
+
+The rule, mechanical form:
+
+- To cite current state, use `git show origin/master:<path>` (after `git fetch`), or read from a worktree created from `origin/master` for the task.
+- If reading a working tree anyway, run `git branch --show-current` first and include the ref in the citation. A quote of "current" state from a non-master ref is not evidence.
+- This is the read-side twin of the existing compare rule (no bare stash; compare via `git show origin/master:` or a temp worktree).
+
+Origin: 2026-08-19 — a stale-checkout read of `config.py` (main checkout on a feature branch predating the H4 crisis-config adoption) produced a false safety finding that reached a PR record twice before being run to ground and retracted (PR #457).
+
+**Escalated the same day, after the class recurred on the WRITE side.** A targeted corpus repair run from that same parked checkout shipped pre-refresh Arabic articles into production, reverting two clinician-approved citation upgrades. It was caught by a post-write integrity comparison, not prevented. Two consequences:
+
+- **Writes are guarded in code, not by this rule.** `scripts/prod_write_guard.py` (`assert_source_ref`) refuses any prod write unless the guarded paths are byte-identical to `origin/master`, and is mandatory in `scripts/repair_corpus_articles.py`. This section remains the READ-side rule; the two are complementary, not redundant.
+- **Un-parking the main checkout is no longer deferred** to "when the current feature branch lands". That checkout has now caused a bad prod write, and 46 corpus files diverge on it. Park it on master this week, coordinated with whoever holds its state — do not yank another session's working tree.
+
+The scheduling lesson is worth stating plainly: this rule existed as an open, unmerged PR for the entire window in which the incident happened. **A defense that is written but not landed is indistinguishable from absent at the moment it is needed.**

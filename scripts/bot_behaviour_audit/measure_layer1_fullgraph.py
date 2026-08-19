@@ -50,11 +50,25 @@ _PARITY_INFRA_DENYLIST = {
 
 def _config_sage_vars():
     """Every SAGE_ env var config.py reads, mapped to its default literal (None if it has none). Scanned
-    from source so a newly-added routing flag is auto-included in the parity check — the whole point."""
+    from source so a newly-added routing flag is auto-included in the parity check — the whole point.
+    Matches both the raw os.getenv("SAGE_...") idiom and the single strict-flag parser
+    _strict_flag("SAGE_...", default_on=...) (K2.1, src/sage_poc/config.py) so a flag migrated to the
+    shared helper stays covered by the guard — the same auto-include property the K2.1 refactor must
+    not narrow."""
     src = open(os.path.join(REPO, "src/sage_poc/config.py"), encoding="utf-8").read()
     out = {}
-    for m in re.finditer(r'os\.getenv\(\s*"(SAGE_[A-Z0-9_]+)"\s*(?:,\s*"([^"]*)")?', src):
-        name, default = m.group(1), m.group(2)
+    # KEYWORD-ORDER-FRAGILE: default_on must immediately follow the env-name positional arg in
+    # every _strict_flag(...) call site (config.py's stated convention above _strict_flag's def) —
+    # this regex only recovers the True/False default from that exact position.
+    for m in re.finditer(
+        r'os\.getenv\(\s*"(SAGE_[A-Z0-9_]+)"\s*(?:,\s*"([^"]*)")?'
+        r'|_strict_flag\(\s*"(SAGE_[A-Z0-9_]+)"(?:\s*,\s*default_on\s*=\s*(True))?',
+        src,
+    ):
+        if m.group(1):
+            name, default = m.group(1), m.group(2)
+        else:
+            name, default = m.group(3), ("true" if m.group(4) else "false")
         if name not in _PARITY_INFRA_DENYLIST:
             out[name] = default
     return out

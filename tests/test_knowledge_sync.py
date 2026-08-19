@@ -128,3 +128,95 @@ def test_plan_prune_disabled_keeps_db_only_articles():
     existing = {"cbt-001-en": content_hash(a), "removed-001-en": "abc"}
     plan = compute_sync_plan([a], existing_hashes=existing, prune=False)
     assert plan.to_prune == []
+
+
+# ---------------------------------------------------------------------------
+# Abstain-gate fail-closed default (2026-08-19). The gate must not run open just
+# because nobody set the variable.
+# ---------------------------------------------------------------------------
+
+def test_abstain_threshold_raises_when_unset_outside_test_context(monkeypatch):
+    from sage_poc.config import _abstain_threshold
+    monkeypatch.delenv("SAGE_COSINE_ABSTAIN_THRESHOLD", raising=False)
+    monkeypatch.delenv("SAGE_ALLOW_UNSET_ABSTAIN_THRESHOLD", raising=False)
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    monkeypatch.setitem(__import__("sys").modules, "pytest", None)
+    monkeypatch.delitem(__import__("sys").modules, "pytest")
+    with pytest.raises(RuntimeError, match="SAGE_COSINE_ABSTAIN_THRESHOLD"):
+        _abstain_threshold()
+
+
+def test_abstain_threshold_explicit_zero_is_honoured_as_deliberate_rollback(monkeypatch):
+    from sage_poc.config import _abstain_threshold
+    monkeypatch.setenv("SAGE_COSINE_ABSTAIN_THRESHOLD", "0.0")
+    assert _abstain_threshold() == 0.0
+
+
+def test_abstain_threshold_reads_the_configured_value(monkeypatch):
+    from sage_poc.config import _abstain_threshold
+    monkeypatch.setenv("SAGE_COSINE_ABSTAIN_THRESHOLD", "0.58")
+    assert _abstain_threshold() == 0.58
+
+
+# ---------------------------------------------------------------------------
+# Post-sync integrity assertion (2026-08-19). Regression cover for the tear that
+# left anxiety-001-ar absent and wellbeing-001-ar truncated to 1 of 4 chunks in
+# prod: the sync deletes a prefix, commits, then re-inserts on a separate pooled
+# connection, so a failure in between is silent. These assert on the DETECTION
+# behaviour — counts vs corpus files — not on any log string.
+# ---------------------------------------------------------------------------
+
+class _FakeConn:
+    """Minimal asyncpg-shaped stub: fetch() returns the stored article_id rows."""
+
+    def __init__(self, article_ids):
+        self._rows = [{"article_id": a} for a in article_ids]
+
+    async def fetch(self, *_args, **_kwargs):
+        return self._rows
+
+
+@pytest.mark.asyncio
+async def test_integrity_check_passes_when_stored_matches_corpus():
+    from sage_poc.knowledge.ingestion import chunk_text
+    from sage_poc.knowledge.sync import verify_corpus_integrity
+    art = _art("cbt-001", "en")
+    n = len(chunk_text(art["content"], is_crisis_content=False))
+    ids = [f"cbt-001-en-{i:03d}" for i in range(n)] if n > 1 else ["cbt-001-en"]
+    assert await verify_corpus_integrity(_FakeConn(ids), [art]) == []
+
+
+@pytest.mark.asyncio
+async def test_integrity_check_flags_article_missing_entirely():
+    from sage_poc.knowledge.sync import verify_corpus_integrity
+    art = _art("anxiety-001", "ar")
+    mismatches = await verify_corpus_integrity(_FakeConn([]), [art])
+    assert len(mismatches) == 1
+    prefix, expected, stored = mismatches[0]
+    assert prefix == "anxiety-001-ar"
+    assert stored == 0 and expected >= 1
+
+
+@pytest.mark.asyncio
+async def test_integrity_check_flags_truncated_article():
+    """The wellbeing-001-ar shape: present, hash-consistent, but short of chunks.
+
+    Content-hash readback cannot see this — the surviving rows carry a correct
+    hash — which is exactly why the check counts instead.
+    """
+    from sage_poc.knowledge.ingestion import chunk_text
+    from sage_poc.knowledge.sync import verify_corpus_integrity
+    art = _art("wellbeing-001", "ar")
+    art["content"] = "\n\n".join(f"Paragraph {i} with enough text to chunk." * 40 for i in range(6))
+    n = len(chunk_text(art["content"], is_crisis_content=False))
+    assert n > 1, "fixture must chunk into more than one piece to model a tear"
+    mismatches = await verify_corpus_integrity(_FakeConn(["wellbeing-001-ar-000"]), [art])
+    assert mismatches == [("wellbeing-001-ar", n, 1)]
+
+
+@pytest.mark.asyncio
+async def test_corpus_integrity_error_names_every_affected_article():
+    from sage_poc.knowledge.sync import CorpusIntegrityError
+    exc = CorpusIntegrityError([("anxiety-001-ar", 4, 0), ("wellbeing-001-ar", 4, 1)])
+    assert "anxiety-001-ar" in str(exc) and "wellbeing-001-ar" in str(exc)
+    assert len(exc.mismatches) == 2
