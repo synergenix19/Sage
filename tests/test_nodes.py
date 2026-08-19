@@ -1270,42 +1270,45 @@ async def test_l1_does_not_fire_on_please_stop_being_harsh():
 # NEW-5: Audit log suppression when SAGE_AUDIT_LOG is not set
 
 @pytest.mark.asyncio
-async def test_output_gate_suppresses_audit_when_disabled(capsys):
-    """Audit JSON must not appear in stdout when AUDIT_LOG_ENABLED is false."""
-    import sage_poc.nodes.output_gate as og_module
-    original = og_module.AUDIT_LOG_ENABLED
-    og_module.AUDIT_LOG_ENABLED = False
-    try:
-        state = make_state(
-            detected_language="en",
-            response_en="Three years of that. What shifted for you recently?",
-            path=["safety_check", "intent_route", "freeflow_respond"],
-        )
+async def test_output_gate_suppresses_audit_when_disabled(caplog, monkeypatch):
+    """Audit log must not appear when config.AUDIT_LOG_ENABLED is false.
+
+    Patches sage_poc.config directly (the live-read source), not the consuming
+    module's namespace — output_gate.py must re-read config.AUDIT_LOG_ENABLED at
+    call time, not bind it once at import (K2.2: import-time value-bind kill).
+    caplog, not capsys: the audit line goes through logging (_log.info), never
+    stdout — a capsys-based version of this test is vacuously green regardless
+    of source behavior, which is itself a false-pass vector."""
+    import logging
+    from sage_poc import config
+    monkeypatch.setattr(config, "AUDIT_LOG_ENABLED", False)
+    state = make_state(
+        detected_language="en",
+        response_en="Three years of that. What shifted for you recently?",
+        path=["safety_check", "intent_route", "freeflow_respond"],
+    )
+    with caplog.at_level(logging.INFO, logger="sage_poc.nodes.output_gate"):
         await output_gate_node(state)
-        captured = capsys.readouterr()
-        assert "[AUDIT]" not in captured.out
-    finally:
-        og_module.AUDIT_LOG_ENABLED = original
+    assert "[output_gate] AUDIT" not in caplog.text
 
 
 @pytest.mark.asyncio
-async def test_output_gate_shows_audit_when_enabled(caplog):
-    """Audit JSON must appear in logs when AUDIT_LOG_ENABLED is true."""
+async def test_output_gate_shows_audit_when_enabled(caplog, monkeypatch):
+    """Audit JSON must appear in logs when config.AUDIT_LOG_ENABLED is true.
+
+    Patches sage_poc.config directly (the live-read source) — same rationale as
+    test_output_gate_suppresses_audit_when_disabled above."""
     import logging
-    import sage_poc.nodes.output_gate as og_module
-    original = og_module.AUDIT_LOG_ENABLED
-    og_module.AUDIT_LOG_ENABLED = True
-    try:
-        state = make_state(
-            detected_language="en",
-            response_en="Three years of that. What shifted for you recently?",
-            path=["safety_check", "intent_route", "freeflow_respond"],
-        )
-        with caplog.at_level(logging.INFO, logger="sage_poc.nodes.output_gate"):
-            await output_gate_node(state)
-        assert "[output_gate] AUDIT" in caplog.text
-    finally:
-        og_module.AUDIT_LOG_ENABLED = original
+    from sage_poc import config
+    monkeypatch.setattr(config, "AUDIT_LOG_ENABLED", True)
+    state = make_state(
+        detected_language="en",
+        response_en="Three years of that. What shifted for you recently?",
+        path=["safety_check", "intent_route", "freeflow_respond"],
+    )
+    with caplog.at_level(logging.INFO, logger="sage_poc.nodes.output_gate"):
+        await output_gate_node(state)
+    assert "[output_gate] AUDIT" in caplog.text
 
 
 # Sprint A: 3-path output gate — scope_refusal and jailbreak bypass LLM response

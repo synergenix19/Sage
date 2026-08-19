@@ -369,6 +369,38 @@ async def test_crisis_english_user_gets_english_response():
     assert len(result["conversation_history"]) == 2
 
 
+@pytest.mark.asyncio
+async def test_crisis_response_suppresses_audit_log_when_config_flag_disabled(caplog):
+    """K2.2: AUDIT:CRISIS log must not appear when config.AUDIT_LOG_ENABLED is False.
+
+    Patches sage_poc.config directly (the live-read source), not graph.py's own
+    namespace — graph.py must re-read config.AUDIT_LOG_ENABLED at call time, not
+    bind it once at import (kills the import-time value-bind false-pass vector)."""
+    import logging
+    from sage_poc import config
+    from sage_poc.graph import _crisis_response_node
+    with patch.object(config, "AUDIT_LOG_ENABLED", False):
+        state = make_e2e_state("I want to kill myself", detected_language="en", turn_count=0,
+                                conversation_history=[])
+        with caplog.at_level(logging.INFO, logger="sage_poc.graph"):
+            await _crisis_response_node(state)
+    assert "AUDIT:CRISIS" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_crisis_response_shows_audit_log_when_config_flag_enabled(caplog):
+    """K2.2: AUDIT:CRISIS log must appear when config.AUDIT_LOG_ENABLED is True."""
+    import logging
+    from sage_poc import config
+    from sage_poc.graph import _crisis_response_node
+    with patch.object(config, "AUDIT_LOG_ENABLED", True):
+        state = make_e2e_state("I want to kill myself", detected_language="en", turn_count=0,
+                                conversation_history=[])
+        with caplog.at_level(logging.INFO, logger="sage_poc.graph"):
+            await _crisis_response_node(state)
+    assert "AUDIT:CRISIS" in caplog.text
+
+
 # Arabic crisis response content verification
 # These tests now read from the Rules Service (ar_uae.json) rather than hardcoded constants.
 

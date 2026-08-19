@@ -672,6 +672,7 @@ def test_chat_ainvoke_timeout_fires_within_window(monkeypatch, client):
 # is absent from the streamed HTTP body AND from every response header.
 def test_chat_arabic_shadow_sentinel_never_in_http_payload(monkeypatch, client, session_id):
     import sage_poc.nodes.freeflow_respond as fr
+    from sage_poc import config as _cfg
     from unittest.mock import patch, AsyncMock
     from server import app
     from tests.test_freeflow_respond import fr_stub_llm
@@ -681,7 +682,7 @@ def test_chat_arabic_shadow_sentinel_never_in_http_payload(monkeypatch, client, 
         "text": _SENTINEL, "prompt_hash": "x" * 16, "exemplar_version": "0.1",
         "generation_language": "ar_native", "gen_latency_ms": 3,
     }
-    monkeypatch.setattr(fr, "NATIVE_ARABIC_SHADOW_ENABLED", True)
+    monkeypatch.setattr(_cfg, "NATIVE_ARABIC_SHADOW_ENABLED", True)
     monkeypatch.setattr(fr, "_SHADOW_TIMEOUT_S", 0.05)
 
     async def _mock(state):

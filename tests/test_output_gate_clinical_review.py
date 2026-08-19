@@ -332,9 +332,10 @@ async def test_crisis_response_node_writes_clinician_review_queue():
         "re_escalation_within_monitoring": False,
     }
 
+    from sage_poc import config as _cfg
     with patch.object(sage_graph, "_get_crisis_review_pool", return_value=mock_pool):
         with patch.object(sage_graph, "write_session_audit", new_callable=AsyncMock):
-            with patch.object(sage_graph, "AUDIT_LOG_ENABLED", False):
+            with patch.object(_cfg, "AUDIT_LOG_ENABLED", False):
                 await sage_graph._crisis_response_node(state)
                 await asyncio.sleep(0.05)
 
