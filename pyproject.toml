@@ -41,12 +41,14 @@ markers = [
 ]
 pythonpath = ["src", "."]
 asyncio_mode = "auto"
+testpaths = ["tests"]
 # Excluded from the default run — each has a dedicated Makefile target:
 #   integration:           make test-integration  (requires live Supabase)
 #   governance:            make test-governance   (expected red during sign-off burn-down)
 #   clinical_decision_pending: not a Makefile target — these tests await a clinical decision
 #   cradle:                pytest -m cradle       (requires eval.jsonl from scripts/fetch_cradle_bench.py)
-addopts = "-m 'not integration and not clinical_decision_pending and not governance and not cradle'"
+#   slow:                  pytest -m slow / make test-slow  (requires Ollama or a real LLM)
+addopts = "-m 'not integration and not clinical_decision_pending and not governance and not cradle and not slow'"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/sage_poc"]
