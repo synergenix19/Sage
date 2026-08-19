@@ -313,7 +313,7 @@ async def _corpus_sync_task(pool) -> None:
         _log.warning("[sage/startup] corpus sync skipped — BGE-M3 not ready in time")
         return
     try:
-        from sage_poc.knowledge.sync import sync_corpus
+        from sage_poc.knowledge.sync import CorpusIntegrityError, sync_corpus
         default_dir = pathlib.Path(__file__).resolve().parent / "data" / "knowledge_corpus"
         corpus_dir = os.environ.get("SAGE_CORPUS_DIR", str(default_dir))
         prune = os.environ.get("SAGE_CORPUS_PRUNE", "0") == "1"
@@ -322,8 +322,27 @@ async def _corpus_sync_task(pool) -> None:
             "[sage/startup] corpus sync: ingested=%d skipped=%d pruned=%d chunks=%d locked_out=%s",
             result.ingested, result.skipped, result.pruned, result.chunks, result.locked_out,
         )
+    except CorpusIntegrityError as exc:
+        # The table does not match the corpus files. Serving continues on whatever
+        # survived, so this must never read as a benign skip: name the articles.
+        _log.error(
+            "[sage/startup] CORPUS INTEGRITY FAILURE — serving an INCOMPLETE corpus. "
+            "Articles missing or truncated in knowledge_articles: %s. "
+            "Retrieval will silently omit this content until a successful re-ingest; "
+            "repair with a targeted ingest_article per article, NOT a re-run of the "
+            "same delete-then-insert sync.", exc,
+        )
     except Exception as exc:
-        _log.warning("[sage/startup] corpus sync failed (retrieval will abstain): %s", exc)
+        # Previously worded "retrieval will abstain", which was wrong in the case
+        # that mattered: a partially-applied sync leaves rows deleted, so retrieval
+        # SERVES A PARTIAL CORPUS rather than abstaining. Fail-open plus an
+        # inaccurate message is two layers of silence.
+        _log.error(
+            "[sage/startup] corpus sync FAILED — the corpus may be partially applied "
+            "(this path deletes before it re-inserts). Serving continues on whatever "
+            "is currently stored; verify with the corpus-integrity comparison before "
+            "trusting retrieval evidence: %s", exc,
+        )
 
 
 @asynccontextmanager
@@ -939,6 +958,11 @@ async def health_version(_: None = Depends(require_api_key)):
         # same pattern; the guard's _map_health_to_sage turns *_raw_env into the SAGE_ names it compares.
         "cosine_abstain_threshold": _c.COSINE_ABSTAIN_THRESHOLD,
         "cosine_abstain_threshold_raw_env": os.environ.get("SAGE_COSINE_ABSTAIN_THRESHOLD"),
+        # Whether this process is permitted to run the KB abstain gate OPEN with the
+        # threshold unset. Readback-exposed so measurement parity can be asserted
+        # mechanically: a non-null value here means retrieval never abstains, and any
+        # evidence produced against it is not comparable to production.
+        "allow_unset_abstain_threshold_raw_env": os.environ.get("SAGE_ALLOW_UNSET_ABSTAIN_THRESHOLD"),
         "panic_grounding_override_enabled": _c.PANIC_GROUNDING_OVERRIDE_ENABLED,
         "panic_grounding_override_raw_env": os.environ.get("SAGE_PANIC_GROUNDING_OVERRIDE"),
         "derealization_detection_enabled": _c.DEREALIZATION_DETECTION_ENABLED,

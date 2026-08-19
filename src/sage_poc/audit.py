@@ -167,6 +167,8 @@ def _build_session_audit_row(state: SageState) -> dict:
         "translate_out_ms":       state.get("translate_out_ms"),
         "user_id":                state.get("user_id") or None,
         "re_escalation_within_monitoring": state.get("re_escalation_within_monitoring"),
+        # gate_path: was conditional; crisis/HR rows audited NULL — 2026-08-18 P0-7
+        "gate_path":              state.get("gate_path"),
     }
     # C1 cards-only retrieval (flag-gated, same discipline as tiering/precedence/medical below):
     # keys included ONLY when the cards path actually ran (cards channels populated — impossible
@@ -207,14 +209,7 @@ def _build_session_audit_row(state: SageState) -> dict:
     # byte-identical to master. Records WHICH phrase fired (recall measurement + post-hoc
     # referral review + the B1-full >=95% gate). Migration is a flag-flip deploy gate.
     if state.get("medical_flags"):
-        row["gate_path"] = state.get("gate_path")
         row["medical_flags"] = state.get("medical_flags")
-    # §1c derealization terminal audit (same conditional discipline): gate_path was ONLY persisted on
-    # medical turns, so a served derealization referral audited with gate_path NULL and the prod-HTTP
-    # conformance driver misclassified it presence_only (2026-07-30 increment-1 finding). Included ONLY
-    # when the derealization terminal ran, so every other row stays byte-identical.
-    if "derealization_response" in (row["node_path"] or []):
-        row["gate_path"] = state.get("gate_path")
     # HR-1 Stage 2 high_risk_response audit (flag-gated, same discipline as tiering/
     # precedence/medical above): included ONLY when a distress branch actually resolved
     # this turn (hr_branch set by _deliver_branch), so a flag-OFF / non-HR / mid-protocol

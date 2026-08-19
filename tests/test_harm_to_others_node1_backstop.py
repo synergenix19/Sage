@@ -15,6 +15,9 @@ import json
 import pathlib
 
 from sage_poc.rules import engine as rules_engine
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 _KW = pathlib.Path("src/sage_poc/rules/data/safety/crisis_keywords.json")
 

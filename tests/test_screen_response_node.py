@@ -6,6 +6,8 @@ screen_held_skill) so the next turn is recognised as the answer.
 """
 import asyncio
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from sage_poc.nodes.screen_response import screen_response_node
 from sage_poc.safety import medical_screen as ms
 

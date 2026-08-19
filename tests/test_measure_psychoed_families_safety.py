@@ -74,6 +74,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 import sage_poc.config as config
 from tests.conftest import make_mock_llm
 
@@ -129,9 +131,17 @@ def _run_subprocess(tmp_path, args, env_overrides):
     """Spawn the runner as a genuinely fresh subprocess, cwd inside tmp_path (so any .env
     planted at tmp_path's parent is what python-dotenv's upward walk would discover), with
     a minimal, explicitly-controlled environment (not this pytest process's own, which may
-    already carry a real key)."""
+    already carry a real key).
+
+    SAGE_ALLOW_UNSET_ABSTAIN_THRESHOLD is declared because this minimal env deliberately
+    carries nothing, and since 2026-08-19 importing sage_poc.config with the KB abstain
+    gate unset is a hard error. These subprocesses exercise argument refusal, never
+    retrieval, so declaring the escape is accurate rather than a weakening — without it
+    the config guard would fire first and mask the runner's OWN refusal behaviour, which
+    is what these tests exist to prove.
+    """
     import os
-    env = {"PATH": os.environ.get("PATH", "")}
+    env = {"PATH": os.environ.get("PATH", ""), "SAGE_ALLOW_UNSET_ABSTAIN_THRESHOLD": "1"}
     env.update(env_overrides)
     return subprocess.run(
         [sys.executable, str(_RUNNER), *args],
@@ -169,7 +179,12 @@ def test_live_mode_defeats_the_disclosed_planted_env_incident(tmp_path):
          "import sage_poc.config; "
          "print('AFTER', 'OPENROUTER_API_KEY' in os.environ)" % str(REPO / "src")],
         cwd=str(scratch_cwd), capture_output=True, text=True, timeout=30,
-        env={"PATH": __import__("os").environ.get("PATH", "")},
+        # Escape declared for the same reason as _run_subprocess: this sanity probe imports
+        # sage_poc.config in a deliberately bare env purely to prove the planted .env is
+        # discoverable. It performs no retrieval, and without the escape the abstain-gate
+        # guard raises before the probe can report its BEFORE/AFTER result.
+        env={"PATH": __import__("os").environ.get("PATH", ""),
+             "SAGE_ALLOW_UNSET_ABSTAIN_THRESHOLD": "1"},
     )
     assert "BEFORE False" in sanity.stdout and "AFTER True" in sanity.stdout, (
         f"planted-.env sanity check failed -- test premise broken: {sanity.stdout} {sanity.stderr}"

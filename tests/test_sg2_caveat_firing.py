@@ -7,6 +7,9 @@ temperature/exercise content). Generalizes to any step carrying `mandatory_cavea
 """
 from sage_poc.nodes.output_gate import _pin_contraindication_caveat
 from sage_poc.skills.schema import load_skill
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 
 def test_gate_prepends_caveat_ahead_of_technique_content():

@@ -29,6 +29,9 @@ which runs on every PR via the guard-job so the required check never deadlocks a
 from langgraph.graph import END
 
 from sage_poc.graph import _route_after_safety, _route_after_skill_select, build_graph
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 
 def _state(**kw):

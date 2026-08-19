@@ -43,10 +43,9 @@ except ImportError:
 
 PROD_URL   = "https://sage-api-production-3328.up.railway.app"
 LOCAL_URL  = "http://localhost:8765"
-SAGE_API_KEY = os.environ.get(
-    "SAGE_API_KEY",
-    "8384792dfb576c5d7b975f40c4f21a8eb82fb024eb243570dc1cc9f7a871b328",
-)
+SAGE_API_KEY = os.environ.get("SAGE_API_KEY")
+if not SAGE_API_KEY:
+    sys.exit("SAGE_API_KEY is required (fail-closed: no embedded fallback). Export it before running.")
 TIMEOUT    = 90.0
 CONCURRENCY = 1  # Railway single-instance: concurrent LLM calls exceed 30s ainvoke timeout; run sequentially
 _RUN_ID    = str(int(time.time()))[-6:]

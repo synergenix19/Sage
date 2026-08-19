@@ -25,6 +25,8 @@ live LLM calls and is run on demand, not in CI.
 """
 import pytest
 
+pytestmark = pytest.mark.safety_gate
+
 from sage_poc.prompts.composer import compose_prompt, _MID_FREEFLOW_SHAPE, _INTENSITY_GUIDANCE
 
 SHAPE_MARKER = "RESPONSE SHAPE: This is a turn that needs more"

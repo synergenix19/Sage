@@ -14,6 +14,9 @@ are included ONLY when a distress branch actually resolved this turn (hr_branch 
 flag-OFF / non-HR / mid-protocol (reask, no branch yet) row stays byte-identical to master
 (Check B).
 """
+import pytest
+
+pytestmark = pytest.mark.safety_gate
 
 
 def _audit_state(**kwargs) -> dict:

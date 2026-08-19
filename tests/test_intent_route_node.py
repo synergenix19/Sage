@@ -9,6 +9,8 @@ pre-set state values. These tests are the complementary layer: they prove the
 node itself produces the state values that the routing functions rely on.
 """
 import pytest
+
+pytestmark = pytest.mark.safety_gate
 from unittest.mock import AsyncMock, patch
 
 
