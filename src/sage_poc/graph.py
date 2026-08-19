@@ -298,6 +298,16 @@ def _route_after_intent(state: SageState) -> str:
         # suppress a crisis the deterministic tier caught.
         if state.get("grief_presence_override"):
             return "skill_select"
+        # S4b self-worth presence deference (DRAFT, gated on Vee signature, packet item 3): third
+        # member of the same crisis-branch override family — safety_check CLEARED the turn, intent_route
+        # re-flagged a self-worth/deservingness disclosure WITHOUT existence content as crisis
+        # (S4B-FP-1: crisis card with crisis_flags=[], the iatrogenic direction for the S4a/S4b
+        # self-compassion pathway); restore the clean verdict -> skill_select where the self-compassion
+        # pathway can route. Flag-gated (stamp is False when OFF, byte-identical); crisis_flags being
+        # set (incl. si_passive's better-off-without-me surface and the cardiac Node-1 flag) makes the
+        # stamp False, so this can never suppress a crisis the deterministic tier caught.
+        if state.get("selfworth_presence_override"):
+            return "skill_select"
         return "crisis"
     # #338 D1 ANSWER TURN: a turn answering a pending screen must reach skill_select so its answering_screen
     # handler classifies+routes the answer, REGARDLESS of intent (the answer usually reads as general_chat and

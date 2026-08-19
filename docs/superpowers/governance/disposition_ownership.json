@@ -48,10 +48,22 @@
    "note": "Node-1 deterministic death-fear x air-hunger CONJUNCTION -> crisis (item-3 realization, BUILT INERT 2026-07-31, flag SAGE_CARDIAC_ESCALATION). Fires only on the co-occurrence; either term set alone stays with existing routing. Pattern source = panic_override's own tuples (imported, single-sourced) so the override's deference and this escalation cannot drift."
   },
   {
+   "id": "means_access_rehearsal",
+   "source": "rules/data/safety/means_access_patterns.json:flag_id=means_access_rehearsal",
+   "disposition": "crisis",
+   "note": "DRAFT, gated on Vee signature (packet item 1, due 2026-08-25): deterministic means-access rehearsal surface (MSK-02 live prod miss). Same disposition as crisis_lexicon (S1 crisis authority), so no cross-disposition conflict by construction; FPE-MA-001 suppression is scoped to this flag only. approved_by stays null until the signature."
+  },
+  {
    "id": "grief_defer",
    "source": "src/sage_poc/nodes/grief_override.py:_GRIEF_TERMS",
    "disposition": "grief_presence",
    "note": "S2a deterministic grief-presence deference (BUILT INERT 2026-08-04, flag SAGE_GRIEF_DEFERENCE). Restores the clean verdict for safety_check-clean bereavement disclosures the LLM re-flags as crisis; harm set imported from panic_override (single-sourced) so grief+harm always escalates. Boundary sheet pending Vee."
+  },
+  {
+   "id": "selfworth_presence",
+   "source": "nodes/selfworth_override.py:_SELFWORTH_TERMS",
+   "disposition": "selfworth_presence",
+   "note": "S4b deterministic self-worth presence deference (DRAFT, gated on Vee signature packet item 3, due 2026-08-25; flag SAGE_SELFWORTH_FP_EXCLUSION default OFF). Restores the clean verdict for safety_check-clean self-worth/deservingness disclosures WITHOUT existence content that the LLM re-flags as crisis (S4B-FP-1). Harm set imported from panic_override (single-sourced); existence-content boundary (_EXISTENCE_TERMS) keeps deservingness+death/absence framings escalating. Fires only on safety_check-clean turns, so it can never suppress a deterministic S1/S3 fire."
   }
  ],
  "resolved_overlaps": [
