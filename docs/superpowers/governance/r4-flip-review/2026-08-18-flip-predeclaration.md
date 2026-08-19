@@ -34,3 +34,14 @@ the three Layer-1 findings in the review sheet (assent-class coverage, SK-EN-004
 variants, ideation-echo class) must be dispositioned by Vee (fixed, or interim risk
 accepted in writing) before the flip. Design question 3 (monitoring × third-party) joins
 the two standing clinical questions in prerequisite 3.
+
+**Amendment 2 (owner corrections, 2026-08-19):** the ideation-echo finding is NOT
+independent of the flip — it is the assent class one conversational turn later (assent
+landing inside an active helper-support frame with no catch). Prerequisite 4 therefore
+covers it at the same standard as the assent finding: **fix-before-flip, or a
+known-degraded conversational case Vee has explicitly accepted in writing and named
+here.** And on monitoring semantics: the sitting sheet's recommended default is that
+deference does NOT apply during monitoring (first-person context wins; helper resources
+may append; the acute-context framing never yields) — any ambiguity between third-party
+and first-person readings fails toward crisis, per the ratified boundary. No ambiguity
+case carries a fail-toward-support default anywhere in this package.
