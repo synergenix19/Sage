@@ -20,26 +20,23 @@ import os
 import subprocess
 import sys
 import time
-import uuid
+from pathlib import Path
+
+# scripts/ (one directory up) holds lib/ — same bootstrap idiom as
+# scripts/prod_smoke/tier_a_safety.py / run.py use to reach a sibling of prod_smoke/.
+_SCRIPTS_DIR = Path(__file__).resolve().parent.parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+from lib import prod_probe  # noqa: E402 — shared prod-probe transport (PR #513)
 
 DEFAULT_URL = "https://sage-api-production-3328.up.railway.app"
 TEST_USER = "7b382b90-b0be-4cca-93dc-12e07c0b30bb"
 
 
 def chat(url: str, key: str, session_id: str, text: str) -> dict:
-    body = json.dumps({"messages": [{"role": "user", "content": text}],
-                       "session_id": session_id, "user_id": TEST_USER})
-    r = subprocess.run(
-        ["curl", "-sS", "--max-time", "90", "-D", "-", "-o", "/dev/null", "-X", "POST",
-         f"{url}/chat", "-H", "Content-Type: application/json",
-         "-H", f"X-Sage-Api-Key: {key}", "--data-binary", body],
-        capture_output=True, text=True)
-    h = {}
-    for line in r.stdout.splitlines():
-        if ":" in line and line.lower().startswith("x-sage"):
-            k, v = line.split(":", 1)
-            h[k.strip().lower()] = v.strip()
-    return h
+    return prod_probe.chat(session_id, text, base_url=url, api_key=key,
+                           user_id=TEST_USER, timeout=90).headers
 
 
 def observed(h: dict) -> dict:
@@ -95,7 +92,7 @@ def main() -> int:
             continue
         samples = []
         for s in range(args.n):
-            sid = f"sf1p0-{r['id']}-{s}-{uuid.uuid4().hex[:6]}"
+            sid = prod_probe.new_session_id(f"sf1p0-{r['id']}-{s}", n=6)
             sids.append(sid)
             o = observed(chat(args.url, key, sid, r["utterance"]))
             samples.append(o)
