@@ -409,6 +409,7 @@ class TestPostgresKnowledgeRepositoryContract:
                 "chunk_text": "CBT is evidence-based therapy.",
                 "citation_metadata": '{"citation": "Beck (1979)"}',
                 "rrf_score": 0.85,
+                "vec_distance": 1.0 - 0.85,
             }
         ]
         pool = self._make_mock_pool(rows)
@@ -462,6 +463,7 @@ class TestPostgresKnowledgeRepositoryContract:
                 "chunk_text": "CBT text.",
                 "citation_metadata": None,
                 "rrf_score": 0.0,
+                "vec_distance": 1.0 - 0.0,
             }
         ]
         pool = self._make_mock_pool(rows)
@@ -483,6 +485,7 @@ class TestPostgresKnowledgeRepositoryContract:
                 "chunk_text": "Some text.",
                 "citation_metadata": None,
                 "rrf_score": 0.123456789,
+                "vec_distance": 1.0 - 0.123456789,
             }
         ]
         pool = self._make_mock_pool(rows)
@@ -506,6 +509,7 @@ class TestPostgresKnowledgeRepositoryContract:
                 "chunk_text": "Some text without metadata.",
                 "citation_metadata": None,
                 "rrf_score": 0.5,
+                "vec_distance": 1.0 - 0.5,
             }
         ]
         pool = self._make_mock_pool(rows)

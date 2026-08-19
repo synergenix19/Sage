@@ -186,13 +186,13 @@ def test_collectivist_framing_injected_when_family_keyword_present():
 def test_clinical_adaptation_substance_injected_from_flag():
     state = _freeflow_state(clinical_flags=["substance_use"])
     system_str, _, _ = compose_prompt(state)
-    assert "motivational interviewing" in system_str.lower() or "substance" in system_str.lower()
+    assert "motivational interviewing" in system_str.lower()
 
 
 def test_substance_use_uae_legal_context_injected():
     state = _freeflow_state(clinical_flags=["substance_use"])
     system_str, _, _ = compose_prompt(state)
-    assert "legal" in system_str.lower() or "uae" in system_str.lower(), (
+    assert "legal" in system_str.lower(), (
         "PI-CF-001 must include UAE legal context for substance use"
     )
 
@@ -224,26 +224,31 @@ def test_collectivist_framing_fires_on_arabic_keyword():
     )
 
 
-def test_secondary_intent_dialectical_framing_injected():
+def test_secondary_intent_ordered_framing_injected():
+    """PI-SI-001 v2.0.0 (2026-07-07, clinical lead Rohan Sarda): when a secondary intent
+    is present, the composer injects an ORDERED validate-then-inform contract into the
+    user-targeted prompt, structurally marked by the "SECONDARY NEED PRESENT" header
+    (src/sage_poc/rules/data/prompt_injection/secondary_intent.json). This replaces the
+    v1.0.0 "SECONDARY INTENT"/"dialectical" generic DBT framing the rule no longer emits."""
     state = _freeflow_state(
         primary_intent="new_skill",
         secondary_intent="info_request",
     )
     _, user_str, _ = compose_prompt(state)
-    assert "SECONDARY INTENT" in user_str or "dialectical" in user_str.lower()
+    assert "SECONDARY NEED PRESENT" in user_str
 
 
 def test_no_secondary_intent_framing_when_none():
     state = _freeflow_state(primary_intent="new_skill", secondary_intent=None)
     _, user_str, _ = compose_prompt(state)
-    assert "SECONDARY INTENT" not in user_str
+    assert "SECONDARY NEED PRESENT" not in user_str
 
 
 def test_domestic_situation_adaptation_injected():
     state = _freeflow_state(clinical_flags=["domestic_situation"])
     system_str, _, _ = compose_prompt(state)
-    assert "safety" in system_str.lower() or "800111" in system_str or "domestic" in system_str.lower(), (
-        "Domestic situation adaptation must reference safety or UAE resource"
+    assert "domestic" in system_str.lower() or "800111" in system_str, (
+        "Domestic situation adaptation must reference the domestic context or the UAE resource"
     )
 
 

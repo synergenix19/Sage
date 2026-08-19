@@ -477,3 +477,24 @@ def test_crisis_phrases_are_single_clause():
         f"may only be in the second clause — FP risk (see RULES_AUTHORING_CONVENTIONS.md §S3):\n"
         + "\n".join(violations)
     )
+
+
+# Phone-number patterns that must never be hardcoded in corpus content. Crisis
+# numbers are single-sourced in config.CRISIS_CONFIG and served via the crisis
+# card / {{crisis_*}} placeholder surfaces — corpus articles carry none.
+# (2026-08 refresh decision: clinician-approved crisis articles are number-free.)
+import re as _re
+
+_HELPLINE_NUMBER_RE = _re.compile(r"\b(?:800[\s-]?\d{3,6}|920\s?\d{3}|999|998|911|112)\b")
+
+
+def test_no_hardcoded_helpline_numbers_in_corpus():
+    violations = []
+    for articles in (_en_articles(), _ar_articles()):
+        for aid, art in articles.items():
+            for m in _HELPLINE_NUMBER_RE.findall(art.get("content", "")):
+                violations.append(f"{aid} ({art['language']}): {m!r}")
+    assert not violations, (
+        "Hardcoded helpline/emergency numbers in corpus content — crisis numbers "
+        f"are single-sourced in config.CRISIS_CONFIG: {violations}"
+    )

@@ -97,6 +97,12 @@ def _eval_safety(rules: list[SafetyRule], context: dict) -> EvalResult:
                 # is the Arabic-script translation — matching against it silently drops
                 # all Arabizi crisis signals. Fallback to norm_en preserves backwards
                 # compatibility for direct engine callers that don't supply text_raw.
+                # Arabizi patterns are Latin-script by definition -> normalize_text path,
+                # never normalize_arabic. Bound explicitly: keyword matching below reads
+                # this, and an unbound value here inherits whatever the previous rule
+                # set (order-dependent) -- or raises UnboundLocalError if no previous
+                # rule in this call set it (e.g. an az rule evaluated first).
+                is_arabic_pattern = False
                 text_to_check = norm_raw if norm_raw else norm_en
                 matched_surface = "raw" if norm_raw else "en"
             else:

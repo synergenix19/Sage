@@ -366,6 +366,33 @@
         "type": "crisis_flag",
         "flag_id": "harm_to_others_explicit"
       }
+    },
+    {
+      "rule_id": "SK-EN-HTO-002",
+      "version": "1.0.0",
+      "authored_by": "sage_clinics",
+      "approved_by": "Vee (clinical lead) 2026-08-19 — PO relay; record: 2026-08-19-vee-approval-record-signature-sheet.md",
+      "effective_date": "2026-08-19",
+      "active": true,
+      "description": "Harm-to-others ACTION-EVIDENCE (harm proximity) - Node-1 deterministic surface for directed physical acts near a person, the wall-punch class missed by probe L2-02: punched/smashed a surface next to a person's head or right next to a person, threw/hurled an object at or past a person, grabbed/shoved/pinned a person into a wall or door, raised a fist at a person. First-person, past-or-present, action + proximity-to-person ONLY. NO stated-intent patterns (Group A / SK-EN-HTO-001 owns those). NO figurative or anger-adjacent phrases: Vee's Group-B list ('could kill him', 'strangle', 'could hurt him', 'might do something I regret') stays HELD per her 2026-07-09 ruling and is a PERMANENT must-NOT-fire fixture class. Signed disposition: class = action-evidence harm proximity ESCALATES, per docs/superpowers/governance/2026-08-19-vee-approval-record-signature-sheet.md item 7; probe cells per docs/superpowers/plans/2026-08-18-219-canary-plan.md sections 3 and 5 (must-NOT-fire wording signed via that record). Portability clause (E-1): the signature attaches to the clinical disposition at class level; the pattern set is the current deterministic implementation plus the permanent evaluation fixture set (tests/fixtures/safety/harm_proximity_hto002.jsonl); a superseding implementation inherits the signature by passing the same fixtures. Fires as an s1 keyword flag -> T2 via existing s1_any tier rule, same disposition path as SK-EN-HTO-001. Merged DARK (active:false, inert); the active:false -> true flip is the deploy owner's act at canary T0 under the 72h time-boxed plan, shipped as a separate atomic commit. Regex rule - all patterns use re.search on lowercased normalized text; pattern 5 carries an in-span tempered guard so denial bridges ('i have never shoved her into...') cannot fire.",
+      "category": "safety",
+      "match_type": "regex",
+      "patterns": [
+        "\\bi (punched|punch|smashed|smash|slammed|slam|hit) (the |a |our )?[a-z]+ (right )?(next to|beside|inches from) (his|her|their|my [a-z]+'s) (head|face)",
+        "\\bi (punched|smashed|slammed|hit) [^.]{0,40}right next to (him|her|them)\\b",
+        "\\bi (threw|hurled|chucked) (a|the|my) (?!look|glance|party|fit|smile|wink)[a-z]+ (at|right past|right at|past) (him|her|them|his|her|their|my [a-z]+'s)",
+        "\\bi (grabbed|shoved|pushed|pinned) (him|her|them|my [a-z]+) [^.]{0,40}(into|against) (the |a )?(wall|door)",
+        "\\bi\\b(?:(?!never|n't| not )[a-z ,']){0,50}(shoved|pushed|slammed|pinned) (him|her|them) (into|against)",
+        "\\bi raised (my|a) fist (at|to|toward|towards) (him|her|them)"
+      ],
+      "language": "en",
+      "modifiers": [
+        "negation_check"
+      ],
+      "action": {
+        "type": "crisis_flag",
+        "flag_id": "harm_to_others_action_evidence"
+      }
     }
   ]
 }
