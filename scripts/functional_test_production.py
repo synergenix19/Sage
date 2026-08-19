@@ -33,10 +33,9 @@ except ImportError:
 API_URL = os.environ.get(
     "SAGE_API_URL", "https://sage-api-production-3328.up.railway.app"
 )
-SAGE_API_KEY = os.environ.get(
-    "SAGE_API_KEY",
-    "8384792dfb576c5d7b975f40c4f21a8eb82fb024eb243570dc1cc9f7a871b328",
-)
+SAGE_API_KEY = os.environ.get("SAGE_API_KEY")
+if not SAGE_API_KEY:
+    sys.exit("SAGE_API_KEY is required (fail-closed: no embedded fallback). Export it before running.")
 HEADERS = {"X-Sage-Api-Key": SAGE_API_KEY, "Content-Type": "application/json"}
 TIMEOUT = 90.0
 CONCURRENCY = 2  # Railway single-instance: >2 concurrent 15-30s LLM calls hit the 30s ainvoke timeout
