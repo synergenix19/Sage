@@ -7,6 +7,7 @@ module builds, matching the "credential via PGPASSWORD/env, never argv" fix. A s
 proof covers the session-id-binding fix: the SQL text psql receives never contains the
 raw session_id value (it's bound via `-v` + `:'sid'`, not f-string-spliced in).
 """
+import json
 import sys
 from pathlib import Path
 
@@ -164,5 +165,77 @@ def test_resolve_creds_prefers_env_over_railway(monkeypatch):
 
     creds = prod_probe.resolve_creds()
     assert creds.api_key == "env-key"
+    assert creds.database_url == FAKE_DSN
+    assert creds.test_user_ids == "u1,u2"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# resolve_creds() — fail-closed: missing env, railway fallback gating, fail-fast
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_resolve_creds_no_gate_var_raises_runtime_error_without_calling_railway(monkeypatch):
+    """Env vars absent, SAGE_ALLOW_RAILWAY_FALLBACK unset: this must raise RuntimeError
+    and must NOT shell out to `railway variables --json` — the incident this closes is
+    exactly that silent fallback pulling live prod credentials into a session transcript."""
+    monkeypatch.delenv("SAGE_API_KEY", raising=False)
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.delenv("SAGE_ALLOW_RAILWAY_FALLBACK", raising=False)
+
+    def fail_if_called(*a, **k):
+        raise AssertionError("railway must not be invoked when the fallback gate var is unset")
+
+    monkeypatch.setattr(prod_probe.subprocess, "check_output", fail_if_called)
+
+    try:
+        prod_probe.resolve_creds()
+        assert False, "expected RuntimeError"
+    except RuntimeError as e:
+        msg = str(e)
+        assert "SAGE_API_KEY" in msg
+        assert "DATABASE_URL" in msg
+        assert "SAGE_ALLOW_RAILWAY_FALLBACK" in msg
+
+
+def test_resolve_creds_missing_var_in_railway_output_raises(monkeypatch):
+    """Gate var set, env vars absent, but the railway payload lacks DATABASE_URL: must
+    raise immediately naming the missing variable, never fall back to an empty string
+    (matching the original scripts' dict-indexing fail-fast)."""
+    monkeypatch.delenv("SAGE_API_KEY", raising=False)
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.setenv("SAGE_ALLOW_RAILWAY_FALLBACK", "1")
+
+    def fake_check_output(argv, text, env):
+        return json.dumps({"SAGE_API_KEY": "railway-key"})  # DATABASE_URL missing
+
+    monkeypatch.setattr(prod_probe.subprocess, "check_output", fake_check_output)
+
+    try:
+        prod_probe.resolve_creds()
+        assert False, "expected RuntimeError naming the missing variable"
+    except RuntimeError as e:
+        assert "DATABASE_URL" in str(e)
+
+
+def test_resolve_creds_gate_set_fallback_works(monkeypatch):
+    """With the gate var set and env vars absent, a complete railway payload resolves
+    normally (mocked subprocess.check_output — no live call)."""
+    monkeypatch.delenv("SAGE_API_KEY", raising=False)
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.setenv("SAGE_ALLOW_RAILWAY_FALLBACK", "1")
+
+    payload = {
+        "SAGE_API_KEY": "railway-key",
+        "DATABASE_URL": FAKE_DSN,
+        "SAGE_TEST_USER_IDS": "u1,u2",
+    }
+
+    def fake_check_output(argv, text, env):
+        assert argv == ["railway", "variables", "--json"]
+        return json.dumps(payload)
+
+    monkeypatch.setattr(prod_probe.subprocess, "check_output", fake_check_output)
+
+    creds = prod_probe.resolve_creds()
+    assert creds.api_key == "railway-key"
     assert creds.database_url == FAKE_DSN
     assert creds.test_user_ids == "u1,u2"
