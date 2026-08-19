@@ -30,12 +30,20 @@ Usage:
 import argparse
 import collections
 import json
-import os
 import ssl
 import subprocess
 import sys
 import time
 import urllib.request
+from pathlib import Path
+
+# scripts/ (one directory up) holds lib/ — same bootstrap idiom as
+# scripts/prod_smoke/tier_a_safety.py / run.py use to reach a sibling of prod_smoke/.
+_SCRIPTS_DIR = Path(__file__).resolve().parent.parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+from lib import prod_probe  # noqa: E402 — shared prod-probe transport (PR #513)
 
 DEFAULT_URL = "https://sage-api-production-3328.up.railway.app"
 TEST_USER = "7b382b90-b0be-4cca-93dc-12e07c0b30bb"
@@ -47,11 +55,6 @@ def _ctx():
         return ssl.create_default_context(cafile=certifi.where())
     except Exception:
         return ssl.create_default_context()  # never disable verification for a security-adjacent tool
-
-
-def _railway_vars():
-    env = {**os.environ, "RAILWAY_CALLER": "skill:use-railway@1.2.0"}
-    return json.loads(subprocess.check_output(["railway", "variables", "--json"], text=True, env=env))
 
 
 def _serving_stamp(url, key, ctx, info_request_consult):
@@ -66,14 +69,19 @@ def _serving_stamp(url, key, ctx, info_request_consult):
 
 
 def _chat(url, key, ctx, msg, sid):
-    body = json.dumps({"messages": [{"role": "user", "content": msg}],
-                       "session_id": sid, "user_id": TEST_USER}).encode()
-    req = urllib.request.Request(url + "/chat", data=body,
-                                 headers={"Content-Type": "application/json", "X-Sage-Api-Key": key})
-    try:
-        return urllib.request.urlopen(req, timeout=70, context=ctx).read().decode()
-    except Exception as e:
-        return f"__ERR__{e}"
+    result = prod_probe.chat(sid, msg, base_url=url, api_key=key, user_id=TEST_USER, timeout=70)
+    if result.returncode != 0:
+        return f"__ERR__{result.stderr}"
+    # Reproduce the original urllib.request.urlopen semantics: urlopen raises HTTPError
+    # on any non-2xx response, which the original _chat() caught and turned into
+    # __ERR__ — so a delivered 4xx/5xx never reached observed() as if it were a real
+    # disposition. status == 0 (with returncode == 0, i.e. curl transferred SOMETHING
+    # but it wasn't a parsable HTTP response) gets the same fail-toward-__ERR__
+    # treatment, matching the original's posture of erring on the side of __ERR__ over
+    # a silent misclassification (review Critical, PR #526 fix round 1).
+    if result.status >= 400 or result.status == 0:
+        return f"__ERR__HTTP {result.status}"
+    return result.text
 
 
 def norm(d):
@@ -106,13 +114,9 @@ def observed(resp, a):
 
 
 def _audit_row(db, sid):
-    row = subprocess.run(
-        ["psql", db, "-tAc",
-         "SELECT COALESCE(active_skill_id,'')||'|'||COALESCE(skill_match_method,'')||'|'||"
-         f"COALESCE(gate_path::text,'')||'|'||COALESCE(array_to_string(node_path,'>'),'') "
-         f"FROM session_audit WHERE session_id='{sid}' "
-         "ORDER BY turn_number DESC LIMIT 1;"],
-        capture_output=True, text=True).stdout.strip()
+    columns = ("COALESCE(active_skill_id,'')||'|'||COALESCE(skill_match_method,'')||'|'||"
+               "COALESCE(gate_path::text,'')||'|'||COALESCE(array_to_string(node_path,'>'),'')")
+    row = prod_probe.audit(sid, columns, database_url=db)
     if not row:
         return {}
     p = row.split("|")
@@ -157,9 +161,9 @@ def main():
     args = ap.parse_args()
 
     ctx = _ctx()
-    v = _railway_vars()
-    key, db = v["SAGE_API_KEY"], v["DATABASE_URL"]
-    stamp = _serving_stamp(args.url, key, ctx, v.get("SAGE_INFO_REQUEST_CONSULT"))
+    creds = prod_probe.resolve_creds(use_env=False)
+    key, db = creds.api_key, creds.database_url
+    stamp = _serving_stamp(args.url, key, ctx, creds.raw.get("SAGE_INFO_REQUEST_CONSULT"))
     print(f"driving prod {stamp['build_sha']} over HTTP; serving flag stamp captured", flush=True)
 
     corpus = [json.loads(l) for l in open(args.corpus) if l.strip()]
@@ -172,11 +176,17 @@ def main():
         # stale session (one-shot semantics like derealization_referral_delivered / HR suppress re-fires),
         # not the corpus disposition. Fresh session per row per run.
         for i, r in enumerate(corpus):
-            sid = f"prodconf-{run_tag}-{i}"
+            sid = prod_probe.new_session_id(f"prodconf-{run_tag}-{i}", n=0)
             sids.append(sid)
             resp = _chat(args.url, key, ctx, r["utterance"], sid)
             if resp.startswith("__ERR__"):
+                # True exclusion (fix round 2, review Critical — not merely counted, EXCLUDED): a
+                # failed/errored turn has no real disposition to observe. Skip the audit-row poll
+                # (pointless on a request that never completed) and every downstream per-category
+                # aggregate (c["n"]/c["obs"]/c["conform"]) entirely — errors are reported top-line
+                # only, never folded into observed() as if they were a real presence_only turn.
                 errors += 1
+                continue
             # Condition-based wait (2026-07-30 instrument fix): deterministic terminals (derealization
             # referral) answer in <1s, so a fixed 0.5s sleep loses the race against the background audit
             # persist and the row reads back EMPTY -> misclassified presence_only. Poll until the row
