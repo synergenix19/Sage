@@ -113,4 +113,4 @@ def test_derealization_turn_audits_gate_path():
     assert _build_session_audit_row(st).get("gate_path") == "derealization"
     benign = {"session_id": "s", "turn_number": 1,
               "path": ["safety_check", "intent_route", "freeflow_respond", "output_gate"]}
-    assert "gate_path" not in _build_session_audit_row(benign)
+    assert _build_session_audit_row(benign)["gate_path"] is None
