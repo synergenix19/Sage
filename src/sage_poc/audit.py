@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class _Conn(NamedTuple):
     """Supabase connection info for this call. Never log, print, or assert on
-    `.key` or `.headers` in full — they carry the service-role secret.
+    `.key` or `.headers` in full: they carry the service-role secret.
     """
     url: str | None
     key: str | None
@@ -47,6 +47,19 @@ def _get_audit_client() -> httpx.AsyncClient:
     if _audit_client is None:
         _audit_client = httpx.AsyncClient()
     return _audit_client
+
+
+async def close_audit_client() -> None:
+    """Close the shared audit HTTP client, if one was ever created, and reset
+    the module singleton so a later call (if any) re-creates a fresh client.
+    Never closed automatically otherwise -- wire this into the app's shutdown
+    path (see server.py's lifespan) so the connection is released cleanly
+    rather than left open until process exit.
+    """
+    global _audit_client
+    if _audit_client is not None:
+        await _audit_client.aclose()
+        _audit_client = None
 
 
 async def _user_exists_in_auth(user_id: str) -> bool:
@@ -122,7 +135,7 @@ async def _supabase_insert(table: str, row: dict, prefer: str = "return=minimal"
     Mirrors the base URL / service key / headers used by
     write_identity_substitution_audit and _write_session_audit_row, but is not
     tied to a specific table's row shape. `prefer` overrides the default
-    "Prefer" header ("return=minimal") — session_audit writes pass
+    "Prefer" header ("return=minimal"): session_audit writes pass
     "resolution=merge-duplicates" for their upsert semantics.
     """
     conn = _conn()
