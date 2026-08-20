@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { renderHook, act, waitFor, render, screen, fireEvent } from '@testing-library/react'
-import { useStreamingChat, ChatInterface, makeLcg } from '../chat-interface'
+import { ChatInterface, makeLcg } from '../chat-interface'
+import { useStreamingChat } from '@/lib/hooks/use-streaming-chat'
 import { seedPresenceBag } from '@/lib/presence-phrases'
 
 vi.mock('@/lib/stores/locale-store', () => ({
