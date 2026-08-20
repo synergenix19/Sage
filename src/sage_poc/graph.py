@@ -378,27 +378,42 @@ def _route_after_safety(state: SageState) -> str:
     return _evaluate_route(ROUTE_AFTER_SAFETY, state)
 
 
-def _route_after_intent(state: SageState) -> str:
-    intent = state.get("primary_intent", "general_chat")
-    confidence = state.get("intent_confidence", 1.0)
+def _intent(state: SageState) -> str:
+    return state.get("primary_intent", "general_chat")
 
-    if intent == "crisis":
+
+def _confidence(state: SageState) -> float:
+    return state.get("intent_confidence", 1.0)
+
+
+ROUTE_AFTER_INTENT: "tuple[RouteRule, ...]" = (
+    RouteRule(
+        "panic_grounding_override",
+        _always,
         # Part A (Vee-signed 2026-07-28): deterministic panic-grounding override. When safety_check CLEARED
         # this turn but intent_route re-flagged a clear panic disclosure (no harm-adjacency) as crisis, restore
         # the deterministic verdict -> grounding via skill_select instead of crisis_response. Flag-gated: the
         # stamp is False when OFF, so this is byte-identical when disabled. Fires only on a safety_check-clean
         # turn, so it can NEVER suppress a crisis the deterministic tier caught (that path never reaches here as
         # intent=='crisis' with panic_grounding_override True — crisis_flags being set makes the override False).
-        if state.get("panic_grounding_override"):
-            return "skill_select"
+        lambda state: _intent(state) == "crisis" and bool(state.get("panic_grounding_override")),
+        "skill_select",
+    ),
+    RouteRule(
+        "grief_presence_override",
+        _always,
         # S2a grief-presence deference (built inert 2026-08-04): identical semantics one line down the
         # same crisis branch — safety_check CLEARED the turn, intent_route re-flagged a clear bereavement
         # disclosure (no harm-adjacency) as crisis; restore the clean verdict -> grief_loss presence path
         # via skill_select instead of crisis_response. Flag-gated (stamp is False when OFF, byte-identical);
         # crisis_flags being set (incl. the cardiac Node-1 flag) makes the stamp False, so this can never
         # suppress a crisis the deterministic tier caught.
-        if state.get("grief_presence_override"):
-            return "skill_select"
+        lambda state: _intent(state) == "crisis" and bool(state.get("grief_presence_override")),
+        "skill_select",
+    ),
+    RouteRule(
+        "selfworth_presence_override",
+        _always,
         # S4b self-worth presence deference (DRAFT, gated on Vee signature, packet item 3): third
         # member of the same crisis-branch override family — safety_check CLEARED the turn, intent_route
         # re-flagged a self-worth/deservingness disclosure WITHOUT existence content as crisis
@@ -407,152 +422,228 @@ def _route_after_intent(state: SageState) -> str:
         # pathway can route. Flag-gated (stamp is False when OFF, byte-identical); crisis_flags being
         # set (incl. si_passive's better-off-without-me surface and the cardiac Node-1 flag) makes the
         # stamp False, so this can never suppress a crisis the deterministic tier caught.
-        if state.get("selfworth_presence_override"):
-            return "skill_select"
-        return "crisis"
-    # #338 D1 ANSWER TURN: a turn answering a pending screen must reach skill_select so its answering_screen
-    # handler classifies+routes the answer, REGARDLESS of intent (the answer usually reads as general_chat and
-    # would otherwise go to freeflow unclassified — the 2026-07-20 seam). Below crisis (crisis supremacy), above
-    # all intent routing. answering_screen is only ever set in enforce mode, so flag-off is byte-identical.
-    if state.get("answering_screen"):
-        return "skill_select"
-    # HIGH-1 (final review, psychoed Phase 2): a PSY-WEAVE-1 weave-pending reply must ALWAYS reach
-    # skill_select, REGARDLESS of intent — modeled exactly on the answering_screen redirect immediately
-    # above (same seam: a reply to a pending in-band question usually classifies as general_chat and
-    # would otherwise fall through to freeflow, where PSY-WEAVE-1 never runs and the pending safety
-    # check on the PREVIOUS turn's serve is silently starved -- the 2026-07-20 seam, spec §6.1). Placed
-    # at the SAME priority as answering_screen (immediately below crisis, above all intent routing) --
-    # not above it, and not above the crisis-intent check at the top of this function: if a weave-pending
-    # turn ALSO classifies as intent=="crisis", the crisis branch above already returned "crisis" before
-    # this line ever runs, so weave-pending correctly yields to a crisis intent classification (fail-
-    # closed -- the reply still reaches crisis_response, just via the crisis branch, not skill_select).
-    # skill_select_node's own PSY-WEAVE-1 evaluation (order item 1, spec §2.1 step 1) is what actually
-    # judges the reply; this router only guarantees the reply ARRIVES there. This is graph-level ROUTING
-    # decided from state TOWARD the evaluator -- the permitted direction (routing decisions may read
-    # psychoed_* keys to decide where to send a turn); the safety NODES themselves (safety_check,
-    # crisis_response, high_risk_response, derealization_response) still never read psychoed_* keys, so
-    # the never-disarm invariant (state.py channel doc; handoff notes §I.4) is unaffected. Gated on
-    # PSYCHOED_PATHWAYS_ENABLED (local import, same established per-turn-effective pattern as the
-    # hr_disclosure_present check below): psychoed_weave_pending is only ever set by skill_select_node
-    # under that same flag, so with the flag off this branch is unreachable and routing is byte-identical.
-    from sage_poc import config as _psy_cfg  # noqa: PLC0415
-    if _psy_cfg.PSYCHOED_PATHWAYS_ENABLED and state.get("psychoed_weave_pending"):
-        return "skill_select"
-    # EMR screen resumption (2026-08-12): a turn answering the modality screen must reach
-    # skill_select so the held request can deliver (or the adaptive screen continue) —
-    # the same seam class as answering_screen/weave directly above (answers classify as
-    # general_chat and would fall to freeflow, starving the hold). Same priority slot:
-    # below crisis (crisis intent already returned above), below the D1 answer redirect
-    # (disjoint by construction — EMR screens never set D1's screen_pending). Guarded on
-    # active_skill_id; flag OFF -> the channel is never set, byte-identical.
-    if (_psy_cfg.MODALITY_REQUEST_ROUTING_ENABLED
-            and state.get("modality_screen_pending")
-            and not state.get("active_skill_id")):
-        return "skill_select"
-    if intent == "scope_refusal":
-        return "gate"
-    if intent == "jailbreak":
+        lambda state: _intent(state) == "crisis" and bool(state.get("selfworth_presence_override")),
+        "skill_select",
+    ),
+    RouteRule(
+        # Fallthrough default for the crisis branch above: intent == "crisis" with none of the
+        # three overrides matched. Must stay immediately below the three override rows and
+        # above everything else -- the original `if intent == "crisis":` block always returned
+        # from within itself, so a crisis-intent turn never reached the D1/weave/EMR checks below.
+        "crisis_intent_default",
+        _always,
+        lambda state: _intent(state) == "crisis",
+        "crisis",
+    ),
+    RouteRule(
+        "d1_answering_screen",
+        _always,
+        # #338 D1 ANSWER TURN: a turn answering a pending screen must reach skill_select so its answering_screen
+        # handler classifies+routes the answer, REGARDLESS of intent (the answer usually reads as general_chat and
+        # would otherwise go to freeflow unclassified — the 2026-07-20 seam). Below crisis (crisis supremacy), above
+        # all intent routing. answering_screen is only ever set in enforce mode, so flag-off is byte-identical.
+        lambda state: bool(state.get("answering_screen")),
+        "skill_select",
+    ),
+    RouteRule(
+        "psychoed_weave_pending",
+        lambda: _cfg.PSYCHOED_PATHWAYS_ENABLED,
+        # HIGH-1 (final review, psychoed Phase 2): a PSY-WEAVE-1 weave-pending reply must ALWAYS reach
+        # skill_select, REGARDLESS of intent — modeled exactly on the answering_screen redirect immediately
+        # above (same seam: a reply to a pending in-band question usually classifies as general_chat and
+        # would otherwise fall through to freeflow, where PSY-WEAVE-1 never runs and the pending safety
+        # check on the PREVIOUS turn's serve is silently starved -- the 2026-07-20 seam, spec §6.1). Placed
+        # at the SAME priority as answering_screen (immediately below crisis, above all intent routing) --
+        # not above it, and not above the crisis-intent check at the top of this function: if a weave-pending
+        # turn ALSO classifies as intent=="crisis", the crisis branch above already returned "crisis" before
+        # this line ever runs, so weave-pending correctly yields to a crisis intent classification (fail-
+        # closed -- the reply still reaches crisis_response, just via the crisis branch, not skill_select).
+        # skill_select_node's own PSY-WEAVE-1 evaluation (order item 1, spec §2.1 step 1) is what actually
+        # judges the reply; this router only guarantees the reply ARRIVES there. This is graph-level ROUTING
+        # decided from state TOWARD the evaluator -- the permitted direction (routing decisions may read
+        # psychoed_* keys to decide where to send a turn); the safety NODES themselves (safety_check,
+        # crisis_response, high_risk_response, derealization_response) still never read psychoed_* keys, so
+        # the never-disarm invariant (state.py channel doc; handoff notes §I.4) is unaffected. Gated on
+        # PSYCHOED_PATHWAYS_ENABLED (local import, same established per-turn-effective pattern as the
+        # hr_disclosure_present check below): psychoed_weave_pending is only ever set by skill_select_node
+        # under that same flag, so with the flag off this branch is unreachable and routing is byte-identical.
+        lambda state: bool(state.get("psychoed_weave_pending")),
+        "skill_select",
+    ),
+    RouteRule(
+        "emr_modality_screen_pending",
+        lambda: _cfg.MODALITY_REQUEST_ROUTING_ENABLED,
+        # EMR screen resumption (2026-08-12): a turn answering the modality screen must reach
+        # skill_select so the held request can deliver (or the adaptive screen continue) —
+        # the same seam class as answering_screen/weave directly above (answers classify as
+        # general_chat and would fall to freeflow, starving the hold). Same priority slot:
+        # below crisis (crisis intent already returned above), below the D1 answer redirect
+        # (disjoint by construction — EMR screens never set D1's screen_pending). Guarded on
+        # active_skill_id; flag OFF -> the channel is never set, byte-identical.
+        lambda state: bool(state.get("modality_screen_pending")) and not state.get("active_skill_id"),
+        "skill_select",
+    ),
+    RouteRule(
+        "scope_refusal",
+        _always,
+        lambda state: _intent(state) == "scope_refusal",
+        "gate",
+    ),
+    RouteRule(
+        "jailbreak",
+        _always,
         # NOTE: jailbreak in monitoring state: persona reassertion takes priority.
         # crisis_state remains 'monitoring' — S7 will re-evaluate on the next turn.
-        return "gate"
-    # Post-crisis monitoring takes priority over confidence gating — short or fragmented
-    # messages are expected after a crisis; route to skill_select regardless of confidence.
-    if state.get("crisis_state") == "monitoring":
-        return "skill_select"
-    # S2-10 (safety, clinical decision 2026-06-13): a pending psychotic referral forces
-    # routing to skill_select, where psychotic_referral auto-selects. Without this, a
-    # psychotic disclosure in general_chat register routes to freeflow, which engages
-    # with the content unreferred. Bypasses the confidence gate (like monitoring) because
-    # the redirect must not depend on classification confidence. Deterministic routing is
-    # the gate; prompt adaptation is not (audit: L5 alone already failed).
-    #
-    # PRECEDENCE (merge #4 ⊕ #6/S2-10, 2026-06-13): this check is SENIOR to the R1
-    # offer-accept branch below. If a psychotic disclosure co-occurs with a live skill
-    # offer (e.g. the user accepts an offer in the same turn they disclose), the safety
-    # referral must win — never let an engagement-layer accept short-circuit the referral.
-    #
-    # HR-1 Stage 1 Task 3: broadened via hr_disclosure_present so mania_disclosure and
-    # dissociation_disclosure reach the same referral redirect as psychotic_disclosure.
-    # psychotic_disclosure always routes (flag-independent); the other two are gated
-    # behind HIGH_RISK_DETECTION_ENABLED. Flag OFF -> byte-identical to psychotic-only.
-    from sage_poc import config as _cfg  # noqa: PLC0415
-    if (hr_disclosure_present(state.get("clinical_flags") or [], flag_enabled=_cfg.HIGH_RISK_DETECTION_ENABLED)
-            and not state.get("psychotic_referral_delivered")):
-        return "skill_select"
-    # R1: accept reply to a pending offer routes to skill_select for promotion.
-    # Bypasses the confidence gate: bare accepts classify low-confidence by nature
-    # (same precedent as post-crisis monitoring). Subordinate to the psychotic-referral
-    # check above by design.
-    if (state.get("offered_skill_ids") or []) and state.get("offer_response") == "accept":
-        return "skill_select"
-    # F6: a venting / "just listen" turn must NOT be pulled into skill_select by the
-    # intensity override or the prepass hint. PI-VI-001 detects it; this gives that detection
-    # ROUTING AUTHORITY to keep it in presence (freeflow). Same class as B1's medical_response
-    # leaving active_skill_id resumable: detection without authority over the skill layer.
-    # Scoped to intent == "general_chat": new_skill and info_request are handled LATER in this
-    # function (below), so without this guard an explicit skill/help request co-occurring with
-    # a don't-fix keyword would be over-suppressed into freeflow — the exact failure mode this
-    # feature must avoid. Crisis precedence and help-seeking new_skill are preserved.
-    if (_cfg.VENTING_SUPPRESSION_ENABLED
-            and intent == "general_chat"
-            and state.get("venting_detected")
-            and not state.get("active_skill_id")):
-        return "freeflow"
-    # Routing-SF-2 (intent-route intensity): acute distress classified as general_chat
-    # must still reach skill_select so the acute down-regulation skills (dbt_tipp,
-    # grounding_5_4_3_2_1) can keyword-match. intent_route already emits
-    # emotional_intensity; routing previously ignored it, sending high-intensity
-    # general_chat to freeflow where no skill is ever offered. Placed after the
-    # monitoring/psychotic redirects and before the confidence gate: an acute redirect
-    # must not depend on classification confidence. Safe fallthrough: no acute keyword
-    # match -> skill_select -> freeflow (_route_after_skill_select), unchanged worst case.
-    # Guarded on active_skill_id: mid-skill turns fall through to freeflow (preserving the
-    # checkpoint), matching the new_skill/skill_continuation handling below and the
-    # test_mid_skill_off_topic invariant. (Under R1, "reach skill_select" yields a consent
-    # offer of the acute skill, not silent activation — consistent with the offer model.)
-    if (intent == "general_chat"
-            and not state.get("active_skill_id")
-            and state.get("emotional_intensity", 5) >= ACUTE_INTENSITY_FLOOR):
-        return "skill_select"
-    # v7.2 Node-2 keyword pre-pass HINT: a general_chat turn the classifier would send to freeflow,
-    # but whose message deterministically matched a skill trigger (pre-pass), reaches skill_select so
-    # the skill can offer/enter per R1. Mirrors the Routing-SF-2 slot+guards exactly: after the
-    # safety/monitoring/psychotic redirects, before the confidence gate; guarded on active_skill_id
-    # (mid-skill turns fall through, preserving the checkpoint). Hint, not hijack — primary_intent is
-    # unchanged; info_request already reaches skill_select on its own, so this targets general_chat.
-    if (intent == "general_chat"
-            and not state.get("active_skill_id")
-            and (state.get("prepass_matched") or [])):
-        return "skill_select"
-    # EMR redirect (plan 2026-07-28: "an explicit modality request, in a screened context,
-    # always resolves against the clinical binding table — regardless of which way the LLM
-    # intent classifier lands"). Same slot + guards as the prepass hint above, but for ALL
-    # intents that would otherwise miss skill_select (incl. the route-with-release turn,
-    # whose classification is unpredictable by design). Guarded on active_skill_id: a
-    # mid-skill request is surface-1 (executor) territory and falls through unchanged.
-    # Subordinate by ORDER to crisis, the D1/weave redirects, monitoring, the psychotic/HR
-    # referral, and the F6 venting hold above — all of them return before this line.
-    # Flag OFF -> the channel is None, branch unreachable, routing byte-identical.
-    if (_cfg.MODALITY_REQUEST_ROUTING_ENABLED
-            and not state.get("active_skill_id")
-            and (state.get("explicit_modality_request") or {}).get("requested")):
-        return "skill_select"
-    if confidence < 0.6:
-        return "low_confidence"
-    if intent == "exit_skill":
-        return "skill_executor" if state.get("active_skill_id") else "freeflow"
-    if intent == "new_skill":
+        lambda state: _intent(state) == "jailbreak",
+        "gate",
+    ),
+    RouteRule(
+        "monitoring_priority",
+        _always,
+        # Post-crisis monitoring takes priority over confidence gating — short or fragmented
+        # messages are expected after a crisis; route to skill_select regardless of confidence.
+        lambda state: state.get("crisis_state") == "monitoring",
+        "skill_select",
+    ),
+    RouteRule(
+        "hr_disclosure_redirect",
+        _always,
+        # S2-10 (safety, clinical decision 2026-06-13): a pending psychotic referral forces
+        # routing to skill_select, where psychotic_referral auto-selects. Without this, a
+        # psychotic disclosure in general_chat register routes to freeflow, which engages
+        # with the content unreferred. Bypasses the confidence gate (like monitoring) because
+        # the redirect must not depend on classification confidence. Deterministic routing is
+        # the gate; prompt adaptation is not (audit: L5 alone already failed).
+        #
+        # PRECEDENCE (merge #4 ⊕ #6/S2-10, 2026-06-13): this check is SENIOR to the R1
+        # offer-accept branch below. If a psychotic disclosure co-occurs with a live skill
+        # offer (e.g. the user accepts an offer in the same turn they disclose), the safety
+        # referral must win — never let an engagement-layer accept short-circuit the referral.
+        #
+        # HR-1 Stage 1 Task 3: broadened via hr_disclosure_present so mania_disclosure and
+        # dissociation_disclosure reach the same referral redirect as psychotic_disclosure.
+        # psychotic_disclosure always routes (flag-independent); the other two are gated
+        # behind HIGH_RISK_DETECTION_ENABLED. Flag OFF -> byte-identical to psychotic-only.
+        lambda state: hr_disclosure_present(
+            state.get("clinical_flags") or [], flag_enabled=_cfg.HIGH_RISK_DETECTION_ENABLED
+        ) and not state.get("psychotic_referral_delivered"),
+        "skill_select",
+    ),
+    RouteRule(
+        "r1_offer_accept",
+        _always,
+        # R1: accept reply to a pending offer routes to skill_select for promotion.
+        # Bypasses the confidence gate: bare accepts classify low-confidence by nature
+        # (same precedent as post-crisis monitoring). Subordinate to the psychotic-referral
+        # check above by design.
+        lambda state: bool(state.get("offered_skill_ids") or []) and state.get("offer_response") == "accept",
+        "skill_select",
+    ),
+    RouteRule(
+        "f6_venting_suppression",
+        lambda: _cfg.VENTING_SUPPRESSION_ENABLED,
+        # F6: a venting / "just listen" turn must NOT be pulled into skill_select by the
+        # intensity override or the prepass hint. PI-VI-001 detects it; this gives that detection
+        # ROUTING AUTHORITY to keep it in presence (freeflow). Same class as B1's medical_response
+        # leaving active_skill_id resumable: detection without authority over the skill layer.
+        # Scoped to intent == "general_chat": new_skill and info_request are handled LATER in this
+        # function (below), so without this guard an explicit skill/help request co-occurring with
+        # a don't-fix keyword would be over-suppressed into freeflow — the exact failure mode this
+        # feature must avoid. Crisis precedence and help-seeking new_skill are preserved.
+        lambda state: _intent(state) == "general_chat"
+        and bool(state.get("venting_detected"))
+        and not state.get("active_skill_id"),
+        "freeflow",
+    ),
+    RouteRule(
+        "routing_sf2_acute_intensity",
+        _always,
+        # Routing-SF-2 (intent-route intensity): acute distress classified as general_chat
+        # must still reach skill_select so the acute down-regulation skills (dbt_tipp,
+        # grounding_5_4_3_2_1) can keyword-match. intent_route already emits
+        # emotional_intensity; routing previously ignored it, sending high-intensity
+        # general_chat to freeflow where no skill is ever offered. Placed after the
+        # monitoring/psychotic redirects and before the confidence gate: an acute redirect
+        # must not depend on classification confidence. Safe fallthrough: no acute keyword
+        # match -> skill_select -> freeflow (_route_after_skill_select), unchanged worst case.
+        # Guarded on active_skill_id: mid-skill turns fall through to freeflow (preserving the
+        # checkpoint), matching the new_skill/skill_continuation handling below and the
+        # test_mid_skill_off_topic invariant. (Under R1, "reach skill_select" yields a consent
+        # offer of the acute skill, not silent activation — consistent with the offer model.)
+        lambda state: _intent(state) == "general_chat"
+        and not state.get("active_skill_id")
+        and state.get("emotional_intensity", 5) >= ACUTE_INTENSITY_FLOOR,
+        "skill_select",
+    ),
+    RouteRule(
+        "node2_prepass_hint",
+        _always,
+        # v7.2 Node-2 keyword pre-pass HINT: a general_chat turn the classifier would send to freeflow,
+        # but whose message deterministically matched a skill trigger (pre-pass), reaches skill_select so
+        # the skill can offer/enter per R1. Mirrors the Routing-SF-2 slot+guards exactly: after the
+        # safety/monitoring/psychotic redirects, before the confidence gate; guarded on active_skill_id
+        # (mid-skill turns fall through, preserving the checkpoint). Hint, not hijack — primary_intent is
+        # unchanged; info_request already reaches skill_select on its own, so this targets general_chat.
+        lambda state: _intent(state) == "general_chat"
+        and not state.get("active_skill_id")
+        and bool(state.get("prepass_matched") or []),
+        "skill_select",
+    ),
+    RouteRule(
+        "emr_modality_request_redirect",
+        lambda: _cfg.MODALITY_REQUEST_ROUTING_ENABLED,
+        # EMR redirect (plan 2026-07-28: "an explicit modality request, in a screened context,
+        # always resolves against the clinical binding table — regardless of which way the LLM
+        # intent classifier lands"). Same slot + guards as the prepass hint above, but for ALL
+        # intents that would otherwise miss skill_select (incl. the route-with-release turn,
+        # whose classification is unpredictable by design). Guarded on active_skill_id: a
+        # mid-skill request is surface-1 (executor) territory and falls through unchanged.
+        # Subordinate by ORDER to crisis, the D1/weave redirects, monitoring, the psychotic/HR
+        # referral, and the F6 venting hold above — all of them return before this line.
+        # Flag OFF -> the channel is None, branch unreachable, routing byte-identical.
+        lambda state: not state.get("active_skill_id")
+        and bool((state.get("explicit_modality_request") or {}).get("requested")),
+        "skill_select",
+    ),
+    RouteRule(
+        "low_confidence_gate",
+        _always,
+        lambda state: _confidence(state) < 0.6,
+        "low_confidence",
+    ),
+    RouteRule(
+        "exit_skill",
+        _always,
+        lambda state: _intent(state) == "exit_skill",
+        lambda state: "skill_executor" if state.get("active_skill_id") else "freeflow",
+    ),
+    RouteRule(
+        "new_skill",
+        _always,
         # If a skill is already active, don't re-run selection — skill_select would
         # either pick a different skill (hijack) or find no match and write
         # active_skill_id=None, clearing the checkpoint for the next turn.
-        if state.get("active_skill_id"):
-            return "skill_executor"
-        return "skill_select"
-    if intent == "info_request":
-        return "skill_select"
-    if intent == "skill_continuation" and state.get("active_skill_id"):
-        return "skill_executor"
-    return "freeflow"
+        lambda state: _intent(state) == "new_skill",
+        lambda state: "skill_executor" if state.get("active_skill_id") else "skill_select",
+    ),
+    RouteRule(
+        "info_request",
+        _always,
+        lambda state: _intent(state) == "info_request",
+        "skill_select",
+    ),
+    RouteRule(
+        "skill_continuation",
+        _always,
+        lambda state: _intent(state) == "skill_continuation" and bool(state.get("active_skill_id")),
+        "skill_executor",
+    ),
+    RouteRule("default_freeflow", _always, lambda state: True, "freeflow"),
+)
+
+
+def _route_after_intent(state: SageState) -> str:
+    return _evaluate_route(ROUTE_AFTER_INTENT, state)
 
 
 def _route_after_skill_select(state: SageState) -> str:
