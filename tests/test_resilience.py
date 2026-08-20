@@ -45,6 +45,15 @@ def test_fallbacks_json_valid():
     data = json.loads(path.read_text())
     assert isinstance(data, list)
     nodes_langs = {(e["node"], e["language"]) for e in data}
+    # get_fallback_response's precedence-table lookup (resilience/__init__.py) builds a
+    # dict keyed by (node, language), which silently keeps the LAST entry on a duplicate
+    # key. A duplicate would flip first-match vs last-match semantics on clinical fallback
+    # copy without any test noticing, since the set comprehension above absorbs dupes.
+    # Enforce the uniqueness the lookup rewrite already assumes (fix-round-1 Finding 2).
+    assert len(nodes_langs) == len(data), (
+        "duplicate (node, language) pairs in fallbacks.json — "
+        "get_fallback_response's precedence lookup assumes uniqueness"
+    )
     required = {
         ("freeflow_respond", "en"),
         ("freeflow_respond", "ar"),
@@ -367,10 +376,19 @@ async def test_resilient_stream_non_retryable_yields_fallback():
 # __init__.py is a JSON literal built with %-style placeholders, so the formatted
 # message is always valid JSON and can be parsed directly.
 #
-# Task 6 (refactor: one attempt loop) permits exactly ONE delta against this baseline:
-# resilient_invoke's breaker-open path gains an llm_invoke_fallback_failed emission
-# when the fallback LLM also raises (symmetry with the exhausted-retries path). That
-# delta is isolated in test_log_baseline_invoke_breaker_open_fallback_fails below.
+# Task 6 (refactor: one attempt loop) carries TWO controller-ruled deltas against this
+# baseline (fix-round-1, 2026-08-20):
+#   1. resilient_invoke's breaker-open path gains an llm_invoke_fallback_failed emission
+#      when the fallback LLM also raises (symmetry with the exhausted-retries path).
+#      Isolated in test_log_baseline_invoke_breaker_open_fallback_fails below.
+#   2. A malformed llm.ainvoke() response (content is None, or a list of content blocks
+#      — the tool-use/extended-thinking shape) now produces a single llm_call_failed
+#      event with NO success record and NO breaker mutation. Pre-refactor, the success
+#      log + _record_success fired BEFORE `.content.strip()` was called, so a call that
+#      actually failed was logged as a success and reset the breaker — a real defect,
+#      not a behavior worth preserving. Isolated in
+#      test_log_baseline_invoke_malformed_content_none and
+#      test_log_baseline_invoke_malformed_content_list_blocks below.
 
 class _ListHandler(logging.Handler):
     def __init__(self):
@@ -596,6 +614,65 @@ async def test_log_baseline_invoke_breaker_open_fallback_fails(resilience_log_ev
         ("circuit_breaker_short_circuit", frozenset({"event", "node", "circuit_breaker_state"})),
         ("llm_invoke_fallback_failed", frozenset({"event", "node", "error_type"})),
     ]
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_invoke_malformed_content_none(resilience_log_events):
+    """Task 6 fix-round-1 Finding 1 (controller-ruled SECOND justified delta): when
+    llm.ainvoke() succeeds but response_msg.content is None, `.content.strip()` raises
+    AttributeError INSIDE the per-attempt call, before any success is recorded.
+
+    Pre-refactor (master), _record_success + the llm_call success log fired BEFORE
+    .strip() was called — a bogus success log for a call that actually failed, plus a
+    circuit-breaker reset that could mask systematic provider-shape failures. This
+    refactor moves the strip inside the timing-guarded unit (_invoke_once, called from
+    resilient_invoke's _call()), so a malformed response now produces exactly ONE
+    llm_call_failed event, no success record, and — since AttributeError is
+    non-retryable — no breaker mutation at all (_record_failure is only called on the
+    retryable path; see _attempt_loop). This is deliberate, controller-ruled behavior,
+    not a regression: a success log for a failed call would poison the latency
+    baseline, and a breaker reset on a real failure would mask a systematic problem.
+    """
+    key = "https://ev-inv-malformed-none.api/test/model"
+    _reset(key)
+    llm = MagicMock()
+    llm.model_name = "test/model"
+    llm.openai_api_base = "https://ev-inv-malformed-none.api"
+    llm.ainvoke = AsyncMock(return_value=MagicMock(content=None))
+
+    result = await resilient_invoke(llm, [], node="freeflow_respond")
+
+    assert isinstance(result, str) and len(result) > 5  # fallback text, not a crash
+    events = _events(resilience_log_events)
+    assert [e["event"] for e in events] == ["llm_call_failed"]
+    assert _shape(events) == [
+        ("llm_call_failed", frozenset({"event", "node", "attempt", "error_type", "fallback_used"})),
+    ]
+    assert key not in _circuit_state  # neither success nor failure recorded
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_invoke_malformed_content_list_blocks(resilience_log_events):
+    """Same characterization as test_log_baseline_invoke_malformed_content_none, for the
+    tool-use / extended-thinking content shape: response_msg.content is a list of
+    content blocks (not a str), so `.strip()` raises AttributeError just the same —
+    a reachable shape, not a hypothetical one."""
+    key = "https://ev-inv-malformed-list.api/test/model"
+    _reset(key)
+    llm = MagicMock()
+    llm.model_name = "test/model"
+    llm.openai_api_base = "https://ev-inv-malformed-list.api"
+    llm.ainvoke = AsyncMock(return_value=MagicMock(content=[{"type": "text", "text": "hi"}]))
+
+    result = await resilient_invoke(llm, [], node="freeflow_respond")
+
+    assert isinstance(result, str) and len(result) > 5
+    events = _events(resilience_log_events)
+    assert [e["event"] for e in events] == ["llm_call_failed"]
+    assert _shape(events) == [
+        ("llm_call_failed", frozenset({"event", "node", "attempt", "error_type", "fallback_used"})),
+    ]
+    assert key not in _circuit_state
 
 
 # -- resilient_message_invoke ------------------------------------------------------
