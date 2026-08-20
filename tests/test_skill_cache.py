@@ -105,9 +105,12 @@ def test_mtime_change_returns_fresh_parse_without_cache_clear(tmp_path, monkeypa
     skill_file = tmp_path / "test_mtime_skill.json"
     skill_file.write_text(json.dumps(_MINIMAL_SKILL), encoding="utf-8")
 
-    # Point get_skill at the tmp directory (module-level global, looked up fresh on every
-    # get_skill() call -- see get_skill's docstring).
-    monkeypatch.setattr("sage_poc.skills.SKILLS_DIR", tmp_path)
+    # Point get_skill at the tmp directory. Patches sage_poc.skills.schema.SKILLS_DIR --
+    # the ONE authoritative global get_skill AND load_skill both resolve against (fix
+    # round 1, N4). The package-level `sage_poc.skills.SKILLS_DIR` name is a snapshot
+    # re-export taken at import time; patching only that would silently desync from what
+    # get_skill actually reads -- see get_skill's docstring.
+    monkeypatch.setattr("sage_poc.skills.schema.SKILLS_DIR", tmp_path)
 
     first = get_skill("test_mtime_skill")
     assert first.skill_name == "Mtime Test Skill v1"
@@ -194,3 +197,100 @@ def test_get_skill_docstring_names_the_cms_forward_requirement():
     doc = (get_skill.__doc__ or "")
     assert "cache_clear" in doc
     assert "CMS" in doc
+
+
+def test_get_skill_docstring_names_the_crisis_config_forward_requirement():
+    """Fix round 1 (M1a): the CMS forward-requirement is not the only source that could make
+    the crisis-placeholder freshness test (test_crisis_placeholder_change_requires_cache_
+    clear_then_is_reflected, above) go stale -- a runtime-mutable CRISIS_CONFIG source is a
+    second one. Both must be discoverable at the invalidation point."""
+    doc = (get_skill.__doc__ or "")
+    assert "CRISIS_CONFIG" in doc
+    assert "cache_clear" in doc
+
+
+# ── structural guard: CRISIS_CONFIG has no runtime-mutable source (fix round 1, M1b) ────
+
+def test_crisis_config_derives_only_from_module_level_literals():
+    """Pins the invariant that makes test_crisis_placeholder_change_requires_cache_clear_
+    then_is_reflected (and the get_skill docstring's crisis-copy forward-requirement,
+    above) SAFE today: config.CRISIS_CONFIG derives purely from module-level literals in
+    sage_poc/config.py -- CRISIS_RESOURCES (a literal list of literal dicts) feeds
+    _primary_resource / _emergency_resource (pure lookups, no I/O) feeds CRISIS_CONFIG (a
+    dict literal built from those two calls). No env read, no clock, no reload anywhere in
+    that chain.
+
+    If CRISIS_CONFIG ever gains a runtime-mutable source (an env var read at request time,
+    a remote/CMS-fetched value, a reload trigger), a get_skill-cached Skill carrying a
+    resolved {{crisis_number}} could go stale in a way NEITHER mtime keying NOR an
+    unrelated get_skill.cache_clear() call would necessarily catch -- exactly the class of
+    incident this cache's invalidation contract exists to prevent (the 800-HOPE reversal
+    was the NUMBER changing, not the skill file). This is a structural (AST) guard, not a
+    behavioral one, because the current safety comes from what code is ABSENT (no runtime
+    read) -- there is no runtime behavior to exercise that would prove a negative. It fails
+    loudly, forcing a conscious get_skill.cache_clear()-wiring decision, the day a runtime
+    source lands on this exact chain.
+    """
+    import ast
+    import inspect
+
+    import sage_poc.config as config_mod
+
+    tree = ast.parse(inspect.getsource(config_mod))
+
+    def _runtime_source_hits(node: ast.AST) -> list[str]:
+        """Names of any os.environ / os.getenv / datetime.now / time.time reference found
+        anywhere inside `node` (walks the full subtree, e.g. into a function body)."""
+        hits: list[str] = []
+        for n in ast.walk(node):
+            if isinstance(n, ast.Attribute) and n.attr in ("environ", "getenv", "now", "time"):
+                hits.append(n.attr)
+            if isinstance(n, ast.Name) and n.id in ("getenv",):
+                hits.append(n.id)
+        return hits
+
+    targets: dict[str, ast.AST] = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            for t in node.targets:
+                if isinstance(t, ast.Name) and t.id in ("CRISIS_RESOURCES", "CRISIS_CONFIG"):
+                    targets[t.id] = node
+        if isinstance(node, ast.FunctionDef) and node.name in (
+            "_primary_resource", "_emergency_resource",
+        ):
+            targets[node.name] = node
+
+    for name in ("CRISIS_RESOURCES", "CRISIS_CONFIG", "_primary_resource", "_emergency_resource"):
+        assert name in targets, (
+            f"{name} definition not found in sage_poc/config.py -- this guard can no longer "
+            "verify the invariant it pins; update the guard, don't just delete it"
+        )
+
+    # CRISIS_RESOURCES must be a list of dict literals with only constant (non-computed)
+    # values -- a Call or Name here would be a live/computed value, not a frozen literal.
+    resources_node = targets["CRISIS_RESOURCES"].value
+    assert isinstance(resources_node, ast.List), "CRISIS_RESOURCES must be a list literal"
+    for entry in resources_node.elts:
+        assert isinstance(entry, ast.Dict), "CRISIS_RESOURCES entries must be dict literals"
+        for v in entry.values:
+            assert isinstance(v, ast.Constant), (
+                f"CRISIS_RESOURCES entry value is not a constant literal ({ast.dump(v)}) -- "
+                "this would be a runtime-mutable source feeding CRISIS_CONFIG"
+            )
+
+    # Neither resource-selector function may read a runtime source.
+    for name in ("_primary_resource", "_emergency_resource"):
+        hits = _runtime_source_hits(targets[name])
+        assert not hits, (
+            f"{name} references a runtime source ({hits}) -- CRISIS_CONFIG would no longer "
+            "derive purely from module-level literals. Update get_skill's docstring (the "
+            "crisis-copy forward-requirement) AND wire get_skill.cache_clear() into this "
+            "source's write path before this guard can be relaxed."
+        )
+
+    # CRISIS_CONFIG's own dict-literal values may not reference a runtime source directly.
+    config_node = targets["CRISIS_CONFIG"].value
+    assert isinstance(config_node, ast.Dict), "CRISIS_CONFIG must be a dict literal"
+    for v in config_node.values:
+        hits = _runtime_source_hits(v)
+        assert not hits, f"CRISIS_CONFIG value references a runtime source directly ({hits})"

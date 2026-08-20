@@ -85,7 +85,9 @@ def _clinical_glossary() -> dict:
     accessor's docstring for the full CMS forward-requirement, register item 9). A file edit
     changes the cache key automatically; once this glossary is CMS-served rather than
     file-served, the CMS write path must call `_clinical_glossary.cache_clear()` (or
-    equivalent) as part of the write -- mtime keying stops catching anything at that point."""
+    equivalent) as part of the write -- mtime keying stops catching anything at that point.
+    Treat the returned dict as immutable -- it is a process-shared cached instance, not a
+    fresh copy; every caller for the same mtime gets the SAME object."""
     mtime = _GLOSSARY_PATH.stat().st_mtime
     return _load_glossary_at_mtime(mtime)
 

@@ -12,11 +12,14 @@ from sage_poc.skills import get_skill
 from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP
 
 # P2 Task 4: the former `_SKILLS = {sid: load_skill(sid) for sid in SKILL_REGISTRY}` preload
-# (parsed every skill JSON at import) is retired -- get_skill's mtime-keyed cache means every
-# skill_id below still resolves without a file read after the first turn, with no eager
-# import-time cost and no staleness after a JSON edit. Triggers stay single-sourced from the
-# skill JSONs' `target_presentations`: editing a trigger in the CMS updates the skill JSON ->
-# both nodes recompile from it. No second keyword list to drift.
+# (a SECOND frozen copy of every skill, parsed independently at this module's own import) is
+# retired. This module now shares get_skill's ONE mtime-keyed, invalidatable cache instead
+# (fix round 1, M2: importing the package still warms every registry id once -- see
+# sage_poc/skills/__init__.py's warm-up loop -- so there is no NEW import-time cost here,
+# just one shared warm-up through an invalidatable cache replacing three separate frozen
+# ones). Triggers stay single-sourced from the skill JSONs' `target_presentations`: editing a
+# trigger in the CMS updates the skill JSON -> both nodes recompile from it. No second
+# keyword list to drift.
 
 
 def match_skill_keywords(message_en: str, raw_message: str, detected_language: str) -> dict[str, int]:
