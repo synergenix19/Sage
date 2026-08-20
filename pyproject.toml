@@ -53,6 +53,10 @@ addopts = "-m 'not integration and not clinical_decision_pending and not governa
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/sage_poc"]
+# Eval/dev-only tooling, never needed at runtime. routing_eval also contains
+# real_model_driver.py, which mutates os.environ and can raise SystemExit at
+# import time; never let that be importable in a production process.
+exclude = ["src/sage_poc/routing_eval/**", "src/sage_poc/eval/**"]
 
 [dependency-groups]
 # Keep in sync with [project.optional-dependencies].dev: CI installs the EXTRA
