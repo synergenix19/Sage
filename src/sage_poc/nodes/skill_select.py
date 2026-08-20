@@ -492,6 +492,55 @@ def _offer_cooldown_turns() -> int:
     return SKILL_OFFER_COOLDOWN_TURNS
 
 
+def _no_skill(state: SageState, *markers: str, **extra) -> dict:
+    """Canonical ABSTAIN/veto return shape (14+ call sites, before this helper, hand-built each
+    time): active_skill_id, active_step_id, skill_match_method, semantic_score all None; path =
+    state['path'] + ['skill_select', *markers]. `extra` carries any call-site-specific keys
+    (offer_count, offered_skill_ids, abstain_referral, containment_directive, a stale_offer_clear
+    spread, ...) -- always an EXPLICIT decision at the call site, never implicit, since not every
+    abstain return clears a stale offer and some abstain returns carry keys (like
+    offered_skill_ids) this generic shape does not assume.
+
+    Deliberately NOT used at every active_skill_id=None return site: the D1 answering_screen
+    passthrough (skill_select_node, top of the function) omits active_step_id entirely rather
+    than setting it None -- LangGraph only overwrites a channel when the returned dict declares
+    the key, so adding active_step_id here would newly CLEAR it on every answering-screen turn
+    instead of leaving it untouched. That call site stays a hand-built dict; see its comment.
+    """
+    return {
+        "active_skill_id": None,
+        "active_step_id": None,
+        "skill_match_method": None,
+        "semantic_score": None,
+        **extra,
+        "path": state["path"] + ["skill_select", *markers],
+    }
+
+
+def _enter_skill(
+    state: SageState,
+    skill_id: str,
+    method: str,
+    semantic_score: float | None,
+    *markers: str,
+    **extra,
+) -> dict:
+    """Canonical direct-entry return shape (6+ call sites, before this helper, hand-built each
+    time): activates `skill_id` at its first step and clears any mid-flight psychoed pathway
+    (Task 8 gap 1 -- a non-psychoed skill activation must not let a pathway's per-pathway
+    channels leak into it). path = state['path'] + ['skill_select', *markers]."""
+    skill = _SKILLS[skill_id]
+    return {
+        **extra,
+        "active_skill_id": skill_id,
+        "active_step_id": skill.steps[0].step_id,
+        "skill_match_method": method,
+        "semantic_score": semantic_score,
+        "path": state["path"] + ["skill_select", *markers],
+        **_psychoed_pathway_clear(state),
+    }
+
+
 def _resolve_entry(
     state: SageState,
     candidates: list[str],
@@ -519,15 +568,7 @@ def _resolve_entry(
         declined_ar = set(state.get("declined_skills") or [])
         entry = next((c for c in candidates if c not in declined_ar), None)
         if entry is not None:
-            skill = _SKILLS[entry]
-            return {
-                "active_skill_id": entry,
-                "active_step_id": skill.steps[0].step_id,
-                "skill_match_method": method,
-                "semantic_score": semantic_score,
-                "path": state["path"] + ["skill_select", "arabic_offer_excluded"],
-                **_psychoed_pathway_clear(state),  # Task 8 gap 1: non-psychoed skill activation
-            }
+            return _enter_skill(state, entry, method, semantic_score, "arabic_offer_excluded")
 
     eval_result = rules_engine.evaluate("skill_matching", {
         "matched_skill_id": primary,
@@ -546,15 +587,7 @@ def _resolve_entry(
 
     if action["type"] == "enter_direct":
         if primary not in declined:
-            skill = _SKILLS[primary]
-            return {
-                "active_skill_id": primary,
-                "active_step_id": skill.steps[0].step_id,
-                "skill_match_method": method,
-                "semantic_score": semantic_score,
-                "path": state["path"] + audit_markers,
-                **_psychoed_pathway_clear(state),  # Task 8 gap 1: non-psychoed skill activation
-            }
+            return _enter_skill(state, primary, method, semantic_score, *audit_markers[1:])
         # The matched acute skill was declined this session. on_declined decides:
         # substitute within a clinician-ordered pool, or (legacy/default) fall to consent.
         on_declined = action.get("on_declined", "offer")
@@ -564,25 +597,15 @@ def _resolve_entry(
                 (s for s in pool if s not in declined and s in _SKILLS), None
             )
             if substitute is not None:
-                skill = _SKILLS[substitute]
-                return {
-                    "active_skill_id": substitute,
-                    "active_step_id": skill.steps[0].step_id,
-                    "skill_match_method": method,
-                    "semantic_score": semantic_score,
-                    "path": state["path"] + audit_markers + ["acute_substitute_declined"],
-                    **_psychoed_pathway_clear(state),  # Task 8 gap 1: non-psychoed skill activation
-                }
+                return _enter_skill(
+                    state, substitute, method, semantic_score,
+                    *audit_markers[1:], "acute_substitute_declined",
+                )
             # Whole pool declined — safety floor: enter the matched (declined) skill directly.
-            skill = _SKILLS[primary]
-            return {
-                "active_skill_id": primary,
-                "active_step_id": skill.steps[0].step_id,
-                "skill_match_method": method,
-                "semantic_score": semantic_score,
-                "path": state["path"] + audit_markers + ["acute_safety_floor_all_declined"],
-                **_psychoed_pathway_clear(state),  # Task 8 gap 1: non-psychoed skill activation
-            }
+            return _enter_skill(
+                state, primary, method, semantic_score,
+                *audit_markers[1:], "acute_safety_floor_all_declined",
+            )
         # on_declined == "offer" (legacy/default): consent fallback wins, and the audit
         # trail must say so, the fired rule's action and the action taken differ this turn.
         audit_markers.append("enter_direct_declined_fallback")
@@ -602,14 +625,7 @@ def _resolve_entry(
             audit_markers.append("ba_grief_exclusion_swap")
     offerable = offerable[: int(action.get("max_offered", 2))]
     if not offerable:
-        return {
-            "active_skill_id": None,
-            "active_step_id": None,
-            "offer_count": 0,
-            "skill_match_method": None,
-            "semantic_score": None,
-            "path": state["path"] + audit_markers + ["all_candidates_declined"],
-        }
+        return _no_skill(state, *audit_markers[1:], "all_candidates_declined", offer_count=0)
     return {
         "active_skill_id": None,
         "active_step_id": None,
@@ -620,6 +636,31 @@ def _resolve_entry(
         "semantic_score": semantic_score,
         "path": state["path"] + audit_markers + ["skill_offer_made"],
     }
+
+
+def _rank_keyword_candidates(message_en: str, raw_message: str, lang: str) -> list[str]:
+    """Tier-1 keyword ranking + the C1 acute-overlap tiebreak (clinical sign-off 2026-06-13),
+    single-sourced. Previously reimplemented once in `_consult_top_match` and once in
+    `skill_select_node`'s Tier 1 block; the BEHAVIOR is pinned (only the duplication is
+    removed) -- see docs/superpowers/governance/2026-06-13-overwhelm-routing-c1-conflict.md.
+
+    Returns skill ids ranked by longest matched keyword (most specific first, ties broken by
+    stable-sort registry order per SF-1), empty list when nothing matches. When BOTH
+    grounding_5_4_3_2_1 and dbt_tipp keyword-match and dbt_tipp would otherwise lead, grounding
+    is moved to the front (ambiguous overwhelm: contraindication-free, lower-activation, the
+    lower-medical-risk default under autonomous/unscreened delivery)."""
+    kw_matches: dict[str, int] = match_skill_keywords(message_en, raw_message, lang)
+    if not kw_matches:
+        return []
+    ranked_kw = sorted(kw_matches.items(), key=lambda x: x[1], reverse=True)
+    candidates = [sid for sid, _ in ranked_kw]
+    if (
+        candidates and candidates[0] == "dbt_tipp"
+        and {"grounding_5_4_3_2_1", "dbt_tipp"} <= kw_matches.keys()
+    ):
+        candidates.remove("grounding_5_4_3_2_1")
+        candidates.insert(0, "grounding_5_4_3_2_1")
+    return candidates
 
 
 async def _consult_top_match(state: SageState) -> str | None:
@@ -640,17 +681,8 @@ async def _consult_top_match(state: SageState) -> str | None:
     raw_message = (state.get("raw_message") or "").lower()
     detected_language = state.get("detected_language") or "en"
 
-    kw_matches: dict[str, int] = match_skill_keywords(message_en, raw_message, detected_language)
-    if kw_matches:
-        ranked_kw = sorted(kw_matches.items(), key=lambda x: x[1], reverse=True)
-        candidates = [sid for sid, _ in ranked_kw]
-        # C1 acute-overlap tiebreak (mirrors the non-info_request Tier-1 block below).
-        if (
-            candidates and candidates[0] == "dbt_tipp"
-            and {"grounding_5_4_3_2_1", "dbt_tipp"} <= kw_matches.keys()
-        ):
-            candidates.remove("grounding_5_4_3_2_1")
-            candidates.insert(0, "grounding_5_4_3_2_1")
+    candidates = _rank_keyword_candidates(message_en, raw_message, detected_language)
+    if candidates:
         if _rerank_enabled() and _keyword_rerank_veto(candidates, state["message_en"], detected_language):
             return None
         return candidates[0]
@@ -771,16 +803,12 @@ def _modality_request_delivery(state: SageState, emr: dict, surface: str) -> dic
         return None
     new_ctx = dict(ctx)
     new_ctx["screen_asked"] = list(new_ctx.get("screen_asked") or []) + [q["key"]]
-    return {
-        "active_skill_id": None,
-        "active_step_id": None,
-        "skill_match_method": None,
-        "semantic_score": None,
-        "screen_question_text": f'{q["lead_in"]} {q["question"]}',
-        "recent_presentation": new_ctx,
-        "modality_screen_pending": {"modality_hint": hint},   # the request survives
-        "path": state["path"] + ["skill_select", "modality_request_screen_pending"],
-    }
+    return _no_skill(
+        state, "modality_request_screen_pending",
+        screen_question_text=f'{q["lead_in"]} {q["question"]}',
+        recent_presentation=new_ctx,
+        modality_screen_pending={"modality_hint": hint},   # the request survives
+    )
 
 
 def _modality_screen_abandon(state: SageState) -> dict:
@@ -788,14 +816,27 @@ def _modality_screen_abandon(state: SageState) -> dict:
     answers exhausted the adaptive screen, or red-flag language arrived — the medical
     surface owns that turn). Clears the hold with its own marker; the turn proceeds to
     presence/KB unchanged."""
-    return {
-        "active_skill_id": None,
-        "active_step_id": None,
-        "skill_match_method": None,
-        "semantic_score": None,
-        "modality_screen_pending": None,
-        "path": state["path"] + ["skill_select", "modality_request_screen_abandoned"],
-    }
+    return _no_skill(state, "modality_request_screen_abandoned", modality_screen_pending=None)
+
+
+def _try_emr(state: SageState, emr: dict, surface: str) -> dict | None:
+    """Shared EMR gate: MODALITY_REQUEST_ROUTING_ENABLED + (requested or a held pending screen)
+    -> delivery-or-abandon-or-None (None means: fall through to the caller's next step, exactly
+    as a fresh request that hit a red-flag/all-declined dead end does today). Extracted from the
+    two skill_select_node call sites (info_request early-return + generic entry) — they differ
+    only in `surface` and in extra site-specific guards (active-skill suppression, offer-accept
+    exclusion) that stay AT the call site since they gate whether to consult EMR at all, not the
+    EMR gate's own logic."""
+    from sage_poc import config as _config_emr  # noqa: PLC0415
+    if not (_config_emr.MODALITY_REQUEST_ROUTING_ENABLED
+            and (emr.get("requested") or state.get("modality_screen_pending"))):
+        return None
+    delivery = _modality_request_delivery(state, emr, surface=surface)
+    if delivery is not None:
+        return delivery
+    if state.get("modality_screen_pending"):
+        return _modality_screen_abandon(state)
+    return None
 
 
 async def skill_select_node(state: SageState) -> dict:
@@ -885,6 +926,9 @@ async def skill_select_node(state: SageState) -> dict:
     # prior enforce-mode ask_screen), so this is byte-identical to master with the flag off.
     if state.get("answering_screen"):
         from sage_poc.safety.medical_screen import apply_screen_at_route  # noqa: PLC0415
+        # NOT converted to _no_skill: this dict deliberately OMITS active_step_id (LangGraph
+        # leaves a channel unchanged when the key is absent; _no_skill always sets it None, which
+        # would newly clear the held step on this passthrough) — see _no_skill's docstring.
         return apply_screen_at_route(state, {"active_skill_id": None, "offered_skill_ids": None,
                                              "skill_match_method": None, "semantic_score": None,
                                              "path": state["path"] + ["skill_select"]})
@@ -914,16 +958,11 @@ async def skill_select_node(state: SageState) -> dict:
             # red-flag language -> fall through untouched (the medical guard surface owns
             # that turn, the screen goes silent per the foundation contract). Guard (C3):
             # genuine info asks carry requested=False and reach KB exactly as today.
-            from sage_poc import config as _config_emr  # noqa: PLC0415
             _emr_req = state.get("explicit_modality_request") or {}
-            if _config_emr.MODALITY_REQUEST_ROUTING_ENABLED and (
-                    _emr_req.get("requested") or state.get("modality_screen_pending")):
-                _emr_delivery = _modality_request_delivery(state, _emr_req, surface="info_request")
-                if _emr_delivery is not None:
-                    return _emr_delivery
-                if state.get("modality_screen_pending"):
-                    return _modality_screen_abandon(state)
-                # fresh-request None (red-flag / all-declined): fall through to KB
+            _emr_result = _try_emr(state, _emr_req, surface="info_request")
+            if _emr_result is not None:
+                return _emr_result
+            # fresh-request None (red-flag / all-declined): fall through to KB
             # Psychoed Mechanism-A consult (2026-07-17 design doc): BEFORE force-routing to
             # knowledge_retrieve, consult the SAME keyword+semantic matching the
             # non-info_request path uses. A top match inside INFO_REQUEST_SKILL_CONSULT_SET
@@ -973,8 +1012,7 @@ async def skill_select_node(state: SageState) -> dict:
         if state.get("active_skill_id") == skill_id:
             return {**base, "active_step_id": state.get("active_step_id"), **_psychoed_pathway_clear(state)}
         # Not yet active — start from step 1.
-        skill = _SKILLS[skill_id]
-        return {**base, "active_step_id": skill.steps[0].step_id, **_psychoed_pathway_clear(state)}
+        return _enter_skill(state, skill_id, "post_crisis_auto_select", None)
 
     # Psychotic disclosure auto-select: fires when CF-006 flag is active AND referral not yet delivered.
     # Post-crisis auto-select above takes precedence.
@@ -991,16 +1029,9 @@ async def skill_select_node(state: SageState) -> dict:
         hr_disclosure_present(state.get("clinical_flags") or [], flag_enabled=config.HIGH_RISK_DETECTION_ENABLED)
         and not state.get("psychotic_referral_delivered")
     ):
-        skill_id = "psychotic_referral"
-        skill = _SKILLS[skill_id]
-        return {
-            "active_skill_id": skill_id,
-            "active_step_id": skill.steps[0].step_id,
-            "skill_match_method": "psychotic_disclosure_auto_select",
-            "semantic_score": None,
-            "path": state["path"] + ["skill_select"],
-            **_psychoed_pathway_clear(state),  # Task 8 gap 1: non-psychoed skill activation (HR referral)
-        }
+        # Task 8 gap 1: non-psychoed skill activation (HR referral) clears any mid-flight
+        # psychoed pathway (_enter_skill's unconditional _psychoed_pathway_clear spread).
+        return _enter_skill(state, "psychotic_referral", "psychotic_disclosure_auto_select", None)
 
     # EMR delivery, generic entry (surfaces routed here by the graph's EMR redirect —
     # incl. the surface-3 route-with-release turn; the info_request branch above has its
@@ -1009,15 +1040,11 @@ async def skill_select_node(state: SageState) -> dict:
     # promotion machinery below owns those, offer_promoted semantics preserved); never
     # fires mid-skill (surface-1 territory). None -> normal matching runs unchanged.
     _emr_generic = state.get("explicit_modality_request") or {}
-    if (config.MODALITY_REQUEST_ROUTING_ENABLED
-            and (_emr_generic.get("requested") or state.get("modality_screen_pending"))
-            and not state.get("active_skill_id")
+    if (not state.get("active_skill_id")
             and not ((state.get("offered_skill_ids") or []) and state.get("offer_response") == "accept")):
-        _emr_delivery = _modality_request_delivery(state, _emr_generic, surface="select")
-        if _emr_delivery is not None:
-            return _emr_delivery
-        if state.get("modality_screen_pending"):
-            return _modality_screen_abandon(state)
+        _emr_result = _try_emr(state, _emr_generic, surface="select")
+        if _emr_result is not None:
+            return _emr_result
 
     # E7 §6a IPV pre-emption (flag-gated SAGE_IPV_PREEMPTION). When domestic_situation is set, the §6
     # coaching_confrontation skills (assertive_communication, interpersonal_effectiveness) are
@@ -1035,16 +1062,16 @@ async def skill_select_node(state: SageState) -> dict:
     _ipv_active = ipv_preempt_active(state)
 
     def _ipv_suppressed_return(extra: dict | None = None) -> dict:
-        return {
-            **(extra or {}),
-            "active_skill_id": None,
-            "active_step_id": None,
-            "offered_skill_ids": None,
-            "offer_count": 0,
-            "skill_match_method": None,
-            "semantic_score": None,
-            "path": state["path"] + ["skill_select", "ipv_preempt_suppressed"],
-        }
+        # Fix round 1 (CRITICAL, live-repro'd): build the merged dict FIRST, then spread it as
+        # **merged. Passing the defaults as literal keyword args alongside **(extra or {}) raises
+        # TypeError ("got multiple values for keyword argument") whenever extra ALSO carries one
+        # of those keys -- which stale_offer_clear does ({"offered_skill_ids": None}) on a stale
+        # accepted-offer turn (an offer resolving to an unknown/renamed skill id). Dict-literal
+        # merge is collision-tolerant (last write wins); keyword-argument passing is not -- this
+        # is the general hazard for any future _no_skill/_enter_skill conversion of a spread that
+        # might collide with a caller-supplied extra dict, not just this call site.
+        merged = {"offered_skill_ids": None, "offer_count": 0, **(extra or {})}
+        return _no_skill(state, "ipv_preempt_suppressed", **merged)
 
     # R1: accepted offer promotion. Runs after all auto-select safety paths so
     # post-crisis and psychotic referral always take precedence over a stale offer.
@@ -1064,17 +1091,12 @@ async def skill_select_node(state: SageState) -> dict:
             # psychotic-referral-over-accept precedence). Route to freeflow + referral instead.
             if _ipv_active and chosen in COACHING_CONFRONTATION_SKILLS:
                 return _ipv_suppressed_return(stale_offer_clear)
-            skill = _SKILLS[chosen]
-            return {
-                "active_skill_id": chosen,
-                "active_step_id": skill.steps[0].step_id,
-                "offered_skill_ids": None,
-                "offer_count": 0,
-                "skill_match_method": "offer_accept",
-                "semantic_score": None,
-                "path": state["path"] + ["skill_select", "offer_promoted"],
-                **_psychoed_pathway_clear(state),  # Task 8 gap 1: accepting an offer exits the pathway
-            }
+            # Task 8 gap 1: accepting an offer exits the pathway (_enter_skill's unconditional
+            # _psychoed_pathway_clear spread).
+            return _enter_skill(
+                state, chosen, "offer_accept", None, "offer_promoted",
+                offered_skill_ids=None, offer_count=0,
+            )
         # Stale checkpoint after a skill rename: no offered id resolves to a known
         # skill. Clear the offer (via the returned dict, not a local rebind) and
         # fall through to normal matching.
@@ -1100,14 +1122,7 @@ async def skill_select_node(state: SageState) -> dict:
     # raw before AR patterns exist would REGRESS that coverage. Conformed to safety_text() when the
     # harm_intrusive AR-pattern ticket lands. Allowlisted in check_safety_reads_raw.py with #330.
     if is_harm_intrusive(state.get("message_en")):
-        return {
-            **stale_offer_clear,
-            "active_skill_id": None,
-            "active_step_id": None,
-            "skill_match_method": None,
-            "semantic_score": None,
-            "path": state["path"] + ["skill_select", "harm_intrusive_veto"],
-        }
+        return _no_skill(state, "harm_intrusive_veto", **stale_offer_clear)
 
     # OCD-compulsion iatrogenic veto (deterministic, ARM-INDEPENDENT safety control; approved
     # expedited hotfix, escalation 2026-07-07-v1-iatrogenic-ocd-routing-escalation.md). A disclosed
@@ -1123,15 +1138,10 @@ async def skill_select_node(state: SageState) -> dict:
     # Language contract (#330): read RAW input via safety_text(), not translated message_en — the
     # AR compulsion bypass was a translated-path detection drift. First consumer of the accessor.
     if is_ocd_compulsion(safety_text(state)):
-        return {
-            **stale_offer_clear,
-            "active_skill_id": None,
-            "active_step_id": None,
-            "skill_match_method": None,
-            "semantic_score": None,
-            "path": state["path"] + ["skill_select", "ocd_compulsion_veto"],
-            "abstain_referral": "ocd_erp",  # #218: Node-8 pins the ERP professional-referral signpost
-        }
+        return _no_skill(
+            state, "ocd_compulsion_veto", **stale_offer_clear,
+            abstain_referral="ocd_erp",  # #218: Node-8 pins the ERP professional-referral signpost
+        )
 
     # V2 behavior #4: enforce the frozen ABSTAIN dispositions DECLARED on the flag definitions.
     # Pure consumer — the safety lane owns which flags carry skill_select_disposition "abstain"
@@ -1153,24 +1163,12 @@ async def skill_select_node(state: SageState) -> dict:
         _contain_flag = next((f for f in _flags_now if _disp.get(f) == "contain"), None)
         if _contain_flag:
             _cp = _flag_contain_params().get(_contain_flag, {})
-            return {
-                **stale_offer_clear,
-                "active_skill_id": None,
-                "active_step_id": None,
-                "skill_match_method": None,
-                "semantic_score": None,
-                "containment_directive": {**_cp, "rule_id": _contain_flag},
-                "path": state["path"] + ["skill_select", "clinical_flag_contain"],
-            }
+            return _no_skill(
+                state, "clinical_flag_contain", **stale_offer_clear,
+                containment_directive={**_cp, "rule_id": _contain_flag},
+            )
         if any(_disp.get(f) == "abstain" for f in _flags_now):
-            return {
-                **stale_offer_clear,
-                "active_skill_id": None,
-                "active_step_id": None,
-                "skill_match_method": None,
-                "semantic_score": None,
-                "path": state["path"] + ["skill_select", "clinical_flag_abstain"],
-            }
+            return _no_skill(state, "clinical_flag_abstain", **stale_offer_clear)
 
     # D3: offer cooldown. Suppress a fresh offer when the user received one within the
     # last cooldown_turns turns. Runs after the offer-accept promotion block so an
@@ -1182,12 +1180,13 @@ async def skill_select_node(state: SageState) -> dict:
     # GATED: behind SKILL_OFFER_COOLDOWN_ENABLED (default OFF). When off, behaviour is
     # byte-identical to pre-cooldown (the block is skipped entirely). The flip to ON is a
     # logged, signed decision gated on clinical sign-off C3 — not an auto-flip on merge.
-    _cooldown = _offer_cooldown_turns()
     _last = state.get("last_offer_turn")
-    if SKILL_OFFER_COOLDOWN_ENABLED and _last is not None and (state.get("turn_count", 0) - _last) < _cooldown:
-        return {**stale_offer_clear, "active_skill_id": None, "active_step_id": None,
-                "skill_match_method": None, "semantic_score": None,
-                "path": state["path"] + ["skill_select", "offer_cooldown_suppressed"]}
+    # Short-circuit: _offer_cooldown_turns() runs the rules-engine only when the flag is on AND
+    # there IS a last offer to compare against -- when either is false the branch can never fire
+    # regardless of the cooldown value, so the rules-engine call is skipped every other turn.
+    if (SKILL_OFFER_COOLDOWN_ENABLED and _last is not None
+            and (state.get("turn_count", 0) - _last) < _offer_cooldown_turns()):
+        return _no_skill(state, "offer_cooldown_suppressed", **stale_offer_clear)
 
     message_en = state["message_en"].lower()
     raw_message = (state.get("raw_message") or "").lower()
@@ -1203,11 +1202,11 @@ async def skill_select_node(state: SageState) -> dict:
     # cannot match a translated English string). Backlog R1: language-tagged rules.
     # Shared matcher (v7.2): the SAME helper the Node-2 keyword pre-pass uses, so the two nodes can
     # never diverge (single-sourced from skill JSON target_presentations). Identical logic to before.
-    kw_matches: dict[str, int] = match_skill_keywords(message_en, raw_message, detected_language)
+    # C1 acute-overlap tiebreak (clinical sign-off 2026-06-13), single-sourced with
+    # _consult_top_match's copy via _rank_keyword_candidates -- see its docstring.
+    candidates = _rank_keyword_candidates(message_en, raw_message, detected_language)
 
-    if kw_matches:
-        ranked_kw = sorted(kw_matches.items(), key=lambda x: x[1], reverse=True)
-        candidates = [sid for sid, _ in ranked_kw]
+    if candidates:
         # E7: drop §6 coaching_confrontation skills from the candidate set. If they were the ONLY
         # matches (a §6-only request under an IPV disclosure), suppress -> freeflow + referral;
         # otherwise a non-§6 match still leads and is offered as normal (carve-out preserved).
@@ -1216,31 +1215,15 @@ async def skill_select_node(state: SageState) -> dict:
             if not _filtered:
                 return _ipv_suppressed_return(stale_offer_clear)
             candidates = _filtered
-        # C1 acute-overlap tiebreak (clinical sign-off 2026-06-13), ported into the R1 consent
-        # model. When BOTH grounding_5_4_3_2_1 and dbt_tipp keyword-match, prefer grounding for
-        # ambiguous overwhelm: contraindication-free, lower-activation, the lower-medical-risk
-        # default under autonomous (unscreened) delivery. In the pre-R1 path this made grounding
-        # the directly-entered skill; in the R1 path it makes grounding the PRIMARY candidate, so
-        # _resolve_entry offers (or, on acute_direct_entry, enters) grounding first instead of
-        # dbt_tipp. Fires only when dbt_tipp would otherwise lead the longest-match ranking, so
-        # SF-1 longest-match is preserved for every other pair and a genuinely-longer third skill
-        # still leads. "i can't calm down" matches dbt_tipp ONLY, so it is unaffected.
-        # See docs/superpowers/governance/2026-06-13-overwhelm-routing-c1-conflict.md
-        if (
-            candidates and candidates[0] == "dbt_tipp"
-            and {"grounding_5_4_3_2_1", "dbt_tipp"} <= kw_matches.keys()
-        ):
-            candidates.remove("grounding_5_4_3_2_1")
-            candidates.insert(0, "grounding_5_4_3_2_1")
         # V2 (wired-re-gate fix): gate keyword routes through the reranker's ABSTAIN too. A keyword
         # match the reranker won't endorse (clinician-territory false-match) must not bypass the
         # safety gate — without this, Tier-1 over-routes id_oos before the reranker can veto (id_oos
         # 90→76). Flag-off (reranker disabled): never runs -> keyword routing is byte-identical V1.
         if _rerank_enabled() and _keyword_rerank_veto(candidates, state["message_en"], detected_language):
             # Reranker vetoed a keyword match (safety-critical abstain producer) → Node 3, not freeflow.
-            return {**stale_offer_clear, "active_skill_id": None, "active_step_id": None,
-                    "skill_match_method": None, "semantic_score": None, "skill_select_abstained": True,
-                    "path": state["path"] + ["skill_select", "keyword_rerank_veto"]}
+            return _no_skill(
+                state, "keyword_rerank_veto", **stale_offer_clear, skill_select_abstained=True,
+            )
         # resolve result must win the merge: offer results set offered_skill_ids themselves
         from sage_poc.safety.medical_screen import apply_screen_at_route  # noqa: PLC0415
         return apply_screen_at_route(state, {**stale_offer_clear,
@@ -1252,14 +1235,7 @@ async def skill_select_node(state: SageState) -> dict:
     # proximity. Short-circuits to freeflow so the LLM can explore empathically.
     # See corpus_constants.SEMANTIC_EXCLUSION_WORDS for the word list and rationale.
     if _SEMANTIC_EXCLUSION_RE.search(message_en):
-        return {
-            **stale_offer_clear,
-            "active_skill_id": None,
-            "active_step_id": None,
-            "skill_match_method": None,
-            "semantic_score": None,
-            "path": state["path"] + ["skill_select"],
-        }
+        return _no_skill(state, **stale_offer_clear)
 
     # Tier 2: Multi-vector semantic with optional profile context
     profile = state.get("therapeutic_profile") or {}
@@ -1286,15 +1262,7 @@ async def skill_select_node(state: SageState) -> dict:
             '"timeout_s": %s}',
             EMBEDDING_TIMEOUT_SECONDS,
         )
-        return {
-            **stale_offer_clear,
-            "active_skill_id": None,
-            "active_step_id": None,
-            "skill_match_method": None,
-            "semantic_score": None,
-            "embedding_timeout": True,
-            "path": state["path"] + ["skill_select"],
-        }
+        return _no_skill(state, **stale_offer_clear, embedding_timeout=True)
 
     if semantic_skill is not None:
         candidates = [semantic_skill]
@@ -1314,13 +1282,8 @@ async def skill_select_node(state: SageState) -> dict:
         return apply_screen_at_route(state, {**stale_offer_clear,
                 **_resolve_entry(state, candidates, method="semantic", semantic_score=round(score, 4))})
 
-    return {
-        **stale_offer_clear,
-        "active_skill_id": None,
-        "active_step_id": None,
-        "skill_match_method": None,
-        "semantic_score": None,
-        # Below-τ semantic ABSTAIN under V2 → Node 3 (Cardinal Rule 5). Flag-off: key absent → V1 freeflow.
+    # Below-τ semantic ABSTAIN under V2 → Node 3 (Cardinal Rule 5). Flag-off: key absent → V1 freeflow.
+    return _no_skill(
+        state, **stale_offer_clear,
         **({"skill_select_abstained": True} if _rerank_enabled() else {}),
-        "path": state["path"] + ["skill_select"],
-    }
+    )
