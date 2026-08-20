@@ -646,82 +646,128 @@ def _route_after_intent(state: SageState) -> str:
     return _evaluate_route(ROUTE_AFTER_INTENT, state)
 
 
+ROUTE_AFTER_SKILL_SELECT: "tuple[RouteRule, ...]" = (
+    RouteRule(
+        "psychoed_weave_escalation",
+        _always,
+        # Psychoed Task 8, TOP priority: PSY-WEAVE-1 escalated a weave-pending reply to crisis. This
+        # must win over every other branch below (containment, screen, abstain, info_request, active
+        # skill) — a live safety escalation is never allowed to be shadowed by a routing decision.
+        # skill_select_node sets this only under PSYCHOED_PATHWAYS_ENABLED, so flag-off is unreachable.
+        lambda state: bool(state.get("psychoed_weave_escalation")),
+        "crisis_response",
+    ),
+    RouteRule(
+        "containment_directive",
+        _always,
+        # Phase-2 T3: a fired containment directive routes to the containment pathway —
+        # knowledge_retrieve seeds the family KB, then the existing knowledge_retrieve→freeflow edge
+        # composes the L3/L4 template (validate→psychoeducate→differentiate→refer→engage). Checked
+        # FIRST here, which is already DOWNSTREAM of the Node-1 crisis short-circuit: _route_after_safety
+        # sends a crisis to crisis_response BEFORE skill_select (hence this router) ever runs, so crisis
+        # supremacy over an overlapping containment pattern is STRUCTURAL (AC-CRISIS-SUPREMACY), not a
+        # priority compare here. contain also supersedes abstain (belt-and-suspenders vs T2's node-level
+        # mutual exclusion). DORMANT until a family declares skill_select_disposition "contain" (T4);
+        # containment_directive is None every turn until then, so this is byte-identical to master.
+        # The guided-skill (skill_id) variant is deferred: T2 sets active_skill_id=None, so a
+        # skill_executor route would be dead — the reference OCD family uses the KB path below.
+        lambda state: bool(state.get("containment_directive")),
+        "knowledge_retrieve",
+    ),
+    RouteRule(
+        "psychoed_serve",
+        _always,
+        # Psychoed Task 8: a resolver serve, or the deferred menu-after-weave continuation, routes to
+        # knowledge_retrieve the same way an info_request does — the composer renders the psychoed
+        # payload / menu there. skill_select_node sets these only under PSYCHOED_PATHWAYS_ENABLED, so
+        # flag-off is unreachable and this branch never fires with the flag off.
+        lambda state: bool(state.get("psychoed_serve")) or state.get("skill_match_method") == "psychoed_menu_after_weave",
+        "knowledge_retrieve",
+    ),
+    RouteRule(
+        "d1_screen_served",
+        _always,
+        # #338 D1: a SERVED screen question is terminal for this turn. apply_screen_at_route (enforce path) set
+        # screen_question_text + active_skill_id=None on an ask_screen decision; the question IS this turn's
+        # output. Below containment (crisis > vetoes > containment > screen > routing), above skill routing.
+        # Flag-gated upstream: screen_question_text is set only when SAGE_D1_SCREEN (enforce) is on, OR — since
+        # EMR Phase 2 surface 2 — when SAGE_MODALITY_REQUEST_ROUTING is on and the section-1a screen is pending
+        # (skill_select serves the signed screen question through this same verbatim terminal; audit rows are
+        # distinguished by the modality_request_screen_pending path marker). Both flags off -> unreachable,
+        # graph byte-identical to master.
+        lambda state: bool(state.get("screen_question_text")),
+        "screen_response",
+    ),
+    RouteRule(
+        "v2_abstain",
+        _always,
+        # V2 reranker ABSTAIN (below-τ semantic OR keyword-veto) → Node 3 low_confidence_respond, NOT
+        # freeflow (Cardinal Rule 5). The clinician's −4.7pp recall acceptance rests on lost cases being
+        # recoverable soft-abstains that land in Node 3's empathic clarification, and the signed
+        # soft-abstain-recovery monitoring assumes it. skill_select sets this key only under
+        # _rerank_enabled(); _build_state resets it False each turn (per-turn, like path) so a prior
+        # turn's abstain never leaks into a later skill turn. Flag-off never sets it → V1 path unchanged.
+        lambda state: bool(state.get("skill_select_abstained")),
+        "low_confidence",
+    ),
+    RouteRule(
+        "info_request_consult_cards",
+        lambda: _cfg.CONSULT_SOURCES_ENABLED,
+        # info_request routes to knowledge_retrieve regardless of active skill — the
+        # skill_select node preserves active_skill_id, so the skill survives this turn.
+        # Psychoed Mechanism-A (2026-07-17 design doc): EXCEPT when skill_select's
+        # info_request consult SELECTED a skill this turn (skill_match_method ==
+        # "info_request_skill_consult") — that turn routes to skill_executor instead. Keyed
+        # on skill_match_method, NOT active_skill_id alone: a pre-existing active_skill_id
+        # (preserved by skill_select for the "resume next turn" case) must not, by itself,
+        # change this turn's KB routing — only a consult SELECTED THIS turn does.
+        # FLAG-GATED upstream: skill_select_node only ever sets skill_match_method to
+        # "info_request_skill_consult" when config.INFO_REQUEST_CONSULT_ENABLED is True
+        # (default OFF). No code change needed here — this branch is already keyed on that
+        # exact string, so with the flag OFF it is unreachable and this function returns
+        # "knowledge_retrieve" for info_request exactly as before the consult existed.
+        #
+        # C1 (SAGE_CONSULT_SOURCES, ruling 2026-07-29): a consult-selected turn detours
+        # through cards-only retrieval, then proceeds to skill_executor via the static
+        # knowledge_retrieve_cards -> skill_executor edge. SEQUENTIAL insertion, not a
+        # parallel branch, deliberately: skill_executor's conditional router
+        # (_route_after_skill_executor) must remain the SOLE post-executor authority — a
+        # parallel cards branch would carry its own unconditional edge into the join and
+        # fire even on a crisis re-escalation diversion, re-opening the state-channel-seam
+        # class. Retrieval is a sub-second DB call; topology safety wins over §10 fan-out
+        # purity here. Local import so monkeypatch.setattr(config, ...) works in tests.
+        lambda state: state.get("primary_intent") == "info_request"
+        and state.get("skill_match_method") == "info_request_skill_consult",
+        "knowledge_retrieve_cards",
+    ),
+    RouteRule(
+        "info_request_consult_no_cards",
+        _always,
+        # Same predicate as info_request_consult_cards, minus the CONSULT_SOURCES_ENABLED gate: this
+        # row only ever fires when that row's enabled_fn was False (flag off), reproducing the
+        # original `if config.CONSULT_SOURCES_ENABLED: return cards; return skill_executor` else-branch.
+        lambda state: state.get("primary_intent") == "info_request"
+        and state.get("skill_match_method") == "info_request_skill_consult",
+        "skill_executor",
+    ),
+    RouteRule(
+        "info_request_plain",
+        _always,
+        lambda state: state.get("primary_intent") == "info_request",
+        "knowledge_retrieve",
+    ),
+    RouteRule(
+        "active_skill_resume",
+        _always,
+        lambda state: bool(state.get("active_skill_id")),
+        "skill_executor",
+    ),
+    RouteRule("default_freeflow", _always, lambda state: True, "freeflow"),
+)
+
+
 def _route_after_skill_select(state: SageState) -> str:
-    # Psychoed Task 8, TOP priority: PSY-WEAVE-1 escalated a weave-pending reply to crisis. This
-    # must win over every other branch below (containment, screen, abstain, info_request, active
-    # skill) — a live safety escalation is never allowed to be shadowed by a routing decision.
-    # skill_select_node sets this only under PSYCHOED_PATHWAYS_ENABLED, so flag-off is unreachable.
-    if state.get("psychoed_weave_escalation"):
-        return "crisis_response"
-    # Phase-2 T3: a fired containment directive routes to the containment pathway —
-    # knowledge_retrieve seeds the family KB, then the existing knowledge_retrieve→freeflow edge
-    # composes the L3/L4 template (validate→psychoeducate→differentiate→refer→engage). Checked
-    # FIRST here, which is already DOWNSTREAM of the Node-1 crisis short-circuit: _route_after_safety
-    # sends a crisis to crisis_response BEFORE skill_select (hence this router) ever runs, so crisis
-    # supremacy over an overlapping containment pattern is STRUCTURAL (AC-CRISIS-SUPREMACY), not a
-    # priority compare here. contain also supersedes abstain (belt-and-suspenders vs T2's node-level
-    # mutual exclusion). DORMANT until a family declares skill_select_disposition "contain" (T4);
-    # containment_directive is None every turn until then, so this is byte-identical to master.
-    # The guided-skill (skill_id) variant is deferred: T2 sets active_skill_id=None, so a
-    # skill_executor route would be dead — the reference OCD family uses the KB path below.
-    if state.get("containment_directive"):
-        return "knowledge_retrieve"
-    # Psychoed Task 8: a resolver serve, or the deferred menu-after-weave continuation, routes to
-    # knowledge_retrieve the same way an info_request does — the composer renders the psychoed
-    # payload / menu there. skill_select_node sets these only under PSYCHOED_PATHWAYS_ENABLED, so
-    # flag-off is unreachable and this branch never fires with the flag off.
-    if state.get("psychoed_serve") or state.get("skill_match_method") == "psychoed_menu_after_weave":
-        return "knowledge_retrieve"
-    # #338 D1: a SERVED screen question is terminal for this turn. apply_screen_at_route (enforce path) set
-    # screen_question_text + active_skill_id=None on an ask_screen decision; the question IS this turn's
-    # output. Below containment (crisis > vetoes > containment > screen > routing), above skill routing.
-    # Flag-gated upstream: screen_question_text is set only when SAGE_D1_SCREEN (enforce) is on, OR — since
-    # EMR Phase 2 surface 2 — when SAGE_MODALITY_REQUEST_ROUTING is on and the section-1a screen is pending
-    # (skill_select serves the signed screen question through this same verbatim terminal; audit rows are
-    # distinguished by the modality_request_screen_pending path marker). Both flags off -> unreachable,
-    # graph byte-identical to master.
-    if state.get("screen_question_text"):
-        return "screen_response"
-    # V2 reranker ABSTAIN (below-τ semantic OR keyword-veto) → Node 3 low_confidence_respond, NOT
-    # freeflow (Cardinal Rule 5). The clinician's −4.7pp recall acceptance rests on lost cases being
-    # recoverable soft-abstains that land in Node 3's empathic clarification, and the signed
-    # soft-abstain-recovery monitoring assumes it. skill_select sets this key only under
-    # _rerank_enabled(); _build_state resets it False each turn (per-turn, like path) so a prior
-    # turn's abstain never leaks into a later skill turn. Flag-off never sets it → V1 path unchanged.
-    if state.get("skill_select_abstained"):
-        return "low_confidence"
-    # info_request routes to knowledge_retrieve regardless of active skill — the
-    # skill_select node preserves active_skill_id, so the skill survives this turn.
-    # Psychoed Mechanism-A (2026-07-17 design doc): EXCEPT when skill_select's
-    # info_request consult SELECTED a skill this turn (skill_match_method ==
-    # "info_request_skill_consult") — that turn routes to skill_executor instead. Keyed
-    # on skill_match_method, NOT active_skill_id alone: a pre-existing active_skill_id
-    # (preserved by skill_select for the "resume next turn" case) must not, by itself,
-    # change this turn's KB routing — only a consult SELECTED THIS turn does.
-    # FLAG-GATED upstream: skill_select_node only ever sets skill_match_method to
-    # "info_request_skill_consult" when config.INFO_REQUEST_CONSULT_ENABLED is True
-    # (default OFF). No code change needed here — this branch is already keyed on that
-    # exact string, so with the flag OFF it is unreachable and this function returns
-    # "knowledge_retrieve" for info_request exactly as before the consult existed.
-    if state.get("primary_intent") == "info_request":
-        if state.get("skill_match_method") == "info_request_skill_consult":
-            # C1 (SAGE_CONSULT_SOURCES, ruling 2026-07-29): a consult-selected turn detours
-            # through cards-only retrieval, then proceeds to skill_executor via the static
-            # knowledge_retrieve_cards -> skill_executor edge. SEQUENTIAL insertion, not a
-            # parallel branch, deliberately: skill_executor's conditional router
-            # (_route_after_skill_executor) must remain the SOLE post-executor authority — a
-            # parallel cards branch would carry its own unconditional edge into the join and
-            # fire even on a crisis re-escalation diversion, re-opening the state-channel-seam
-            # class. Retrieval is a sub-second DB call; topology safety wins over §10 fan-out
-            # purity here. Local import so monkeypatch.setattr(config, ...) works in tests.
-            from sage_poc import config  # noqa: PLC0415
-            if config.CONSULT_SOURCES_ENABLED:
-                return "knowledge_retrieve_cards"
-            return "skill_executor"
-        return "knowledge_retrieve"
-    if state.get("active_skill_id"):
-        return "skill_executor"
-    return "freeflow"
+    return _evaluate_route(ROUTE_AFTER_SKILL_SELECT, state)
 
 
 def _route_after_skill_executor(state: SageState) -> str:
