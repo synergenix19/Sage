@@ -8,7 +8,6 @@ vi.mock('@cdai/tenant', () => ({
 }))
 vi.mock('../mood-chart', () => ({ MoodChart: () => <div data-testid="mood-chart" /> }))
 vi.mock('../topics-scroll', () => ({ TopicsScroll: () => <div data-testid="topics-scroll" /> }))
-vi.mock('../insights-list', () => ({ InsightsList: () => <div data-testid="insights-list" /> }))
 vi.mock('../engagement-card', () => ({ EngagementCard: () => <div data-testid="engagement-card" /> }))
 
 const emptyData: ProgressData = {

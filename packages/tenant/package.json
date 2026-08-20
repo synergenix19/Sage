@@ -10,9 +10,6 @@
   "scripts": {
     "test": "vitest run"
   },
-  "dependencies": {
-    "@cdai/types": "*"
-  },
   "devDependencies": {
     "vitest": "^2.1.9"
   }

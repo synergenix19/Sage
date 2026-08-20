@@ -19,10 +19,6 @@ export interface TenantBrand {
 
 export interface TenantCapabilities {
   voiceBiomarker: boolean
-  adminDashboard: boolean
-  onboardingWizard: boolean
-  rtl: boolean
-  demoSeed: boolean
 }
 
 export interface TenantCopy {

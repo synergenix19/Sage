@@ -7,20 +7,6 @@ export type MessageRole = 'user' | 'ai' | 'system' | 'crisis'
 export type Intent = 'knowledge' | 'emotional'
 export type AgeRange = 'under-18' | '18-24' | '25-34' | '35-44' | '45-54' | '55+'
 
-export interface UserProfile {
-  id: string
-  name: string
-  ageRange: AgeRange
-  role: UserRole
-  locale: Locale
-  isAdmin: boolean
-  onboardingComplete: boolean
-  onboardingStep: number
-  wellnessQ1: string | null
-  wellnessQ2: string | null
-  createdAt: string
-}
-
 // Aligned to the generated `chat_sessions` row shape (snake_case) rather than a hand-rolled
 // camelCase interface — the two read sites (chat/page.tsx, use-chat-sessions.ts) only ever
 // touch `.id` and `.name`, which are identical in both shapes, so this is the zero-diff option.
@@ -48,31 +34,6 @@ export interface ChatMessage {
   /** KB sources for this reply (X-Sage-Sources), present only on ordinary
    *  content-gate turns with at least one usable source. Absent elsewhere. */
   sources?: Source[]
-}
-
-export interface SessionInsight {
-  id: string
-  sessionId: string
-  userId: string
-  content: string
-  topicTag: string
-  createdAt: string
-}
-
-export interface MoodScore {
-  id: string
-  userId: string
-  sessionId: string
-  score: number
-  createdAt: string
-}
-
-export interface MessageFeedback {
-  id: string
-  messageId: string
-  userId: string
-  value: 1 | -1
-  createdAt: string
 }
 
 // Maps Vercel AI SDK role strings to internal MessageRole.
