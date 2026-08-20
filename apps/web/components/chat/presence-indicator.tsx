@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocaleStore } from '@/lib/stores/locale-store'
 import { PRESENCE_POOL, PRESENCE_SLOW, PRESENCE_DEGRADED, nextPresencePhraseIndex } from '@/lib/presence-phrases'
 import { PRESENCE_PHRASE_MS, PRESENCE_SLOW_MS, PRESENCE_DEGRADED_MS } from '@/lib/presence-constants'
-import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion'
+import { usePrefersReducedMotion } from '@/lib/hooks/use-prefers-reduced-motion'
 import { t } from '@/lib/copy'
 
 type Phase = 'dot' | 'phrase' | 'slow' | 'degraded'
