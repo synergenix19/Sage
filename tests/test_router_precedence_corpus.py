@@ -375,11 +375,33 @@ def test_corpus_covers_all_four_routers():
 def test_corpus_covers_amendment_4_categories():
     """Structural guard: the Amendment 4 spectrum (arabic script, arabizi, CF flags,
     medical_flags, crisis_flags, hr states, blended/secondary intent, flag-on/off pairs)
-    is represented, not just EN happy paths."""
-    categories_seen = {c[1] for c in CORPUS}
-    required = {
-        "arabic_script", "arabizi", "CF_flags", "medical_flags",
-        "crisis_flags", "hr_states", "blended_intent", "flag_pair",
+    is represented, not just EN happy paths -- and the per-category counts match the
+    docstring's true partition (each case has exactly one `category`), so a future
+    mislabel or miscount trips this test instead of silently drifting from the docs."""
+    from collections import Counter
+
+    counts_seen = Counter(c[1] for c in CORPUS)
+    required_counts = {
+        "arabic_script": 7,
+        "arabizi": 6,
+        "CF_flags": 6,
+        "medical_flags": 2,
+        "crisis_flags": 23,
+        "hr_states": 18,
+        "blended_intent": 10,
+        "flag_pair": 17,
     }
-    missing = required - categories_seen
+    missing = set(required_counts) - set(counts_seen)
     assert not missing, f"Amendment 4 categories missing from corpus: {missing}"
+    mismatches = {
+        cat: (counts_seen[cat], expected)
+        for cat, expected in required_counts.items()
+        if counts_seen[cat] != expected
+    }
+    assert not mismatches, (
+        f"Amendment 4 category counts drifted from the docstring (seen, expected): {mismatches}"
+    )
+    assert sum(counts_seen.values()) == len(CORPUS) == 89, (
+        "corpus total should be 89 -- update this test's required_counts (and the module "
+        "docstring, graph.py's header comment, and the PR body) together if the corpus grows"
+    )
