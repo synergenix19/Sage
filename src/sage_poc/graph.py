@@ -770,17 +770,30 @@ def _route_after_skill_select(state: SageState) -> str:
     return _evaluate_route(ROUTE_AFTER_SKILL_SELECT, state)
 
 
+ROUTE_AFTER_SKILL_EXECUTOR: "tuple[RouteRule, ...]" = (
+    RouteRule(
+        "reescalation_within_monitoring",
+        _always,
+        lambda state: bool(state.get("re_escalation_within_monitoring")),
+        "crisis",
+    ),
+    RouteRule(
+        "emr_rehand",
+        _always,
+        # EMR surface 1 rehand: the executor exited on a request-for-alternative (its own
+        # escalation record carries the action) -> the request reaches skill_select, where
+        # the shared delivery gate produces the screened binding-table offer. Below crisis
+        # (unchanged, first). The action string is only ever written under
+        # SAGE_MODALITY_REQUEST_ROUTING, so flag-off routing is byte-identical.
+        lambda state: (state.get("escalation_triggered") or {}).get("action") == "exit_with_rehand",
+        "skill_select",
+    ),
+    RouteRule("default_freeflow", _always, lambda state: True, "freeflow"),
+)
+
+
 def _route_after_skill_executor(state: SageState) -> str:
-    if state.get("re_escalation_within_monitoring"):
-        return "crisis"
-    # EMR surface 1 rehand: the executor exited on a request-for-alternative (its own
-    # escalation record carries the action) -> the request reaches skill_select, where
-    # the shared delivery gate produces the screened binding-table offer. Below crisis
-    # (unchanged, first). The action string is only ever written under
-    # SAGE_MODALITY_REQUEST_ROUTING, so flag-off routing is byte-identical.
-    if (state.get("escalation_triggered") or {}).get("action") == "exit_with_rehand":
-        return "skill_select"
-    return "freeflow"
+    return _evaluate_route(ROUTE_AFTER_SKILL_EXECUTOR, state)
 
 
 def _route_after_output_gate(state: SageState) -> str:
