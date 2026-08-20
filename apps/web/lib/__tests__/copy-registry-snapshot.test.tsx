@@ -307,7 +307,7 @@ describe('copy-snapshot: ChatHeader', () => {
     it(`with session (${locale})`, () => {
       mockLocale = locale
       const { container } = render(
-        <ChatHeader session={{ id: 's1', userId: 'u1', name: 'Anxiety about work', createdAt: '', updatedAt: '' }} />
+        <ChatHeader session={{ id: 's1', user_id: 'u1', name: 'Anxiety about work', created_at: '', updated_at: '' }} />
       )
       expect(visibleStrings(container)).toMatchSnapshot()
     })

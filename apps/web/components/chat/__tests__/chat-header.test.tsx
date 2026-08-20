@@ -159,10 +159,10 @@ describe('ChatHeader — session title', () => {
   it('shows session name when session is provided', () => {
     const session = {
       id: 's1',
-      userId: 'u1',
+      user_id: 'u1',
       name: 'Anxiety about work',
-      createdAt: '',
-      updatedAt: '',
+      created_at: '',
+      updated_at: '',
     }
     render(<ChatHeader session={session} />)
     expect(screen.getByText('Anxiety about work')).toBeInTheDocument()
