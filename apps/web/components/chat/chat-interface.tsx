@@ -118,9 +118,15 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
         if (sageMetadata.crisisState) setCrisisState(sageMetadata.crisisState)
         // Authoritative text direction from the backend; functional, present on every turn.
         const aiDirection = sageMetadata.direction
-        // KB sources (already merged with skill-delivered media, if present) — a malformed
-        // header falls back to "no sources" rather than surfacing an error to the user.
-        const aiSources: Source[] | undefined = sageMetadata.sources ?? undefined
+        // KB sources (already merged with skill-delivered media, if present). sageMetadata.sources
+        // is typed as Json, not Source[] (lib/sage-headers.ts) — it is unvalidated external data,
+        // confirmed only by "did JSON.parse succeed". This is the render-side refinement to
+        // Source[]: Array.isArray guards against ever handing MessageBubble a non-array value
+        // (which would throw when it tries to map over it) — same "malformed → no sources"
+        // discipline the header parse itself already applies.
+        const aiSources: Source[] | undefined = Array.isArray(sageMetadata.sources)
+          ? (sageMetadata.sources as unknown as Source[])
+          : undefined
 
         const reader = res.body.getReader()
         const decoder = new TextDecoder()

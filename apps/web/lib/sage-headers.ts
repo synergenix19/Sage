@@ -14,7 +14,7 @@
 // persisted row is still applied by route.ts itself, keyed off its own
 // content-derived isCrisis flag.
 
-import type { Source } from '@cdai/types'
+import type { Json, Source } from '@cdai/types'
 
 export const SAGE_HEADERS_WHITELIST = [
   'x-sage-node-path',
@@ -64,13 +64,23 @@ export interface SageMetadata {
   emotionalIntensity: number | null
   semanticScore: number | null
   promptLayers: string[] | null
-  tokenUsage: object | null
+  // #553 (concurrent) generated the DB Insert column type for token_usage as
+  // `Json | null` (see database.types.ts). Typed to match here rather than
+  // `object | null`, its pre-#553 shape.
+  tokenUsage: Json | null
   turnNumber: number | null
   crisisState: string | null
   direction: 'ltr' | 'rtl' | undefined
-  // KB sources merged with skill-delivered media, if present. Crisis-turn
-  // suppression is NOT applied here — see module header.
-  sources: Source[] | null
+  // Raw JSON parsed from X-Sage-Sources, merged with skill-delivered media if
+  // present — typed as `Json`, not `Source[]`, because it is untrusted external
+  // data whose shape is only ever confirmed by "did JSON.parse succeed", never
+  // structurally validated. The persist path (route.ts) writes this straight
+  // into the `messages.sources` `Json` column as-is. The render path narrows it
+  // to `Source[]` at its own point of use (chat-interface.tsx / Task 6d) — the
+  // same informal assumption JSON.parse's `any` return always made, now made
+  // explicit there instead of implicit here. Crisis-turn suppression of this
+  // value is NOT applied here — see module header.
+  sources: Json | null
 }
 
 // Parses every X-Sage-* metadata header off a single Headers object (the
@@ -94,7 +104,7 @@ export function extractSageMetadata(headers: Headers): SageMetadata {
   const semanticScore      = parseFloatHeader(headers.get('X-Sage-Semantic-Score'))
 
   const promptLayers = parseJsonHeader<string[] | null>(headers.get('X-Sage-Prompt-Layers'), null)
-  const tokenUsage    = parseJsonHeader<object | null>(headers.get('X-Sage-Token-Usage'), null)
+  const tokenUsage    = parseJsonHeader<Json | null>(headers.get('X-Sage-Token-Usage'), null)
   const turnNumber    = parseIntHeader(headers.get('X-Sage-Turn-Number'))
 
   const crisisState = headers.get('X-Sage-Crisis-State') || null
@@ -110,19 +120,37 @@ export function extractSageMetadata(headers: Headers): SageMetadata {
   // must never crash the render, so a parse failure silently falls back to
   // "no sources".
   const sourcesHeader = headers.get('X-Sage-Sources')
-  let sources: Source[] | null = null
+  let sources: Json = null
   if (sourcesHeader) {
     try { sources = JSON.parse(sourcesHeader) } catch { sources = null }
   }
 
   // Merge skill-delivered media into sources so it renders via the same
   // SourceCard (Item 1.5). Malformed → skip, keep whatever KB sources parsed.
+  //
+  // DISCLOSED BEHAVIOR CHANGE (fix round 1, PR body): before this extraction,
+  // the persist copy guarded this merge with `Array.isArray(parsedSources) ?
+  // parsedSources : []` — a non-array-but-valid-JSON X-Sage-Sources value was
+  // discarded and replaced with just `[mediaEntry]`. The render copy had no
+  // such guard. This extraction adopted the RENDER copy's (unguarded)
+  // behavior for BOTH call sites — deliberately, since stored==rendered is
+  // the entire point of the unification, and the render copy's behavior is
+  // no less defensible. The explicit throw below reproduces that exact
+  // behavior in a type-safe way: if `sources` parsed to a non-null,
+  // non-array JSON value, the merge is skipped entirely and `sources` is
+  // left as that raw non-array value (the media entry is silently NOT
+  // merged in that edge case) — see sage-headers.test.ts for the pinning
+  // test.
   const skillMediaHeader = headers.get('X-Sage-Skill-Media')
   if (skillMediaHeader) {
     try {
       const m = JSON.parse(skillMediaHeader)
-      sources = [...(sources ?? []), skillMediaToSource(m)]
-    } catch { /* malformed → skip */ }
+      const mediaEntry: Json = { ...skillMediaToSource(m) }
+      if (sources !== null && !Array.isArray(sources)) {
+        throw new Error('sources is a non-array JSON value — skip the media merge')
+      }
+      sources = [...(sources ?? []), mediaEntry]
+    } catch { /* malformed header OR sources is non-array → sources stays as parsed above */ }
   }
 
   return {
