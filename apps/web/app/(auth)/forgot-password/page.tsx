@@ -4,22 +4,15 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button, Input } from '@cdai/ui'
 import { useLocaleStore } from '@/lib/stores/locale-store'
-
-const LABELS = {
-  heading:     { en: 'Reset password',                    ar: 'إعادة تعيين كلمة المرور' },
-  subtitle:    { en: "We'll send a reset link to your email", ar: 'سنرسل رابط الإعادة إلى بريدك الإلكتروني' },
-  placeholder: { en: 'Email',                             ar: 'البريد الإلكتروني' },
-  button:      { en: 'Send reset link',                   ar: 'إرسال رابط الإعادة' },
-  sent:        { en: 'Check your email for a reset link.',ar: 'تحقق من بريدك الإلكتروني للحصول على رابط الإعادة.' },
-  back:        { en: 'Back to sign in',                   ar: 'العودة إلى تسجيل الدخول' },
-}
+import { t as tCopy } from '@/lib/copy'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const locale = useLocaleStore((s) => s.locale)
-  const t = (key: keyof typeof LABELS) => LABELS[key][locale] ?? LABELS[key].en
+  const t = (key: 'heading' | 'subtitle' | 'placeholder' | 'button' | 'sent' | 'back') =>
+    tCopy(`forgotPassword.${key}`, locale)
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()

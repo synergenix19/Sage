@@ -5,35 +5,23 @@ import { useLocaleStore } from '@/lib/stores/locale-store'
 import { Button } from '@cdai/ui'
 import { tenant } from '@cdai/tenant'
 import { CRISIS_CONFIG } from '@/lib/crisis-config'
+import { t } from '@/lib/copy'
 
 // Crisis line uses the SAME source as the crisis card (PO 2026-07-08: onboarding must show the
-// crisis number, not a separate service). Number/label/hours from crisis-config.ts — no literal here.
-const COPY = {
-  en: {
-    heading: 'Before you begin',
-    lines: [
-      'Sage is an experimental wellbeing tool, not a substitute for professional mental health care.',
-      'Conversations are stored and may be reviewed by our clinical team.',
-      `If you are in crisis, contact ${CRISIS_CONFIG.labelEn}: ${CRISIS_CONFIG.number} (free, ${CRISIS_CONFIG.hours}).`,
-    ],
-    cta: 'I understand, continue',
-  },
-  ar: {
-    heading: 'قبل أن تبدأ',
-    lines: [
-      'سيج أداة تجريبية للعافية، وليست بديلاً عن الرعاية النفسية المتخصصة.',
-      'يتم تخزين المحادثات وقد تراجعها فريقنا السريري.',
-      `إذا كنت في أزمة، تواصل مع ${CRISIS_CONFIG.labelAr}: ${CRISIS_CONFIG.number} (مجاني، على مدار الساعة).`,
-    ],
-    cta: 'أفهم وأوافق، متابعة',
-  },
-} as const
+// crisis number, not a separate service). Number/label/hours from crisis-config.ts — no literal
+// here. Composed locally (not in lib/copy.ts) so it can never drift from CRISIS_CONFIG — the
+// copy registry extraction (P4 Task 2) deliberately does not freeze this line as a static string.
+function crisisLine(locale: 'en' | 'ar'): string {
+  return locale === 'ar'
+    ? `إذا كنت في أزمة، تواصل مع ${CRISIS_CONFIG.labelAr}: ${CRISIS_CONFIG.number} (مجاني، على مدار الساعة).`
+    : `If you are in crisis, contact ${CRISIS_CONFIG.labelEn}: ${CRISIS_CONFIG.number} (free, ${CRISIS_CONFIG.hours}).`
+}
 
 export function Welcome() {
   const { setStep } = useOnboardingStore()
   const router = useRouter()
   const locale = useLocaleStore((s) => s.locale)
-  const copy = COPY[locale] ?? COPY.en
+  const lines = [t('welcome.line1', locale), t('welcome.line2', locale), crisisLine(locale)]
 
   function next() {
     setStep(2)
@@ -43,16 +31,16 @@ export function Welcome() {
   return (
     <div className="flex flex-col items-center gap-8 text-center">
       <img src={tenant.brand.logo} alt={tenant.copy.appName} className="h-16 w-16" />
-      <h1 className="text-2xl font-semibold">{copy.heading}</h1>
+      <h1 className="text-2xl font-semibold">{t('welcome.heading', locale)}</h1>
       <ul className="flex flex-col gap-3 text-start">
-        {copy.lines.map((line, i) => (
+        {lines.map((line, i) => (
           <li key={i} className="flex gap-3 text-sm text-[var(--color-text-secondary)]">
             <span className="mt-0.5 shrink-0 text-[var(--color-primary)]">•</span>
             <span>{line}</span>
           </li>
         ))}
       </ul>
-      <Button onClick={next} size="lg" className="w-full">{copy.cta}</Button>
+      <Button onClick={next} size="lg" className="w-full">{t('welcome.cta', locale)}</Button>
     </div>
   )
 }

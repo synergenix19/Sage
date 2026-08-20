@@ -4,16 +4,9 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button, Input } from '@cdai/ui'
 import { useLocaleStore } from '@/lib/stores/locale-store'
+import { t as tCopy } from '@/lib/copy'
 
 const MIN_PASSWORD_LENGTH = 8
-
-const LABELS = {
-  heading:     { en: 'Set new password',               ar: 'تعيين كلمة مرور جديدة' },
-  subtitle:    { en: 'Choose a new password for your account', ar: 'اختر كلمة مرور جديدة لحسابك' },
-  placeholder: { en: 'New password',                   ar: 'كلمة المرور الجديدة' },
-  updating:    { en: 'Updating...',                    ar: 'جارٍ التحديث...' },
-  button:      { en: 'Update password',                ar: 'تحديث كلمة المرور' },
-}
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
@@ -21,7 +14,8 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const locale = useLocaleStore((s) => s.locale)
-  const t = (key: keyof typeof LABELS) => LABELS[key][locale] ?? LABELS[key].en
+  const t = (key: 'heading' | 'subtitle' | 'placeholder' | 'updating' | 'button') =>
+    tCopy(`resetPassword.${key}`, locale)
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()

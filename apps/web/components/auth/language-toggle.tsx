@@ -1,6 +1,7 @@
 'use client'
 import { useLocaleStore } from '@/lib/stores/locale-store'
 import { Button } from '@cdai/ui'
+import { t } from '@/lib/copy'
 
 export function LanguageToggle() {
   const { locale, setLocale } = useLocaleStore()
@@ -15,7 +16,7 @@ export function LanguageToggle() {
 
   return (
     <Button variant="ghost" size="sm" onClick={toggle}>
-      {locale === 'en' ? 'عربي' : 'EN'}
+      {t('languageToggle.label', locale)}
     </Button>
   )
 }

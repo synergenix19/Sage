@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/client'
 import { signOutUser } from '@/lib/auth-actions'
 import { useChatSessions } from '@/lib/hooks/use-chat-sessions'
 import { formatRelativeTime } from '@/lib/format-relative-time'
+import { t } from '@/lib/copy'
 
 function SessionList() {
   const searchParams = useSearchParams()
@@ -23,7 +24,7 @@ function SessionList() {
     return (
       <div className="flex-1 px-3 py-2">
         <p className="text-xs text-[var(--color-text-secondary)]">
-          {locale === 'ar' ? 'جارٍ التحميل...' : 'Loading...'}
+          {t('appSideNav.sessionList.loading', locale)}
         </p>
       </div>
     )
@@ -33,9 +34,9 @@ function SessionList() {
     return (
       <div className="flex-1 px-3 py-2 flex flex-col gap-1">
         <p className="text-xs text-[var(--color-text-secondary)]">
-          {locale === 'ar' ? 'تعذر التحميل' : "Couldn't load history"} —{' '}
+          {t('appSideNav.sessionList.errorMsg', locale)} —{' '}
           <button onClick={refresh} className="underline text-xs">
-            {locale === 'ar' ? 'إعادة المحاولة' : 'Retry'}
+            {t('appSideNav.sessionList.retry', locale)}
           </button>
         </p>
       </div>
@@ -58,7 +59,7 @@ function SessionList() {
             )}
           >
             <span className="flex-1 truncate text-[var(--color-text-primary)]">
-              {s.title ?? (locale === 'ar' ? 'محادثة بلا عنوان' : 'Untitled conversation')}
+              {s.title ?? t('appSideNav.sessionList.untitled', locale)}
             </span>
             <span className="text-xs text-[var(--color-text-secondary)] text-end shrink-0">
               {formatRelativeTime(s.updated_at, locale)}
@@ -111,10 +112,7 @@ export function AppSideNav() {
     router.push(`/chat?new=${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
   }
 
-  const confirmText =
-    locale === 'ar'
-      ? 'تسجيل الخروج من Sage؟ سيتم حفظ تاريخ محادثاتك.'
-      : 'Sign out of Sage? Your conversation history is saved.'
+  const confirmText = t('appSideNav.confirmSignOutText', locale)
 
   return (
     <aside className="hidden md:flex flex-col w-60 flex-shrink-0 bg-[var(--color-surface)] border-e border-[var(--color-border)]">
@@ -129,7 +127,7 @@ export function AppSideNav() {
       <div className="px-3 pb-3 pt-1">
         <button
           onClick={handleNewChat}
-          aria-label={locale === 'ar' ? 'محادثة جديدة' : 'New conversation'}
+          aria-label={t('appSideNav.newConversationAriaLabel', locale)}
           className={cn(
             'flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl',
             'bg-[var(--color-surface-tinted)] text-[var(--color-primary-dark)] text-sm font-medium',
@@ -137,7 +135,7 @@ export function AppSideNav() {
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring-color)]'
           )}
         >
-          {locale === 'ar' ? '+ محادثة جديدة' : '+ New conversation'}
+          {t('appSideNav.newConversationButton', locale)}
         </button>
       </div>
 
@@ -150,7 +148,7 @@ export function AppSideNav() {
       <nav className="flex flex-col gap-1 px-3 border-t border-[var(--color-border)] pt-2 pb-1">
         {ALL_TABS.map((tab) => {
           const active = pathname.startsWith(tab.href)
-          const label = locale === 'ar' ? tab.labelAr : tab.label
+          const label = t(`tabBar.${tab.id}`, locale)
           return (
             <Link
               key={tab.href}
@@ -189,7 +187,7 @@ export function AppSideNav() {
               </span>
               <button
                 onClick={() => setShowConfirm(true)}
-                aria-label={locale === 'ar' ? 'تسجيل الخروج' : 'Sign out'}
+                aria-label={t('appSideNav.signOutIconAriaLabel', locale)}
                 className={cn(
                   'flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-[var(--color-text-secondary)] transition-colors',
                   'hover:text-[var(--color-crisis)] hover:bg-[var(--color-surface-tinted)]',
@@ -211,7 +209,7 @@ export function AppSideNav() {
             <div
               role="dialog"
               aria-modal="true"
-              aria-label={locale === 'ar' ? 'تأكيد تسجيل الخروج' : 'Confirm sign out'}
+              aria-label={t('appSideNav.confirmDialogAriaLabel', locale)}
               onKeyDown={handleDialogKeyDown}
               className="flex flex-col gap-2"
             >
@@ -226,7 +224,7 @@ export function AppSideNav() {
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring-color)]'
                   )}
                 >
-                  {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                  {t('appSideNav.cancelButton', locale)}
                 </button>
                 <button
                   ref={signOutConfirmRef}
@@ -237,7 +235,7 @@ export function AppSideNav() {
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-crisis)]'
                   )}
                 >
-                  {locale === 'ar' ? 'تسجيل الخروج' : 'Sign out'}
+                  {t('appSideNav.signOutConfirmButton', locale)}
                 </button>
               </div>
             </div>

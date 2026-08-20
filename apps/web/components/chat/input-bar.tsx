@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect, useSyncExternalStore } from 'react'
 import { cn } from '@cdai/ui'
 import { useLocaleStore } from '@/lib/stores/locale-store'
+import { t } from '@/lib/copy'
 
 interface InputBarProps {
   onSend: (text: string) => void
@@ -67,11 +68,11 @@ export function InputBar({ onSend, disabled, onInteract }: InputBarProps) {
       <button
         onClick={startVoice}
         disabled={!supported}
-        aria-label={locale === 'ar' ? 'الإدخال الصوتي' : 'Voice input'}
+        aria-label={t('inputBar.voiceAriaLabel', locale)}
         title={
           supported
-            ? (locale === 'ar' ? 'الإدخال الصوتي' : 'Voice input')
-            : (locale === 'ar' ? 'الإدخال الصوتي قريباً' : 'Voice input coming soon')
+            ? t('inputBar.voiceTitleSupported', locale)
+            : t('inputBar.voiceTitleUnsupported', locale)
         }
         aria-pressed={listening}
         className={cn(
@@ -98,10 +99,10 @@ export function InputBar({ onSend, disabled, onInteract }: InputBarProps) {
         </svg>
       </button>
       <textarea
-        aria-label={locale === 'ar' ? 'اكتب رسالتك' : 'Message'}
+        aria-label={t('inputBar.messageAriaLabel', locale)}
         className="flex-1 resize-none rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring-color)] focus:ring-offset-[var(--focus-ring-offset)]"
         rows={1}
-        placeholder={locale === 'ar' ? 'وش في البال؟' : "What's on your mind?"}
+        placeholder={t('inputBar.placeholder', locale)}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onFocus={onInteract}
@@ -118,7 +119,7 @@ export function InputBar({ onSend, disabled, onInteract }: InputBarProps) {
       <button
         onClick={send}
         disabled={!value.trim() || disabled}
-        aria-label={locale === 'ar' ? 'إرسال' : 'Send'}
+        aria-label={t('inputBar.sendAriaLabel', locale)}
         className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-primary)] text-white disabled:opacity-40"
       >
         <svg
