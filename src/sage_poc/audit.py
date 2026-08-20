@@ -1,19 +1,41 @@
 import logging
 import os
+from typing import NamedTuple
+
 import httpx
 from sage_poc import config as _cfg
 from sage_poc.state import SageState
 
 logger = logging.getLogger(__name__)
 
-_URL = os.environ.get("SUPABASE_URL")
-_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
-_HEADERS = {
-    "apikey": _KEY or "",
-    "Authorization": f"Bearer {_KEY or ''}",
-    "Content-Type": "application/json",
-    "Prefer": "return=minimal",
-}
+
+class _Conn(NamedTuple):
+    """Supabase connection info for this call. Never log, print, or assert on
+    `.key` or `.headers` in full — they carry the service-role secret.
+    """
+    url: str | None
+    key: str | None
+    headers: dict[str, str]
+
+
+def _conn() -> _Conn:
+    """Read SUPABASE_URL / SUPABASE_SERVICE_KEY from the environment fresh on
+    every call (never cached at import time). Env vars can be rotated or set
+    after this module is imported in some deployment shapes; a module-level
+    snapshot would silently freeze stale or absent creds for the process
+    lifetime. Every call site that needs the URL, key, or base headers goes
+    through this accessor.
+    """
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_SERVICE_KEY")
+    headers = {
+        "apikey": key or "",
+        "Authorization": f"Bearer {key or ''}",
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal",
+    }
+    return _Conn(url, key, headers)
+
 
 # Shared connection pool — eliminates the per-call TCP handshake that previously
 # opened 2 separate connections per audit write (auth pre-check + write POST).
@@ -33,10 +55,11 @@ async def _user_exists_in_auth(user_id: str) -> bool:
     Fails open (True) on any network or timeout error so the write is still
     attempted — if that write then fails, it surfaces as a CRITICAL log.
     """
+    conn = _conn()
     try:
         r = await _get_audit_client().get(
-            f"{_URL}/auth/v1/admin/users/{user_id}",
-            headers={"apikey": _KEY or "", "Authorization": f"Bearer {_KEY or ''}"},
+            f"{conn.url}/auth/v1/admin/users/{user_id}",
+            headers={"apikey": conn.key or "", "Authorization": f"Bearer {conn.key or ''}"},
             timeout=3.0,
         )
         return r.status_code == 200
@@ -70,7 +93,8 @@ async def write_identity_substitution_audit(
                       original_response_text, substitute_with, user_id, created_at
     RLS policy: SELECT restricted to dpo_role and clinician_admin_role only.
     """
-    if not _URL or not _KEY:
+    conn = _conn()
+    if not conn.url or not conn.key:
         return
     row = {
         "session_id":             session_id,
@@ -83,8 +107,8 @@ async def write_identity_substitution_audit(
     }
     try:
         r = await _get_audit_client().post(
-            f"{_URL}/rest/v1/identity_substitution_audit",
-            headers=_HEADERS,
+            f"{conn.url}/rest/v1/identity_substitution_audit",
+            headers=conn.headers,
             json=row,
             timeout=5.0,
         )
@@ -105,11 +129,12 @@ async def _supabase_insert(table: str, row: dict) -> None:
     write_identity_substitution_audit and _write_session_audit_row, but is not
     tied to a specific table's row shape.
     """
-    if not _URL or not _KEY:
+    conn = _conn()
+    if not conn.url or not conn.key:
         raise RuntimeError("Supabase URL/service key not configured")
     r = await _get_audit_client().post(
-        f"{_URL}/rest/v1/{table}",
-        headers=_HEADERS,
+        f"{conn.url}/rest/v1/{table}",
+        headers=conn.headers,
         json=row,
         timeout=5.0,
     )
@@ -302,10 +327,11 @@ async def _write_session_audit_row(row: dict, prefer: str, label: str) -> None:
         )
         return
 
+    conn = _conn()
     try:
         r = await _get_audit_client().post(
-            f"{_URL}/rest/v1/session_audit",
-            headers={**_HEADERS, "Prefer": prefer},
+            f"{conn.url}/rest/v1/session_audit",
+            headers={**conn.headers, "Prefer": prefer},
             json=row,
             timeout=5.0,
         )
@@ -327,7 +353,8 @@ async def write_session_audit(state: SageState) -> None:
     Use for the final state of a completed output_gate pass, where the complete
     node_path (including all intermediate markers) should be the authoritative record.
     """
-    if not _URL or not _KEY:
+    conn = _conn()
+    if not conn.url or not conn.key:
         return
     await _write_session_audit_row(
         _build_session_audit_row(state),
