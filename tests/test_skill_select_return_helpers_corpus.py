@@ -392,6 +392,49 @@ CASES = [
         # -- see skill_select.py's answering_screen branch comment for why).
         state=dict(answering_screen=True, message_en="no, same as always"),
     ),
+
+    # ---- Fix round 1 (CRITICAL crash, live-repro'd on the branch): _ipv_suppressed_return's
+    # conversion passed offered_skill_ids=None/offer_count=0 as keyword args ALONGSIDE
+    # **(extra or {}) -- when extra (stale_offer_clear) ALSO carries "offered_skill_ids" (an
+    # accepted offer resolving to an unknown/renamed skill id), Python raises "got multiple
+    # values for keyword argument". The two crossing states below force BOTH axes at once: a
+    # stale-offer fallback (offered_skill_ids populated in stale_offer_clear) AND an active IPV
+    # §6-only-exhausted suppression (domestic_situation + IPV_PREEMPTION_ENABLED + a §6-only
+    # keyword/semantic match), for the Tier-1 keyword call site and the Tier-2 semantic call
+    # site respectively -- the R1-promotion call site is NOT crossed here because it can never
+    # receive a non-empty stale_offer_clear (stale_offer_clear is populated only in the SAME
+    # branch that skips the promotion call entirely). Expected dicts verified against a
+    # throwaway worktree of origin/master running the original spread-based
+    # _ipv_suppressed_return on the same states (spread is collision-tolerant; the crash is a
+    # kwargs-conversion artifact, not a behavior change).
+    dict(
+        id="helper_ipv_stale_offer_crossing_tier1_keyword",
+        state=dict(
+            clinical_flags=["domestic_situation"],
+            offered_skill_ids=["nonexistent_skill_xyz"],
+            offer_response="accept",
+            offer_choice_skill_id="nonexistent_skill_xyz",
+            message_en="I need help setting boundaries",
+            primary_intent="new_skill",
+        ),
+        config=dict(IPV_PREEMPTION_ENABLED=True),
+    ),
+    dict(
+        id="helper_ipv_stale_offer_crossing_tier2_semantic",
+        state=dict(
+            clinical_flags=["domestic_situation"],
+            offered_skill_ids=["nonexistent_skill_xyz"],
+            offer_response="accept",
+            offer_choice_skill_id="nonexistent_skill_xyz",
+            message_en="what is the capital of France",
+            primary_intent="new_skill",
+        ),
+        config=dict(IPV_PREEMPTION_ENABLED=True),
+        # No keyword match for this phrase (confirmed elsewhere in this corpus), so Tier 1 falls
+        # through; force Tier 2 to "find" a §6-only skill with no runner-up by mocking the
+        # semantic matcher directly rather than relying on a real BGE-M3 hit.
+        semantic_mock=("assertive_communication", 0.5, None),
+    ),
 ]
 
 
@@ -403,6 +446,13 @@ async def _run_case(monkeypatch, case: dict) -> dict:
     for k, v in (case.get("ss_attr") or {}).items():
         monkeypatch.setattr(ss, k, v)
     state = _ss_state(**case["state"])
+    semantic_mock = case.get("semantic_mock")
+    if semantic_mock is not None:
+        # Force Tier 2 to "find" a specific (skill_id, score, runner_up) without a real BGE-M3
+        # call: patch the matcher itself rather than asyncio.wait_for, so asyncio.wait_for /
+        # asyncio.to_thread run for real (near-instant against the trivial mock).
+        monkeypatch.setattr(ss, "_semantic_match_with_runner_up", lambda *a, **k: semantic_mock)
+        return await skill_select_node(state)
     with patch("sage_poc.nodes.skill_select.asyncio.wait_for", side_effect=asyncio.TimeoutError):
         return await skill_select_node(state)
 
@@ -593,6 +643,18 @@ EXPECTED: dict[str, dict] = {
         "active_skill_id": None, "offered_skill_ids": None, "skill_match_method": None,
         "semantic_score": None, "path": ["skill_select"],
     },
+    # Fix round 1: verified against origin/master's original spread-based _ipv_suppressed_return
+    # (throwaway worktree, same states) -- both crossing states produce this identical dict.
+    "helper_ipv_stale_offer_crossing_tier1_keyword": {
+        "offered_skill_ids": None, "active_skill_id": None, "active_step_id": None,
+        "offer_count": 0, "skill_match_method": None, "semantic_score": None,
+        "path": ["skill_select", "ipv_preempt_suppressed"],
+    },
+    "helper_ipv_stale_offer_crossing_tier2_semantic": {
+        "offered_skill_ids": None, "active_skill_id": None, "active_step_id": None,
+        "offer_count": 0, "skill_match_method": None, "semantic_score": None,
+        "path": ["skill_select", "ipv_preempt_suppressed"],
+    },
 }
 
 
@@ -624,5 +686,5 @@ def test_corpus_class_counts():
     assert len([i for i in ids if i.startswith("emr_")]) == 2
     assert len([i for i in ids if i.startswith("psychoed_")]) == 1
     assert len([i for i in ids if i.startswith("stale_offer_")]) == 1
-    assert len([i for i in ids if i.startswith("helper_")]) == 7
+    assert len([i for i in ids if i.startswith("helper_")]) == 9
     assert len(ids) == len(set(ids)), "duplicate corpus case id"

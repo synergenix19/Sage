@@ -926,6 +926,9 @@ async def skill_select_node(state: SageState) -> dict:
     # prior enforce-mode ask_screen), so this is byte-identical to master with the flag off.
     if state.get("answering_screen"):
         from sage_poc.safety.medical_screen import apply_screen_at_route  # noqa: PLC0415
+        # NOT converted to _no_skill: this dict deliberately OMITS active_step_id (LangGraph
+        # leaves a channel unchanged when the key is absent; _no_skill always sets it None, which
+        # would newly clear the held step on this passthrough) — see _no_skill's docstring.
         return apply_screen_at_route(state, {"active_skill_id": None, "offered_skill_ids": None,
                                              "skill_match_method": None, "semantic_score": None,
                                              "path": state["path"] + ["skill_select"]})
@@ -1059,10 +1062,16 @@ async def skill_select_node(state: SageState) -> dict:
     _ipv_active = ipv_preempt_active(state)
 
     def _ipv_suppressed_return(extra: dict | None = None) -> dict:
-        return _no_skill(
-            state, "ipv_preempt_suppressed",
-            offered_skill_ids=None, offer_count=0, **(extra or {}),
-        )
+        # Fix round 1 (CRITICAL, live-repro'd): build the merged dict FIRST, then spread it as
+        # **merged. Passing the defaults as literal keyword args alongside **(extra or {}) raises
+        # TypeError ("got multiple values for keyword argument") whenever extra ALSO carries one
+        # of those keys -- which stale_offer_clear does ({"offered_skill_ids": None}) on a stale
+        # accepted-offer turn (an offer resolving to an unknown/renamed skill id). Dict-literal
+        # merge is collision-tolerant (last write wins); keyword-argument passing is not -- this
+        # is the general hazard for any future _no_skill/_enter_skill conversion of a spread that
+        # might collide with a caller-supplied extra dict, not just this call site.
+        merged = {"offered_skill_ids": None, "offer_count": 0, **(extra or {})}
+        return _no_skill(state, "ipv_preempt_suppressed", **merged)
 
     # R1: accepted offer promotion. Runs after all auto-select safety paths so
     # post-crisis and psychotic referral always take precedence over a stale offer.
