@@ -15,21 +15,23 @@ additional routing-SHAPE evidence; the router functions are the unit of truth
 for destination selection, and that is exactly what this refactor changes the
 internal shape of.
 
-Amendment 4 spectrum coverage (per-class counts, cited in the PR body):
+Amendment 4 spectrum coverage (per-class counts, cited in the PR body). Each case
+carries exactly one `category` string -- this is a partition of the 88 cases below,
+not an overlapping per-axis tally:
   - Arabic-script turns:            7   (detected_language="ar")
   - Arabizi turns:                  6   (detected_language="az")
-  - clinical-flag states (CF):     14   (psychotic_disclosure, mania_disclosure,
+  - clinical-flag states (CF):      6   (psychotic_disclosure, mania_disclosure,
                                           dissociation_disclosure, derealization,
-                                          combinations + flag-gated pairs)
-  - medical_flags states:           4
-  - crisis_flags / is_safe states:  9   (is_safe False/True, monitoring re-escalation,
-                                          crisis_tier T1 tiering)
-  - hr states:                      8   (hr_terminal_step, hr_referral_delivered,
-                                          psychotic_referral_delivered, hr_escalate_regardless)
-  - blended / secondary intent:     4
-  - flag-on / flag-off pairs:       18  (one pair per _cfg-gated rung, every router)
-  (categories overlap by design -- a single case often covers more than one axis;
-  counts above are per-axis membership, not partition membership.)
+                                          combinations)
+  - medical_flags states:           2
+  - crisis_flags / is_safe states: 23   (is_safe False/True, monitoring re-escalation,
+                                          crisis_tier T1 tiering, and baseline
+                                          intent/router precedence cases)
+  - hr states:                     18   (hr_terminal_step, hr_referral_delivered,
+                                          psychotic_referral_delivered, one-shot guards)
+  - blended / secondary intent:    10
+  - flag-on / flag-off pairs:      16   (one pair per _cfg-gated rung, every router)
+  Total: 88 cases.
 """
 import pytest
 
@@ -153,7 +155,7 @@ CORPUS = [
     # ---------------------------------------------------------------- _route_after_intent
     ("intent_crisis_default", "crisis_flags",
      _route_after_intent, dict(primary_intent="crisis"), {}, "crisis"),
-    ("intent_crisis_panic_override", "hr_states",
+    ("intent_crisis_panic_override", "blended_intent",
      _route_after_intent, dict(primary_intent="crisis", panic_grounding_override=True), {}, "skill_select"),
     ("intent_crisis_grief_override", "hr_states",
      _route_after_intent, dict(primary_intent="crisis", grief_presence_override=True), {}, "skill_select"),
@@ -234,7 +236,7 @@ CORPUS = [
      {"MODALITY_REQUEST_ROUTING_ENABLED": False}, "freeflow"),
     ("intent_low_confidence", "crisis_flags",
      _route_after_intent, dict(primary_intent="general_chat", intent_confidence=0.4), {}, "low_confidence"),
-    ("intent_exit_skill_with_active", "hr_states",
+    ("intent_exit_skill_with_active", "crisis_flags",
      _route_after_intent, dict(primary_intent="exit_skill", active_skill_id="cbt_thought_record"),
      {}, "skill_executor"),
     ("intent_exit_skill_no_active", "hr_states",
@@ -279,7 +281,7 @@ CORPUS = [
      _route_after_skill_select, dict(psychoed_weave_escalation=True), {}, "crisis_response"),
     ("sel_containment_directive", "blended_intent",
      _route_after_skill_select, dict(containment_directive={"family": "ocd"}), {}, "knowledge_retrieve"),
-    ("sel_psychoed_serve", "flag_pair",
+    ("sel_psychoed_serve", "blended_intent",
      _route_after_skill_select, dict(psychoed_serve={"category": "depression"}), {}, "knowledge_retrieve"),
     ("sel_psychoed_menu_after_weave", "flag_pair",
      _route_after_skill_select, dict(skill_match_method="psychoed_menu_after_weave"), {}, "knowledge_retrieve"),
@@ -318,7 +320,7 @@ CORPUS = [
     # ------------------------------------------------------- _route_after_skill_executor
     ("exec_reescalation", "crisis_flags",
      _route_after_skill_executor, dict(re_escalation_within_monitoring=True), {}, "crisis"),
-    ("exec_rehand", "flag_pair",
+    ("exec_rehand", "crisis_flags",
      _route_after_skill_executor, dict(escalation_triggered={"action": "exit_with_rehand"}), {}, "skill_select"),
     ("exec_default_freeflow", "crisis_flags",
      _route_after_skill_executor, dict(), {}, "freeflow"),

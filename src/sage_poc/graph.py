@@ -53,7 +53,7 @@ ACUTE_INTENSITY_FLOOR: int = 8
 # evaluation order and every predicate/destination are unchanged; the row order below is
 # the ORIGINAL top-to-bottom order of the guard clauses it replaces, and reordering a row
 # requires the same clinical review a routing change gets (see the pin test's own comment).
-# tests/test_router_precedence_corpus.py pins the exact destination for 90 cases across the
+# tests/test_router_precedence_corpus.py pins the exact destination for 88 cases across the
 # Amendment 4 spectrum, captured against the pre-refactor implementation, to prove this.
 RouteDestination = Union[str, Callable[[SageState], str]]
 
