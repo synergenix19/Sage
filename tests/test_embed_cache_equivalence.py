@@ -323,17 +323,22 @@ def test_bilingual_probe_set_covers_ar_arabizi_and_en():
     assert len(probe) == ar_count + len(ARABIZI_PHRASES) + len(_phrases_by_language().get("en", []))
 
 
+@pytest.mark.slow
 def test_bilingual_score_identical_across_repeat_calls_over_full_probe_set():
     """Property 1 sibling for check_s3_bilingual: calling it twice with the SAME
     (text_en, text_ar) pair must return a bit-identical score and an identical crisis
-    VERDICT, for every pair in the bilingual probe set (AR corpus + Arabizi + EN). This is
-    GREEN both before and after Task 5's implementation — before, because check_s3_bilingual's
-    uncached batched encode is itself deterministic (test_reference_encoder_is_deterministic
-    already establishes this for single-text encode, and _s3_score_bilingual_uncached's
-    docstring records the empirical batch==single equivalence); after, because a correct
-    cache preserves that same equality. It does NOT by itself prove a cache is wired (a
-    deterministic uncached re-encode also passes this) — that is
-    test_ar_arm_cache_hit_avoids_second_encode's job, below.
+    VERDICT, for every pair in the bilingual probe set (AR corpus + Arabizi + EN).
+
+    @slow (PR #566 fix-round-1, F2): the non-slow tier runs under conftest.py's
+    _stub_bge_m3 zero-vector MagicMock, which trivially returns 0.0 == 0.0 for every pair
+    regardless of whether the implementation is correct — a vacuous pass caught by review
+    instrumentation, not by this test. Marked @slow so it exercises the real BGE-M3 model;
+    run via `pytest tests/test_embed_cache_equivalence.py -m ""` (the file's default marker
+    filter deselects @slow, matching the rest of this suite's convention) or the project's
+    warmed/slow tier. It does NOT by itself prove a cache is wired (a deterministic uncached
+    re-encode also passes this) — that is test_ar_arm_cache_hit_avoids_second_encode's job,
+    below, which is intentionally NOT @slow (its call-count assertion is marker-independent —
+    see that test's docstring).
     """
     assert _ensure_s3_ready()
     reset_query_embedding_cache = s3_semantic.reset_query_embedding_cache
@@ -368,6 +373,12 @@ def test_ar_arm_cache_hit_avoids_second_encode(monkeypatch):
     called again on the second, identical call.
     POST-IMPLEMENTATION (routes through cached_get_embeddings): GREEN — the second
     check_s3_bilingual call is a pure cache hit, zero additional model inference.
+
+    Deliberately NOT @slow: unlike the score-value tests above, this test's assertion is a
+    call COUNT, which is identical whether encode() is the real model or the non-slow tier's
+    zero-vector stub — the stub is still a callable that increments the same counter. Keeping
+    it in the fast tier means this specific regression (the AR arm silently falling out of
+    the cache) is caught by the default CI safety-gate run, not only by a local `-m ""` pass.
     """
     assert _ensure_s3_ready()
     reset_query_embedding_cache = s3_semantic.reset_query_embedding_cache
@@ -467,25 +478,37 @@ def test_ar_threshold_boundary_pair_cached_vs_uncached_verdict_identical(text_ar
     )
 
 
+@pytest.mark.slow
 @_requires_bilingual_cache
 def test_cached_get_embeddings_equals_uncached_over_bilingual_probe_set():
-    """Property 1, plural form: once cached_get_embeddings/get_embeddings exist (Step 2 of
-    this task), assert bit-for-bit vector equality AND downstream score/verdict equality
-    directly against the plural cache API, over the full bilingual probe set — the deepest
-    form of the equivalence-test convention this file already applies to the EN-only
-    singular API above."""
-    cached_get_embeddings, get_embeddings = _BILINGUAL_CACHE_API
+    """Property 1, plural form: once cached_get_embeddings exists (Step 2 of this task),
+    assert bit-for-bit vector equality AND downstream score/verdict equality directly against
+    the plural cache API, over the full bilingual probe set — the deepest form of the
+    equivalence-test convention this file already applies to the EN-only singular API above.
+
+    The ground truth here is get_embedding PER TEXT (singular, one call each) — NOT the
+    batched get_embeddings(texts) — because those two are no longer claimed equivalent
+    (PR #566 fix-round-1, F1: BGE-M3 batch-pads the shorter row, so get_embeddings(texts) can
+    diverge from [get_embedding(t) for t in texts] by ~1.5e-07; cached_get_embeddings encodes
+    each miss individually for exactly this reason, so ITS ground truth is the per-item
+    singular call, not the batch call).
+
+    @slow (F2): the non-slow tier's zero-vector stub makes bit-identity trivially true
+    regardless of correctness; run via `-m ""` against the real model.
+    """
+    cached_get_embeddings, _get_embeddings_unused = _BILINGUAL_CACHE_API
     assert _ensure_s3_ready()
     s3_semantic.reset_query_embedding_cache()
     probe = _bilingual_probe_set()
     checked = 0
     for text_en, text_ar in probe:
         texts = [text_en] if text_ar is None or not text_ar.strip() else [text_en, text_ar]
-        uncached = np.array(get_embeddings(texts), dtype=np.float32)
+        # Per-item singular reference (NOT the batched get_embeddings) — see docstring above.
+        uncached = np.array([get_embedding(t) for t in texts], dtype=np.float32)
         cached = np.array(cached_get_embeddings(texts), dtype=np.float32)
         # (a) the layer being changed: bit-for-bit, zero tolerance
         assert np.array_equal(uncached, cached), (
-            f"cached_get_embeddings != get_embeddings for {texts!r} "
+            f"cached_get_embeddings != [get_embedding(t) for t in texts] for {texts!r} "
             f"(max abs diff {np.abs(uncached - cached).max():.3e})"
         )
         # (b) end-to-end backstop: identical downstream score AND verdict
@@ -502,3 +525,36 @@ def test_cached_get_embeddings_equals_uncached_over_bilingual_probe_set():
         )
         checked += 1
     assert checked == len(probe), "gate did not run over the full bilingual probe set"
+
+
+@pytest.mark.parametrize("fill_order", ["singular_first", "plural_first"])
+def test_singular_and_plural_cache_agree_regardless_of_fill_order(fill_order):
+    """PIN (PR #566 fix-round-1, F5): cached_get_embedding (singular) and cached_get_embeddings
+    (plural) are DELIBERATELY independent implementations — reviewer-adjudicated shape (see
+    cached_get_embedding's docstring): they share only the cache dict/lock/key scheme, not
+    code, so that existing tests pinning get_embedding's exact miss-path call stay valid. That
+    independence is exactly the thing that could let them silently diverge, so pin the
+    invariant directly: whichever one FILLS the cache first for a given text, the OTHER one
+    reading it back afterward returns the bit-identical vector — checked in both fill orders,
+    since a one-directional check would miss an asymmetric bug (e.g. only the plural writer
+    normalising differently on write).
+
+    Not @slow: both implementations resolve to the same get_embedding call on a miss (F1), so
+    this holds under the non-slow zero-vector stub too — it is pinning STRUCTURAL agreement
+    between the two call paths, not a real-embedding value claim (that is covered by the
+    @slow tests above).
+    """
+    s3_semantic.reset_query_embedding_cache()
+    text = _corpus()[0]
+    if fill_order == "singular_first":
+        first = s3_semantic.cached_get_embedding(text)
+        second = s3_semantic.cached_get_embeddings([text])[0]
+    else:
+        first = s3_semantic.cached_get_embeddings([text])[0]
+        second = s3_semantic.cached_get_embedding(text)
+    first_arr = np.array(first, dtype=np.float32)
+    second_arr = np.array(second, dtype=np.float32)
+    assert np.array_equal(first_arr, second_arr), (
+        f"cached_get_embedding and cached_get_embeddings diverged for {text!r} "
+        f"(fill_order={fill_order}, max abs diff {np.abs(first_arr - second_arr).max():.3e})"
+    )

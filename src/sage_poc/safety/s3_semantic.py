@@ -130,11 +130,16 @@ def cached_get_embedding(text: str) -> list[float]:
 
 
 def get_embeddings(texts: list[str]) -> list[list[float]]:
-    """Batch, UNCACHED encode of *texts* in one forward pass. The plural sibling of
-    get_embedding -- used as cached_get_embeddings' cache-miss path and as the direct
-    uncached reference in tests. Order-preserving; empirically, this model/revision's
-    batched encode([a, b]) == [encode([a]), encode([b])] bit-for-bit on CPU, so a batch of
-    1 here is equivalent to get_embedding(texts[0])."""
+    """Batch, UNCACHED encode of *texts* in ONE forward pass. Used as query_embeddings'
+    fallback when EMBED_CACHE_ENABLED is False -- preserving check_s3_bilingual's original
+    (pre-Task-5) one-forward-pass latency behaviour on that path -- and as a genuine-batch
+    reference in tests.
+
+    NOT bit-identical to get_embedding(text) row-by-row in general: BGE-M3 pads the shorter
+    sequence when a batch's texts differ in token length, which can perturb the shorter row's
+    embedding by up to ~1.5e-07 versus encoding it alone (measured; PR #566 fix-round-1, F1).
+    cached_get_embeddings below does NOT call this function for its miss path for exactly
+    this reason -- see its docstring."""
     if _ss._embed_model is None:
         _ss._ensure_semantic_ready()
     result = _ss._embed_model.encode(texts, normalize_embeddings=True)
@@ -142,18 +147,30 @@ def get_embeddings(texts: list[str]) -> list[list[float]]:
 
 
 def cached_get_embeddings(texts: list[str]) -> list[list[float]]:
-    """Batch version of cached_get_embedding (P2 Task 5): checks the shared LRU per text and
-    encodes only the MISSES in one batched forward pass -- this is what lets
-    check_s3_bilingual's AR arm (text_en + text_ar together) share the cache without losing
-    its one-forward-pass latency win when both texts are already warm, or when only one is.
+    """Batch version of cached_get_embedding (P2 Task 5): checks the shared LRU per text;
+    each MISS is encoded INDIVIDUALLY via get_embedding(text) -- NOT a batched get_embeddings
+    call -- so the vector written to the cache for a given text is bit-identical to
+    get_embedding(text) REGARDLESS of what else was a cache-miss in the SAME call. Bit-identity
+    is true BY CONSTRUCTION, not by an (incorrect) assumption that batch encode == single
+    encode.
 
-    Returns vectors bit-identical to get_embedding(text) for each text, in input order.
+    (PR #566 fix-round-1, F1: an earlier version batched all misses into one get_embeddings()
+    call for a one-forward-pass latency win on the cold path. BGE-M3 pads the shorter sequence
+    when a batch's rows differ in token length, which measurably perturbed the shorter row's
+    vector (~1.5e-07) versus its own single encode -- meaning a text's CACHED vector depended
+    on what else happened to be a miss in the same call, which cache history must never affect
+    on a safety surface. Fixed by dropping the batched-miss optimisation: the cold path costs
+    one encode() call per miss (up to 2 for the AR arm) instead of one batched call for all
+    misses (measured +66ms on a 2-text cold AR-arm call). The warm path -- a cache hit on
+    either or both texts, which is what actually matters once the process has been running --
+    is unaffected: still zero additional encode() calls.)
+
     Duplicate texts within the same call are encoded once (de-duped by cache key) and their
     result is fanned back out to every matching position.
 
-    Lock discipline matches cached_get_embedding: cache reads happen under the lock, the
-    batched encode of misses runs OUTSIDE it (so concurrent turns don't serialise on
-    inference), and cache writes are taken back under the lock.
+    Lock discipline matches cached_get_embedding: cache reads happen under the lock, misses
+    are encoded OUTSIDE it (so concurrent turns don't serialise on inference), and cache
+    writes are taken back under the lock.
     """
     keys = [query_embedding_cache_key(t) for t in texts]
     results: list[list[float] | None] = [None] * len(texts)
@@ -173,9 +190,8 @@ def cached_get_embeddings(texts: list[str]) -> list[list[float]]:
         miss_text_by_key: dict[str, str] = {}
         for i in miss_positions:
             miss_text_by_key.setdefault(keys[i], texts[i])
-        miss_keys = list(miss_text_by_key.keys())
-        encoded = get_embeddings([miss_text_by_key[k] for k in miss_keys])
-        emb_by_key = dict(zip(miss_keys, encoded))
+        # Each miss individually -- NOT get_embeddings(list) -- see docstring above (F1).
+        emb_by_key = {key: get_embedding(text) for key, text in miss_text_by_key.items()}
         with _query_embedding_cache_lock:
             for key, emb in emb_by_key.items():
                 _query_embedding_cache[key] = emb
@@ -202,10 +218,13 @@ def query_embedding(text: str) -> list[float]:
 
 
 def query_embeddings(texts: list[str]) -> list[list[float]]:
-    """The plural, batched sibling of query_embedding (P2 Task 5) -- the ONE flag-gated
+    """The plural sibling of query_embedding (P2 Task 5) -- the ONE flag-gated
     (EMBED_CACHE_ENABLED) accessor for check_s3_bilingual's AR arm. Same flag, same
-    underlying cache/keying as query_embedding; the only difference is the batched
-    miss-path (cached_get_embeddings) so N texts cost at most one forward pass instead of N."""
+    underlying cache/keying as query_embedding. When the cache is enabled, misses are encoded
+    INDIVIDUALLY (see cached_get_embeddings' docstring, F1) so a text's vector never depends
+    on what else was a miss in the same call. When disabled, falls back to get_embeddings'
+    true one-forward-pass batch encode -- preserving check_s3_bilingual's pre-Task-5 latency
+    behaviour on that (cache-off) path."""
     from sage_poc.config import EMBED_CACHE_ENABLED  # noqa: PLC0415
     return cached_get_embeddings(texts) if EMBED_CACHE_ENABLED else get_embeddings(texts)
 
@@ -257,14 +276,17 @@ def check_s3(text: str) -> float:
 
 
 def check_s3_bilingual(text_en: str, text_ar: str | None) -> float:
-    """Return max cosine similarity across all (query, phrase) pairs in one batched,
-    CACHED encode (P2 Task 5 -- previously this path always re-encoded).
+    """Return max cosine similarity across all (query, phrase) pairs, sharing the CACHED
+    query embedding with the EN-only path (P2 Task 5 -- previously this path always
+    re-encoded).
 
-    For Arabic messages: encodes [text_en, text_ar] through query_embeddings, sharing the
+    For Arabic messages: looks up [text_en, text_ar] through query_embeddings, sharing the
     same LRU query_embedding uses for the EN-only path -- a cache hit on either or both
-    texts skips inference entirely; a miss on one falls back to a single-text encode rather
-    than re-encoding the already-cached side. One forward pass only when BOTH are cold,
-    matching the original latency win on the cold path.
+    texts skips inference entirely. A miss is encoded individually (get_embedding per miss,
+    not a batched call) so a text's cached vector is bit-identical to get_embedding(text)
+    regardless of what else was a miss at the same time (F1, PR #566 fix-round-1) -- the cold
+    path costs one encode() call per miss (up to 2) rather than the original single batched
+    forward pass; the warm path (cache hit) costs zero.
     For English/Arabizi messages (text_ar=None): delegates to check_s3 (single-text path,
     cached since P2 Task 4).
     Never raises.
