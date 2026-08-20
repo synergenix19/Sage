@@ -112,3 +112,34 @@ because it produces evidence that reads as reassuring.
 - cdai PR #512 (ivfflat drop) — its staging rehearsal is blocked by layer 1
 - PR #522 (fail-closed threshold) — makes layer 2 a boot error rather than silent fail-open
 - `docs/superpowers/tickets/2026-08-19-abstain-threshold-fail-open-default.md`
+
+---
+
+## DECISION 2026-08-20 (owner): deferred, deliberately — do not restore staging now
+
+Staging is **not being restored at this time**. Deployments continue via the process used
+for the last several ships and which has worked: **prod-direct under the deploy lock**, with
+`deploy_prod.sh` (HEAD assertion, ancestry gate, register re-assert), `deploy_converge.sh`
+convergence on a *behavioural* probe of the change itself, the post-deploy checklist, and
+instant rollback.
+
+This is recorded as a **decision, not drift** — which was the ticket's actual ask. The
+ticket opened by saying the configured-but-dead middle state was the worst of the three
+options precisely because nobody had chosen; the middle state with an owner and a stated
+rationale is a different thing from the middle state by neglect.
+
+What the deferral means in practice, so a future reader does not have to reconstruct it:
+
+- **Nothing breaks while staging is unused.** Its absent `SAGE_COSINE_ABSTAIN_THRESHOLD`
+  became a boot error under PR #522, but that only fires if someone deploys staging. Anyone
+  who does must set that variable first — see layer 2 above.
+- **No plan may cite staging as a rehearsal step** until this decision is revisited. That
+  assumption is what stalled the cdai PR #512 ship on 2026-08-19; the substitute used then
+  (local boot rehearsal + prod-real probe measurement + fail-safe ordering + instant
+  rollback) is the pattern to repeat.
+- **Layer 2 stands regardless of layer 1.** Register scope covering only `production` is a
+  structural gap that survives whichever way staging goes, because it is what let a
+  safety-class flag differ between environments unnoticed. It stays open here.
+
+Revisit when there is a reason to: a change too risky to rehearse locally, external users
+beyond the current internal MVP group, or a compliance requirement for a pre-prod gate.
