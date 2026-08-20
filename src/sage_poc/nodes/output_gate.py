@@ -638,15 +638,46 @@ def _pin_contraindication_caveat(
     return f"{caveat} {response}"
 
 
-async def output_gate_node(state: SageState) -> dict:
+# ── Task 3 (P2 core-layer, 2026-08-20): output_gate as three named phases ──────────────────────
+# output_gate_node used to be one ~515-line function running all 15 Node-8 concerns inline. It is
+# now three phases the node calls in strict order, with the node body reduced to orchestration
+# (threading response_en/state/path/ctx across the calls; no phase's own decisions are re-derived
+# by another). No logic crosses a phase boundary -- this is a structural extraction, not a rewrite:
+# every line of decision logic moved verbatim into whichever phase already owned it.
+#
+#   1. _compose_english  -- gate-path routing, empty-reply fail-safe, cultural-output substitution,
+#      banned-opener suppression/rewrite, question discipline, offer-voiding, the FIRST
+#      _strip_output_format pass, and the SG-2 contraindication caveat pin. Produces the English
+#      reply that translate-out will receive.
+#   2. _render_final -- translate-out, THEN the SECOND _strip_output_format pass, THEN the four
+#      verbatim pins in their exact original order: mood-rating anchor (W4), OCD/ERP referral
+#      (#218), HR §5 content-neutrality gate, psychoed verbatim-hash gate. This ordering -- pins
+#      strictly after translate-out and after the strip -- is LOAD-BEARING (a pin emitted before
+#      the strip could be corrupted by format-stripping; a pin emitted before translate-out would
+#      be re-translated and could drift from its signed wording) and is now provable directly from
+#      the phase signatures: _render_final's body runs translate -> strip -> pins, in that order,
+#      with nothing else interleaved.
+#   3. _dispatch_side_effects -- builds the audit-log line and the session_audit row (the
+#      compliance artifact; Amendment 3), fires the turn-completion telemetry (session-summary
+#      persist, clinical-review log, the G1b cumulative-distress review, and the main
+#      write_session_audit call), and assembles the node's returned dict. Two side-effect writes
+#      stay INLINE in _compose_english rather than migrating here: the identity-substitution PDPL
+#      audit (fires mid-loop, immediately, with the hash/text it captured at that exact point) and
+#      the empty-retry audit (fires with the PARTIAL path as it stood at that point in composition,
+#      before any of compose's later steps or all of render ran). Deferring either of those two
+#      into this phase would silently change what value they capture -- moving the DECISION of
+#      when-to-write is safe, moving the CAPTURED VALUE is not, so both stay exactly where they were.
+#      Every one of the six asyncio.create_task call sites is otherwise untouched from the original.
+#
+# tests/test_output_gate_phase_split_audit_matrix.py pins the audit-row input AND the returned
+# dict, per state, against a matrix recorded from the pre-extraction node.
+
+
+async def _compose_english(state: SageState) -> tuple[str, list, dict]:
+    """Phase 1 (Task 3): compose the English reply, before translate-out. Returns
+    (response_en, path, ctx) -- ctx carries every value _render_final / _dispatch_side_effects
+    need that this phase computed, so nothing downstream re-derives it."""
     gate_path = state.get("gate_path")
-    # Per-turn latency for session_audit. turn_started_at is stamped before ainvoke (server.py);
-    # output_gate is the last node, so now - turn_started_at captures ~the full graph turn. Folded
-    # into state here so every write_session_audit({**state, ...}) below picks it up. None-safe:
-    # unit tests and any path without the stamp simply leave latency_ms unset (NULL in audit).
-    _turn_started_at = state.get("turn_started_at")
-    if _turn_started_at is not None:
-        state = {**state, "latency_ms": int((time.monotonic() - _turn_started_at) * 1000)}
     lang = state["detected_language"]
 
     # v7.1 tiering disposition (reader table): a T1 (warm) turn carries crisis_flags=["s3_semantic"]
@@ -882,6 +913,40 @@ async def output_gate_node(state: SageState) -> dict:
         step_id=state.get("executed_step_id") or "",
     )
 
+    ctx = {
+        "gate_path": gate_path,
+        "lang": lang,
+        "session_id": session_id,
+        "user_id": user_id,
+        "is_t1_turn": _is_t1_turn,
+        "review_crisis_flags": _review_crisis_flags,
+        "response_en_is_arabic": _response_en_is_arabic,
+        "cultural_output_violations": cultural_output_violations,
+        "identity_sub_rule_id": _identity_sub_rule_id,
+        "original_response_hash": _original_response_hash,
+        "original_response_text": _original_response_text,
+        "banned_opener_violation": banned_opener_violation,
+        "banned_opener_fallback_used": banned_opener_fallback_used,
+        "opener_rewrite_audit": opener_rewrite_audit,
+        "offer_voided": _offer_voided,
+    }
+    return response_en, path, ctx
+
+
+async def _render_final(
+    response_en: str, state: SageState, path: list, ctx: dict
+) -> tuple[str, SageState, list, dict]:
+    """Phase 2 (Task 3): translate-out, THEN _strip_output_format, THEN the four verbatim pins
+    (mood-rating anchor, OCD/ERP referral, HR §5 neutrality, psychoed verbatim-hash) -- in that
+    exact order, all strictly after the strip. Returns (final_response, state, path, ctx); state
+    carries translate_out_ms when the AR branch ran (the only mutation this phase makes to it),
+    and ctx gains hr_neutrality_rejected / psychoed_gate_action for _dispatch_side_effects."""
+    import sage_poc.config as _cfg  # noqa: PLC0415
+
+    lang = ctx["lang"]
+    _response_en_is_arabic = ctx["response_en_is_arabic"]
+    session_id = ctx["session_id"]
+
     if lang == "ar" and not _response_en_is_arabic:
         # §5 served-arm latency timer: brackets ONLY the translate-out operation (plus its
         # strict-retry, when it fires) -- not the surrounding gate work (cultural check,
@@ -995,6 +1060,41 @@ async def output_gate_node(state: SageState) -> dict:
                 final_response = psy_serve.compose_turn1(_psychoed_turn)["text"]
                 psychoed_gate_action = "reserved"
 
+    ctx = {**ctx, "hr_neutrality_rejected": _hr_neutrality_rejected, "psychoed_gate_action": psychoed_gate_action}
+    return final_response, state, path, ctx
+
+
+async def _dispatch_side_effects(
+    state: SageState, response_en: str, final_response: str, path: list, ctx: dict
+) -> dict:
+    """Phase 3 (Task 3): build the audit-log line and the session_audit row (the compliance
+    artifact under Amendment 3), fire the turn-completion side effects (session-summary persist,
+    clinical review, the G1b cumulative-distress review, the main write_session_audit call), and
+    assemble output_gate_node's returned dict. Every decision here is exactly the original code's
+    -- this phase decides only whether/when to dispatch each already-computed value, never
+    re-derives what phase 1/2 already decided."""
+    import sage_poc.config as _cfg  # noqa: PLC0415
+
+    gate_path = ctx["gate_path"]
+    lang = ctx["lang"]
+    session_id = ctx["session_id"]
+    user_id = ctx["user_id"]
+    _is_t1_turn = ctx["is_t1_turn"]
+    _review_crisis_flags = ctx["review_crisis_flags"]
+    cultural_output_violations = ctx["cultural_output_violations"]
+    _identity_sub_rule_id = ctx["identity_sub_rule_id"]
+    _original_response_hash = ctx["original_response_hash"]
+    _original_response_text = ctx["original_response_text"]
+    banned_opener_violation = ctx["banned_opener_violation"]
+    banned_opener_fallback_used = ctx["banned_opener_fallback_used"]
+    opener_rewrite_audit = ctx["opener_rewrite_audit"]
+    _offer_voided = ctx["offer_voided"]
+    _hr_neutrality_rejected = ctx["hr_neutrality_rejected"]
+    psychoed_gate_action = ctx["psychoed_gate_action"]
+    # Recomputed exactly as _render_final computed it -- a pure read of state["psychoed_serve"],
+    # unmutated since then, so this is not a re-derivation of anything phase 2 decided.
+    _psychoed_turn = state.get("psychoed_serve") or {}
+    _psychoed_block_id = _psychoed_turn.get("block_id")
     _psychoed_audit_present = bool(
         _psychoed_turn
         or state.get("psychoed_matched_row_id") is not None
@@ -1154,3 +1254,20 @@ async def output_gate_node(state: SageState) -> dict:
         # clobbers an offer set by skill_select this turn or pending from earlier.
         result["offered_skill_ids"] = None
     return result
+
+
+async def output_gate_node(state: SageState) -> dict:
+    """Node 8 orchestration only (Task 3): thread state/response_en/path/ctx across the three
+    named phases, in order. No decision logic lives here -- see _compose_english / _render_final
+    / _dispatch_side_effects for the concerns each phase owns."""
+    # Per-turn latency for session_audit. turn_started_at is stamped before ainvoke (server.py);
+    # output_gate is the last node, so now - turn_started_at captures ~the full graph turn. Folded
+    # into state here so every write_session_audit({**state, ...}) below picks it up. None-safe:
+    # unit tests and any path without the stamp simply leave latency_ms unset (NULL in audit).
+    _turn_started_at = state.get("turn_started_at")
+    if _turn_started_at is not None:
+        state = {**state, "latency_ms": int((time.monotonic() - _turn_started_at) * 1000)}
+
+    response_en, path, ctx = await _compose_english(state)
+    final_response, state, path, ctx = await _render_final(response_en, state, path, ctx)
+    return await _dispatch_side_effects(state, response_en, final_response, path, ctx)
