@@ -29,28 +29,31 @@ test_psychoed_fixtures_ci.py's `load_family`/`_validate_row` (it runs on every P
 unit-gate); this runner is downstream of that green gate and trusts the corpus shape -- it
 does not re-implement `_validate_row`.
 
-SIX-SITE AUDIT CAPTURE IS PARITY-SAFE, NOT AN INTENT MOCK. `write_session_audit` is imported
-into SIX distinct module namespaces across src/sage_poc/ (`_AUDIT_PATCH_TARGETS`, below) --
+FOUR-SITE AUDIT CAPTURE IS PARITY-SAFE, NOT AN INTENT MOCK. `write_session_audit` is imported
+into FOUR distinct module namespaces across src/sage_poc/ (`_AUDIT_PATCH_TARGETS`, below) --
 the CI driver's own two (`sage_poc.graph`, the Node-1 crisis short-circuit;
-`sage_poc.nodes.output_gate`, normal turn-close) plus FOUR terminal response nodes that bypass
-output_gate entirely (`derealization_response.py`, `medical_response.py`,
-`high_risk_response.py`, `screen_response.py`). An earlier version of this file patched only
-the CI driver's two sites -- a review finding (task-9-review.md, "(c) Audit-write exposure")
-caught that this runner drives the REAL, unpatched intent_route with a live LLM, so a
-fixture's real-time classification can land on ANY of the six, and the other four would POST a
-real `session_audit` row to prod Supabase whenever credentials are configured in-process
-(which Task 10's live run necessarily has). `_assert_audit_patch_coverage_complete()` runs
-before every row is driven and fails loudly if a future node addition introduces a SEVENTH
-site this list doesn't cover -- the coverage claim is enforced, not merely asserted in prose.
-Every site invokes `write_session_audit` via `asyncio.create_task(...)` (fire-and-forget)
-strictly AFTER the graph has already computed `result`/`response`: the write is what a live
-deployment sends to Postgres for later analytics, not an input to any node's decision.
-Replacing it with a capturing coroutine that records the raw state and returns changes nothing
-about what intent_route, skill_select, freeflow, or any terminal node computed or returned --
-it only lets this run inspect the audit row a live deployment would have written, without
-touching a real database. Contrast with the CI driver's OTHER patches (`intent_route_node`,
-the freeflow LLM, `rag_top` retrieval-faking) -- all decision-node mocks, all deliberately
-ABSENT here.
+`sage_poc.nodes.output_gate`, normal turn-close), `derealization_response.py` (a terminal
+response node that bypasses output_gate entirely and imports write_session_audit directly),
+and `sage_poc.safety.terminal` (the shared SAFETY-EXIT terminal helper, P2 Task 7b, that
+`medical_response.py`, `high_risk_response.py`, and `screen_response.py` now all route their
+own audit write through -- previously three separate sites, now one consolidated call site;
+see that module's docstring). An earlier version of this file patched only the CI driver's two
+sites -- a review finding (task-9-review.md, "(c) Audit-write exposure") caught that this
+runner drives the REAL, unpatched intent_route with a live LLM, so a fixture's real-time
+classification can land on ANY of these sites, and an unpatched one would POST a real
+`session_audit` row to prod Supabase whenever credentials are configured in-process (which
+Task 10's live run necessarily has). `_assert_audit_patch_coverage_complete()` runs before
+every row is driven and fails loudly if a future import site this list doesn't cover appears
+(a new terminal node, or a new module importing write_session_audit directly) -- the coverage
+claim is enforced, not merely asserted in prose. Every site invokes `write_session_audit` via
+`asyncio.create_task(...)` (fire-and-forget) strictly AFTER the graph has already computed
+`result`/`response`: the write is what a live deployment sends to Postgres for later
+analytics, not an input to any node's decision. Replacing it with a capturing coroutine that
+records the raw state and returns changes nothing about what intent_route, skill_select,
+freeflow, or any terminal node computed or returned -- it only lets this run inspect the audit
+row a live deployment would have written, without touching a real database. Contrast with the
+CI driver's OTHER patches (`intent_route_node`, the freeflow LLM, `rag_top` retrieval-faking)
+-- all decision-node mocks, all deliberately ABSENT here.
 
 Skip classes (spec 7.2 no-silent-caps -- every one LOGGED with a count, never a silent filter):
   - family == "F9": retrieval-faking (`rag_top`) is CI-tier only (no live seeded corpus row
@@ -463,29 +466,32 @@ def _turn_state(prev: dict | None, raw_message: str, **overrides) -> dict:
 # ---------------------------------------------------------------------------
 # Audit-capture coverage (task-9-review.md finding "(c) Audit-write exposure" -- Important).
 #
-# `write_session_audit` is imported into SIX distinct module namespaces across src/sage_poc/
+# `write_session_audit` is imported into FOUR distinct module namespaces across src/sage_poc/
 # (each `from sage_poc.audit import write_session_audit`, a REBOUND name -- patching
 # `sage_poc.audit.write_session_audit` alone does NOT intercept a caller that already holds
 # its own reference). Two are the CI driver's own patch targets (`sage_poc.graph`, the Node-1
 # crisis short-circuit; `sage_poc.nodes.output_gate`, normal turn-close, two call sites one
-# import); the other FOUR are terminal response nodes that bypass output_gate entirely
-# (`derealization_response.py`, `medical_response.py`, `high_risk_response.py`,
-# `screen_response.py`). This runner drives the REAL, unpatched intent_route with a live LLM
-# by design -- a fixture's real-time classification can land on any of the six -- so missing
-# even one means a live run (Task 10, which necessarily configures real Supabase credentials
-# for the amendment-8 smoke case's genuine DB retrieval) POSTs a real session_audit row from
-# that unpatched site. Enumerated explicitly (not just "the two the CI driver already
-# patches") and statically verified complete before ANY row is driven -- see
-# `_assert_audit_patch_coverage_complete` below.
+# import); `derealization_response.py` is a terminal response node that bypasses output_gate
+# entirely and imports write_session_audit directly (a Vee-draft file, #490, left untouched by
+# the SAFETY-EXIT terminal-helper dedup below); the fourth is `sage_poc.safety.terminal`, the
+# shared helper module (P2 Task 7b) that `medical_response.py`, `high_risk_response.py`, and
+# `screen_response.py` now ALL route their own write_session_audit call through -- previously
+# each of those three imported it directly (SIX sites total), but the dedup consolidated their
+# identical fire-and-forget idiom into one call site, so patching that one site now covers all
+# three. This runner drives the REAL, unpatched intent_route with a live LLM by design -- a
+# fixture's real-time classification can land on any of the four -- so missing even one means a
+# live run (Task 10, which necessarily configures real Supabase credentials for the amendment-8
+# smoke case's genuine DB retrieval) POSTs a real session_audit row from that unpatched site.
+# Enumerated explicitly (not just "the two the CI driver already patches") and statically
+# verified complete before ANY row is driven -- see `_assert_audit_patch_coverage_complete`
+# below.
 # ---------------------------------------------------------------------------
 
 _AUDIT_PATCH_TARGETS = (
     "sage_poc.graph.write_session_audit",
     "sage_poc.nodes.output_gate.write_session_audit",
     "sage_poc.nodes.derealization_response.write_session_audit",
-    "sage_poc.nodes.medical_response.write_session_audit",
-    "sage_poc.nodes.high_risk_response.write_session_audit",
-    "sage_poc.nodes.screen_response.write_session_audit",
+    "sage_poc.safety.terminal.write_session_audit",
 )
 
 
@@ -534,7 +540,7 @@ def _assert_audit_patch_coverage_complete() -> None:
 
 # ---------------------------------------------------------------------------
 # Driver: REAL intent_route, REAL freeflow LLM, REAL knowledge_retrieve. The ONLY patches are
-# the six write_session_audit capture sites above -- see module docstring for why that is
+# the four write_session_audit capture sites above -- see module docstring for why that is
 # parity-safe (observes a side effect, never a decision).
 # ---------------------------------------------------------------------------
 
@@ -546,7 +552,7 @@ async def run_fixture_real(row: dict) -> dict:
     itself (test_instrument_helper_only.py enforces this by static scan; this module
     deliberately calls neither the graph constructor nor the graph's own invoke method by
     name). This runner owns state construction (make_e2e_state/carry_state/`_carry`) and the
-    six-site audit-capture patch; the helper owns the actual invocation mechanics -- see
+    four-site audit-capture patch; the helper owns the actual invocation mechanics -- see
     graph_evidence.py's own `invoke_turn` docstring.
 
     THREAD_ID (Task 9 fix round 3, controller-observed live-checkpoint crash): `build_local_
