@@ -1,7 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-
-const THIRTY_DAYS_AGO = () => new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-const TWENTY_ONE_DAYS_AGO = () => new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString()
+import { countAndRank, daysAgo } from '@/lib/aggregation'
 
 export interface EngagementStats {
   sessionCount: number
@@ -78,7 +76,7 @@ export async function fetchMoodTrajectory(
     .select('created_at, emotional_intensity, session_id')
     .in('session_id', allSessionIds)
     .eq('role', 'ai')
-    .gte('created_at', TWENTY_ONE_DAYS_AGO())
+    .gte('created_at', daysAgo(21))
     .not('emotional_intensity', 'is', null)
     .order('created_at')
   const groups: Record<string, { intensities: number[]; lastSessionId: string }> = {}
@@ -109,19 +107,11 @@ export async function fetchRecentTopics(
     .from('messages')
     .select('intent_classification')
     .in('session_id', allSessionIds)
-    .gte('created_at', THIRTY_DAYS_AGO())
+    .gte('created_at', daysAgo(30))
     .not('intent_classification', 'is', null)
   const EXCLUDED = new Set(['scope_refusal', 'jailbreak', 'exit_skill', 'unknown'])
-  const counts: Record<string, number> = {}
-  for (const row of rows ?? []) {
-    const topic = row.intent_classification as string
-    if (EXCLUDED.has(topic)) continue
-    counts[topic] = (counts[topic] ?? 0) + 1
-  }
-  return Object.entries(counts)
-    .map(([topic, count]) => ({ topic, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 6)
+  const includedRows = (rows ?? []).filter(row => !EXCLUDED.has(row.intent_classification as string))
+  return countAndRank(includedRows, row => row.intent_classification as string, (topic, count) => ({ topic, count }), 6)
 }
 
 export async function fetchSkillsUsed(
@@ -170,7 +160,7 @@ export async function fetchAllProgressData(
   client: SupabaseClient,
   userId: string
 ): Promise<ProgressData> {
-  const cutoff21 = TWENTY_ONE_DAYS_AGO()
+  const cutoff21 = daysAgo(21)
 
   // Single session fetch shared across all five queries — avoids 5 redundant DB round-trips.
   const { data: allSessions } = await client

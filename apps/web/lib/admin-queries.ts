@@ -1,6 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-
-const SEVEN_DAYS_AGO = () => new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+import { countAndRank, daysAgo } from '@/lib/aggregation'
 
 export interface OverviewMetrics {
   totalUsers: number
@@ -92,8 +91,8 @@ export async function fetchOverviewMetrics(admin: SupabaseClient): Promise<Overv
 
   const [usersRes, crisisRes, aiMsgsRes] = await Promise.all([
     admin.from('user_profiles').select('id'),
-    admin.from('messages').select('id').eq('role', 'crisis').gte('created_at', SEVEN_DAYS_AGO()),
-    admin.from('messages').select('emotional_intensity').eq('role', 'ai').gte('created_at', SEVEN_DAYS_AGO()),
+    admin.from('messages').select('id').eq('role', 'crisis').gte('created_at', daysAgo(7)),
+    admin.from('messages').select('emotional_intensity').eq('role', 'ai').gte('created_at', daysAgo(7)),
   ])
 
   const totalUsers = usersRes.data?.length ?? 0
@@ -128,7 +127,7 @@ export async function fetchSystemPerformance(admin: SupabaseClient): Promise<Sys
     .from('messages')
     .select('created_at, latency_ms, intent_classification')
     .eq('role', 'ai')
-    .gte('created_at', SEVEN_DAYS_AGO())
+    .gte('created_at', daysAgo(7))
 
   const latencyRows = (rows ?? []).filter(r => r.latency_ms != null)
 
@@ -139,20 +138,17 @@ export async function fetchSystemPerformance(admin: SupabaseClient): Promise<Sys
     return { avgMs, p95Ms, turnCount: group.length }
   })
 
-  const intentCounts: Record<string, number> = {}
-  for (const row of rows ?? []) {
-    const intent = (row.intent_classification as string | null) ?? 'unknown'
-    intentCounts[intent] = (intentCounts[intent] ?? 0) + 1
-  }
-  const intentDistribution = Object.entries(intentCounts)
-    .map(([intent, count]) => ({ intent, count }))
-    .sort((a, b) => b.count - a.count)
+  const intentDistribution = countAndRank(
+    rows ?? [],
+    row => (row.intent_classification as string | null) ?? 'unknown',
+    (intent, count) => ({ intent, count }),
+  )
 
   return { latencyByDay, intentDistribution }
 }
 
 export async function fetchClinicalSafety(admin: SupabaseClient): Promise<ClinicalSafetyData> {
-  const cutoff = SEVEN_DAYS_AGO()
+  const cutoff = daysAgo(7)
 
   const { data: allMsgs } = await admin
     .from('messages')
@@ -166,21 +162,14 @@ export async function fetchClinicalSafety(admin: SupabaseClient): Promise<Clinic
   )
   const escalationsThisWeek = withFlags.length
 
-  const flagCounts: Record<string, number> = {}
-  for (const row of withFlags) {
-    for (const flag of row.clinical_flags as string[]) {
-      flagCounts[flag] = (flagCounts[flag] ?? 0) + 1
-    }
-  }
-  const flagDistribution = Object.entries(flagCounts)
-    .map(([flag, count]) => ({ flag, count }))
-    .sort((a, b) => b.count - a.count)
+  const allFlags = withFlags.flatMap(row => row.clinical_flags as string[])
+  const flagDistribution = countAndRank(allFlags, flag => flag, (flag, count) => ({ flag, count }))
 
   return { crisisThisWeek, escalationsThisWeek, flagDistribution }
 }
 
 export async function fetchResponseQuality(admin: SupabaseClient): Promise<ResponseQualityData> {
-  const cutoff = SEVEN_DAYS_AGO()
+  const cutoff = daysAgo(7)
 
   const [feedbackRes, gateRes] = await Promise.all([
     admin.from('message_feedback').select('value').gte('created_at', cutoff),
@@ -192,20 +181,17 @@ export async function fetchResponseQuality(admin: SupabaseClient): Promise<Respo
   const thumbsDown  = feedback.filter(f => (f.value as number) === -1).length
   const totalFeedback = feedback.length
 
-  const gatePathCounts: Record<string, number> = {}
-  for (const row of gateRes.data ?? []) {
-    const gp = (row.gate_path as string | null) ?? 'standard'
-    gatePathCounts[gp] = (gatePathCounts[gp] ?? 0) + 1
-  }
-  const gatePathDistribution = Object.entries(gatePathCounts)
-    .map(([gatePath, count]) => ({ gatePath, count }))
-    .sort((a, b) => b.count - a.count)
+  const gatePathDistribution = countAndRank(
+    gateRes.data ?? [],
+    row => (row.gate_path as string | null) ?? 'standard',
+    (gatePath, count) => ({ gatePath, count }),
+  )
 
   return { thumbsUp, thumbsDown, totalFeedback, gatePathDistribution }
 }
 
 export async function fetchConversationIntelligence(admin: SupabaseClient): Promise<ConversationIntelligenceData> {
-  const cutoff = SEVEN_DAYS_AGO()
+  const cutoff = daysAgo(7)
 
   const { data: rows } = await admin
     .from('messages')
@@ -220,16 +206,8 @@ export async function fetchConversationIntelligence(admin: SupabaseClient): Prom
   const withSemantic = allRows.filter(r => (r.semantic_score as number | null) != null && (r.semantic_score as number) >= 0.459).length
   const semanticMatchRate = total > 0 ? Math.round((withSemantic / total) * 100) / 100 : null
 
-  const skillCounts: Record<string, number> = {}
-  for (const row of allRows) {
-    if (row.skill_id) {
-      skillCounts[row.skill_id as string] = (skillCounts[row.skill_id as string] ?? 0) + 1
-    }
-  }
-  const skillUsage = Object.entries(skillCounts)
-    .map(([skillId, count]) => ({ skillId, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10)
+  const skillRows = allRows.filter(row => row.skill_id)
+  const skillUsage = countAndRank(skillRows, row => row.skill_id as string, (skillId, count) => ({ skillId, count }), 10)
 
   const usageRows = allRows
     .map(r => r.token_usage as { input?: number; output?: number } | null)

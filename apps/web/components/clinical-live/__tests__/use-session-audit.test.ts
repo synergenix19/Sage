@@ -61,6 +61,39 @@ function makeMockSupabase(initialRows: AuditRow[] = []) {
   }
 }
 
+// Simulates a *globally*-ordered `session_audit` table (all sessions interleaved,
+// most-recent-first) so a query shaped `.order('inserted_at', desc).limit(n)` can be
+// sliced to exactly `n` rows off the front — same as what Postgres would return.
+// `.eq('session_id', …)` queries (session-scoped) always resolve to `scopedRows`
+// regardless of the eq value, since these fixtures only ever have one session locked
+// onto in a given test.
+function makeMockSupabaseGlobalWindow(globallyOrderedRows: AuditRow[], scopedRows: AuditRow[]) {
+  return {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          order: () => Promise.resolve({ data: scopedRows, error: null }),
+        }),
+        order: () => ({
+          limit: (n: number) => Promise.resolve({ data: globallyOrderedRows.slice(0, n), error: null }),
+        }),
+      }),
+    }),
+    channel: () => ({
+      on: (_event: string, _filter: object, cb: (payload: { new: AuditRow }) => void) => {
+        realtimeCallback = cb
+        return {
+          subscribe: (statusCb: (s: string) => void) => {
+            statusCb('SUBSCRIBED')
+            return {}
+          },
+        }
+      },
+    }),
+    removeChannel: vi.fn(),
+  }
+}
+
 vi.mock('@/lib/supabase/client', () => ({
   createClient: vi.fn(),
 }))
@@ -110,6 +143,48 @@ describe('useSessionAudit — follow-latest mode', () => {
     expect(result.current.rows).toHaveLength(1)
     expect(result.current.rows[0].session_id).toBe('sess-002')
     expect(result.current.activeSessionId).toBe('sess-002')
+  })
+})
+
+describe('useSessionAudit — truncated-bootstrap fix (latest-session-first)', () => {
+  // Reproduces a real clinical-live bug: the OLD bootstrap fetched the 20 most
+  // RECENT rows across ALL sessions (order by inserted_at desc, limit 20), read
+  // session_id off row 0 to find "the latest session", then filtered that SAME
+  // already-truncated 20-row window down to that session. If other sessions had
+  // also inserted rows recently, the latest session's OWN earlier rows could fall
+  // outside that global top-20 window and silently disappear from the clinician's
+  // live view — even though the session itself has a complete row history.
+  it('shows the latest session complete, not just whatever fraction survived the global recency window', async () => {
+    const sessCurrentOld = mockRow({ id: 'cur-1', session_id: 'sess-current', turn_number: 1, inserted_at: '2026-05-27T09:00:00Z' })
+    const sessCurrentNew = mockRow({ id: 'cur-2', session_id: 'sess-current', turn_number: 2, inserted_at: '2026-05-27T10:00:00Z' })
+    // 19 rows from a different session, all inserted BETWEEN sess-current's two rows —
+    // enough to push sess-current's older row outside a `.limit(20)` global window
+    // (sessCurrentNew + 19 sess-other rows already fills the limit).
+    const sessOtherRows: AuditRow[] = Array.from({ length: 19 }, (_, i) =>
+      mockRow({ id: `oth-${i}`, session_id: 'sess-other', turn_number: i + 1, inserted_at: `2026-05-27T09:${30 + i}:00Z` })
+    )
+    // Globally ordered by inserted_at DESC: sess-current's newest row is the single
+    // most recent row overall, followed by all 19 sess-other rows, THEN
+    // sess-current's older row — which a `.limit(20)` slice never reaches.
+    const globallyOrderedRows = [sessCurrentNew, ...sessOtherRows, sessCurrentOld]
+    // The CORRECT, session-scoped fetch: sess-current's true, complete row set.
+    const sessCurrentFull = [sessCurrentOld, sessCurrentNew]
+
+    const { createClient } = await import('@/lib/supabase/client')
+    vi.mocked(createClient).mockReturnValue(
+      makeMockSupabaseGlobalWindow(globallyOrderedRows, sessCurrentFull) as never
+    )
+
+    const { useSessionAudit } = await import('../use-session-audit')
+    const { result } = renderHook(() => useSessionAudit(null))
+
+    await waitFor(() => expect(result.current.activeSessionId).toBe('sess-current'))
+    // Both of sess-current's rows must be present — not just the one that happened
+    // to survive the global top-20 slice — AND in turn_number ascending order (the
+    // fix's ordering key for the scoped fetch, `.order('turn_number', { ascending:
+    // true })`; not sorted here, so this also pins the order, not just completeness).
+    expect(result.current.rows).toHaveLength(2)
+    expect(result.current.rows.map(r => r.turn_number)).toEqual([1, 2])
   })
 })
 
