@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { SERVER_ERROR_SIGNAL } from '@/lib/constants'
 import { hasCrisisSignal, stripCrisisSignal } from '@/lib/crisis'
-import type { Json } from '@cdai/types'
+import { extractSageMetadata, SAGE_HEADERS_WHITELIST } from '@/lib/sage-headers'
 import { z } from 'zod'
 
 const MessageSchema = z.object({
@@ -67,11 +67,6 @@ async function fetchSageChat(init: RequestInit, attempts = 3): Promise<Response>
   throw lastErr
 }
 
-function parseJsonHeader<T>(raw: string | null, fallback: T): T {
-  if (!raw) return fallback
-  try { return JSON.parse(raw) as T } catch { return fallback }
-}
-
 export async function POST(req: Request) {
   const parsed = ChatRequestSchema.safeParse(await req.json().catch(() => null))
   if (!parsed.success) return new Response('Bad Request', { status: 400 })
@@ -127,19 +122,28 @@ export async function POST(req: Request) {
     )
   }
 
+  // Single shared parse of every X-Sage-* metadata header (lib/sage-headers.ts) —
+  // the render path (chat-interface.tsx) parses the SAME headers through the SAME
+  // function, so stored and rendered metadata can never diverge (Task 6a).
   // Intent — authoritative source is Node 2 (intent_route) inside sage-poc graph.
   // Primary intent: 8-way v7 classification. Secondary: blended intent when present.
-  const intentClassification          = sageRes.headers.get('X-Sage-Intent') || null
-  const secondaryIntentClassification = sageRes.headers.get('X-Sage-Secondary-Intent') || null
-
-  const sageModel    = sageRes.headers.get('X-Sage-Model')
-  const skillId      = sageRes.headers.get('X-Sage-Skill-Id') || null
-  const stepId       = sageRes.headers.get('X-Sage-Step-Id') || null
-  const gatePath     = sageRes.headers.get('X-Sage-Gate-Path') || null
-
-  const sageNodePath      = parseJsonHeader<string[] | null>(sageRes.headers.get('X-Sage-Node-Path'), null)
-  const crisisFlags       = parseJsonHeader<string[] | null>(sageRes.headers.get('X-Sage-Crisis-Flags'), null)
-  const sageClinicalFlags = parseJsonHeader<string[] | null>(sageRes.headers.get('X-Sage-Clinical-Flags'), null)
+  const sageMetadata = extractSageMetadata(sageRes.headers)
+  const {
+    intentClassification,
+    secondaryIntentClassification,
+    sageModel,
+    skillId,
+    stepId,
+    gatePath,
+    sageNodePath,
+    crisisFlags,
+    sageClinicalFlags,
+    emotionalIntensity,
+    semanticScore,
+    promptLayers,
+    tokenUsage,
+    turnNumber,
+  } = sageMetadata
 
   // KB source cards (X-Sage-Sources) — raw ASCII-escaped JSON string, forwarded
   // verbatim to the browser below. Not parsed/re-stringified here: forwarding the
@@ -151,22 +155,6 @@ export async function POST(req: Request) {
   // raw to the browser below and merged into the persisted sources so a reopened conversation
   // shows it. Absent unless SAGE_SKILL_MEDIA_ENABLED + a media step, and on any safety gate_path.
   const skillMediaHeader = sageRes.headers.get('X-Sage-Skill-Media')
-
-  const intensityStr       = sageRes.headers.get('X-Sage-Emotional-Intensity')
-  const parsedIntensity    = intensityStr ? parseInt(intensityStr, 10) : NaN
-  const emotionalIntensity = Number.isNaN(parsedIntensity) ? null : parsedIntensity
-
-  const semanticScoreStr = sageRes.headers.get('X-Sage-Semantic-Score')
-  const semanticScore    = (() => {
-    if (!semanticScoreStr) return null
-    const n = parseFloat(semanticScoreStr)
-    return Number.isNaN(n) ? null : n
-  })()
-  const promptLayers  = parseJsonHeader<string[] | null>(sageRes.headers.get('X-Sage-Prompt-Layers'), null)
-  const tokenUsage    = parseJsonHeader<Json | null>(sageRes.headers.get('X-Sage-Token-Usage'), null)
-  const turnNumberStr = sageRes.headers.get('X-Sage-Turn-Number')
-  const parsedTurn    = turnNumberStr ? parseInt(turnNumberStr, 10) : NaN
-  const turnNumber    = Number.isNaN(parsedTurn) ? null : parsedTurn
 
   const aiMessageId = crypto.randomUUID()
 
@@ -197,24 +185,13 @@ export async function POST(req: Request) {
       const isCrisis = hasCrisisSignal(accumulated)
       const content  = stripCrisisSignal(accumulated)  // pinned invariant: sentinel never reaches storage (lib/crisis.ts + its test)
 
-      // Lane 2 Item 1.5: persist EXACTLY the parsed, already-deduped/capped/typed
-      // sourcesHeader list (stored == rendered) — never the raw passage set. Parsed
-      // here (not re-derived) so the persisted artifact is byte-identical to what the
-      // live turn rendered from the same header string.
-      let parsedSources: Json = null
-      if (sourcesHeader) {
-        try { parsedSources = JSON.parse(sourcesHeader) } catch { parsedSources = null }
-      }
-      // Merge skill-delivered media into the persisted sources as a video entry, so a reopened
-      // conversation renders it via the same SourceCard (Item 1.5). Crisis turns never carry it
-      // (backend allowlist); !isCrisis is belt-and-braces. Malformed → skip, keep KB sources.
-      if (skillMediaHeader && !isCrisis) {
-        try {
-          const m = JSON.parse(skillMediaHeader)
-          const entry = { type: m.type, title: m.title ?? '', url: m.url, citation: m.provider ?? '' }
-          parsedSources = [...(Array.isArray(parsedSources) ? parsedSources : []), entry]
-        } catch { /* malformed → skip */ }
-      }
+      // sources list (stored == rendered) — never the raw passage set. Parsed via
+      // the shared extractSageMetadata() (lib/sage-headers.ts) above — the SAME call
+      // the render path makes — so the persisted artifact is byte-identical to what
+      // the live turn rendered from the same header string. Crisis-turn suppression
+      // (isCrisis, derived from the streamed BODY, not headers) is applied below at
+      // insert time — that gating stays here, not in the shared header parser.
+      const parsedSources = sageMetadata.sources
 
       // Single post-response write: user message + AI message in one batch.
       // Intent is authoritative from sage-poc (X-Sage-Intent / X-Sage-Secondary-Intent).
@@ -299,15 +276,6 @@ export async function POST(req: Request) {
       console.error('[chat/persist] failed:', err)
     }
   })
-
-  const SAGE_HEADERS_WHITELIST = [
-    'x-sage-node-path',
-    'x-sage-gate-path',
-    'x-sage-prompt-layers',
-    'x-sage-intent',
-    'x-sage-emotional-intensity',
-    'x-sage-turn-number',
-  ]
 
   const responseHeaders: Record<string, string> = {
     'Content-Type':         'text/plain; charset=utf-8',
