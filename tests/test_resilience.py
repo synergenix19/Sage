@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import pathlib
 import pytest
 from datetime import datetime, timedelta
@@ -44,6 +45,15 @@ def test_fallbacks_json_valid():
     data = json.loads(path.read_text())
     assert isinstance(data, list)
     nodes_langs = {(e["node"], e["language"]) for e in data}
+    # get_fallback_response's precedence-table lookup (resilience/__init__.py) builds a
+    # dict keyed by (node, language), which silently keeps the LAST entry on a duplicate
+    # key. A duplicate would flip first-match vs last-match semantics on clinical fallback
+    # copy without any test noticing, since the set comprehension above absorbs dupes.
+    # Enforce the uniqueness the lookup rewrite already assumes (fix-round-1 Finding 2).
+    assert len(nodes_langs) == len(data), (
+        "duplicate (node, language) pairs in fallbacks.json — "
+        "get_fallback_response's precedence lookup assumes uniqueness"
+    )
     required = {
         ("freeflow_respond", "en"),
         ("freeflow_respond", "ar"),
@@ -164,7 +174,7 @@ def test_circuit_independent_per_endpoint():
 
 # ── resilient_invoke ──────────────────────────────────────────────────────────
 
-from sage_poc.resilience import resilient_invoke, resilient_stream
+from sage_poc.resilience import resilient_invoke, resilient_message_invoke, resilient_stream
 import sage_poc.resilience as _res
 
 
@@ -351,6 +361,587 @@ async def test_resilient_stream_non_retryable_yields_fallback():
             resilient_stream(llm, [], node="low_confidence_respond", language="en")
         )
     assert isinstance(result, str) and len(result) > 5
+
+
+# ── Log event baseline (grep contract) ─────────────────────────────────────────
+#
+# server.py's _configure_instrumentation_logging() attaches a stdout handler directly
+# to the "sage_poc.resilience" logger and the latency baseline greps its lines by
+# event name. These tests pin the exact (event name -> key-set) SHAPE emitted by each
+# of the three wrappers under forced success/retry/failure/breaker paths, captured
+# straight off the logger (not pytest's caplog+propagate machinery) because that same
+# server.py setup sets propagate=False on this exact logger once imported anywhere in
+# the suite (e.g. the asgi_client fixture) — caplog would silently miss records if
+# that setup already ran earlier in the session. Every log statement in resilience/
+# __init__.py is a JSON literal built with %-style placeholders, so the formatted
+# message is always valid JSON and can be parsed directly.
+#
+# Task 6 (refactor: one attempt loop) carries TWO controller-ruled deltas against this
+# baseline (fix-round-1, 2026-08-20):
+#   1. resilient_invoke's breaker-open path gains an llm_invoke_fallback_failed emission
+#      when the fallback LLM also raises (symmetry with the exhausted-retries path).
+#      Isolated in test_log_baseline_invoke_breaker_open_fallback_fails below.
+#   2. A malformed llm.ainvoke() response (content is None, or a list of content blocks
+#      — the tool-use/extended-thinking shape) now produces a single llm_call_failed
+#      event with NO success record and NO breaker mutation. Pre-refactor, the success
+#      log + _record_success fired BEFORE `.content.strip()` was called, so a call that
+#      actually failed was logged as a success and reset the breaker — a real defect,
+#      not a behavior worth preserving. Isolated in
+#      test_log_baseline_invoke_malformed_content_none and
+#      test_log_baseline_invoke_malformed_content_list_blocks below.
+
+class _ListHandler(logging.Handler):
+    def __init__(self):
+        super().__init__(level=logging.INFO)
+        self.records: list[logging.LogRecord] = []
+
+    def emit(self, record):
+        self.records.append(record)
+
+
+@pytest.fixture
+def resilience_log_events():
+    target = logging.getLogger("sage_poc.resilience")
+    handler = _ListHandler()
+    saved_level, saved_propagate = target.level, target.propagate
+    target.addHandler(handler)
+    target.setLevel(logging.INFO)
+    try:
+        yield handler.records
+    finally:
+        target.removeHandler(handler)
+        target.setLevel(saved_level)
+        target.propagate = saved_propagate
+
+
+def _events(records) -> list[dict]:
+    return [json.loads(r.getMessage()) for r in records]
+
+
+def _shape(events: list[dict]) -> list[tuple[str, frozenset]]:
+    return [(e["event"], frozenset(e.keys())) for e in events]
+
+
+async def _passthrough_wait_for(coro, timeout):
+    return await coro
+
+
+# -- resilient_invoke ------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_log_baseline_invoke_success(resilience_log_events):
+    llm = _make_llm(responses=["hi"], base_url="https://ev-inv-success.api")
+    await resilient_invoke(llm, [], node="freeflow_respond")
+    assert _shape(_events(resilience_log_events)) == [
+        ("llm_call", frozenset({"event", "node", "model", "attempt", "latency_ms",
+                                 "status", "timeout_ms", "circuit_breaker_state"})),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_invoke_retry_then_success(resilience_log_events):
+    call_count = 0
+
+    async def sometimes_raises(messages):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            raise asyncio.TimeoutError("simulated timeout")
+        return MagicMock(content="ok")
+
+    llm = MagicMock()
+    llm.model_name = "test/model"
+    llm.openai_api_base = "https://ev-inv-retry.api"
+    llm.ainvoke = sometimes_raises
+
+    with patch("sage_poc.resilience.asyncio.wait_for", side_effect=_passthrough_wait_for), \
+         patch("sage_poc.resilience.asyncio.sleep", new_callable=AsyncMock):
+        await resilient_invoke(llm, [], node="freeflow_respond")
+
+    assert _shape(_events(resilience_log_events)) == [
+        ("llm_call_retrying", frozenset({"event", "node", "attempt", "backoff_s"})),
+        ("llm_call", frozenset({"event", "node", "model", "attempt", "latency_ms",
+                                 "status", "timeout_ms", "circuit_breaker_state"})),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_invoke_non_retryable(resilience_log_events):
+    import httpx
+    err = httpx.HTTPStatusError("400", request=MagicMock(), response=MagicMock(status_code=400))
+    llm = _make_llm(side_effects=[err], base_url="https://ev-inv-nonretry.api")
+
+    with patch("sage_poc.resilience.asyncio.sleep", new_callable=AsyncMock):
+        await resilient_invoke(llm, [], node="freeflow_respond")
+
+    assert _shape(_events(resilience_log_events)) == [
+        ("llm_call_failed", frozenset({"event", "node", "attempt", "error_type", "fallback_used"})),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_invoke_exhausted_no_fallback(resilience_log_events):
+    llm = MagicMock()
+    llm.model_name = "test/model"
+    llm.openai_api_base = "https://ev-inv-exhausted.api"
+    llm.ainvoke = AsyncMock(side_effect=asyncio.TimeoutError)
+
+    with patch("sage_poc.resilience.asyncio.wait_for", side_effect=_passthrough_wait_for), \
+         patch("sage_poc.resilience.asyncio.sleep", new_callable=AsyncMock), \
+         patch.object(_res, "LLM_MAX_RETRIES", 1):
+        await resilient_invoke(llm, [], node="freeflow_respond")
+
+    events = _events(resilience_log_events)
+    assert [e["event"] for e in events] == ["llm_call_retrying", "llm_call_failed"]
+    assert _shape(events) == [
+        ("llm_call_retrying", frozenset({"event", "node", "attempt", "backoff_s"})),
+        ("llm_call_failed", frozenset({"event", "node", "retry_count", "fallback_used"})),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_invoke_exhausted_fallback_succeeds(resilience_log_events):
+    primary = MagicMock()
+    primary.model_name = "primary/model"
+    primary.openai_api_base = "https://ev-inv-fb-ok.api"
+    primary.ainvoke = AsyncMock(side_effect=asyncio.TimeoutError)
+    fallback = _make_llm(responses=["fb"], base_url="https://ev-inv-fb-ok-fallback.api")
+
+    with patch("sage_poc.resilience.asyncio.wait_for", side_effect=_passthrough_wait_for), \
+         patch("sage_poc.resilience.asyncio.sleep", new_callable=AsyncMock), \
+         patch.object(_res, "LLM_MAX_RETRIES", 0):
+        await resilient_invoke(primary, [], node="freeflow_respond", fallback_llm=fallback)
+
+    events = _events(resilience_log_events)
+    assert [e["event"] for e in events] == ["llm_call"]
+    assert _shape(events) == [
+        ("llm_call", frozenset({"event", "node", "model", "is_fallback", "status"})),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_invoke_exhausted_fallback_fails(resilience_log_events):
+    primary = MagicMock()
+    primary.model_name = "primary/model"
+    primary.openai_api_base = "https://ev-inv-fb-fail.api"
+    primary.ainvoke = AsyncMock(side_effect=asyncio.TimeoutError)
+    fallback = MagicMock()
+    fallback.model_name = "fallback/model"
+    fallback.openai_api_base = "https://ev-inv-fb-fail-fallback.api"
+    fallback.ainvoke = AsyncMock(side_effect=RuntimeError("fallback down"))
+
+    with patch("sage_poc.resilience.asyncio.wait_for", side_effect=_passthrough_wait_for), \
+         patch("sage_poc.resilience.asyncio.sleep", new_callable=AsyncMock), \
+         patch.object(_res, "LLM_MAX_RETRIES", 0):
+        await resilient_invoke(primary, [], node="freeflow_respond", fallback_llm=fallback)
+
+    events = _events(resilience_log_events)
+    assert [e["event"] for e in events] == ["llm_invoke_fallback_failed", "llm_call_failed"]
+    assert _shape(events) == [
+        ("llm_invoke_fallback_failed", frozenset({"event", "node", "error_type"})),
+        ("llm_call_failed", frozenset({"event", "node", "retry_count", "fallback_used"})),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_invoke_breaker_open_no_fallback(resilience_log_events):
+    key = "https://ev-inv-breaker-a.api/test/model"
+    _circuit_state[key] = {
+        "state": "open", "consecutive_failures": CIRCUIT_BREAKER_THRESHOLD,
+        "reset_at": datetime.utcnow() + timedelta(seconds=60),
+    }
+    try:
+        llm = _make_llm(base_url="https://ev-inv-breaker-a.api")
+        await resilient_invoke(llm, [], node="freeflow_respond")
+    finally:
+        _reset(key)
+
+    assert _shape(_events(resilience_log_events)) == [
+        ("circuit_breaker_short_circuit", frozenset({"event", "node", "circuit_breaker_state"})),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_invoke_breaker_open_fallback_succeeds(resilience_log_events):
+    key = "https://ev-inv-breaker-b.api/test/model"
+    _circuit_state[key] = {
+        "state": "open", "consecutive_failures": CIRCUIT_BREAKER_THRESHOLD,
+        "reset_at": datetime.utcnow() + timedelta(seconds=60),
+    }
+    try:
+        llm = _make_llm(base_url="https://ev-inv-breaker-b.api")
+        fallback = _make_llm(responses=["fb"], base_url="https://ev-inv-breaker-b-fallback.api")
+        await resilient_invoke(llm, [], node="freeflow_respond", fallback_llm=fallback)
+    finally:
+        _reset(key)
+
+    events = _events(resilience_log_events)
+    assert [e["event"] for e in events] == ["circuit_breaker_short_circuit", "llm_call"]
+    assert _shape(events) == [
+        ("circuit_breaker_short_circuit", frozenset({"event", "node", "circuit_breaker_state"})),
+        ("llm_call", frozenset({"event", "node", "model", "is_fallback", "status"})),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_invoke_breaker_open_fallback_fails(resilience_log_events):
+    """Task 6's ONE permitted new event (symmetry fix): when the circuit is open AND
+    the fallback LLM also raises, resilient_invoke now logs llm_invoke_fallback_failed
+    — matching the exhausted-retries path, which already logged this event (see
+    test_log_baseline_invoke_exhausted_fallback_fails). Pre-refactor this path logged
+    NOTHING for the fallback failure; that gap is what this test pinned before the
+    refactor, and this is the single enumerated delta against the whole baseline."""
+    key = "https://ev-inv-breaker-c.api/test/model"
+    _circuit_state[key] = {
+        "state": "open", "consecutive_failures": CIRCUIT_BREAKER_THRESHOLD,
+        "reset_at": datetime.utcnow() + timedelta(seconds=60),
+    }
+    try:
+        llm = _make_llm(base_url="https://ev-inv-breaker-c.api")
+        fallback = MagicMock()
+        fallback.model_name = "fallback/model"
+        fallback.openai_api_base = "https://ev-inv-breaker-c-fallback.api"
+        fallback.ainvoke = AsyncMock(side_effect=RuntimeError("fallback down"))
+        await resilient_invoke(llm, [], node="freeflow_respond", fallback_llm=fallback)
+    finally:
+        _reset(key)
+
+    events = _events(resilience_log_events)
+    assert [e["event"] for e in events] == [
+        "circuit_breaker_short_circuit", "llm_invoke_fallback_failed",
+    ]
+    assert _shape(events) == [
+        ("circuit_breaker_short_circuit", frozenset({"event", "node", "circuit_breaker_state"})),
+        ("llm_invoke_fallback_failed", frozenset({"event", "node", "error_type"})),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_invoke_malformed_content_none(resilience_log_events):
+    """Task 6 fix-round-1 Finding 1 (controller-ruled SECOND justified delta): when
+    llm.ainvoke() succeeds but response_msg.content is None, `.content.strip()` raises
+    AttributeError INSIDE the per-attempt call, before any success is recorded.
+
+    Pre-refactor (master), _record_success + the llm_call success log fired BEFORE
+    .strip() was called — a bogus success log for a call that actually failed, plus a
+    circuit-breaker reset that could mask systematic provider-shape failures. This
+    refactor moves the strip inside the timing-guarded unit (_invoke_once, called from
+    resilient_invoke's _call()), so a malformed response now produces exactly ONE
+    llm_call_failed event, no success record, and — since AttributeError is
+    non-retryable — no breaker mutation at all (_record_failure is only called on the
+    retryable path; see _attempt_loop). This is deliberate, controller-ruled behavior,
+    not a regression: a success log for a failed call would poison the latency
+    baseline, and a breaker reset on a real failure would mask a systematic problem.
+    """
+    key = "https://ev-inv-malformed-none.api/test/model"
+    _reset(key)
+    llm = MagicMock()
+    llm.model_name = "test/model"
+    llm.openai_api_base = "https://ev-inv-malformed-none.api"
+    llm.ainvoke = AsyncMock(return_value=MagicMock(content=None))
+
+    result = await resilient_invoke(llm, [], node="freeflow_respond")
+
+    assert isinstance(result, str) and len(result) > 5  # fallback text, not a crash
+    events = _events(resilience_log_events)
+    assert [e["event"] for e in events] == ["llm_call_failed"]
+    assert _shape(events) == [
+        ("llm_call_failed", frozenset({"event", "node", "attempt", "error_type", "fallback_used"})),
+    ]
+    assert key not in _circuit_state  # neither success nor failure recorded
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_invoke_malformed_content_list_blocks(resilience_log_events):
+    """Same characterization as test_log_baseline_invoke_malformed_content_none, for the
+    tool-use / extended-thinking content shape: response_msg.content is a list of
+    content blocks (not a str), so `.strip()` raises AttributeError just the same —
+    a reachable shape, not a hypothetical one."""
+    key = "https://ev-inv-malformed-list.api/test/model"
+    _reset(key)
+    llm = MagicMock()
+    llm.model_name = "test/model"
+    llm.openai_api_base = "https://ev-inv-malformed-list.api"
+    llm.ainvoke = AsyncMock(return_value=MagicMock(content=[{"type": "text", "text": "hi"}]))
+
+    result = await resilient_invoke(llm, [], node="freeflow_respond")
+
+    assert isinstance(result, str) and len(result) > 5
+    events = _events(resilience_log_events)
+    assert [e["event"] for e in events] == ["llm_call_failed"]
+    assert _shape(events) == [
+        ("llm_call_failed", frozenset({"event", "node", "attempt", "error_type", "fallback_used"})),
+    ]
+    assert key not in _circuit_state
+
+
+# -- resilient_message_invoke ------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_log_baseline_message_invoke_success(resilience_log_events):
+    llm = _make_llm(responses=["hi"], base_url="https://ev-msg-success.api")
+    await resilient_message_invoke(llm, [], node="freeflow_respond")
+    assert _shape(_events(resilience_log_events)) == [
+        ("llm_call", frozenset({"event", "node", "model", "attempt", "latency_ms",
+                                 "status", "wrapper"})),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_message_invoke_retry_then_success(resilience_log_events):
+    call_count = 0
+
+    async def sometimes_raises(messages):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            raise asyncio.TimeoutError("simulated timeout")
+        return MagicMock(content="ok")
+
+    llm = MagicMock()
+    llm.model_name = "test/model"
+    llm.openai_api_base = "https://ev-msg-retry.api"
+    llm.ainvoke = sometimes_raises
+
+    with patch("sage_poc.resilience.asyncio.wait_for", side_effect=_passthrough_wait_for), \
+         patch("sage_poc.resilience.asyncio.sleep", new_callable=AsyncMock):
+        await resilient_message_invoke(llm, [], node="freeflow_respond", max_retries=1)
+
+    assert _shape(_events(resilience_log_events)) == [
+        ("llm_call_retrying", frozenset({"event", "node", "attempt", "backoff_s", "wrapper"})),
+        ("llm_call", frozenset({"event", "node", "model", "attempt", "latency_ms",
+                                 "status", "wrapper"})),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_message_invoke_non_retryable(resilience_log_events):
+    import httpx
+    err = httpx.HTTPStatusError("400", request=MagicMock(), response=MagicMock(status_code=400))
+    llm = _make_llm(side_effects=[err], base_url="https://ev-msg-nonretry.api")
+
+    with patch("sage_poc.resilience.asyncio.sleep", new_callable=AsyncMock):
+        await resilient_message_invoke(llm, [], node="freeflow_respond")
+
+    assert _shape(_events(resilience_log_events)) == [
+        ("llm_message_invoke_failed", frozenset({"event", "node", "attempt", "error_type"})),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_message_invoke_exhausted(resilience_log_events):
+    llm = MagicMock()
+    llm.model_name = "test/model"
+    llm.openai_api_base = "https://ev-msg-exhausted.api"
+    llm.ainvoke = AsyncMock(side_effect=asyncio.TimeoutError)
+
+    with patch("sage_poc.resilience.asyncio.wait_for", side_effect=_passthrough_wait_for), \
+         patch("sage_poc.resilience.asyncio.sleep", new_callable=AsyncMock):
+        await resilient_message_invoke(llm, [], node="freeflow_respond", max_retries=1)
+
+    events = _events(resilience_log_events)
+    assert [e["event"] for e in events] == ["llm_call_retrying", "llm_message_invoke_failed"]
+    assert _shape(events) == [
+        ("llm_call_retrying", frozenset({"event", "node", "attempt", "backoff_s", "wrapper"})),
+        ("llm_message_invoke_failed", frozenset({"event", "node", "retry_count", "error_type"})),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_message_invoke_breaker_open(resilience_log_events):
+    key = "https://ev-msg-breaker.api/test/model"
+    _circuit_state[key] = {
+        "state": "open", "consecutive_failures": CIRCUIT_BREAKER_THRESHOLD,
+        "reset_at": datetime.utcnow() + timedelta(seconds=60),
+    }
+    try:
+        llm = _make_llm(base_url="https://ev-msg-breaker.api")
+        await resilient_message_invoke(llm, [], node="freeflow_respond")
+    finally:
+        _reset(key)
+
+    assert _shape(_events(resilience_log_events)) == [
+        ("circuit_breaker_short_circuit",
+         frozenset({"event", "node", "circuit_breaker_state", "wrapper"})),
+    ]
+
+
+# -- resilient_stream ---------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_log_baseline_stream_success(resilience_log_events):
+    llm = MagicMock()
+    llm.model_name = "test/model"
+    llm.openai_api_base = "https://ev-stream-success.api"
+
+    async def fake_astream(messages):
+        yield MagicMock(content="hi")
+
+    llm.astream = fake_astream
+    await _collect(resilient_stream(llm, [], node="low_confidence_respond"))
+
+    assert _shape(_events(resilience_log_events)) == [
+        ("llm_call", frozenset({"event", "node", "model", "attempt", "latency_ms", "status"})),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_stream_retry_then_success(resilience_log_events):
+    call_count = 0
+
+    def make_astream(messages):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            raise asyncio.TimeoutError("simulated timeout")
+
+        async def _gen():
+            yield MagicMock(content="ok")
+        return _gen()
+
+    llm = MagicMock()
+    llm.model_name = "test/model"
+    llm.openai_api_base = "https://ev-stream-retry.api"
+    llm.astream = make_astream
+
+    with patch("sage_poc.resilience.asyncio.sleep", new_callable=AsyncMock):
+        await _collect(resilient_stream(llm, [], node="low_confidence_respond"))
+
+    assert _shape(_events(resilience_log_events)) == [
+        ("llm_stream_retrying", frozenset({"event", "node", "attempt", "backoff_s"})),
+        ("llm_call", frozenset({"event", "node", "model", "attempt", "latency_ms", "status"})),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_stream_non_retryable(resilience_log_events):
+    import httpx
+    err = httpx.HTTPStatusError("401", request=MagicMock(), response=MagicMock(status_code=401))
+    llm = MagicMock()
+    llm.model_name = "test/model"
+    llm.openai_api_base = "https://ev-stream-nonretry.api"
+
+    async def bad_astream(messages):
+        raise err
+        yield  # pragma: no cover
+
+    llm.astream = bad_astream
+
+    async def fake_wait_for(coro, timeout):
+        return await coro
+
+    with patch("sage_poc.resilience.asyncio.wait_for", side_effect=fake_wait_for):
+        await _collect(resilient_stream(llm, [], node="low_confidence_respond"))
+
+    assert _shape(_events(resilience_log_events)) == [
+        ("llm_stream_failed", frozenset({"event", "node", "error_type"})),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_stream_exhausted_no_fallback(resilience_log_events):
+    llm = MagicMock()
+    llm.model_name = "test/model"
+    llm.openai_api_base = "https://ev-stream-exhausted.api"
+
+    def always_raises(messages):
+        raise asyncio.TimeoutError("simulated timeout")
+
+    llm.astream = always_raises
+
+    with patch.object(_res, "LLM_MAX_RETRIES", 1), \
+         patch("sage_poc.resilience.asyncio.sleep", new_callable=AsyncMock):
+        await _collect(resilient_stream(llm, [], node="low_confidence_respond"))
+
+    events = _events(resilience_log_events)
+    assert [e["event"] for e in events] == ["llm_stream_retrying", "llm_stream_failed"]
+    assert _shape(events) == [
+        ("llm_stream_retrying", frozenset({"event", "node", "attempt", "backoff_s"})),
+        ("llm_stream_failed", frozenset({"event", "node", "retry_count", "fallback_used"})),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_stream_exhausted_fallback_succeeds_no_event(resilience_log_events):
+    """Documents an existing (out-of-scope for Task 6) asymmetry: resilient_stream logs
+    nothing when the fallback LLM stream succeeds, unlike resilient_invoke's llm_call
+    (is_fallback=true). Not touched by this task — captured so a future change to this
+    path shows up as a diff instead of silently drifting."""
+    llm = MagicMock()
+    llm.model_name = "test/model"
+    llm.openai_api_base = "https://ev-stream-fb-ok.api"
+
+    def always_raises(messages):
+        raise asyncio.TimeoutError("simulated timeout")
+
+    llm.astream = always_raises
+
+    async def fallback_astream(messages):
+        yield MagicMock(content="fb")
+
+    fallback = MagicMock()
+    fallback.astream = fallback_astream
+
+    with patch.object(_res, "LLM_MAX_RETRIES", 0), \
+         patch("sage_poc.resilience.asyncio.sleep", new_callable=AsyncMock):
+        await _collect(resilient_stream(
+            llm, [], node="low_confidence_respond", fallback_llm=fallback,
+        ))
+
+    assert _events(resilience_log_events) == []
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_stream_exhausted_fallback_fails(resilience_log_events):
+    llm = MagicMock()
+    llm.model_name = "test/model"
+    llm.openai_api_base = "https://ev-stream-fb-fail.api"
+
+    def always_raises(messages):
+        raise asyncio.TimeoutError("simulated timeout")
+
+    llm.astream = always_raises
+
+    async def bad_fallback_astream(messages):
+        raise RuntimeError("fallback down")
+        yield  # pragma: no cover
+
+    fallback = MagicMock()
+    fallback.astream = bad_fallback_astream
+
+    with patch.object(_res, "LLM_MAX_RETRIES", 0), \
+         patch("sage_poc.resilience.asyncio.sleep", new_callable=AsyncMock):
+        await _collect(resilient_stream(
+            llm, [], node="low_confidence_respond", fallback_llm=fallback,
+        ))
+
+    events = _events(resilience_log_events)
+    assert [e["event"] for e in events] == ["llm_stream_fallback_failed", "llm_stream_failed"]
+    assert _shape(events) == [
+        ("llm_stream_fallback_failed", frozenset({"event", "node", "error_type"})),
+        ("llm_stream_failed", frozenset({"event", "node", "retry_count", "fallback_used"})),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_log_baseline_stream_breaker_open_no_event(resilience_log_events):
+    """Documents an existing (out-of-scope for Task 6) asymmetry: resilient_stream logs
+    nothing on breaker-open, unlike resilient_invoke/resilient_message_invoke's
+    circuit_breaker_short_circuit. Not touched by this task."""
+    key = "https://ev-stream-breaker.api/test/model"
+    _circuit_state[key] = {
+        "state": "open", "consecutive_failures": CIRCUIT_BREAKER_THRESHOLD,
+        "reset_at": datetime.utcnow() + timedelta(seconds=60),
+    }
+    try:
+        llm = MagicMock()
+        llm.model_name = "test/model"
+        llm.openai_api_base = "https://ev-stream-breaker.api"
+        await _collect(resilient_stream(llm, [], node="low_confidence_respond"))
+    finally:
+        _reset(key)
+
+    assert _events(resilience_log_events) == []
 
 
 # ── Model fallback factory ────────────────────────────────────────────────────

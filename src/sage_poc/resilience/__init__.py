@@ -7,7 +7,7 @@ import logging
 import pathlib
 import random
 import time
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, AsyncIterator, Callable
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -54,20 +54,21 @@ def _load_fallbacks() -> list[dict]:
 
 
 def get_fallback_response(node: str, language: str = "en") -> str:
-    """Return a pre-authored fallback response for the given node and language."""
-    fb = _load_fallbacks()
-    for entry in fb:
-        if entry["node"] == node and entry["language"] == language:
-            return entry["response"]
-    for entry in fb:
-        if entry["node"] == node and entry["language"] == "en":
-            return entry["response"]
-    for entry in fb:
-        if entry["node"] == "default" and entry["language"] == language:
-            return entry["response"]
-    for entry in fb:
-        if entry["node"] == "default" and entry["language"] == "en":
-            return entry["response"]
+    """Return a pre-authored fallback response for the given node and language.
+
+    Precedence (most to least specific), resolved as a single lookup table:
+      1. (node, language)      exact match
+      2. (node, "en")          node match, English
+      3. ("default", language) generic, requested language
+      4. ("default", "en")     generic, English
+    fallbacks.json carries no duplicate (node, language) pairs, so a dict built
+    from it is equivalent to the first list match at each tier (verified by
+    test_fallbacks_json_valid's uniqueness expectations).
+    """
+    by_key = {(e["node"], e["language"]): e["response"] for e in _load_fallbacks()}
+    for key in ((node, language), (node, "en"), ("default", language), ("default", "en")):
+        if key in by_key:
+            return by_key[key]
     return "I'm here with you. Please give me just a moment."
 
 
@@ -136,7 +137,15 @@ async def _invoke_once(
     *,
     is_fallback: bool = False,
     meta_out: dict | None = None,
+    log: bool = True,
 ) -> str:
+    """Single timeout-guarded llm.ainvoke() call, shared by every call site that needs
+    exactly one request/response round trip (the warm-fallback LLM at both of
+    resilient_invoke's fallback points, and — via `log=False` — resilient_invoke's own
+    per-attempt primary call, which logs its OWN differently-shaped `llm_call` line
+    around this instead; see resilient_invoke and the log-event baseline in
+    tests/test_resilience.py).
+    """
     response_msg = await asyncio.wait_for(
         llm.ainvoke(messages), timeout=LLM_TIMEOUT_SECONDS
     )
@@ -145,13 +154,108 @@ async def _invoke_once(
             meta_out.update(getattr(response_msg, "response_metadata", None) or {})
         except Exception:  # metadata capture must never fail the call
             pass
-    logger.info(
-        '{"event": "llm_call", "node": "%s", "model": "%s", "is_fallback": %s, "status": "success"}',
-        node,
-        getattr(llm, "model_name", "unknown"),
-        str(is_fallback).lower(),
-    )
+    if log:
+        logger.info(
+            '{"event": "llm_call", "node": "%s", "model": "%s", "is_fallback": %s, "status": "success"}',
+            node,
+            getattr(llm, "model_name", "unknown"),
+            str(is_fallback).lower(),
+        )
     return response_msg.content.strip()
+
+
+async def _try_fallback(
+    fallback_llm: Any | None,
+    messages: list[dict],
+    node: str,
+    meta_out: dict | None,
+) -> str | None:
+    """Attempt the warm-fallback LLM once. Returns its response on success, or None
+    when there is no fallback_llm configured or it also raised — logging
+    llm_invoke_fallback_failed in the latter case. Shared by resilient_invoke's two
+    fallback call sites (breaker-open and exhausted-retries) so both get the same
+    failure visibility; previously only the exhausted-retries site logged this event
+    (Task 6 symmetry fix — the one new emission in this refactor)."""
+    if fallback_llm is None:
+        return None
+    try:
+        return await _invoke_once(fallback_llm, messages, node, is_fallback=True, meta_out=meta_out)
+    except Exception as fb_exc:
+        logger.error(
+            '{"event": "llm_invoke_fallback_failed", "node": "%s", "error_type": "%s"}',
+            node,
+            type(fb_exc).__name__,
+        )
+        return None
+
+
+# ── Shared attempt/backoff/circuit-breaker loop ──────────────────────────────
+
+class _NonRetryable(Exception):
+    """Raised by _attempt_loop when call() fails with a non-retryable error."""
+
+    def __init__(self, exc: Exception, attempt: int) -> None:
+        super().__init__(str(exc))
+        self.exc = exc
+        self.attempt = attempt  # zero-based
+
+
+class _Exhausted(Exception):
+    """Raised by _attempt_loop once every attempt has failed with a retryable error."""
+
+
+async def _attempt_loop(
+    call: Callable[[], AsyncIterator[Any]],
+    *,
+    key: str,
+    max_retries: int,
+    on_retry: Callable[[int, float], None] | None = None,
+    attempt_out: dict[str, int] | None = None,
+) -> AsyncGenerator[Any, None]:
+    """Attempt/backoff/circuit-breaker loop shared by all three public wrappers.
+
+    `call()` returns a FRESH async generator on every invocation (called once per
+    attempt); every item it yields is re-yielded live to our caller. This covers both
+    call shapes in this module: resilient_invoke/resilient_message_invoke's call()
+    yields exactly one item (the response), resilient_stream's call() yields one item
+    per chunk — so a single loop serves single-response and streaming wrappers alike,
+    including retrying the WHOLE per-attempt body (not just the first item) on
+    failure, matching pre-refactor per-wrapper behavior exactly.
+
+    On natural completion (call()'s generator exhausts without raising), circuit
+    breaker success is recorded and this generator returns normally. On a retryable
+    failure, breaker failure is recorded, backoff is computed and (if attempts
+    remain) `on_retry(attempt, backoff)` fires before sleeping and starting a brand
+    new attempt. A non-retryable failure raises _NonRetryable(exc, attempt)
+    immediately; exhausting every attempt on retryable failures raises _Exhausted().
+
+    Deliberately owns none of the logging: each wrapper supplies its own
+    success/retry/exhaustion log SHAPE (they differ per wrapper — see the log-event
+    baseline in tests/test_resilience.py) via `on_retry` and by inspecting what this
+    generator yielded / which exception it raised. `attempt_out` (if given) is set
+    in place to {"attempt": N} — the zero-based attempt index that succeeded — since
+    the number of items call() yields is unrelated to which attempt succeeded (a
+    single-response wrapper yields exactly one item no matter how many attempts it
+    took; a failed attempt yields nothing at all).
+    """
+    for attempt in range(max_retries + 1):
+        try:
+            async for item in call():
+                yield item
+            _record_success(key)
+            if attempt_out is not None:
+                attempt_out["attempt"] = attempt
+            return
+        except Exception as exc:
+            if not _is_retryable(exc):
+                raise _NonRetryable(exc, attempt) from exc
+            _record_failure(key)
+            if attempt < max_retries:
+                backoff = _backoff(attempt)
+                if on_retry is not None:
+                    on_retry(attempt, backoff)
+                await asyncio.sleep(backoff)
+    raise _Exhausted()
 
 
 # ── resilient_invoke ──────────────────────────────────────────────────────────
@@ -177,7 +281,6 @@ async def resilient_invoke(
         getattr(llm, "model_name", "unknown"),
         getattr(llm, "openai_api_base", ""),
     )
-    start = time.monotonic()
 
     if _is_open(key):
         logger.warning(
@@ -185,78 +288,67 @@ async def resilient_invoke(
             '"circuit_breaker_state": "open"}',
             node,
         )
-        if fallback_llm is not None:
-            try:
-                return await _invoke_once(
-                    fallback_llm, messages, node, is_fallback=True, meta_out=meta_out
-                )
-            except Exception:
-                pass
+        result = await _try_fallback(fallback_llm, messages, node, meta_out)
+        if result is not None:
+            return result
         return get_fallback_response(node, language)
 
-    for attempt in range(LLM_MAX_RETRIES + 1):
-        try:
-            response_msg = await asyncio.wait_for(
-                llm.ainvoke(messages), timeout=LLM_TIMEOUT_SECONDS
-            )
-            latency_ms = int((time.monotonic() - start) * 1000)
-            _record_success(key)
-            logger.info(
-                '{"event": "llm_call", "node": "%s", "model": "%s", "attempt": %d, '
-                '"latency_ms": %d, "status": "success", "timeout_ms": %d, '
-                '"circuit_breaker_state": "closed"}',
-                node,
-                getattr(llm, "model_name", "unknown"),
-                attempt + 1,
-                latency_ms,
-                int(LLM_TIMEOUT_SECONDS * 1000),
-            )
-            if meta_out is not None:
-                try:
-                    meta_out.update(getattr(response_msg, "response_metadata", None) or {})
-                except Exception:  # metadata capture must never fail the call
-                    pass
-            return response_msg.content.strip()
-        except Exception as exc:
-            if not _is_retryable(exc):
-                logger.error(
-                    '{"event": "llm_call_failed", "node": "%s", "attempt": %d, '
-                    '"error_type": "non_retryable", "fallback_used": "fallback_response"}',
-                    node,
-                    attempt + 1,
-                )
-                return get_fallback_response(node, language)
-            _record_failure(key)
-            if attempt < LLM_MAX_RETRIES:
-                backoff = _backoff(attempt)
-                logger.warning(
-                    '{"event": "llm_call_retrying", "node": "%s", "attempt": %d, '
-                    '"backoff_s": %.2f}',
-                    node,
-                    attempt + 1,
-                    backoff,
-                )
-                await asyncio.sleep(backoff)
+    async def _call() -> AsyncGenerator[str, None]:
+        # log=False: the shared success shape below (attempt/latency_ms/timeout_ms/
+        # circuit_breaker_state) differs from _invoke_once's own is_fallback shape,
+        # so this attempt logs itself once _attempt_loop confirms success.
+        yield await _invoke_once(llm, messages, node, is_fallback=False, meta_out=meta_out, log=False)
 
-    if fallback_llm is not None:
-        try:
-            return await _invoke_once(
-                fallback_llm, messages, node, is_fallback=True, meta_out=meta_out
-            )
-        except Exception as fb_exc:
-            logger.error(
-                '{"event": "llm_invoke_fallback_failed", "node": "%s", "error_type": "%s"}',
-                node,
-                type(fb_exc).__name__,
-            )
+    def _on_retry(attempt: int, backoff: float) -> None:
+        logger.warning(
+            '{"event": "llm_call_retrying", "node": "%s", "attempt": %d, "backoff_s": %.2f}',
+            node,
+            attempt + 1,
+            backoff,
+        )
 
-    logger.error(
-        '{"event": "llm_call_failed", "node": "%s", "retry_count": %d, '
-        '"fallback_used": "fallback_response"}',
+    start = time.monotonic()
+    attempt_out: dict[str, int] = {}
+    content: str | None = None
+    try:
+        async for item in _attempt_loop(
+            _call, key=key, max_retries=LLM_MAX_RETRIES, on_retry=_on_retry,
+            attempt_out=attempt_out,
+        ):
+            content = item
+    except _NonRetryable as nr:
+        logger.error(
+            '{"event": "llm_call_failed", "node": "%s", "attempt": %d, '
+            '"error_type": "non_retryable", "fallback_used": "fallback_response"}',
+            node,
+            nr.attempt + 1,
+        )
+        return get_fallback_response(node, language)
+    except _Exhausted:
+        result = await _try_fallback(fallback_llm, messages, node, meta_out)
+        if result is not None:
+            return result
+        logger.error(
+            '{"event": "llm_call_failed", "node": "%s", "retry_count": %d, '
+            '"fallback_used": "fallback_response"}',
+            node,
+            LLM_MAX_RETRIES,
+        )
+        return get_fallback_response(node, language)
+
+    latency_ms = int((time.monotonic() - start) * 1000)
+    logger.info(
+        '{"event": "llm_call", "node": "%s", "model": "%s", "attempt": %d, '
+        '"latency_ms": %d, "status": "success", "timeout_ms": %d, '
+        '"circuit_breaker_state": "closed"}',
         node,
-        LLM_MAX_RETRIES,
+        getattr(llm, "model_name", "unknown"),
+        attempt_out["attempt"] + 1,
+        latency_ms,
+        int(LLM_TIMEOUT_SECONDS * 1000),
     )
-    return get_fallback_response(node, language)
+    assert content is not None  # _attempt_loop's call() always yields exactly one item
+    return content
 
 
 # ── resilient_message_invoke ──────────────────────────────────────────────────
@@ -296,51 +388,56 @@ async def resilient_message_invoke(
             node,
         )
         return None
+
+    async def _call() -> AsyncGenerator[Any, None]:
+        yield await asyncio.wait_for(llm.ainvoke(messages), timeout=LLM_TIMEOUT_SECONDS)
+
+    def _on_retry(attempt: int, backoff: float) -> None:
+        # Same event name as resilient_invoke so one grep counts retries across BOTH
+        # wrappers per run. A retried call reads as a slow call; in the ① baseline this
+        # makes rate-limit retries separable from genuine pool contention.
+        logger.warning(
+            '{"event": "llm_call_retrying", "node": "%s", "attempt": %d, '
+            '"backoff_s": %.2f, "wrapper": "message_invoke"}',
+            node, attempt + 1, backoff,
+        )
+
     start = time.monotonic()
-    for attempt in range(max_retries + 1):
-        try:
-            response_msg = await asyncio.wait_for(
-                llm.ainvoke(messages), timeout=LLM_TIMEOUT_SECONDS
-            )
-            latency_ms = int((time.monotonic() - start) * 1000)
-            _record_success(key)
-            # Parity with resilient_invoke's llm_call log so the freeflow tool-loop
-            # generation (the single biggest LLM cost) is attributable in the latency baseline.
-            logger.info(
-                '{"event": "llm_call", "node": "%s", "model": "%s", "attempt": %d, '
-                '"latency_ms": %d, "status": "success", "wrapper": "message_invoke"}',
-                node,
-                getattr(llm, "model_name", "unknown"),
-                attempt + 1,
-                latency_ms,
-            )
-            return response_msg
-        except Exception as exc:
-            if not _is_retryable(exc):
-                logger.error(
-                    '{"event": "llm_message_invoke_failed", "node": "%s", "attempt": %d, '
-                    '"error_type": "non_retryable"}',
-                    node, attempt + 1,
-                )
-                return None
-            _record_failure(key)
-            if attempt < max_retries:
-                backoff = _backoff(attempt)
-                # Same event name as resilient_invoke so one grep counts retries across BOTH
-                # wrappers per run. A retried call reads as a slow call; in the ① baseline this
-                # makes rate-limit retries separable from genuine pool contention.
-                logger.warning(
-                    '{"event": "llm_call_retrying", "node": "%s", "attempt": %d, '
-                    '"backoff_s": %.2f, "wrapper": "message_invoke"}',
-                    node, attempt + 1, backoff,
-                )
-                await asyncio.sleep(backoff)
-    logger.error(
-        '{"event": "llm_message_invoke_failed", "node": "%s", "retry_count": %d, '
-        '"error_type": "exhausted"}',
-        node, max_retries,
+    attempt_out: dict[str, int] = {}
+    response_msg: Any = None
+    try:
+        async for item in _attempt_loop(
+            _call, key=key, max_retries=max_retries, on_retry=_on_retry,
+            attempt_out=attempt_out,
+        ):
+            response_msg = item
+    except _NonRetryable as nr:
+        logger.error(
+            '{"event": "llm_message_invoke_failed", "node": "%s", "attempt": %d, '
+            '"error_type": "non_retryable"}',
+            node, nr.attempt + 1,
+        )
+        return None
+    except _Exhausted:
+        logger.error(
+            '{"event": "llm_message_invoke_failed", "node": "%s", "retry_count": %d, '
+            '"error_type": "exhausted"}',
+            node, max_retries,
+        )
+        return None
+
+    latency_ms = int((time.monotonic() - start) * 1000)
+    # Parity with resilient_invoke's llm_call log so the freeflow tool-loop
+    # generation (the single biggest LLM cost) is attributable in the latency baseline.
+    logger.info(
+        '{"event": "llm_call", "node": "%s", "model": "%s", "attempt": %d, '
+        '"latency_ms": %d, "status": "success", "wrapper": "message_invoke"}',
+        node,
+        getattr(llm, "model_name", "unknown"),
+        attempt_out["attempt"] + 1,
+        latency_ms,
     )
-    return None
+    return response_msg
 
 
 # ── resilient_stream ──────────────────────────────────────────────────────────
@@ -364,68 +461,70 @@ async def resilient_stream(
         yield get_fallback_response(node, language)
         return
 
-    for attempt in range(LLM_MAX_RETRIES + 1):
-        try:
-            stream = llm.astream(messages)
-            first = await asyncio.wait_for(
-                stream.__anext__(), timeout=LLM_TIMEOUT_SECONDS
-            )
-            if isinstance(first.content, str) and first.content:
-                yield first.content
-            # POC: no per-chunk timeout after first chunk; mid-stream hangs are
-            # bounded by the caller's outer graph timeout, not this wrapper.
-            async for chunk in stream:
-                if isinstance(chunk.content, str) and chunk.content:
-                    yield chunk.content
-            latency_ms = int((time.monotonic() - start) * 1000)
-            _record_success(key)
-            logger.info(
-                '{"event": "llm_call", "node": "%s", "model": "%s", "attempt": %d, '
-                '"latency_ms": %d, "status": "success"}',
-                node,
-                getattr(llm, "model_name", "unknown"),
-                attempt + 1,
-                latency_ms,
-            )
-            return
-        except Exception as exc:
-            if not _is_retryable(exc):
-                logger.error(
-                    '{"event": "llm_stream_failed", "node": "%s", '
-                    '"error_type": "non_retryable"}',
-                    node,
-                )
-                yield get_fallback_response(node, language)
+    async def _call() -> AsyncGenerator[str, None]:
+        stream = llm.astream(messages)
+        first = await asyncio.wait_for(stream.__anext__(), timeout=LLM_TIMEOUT_SECONDS)
+        if isinstance(first.content, str) and first.content:
+            yield first.content
+        # POC: no per-chunk timeout after first chunk; mid-stream hangs are
+        # bounded by the caller's outer graph timeout, not this wrapper. This whole
+        # body (first chunk through the last) is one retry attempt: a failure here,
+        # even after some chunks were already re-yielded below, restarts the entire
+        # stream on the next attempt — unchanged from pre-refactor behavior.
+        async for chunk in stream:
+            if isinstance(chunk.content, str) and chunk.content:
+                yield chunk.content
+
+    def _on_retry(attempt: int, backoff: float) -> None:
+        logger.warning(
+            '{"event": "llm_stream_retrying", "node": "%s", "attempt": %d, "backoff_s": %.2f}',
+            node,
+            attempt + 1,
+            backoff,
+        )
+
+    attempt_out: dict[str, int] = {}
+    try:
+        async for chunk in _attempt_loop(
+            _call, key=key, max_retries=LLM_MAX_RETRIES, on_retry=_on_retry,
+            attempt_out=attempt_out,
+        ):
+            yield chunk
+    except _NonRetryable:
+        logger.error(
+            '{"event": "llm_stream_failed", "node": "%s", "error_type": "non_retryable"}',
+            node,
+        )
+        yield get_fallback_response(node, language)
+        return
+    except _Exhausted:
+        if fallback_llm is not None:
+            try:
+                async for chunk in fallback_llm.astream(messages):
+                    if isinstance(chunk.content, str) and chunk.content:
+                        yield chunk.content
                 return
-            _record_failure(key)
-            if attempt < LLM_MAX_RETRIES:
-                backoff = _backoff(attempt)
-                logger.warning(
-                    '{"event": "llm_stream_retrying", "node": "%s", "attempt": %d, '
-                    '"backoff_s": %.2f}',
+            except Exception as fb_exc:
+                logger.error(
+                    '{"event": "llm_stream_fallback_failed", "node": "%s", "error_type": "%s"}',
                     node,
-                    attempt + 1,
-                    backoff,
+                    type(fb_exc).__name__,
                 )
-                await asyncio.sleep(backoff)
+        logger.error(
+            '{"event": "llm_stream_failed", "node": "%s", "retry_count": %d, '
+            '"fallback_used": "fallback_response"}',
+            node,
+            LLM_MAX_RETRIES,
+        )
+        yield get_fallback_response(node, language)
+        return
 
-    if fallback_llm is not None:
-        try:
-            async for chunk in fallback_llm.astream(messages):
-                if isinstance(chunk.content, str) and chunk.content:
-                    yield chunk.content
-            return
-        except Exception as fb_exc:
-            logger.error(
-                '{"event": "llm_stream_fallback_failed", "node": "%s", "error_type": "%s"}',
-                node,
-                type(fb_exc).__name__,
-            )
-
-    logger.error(
-        '{"event": "llm_stream_failed", "node": "%s", "retry_count": %d, '
-        '"fallback_used": "fallback_response"}',
+    latency_ms = int((time.monotonic() - start) * 1000)
+    logger.info(
+        '{"event": "llm_call", "node": "%s", "model": "%s", "attempt": %d, '
+        '"latency_ms": %d, "status": "success"}',
         node,
-        LLM_MAX_RETRIES,
+        getattr(llm, "model_name", "unknown"),
+        attempt_out["attempt"] + 1,
+        latency_ms,
     )
-    yield get_fallback_response(node, language)
