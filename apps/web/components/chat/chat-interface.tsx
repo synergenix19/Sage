@@ -4,6 +4,7 @@ import { mapSdkRole, type ChatSession, type MessageRole, type Source } from '@cd
 import { FIRST_CHAT_EVENT } from '@/components/pwa/install-prompt'
 import { SERVER_ERROR_SIGNAL } from '@/lib/constants'
 import { hasCrisisSignal, stripCrisisSignal } from '@/lib/crisis'
+import { extractSageMetadata } from '@/lib/sage-headers'
 import { useLocaleStore } from '@/lib/stores/locale-store'
 import { seedPresenceBag } from '@/lib/presence-phrases'
 import { ChatHeader } from './chat-header'
@@ -109,39 +110,23 @@ export function useStreamingChat(sessionId: string | undefined, userId: string |
         }
 
         const aiSupabaseId = res.headers.get('X-Sage-Ai-Message-Id') ?? undefined
-        const newCrisisState = res.headers.get('X-Sage-Crisis-State')
-        if (newCrisisState) setCrisisState(newCrisisState)
+
+        // Single shared parse of every X-Sage-* metadata header (lib/sage-headers.ts) —
+        // the persist path (app/api/chat/route.ts) parses the SAME headers through the
+        // SAME function, so stored and rendered metadata can never diverge (Task 6a).
+        const sageMetadata = extractSageMetadata(res.headers)
+        if (sageMetadata.crisisState) setCrisisState(sageMetadata.crisisState)
         // Authoritative text direction from the backend; functional, present on every turn.
-        const aiDirectionRaw = res.headers.get('X-Sage-Direction')
-        const aiDirection: 'ltr' | 'rtl' | undefined =
-          aiDirectionRaw === 'rtl' || aiDirectionRaw === 'ltr' ? aiDirectionRaw : undefined
-
-        // KB source cards (X-Sage-Sources) — a raw, unvalidated JSON string forwarded
-        // verbatim from the backend by the route. A malformed header must never crash
-        // the render, so a parse failure silently falls back to "no sources" rather
-        // than surfacing an error to the user.
-        const sourcesHeaderRaw = res.headers.get('X-Sage-Sources')
-        let aiSources: Source[] | undefined
-        if (sourcesHeaderRaw) {
-          try {
-            aiSources = JSON.parse(sourcesHeaderRaw)
-          } catch {
-            aiSources = undefined
-          }
-        }
-
-        // Skill-delivered media (X-Sage-Skill-Media) — a SEPARATE header from X-Sage-Sources
-        // (skill media is not a retrieved KB passage). Appended to the message's sources as a
-        // video entry so it renders through the same SourceCard/VideoEmbed. Malformed → skipped,
-        // never crashes the render (same discipline as X-Sage-Sources).
-        const skillMediaRaw = res.headers.get('X-Sage-Skill-Media')
-        if (skillMediaRaw) {
-          try {
-            const m = JSON.parse(skillMediaRaw)
-            const entry: Source = { type: m.type, title: m.title ?? '', url: m.url, citation: m.provider ?? '' }
-            aiSources = [...(aiSources ?? []), entry]
-          } catch { /* malformed → ignore */ }
-        }
+        const aiDirection = sageMetadata.direction
+        // KB sources (already merged with skill-delivered media, if present). sageMetadata.sources
+        // is typed as Json, not Source[] (lib/sage-headers.ts) — it is unvalidated external data,
+        // confirmed only by "did JSON.parse succeed". This is the render-side refinement to
+        // Source[]: Array.isArray guards against ever handing MessageBubble a non-array value
+        // (which would throw when it tries to map over it) — same "malformed → no sources"
+        // discipline the header parse itself already applies.
+        const aiSources: Source[] | undefined = Array.isArray(sageMetadata.sources)
+          ? (sageMetadata.sources as unknown as Source[])
+          : undefined
 
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
