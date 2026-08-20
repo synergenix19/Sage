@@ -16,7 +16,7 @@ for destination selection, and that is exactly what this refactor changes the
 internal shape of.
 
 Amendment 4 spectrum coverage (per-class counts, cited in the PR body). Each case
-carries exactly one `category` string -- this is a partition of the 88 cases below,
+carries exactly one `category` string -- this is a partition of the 89 cases below,
 not an overlapping per-axis tally:
   - Arabic-script turns:            7   (detected_language="ar")
   - Arabizi turns:                  6   (detected_language="az")
@@ -30,8 +30,8 @@ not an overlapping per-axis tally:
   - hr states:                     18   (hr_terminal_step, hr_referral_delivered,
                                           psychotic_referral_delivered, one-shot guards)
   - blended / secondary intent:    10
-  - flag-on / flag-off pairs:      16   (one pair per _cfg-gated rung, every router)
-  Total: 88 cases.
+  - flag-on / flag-off pairs:      17   (one pair per _cfg-gated rung, every router)
+  Total: 89 cases.
 """
 import pytest
 
@@ -178,6 +178,16 @@ CORPUS = [
      _route_after_intent,
      dict(primary_intent="general_chat", modality_screen_pending={"x": 1}, active_skill_id="cbt_thought_record"),
      {"MODALITY_REQUEST_ROUTING_ENABLED": True}, "freeflow"),
+    ("intent_emr_modality_screen_pending_flag_off", "flag_pair",
+     # Flag-off partner for intent_emr_modality_screen_pending_on: same otherwise-matching state
+     # (modality_screen_pending set, no active_skill_id) but MODALITY_REQUEST_ROUTING_ENABLED off,
+     # so the row's enabled_fn short-circuits and the turn falls through to the router's final
+     # default. Expectation verified against origin/master's _route_after_intent directly
+     # (9cb753ed): with the flag off nothing else in the function reads modality_screen_pending,
+     # so it falls through unconsumed to `return "freeflow"`.
+     _route_after_intent,
+     dict(primary_intent="general_chat", modality_screen_pending={"x": 1}, active_skill_id=None),
+     {"MODALITY_REQUEST_ROUTING_ENABLED": False}, "freeflow"),
     ("intent_scope_refusal", "crisis_flags",
      _route_after_intent, dict(primary_intent="scope_refusal"), {}, "gate"),
     ("intent_jailbreak", "crisis_flags",
