@@ -180,9 +180,11 @@ describe('useSessionAudit — truncated-bootstrap fix (latest-session-first)', (
 
     await waitFor(() => expect(result.current.activeSessionId).toBe('sess-current'))
     // Both of sess-current's rows must be present — not just the one that happened
-    // to survive the global top-20 slice.
+    // to survive the global top-20 slice — AND in turn_number ascending order (the
+    // fix's ordering key for the scoped fetch, `.order('turn_number', { ascending:
+    // true })`; not sorted here, so this also pins the order, not just completeness).
     expect(result.current.rows).toHaveLength(2)
-    expect(result.current.rows.map(r => r.turn_number).sort()).toEqual([1, 2])
+    expect(result.current.rows.map(r => r.turn_number)).toEqual([1, 2])
   })
 })
 
