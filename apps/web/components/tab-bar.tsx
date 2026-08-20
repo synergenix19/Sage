@@ -4,12 +4,15 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@cdai/ui'
 import { tenant } from '@cdai/tenant'
 import { useLocaleStore } from '@/lib/stores/locale-store'
+import { t } from '@/lib/copy'
 
+// label/labelAr moved to lib/copy.ts under tabBar.chat / tabBar.progress / tabBar.biomarker —
+// `id` is the lookup key both TabBar and AppSideNav use against that registry.
 export const ALL_TABS = [
-  { href: '/chat', label: 'Chat', labelAr: 'محادثة' },
-  { href: '/progress', label: 'Progress', labelAr: 'تقدمي' },
+  { href: '/chat', id: 'chat' as const },
+  { href: '/progress', id: 'progress' as const },
   ...(tenant.capabilities.voiceBiomarker
-    ? [{ href: '/biomarker', label: 'Voice', labelAr: 'صوت' }]
+    ? [{ href: '/biomarker', id: 'biomarker' as const }]
     : []),
 ]
 
@@ -31,7 +34,7 @@ export function TabBar({ className }: { className?: string }) {
                 : 'text-[var(--color-text-secondary)]'
             )}
           >
-            <span>{locale === 'ar' ? tab.labelAr : tab.label}</span>
+            <span>{t(`tabBar.${tab.id}`, locale)}</span>
             {active && <span className="mt-0.5 h-0.5 w-4 rounded-full bg-[var(--color-primary)]" />}
           </Link>
         )

@@ -10,6 +10,7 @@ import { CrisisHelpPanel } from './crisis-help-panel'
 import { TestingGuidePanel } from './testing-guide-panel'
 import { LanguageToggle } from '@/components/auth/language-toggle'
 import { useLocaleStore } from '@/lib/stores/locale-store'
+import { t } from '@/lib/copy'
 
 export function ChatHeader({ session }: { session: ChatSession | null }) {
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -58,7 +59,7 @@ export function ChatHeader({ session }: { session: ChatSession | null }) {
           <button
             onClick={handleNewChat}
             className="md:hidden flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full hover:bg-[var(--color-surface-tinted)]"
-            aria-label={locale === 'ar' ? 'محادثة جديدة' : 'New conversation'}
+            aria-label={t('chatHeader.newConversationAriaLabel', locale)}
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
               <path
@@ -74,7 +75,7 @@ export function ChatHeader({ session }: { session: ChatSession | null }) {
           <button
             onClick={() => setHistoryOpen(true)}
             className="md:hidden flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full hover:bg-[var(--color-surface-tinted)]"
-            aria-label={locale === 'ar' ? 'السجل' : 'History'}
+            aria-label={t('chatHeader.historyAriaLabel', locale)}
           >
             🕐
           </button>
@@ -91,7 +92,7 @@ export function ChatHeader({ session }: { session: ChatSession | null }) {
           <button
             onClick={() => setSettingsOpen(true)}
             className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full hover:bg-[var(--color-surface-tinted)]"
-            aria-label={locale === 'ar' ? 'الإعدادات' : 'Settings'}
+            aria-label={t('chatHeader.settingsAriaLabel', locale)}
           >
             ⚙
           </button>

@@ -4,11 +4,13 @@ import { ResponsivePanel, cn } from '@cdai/ui'
 import { useLocaleStore } from '@/lib/stores/locale-store'
 import { useTextSizeStore, type TextSize } from '@/lib/stores/text-size-store'
 import { signOutUser } from '@/lib/auth-actions'
+import { t } from '@/lib/copy'
 
-const TEXT_SIZES: { value: TextSize; label: string; labelAr: string }[] = [
-  { value: 'sm', label: 'Small',  labelAr: 'صغير'  },
-  { value: 'md', label: 'Medium', labelAr: 'متوسط' },
-  { value: 'lg', label: 'Large',  labelAr: 'كبير'  },
+// label/labelAr moved to lib/copy.ts under settingsPanel.textSize.<value>
+const TEXT_SIZES: { value: TextSize }[] = [
+  { value: 'sm' },
+  { value: 'md' },
+  { value: 'lg' },
 ]
 
 export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -34,15 +36,15 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
           onClick={toggleLocale}
           className="min-h-[44px] rounded-xl border border-[var(--color-border)] px-4 py-3 text-start text-sm"
         >
-          {locale === 'en' ? 'Language: English → العربية' : 'اللغة: العربية → English'}
+          {t('settingsPanel.toggleLocale', locale)}
         </button>
 
         <div>
           <p className="mb-2 text-xs text-[var(--color-text-secondary)]">
-            {locale === 'en' ? 'Text size' : 'حجم النص'}
+            {t('settingsPanel.textSizeLabel', locale)}
           </p>
           <div className="flex gap-2">
-            {TEXT_SIZES.map(({ value, label, labelAr }) => (
+            {TEXT_SIZES.map(({ value }) => (
               <button
                 key={value}
                 onClick={() => setSize(value)}
@@ -53,7 +55,7 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
                     : 'border-[var(--color-border)] text-[var(--color-text-secondary)]'
                 )}
               >
-                {locale === 'en' ? label : labelAr}
+                {t(`settingsPanel.textSize.${value}`, locale)}
               </button>
             ))}
           </div>
@@ -63,7 +65,7 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
           onClick={signOut}
           className="min-h-[44px] rounded-xl border border-[var(--color-crisis)] px-4 py-3 text-start text-sm text-[var(--color-crisis)]"
         >
-          {locale === 'en' ? 'Sign out' : 'تسجيل الخروج'}
+          {t('settingsPanel.signOut', locale)}
         </button>
       </div>
     </ResponsivePanel>

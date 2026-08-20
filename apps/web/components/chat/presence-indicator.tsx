@@ -4,6 +4,7 @@ import { useLocaleStore } from '@/lib/stores/locale-store'
 import { PRESENCE_POOL, PRESENCE_SLOW, PRESENCE_DEGRADED, nextPresencePhraseIndex } from '@/lib/presence-phrases'
 import { PRESENCE_PHRASE_MS, PRESENCE_SLOW_MS, PRESENCE_DEGRADED_MS } from '@/lib/presence-constants'
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion'
+import { t } from '@/lib/copy'
 
 type Phase = 'dot' | 'phrase' | 'slow' | 'degraded'
 
@@ -40,7 +41,7 @@ export function PresenceIndicator({ onPhrase }: { onPhrase?: (id: number) => voi
   return (
     <div
       role="status"
-      aria-label={locale === 'ar' ? 'Sage معك' : 'Sage is with you'}
+      aria-label={t('presenceIndicator.ariaLabel', locale)}
       className={
         'flex items-center justify-start gap-2 ' +
         // The whole row (dot + phrase) breathes opacity together — one heartbeat.
