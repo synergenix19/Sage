@@ -18,12 +18,6 @@ import logging
 import pathlib
 import numpy as np
 
-# Hoisted (P2 Task 5): this was 3 separate mid-function `import sage_poc.nodes.skill_select
-# as _ss` statements (_ensure_s3_ready, get_embedding, check_s3_bilingual). skill_select does
-# not import this module (checked: no circular import), so one module-level import replaces
-# all three call sites.
-import sage_poc.nodes.skill_select as _ss
-
 _log = logging.getLogger(__name__)
 
 _PHRASES_PATH = pathlib.Path(__file__).parent / "crisis_phrases.json"
@@ -49,6 +43,7 @@ def _ensure_s3_ready() -> bool:
     if _embedding_index is not None:
         return True
     try:
+        import sage_poc.nodes.skill_select as _ss  # noqa: PLC0415
         _ss._ensure_semantic_ready()  # ensure model is loaded
         texts = _load_phrase_texts()
         # Batch-encode all phrases in one call — matches skill_select's encoding pattern.
@@ -71,6 +66,7 @@ def get_embedding(text: str) -> list[float]:
     # Use _embed_model directly to avoid triggering _ensure_semantic_ready(), which
     # rebuilds the 20-skill embedding matrix (~5-8s on CPU). S3 only needs the model
     # loaded (guaranteed by _ensure_s3_ready()) and the phrase index (built above).
+    import sage_poc.nodes.skill_select as _ss  # noqa: PLC0415
     if _ss._embed_model is None:
         _ss._ensure_semantic_ready()
     result = _ss._embed_model.encode([text], normalize_embeddings=True)[0]
@@ -140,6 +136,7 @@ def get_embeddings(texts: list[str]) -> list[list[float]]:
     embedding by up to ~1.5e-07 versus encoding it alone (measured; PR #566 fix-round-1, F1).
     cached_get_embeddings below does NOT call this function for its miss path for exactly
     this reason -- see its docstring."""
+    import sage_poc.nodes.skill_select as _ss  # noqa: PLC0415
     if _ss._embed_model is None:
         _ss._ensure_semantic_ready()
     result = _ss._embed_model.encode(texts, normalize_embeddings=True)
