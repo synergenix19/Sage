@@ -106,13 +106,7 @@ async def write_identity_substitution_audit(
         "user_id":                user_id,
     }
     try:
-        r = await _get_audit_client().post(
-            f"{conn.url}/rest/v1/identity_substitution_audit",
-            headers=conn.headers,
-            json=row,
-            timeout=5.0,
-        )
-        r.raise_for_status()
+        await _supabase_insert("identity_substitution_audit", row)
     except httpx.HTTPStatusError as exc:
         logger.error(
             "identity_substitution_audit write failed: %s — body: %s", exc, exc.response.text
@@ -121,20 +115,22 @@ async def write_identity_substitution_audit(
         logger.error("identity_substitution_audit write failed: %s", exc)
 
 
-async def _supabase_insert(table: str, row: dict) -> None:
+async def _supabase_insert(table: str, row: dict, prefer: str = "return=minimal") -> None:
     """Minimal reusable POST to a Supabase REST table. Raises on failure — callers
     that need fail-open behaviour (e.g. shadow_eval) must catch around this call.
 
     Mirrors the base URL / service key / headers used by
     write_identity_substitution_audit and _write_session_audit_row, but is not
-    tied to a specific table's row shape.
+    tied to a specific table's row shape. `prefer` overrides the default
+    "Prefer" header ("return=minimal") — session_audit writes pass
+    "resolution=merge-duplicates" for their upsert semantics.
     """
     conn = _conn()
     if not conn.url or not conn.key:
         raise RuntimeError("Supabase URL/service key not configured")
     r = await _get_audit_client().post(
         f"{conn.url}/rest/v1/{table}",
-        headers=conn.headers,
+        headers={**conn.headers, "Prefer": prefer},
         json=row,
         timeout=5.0,
     )
@@ -327,15 +323,8 @@ async def _write_session_audit_row(row: dict, prefer: str, label: str) -> None:
         )
         return
 
-    conn = _conn()
     try:
-        r = await _get_audit_client().post(
-            f"{conn.url}/rest/v1/session_audit",
-            headers={**conn.headers, "Prefer": prefer},
-            json=row,
-            timeout=5.0,
-        )
-        r.raise_for_status()
+        await _supabase_insert("session_audit", row, prefer=prefer)
     except httpx.HTTPStatusError as exc:
         # Pre-check passed but write failed — this must not be silent.
         logger.critical(
