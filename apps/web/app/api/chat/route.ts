@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { SERVER_ERROR_SIGNAL } from '@/lib/constants'
 import { hasCrisisSignal, stripCrisisSignal } from '@/lib/crisis'
+import type { Json } from '@cdai/types'
 import { z } from 'zod'
 
 const MessageSchema = z.object({
@@ -162,7 +163,7 @@ export async function POST(req: Request) {
     return Number.isNaN(n) ? null : n
   })()
   const promptLayers  = parseJsonHeader<string[] | null>(sageRes.headers.get('X-Sage-Prompt-Layers'), null)
-  const tokenUsage    = parseJsonHeader<object | null>(sageRes.headers.get('X-Sage-Token-Usage'), null)
+  const tokenUsage    = parseJsonHeader<Json | null>(sageRes.headers.get('X-Sage-Token-Usage'), null)
   const turnNumberStr = sageRes.headers.get('X-Sage-Turn-Number')
   const parsedTurn    = turnNumberStr ? parseInt(turnNumberStr, 10) : NaN
   const turnNumber    = Number.isNaN(parsedTurn) ? null : parsedTurn
@@ -200,7 +201,7 @@ export async function POST(req: Request) {
       // sourcesHeader list (stored == rendered) — never the raw passage set. Parsed
       // here (not re-derived) so the persisted artifact is byte-identical to what the
       // live turn rendered from the same header string.
-      let parsedSources: unknown = null
+      let parsedSources: Json = null
       if (sourcesHeader) {
         try { parsedSources = JSON.parse(sourcesHeader) } catch { parsedSources = null }
       }

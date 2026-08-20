@@ -1,12 +1,14 @@
 'use client'
 import { startTransition, useCallback, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import type { Database } from '@cdai/types'
 
-export interface SessionSummary {
-  id: string
-  title: string | null
-  updated_at: string
-}
+// Derives from the same generated `chat_sessions` row as ChatSession (packages/types) —
+// `title` is the one renamed field (DB column is `name`), everything else is row-shape.
+export type SessionSummary =
+  Pick<Database['public']['Tables']['chat_sessions']['Row'], 'id' | 'updated_at'> & {
+    title: string | null
+  }
 
 export function useChatSessions(): {
   sessions: SessionSummary[]
@@ -43,7 +45,7 @@ export function useChatSessions(): {
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false })
         .limit(20)
-        .then(({ data, error: err }: { data: Array<{ id: string; name: string | null; updated_at: string }> | null; error: { message: string } | null }) => {
+        .then(({ data, error: err }) => {
           if (cancelled) return
           if (err) {
             setError(err.message)

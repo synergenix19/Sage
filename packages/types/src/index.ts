@@ -1,3 +1,6 @@
+export type { Database, Json } from './database.types'
+import type { Database } from './database.types'
+
 export type Locale = 'en' | 'ar'
 export type UserRole = 'parent' | 'service_user' | 'professional'
 export type MessageRole = 'user' | 'ai' | 'system' | 'crisis'
@@ -18,13 +21,10 @@ export interface UserProfile {
   createdAt: string
 }
 
-export interface ChatSession {
-  id: string
-  userId: string
-  name: string | null
-  createdAt: string
-  updatedAt: string
-}
+// Aligned to the generated `chat_sessions` row shape (snake_case) rather than a hand-rolled
+// camelCase interface — the two read sites (chat/page.tsx, use-chat-sessions.ts) only ever
+// touch `.id` and `.name`, which are identical in both shapes, so this is the zero-diff option.
+export type ChatSession = Database['public']['Tables']['chat_sessions']['Row']
 
 // Knowledge-base source surfaced alongside an AI reply (X-Sage-Sources response
 // header). 'article' renders as a link, 'video' as an embedded player.
