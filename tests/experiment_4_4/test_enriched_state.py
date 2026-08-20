@@ -47,7 +47,7 @@ class TestClinicalFlagsDoNotBlockCompletion:
             engagement=7,
         )
         skill = load_skill("cbt_thought_record")
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill), \
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill), \
              patch("sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
                    new=AsyncMock(return_value=None)):
             result = await skill_executor_node(state)
@@ -100,7 +100,7 @@ class TestClinicalFlagsDoNotBlockCompletion:
             engagement=7,
         )
         skill = load_skill("sleep_hygiene")
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill), \
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill), \
              patch("sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
                    new=AsyncMock(return_value=None)):
             result = await skill_executor_node(state)
@@ -184,7 +184,7 @@ class TestPriorExposureViaTherapeuticProfile:
             engagement=7,
         )
 
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill), \
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill), \
              patch("sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
                    new=AsyncMock(return_value=None)):
             result_with = await skill_executor_node(state_with)
@@ -230,7 +230,7 @@ class TestPriorExposureViaTherapeuticProfile:
             emotional_intensity=4,
             engagement=7,
         )
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill), \
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill), \
              patch("sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
                    new=AsyncMock(return_value=None)):
             result = await skill_executor_node(state)
@@ -321,7 +321,7 @@ class TestEngagementTrajectoryFiresR3:
             emotional_intensity=4,
         )
 
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill), \
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill), \
              patch("sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
                    new=AsyncMock(return_value=None)):
             result_with = await skill_executor_node(state_with_trajectory)
@@ -357,7 +357,7 @@ class TestEngagementTrajectoryFiresR3:
             emotional_intensity=4,
         )
 
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill), \
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill), \
              patch("sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
                    new=AsyncMock(return_value=None)):
             result_with = await skill_executor_node(state_with)

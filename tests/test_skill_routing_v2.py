@@ -7,7 +7,14 @@ per the FROZEN A1 boundary (deterministic-path-only). v1 (current prod path) is 
 
 Pure anchor-building — no model load.
 """
-from sage_poc.nodes.skill_select import _SKILLS, build_anchor_pairs
+from sage_poc.nodes.skill_select import build_anchor_pairs
+from sage_poc.skill_ids import SKILL_REGISTRY
+from sage_poc.skills import get_skill
+
+# P2 Task 4: skill_select no longer holds a module-level `_SKILLS` preload; build the same
+# {skill_id: Skill} shape locally via the mtime-keyed get_skill accessor. Value-identical to
+# the retired preload for every registry id (get_skill(x) deep-equals load_skill(x)).
+_SKILLS = {sid: get_skill(sid) for sid in SKILL_REGISTRY}
 
 _SID = "cbt_thought_record"
 

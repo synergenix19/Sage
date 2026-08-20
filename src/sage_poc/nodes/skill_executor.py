@@ -5,7 +5,8 @@ import re
 from pathlib import Path
 
 from sage_poc.state import SageState
-from sage_poc.skills.schema import Skill, load_skill
+from sage_poc.skills.schema import Skill
+from sage_poc.skills import get_skill
 from sage_poc.nodes.criteria_eval import evaluate_completion_criteria
 
 _log = logging.getLogger(__name__)
@@ -535,7 +536,7 @@ def evaluate_step_policy(
 async def skill_executor_node(state: SageState) -> dict:
     skill_id = state["active_skill_id"]
     step_id  = state["active_step_id"]
-    skill    = load_skill(skill_id)
+    skill    = get_skill(skill_id)
 
     # Evaluate escalation matrix BEFORE step_policy (per architecture spec §9.3).
     # Uses new_clinical_flags_turn (this turn only) — not the full accumulated set.

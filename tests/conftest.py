@@ -279,12 +279,17 @@ def _stub_bge_m3(request):
         yield
     else:
         from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP
+        from sage_poc.skill_ids import SKILL_REGISTRY
+        from sage_poc.skills import get_skill
         # Mirror _ensure_semantic_ready: one entry per (skill, anchor) pair.
         # Includes semantic_description + any semantic_anchors entries.
+        # P2 Task 4: ss._SKILLS (module-level preload) is retired; get_skill is the
+        # mtime-keyed accessor now, value-identical per skill_id.
         anchor_ids = []
-        for sid, skill in ss._SKILLS.items():
+        for sid in SKILL_REGISTRY:
             if sid in KEYWORD_SEMANTIC_SKIP:
                 continue
+            skill = get_skill(sid)
             if skill.semantic_description:
                 anchor_ids.append(sid)
             for _ in skill.semantic_anchors:

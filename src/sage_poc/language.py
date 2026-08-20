@@ -72,10 +72,25 @@ _EXEMPLARS_PATH = Path(__file__).parent / "data" / "khaleeji_translation_exempla
 _GLOSSARY_PATH = Path(__file__).parent / "data" / "clinical_term_glossary.json"
 
 
+@lru_cache(maxsize=1)
+def _load_glossary_at_mtime(mtime: float) -> dict:
+    return json.loads(_GLOSSARY_PATH.read_text(encoding="utf-8"))
+
+
 def _clinical_glossary() -> dict:
     """W5 (G6): clinician-extendable therapy-term map anchoring CBT/ACT/DBT technique names to
-    clinically sensible Khaleeji Arabic (avoids literal errors like grounding->'للتواصل مع الأرض')."""
-    return json.loads(_GLOSSARY_PATH.read_text(encoding="utf-8"))
+    clinically sensible Khaleeji Arabic (avoids literal errors like grounding->'للتواصل مع الأرض').
+
+    P2 Task 4: mtime-keyed caching, the same pattern as `sage_poc.skills.get_skill` (see that
+    accessor's docstring for the full CMS forward-requirement, register item 9). A file edit
+    changes the cache key automatically; once this glossary is CMS-served rather than
+    file-served, the CMS write path must call `_clinical_glossary.cache_clear()` (or
+    equivalent) as part of the write -- mtime keying stops catching anything at that point."""
+    mtime = _GLOSSARY_PATH.stat().st_mtime
+    return _load_glossary_at_mtime(mtime)
+
+
+_clinical_glossary.cache_clear = _load_glossary_at_mtime.cache_clear
 
 
 def _glossary_lines_for(text: str) -> list[str]:

@@ -44,7 +44,7 @@ async def _run_to_completion(
         "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
         new=AsyncMock(return_value=resistance_score),
     ), patch(
-        "sage_poc.nodes.skill_executor.load_skill",
+        "sage_poc.nodes.skill_executor.get_skill",
         return_value=skill,
     ):
         for turn in range(max_turns):
@@ -128,7 +128,7 @@ class TestRuleFireDoesNotComplete:
             engagement=7,
         )
         skill = load_skill("cbt_thought_record")
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill), \
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill), \
              patch("sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
                    new=AsyncMock(return_value=None)):
             result = await skill_executor_node(state)
@@ -149,7 +149,7 @@ class TestRuleFireDoesNotComplete:
             emotional_intensity=4,
         )
         skill = load_skill("cbt_thought_record")
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill), \
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill), \
              patch("sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
                    new=AsyncMock(return_value=None)):
             result = await skill_executor_node(state)
@@ -169,7 +169,7 @@ class TestL1ExitMidSkill:
             message_en="i am done with this",
         )
         skill = load_skill("behavioral_activation")
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill):
             result = await skill_executor_node(state)
         assert result["active_skill_id"] is None
         assert result["escalation_triggered"]["level"] == "L1"
@@ -228,7 +228,7 @@ class TestExtendedConversations:
             engagement=7,
             message_en=long_msg,
         )
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill), \
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill), \
              patch("sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
                    new=AsyncMock(return_value=None)):
             # Turn 1: R1 fires, step holds
