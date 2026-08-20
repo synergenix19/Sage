@@ -1,9 +1,9 @@
 'use client'
 import { Suspense } from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { cn } from '@cdai/ui'
+import { cn, useFocusTrap } from '@cdai/ui'
 import { tenant } from '@cdai/tenant'
 import { LanguageToggle } from '@/components/auth/language-toggle'
 import { SessionList } from '@/components/session-list'
@@ -27,36 +27,16 @@ export function AppSideNav() {
   const locale = useLocaleStore((s) => s.locale)
   const [email, setEmail] = useState<string | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
-  const cancelRef = useRef<HTMLButtonElement>(null)
-  const signOutConfirmRef = useRef<HTMLButtonElement>(null)
+  // A11Y-4/5 pattern source: the hand-rolled dialog/focus-trap that used to live here (initial
+  // focus, Tab-cycle, Escape) is now the shared useFocusTrap hook from @cdai/ui — promoted into
+  // ResponsivePanel/BottomSheet so the crisis help panel and the other three panels get it too.
+  const confirmDialogRef = useFocusTrap<HTMLDivElement>(showConfirm, () => setShowConfirm(false))
 
   useEffect(() => {
     createClient()
       .auth.getUser()
       .then(({ data }) => setEmail(data.user?.email ?? null))
   }, [])
-
-  useEffect(() => {
-    if (showConfirm) cancelRef.current?.focus()
-  }, [showConfirm])
-
-  function handleDialogKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Escape') {
-      setShowConfirm(false)
-      return
-    }
-    if (e.key === 'Tab') {
-      e.preventDefault()
-      const active = document.activeElement
-      if (!e.shiftKey) {
-        if (active === cancelRef.current) signOutConfirmRef.current?.focus()
-        else cancelRef.current?.focus()
-      } else {
-        if (active === signOutConfirmRef.current) cancelRef.current?.focus()
-        else signOutConfirmRef.current?.focus()
-      }
-    }
-  }
 
   function handleNewChat() {
     router.push(newChatHref())
@@ -159,16 +139,16 @@ export function AppSideNav() {
             </div>
           ) : (
             <div
+              ref={confirmDialogRef}
               role="dialog"
               aria-modal="true"
               aria-label={t('appSideNav.confirmDialogAriaLabel', locale)}
-              onKeyDown={handleDialogKeyDown}
+              tabIndex={-1}
               className="flex flex-col gap-2"
             >
               <p className="text-xs text-[var(--color-text-secondary)] px-1">{confirmText}</p>
               <div className="flex gap-2">
                 <button
-                  ref={cancelRef}
                   onClick={() => setShowConfirm(false)}
                   className={cn(
                     'flex-1 rounded-xl border border-[var(--color-border)] py-3.5 text-xs font-medium',
@@ -179,7 +159,6 @@ export function AppSideNav() {
                   {t('appSideNav.cancelButton', locale)}
                 </button>
                 <button
-                  ref={signOutConfirmRef}
                   onClick={() => signOutUser(router.push)}
                   className={cn(
                     'flex-1 rounded-xl border border-[var(--color-crisis)] py-3.5 text-xs font-medium',
