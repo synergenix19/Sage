@@ -1,5 +1,5 @@
 'use client'
-import { useEffect } from 'react'
+import { useRef } from 'react'
 import { useLocaleStore } from '@/lib/stores/locale-store'
 import { useTextSizeStore } from '@/lib/stores/text-size-store'
 import { cn } from '@cdai/ui'
@@ -13,10 +13,17 @@ interface ProvidersProps {
 export function Providers({ children, initialLocale }: ProvidersProps) {
   const textSize = useTextSizeStore((s) => s.size)
 
-  useEffect(() => {
-    // Hydrate store from server-read cookie on first mount only
+  // Seed the locale store from the server-read cookie (layout.tsx), once, on
+  // first render. Locale changes after mount always go through setLocale,
+  // which triggers a hard reload/navigation — so this never needs to run
+  // again for the lifetime of this mount, and must not re-force the initial
+  // value on later re-renders (e.g. a text-size change) or it would stomp a
+  // pending locale change before the reload takes effect.
+  const seeded = useRef(false)
+  if (!seeded.current) {
     useLocaleStore.setState({ locale: initialLocale })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    seeded.current = true
+  }
 
   // TODO(post-Gitex): Replace [&_*] descendant selector with CSS custom property
   // --text-scale approach to avoid Tailwind specificity conflicts.
