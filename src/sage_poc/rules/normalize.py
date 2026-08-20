@@ -1,6 +1,23 @@
 import re
 import unicodedata
 
+# The single canonical Arabic-detection primitive. Every call site that needs to know
+# "does this string contain an Arabic character" (skill few-shot selection, retrieval
+# query gating, output-gate translate-out routing, keyword-rule language classification)
+# should use has_arabic() below, or ARABIC_CHAR_RE directly when it needs a count/findall
+# rather than a bool. Six previously independent reimplementations tested this exact
+# Unicode block (U+0600-U+06FF, the Arabic script block) via different code shapes; this
+# is the merge point so future callers do not add a seventh.
+ARABIC_CHAR_RE = re.compile(r'[؀-ۿ]')
+
+
+def has_arabic(text: str) -> bool:
+    """True if text contains at least one character in the Arabic script block
+    (U+0600-U+06FF). Presence check only, not a language classifier: mixed-script
+    text returns True, and this does not distinguish Arabic from other languages
+    that share the block's punctuation-only characters."""
+    return bool(ARABIC_CHAR_RE.search(text or ""))
+
 
 def strip_invisible(text: str) -> str:
     """Remove ZWSP/ZWNJ/ZWJ (U+200B–U+200D), LTR/RTL marks (U+200E–U+200F), BOM (U+FEFF)."""

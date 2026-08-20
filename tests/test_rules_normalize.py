@@ -1,8 +1,10 @@
 # tests/test_rules_normalize.py
+import re
 import pytest
 from sage_poc.rules.normalize import (
     strip_invisible, strip_arabic_diacritics,
     normalize_alef, normalize_text, normalize_arabic,
+    has_arabic, ARABIC_CHAR_RE,
 )
 
 
@@ -112,3 +114,122 @@ def test_normalize_text_folds_fullwidth_chars():
 
 def test_normalize_text_backward_compat_plain_ascii():
     assert normalize_text("can't go on") == "can't go on"
+
+
+# -- has_arabic / ARABIC_CHAR_RE -----------------------------------------------------
+
+def test_has_arabic_pure_ascii_false():
+    assert has_arabic("kill myself") is False
+
+
+def test_has_arabic_pure_arabic_true():
+    assert has_arabic("أبي أموت") is True
+
+
+def test_has_arabic_mixed_script_true():
+    assert has_arabic("I feel اموت today") is True
+
+
+def test_has_arabic_diacritics_only_true():
+    # Bare fatha U+064B, no base letter -- still inside the U+0600-U+06FF block.
+    assert has_arabic("ً") is True
+
+
+def test_has_arabic_empty_string_false():
+    assert has_arabic("") is False
+
+
+def test_has_arabic_none_like_empty_false():
+    # Sites converted from `_ARABIC_RE.search(text or "")` pass falsy text through as "".
+    assert has_arabic("") is False
+
+
+def test_has_arabic_arabic_indic_digits_true():
+    # Arabic-Indic digits U+0660-U+0669 are inside U+0600-U+06FF -- all six prior
+    # implementations shared this range and therefore all matched these digits too.
+    assert has_arabic("١٢٣") is True
+
+
+def test_has_arabic_rtl_ltr_marks_false():
+    # RTL mark U+200F / LTR mark U+200E sit OUTSIDE the Arabic script block
+    # (they're in General Punctuation, stripped separately by strip_invisible).
+    assert has_arabic("‏‎") is False
+
+
+def test_arabic_char_re_findall_counts_characters():
+    # output_gate.py needs a COUNT (for a ratio), not a bool -- ARABIC_CHAR_RE is the
+    # shared pattern it calls .findall() against directly.
+    assert len(ARABIC_CHAR_RE.findall("اموت today")) == 4
+
+
+def test_arabic_char_re_is_compiled_and_matches_same_block_as_has_arabic():
+    assert ARABIC_CHAR_RE.pattern == r'[؀-ۿ]'
+    assert bool(ARABIC_CHAR_RE.search("مرحبا")) == has_arabic("مرحبا")
+
+
+# -- parity with the 6 prior independent reimplementations ----------------------------
+# Each lambda below reproduces one of the pre-consolidation call sites verbatim (by
+# code shape, not by import) so this test proves has_arabic() is behavior-identical
+# across a representative input set, not just "looks equivalent by inspection".
+
+def _old_repository_contains_arabic(text: str) -> bool:
+    # src/sage_poc/knowledge/repository.py: _ARABIC_RE.search
+    return bool(re.compile(r"[؀-ۿ]").search(text or ""))
+
+
+def _old_composer_is_arabic(text: str) -> bool:
+    # src/sage_poc/prompts/composer.py: _is_arabic
+    return bool(re.search(r"[؀-ۿ]", text))
+
+
+def _old_output_gate_has_arabic(text: str) -> bool:
+    # src/sage_poc/nodes/output_gate.py: _HAS_ARABIC_RE.findall(...) as a ratio numerator;
+    # boolean presence form for parity purposes.
+    return bool(re.compile(r"[؀-ۿ]").search(text))
+
+
+def _old_skill_executor_is_arabic(text: str) -> bool:
+    # src/sage_poc/nodes/skill_executor.py: per-character ordinal loop
+    return any(0x0600 <= ord(c) <= 0x06FF for c in text)
+
+
+def _old_engine_is_arabic_kw(text: str) -> bool:
+    # src/sage_poc/rules/engine.py: per-character string-comparison loop
+    return any('؀' <= ch <= 'ۿ' for ch in text)
+
+
+def _old_tier_b_is_arabic(text: str) -> bool:
+    # scripts/prod_smoke/tier_b_features.py: `ord(c) in range(...)` membership loop
+    arabic_range = range(0x0600, 0x06FF + 1)
+    return any(ord(c) in arabic_range for c in text)
+
+
+_OLD_IMPLEMENTATIONS = [
+    _old_repository_contains_arabic,
+    _old_composer_is_arabic,
+    _old_output_gate_has_arabic,
+    _old_skill_executor_is_arabic,
+    _old_engine_is_arabic_kw,
+    _old_tier_b_is_arabic,
+]
+
+_PARITY_CASES = [
+    "",                          # empty string
+    "kill myself",               # pure ASCII
+    "أبي أموت",                  # pure Arabic
+    "I feel اموت today",         # mixed
+    "ً",                    # Arabic diacritic only (fatha)
+    "أَبِي أَمُوتُ",                # Arabic with full harakat
+    "١٢٣",        # Arabic-Indic digits
+    "‏‎",              # RTL/LTR marks only (outside the block)
+    "مرحبا 123 hello",           # Arabic + digits + Latin
+]
+
+
+@pytest.mark.parametrize("text", _PARITY_CASES)
+def test_has_arabic_matches_all_six_prior_implementations(text):
+    expected = has_arabic(text)
+    for old_impl in _OLD_IMPLEMENTATIONS:
+        assert old_impl(text) == expected, (
+            f"{old_impl.__name__} disagreed with has_arabic() on {text!r}"
+        )
