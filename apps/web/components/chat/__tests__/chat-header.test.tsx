@@ -169,6 +169,42 @@ describe('ChatHeader — session title', () => {
   })
 })
 
+describe('ChatHeader — panel mutual exclusion', () => {
+  // Old (pre-union-state) implementation used four independent booleans with no
+  // explicit mutual-exclusion calls between the setters, so clicking a second
+  // panel trigger while a panel was open left BOTH panels mounted (a latent
+  // double-open). The `useState<PanelId | null>` union makes only one panel
+  // open at a time by construction. This test pins the union's new,
+  // behavior-CHANGING guarantee — see PR body for the determination.
+  it('opens HistoryPanel and closes it when SettingsPanel is opened next', async () => {
+    render(<ChatHeader session={null} />)
+    fireEvent.click(screen.getByRole('button', { name: /history/i }))
+    await waitFor(() => {
+      expect(screen.getByTestId('history-panel')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /settings/i }))
+    await waitFor(() => {
+      expect(screen.getByTestId('settings-panel')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('history-panel')).not.toBeInTheDocument()
+  })
+
+  it('opens CrisisHelpPanel and closes it when TestingGuidePanel is opened next', async () => {
+    render(<ChatHeader session={null} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Get help now' }))
+    await waitFor(() => {
+      expect(screen.getByTestId('crisis-help-panel')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Testing guide' }))
+    await waitFor(() => {
+      expect(screen.getByTestId('testing-guide-panel')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('crisis-help-panel')).not.toBeInTheDocument()
+  })
+})
+
 describe('ChatHeader — testing guide', () => {
   it('renders the testing guide button with aria-label "Testing guide"', () => {
     render(<ChatHeader session={null} />)
