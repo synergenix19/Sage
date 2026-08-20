@@ -557,12 +557,10 @@ async def _write_persisted_clinical_flags(
     """
     flags_to_persist = [f for f in clinical_flags if _CROSS_SESSION_FLAGS.get(f, False)]
     try:
-        from server import app  # noqa: PLC0415
-        from sage_poc.memory.postgres_repository import PostgresMemoryRepository  # noqa: PLC0415
-        pool = getattr(app.state, "_db_pool", None)
-        if pool is None:
+        from sage_poc.memory import get_repository  # noqa: PLC0415
+        repo = get_repository()
+        if repo is None:
             return
-        repo = PostgresMemoryRepository(pool)
         await repo.write_persisted_clinical_flags(user_id, flags_to_persist)
     except Exception as exc:
         _log.warning("[output_gate] write_persisted_clinical_flags failed: %s", exc)
@@ -579,11 +577,10 @@ async def _persist_session_summary(
 ) -> None:
     """Persist session summary to database. Non-fatal — errors are logged only."""
     try:
-        from server import app  # noqa: PLC0415
-        from sage_poc.memory.postgres_repository import PostgresMemoryRepository  # noqa: PLC0415
+        from sage_poc.memory import get_repository  # noqa: PLC0415
         from sage_poc.memory.embedding import get_embedding_async  # noqa: PLC0415
-        pool = getattr(app.state, "_db_pool", None)
-        if pool is None:
+        repo = get_repository()
+        if repo is None:
             return
         embedding = await get_embedding_async(summary_text)
         safety_level = (
@@ -591,7 +588,6 @@ async def _persist_session_summary(
             else "clinical" if clinical_flags
             else "normal"
         )
-        repo = PostgresMemoryRepository(pool)
         await repo.save_session_summary(
             session_id, user_id, summary_text, embedding, safety_level,
             skills_used=skills_used,
