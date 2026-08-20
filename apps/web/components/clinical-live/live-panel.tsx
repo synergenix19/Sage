@@ -1,19 +1,22 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { useSessionAudit } from './use-session-audit'
+import { useSessionAudit, type SessionAuditStatus } from './use-session-audit'
 import { NodePathVisualizer } from './node-path-visualizer'
 import { ClinicalStateCard } from './clinical-state-card'
 import { AuditLog } from './audit-log'
 
-const STATUS_DOT: Record<string, string> = {
+// Typed to the closed SessionAuditStatus union (was Record<string, string>) — a typo'd
+// or newly-added status in use-session-audit.ts now fails to compile here instead of
+// silently rendering `undefined` classes/label at runtime.
+const STATUS_DOT: Record<SessionAuditStatus, string> = {
   live:         'bg-teal-400 animate-pulse',
   locked:       'bg-blue-400',
   reconnecting: 'bg-amber-400 animate-pulse',
   waiting:      'bg-slate-500',
 }
 
-const STATUS_LABEL: Record<string, string> = {
+const STATUS_LABEL: Record<SessionAuditStatus, string> = {
   live:         'LIVE',
   locked:       'LOCKED',
   reconnecting: 'RECONNECTING',
