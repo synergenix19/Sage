@@ -19,6 +19,7 @@ from sage_poc.nodes.ocd_compulsion import is_ocd_compulsion
 from sage_poc.nodes.harm_intrusive import is_harm_intrusive
 import sage_poc.nodes.skill_select as ss
 
+drv.configure_mode()
 assert drv.MODE == "V2", f"expected V2, got {drv.MODE}"
 pc = drv.positive_control()
 if not (pc and pc.get("ok")):

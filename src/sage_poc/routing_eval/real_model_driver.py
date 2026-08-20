@@ -55,32 +55,51 @@ import sys
 from pathlib import Path
 from typing import Callable, Iterable
 
-# MODE is pinned from the env BEFORE importing skill_select, because skill_select reads the
-# module constant SKILL_ROUTING_V2 at import time to decide the Tier-2 anchor surface
-# (include_exemplars) — a V2 run MUST embed target_presentations as exemplars, so the env has to
-# be set at process start (a flags-off-built index must never be reused for a V2 run; run each
-# mode as its own process). Increment 1 = flags-OFF/V1; Increment 2 = flags-ON/V2.
+# MODE must be pinned from the env BEFORE skill_select does any real work, because
+# skill_select reads the module constant SKILL_ROUTING_V2 at ITS OWN import time to decide
+# the Tier-2 anchor surface (include_exemplars) — a V2 run MUST embed target_presentations as
+# exemplars, so the relevant env vars have to be set in the process environment (e.g. by the
+# shell, or by setting os.environ before importing this module) before skill_select is
+# imported (a flags-off-built index must never be reused for a V2 run; run each mode as its
+# own process). Increment 1 = flags-OFF/V1; Increment 2 = flags-ON/V2.
 #   V1: SKILL_ROUTING_V2=0 SKILL_RERANK_ENABLED=0
 #   V2: SKILL_ROUTING_V2=1 SKILL_RERANK_ENABLED=1 SKILL_RERANK_PRECISION=fp32
-os.environ.setdefault("SKILL_ROUTING_V2", "0")
-os.environ.setdefault("SKILL_RERANK_ENABLED", "0")
-_V2 = os.environ["SKILL_ROUTING_V2"] == "1"
-_RERANK = os.environ["SKILL_RERANK_ENABLED"] == "1"
-MODE = "V2" if _V2 else "V1"
-if _V2 != _RERANK:
-    raise SystemExit(
-        "V1 needs BOTH flags off; V2 needs BOTH on (routing-V2 exemplar set + reranker selector). "
-        f"Got SKILL_ROUTING_V2={os.environ['SKILL_ROUTING_V2']!r} "
-        f"SKILL_RERANK_ENABLED={os.environ['SKILL_RERANK_ENABLED']!r}."
-    )
-if _V2:
-    # fp32 ONLY. int8 is SAFETY-DISQUALIFIED (over-routes 6/6 id_oos clinician-territory cases
-    # fp32 ABSTAINS — skill_rerank_model.py docstring). Refuse to produce a V2 number under int8.
-    _prec = os.environ.setdefault("SKILL_RERANK_PRECISION", "fp32").lower()
-    if _prec != "fp32":
+#
+# Callers MUST invoke configure_mode() explicitly before using MODE/run_gate()/
+# positive_control(); this module no longer mutates os.environ or raises SystemExit as an
+# import-time side effect. (P2 Task 7g: import alone must be side-effect-free.) Note this
+# does NOT change when skill_select itself reads SKILL_ROUTING_V2 (see above); configure_mode()
+# validates and normalizes the same env vars, it does not defer skill_select's own import-time
+# read of them.
+MODE: str | None = None
+
+
+def configure_mode() -> str:
+    """Resolve and pin the run mode from the env, exactly as before, but on explicit call
+    instead of at import time. Sets the module-level MODE global and the same os.environ
+    defaults as before; raises the same SystemExit on the same validation failures."""
+    global MODE
+    os.environ.setdefault("SKILL_ROUTING_V2", "0")
+    os.environ.setdefault("SKILL_RERANK_ENABLED", "0")
+    _V2 = os.environ["SKILL_ROUTING_V2"] == "1"
+    _RERANK = os.environ["SKILL_RERANK_ENABLED"] == "1"
+    MODE = "V2" if _V2 else "V1"
+    if _V2 != _RERANK:
         raise SystemExit(
-            f"V2 gate is fp32 only; int8 is safety-disqualified. Got SKILL_RERANK_PRECISION={_prec!r}."
+            "V1 needs BOTH flags off; V2 needs BOTH on (routing-V2 exemplar set + reranker selector). "
+            f"Got SKILL_ROUTING_V2={os.environ['SKILL_ROUTING_V2']!r} "
+            f"SKILL_RERANK_ENABLED={os.environ['SKILL_RERANK_ENABLED']!r}."
         )
+    if _V2:
+        # fp32 ONLY. int8 is SAFETY-DISQUALIFIED (over-routes 6/6 id_oos clinician-territory cases
+        # fp32 ABSTAINS — skill_rerank_model.py docstring). Refuse to produce a V2 number under int8.
+        _prec = os.environ.setdefault("SKILL_RERANK_PRECISION", "fp32").lower()
+        if _prec != "fp32":
+            raise SystemExit(
+                f"V2 gate is fp32 only; int8 is safety-disqualified. Got SKILL_RERANK_PRECISION={_prec!r}."
+            )
+    return MODE
+
 
 from sage_poc.routing_eval.gate_runner import RoutingMetrics, compute_metrics_by_stratum
 from sage_poc.routing_eval.schema import ABSTAIN, EvalRecord
@@ -348,6 +367,7 @@ def _print_report(report: dict) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    configure_mode()
     report = run_gate()
     _print_report(report)
     if "--json" in (argv if argv is not None else sys.argv[1:]):
