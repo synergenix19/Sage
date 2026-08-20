@@ -527,30 +527,43 @@ def test_cached_get_embeddings_equals_uncached_over_bilingual_probe_set():
     assert checked == len(probe), "gate did not run over the full bilingual probe set"
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("fill_order", ["singular_first", "plural_first"])
 def test_singular_and_plural_cache_agree_regardless_of_fill_order(fill_order):
-    """PIN (PR #566 fix-round-1, F5): cached_get_embedding (singular) and cached_get_embeddings
-    (plural) are DELIBERATELY independent implementations — reviewer-adjudicated shape (see
-    cached_get_embedding's docstring): they share only the cache dict/lock/key scheme, not
-    code, so that existing tests pinning get_embedding's exact miss-path call stay valid. That
-    independence is exactly the thing that could let them silently diverge, so pin the
-    invariant directly: whichever one FILLS the cache first for a given text, the OTHER one
-    reading it back afterward returns the bit-identical vector — checked in both fill orders,
-    since a one-directional check would miss an asymmetric bug (e.g. only the plural writer
-    normalising differently on write).
+    """PIN (PR #566 fix-round-1, F5; corrected fix-round-2, F5 re-review): cached_get_embedding
+    (singular) and cached_get_embeddings (plural) are DELIBERATELY independent implementations
+    — reviewer-adjudicated shape (see cached_get_embedding's docstring): they share only the
+    cache dict/lock/key scheme, not code, so that existing tests pinning get_embedding's exact
+    miss-path call stay valid. That independence is exactly the thing that could let them
+    silently diverge, so pin the invariant directly: cached_get_embedding(text) and
+    cached_get_embeddings([text])[0] must return the bit-identical vector for the SAME text,
+    checked in both call orders, since a one-directional check would miss an asymmetric bug
+    (e.g. only the plural writer normalising differently on write).
 
-    Not @slow: both implementations resolve to the same get_embedding call on a miss (F1), so
-    this holds under the non-slow zero-vector stub too — it is pinning STRUCTURAL agreement
-    between the two call paths, not a real-embedding value claim (that is covered by the
-    @slow tests above).
+    fix-round-2 correction: the first version of this test called the SECOND function with the
+    cache already warm from the first call, so the second call was always a pure cache HIT
+    returning the exact object the first call had just stored -- `x == x` by construction,
+    regardless of whether the two miss-paths agree. Mutation-tested by the reviewer: green
+    under a genuinely injected divergence in the plural miss path, in every tier -- a tautology
+    (same class as the round-1 EN-carrier bug, caught here by review instead of self-caught).
+    Fixed by RESETTING the cache between the two calls so BOTH take the miss path -- each call
+    now genuinely computes its own vector via its own miss-path code, and the assertion is a
+    real claim about the two miss-paths agreeing, not about a cache read matching itself.
+
+    @slow (it now carries a real-value claim: with the cache reset, this exercises actual
+    encode() output from both miss-paths, which is meaningless under the non-slow zero-vector
+    stub -- zeros would agree trivially regardless of any real divergence).
     """
-    s3_semantic.reset_query_embedding_cache()
     text = _corpus()[0]
     if fill_order == "singular_first":
+        s3_semantic.reset_query_embedding_cache()
         first = s3_semantic.cached_get_embedding(text)
+        s3_semantic.reset_query_embedding_cache()
         second = s3_semantic.cached_get_embeddings([text])[0]
     else:
+        s3_semantic.reset_query_embedding_cache()
         first = s3_semantic.cached_get_embeddings([text])[0]
+        s3_semantic.reset_query_embedding_cache()
         second = s3_semantic.cached_get_embedding(text)
     first_arr = np.array(first, dtype=np.float32)
     second_arr = np.array(second, dtype=np.float32)
