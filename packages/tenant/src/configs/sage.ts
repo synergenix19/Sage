@@ -21,11 +21,7 @@ export const sage: TenantConfig = {
   },
   // Tenant capabilities replace standalone feature flags — there is no separate flags system.
   capabilities: {
-    voiceBiomarker:   false,
-    adminDashboard:   true,
-    onboardingWizard: true,
-    rtl:              true,
-    demoSeed:         true,
+    voiceBiomarker: false,
   },
   copy: {
     appName:            'Sage',

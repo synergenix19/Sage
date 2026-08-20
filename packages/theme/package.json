@@ -8,7 +8,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@cdai/types": "*",
     "@cdai/tenant": "*"
   },
   "devDependencies": {
