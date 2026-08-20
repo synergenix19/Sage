@@ -1,74 +1,23 @@
 'use client'
 import { Suspense } from 'react'
-import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { cn } from '@cdai/ui'
 import { tenant } from '@cdai/tenant'
 import { LanguageToggle } from '@/components/auth/language-toggle'
+import { SessionList } from '@/components/session-list'
 import { ALL_TABS } from '@/components/tab-bar'
 import { useLocaleStore } from '@/lib/stores/locale-store'
 import { createClient } from '@/lib/supabase/client'
 import { signOutUser } from '@/lib/auth-actions'
-import { useChatSessions } from '@/lib/hooks/use-chat-sessions'
-import { formatRelativeTime } from '@/lib/format-relative-time'
+import { newChatHref } from '@/lib/new-chat'
 import { t } from '@/lib/copy'
 
-function SessionList() {
+function SessionListSidebar() {
   const searchParams = useSearchParams()
   const activeId = searchParams.get('session')
-  const locale = useLocaleStore((s) => s.locale)
-  const { sessions, loading, error, refresh } = useChatSessions()
-
-  if (loading) {
-    return (
-      <div className="flex-1 px-3 py-2">
-        <p className="text-xs text-[var(--color-text-secondary)]">
-          {t('appSideNav.sessionList.loading', locale)}
-        </p>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="flex-1 px-3 py-2 flex flex-col gap-1">
-        <p className="text-xs text-[var(--color-text-secondary)]">
-          {t('appSideNav.sessionList.errorMsg', locale)} —{' '}
-          <button onClick={refresh} className="underline text-xs">
-            {t('appSideNav.sessionList.retry', locale)}
-          </button>
-        </p>
-      </div>
-    )
-  }
-
-  return (
-    <ul className="flex-1 overflow-y-auto px-3 py-1 flex flex-col gap-0.5">
-      {sessions.map((s) => (
-        <li key={s.id}>
-          <Link
-            href={`/chat?session=${s.id}`}
-            aria-current={s.id === activeId ? 'page' : undefined}
-            className={cn(
-              'flex min-h-[44px] items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring-color)]',
-              s.id === activeId
-                ? 'bg-[var(--color-surface-tinted)]'
-                : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-tinted)]'
-            )}
-          >
-            <span className="flex-1 truncate text-[var(--color-text-primary)]">
-              {s.title ?? t('appSideNav.sessionList.untitled', locale)}
-            </span>
-            <span className="text-xs text-[var(--color-text-secondary)] text-end shrink-0">
-              {formatRelativeTime(s.updated_at, locale)}
-            </span>
-          </Link>
-        </li>
-      ))}
-    </ul>
-  )
+  return <SessionList variant="sidebar" activeId={activeId} />
 }
 
 export function AppSideNav() {
@@ -109,7 +58,7 @@ export function AppSideNav() {
   }
 
   function handleNewChat() {
-    router.push(`/chat?new=${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
+    router.push(newChatHref())
   }
 
   const confirmText = t('appSideNav.confirmSignOutText', locale)
@@ -141,7 +90,7 @@ export function AppSideNav() {
 
       {/* Conversation list — flex-1 zone with Suspense for useSearchParams */}
       <Suspense fallback={<div className="flex-1" />}>
-        <SessionList />
+        <SessionListSidebar />
       </Suspense>
 
       {/* Nav links — bottom section */}
