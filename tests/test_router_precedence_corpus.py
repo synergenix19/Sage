@@ -27,10 +27,11 @@ not an overlapping per-axis tally:
   - crisis_flags / is_safe states: 23   (is_safe False/True, monitoring re-escalation,
                                           crisis_tier T1 tiering, and baseline
                                           intent/router precedence cases)
-  - hr states:                     18   (hr_terminal_step, hr_referral_delivered,
+  - hr states:                     16   (hr_terminal_step, hr_referral_delivered,
                                           psychotic_referral_delivered, one-shot guards)
-  - blended / secondary intent:    10
-  - flag-on / flag-off pairs:      17   (one pair per _cfg-gated rung, every router)
+  - blended / secondary intent:    13
+  - flag-on / flag-off cases:      16   (all 10 _cfg-gated rungs covered in both states;
+                                          _route_after_skill_executor has no gated rung)
   Total: 89 cases.
 """
 import pytest
@@ -157,9 +158,9 @@ CORPUS = [
      _route_after_intent, dict(primary_intent="crisis"), {}, "crisis"),
     ("intent_crisis_panic_override", "blended_intent",
      _route_after_intent, dict(primary_intent="crisis", panic_grounding_override=True), {}, "skill_select"),
-    ("intent_crisis_grief_override", "hr_states",
+    ("intent_crisis_grief_override", "blended_intent",
      _route_after_intent, dict(primary_intent="crisis", grief_presence_override=True), {}, "skill_select"),
-    ("intent_crisis_selfworth_override", "hr_states",
+    ("intent_crisis_selfworth_override", "blended_intent",
      _route_after_intent, dict(primary_intent="crisis", selfworth_presence_override=True), {}, "skill_select"),
     ("intent_crisis_beats_answering_screen", "crisis_flags",
      _route_after_intent, dict(primary_intent="crisis", answering_screen=True), {}, "crisis"),
@@ -293,7 +294,7 @@ CORPUS = [
      _route_after_skill_select, dict(containment_directive={"family": "ocd"}), {}, "knowledge_retrieve"),
     ("sel_psychoed_serve", "blended_intent",
      _route_after_skill_select, dict(psychoed_serve={"category": "depression"}), {}, "knowledge_retrieve"),
-    ("sel_psychoed_menu_after_weave", "flag_pair",
+    ("sel_psychoed_menu_after_weave", "blended_intent",
      _route_after_skill_select, dict(skill_match_method="psychoed_menu_after_weave"), {}, "knowledge_retrieve"),
     ("sel_screen_question_served", "crisis_flags",
      _route_after_skill_select, dict(screen_question_text="Which best describes it?"), {}, "screen_response"),
@@ -387,9 +388,9 @@ def test_corpus_covers_amendment_4_categories():
         "CF_flags": 6,
         "medical_flags": 2,
         "crisis_flags": 23,
-        "hr_states": 18,
-        "blended_intent": 10,
-        "flag_pair": 17,
+        "hr_states": 16,
+        "blended_intent": 13,
+        "flag_pair": 16,
     }
     missing = set(required_counts) - set(counts_seen)
     assert not missing, f"Amendment 4 categories missing from corpus: {missing}"
