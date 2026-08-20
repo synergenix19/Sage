@@ -57,21 +57,26 @@ KNOWN_QUERIES_EN: list[QueryCase] = [
     QueryCase(
         query="what is exposure therapy",
         expected_topic="exposure therapy / anxiety",
-        expected_source_prefix="therapy-",
-        should_abstain=False,
-        notes="No exposure-therapy article exists; therapy-001 is the nearest real "
-              "passage at cosine 0.450 (prod, exact scan, 2026-08-19). That is the "
-              "weakest in-scope hit in the set -- if the abstain gate is recalibrated "
-              "into the measured (0.544, 0.617] band alongside cdai PR #512, this "
-              "query should flip to should_abstain=True, and that is the correct "
-              "closed-RAG answer rather than a regression. Content gap, clinical lane.",
+        expected_source_prefix=None,
+        should_abstain=True,
+        notes="PINNED to measured serving behaviour 2026-08-20: cosine 0.4495 against the "
+              "live gate of 0.58 (prod readback, exact scan, ivfflat dropped) -> ABSTAINS. "
+              "The flip this fixture predicted has happened, and it is CORRECT: no "
+              "exposure-therapy article exists, and therapy-001 at 0.45 is adjacent-looking "
+              "rather than relevant. Closed-RAG says withhold. This is a CONTENT gap for the "
+              "authoring lane, not a retrieval defect -- if an exposure-therapy article is "
+              "written, this fixture flips back and that is the signal it worked.",
     ),
     QueryCase(
         query="what is mindfulness based cognitive therapy",
         expected_topic="MBCT",
         expected_source_prefix="mindfulness-",
         should_abstain=False,
-        notes="No MBCT-specific article; mindfulness-001 at 0.594 (prod, exact scan).",
+        notes="No MBCT-specific article; mindfulness-001 at 0.5940 (prod, exact scan, "
+              "2026-08-20) against the live 0.58 gate -- served, but by 0.014. This is the "
+              "narrowest margin in the set and the fixture most likely to flip on corpus "
+              "growth, so treat a flip here as a threshold signal to investigate rather "
+              "than a test to update. Re-check at the AR-lane re-verification.",
     ),
     QueryCase(
         query="evidence based treatments for anxiety",
@@ -89,12 +94,12 @@ KNOWN_QUERIES_EN: list[QueryCase] = [
         query="what is dialectical behavior therapy",
         expected_topic="DBT",
         expected_source_prefix=None,
-        should_abstain=False,
-        notes="The corpus carries no DBT article. Both the ANN and exact-scan arms "
-              "return cbt-001 at 0.498 (prod, 2026-08-19) -- a related-modality "
-              "passage, above the current 0.42 gate. Left as None rather than "
-              "asserting abstain, because whether this SHOULD abstain depends on the "
-              "threshold decision pending with cdai PR #512 and is not measured here.",
+        should_abstain=True,
+        notes="PINNED to measured serving behaviour 2026-08-20: cosine 0.4981 against the "
+              "live gate of 0.58 -> ABSTAINS. The corpus carries no DBT article; cbt-001 is "
+              "a related-modality passage, not an answer. Under the previous 0.42 gate this "
+              "SERVED cbt-001 for a DBT question, which is the failure the recalibration "
+              "closed. Content gap for the authoring lane.",
     ),
     QueryCase(
         query="how does sleep hygiene affect mental health",
