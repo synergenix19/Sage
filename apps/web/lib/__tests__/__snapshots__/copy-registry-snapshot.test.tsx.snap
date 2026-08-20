@@ -1,0 +1,987 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`copy-snapshot: AppSideNav > default (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "محادثة جديدة",
+      "تسجيل الخروج",
+    ],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "Sage",
+    "+ محادثة جديدة",
+    "Feeling stressed",
+    "2h ago",
+    "محادثة بلا عنوان",
+    "2h ago",
+    "محادثة",
+    "تقدمي",
+    "EN",
+    "T",
+    "test@example.com",
+  ],
+}
+`;
+
+exports[`copy-snapshot: AppSideNav > default (en) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "New conversation",
+      "Sign out",
+    ],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "Sage",
+    "+ New conversation",
+    "Feeling stressed",
+    "2h ago",
+    "Untitled conversation",
+    "2h ago",
+    "Chat",
+    "Progress",
+    "عربي",
+    "T",
+    "test@example.com",
+  ],
+}
+`;
+
+exports[`copy-snapshot: AppSideNav > error session list (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "محادثة جديدة",
+      "تسجيل الخروج",
+    ],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "Sage",
+    "+ محادثة جديدة",
+    "تعذر التحميل",
+    "—",
+    "إعادة المحاولة",
+    "محادثة",
+    "تقدمي",
+    "EN",
+    "T",
+    "test@example.com",
+  ],
+}
+`;
+
+exports[`copy-snapshot: AppSideNav > error session list (en) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "New conversation",
+      "Sign out",
+    ],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "Sage",
+    "+ New conversation",
+    "Couldn't load history",
+    "—",
+    "Retry",
+    "Chat",
+    "Progress",
+    "عربي",
+    "T",
+    "test@example.com",
+  ],
+}
+`;
+
+exports[`copy-snapshot: AppSideNav > loading session list (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "محادثة جديدة",
+      "تسجيل الخروج",
+    ],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "Sage",
+    "+ محادثة جديدة",
+    "جارٍ التحميل...",
+    "محادثة",
+    "تقدمي",
+    "EN",
+    "T",
+    "test@example.com",
+  ],
+}
+`;
+
+exports[`copy-snapshot: AppSideNav > loading session list (en) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "New conversation",
+      "Sign out",
+    ],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "Sage",
+    "+ New conversation",
+    "Loading...",
+    "Chat",
+    "Progress",
+    "عربي",
+    "T",
+    "test@example.com",
+  ],
+}
+`;
+
+exports[`copy-snapshot: AppSideNav > sign-out confirm dialog (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "محادثة جديدة",
+      "تأكيد تسجيل الخروج",
+    ],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "Sage",
+    "+ محادثة جديدة",
+    "Feeling stressed",
+    "2h ago",
+    "محادثة بلا عنوان",
+    "2h ago",
+    "محادثة",
+    "تقدمي",
+    "EN",
+    "تسجيل الخروج من Sage؟ سيتم حفظ تاريخ محادثاتك.",
+    "إلغاء",
+    "تسجيل الخروج",
+  ],
+}
+`;
+
+exports[`copy-snapshot: AppSideNav > sign-out confirm dialog (en) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "New conversation",
+      "Confirm sign out",
+    ],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "Sage",
+    "+ New conversation",
+    "Feeling stressed",
+    "2h ago",
+    "Untitled conversation",
+    "2h ago",
+    "Chat",
+    "Progress",
+    "عربي",
+    "Sign out of Sage? Your conversation history is saved.",
+    "Cancel",
+    "Sign out",
+  ],
+}
+`;
+
+exports[`copy-snapshot: ChatHeader > no session (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [
+      "Sage",
+    ],
+    "aria-label": [
+      "احصل على المساعدة الآن",
+      "محادثة جديدة",
+      "السجل",
+      "Testing guide",
+      "الإعدادات",
+    ],
+    "placeholder": [],
+    "title": [
+      "Testing guide",
+    ],
+  },
+  "text": [
+    "New conversation",
+    "مساعدة",
+    "🕐",
+    "?",
+    "EN",
+    "⚙",
+  ],
+}
+`;
+
+exports[`copy-snapshot: ChatHeader > no session (en) 1`] = `
+{
+  "attrs": {
+    "alt": [
+      "Sage",
+    ],
+    "aria-label": [
+      "Get help now",
+      "New conversation",
+      "History",
+      "Testing guide",
+      "Settings",
+    ],
+    "placeholder": [],
+    "title": [
+      "Testing guide",
+    ],
+  },
+  "text": [
+    "New conversation",
+    "Get help",
+    "🕐",
+    "?",
+    "عربي",
+    "⚙",
+  ],
+}
+`;
+
+exports[`copy-snapshot: ChatHeader > with session (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [
+      "Sage",
+    ],
+    "aria-label": [
+      "احصل على المساعدة الآن",
+      "محادثة جديدة",
+      "السجل",
+      "Testing guide",
+      "الإعدادات",
+    ],
+    "placeholder": [],
+    "title": [
+      "Testing guide",
+    ],
+  },
+  "text": [
+    "Anxiety about work",
+    "مساعدة",
+    "🕐",
+    "?",
+    "EN",
+    "⚙",
+  ],
+}
+`;
+
+exports[`copy-snapshot: ChatHeader > with session (en) 1`] = `
+{
+  "attrs": {
+    "alt": [
+      "Sage",
+    ],
+    "aria-label": [
+      "Get help now",
+      "New conversation",
+      "History",
+      "Testing guide",
+      "Settings",
+    ],
+    "placeholder": [],
+    "title": [
+      "Testing guide",
+    ],
+  },
+  "text": [
+    "Anxiety about work",
+    "Get help",
+    "🕐",
+    "?",
+    "عربي",
+    "⚙",
+  ],
+}
+`;
+
+exports[`copy-snapshot: EmptyState > no name (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "مرحبًا! أنا Sage. كيف يمكنني دعمك اليوم؟",
+    "كيف حالك اليوم؟",
+    "أشعر بالتوتر مؤخرًا",
+    "لديّ سؤال عن…",
+  ],
+}
+`;
+
+exports[`copy-snapshot: EmptyState > no name (en) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "Hello! I'm Sage. How can I support you today?",
+    "How are you feeling today?",
+    "I've been feeling stressed lately",
+    "I have a question about…",
+  ],
+}
+`;
+
+exports[`copy-snapshot: EmptyState > with name (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "مرحبًا، Alex! أنا Sage. كيف يمكنني دعمك اليوم؟",
+    "كيف حالك اليوم؟",
+    "أشعر بالتوتر مؤخرًا",
+    "لديّ سؤال عن…",
+  ],
+}
+`;
+
+exports[`copy-snapshot: EmptyState > with name (en) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "Hello, Alex! I'm Sage. How can I support you today?",
+    "How are you feeling today?",
+    "I've been feeling stressed lately",
+    "I have a question about…",
+  ],
+}
+`;
+
+exports[`copy-snapshot: ForgotPasswordPage > default (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [],
+    "placeholder": [
+      "البريد الإلكتروني",
+    ],
+    "title": [],
+  },
+  "text": [
+    "إعادة تعيين كلمة المرور",
+    "سنرسل رابط الإعادة إلى بريدك الإلكتروني",
+    "إرسال رابط الإعادة",
+    "العودة إلى تسجيل الدخول",
+  ],
+}
+`;
+
+exports[`copy-snapshot: ForgotPasswordPage > default (en) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [],
+    "placeholder": [
+      "Email",
+    ],
+    "title": [],
+  },
+  "text": [
+    "Reset password",
+    "We'll send a reset link to your email",
+    "Send reset link",
+    "Back to sign in",
+  ],
+}
+`;
+
+exports[`copy-snapshot: ForgotPasswordPage > sent (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "تحقق من بريدك الإلكتروني للحصول على رابط الإعادة.",
+    "العودة إلى تسجيل الدخول",
+  ],
+}
+`;
+
+exports[`copy-snapshot: ForgotPasswordPage > sent (en) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "Check your email for a reset link.",
+    "Back to sign in",
+  ],
+}
+`;
+
+exports[`copy-snapshot: HistoryPanel > default (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "Close",
+    ],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "المحادثات السابقة",
+    "✕",
+    "+ محادثة جديدة",
+    "Feeling stressed",
+    "محادثة بدون عنوان",
+  ],
+}
+`;
+
+exports[`copy-snapshot: HistoryPanel > default (en) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "Close",
+    ],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "Past conversations",
+    "✕",
+    "+ New conversation",
+    "Feeling stressed",
+    "Untitled conversation",
+  ],
+}
+`;
+
+exports[`copy-snapshot: HistoryPanel > error (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "Close",
+    ],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "المحادثات السابقة",
+    "✕",
+    "+ محادثة جديدة",
+    "تعذّر تحميل السجل",
+    "إعادة المحاولة",
+  ],
+}
+`;
+
+exports[`copy-snapshot: HistoryPanel > error (en) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "Close",
+    ],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "Past conversations",
+    "✕",
+    "+ New conversation",
+    "Couldn’t load history",
+    "retry",
+  ],
+}
+`;
+
+exports[`copy-snapshot: HistoryPanel > loading (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "Close",
+    ],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "المحادثات السابقة",
+    "✕",
+    "+ محادثة جديدة",
+    "جار التحميل…",
+  ],
+}
+`;
+
+exports[`copy-snapshot: HistoryPanel > loading (en) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "Close",
+    ],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "Past conversations",
+    "✕",
+    "+ New conversation",
+    "Loading…",
+  ],
+}
+`;
+
+exports[`copy-snapshot: InputBar > voice supported (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "الإدخال الصوتي",
+      "اكتب رسالتك",
+      "إرسال",
+    ],
+    "placeholder": [
+      "وش في البال؟",
+    ],
+    "title": [
+      "الإدخال الصوتي",
+    ],
+  },
+  "text": [],
+}
+`;
+
+exports[`copy-snapshot: InputBar > voice supported (en) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "Voice input",
+      "Message",
+      "Send",
+    ],
+    "placeholder": [
+      "What's on your mind?",
+    ],
+    "title": [
+      "Voice input",
+    ],
+  },
+  "text": [],
+}
+`;
+
+exports[`copy-snapshot: InputBar > voice unsupported (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "الإدخال الصوتي",
+      "اكتب رسالتك",
+      "إرسال",
+    ],
+    "placeholder": [
+      "وش في البال؟",
+    ],
+    "title": [
+      "الإدخال الصوتي قريباً",
+    ],
+  },
+  "text": [],
+}
+`;
+
+exports[`copy-snapshot: InputBar > voice unsupported (en) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "Voice input",
+      "Message",
+      "Send",
+    ],
+    "placeholder": [
+      "What's on your mind?",
+    ],
+    "title": [
+      "Voice input coming soon",
+    ],
+  },
+  "text": [],
+}
+`;
+
+exports[`copy-snapshot: LanguageToggle > default (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "EN",
+  ],
+}
+`;
+
+exports[`copy-snapshot: LanguageToggle > default (en) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "عربي",
+  ],
+}
+`;
+
+exports[`copy-snapshot: PresenceIndicator > initial dot phase (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "Sage معك",
+    ],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [],
+}
+`;
+
+exports[`copy-snapshot: PresenceIndicator > initial dot phase (en) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "Sage is with you",
+    ],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [],
+}
+`;
+
+exports[`copy-snapshot: ResetPasswordPage > default (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [],
+    "placeholder": [
+      "كلمة المرور الجديدة",
+    ],
+    "title": [],
+  },
+  "text": [
+    "تعيين كلمة مرور جديدة",
+    "اختر كلمة مرور جديدة لحسابك",
+    "تحديث كلمة المرور",
+  ],
+}
+`;
+
+exports[`copy-snapshot: ResetPasswordPage > default (en) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [],
+    "placeholder": [
+      "New password",
+    ],
+    "title": [],
+  },
+  "text": [
+    "Set new password",
+    "Choose a new password for your account",
+    "Update password",
+  ],
+}
+`;
+
+exports[`copy-snapshot: ResetPasswordPage > updating (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [],
+    "placeholder": [
+      "كلمة المرور الجديدة",
+    ],
+    "title": [],
+  },
+  "text": [
+    "تعيين كلمة مرور جديدة",
+    "اختر كلمة مرور جديدة لحسابك",
+    "جارٍ التحديث...",
+  ],
+}
+`;
+
+exports[`copy-snapshot: ResetPasswordPage > updating (en) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [],
+    "placeholder": [
+      "New password",
+    ],
+    "title": [],
+  },
+  "text": [
+    "Set new password",
+    "Choose a new password for your account",
+    "Updating...",
+  ],
+}
+`;
+
+exports[`copy-snapshot: SettingsPanel > open (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "Close",
+    ],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "Settings",
+    "✕",
+    "اللغة: العربية → English",
+    "حجم النص",
+    "صغير",
+    "متوسط",
+    "كبير",
+    "تسجيل الخروج",
+  ],
+}
+`;
+
+exports[`copy-snapshot: SettingsPanel > open (en) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [
+      "Close",
+    ],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "Settings",
+    "✕",
+    "Language: English → العربية",
+    "Text size",
+    "Small",
+    "Medium",
+    "Large",
+    "Sign out",
+  ],
+}
+`;
+
+exports[`copy-snapshot: SignInForm > default (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [],
+    "placeholder": [
+      "البريد الإلكتروني",
+      "كلمة المرور",
+    ],
+    "title": [],
+  },
+  "text": [
+    "البريد الإلكتروني",
+    "كلمة المرور",
+    "Sign in",
+  ],
+}
+`;
+
+exports[`copy-snapshot: SignInForm > default (en) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [],
+    "placeholder": [
+      "Email",
+      "Password",
+    ],
+    "title": [],
+  },
+  "text": [
+    "Email",
+    "Password",
+    "Sign in",
+  ],
+}
+`;
+
+exports[`copy-snapshot: SignUpForm > default (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [],
+    "placeholder": [
+      "البريد الإلكتروني",
+      "كلمة المرور",
+    ],
+    "title": [],
+  },
+  "text": [
+    "البريد الإلكتروني",
+    "كلمة المرور",
+    "Create account",
+  ],
+}
+`;
+
+exports[`copy-snapshot: SignUpForm > default (en) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [],
+    "placeholder": [
+      "Email",
+      "Password",
+    ],
+    "title": [],
+  },
+  "text": [
+    "Email",
+    "Password",
+    "Create account",
+  ],
+}
+`;
+
+exports[`copy-snapshot: TabBar > default (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "محادثة",
+    "تقدمي",
+  ],
+}
+`;
+
+exports[`copy-snapshot: TabBar > default (en) 1`] = `
+{
+  "attrs": {
+    "alt": [],
+    "aria-label": [],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "Chat",
+    "Progress",
+  ],
+}
+`;
+
+exports[`copy-snapshot: Welcome > default (ar) 1`] = `
+{
+  "attrs": {
+    "alt": [
+      "Sage",
+    ],
+    "aria-label": [],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "قبل أن تبدأ",
+    "•",
+    "سيج أداة تجريبية للعافية، وليست بديلاً عن الرعاية النفسية المتخصصة.",
+    "•",
+    "يتم تخزين المحادثات وقد تراجعها فريقنا السريري.",
+    "•",
+    "إذا كنت في أزمة، تواصل مع خط الدعم النفسي الوطني: 800-HOPE (800-4673) (مجاني، على مدار الساعة).",
+    "أفهم وأوافق، متابعة",
+  ],
+}
+`;
+
+exports[`copy-snapshot: Welcome > default (en) 1`] = `
+{
+  "attrs": {
+    "alt": [
+      "Sage",
+    ],
+    "aria-label": [],
+    "placeholder": [],
+    "title": [],
+  },
+  "text": [
+    "Before you begin",
+    "•",
+    "Sage is an experimental wellbeing tool, not a substitute for professional mental health care.",
+    "•",
+    "Conversations are stored and may be reviewed by our clinical team.",
+    "•",
+    "If you are in crisis, contact National Mental Support Line: 800-HOPE (800-4673) (free, 8am–8pm daily).",
+    "I understand, continue",
+  ],
+}
+`;
