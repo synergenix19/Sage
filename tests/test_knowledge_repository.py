@@ -178,10 +178,24 @@ async def test_retrieve_stamps_raw_and_searched_query():
     assert result.query_searched == "انا قلقان"
 
 
-def test_cosine_threshold_config_defaults_fail_open():
+def test_cosine_threshold_is_read_from_the_environment(monkeypatch):
+    """The gate takes the configured value — asserted explicitly, not ambiently.
+
+    This replaces an assertion that the default was 0.0 ("fail-open until deploy sets the
+    env var"). PR #522 reversed that contract: unset now RAISES outside a test context,
+    because an unset variable was indistinguishable from a decision to serve everything on
+    the gate standing between an off-topic query and crisis content. The old test also
+    passed or failed depending on whether the ambient shell happened to export the
+    variable, which is not a property worth asserting. Contract coverage for unset /
+    explicit-0.0 rollback lives in tests/test_knowledge_sync.py.
+    """
     import importlib, sage_poc.config as cfg
+    monkeypatch.setenv("SAGE_COSINE_ABSTAIN_THRESHOLD", "0.58")
     importlib.reload(cfg)
-    assert cfg.COSINE_ABSTAIN_THRESHOLD == 0.0  # fail-open until deploy sets the env var
+    assert cfg.COSINE_ABSTAIN_THRESHOLD == 0.58
+    monkeypatch.setenv("SAGE_COSINE_ABSTAIN_THRESHOLD", "0.0")   # deliberate rollback
+    importlib.reload(cfg)
+    assert cfg.COSINE_ABSTAIN_THRESHOLD == 0.0
 
 def test_knowledge_result_has_top_similarity():
     from sage_poc.knowledge.models import KnowledgeResult
