@@ -753,6 +753,10 @@ ROUTE_AFTER_SKILL_SELECT: "tuple[RouteRule, ...]" = (
     RouteRule(
         "info_request_plain",
         _always,
+        # The explanatory block on info_request_consult_cards above (two rows up) describes
+        # this row's behavior, not just that one's -- it explains the general
+        # info_request -> knowledge_retrieve routing that this row implements for the
+        # non-consult case. See that comment for the full rationale.
         lambda state: state.get("primary_intent") == "info_request",
         "knowledge_retrieve",
     ),
