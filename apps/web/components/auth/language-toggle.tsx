@@ -8,10 +8,8 @@ export function LanguageToggle() {
 
   function toggle() {
     const next = locale === 'en' ? 'ar' : 'en'
+    // setLocale writes the cookie and reloads so layout.tsx re-reads it and flips dir
     setLocale(next)
-    document.cookie = `cdai-locale=${next};path=/;max-age=31536000;SameSite=Lax;Secure`
-    // Reload so layout.tsx re-reads the cookie and flips dir
-    window.location.reload()
   }
 
   return (

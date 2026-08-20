@@ -21,8 +21,6 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
   function toggleLocale() {
     const next = locale === 'en' ? 'ar' : 'en'
     setLocale(next)
-    document.cookie = `cdai-locale=${next};path=/;max-age=31536000;SameSite=Lax;Secure`
-    window.location.reload()
   }
 
   async function signOut() {

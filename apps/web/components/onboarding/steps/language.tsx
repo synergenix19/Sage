@@ -15,13 +15,11 @@ export function Language() {
 
   function choose(locale: Locale) {
     setAnswer('locale', locale)
-    setLocale(locale)
-    // eslint-disable-next-line react-hooks/immutability
-    document.cookie = `cdai-locale=${locale};path=/;max-age=31536000;SameSite=Lax;Secure`
     setStep(3)
-    // Reload to flip dir immediately, then navigate
-    // eslint-disable-next-line react-hooks/immutability
-    window.location.href = '/step-3'
+    // setLocale writes the cookie, then navigates to step-3 (instead of
+    // reloading in place) so the dir flip and the step advance happen in the
+    // same hard navigation.
+    setLocale(locale, { redirectTo: '/step-3' })
   }
 
   return (
