@@ -3,6 +3,7 @@ import time
 import json
 import logging
 from datetime import datetime, timezone
+from typing import Callable, NamedTuple, Union
 
 from langgraph.graph import StateGraph, END
 from langgraph.graph.state import CompiledStateGraph
@@ -23,6 +24,14 @@ from sage_poc.nodes.output_gate import output_gate_node
 from sage_poc.audit import write_session_audit
 from sage_poc.safety.hr_disclosure import hr_disclosure_present
 from sage_poc.safety.derealization_disclosure import derealization_disclosure_present
+# Task 2 (router precedence as data) hoist step: the four routers below each used to
+# carry their own local `from sage_poc import config as _cfg` (or `_psy_cfg`) re-import,
+# with a comment explaining it was a call-time read of the kill-switch, not a caching
+# concern. A single top-level import gives the identical guarantee -- `_cfg.FLAG` is an
+# attribute lookup on the same module object on every call, so a live flag flip (or
+# monkeypatch.setattr(config, ...) in tests) is visible on the very next evaluation --
+# without the per-function duplication.
+from sage_poc import config as _cfg
 
 _log = logging.getLogger(__name__)
 
@@ -31,6 +40,62 @@ _log = logging.getLogger(__name__)
 # in skill_matching_rules.json (emotional_intensity >= 8), the clinically-approved
 # threshold for acute handling. Adjust only with clinical sign-off.
 ACUTE_INTENSITY_FLOOR: int = 8
+
+
+# --- Router precedence tables (task-2-brief.md, ruling P2-2) ---------------------------
+#
+# Each of the four routers below used to be an ordered chain of guard-clause `if`s with
+# heavy provenance comments pinning a clinically-signed precedence order (e.g.
+# crisis > medical > hr > derealization). This is a SHAPE change only: every router now
+# evaluates an explicit ordered tuple of RouteRule rows instead of nested ifs, which makes
+# the precedence order directly assertable (`[r.name for r in ROUTE_AFTER_INTENT] == [...]`,
+# see tests/test_router_precedence_pin.py) instead of only readable from the diff. The
+# evaluation order and every predicate/destination are unchanged; the row order below is
+# the ORIGINAL top-to-bottom order of the guard clauses it replaces, and reordering a row
+# requires the same clinical review a routing change gets (see the pin test's own comment).
+# tests/test_router_precedence_corpus.py pins the exact destination for 90 cases across the
+# Amendment 4 spectrum, captured against the pre-refactor implementation, to prove this.
+RouteDestination = Union[str, Callable[[SageState], str]]
+
+
+class RouteRule(NamedTuple):
+    """One rung of a router's precedence ladder, evaluated top-to-bottom.
+
+    name:        the rung's identifier -- what a reorder review diffs against.
+    enabled_fn:  zero-arg, evaluated fresh on every call (never cached at table-definition
+                 time) so a live `_cfg.SOME_FLAG` kill-switch flip takes effect on the very
+                 next turn, exactly like the original inline `_cfg.FLAG` reads did.
+    predicate:   state -> bool, the rung's match condition. The enable gate is checked
+                 first and short-circuits, so predicates never need to re-check their own
+                 flag (though a few legitimately read a DIFFERENT flag internally, e.g. the
+                 high_risk_disclosure row's inner HIGH_RISK_DETECTION_ENABLED check).
+    destination: a fixed edge-key string, or state -> str for the handful of rungs whose
+                 original branch chose between two destinations (e.g. exit_skill:
+                 skill_executor if active_skill_id else freeflow).
+    """
+    name: str
+    enabled_fn: Callable[[], bool]
+    predicate: Callable[[SageState], bool]
+    destination: RouteDestination
+
+
+def _always() -> bool:
+    """Shared enabled_fn for rungs with no config kill-switch (always live)."""
+    return True
+
+
+def _evaluate_route(table: "tuple[RouteRule, ...]", state: SageState) -> str:
+    """Walk a precedence table top-to-bottom; the first enabled+matching rung wins.
+
+    Every table below ends in an unconditional default rung (predicate always True), so
+    this always returns before falling off the end -- mirrors the functions it replaces,
+    which likewise always returned before reaching their own last line.
+    """
+    for rule in table:
+        if rule.enabled_fn() and rule.predicate(state):
+            dest = rule.destination
+            return dest(state) if callable(dest) else dest
+    raise AssertionError("route table exhausted without a default rung")  # pragma: no cover
 
 
 def _get_crisis_review_pool():
@@ -212,68 +277,105 @@ async def _crisis_response_node(state: SageState) -> dict:
     }
 
 
-def _route_after_safety(state: SageState) -> str:
-    if state.get("crisis_state") == "monitoring":
+ROUTE_AFTER_SAFETY: "tuple[RouteRule, ...]" = (
+    RouteRule(
+        "monitoring_reescalate",
+        _always,
         # In monitoring: only re-escalate if S1-S6 fired directly or S7 classified a new crisis.
         # Tiering does NOT apply here (per reader-disposition table): any signal re-escalates.
-        if not state["is_safe"] or state.get("s7_result") == "NEW_CRISIS":
-            return "crisis"
-        return "safe"
-    # v7.1 tiering (flag-gated). A confident-English semantic-only signal is T1 (warm): route to
-    # the normal graph with supportive posture, NOT crisis_response. is_safe stays False (truthful
-    # detector record); routing authority is crisis_tier here. Flag OFF => this branch is skipped
-    # and routing reads is_safe exactly as v7/master (Check B).
-    from sage_poc import config as _cfg  # noqa: PLC0415
-    if _cfg.CRISIS_TIERING_ENABLED and state.get("crisis_tier") == "T1":
-        return "safe"
-    if not state["is_safe"]:
-        return "crisis"
-    if _cfg.MEDICAL_REDFLAG_GUARD_ENABLED and state.get("medical_flags"):
-        return "medical"
-    # HR-1 Stage 2 Task 4: safety-exit altitude routing for high_risk_response, the 3rd
-    # member of the SAFETY-EXIT class (crisis_response, medical_response, high_risk_response) --
-    # routed here, straight to END, bypassing output_gate. Ratified precedence order is
-    # crisis > medical > hr (BOT BEHAVIOUR / v7.1 precedence table), so both branches below
-    # are placed AFTER the crisis and medical checks above: crisis and medical still return
-    # first even when an HR disclosure/in-progress protocol also fired this turn. Both are
-    # gated on HIGH_RISK_TERMINAL_ENABLED (kill-switch) so this whole block is inert when OFF,
-    # keeping this function byte-identical to today (Check B) -- HR disclosures still route
-    # via the Stage-1 path (_route_after_intent -> skill_select -> psychotic_referral).
-    # Task 4 fix: one-shot guard, mirroring Stage 1's psychotic_referral_delivered
-    # (_route_after_intent below, skill_select.py ~L626-627). clinical_flags is
-    # flag-immutable-within-session (safety_check.py accumulates, never drops a
-    # flag once set), so without this guard EVERY later turn in the session would
-    # re-enter high_risk_response and re-ask the §1 distress question after the
-    # protocol already delivered its terminal branch. hr_referral_delivered is set
-    # by high_risk_response._deliver_branch only on an actual "higher"/"lower"
-    # delivery, never on the re-ask, so mid-protocol turns are unaffected (the
-    # RE-ENTRY branch below, keyed on hr_terminal_step, is intentionally left
-    # unguarded). CLINICAL/PRODUCT CALL DEFERRED: whether a genuinely NEW HR
-    # presentation later in the session should re-trigger after a delivered
-    # referral is currently one-shot per session (matches Stage 1); revisit is a
-    # clinician call, not decided here.
-    if _cfg.HIGH_RISK_TERMINAL_ENABLED and hr_disclosure_present(
-        state.get("clinical_flags") or [], flag_enabled=_cfg.HIGH_RISK_DETECTION_ENABLED
-    ) and not state.get("hr_referral_delivered"):
-        return "high_risk"
-    # Re-entry (turn 2+ of the deterministic 2-3 turn protocol): a persisted hr_terminal_step
-    # means high_risk_response is mid-protocol and this turn's message is the pending
-    # distress reply / re-ask reply. Checked AFTER "if not state['is_safe']: return 'crisis'"
-    # above, so a mid-protocol SI turn still pierces to crisis, never back to HR (Finding 3) --
-    # and _crisis_response_node clears hr_terminal_step/hr_escalate_regardless on that pierce,
-    # so a later turn never silently resumes a stale await_distress/reask step.
-    if _cfg.HIGH_RISK_TERMINAL_ENABLED and state.get("hr_terminal_step"):
-        return "high_risk"
-    # §1c Part A: 4th SAFETY-EXIT member (derealization_response), rank 4 — placed AFTER the crisis,
-    # medical, and hr checks above so those still win on a multi-hit turn (precedence
-    # crisis > medical > hr > derealization). Gated on DEREALIZATION_DETECTION_ENABLED so this block
-    # is inert when OFF (byte-identical). One-shot guard mirrors hr_referral_delivered: clinical_flags
-    # persist for the session, so without it the referral would re-fire every later turn.
-    if _cfg.DEREALIZATION_DETECTION_ENABLED and derealization_disclosure_present(
-        state.get("clinical_flags") or [], flag_enabled=_cfg.DEREALIZATION_DETECTION_ENABLED
-    ) and not state.get("derealization_referral_delivered"):
-        return "derealization"
-    return "safe"
+        lambda state: state.get("crisis_state") == "monitoring"
+        and (not state["is_safe"] or state.get("s7_result") == "NEW_CRISIS"),
+        "crisis",
+    ),
+    RouteRule(
+        "monitoring_stable",
+        _always,
+        lambda state: state.get("crisis_state") == "monitoring",
+        "safe",
+    ),
+    RouteRule(
+        "crisis_tiering_t1",
+        lambda: _cfg.CRISIS_TIERING_ENABLED,
+        # v7.1 tiering (flag-gated). A confident-English semantic-only signal is T1 (warm): route to
+        # the normal graph with supportive posture, NOT crisis_response. is_safe stays False (truthful
+        # detector record); routing authority is crisis_tier here. Flag OFF => this branch is skipped
+        # and routing reads is_safe exactly as v7/master (Check B).
+        lambda state: state.get("crisis_tier") == "T1",
+        "safe",
+    ),
+    RouteRule(
+        "not_safe",
+        _always,
+        lambda state: not state["is_safe"],
+        "crisis",
+    ),
+    RouteRule(
+        "medical_redflag",
+        lambda: _cfg.MEDICAL_REDFLAG_GUARD_ENABLED,
+        lambda state: bool(state.get("medical_flags")),
+        "medical",
+    ),
+    RouteRule(
+        "high_risk_disclosure",
+        lambda: _cfg.HIGH_RISK_TERMINAL_ENABLED,
+        # HR-1 Stage 2 Task 4: safety-exit altitude routing for high_risk_response, the 3rd
+        # member of the SAFETY-EXIT class (crisis_response, medical_response, high_risk_response) --
+        # routed here, straight to END, bypassing output_gate. Ratified precedence order is
+        # crisis > medical > hr (BOT BEHAVIOUR / v7.1 precedence table), so both branches below
+        # are placed AFTER the crisis and medical checks above: crisis and medical still return
+        # first even when an HR disclosure/in-progress protocol also fired this turn. Both are
+        # gated on HIGH_RISK_TERMINAL_ENABLED (kill-switch) so this whole block is inert when OFF,
+        # keeping this function byte-identical to today (Check B) -- HR disclosures still route
+        # via the Stage-1 path (_route_after_intent -> skill_select -> psychotic_referral).
+        # Task 4 fix: one-shot guard, mirroring Stage 1's psychotic_referral_delivered
+        # (_route_after_intent below, skill_select.py ~L626-627). clinical_flags is
+        # flag-immutable-within-session (safety_check.py accumulates, never drops a
+        # flag once set), so without this guard EVERY later turn in the session would
+        # re-enter high_risk_response and re-ask the §1 distress question after the
+        # protocol already delivered its terminal branch. hr_referral_delivered is set
+        # by high_risk_response._deliver_branch only on an actual "higher"/"lower"
+        # delivery, never on the re-ask, so mid-protocol turns are unaffected (the
+        # RE-ENTRY branch below, keyed on hr_terminal_step, is intentionally left
+        # unguarded). CLINICAL/PRODUCT CALL DEFERRED: whether a genuinely NEW HR
+        # presentation later in the session should re-trigger after a delivered
+        # referral is currently one-shot per session (matches Stage 1); revisit is a
+        # clinician call, not decided here.
+        lambda state: hr_disclosure_present(
+            state.get("clinical_flags") or [], flag_enabled=_cfg.HIGH_RISK_DETECTION_ENABLED
+        ) and not state.get("hr_referral_delivered"),
+        "high_risk",
+    ),
+    RouteRule(
+        "high_risk_reentry",
+        lambda: _cfg.HIGH_RISK_TERMINAL_ENABLED,
+        # Re-entry (turn 2+ of the deterministic 2-3 turn protocol): a persisted hr_terminal_step
+        # means high_risk_response is mid-protocol and this turn's message is the pending
+        # distress reply / re-ask reply. Checked AFTER "if not state['is_safe']: return 'crisis'"
+        # above, so a mid-protocol SI turn still pierces to crisis, never back to HR (Finding 3) --
+        # and _crisis_response_node clears hr_terminal_step/hr_escalate_regardless on that pierce,
+        # so a later turn never silently resumes a stale await_distress/reask step.
+        lambda state: bool(state.get("hr_terminal_step")),
+        "high_risk",
+    ),
+    RouteRule(
+        "derealization_disclosure",
+        lambda: _cfg.DEREALIZATION_DETECTION_ENABLED,
+        # §1c Part A: 4th SAFETY-EXIT member (derealization_response), rank 4 — placed AFTER the crisis,
+        # medical, and hr checks above so those still win on a multi-hit turn (precedence
+        # crisis > medical > hr > derealization). Gated on DEREALIZATION_DETECTION_ENABLED so this block
+        # is inert when OFF (byte-identical). One-shot guard mirrors hr_referral_delivered: clinical_flags
+        # persist for the session, so without it the referral would re-fire every later turn.
+        lambda state: derealization_disclosure_present(
+            state.get("clinical_flags") or [], flag_enabled=_cfg.DEREALIZATION_DETECTION_ENABLED
+        ) and not state.get("derealization_referral_delivered"),
+        "derealization",
+    ),
+    RouteRule("default_safe", _always, lambda state: True, "safe"),
+)
+
+
+def _route_after_safety(state: SageState) -> str:
+    return _evaluate_route(ROUTE_AFTER_SAFETY, state)
 
 
 def _route_after_intent(state: SageState) -> str:
