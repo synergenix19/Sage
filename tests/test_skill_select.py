@@ -2,7 +2,14 @@
 import pytest
 
 pytestmark = pytest.mark.safety_gate
-from sage_poc.nodes.skill_select import skill_select_node, _SKILLS as _ALL_SKILLS
+from sage_poc.nodes.skill_select import skill_select_node
+from sage_poc.skill_ids import SKILL_REGISTRY
+from sage_poc.skills import get_skill
+
+# P2 Task 4: skill_select no longer holds a module-level `_SKILLS` preload; build the same
+# {skill_id: Skill} shape locally via the mtime-keyed get_skill accessor -- value-identical
+# to the retired preload, this file's assertions are unchanged.
+_ALL_SKILLS = {sid: get_skill(sid) for sid in SKILL_REGISTRY}
 
 
 def _ss_state(**overrides):

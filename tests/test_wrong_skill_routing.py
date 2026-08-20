@@ -34,9 +34,13 @@ from __future__ import annotations
 import pytest
 
 from sage_poc.nodes.skill_select import skill_select_node
-from sage_poc.nodes.skill_select import _SKILLS
 from sage_poc.skill_ids import SKILL_REGISTRY
+from sage_poc.skills import get_skill
 from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP
+
+# P2 Task 4: skill_select no longer holds a module-level `_SKILLS` preload; build the same
+# {skill_id: Skill} shape locally via the mtime-keyed get_skill accessor.
+_SKILLS = {sid: get_skill(sid) for sid in SKILL_REGISTRY}
 
 from tests.fixtures.wrong_skill.cases import WRONG_SKILL_CASES, PSYCHOED_CLUSTER
 

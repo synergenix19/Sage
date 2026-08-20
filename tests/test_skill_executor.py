@@ -154,7 +154,7 @@ class TestT4L2Advisory:
             new_clinical_flags_turn=["substance_use"],
             message_en="okay",
         )
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=_make_skill()):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=_make_skill()):
             result = await skill_executor_node(state)
 
         # Skill must remain active (not exited due to L2)
@@ -168,7 +168,7 @@ class TestT4L2Advisory:
 
     async def test_l2_stored_in_escalation_triggered_for_audit(self):
         state = _make_executor_state(new_clinical_flags_turn=["trauma_indicator"])
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=_make_skill()):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=_make_skill()):
             result = await skill_executor_node(state)
 
         assert result.get("escalation_triggered") is not None
@@ -176,7 +176,7 @@ class TestT4L2Advisory:
 
     async def test_no_escalation_when_no_new_flags_and_no_exit(self):
         state = _make_executor_state(new_clinical_flags_turn=[])
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=_make_skill()):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=_make_skill()):
             result = await skill_executor_node(state)
 
         assert result.get("escalation_triggered") is None
@@ -195,7 +195,7 @@ class TestT6PostCrisisL1Resolution:
             new_clinical_flags_turn=[],
         )
         pci_skill = _make_skill(skill_id="post_crisis_check_in")
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=pci_skill):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=pci_skill):
             result = await skill_executor_node(state)
 
         assert result["crisis_state"] == "resolved", (
@@ -214,7 +214,7 @@ class TestT6PostCrisisL1Resolution:
             new_clinical_flags_turn=["medication_mention"],
         )
         pci_skill = _make_skill(skill_id="post_crisis_check_in")
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=pci_skill):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=pci_skill):
             result = await skill_executor_node(state)
 
         assert result.get("crisis_state") != "resolved", (
@@ -310,7 +310,7 @@ class TestT7ForTurnsCondition:
             new_clinical_flags_turn=[],
             resistance_history=[5, 6],  # existing history (2 turns)
         )
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill), \
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill), \
              patch(
                  "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
                  new=AsyncMock(return_value=4),
@@ -374,7 +374,7 @@ class TestM5ReEscalationDetected:
             engagement=6,
             new_clinical_flags_turn=[],
         )
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill):
             result = await skill_executor_node(state)
 
         assert result.get("step_instruction") and "Exit" in result["step_instruction"], (
@@ -869,7 +869,7 @@ class TestCSM2ReEscalationFlag:
             therapeutic_profile=None,
             prev_step_id=None,
         )
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill):
             result = await skill_executor_node(state)
         assert result.get("re_escalation_within_monitoring") is True, (
             "s7_result=NEW_CRISIS must set re_escalation_within_monitoring=True "
@@ -897,7 +897,7 @@ class TestResistanceHistoryStepReset:
             engagement_trajectory=[],
             therapeutic_profile=None,
         )
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill), \
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill), \
              patch(
                  "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
                  new=AsyncMock(return_value=3),  # low score this turn
@@ -921,7 +921,7 @@ class TestResistanceHistoryStepReset:
             engagement_trajectory=[],
             therapeutic_profile=None,
         )
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill), \
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill), \
              patch(
                  "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
                  new=AsyncMock(return_value=4),
@@ -1015,7 +1015,7 @@ class TestSF5CompletedSkillIdAttribution:
         """
         # Default 7-word message in _make_executor_state triggers heuristic completion.
         state = _make_executor_state()
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=_make_skill()):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=_make_skill()):
             result = await skill_executor_node(state)
 
         # skill_complete is internal to the executor and not emitted in the state dict.
@@ -1035,7 +1035,7 @@ class TestSF5CompletedSkillIdAttribution:
         completed_skill_id so it remains None (from _build_state() reset).
         """
         state = _make_executor_state(message_en="okay")
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=_make_skill()):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=_make_skill()):
             result = await skill_executor_node(state)
 
         assert result.get("skill_complete") is not True, (
@@ -1081,7 +1081,7 @@ class TestR5CriteriaHoldBudget:
 
     async def test_first_short_answer_holds_and_arms_counter(self):
         state = _make_executor_state(message_en="ok")  # 1 word, heuristic fails
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._budgeted_skill()):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=self._budgeted_skill()):
             result = await skill_executor_node(state)
         assert result["active_step_id"] == "step_1"
         assert result["criteria_hold_count"] == 1
@@ -1090,7 +1090,7 @@ class TestR5CriteriaHoldBudget:
     async def test_budget_exhausted_soft_advances_with_governed_note(self):
         state = _make_executor_state(
             message_en="ok", criteria_hold_count=1, criteria_hold_step_id="step_1")
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._budgeted_skill()):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=self._budgeted_skill()):
             result = await skill_executor_node(state)
         assert result["active_skill_id"] is None, "single-step skill: budget advance completes"
         assert result["rule_fired"] is True, (
@@ -1105,14 +1105,14 @@ class TestR5CriteriaHoldBudget:
         skill = _make_skill()  # criteria_hold_budget stays None
         state = _make_executor_state(
             message_en="ok", criteria_hold_count=7, criteria_hold_step_id="step_1")
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill):
             result = await skill_executor_node(state)
         assert result["active_step_id"] == "step_1", "null budget = no budget, current behavior"
 
     async def test_counter_resets_on_step_change(self):
         state = _make_executor_state(
             message_en="ok", criteria_hold_count=1, criteria_hold_step_id="some_previous_step")
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._budgeted_skill()):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=self._budgeted_skill()):
             result = await skill_executor_node(state)
         assert result["active_step_id"] == "step_1", "stale counter must not trigger soft advance"
         assert result["criteria_hold_count"] == 1
@@ -1132,14 +1132,14 @@ class TestR5CriteriaHoldBudget:
             criteria_hold_count=5,
             criteria_hold_step_id="entry_screen",
         )
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill):
             result = await skill_executor_node(state)
         assert result["active_step_id"] == "entry_screen"
 
     async def test_long_answer_never_arms_counter(self):
         state = _make_executor_state(
             message_en="I am breathing in slowly and holding it like you said")
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._budgeted_skill()):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=self._budgeted_skill()):
             result = await skill_executor_node(state)
         assert result["criteria_hold_count"] == 0
         assert result["criteria_hold_step_id"] is None
@@ -1157,7 +1157,7 @@ class TestR5CriteriaHoldBudget:
         ))
         state = _make_executor_state(
             message_en="ok", criteria_hold_count=1, criteria_hold_step_id="step_1")
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill), \
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill), \
              patch(
                  "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
                  new=AsyncMock(return_value=9),
@@ -1235,7 +1235,7 @@ class TestDHoldCeiling:
 
     async def test_first_hold_no_exit_ramp(self):
         state = _make_executor_state(message_en="ok", emotional_intensity=2)
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._hold_skill()):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=self._hold_skill()):
             result = await skill_executor_node(state)
         assert result["active_step_id"] == "step_1", "clinical hold: step unchanged"
         assert result["rule_hold_count"] == 1
@@ -1247,7 +1247,7 @@ class TestDHoldCeiling:
             message_en="ok", emotional_intensity=2,
             rule_hold_count=1, rule_hold_step_id="step_1",
         )
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._hold_skill()):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=self._hold_skill()):
             result = await skill_executor_node(state)
         assert result["active_step_id"] == "step_1"
         assert result["rule_hold_count"] == 2
@@ -1258,7 +1258,7 @@ class TestDHoldCeiling:
             message_en="ok", emotional_intensity=2,
             rule_hold_count=2, rule_hold_step_id="step_1",
         )
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._hold_skill()):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=self._hold_skill()):
             result = await skill_executor_node(state)
         assert result["active_step_id"] == "step_1", (
             "exit ramp must NOT advance the step — clinical hold stays senior"
@@ -1274,7 +1274,7 @@ class TestDHoldCeiling:
             rule_hold_count=9, rule_hold_step_id="step_1",
         )
         with patch(
-            "sage_poc.nodes.skill_executor.load_skill",
+            "sage_poc.nodes.skill_executor.get_skill",
             return_value=self._hold_skill(hold_ceiling=None),
         ):
             result = await skill_executor_node(state)
@@ -1303,7 +1303,7 @@ class TestDHoldCeiling:
             message_en="ok", emotional_intensity=9,
             rule_hold_count=2, rule_hold_step_id="step_1",
         )
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill):
             result = await skill_executor_node(state)
         assert result["active_step_id"] == "step_1"
         assert result["rule_hold_count"] == 0, "safety hold must reset, not count"
@@ -1315,7 +1315,7 @@ class TestDHoldCeiling:
             message_en="ok", emotional_intensity=2,
             rule_hold_count=2, rule_hold_step_id="some_previous_step",
         )
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._hold_skill()):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=self._hold_skill()):
             result = await skill_executor_node(state)
         assert result["rule_hold_count"] == 1, "stale counter must reset on step change"
         assert result["rule_hold_step_id"] == "step_1"
@@ -1330,7 +1330,7 @@ class TestDHoldCeiling:
             emotional_intensity=5,
             rule_hold_count=2, rule_hold_step_id="step_1",
         )
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill):
             result = await skill_executor_node(state)
         assert result["rule_hold_count"] == 0
         assert result["rule_hold_step_id"] is None
@@ -1361,7 +1361,7 @@ class TestDHoldCeiling:
             message_en="ok", emotional_intensity=2,
             rule_hold_count=2, rule_hold_step_id="step_1",
         )
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill):
             result = await skill_executor_node(state)
         assert self._EXIT_RAMP_MARKER not in result["step_instruction"], (
             "exit_to_crisis_protocol must NOT trigger the exit ramp"
@@ -1377,7 +1377,7 @@ class TestDHoldCeiling:
             rule_hold_count=2,
             rule_hold_step_id="step_1",
         )
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=self._hold_skill()):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=self._hold_skill()):
             result = await skill_executor_node(state)
         assert result.get("escalation_triggered", {}).get("level") == "L1", (
             "test precondition: L1 must have fired"
@@ -1396,7 +1396,7 @@ class TestDHoldCeiling:
             active_step_id="entry_screen", message_en="ok", emotional_intensity=2,
             rule_hold_count=5, rule_hold_step_id="entry_screen",
         )
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill):
             result = await skill_executor_node(state)
         assert result["active_step_id"] == "entry_screen"
         assert self._EXIT_RAMP_MARKER not in result["step_instruction"], (

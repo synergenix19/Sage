@@ -10,7 +10,7 @@ import numpy as np
 
 from sage_poc.state import SageState
 from sage_poc.skill_ids import SKILL_REGISTRY
-from sage_poc.skills.schema import load_skill
+from sage_poc.skills import get_skill
 from sage_poc.skills.keyword_matcher import match_skill_keywords
 from sage_poc.resilience import EMBEDDING_TIMEOUT_SECONDS
 from sage_poc.observability import stage_timer
@@ -26,7 +26,12 @@ logger = logging.getLogger(__name__)
 
 _BGE_M3_REVISION = "5617a9f61b028005a4858fdac845db406aefb181"
 
-_SKILLS = {sid: load_skill(sid) for sid in SKILL_REGISTRY}
+# P2 Task 4: the former `_SKILLS = {sid: load_skill(sid) for sid in SKILL_REGISTRY}` preload
+# is retired -- every per-turn skill lookup below now goes through the mtime-keyed
+# `get_skill` accessor (sage_poc.skills). `_SKILL_ID_SET` stays as a cheap import-time
+# membership set (ids only, no file I/O, no skill content) for the "is this id in the
+# registry" checks below.
+_SKILL_ID_SET: frozenset[str] = frozenset(SKILL_REGISTRY)
 
 # Compiled word-boundary pattern for SEMANTIC_EXCLUSION_WORDS. Fires after Tier 1
 # keyword matching and before BGE-M3 Tier 2. See corpus_constants.py for rationale.
@@ -153,7 +158,8 @@ def _ensure_semantic_ready() -> None:
             except (OSError, EnvironmentError):
                 model = SentenceTransformer("BAAI/bge-m3", revision=_BGE_M3_REVISION)
 
-        pairs = build_anchor_pairs(_SKILLS, include_exemplars=SKILL_ROUTING_V2)
+        all_skills = {sid: get_skill(sid) for sid in SKILL_REGISTRY}
+        pairs = build_anchor_pairs(all_skills, include_exemplars=SKILL_ROUTING_V2)
 
         _anchor_skill_ids = [sid for sid, _ in pairs]
         anchor_texts = [text for _, text in pairs]
@@ -297,7 +303,6 @@ def _rerank_route(
     if not topk:
         return None, 0.0, None
     from sage_poc.nodes.skill_rerank_model import score_pairs
-    from sage_poc.skills.schema import load_skill
     bi_score = dict(ranked)
     # ONE recognition surface, second call site (2026-08-16; the keyword veto got this on
     # round 2, and the semantic-side rerank missed it the same day: 'overstepping' has no
@@ -306,7 +311,7 @@ def _rerank_route(
     # description AND every anchor, max per skill, exactly as the veto now does.
     pairs, owners = [], []
     for sid, _ in topk:
-        sk = load_skill(sid)
+        sk = get_skill(sid)
         for text in [sk.semantic_description or sid] + list(sk.semantic_anchors or []):
             pairs.append((message_en, text))
             owners.append(sid)
@@ -330,7 +335,6 @@ def _keyword_rerank_veto(candidates: list[str], message: str, lang: str) -> bool
     if not candidates:
         return False
     from sage_poc.nodes.skill_rerank_model import score_pairs
-    from sage_poc.skills.schema import load_skill
     cands = candidates[:_RERANK_K]
     # ONE recognition surface (M2, applied to the veto 2026-08-16): the veto scores the
     # SAME signed texts Tier-2 ranks — semantic_description AND every semantic_anchors
@@ -342,7 +346,7 @@ def _keyword_rerank_veto(candidates: list[str], message: str, lang: str) -> bool
     # skills carrying signed anchors; the id_oos ABSTAIN floor suites gate the change.
     pairs, owners = [], []
     for sid in cands:
-        sk = load_skill(sid)
+        sk = get_skill(sid)
         for text in [sk.semantic_description or sid] + list(sk.semantic_anchors or []):
             pairs.append((message, text))
             owners.append(sid)
@@ -433,12 +437,12 @@ def _semantic_match_with_runner_up(
     query_text = f"{profile_context}\n{message_en}".strip() if profile_context else message_en
     # EMBED-CACHE: reuse S3's query embedding when the same message_en was just encoded on the
     # safety path. float32 cast matches the uncached encode bit-for-bit, so routing is unchanged.
-    from sage_poc.config import EMBED_CACHE_ENABLED  # noqa: PLC0415
-    if EMBED_CACHE_ENABLED:
-        from sage_poc.safety.s3_semantic import cached_get_embedding  # noqa: PLC0415
-        msg_emb = np.array(cached_get_embedding(query_text), dtype=np.float32)
-    else:
-        msg_emb = _embed_model.encode([query_text], normalize_embeddings=True)[0]
+    # P2 Task 4: routes through the ONE shared query_embedding accessor (s3_semantic.py) instead
+    # of duplicating the EMBED_CACHE_ENABLED branch here -- mechanics only, same flag, same cache,
+    # same bit-identical result (the round-trip through cached_get_embedding's list return and
+    # back to np.float32 is exact; see s3_semantic.query_embedding's docstring).
+    from sage_poc.safety.s3_semantic import query_embedding  # noqa: PLC0415
+    msg_emb = np.array(query_embedding(query_text), dtype=np.float32)
     raw_scores = np.dot(_anchor_embeddings, msg_emb)
 
     skill_scores: dict[str, float] = {}
@@ -529,7 +533,7 @@ def _enter_skill(
     time): activates `skill_id` at its first step and clears any mid-flight psychoed pathway
     (Task 8 gap 1 -- a non-psychoed skill activation must not let a pathway's per-pathway
     channels leak into it). path = state['path'] + ['skill_select', *markers]."""
-    skill = _SKILLS[skill_id]
+    skill = get_skill(skill_id)
     return {
         **extra,
         "active_skill_id": skill_id,
@@ -594,7 +598,7 @@ def _resolve_entry(
         if on_declined == "substitute":
             pool = action.get("substitute_pool", [])  # deterministic order = data order (grounding-first)
             substitute = next(
-                (s for s in pool if s not in declined and s in _SKILLS), None
+                (s for s in pool if s not in declined and s in _SKILL_ID_SET), None
             )
             if substitute is not None:
                 return _enter_skill(
@@ -986,7 +990,7 @@ async def skill_select_node(state: SageState) -> dict:
             if config.INFO_REQUEST_CONSULT_ENABLED:
                 top_match = await _consult_top_match(state)
                 if top_match is not None and top_match in INFO_REQUEST_SKILL_CONSULT_SET:
-                    skill = _SKILLS[top_match]
+                    skill = get_skill(top_match)
                     result["active_skill_id"] = top_match
                     result["active_step_id"] = skill.steps[0].step_id
                     result["skill_match_method"] = "info_request_skill_consult"
@@ -1083,8 +1087,8 @@ async def skill_select_node(state: SageState) -> dict:
     offered = state.get("offered_skill_ids") or []
     if offered and state.get("offer_response") == "accept":
         chosen = state.get("offer_choice_skill_id")
-        if chosen not in _SKILLS or chosen not in offered:
-            chosen = next((sid for sid in offered if sid in _SKILLS), None)
+        if chosen not in _SKILL_ID_SET or chosen not in offered:
+            chosen = next((sid for sid in offered if sid in _SKILL_ID_SET), None)
         if chosen is not None:
             # E7: a §6 offer accepted in the same turn the user discloses coercive control must NOT
             # promote — the safety referral wins over the engagement-layer accept (mirrors the

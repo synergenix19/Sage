@@ -119,8 +119,15 @@ def cached_get_embedding(text: str) -> list[float]:
     return emb
 
 
-def _query_embedding(text: str) -> list[float]:
-    """Flag-gated entry point used by the live S3 path."""
+def query_embedding(text: str) -> list[float]:
+    """The ONE flag-gated (EMBED_CACHE_ENABLED) query-embedding accessor. Used by both S3
+    (check_s3, below) and skill_select Tier 2 (_semantic_match_with_runner_up) -- P2 Task 4
+    mechanics-only consolidation: the two call sites previously duplicated this exact
+    if-cache-else-encode shape (skill_select inlined its own copy). Caching semantics are
+    UNCHANGED by the consolidation -- same key (sha256 of the exact text), same bound
+    (_QUERY_EMBED_CACHE_MAX), same EN-only usage today (both current callers pass message_en);
+    a bilingual cache (batched, plural `cached_get_embeddings`) is Task 5's separate PR, not
+    built here. Formerly private (`_query_embedding`); renamed on going cross-module."""
     from sage_poc.config import EMBED_CACHE_ENABLED  # noqa: PLC0415
     return cached_get_embedding(text) if EMBED_CACHE_ENABLED else get_embedding(text)
 
@@ -140,7 +147,7 @@ def check_s3(text: str) -> float:
     if not _ensure_s3_ready():
         return 0.0
     try:
-        query = np.array(_query_embedding(text), dtype=np.float32)
+        query = np.array(query_embedding(text), dtype=np.float32)
         norm = np.linalg.norm(query)
         if norm < 1e-9:
             return 0.0

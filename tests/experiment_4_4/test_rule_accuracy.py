@@ -157,7 +157,7 @@ class TestRule2ResistanceForTurns:
             new=AsyncMock(return_value=8),
         ):
             from sage_poc.skills.schema import load_skill
-            with patch("sage_poc.nodes.skill_executor.load_skill", return_value=load_skill("cbt_thought_record")):
+            with patch("sage_poc.nodes.skill_executor.get_skill", return_value=load_skill("cbt_thought_record")):
                 result = await skill_executor_node(state)
         assert result["step_instruction"] is not None
         # Phase 1 clears criteria (default message is 12 words, passes word-count).
@@ -188,7 +188,7 @@ class TestRule2ResistanceForTurns:
                 new=AsyncMock(return_value=False),
             ):
                 from sage_poc.skills.schema import load_skill
-                with patch("sage_poc.nodes.skill_executor.load_skill", return_value=load_skill("cbt_thought_record")):
+                with patch("sage_poc.nodes.skill_executor.get_skill", return_value=load_skill("cbt_thought_record")):
                     result = await skill_executor_node(state)
         assert result["active_step_id"] == "identify_thought", (
             "R2 must hold the step when criteria are not met"
@@ -312,7 +312,7 @@ class TestRule4L1Exit:
         )
         from sage_poc.nodes.skill_executor import skill_executor_node as sen
         from sage_poc.skills.schema import load_skill
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=load_skill("behavioral_activation")):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=load_skill("behavioral_activation")):
             result = await sen(state)
         assert result["active_skill_id"] is None
         assert result["escalation_triggered"]["level"] == "L1"
@@ -420,7 +420,7 @@ class TestRule5PriorExposure:
             engagement=7,
         )
         from sage_poc.skills.schema import load_skill
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=load_skill("mi_readiness_ruler")):
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=load_skill("mi_readiness_ruler")):
             result = await skill_executor_node(state)
         assert "skip" in result["step_instruction"].lower() or "already" in result["step_instruction"].lower() or "familiar" in result["step_instruction"].lower(), (
             "R5 instruction must indicate the psychoeducation step is being skipped"

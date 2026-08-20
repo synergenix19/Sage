@@ -173,7 +173,7 @@ def test_c3_cultural_overrides_injected_during_crisis_monitoring():
     )
     with (
         patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules_mock()),
-        patch("sage_poc.prompts.composer.load_skill", return_value=skill),
+        patch("sage_poc.prompts.composer.get_skill", return_value=skill),
     ):
         system_str, _, layers = compose_prompt(state)
 

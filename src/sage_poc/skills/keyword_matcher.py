@@ -8,12 +8,18 @@ wins per skill. EN matched against message_en; Arabic-script keywords matched ag
 (a translated English string cannot contain Arabic-script triggers).
 """
 from sage_poc.skill_ids import SKILL_REGISTRY
-from sage_poc.skills.schema import load_skill
+from sage_poc.skills import get_skill
 from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP
 
-# Compiled once at import from the same registry skill_select uses. Editing a trigger in the CMS
-# updates the skill JSON -> both nodes recompile from it. No second keyword list to drift.
-_SKILLS = {sid: load_skill(sid) for sid in SKILL_REGISTRY}
+# P2 Task 4: the former `_SKILLS = {sid: load_skill(sid) for sid in SKILL_REGISTRY}` preload
+# (a SECOND frozen copy of every skill, parsed independently at this module's own import) is
+# retired. This module now shares get_skill's ONE mtime-keyed, invalidatable cache instead
+# (fix round 1, M2: importing the package still warms every registry id once -- see
+# sage_poc/skills/__init__.py's warm-up loop -- so there is no NEW import-time cost here,
+# just one shared warm-up through an invalidatable cache replacing three separate frozen
+# ones). Triggers stay single-sourced from the skill JSONs' `target_presentations`: editing a
+# trigger in the CMS updates the skill JSON -> both nodes recompile from it. No second
+# keyword list to drift.
 
 
 def match_skill_keywords(message_en: str, raw_message: str, detected_language: str) -> dict[str, int]:
@@ -22,9 +28,10 @@ def match_skill_keywords(message_en: str, raw_message: str, detected_language: s
     message_en = (message_en or "").lower()
     raw_message = raw_message or ""
     kw_matches: dict[str, int] = {}
-    for skill_id, skill in _SKILLS.items():
+    for skill_id in SKILL_REGISTRY:
         if skill_id in KEYWORD_SEMANTIC_SKIP:
             continue
+        skill = get_skill(skill_id)
         for keyword in skill.target_presentations:
             kw_lower = keyword.lower()
             if kw_lower in message_en or (detected_language == "ar" and kw_lower in raw_message):

@@ -112,7 +112,7 @@ async def _run_scenario(
                 state["raw_message"] = turn_overrides[turn]["message_en"]
 
         # ── Node 5: skill_executor ────────────────────────────────────────────
-        with patch("sage_poc.nodes.skill_executor.load_skill", return_value=skill), \
+        with patch("sage_poc.nodes.skill_executor.get_skill", return_value=skill), \
              patch(
                  "sage_poc.nodes.skill_executor._score_resistance_via_rules_service",
              ) as mock_resistance:

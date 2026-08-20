@@ -422,17 +422,22 @@ def test_post_crisis_check_in_absent_from_keyword_and_semantic_pools():
     """Structural invariant: post_crisis_check_in must not appear in the keyword or
     semantic matching pools. Routing via comment-claim is insufficient — this test
     enforces the property in CI."""
-    from sage_poc.nodes.skill_select import _SKILLS, _anchor_skill_ids
+    from sage_poc.nodes.skill_select import _anchor_skill_ids
+    from sage_poc.skill_ids import SKILL_REGISTRY
     from sage_poc.corpus_constants import KEYWORD_SEMANTIC_SKIP
 
     assert "post_crisis_check_in" in KEYWORD_SEMANTIC_SKIP, (
         "post_crisis_check_in missing from KEYWORD_SEMANTIC_SKIP"
     )
 
-    for skill_id in _SKILLS:
+    # P2 Task 4: skill_select's module-level `_SKILLS` preload is retired; this loop only
+    # ever needed the registry ids (the loop body is a no-op pass), so SKILL_REGISTRY is
+    # the direct equivalent -- get_skill(sid) is available via sage_poc.skills for any
+    # future check that needs the parsed Skill.
+    for skill_id in SKILL_REGISTRY:
         if skill_id in KEYWORD_SEMANTIC_SKIP:
             # Verify it's not iterated in the keyword loop (the loop skips it)
-            pass  # presence in _SKILLS is fine — it's needed for auto-select path
+            pass  # presence in SKILL_REGISTRY is fine — it's needed for auto-select path
 
     assert "post_crisis_check_in" not in _anchor_skill_ids, (
         "post_crisis_check_in found in semantic embedding matrix — "

@@ -5,7 +5,8 @@ import json as _json
 from functools import lru_cache
 from pathlib import Path
 from sage_poc.state import SageState
-from sage_poc.skills.schema import SkillStep, load_skill
+from sage_poc.skills.schema import SkillStep
+from sage_poc.skills import get_skill
 from sage_poc.rules import engine as rules_engine
 from sage_poc import config as _config
 from .loader import get_template, get_intent_template
@@ -199,7 +200,7 @@ def _build_offer_options_block(offered_skill_ids: list[str], language: str) -> s
             lines.append(f"{i}. {name}: {desc}")
         else:
             try:
-                lines.append(f"{i}. {load_skill(sid).skill_name}")
+                lines.append(f"{i}. {get_skill(sid).skill_name}")
             except Exception:
                 _log.warning("offer options: unknown skill_id %s skipped", sid)
     return "\n".join(lines)
@@ -224,7 +225,7 @@ def _declined_skill_names(declined_skill_ids: list[str], language: str) -> list[
             names.append(_bilingual(entry["display_name"], language))
             continue
         try:
-            names.append(load_skill(sid).skill_name)
+            names.append(get_skill(sid).skill_name)
         except Exception:
             _log.warning("declined note: unknown skill_id %s; using de-underscored id", sid)
             names.append(sid.replace("_", " "))
@@ -712,7 +713,7 @@ def compose_prompt(state: SageState, l2_intent_override: str | None = None, *, s
     _active_for_overrides = state.get("active_skill_id")
     if _active_for_overrides:
         try:
-            _override_skill = load_skill(_active_for_overrides)
+            _override_skill = get_skill(_active_for_overrides)
             _override_block = build_cultural_override_block(_override_skill)
             if _override_block is not None:
                 _override_words = count_words(_override_block)
@@ -962,7 +963,7 @@ def compose_prompt(state: SageState, l2_intent_override: str | None = None, *, s
     stale_skill_id = state.get("stale_skill_id")
     if stale_skill_id:
         try:
-            skill = load_skill(stale_skill_id)
+            skill = get_skill(stale_skill_id)
             skill_display = skill.skill_name
         except Exception:
             skill_display = stale_skill_id.replace("_", " ")
@@ -1007,7 +1008,7 @@ def compose_prompt(state: SageState, l2_intent_override: str | None = None, *, s
             layers.append("skill_instruction_override")
         elif state.get("active_skill_id") and state.get("executed_step_id"):
             try:
-                skill = load_skill(state["active_skill_id"])
+                skill = get_skill(state["active_skill_id"])
                 step = next(
                     (s for s in skill.steps if s.step_id == state["executed_step_id"]),
                     None,

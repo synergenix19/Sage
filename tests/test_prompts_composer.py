@@ -164,7 +164,7 @@ def test_cultural_overrides_injected_into_system_when_skill_active():
     state = _make_composer_state(active_skill_id="post_crisis_check_in")
     with (
         patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules_mock()),
-        patch("sage_poc.prompts.composer.load_skill", return_value=skill),
+        patch("sage_poc.prompts.composer.get_skill", return_value=skill),
     ):
         system_str, _, layers = compose_prompt(state)
 
@@ -188,7 +188,7 @@ def test_cultural_overrides_empty_dict_not_injected():
     state = _make_composer_state(active_skill_id="post_crisis_check_in")
     with (
         patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules_mock()),
-        patch("sage_poc.prompts.composer.load_skill", return_value=skill),
+        patch("sage_poc.prompts.composer.get_skill", return_value=skill),
     ):
         system_str, _, layers = compose_prompt(state)
 
@@ -200,7 +200,7 @@ def test_cultural_overrides_load_failure_does_not_crash_composer():
     state = _make_composer_state(active_skill_id="post_crisis_check_in")
     with (
         patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules_mock()),
-        patch("sage_poc.prompts.composer.load_skill", side_effect=FileNotFoundError("missing")),
+        patch("sage_poc.prompts.composer.get_skill", side_effect=FileNotFoundError("missing")),
     ):
         system_str, _, layers = compose_prompt(state)
 
@@ -214,7 +214,7 @@ def test_cultural_overrides_budget_exceeded_does_not_append_layer_tag():
     state = _make_composer_state(active_skill_id="post_crisis_check_in")
     with (
         patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules_mock()),
-        patch("sage_poc.prompts.composer.load_skill", return_value=skill),
+        patch("sage_poc.prompts.composer.get_skill", return_value=skill),
     ):
         system_str, _, layers = compose_prompt(state)
 
@@ -951,7 +951,7 @@ def test_compose_prompt_passes_override_words_to_l1_budget():
 
     with (
         patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules_mock()),
-        patch("sage_poc.prompts.composer.load_skill", return_value=skill),
+        patch("sage_poc.prompts.composer.get_skill", return_value=skill),
         patch(
             "sage_poc.prompts.composer._compute_l1_budget",
             wraps=_composer_module._compute_l1_budget,
@@ -1033,7 +1033,7 @@ def test_compose_prompt_no_overflow_with_large_cultural_override():
 
     with (
         patch("sage_poc.prompts.composer.rules_engine.evaluate", return_value=_no_rules_mock()),
-        patch("sage_poc.prompts.composer.load_skill", return_value=skill),
+        patch("sage_poc.prompts.composer.get_skill", return_value=skill),
         patch("sage_poc.prompts.composer._log") as mock_log,
     ):
         mock_log.warning.side_effect = _spy

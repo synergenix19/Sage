@@ -104,10 +104,20 @@ class Skill(BaseModel):
         return v if v is not None else {}
 
 
-def load_skill(skill_id: str) -> Skill:
-    path = SKILLS_DIR / f"{skill_id}.json"
+def _load_skill_from_path(path: Path) -> Skill:
     # Resolve {{crisis_*}} placeholders (crisis skills embed the helpline in steps,
     # contraindications, and escalation_matrix) so the RESOLVED copy is what reaches the
     # LLM / user. No-op for skills that carry no crisis placeholders.
     data = resolve_crisis_placeholders_deep(json.loads(path.read_text()))
     return Skill.model_validate(data)
+
+
+def load_skill(skill_id: str) -> Skill:
+    """Raw, UNCACHED load-and-parse of one skill JSON. Every read-hot call site (composer,
+    skill_executor, skill_select, keyword_matcher) should route through
+    `sage_poc.skills.get_skill` instead — the mtime-keyed accessor built on top of this
+    function (P2 Task 4). `load_skill` stays the ground truth a fresh parse is checked
+    against (tests assert `get_skill(x) == load_skill(x)`), and it is what `get_skill`
+    calls on a cache miss."""
+    path = SKILLS_DIR / f"{skill_id}.json"
+    return _load_skill_from_path(path)

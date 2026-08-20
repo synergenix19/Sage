@@ -39,7 +39,7 @@ protects (do not extend by "skills that teach" reasoning).
 import pytest
 
 from sage_poc.skill_ids import SKILL_REGISTRY
-from sage_poc.skills import _SKILLS
+from sage_poc.skills import get_skill
 from sage_poc.skills.instructional_set import INSTRUCTIONAL_SKILLS
 
 
@@ -107,6 +107,6 @@ def test_converges_with_p0b_delivery_format_field():
     derived_from_schema = frozenset(
         skill_id
         for skill_id in SKILL_REGISTRY
-        if getattr(_SKILLS[skill_id], "delivery_format", None) == "instructional"
+        if getattr(get_skill(skill_id), "delivery_format", None) == "instructional"
     )
     assert INSTRUCTIONAL_SKILLS == derived_from_schema

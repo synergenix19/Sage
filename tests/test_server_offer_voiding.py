@@ -20,9 +20,22 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture
 def client():
-    from server import app
-    with TestClient(app) as c:
-        yield c
+    """TestClient as a context manager so lifespan (app.state init) runs.
+
+    require_ready() is overridden the same way tests/test_server.py's `client` fixture
+    does it: these tests mock the graph and assert error-handling / offer-voiding
+    behavior, not warmup, so racing the background BGE-M3 warmup's _bge_ready flag is
+    incidental to what is under test here -- see test_server.py's fixture docstring for
+    the full rationale (P2 Task 4: the get_skill cache warm-up ordering measurably
+    shifted this race's timing locally, surfacing a pre-existing gap -- this file was
+    the one `client` fixture in the suite that had not yet adopted the override)."""
+    from server import app, require_ready
+    app.dependency_overrides[require_ready] = lambda: None
+    try:
+        with TestClient(app) as c:
+            yield c
+    finally:
+        app.dependency_overrides.pop(require_ready, None)
 
 
 @pytest.fixture

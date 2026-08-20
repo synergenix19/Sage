@@ -13,12 +13,20 @@ differs). Each V2 wiring extends this file with a flag-off==V1 assertion for its
 """
 from sage_poc.nodes import skill_select as ss
 from sage_poc.nodes.skill_select import (
-    build_anchor_pairs, _SKILLS, _v2_enabled, routing_threshold, SEMANTIC_THRESHOLD,
+    build_anchor_pairs, _v2_enabled, routing_threshold, SEMANTIC_THRESHOLD,
 )
 from sage_poc.routing_eval.calibration import ThresholdTable
+from sage_poc.skill_ids import SKILL_REGISTRY
+from sage_poc.skills import get_skill
 import pytest
 
 pytestmark = pytest.mark.safety_gate
+
+# P2 Task 4: skill_select no longer holds a module-level `_SKILLS` preload; build the same
+# {skill_id: Skill} shape locally via the mtime-keyed get_skill accessor. Value-identical to
+# the retired preload for every registry id (get_skill(x) deep-equals load_skill(x)) -- this
+# guard's assertions are unchanged, only the source of the dict is.
+_SKILLS = {sid: get_skill(sid) for sid in SKILL_REGISTRY}
 
 
 def _anchor_set(include_exemplars):
