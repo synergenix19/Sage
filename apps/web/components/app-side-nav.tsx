@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/client'
 import { signOutUser } from '@/lib/auth-actions'
 import { newChatHref } from '@/lib/new-chat'
 import { t } from '@/lib/copy'
+import { isActiveHref, navItemClass } from '@/lib/nav-active'
 
 function SessionListSidebar() {
   const searchParams = useSearchParams()
@@ -96,7 +97,7 @@ export function AppSideNav() {
       {/* Nav links — bottom section */}
       <nav className="flex flex-col gap-1 px-3 border-t border-[var(--color-border)] pt-2 pb-1">
         {ALL_TABS.map((tab) => {
-          const active = pathname.startsWith(tab.href)
+          const active = isActiveHref(pathname, tab.href)
           const label = t(`tabBar.${tab.id}`, locale)
           return (
             <Link
@@ -105,9 +106,11 @@ export function AppSideNav() {
               className={cn(
                 'flex min-h-[44px] items-center rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-150',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring-color)] focus-visible:ring-offset-2',
-                active
-                  ? 'bg-[var(--color-surface-tinted)] text-[var(--color-primary-dark)] font-semibold'
-                  : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-tinted)]'
+                navItemClass(
+                  active,
+                  'bg-[var(--color-surface-tinted)] text-[var(--color-primary-dark)] font-semibold',
+                  'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-tinted)]'
+                )
               )}
             >
               {label}

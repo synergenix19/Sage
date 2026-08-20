@@ -5,6 +5,7 @@ import { cn } from '@cdai/ui'
 import { tenant } from '@cdai/tenant'
 import { useCan } from '@/lib/auth/use-can'
 import { signOutUser } from '@/lib/auth-actions'
+import { isActiveHref, navItemClass } from '@/lib/nav-active'
 
 // NAV_ITEMS covers active Gitex routes only. Latent roles (clinician_author, dpo)
 // have staff:access but no matching item here; their surfaces ship in a later sprint.
@@ -20,8 +21,6 @@ export function StaffNav() {
 
   const visibleItems = NAV_ITEMS.filter((item) => userCan(item.capability))
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/')
-
   return (
     <header className="flex h-12 flex-shrink-0 items-center gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4">
       <span className="text-sm font-semibold text-[var(--color-text-primary)] me-2" aria-hidden="true">
@@ -29,22 +28,27 @@ export function StaffNav() {
       </span>
 
       <nav aria-label="Staff navigation" className="flex items-center gap-1 flex-1">
-        {visibleItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={isActive(item.href) ? 'page' : undefined}
-            className={cn(
-              'flex h-8 items-center rounded-lg px-3 text-sm font-medium transition-colors',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring-color)]',
-              isActive(item.href)
-                ? 'bg-[var(--color-primary)] text-white'
-                : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-tinted)]'
-            )}
-          >
-            {item.label}
-          </Link>
-        ))}
+        {visibleItems.map((item) => {
+          const active = isActiveHref(pathname, item.href)
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? 'page' : undefined}
+              className={cn(
+                'flex h-8 items-center rounded-lg px-3 text-sm font-medium transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring-color)]',
+                navItemClass(
+                  active,
+                  'bg-[var(--color-primary)] text-white',
+                  'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-tinted)]'
+                )
+              )}
+            >
+              {item.label}
+            </Link>
+          )
+        })}
       </nav>
 
       <button
