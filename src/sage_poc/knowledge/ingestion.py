@@ -86,11 +86,56 @@ def chunk_text(
     return [c for c in chunks if c.strip()]
 
 
+def chunk_ids(article: dict[str, Any]) -> list[str]:
+    """The exact article_id of every row this article produces, in order.
+
+    Pure and deterministic, and deliberately the SINGLE source of those ids: the upsert
+    below writes exactly this set, and the sync's surplus-delete keeps exactly this set.
+    Two independent derivations of the same ids is how a delete predicate silently drifts
+    from what was written — and this predicate deletes clinical content, so it must be
+    provably the complement of the write, not merely similar to it.
+
+    Single-chunk articles (crisis content, whole-document by contract) use the bare
+    prefix; multi-chunk articles are suffixed -000, -001, ...
+    """
+    prefix = f"{article['article_id']}-{article['language']}"
+    chunks = chunk_text(article["content"], is_crisis_content=article["is_crisis_content"])
+    if len(chunks) == 1:
+        return [prefix]
+    return [f"{prefix}-{i:03d}" for i in range(len(chunks))]
+
+
+class _ConnHolder:
+    """Adapts a bare connection to the `async with pool.acquire()` shape."""
+
+    def __init__(self, conn):
+        self._conn = conn
+
+    def acquire(self):
+        holder = self
+
+        class _Ctx:
+            async def __aenter__(self):
+                return holder._conn
+
+            async def __aexit__(self, *_a):
+                return False
+
+        return _Ctx()
+
+
 async def ingest_article(article: dict[str, Any], pool) -> int:
     """Chunk, embed, and upsert one article. Returns number of chunks inserted.
 
     Validates schema before any DB work. Raises ValueError on invalid input.
     Logs warnings for non-fatal issues (e.g. missing bilingual pair).
+
+    `pool` may be an asyncpg pool OR an already-acquired connection. Passing the caller's
+    connection matters during sync: acquiring a SECOND connection while the caller holds
+    one doubles the sync's concurrent connection use and makes the write reachable by
+    failures the caller's connection never sees — which is exactly how the 2026-08-19 tear
+    happened (delete committed on one connection, re-ingest died on another when the
+    session-mode pool ceiling was hit).
     """
     validate_article_schema(article)
 
@@ -109,11 +154,13 @@ async def ingest_article(article: dict[str, Any], pool) -> int:
     }
 
     chunks = chunk_text(article["content"], is_crisis_content=is_crisis)
+    ids = chunk_ids(article)          # the one derivation; the delete predicate reuses it
     inserted = 0
 
-    async with pool.acquire() as conn:
+    acquirer = pool if hasattr(pool, "acquire") else _ConnHolder(pool)
+    async with acquirer.acquire() as conn:
         for idx, chunk in enumerate(chunks):
-            article_id = chunk_id_prefix if len(chunks) == 1 else f"{chunk_id_prefix}-{idx:03d}"
+            article_id = ids[idx]
             embedding = get_embedding(chunk)
             embedding_str = "[" + ",".join(str(v) for v in embedding) + "]"
             await conn.execute(

@@ -7,8 +7,9 @@ ran against prod, so knowledge_articles sat empty and every info_request abstain
 This module makes ingestion safe to run on every deploy:
   * unchanged articles are skipped (no re-embed) via a per-article content hash
     stashed in citation_metadata.content_hash,
-  * edited articles are deleted-and-reinserted (handles chunk-count changes that a
-    plain upsert would orphan),
+  * edited articles are UPSERTED and then have their surplus rows removed — never
+    deleted first (handles chunk-count changes that a plain upsert would orphan, without
+    ever leaving the article absent if the write fails part-way; see apply_sync),
   * a Postgres advisory lock serialises concurrent instances.
 
 discover_corpus / content_hash / compute_sync_plan are pure (unit-tested).
@@ -25,6 +26,7 @@ from dataclasses import dataclass, field
 # content_hash lives in ingestion (lower level); re-exported here so callers and
 # tests can import it from sync alongside the planning helpers.
 from sage_poc.knowledge.ingestion import (
+    chunk_ids,
     content_hash,
     ingest_article,
     validate_article_schema,
@@ -161,6 +163,27 @@ async def verify_corpus_integrity(conn, articles: list[dict]) -> list[tuple[str,
     return mismatches
 
 
+async def _delete_surplus(conn, prefix: str, keep_ids: list[str]) -> int:
+    """Delete this article's rows that are NOT in `keep_ids`. Returns rows removed.
+
+    The surplus is what an EDIT leaves behind when the new content chunks into fewer
+    pieces than the old (…-004 lingering after a 4-chunk rewrite). Scoped two ways at
+    once: to this article's id space, AND to ids absent from the set just written. It can
+    therefore never remove a row the upsert produced, which is the property that makes
+    "upsert then delete" safe where "delete then upsert" was not.
+
+    keep_ids MUST come from ingestion.chunk_ids() — the same derivation the upsert used.
+    """
+    if not keep_ids:                                   # never seen; refuse rather than wipe
+        raise ValueError(f"refusing surplus-delete for {prefix} with an empty keep set")
+    return int((await conn.execute(
+        "DELETE FROM public.knowledge_articles "
+        "WHERE (article_id = $1 OR article_id LIKE $1 || '-%') "
+        "  AND article_id <> ALL($2::text[])",
+        prefix, keep_ids,
+    )).split()[-1])
+
+
 async def _delete_prefix(conn, prefix: str) -> None:
     await conn.execute(
         "DELETE FROM public.knowledge_articles "
@@ -191,8 +214,26 @@ async def sync_corpus(
             plan = compute_sync_plan(articles, existing, prune=prune)
             result = SyncResult(skipped=len(plan.to_skip))
             for art in plan.to_ingest:
-                await _delete_prefix(conn, chunk_prefix(art))
-                result.chunks += await ingest_article(art, pool)
+                # UPSERT FIRST, THEN REMOVE THE SURPLUS (inverted 2026-08-19).
+                #
+                # This loop used to delete the article's rows and then re-insert them on a
+                # SEPARATE pooled connection, with no transaction spanning the pair. Any
+                # failure in between — pool exhaustion was the observed one — left the
+                # article missing or truncated in prod, silently. Two articles were lost
+                # that way (anxiety-001-ar absent, wellbeing-001-ar truncated to 1 of 4).
+                #
+                # Inverted, there is no instant at which content is absent: every chunk is
+                # upserted over its predecessor, and only then are leftovers removed. A
+                # crash mid-way leaves a SUPERSET — stale rows alongside fresh ones — never
+                # a subset. Staleness is recoverable by the next sync and visible to the
+                # integrity check; absence was neither.
+                #
+                # `conn` (not `pool`) is passed deliberately: reusing the held connection
+                # halves the sync's concurrent connection use and removes the
+                # cross-connection failure mode entirely.
+                keep = chunk_ids(art)
+                result.chunks += await ingest_article(art, conn)
+                result.pruned += await _delete_surplus(conn, chunk_prefix(art), keep)
                 result.ingested += 1
             for prefix in plan.to_prune:
                 await _delete_prefix(conn, prefix)
