@@ -405,17 +405,34 @@ def test_ar_arm_cache_hit_avoids_second_encode(monkeypatch):
 # model/revision, device="cpu".
 AR_JUST_BELOW_THRESHOLD = "تعبت نفسياً وودي انهي كل شي بحياتي"          # ~0.8040 (below)
 AR_JUST_ABOVE_THRESHOLD = "تعبت نفسياً وبصراحة ودي انهي كل شي بحياتي"  # ~0.8083 (above)
-_AR_BOUNDARY_EN_CARRIER = "I'm exhausted and honestly I want to end everything in my life"
+# NEUTRAL EN carrier (~0.6085 on its own, well clear of S3_THRESHOLD=0.8059): check_s3_bilingual
+# scores max(EN row, AR row) against the index, so an EN carrier that is ITSELF crisis-like would
+# dominate the max and mask the AR arm's boundary position entirely — verified empirically that a
+# crisis-toned EN carrier ("I want to end everything in my life", ~0.83 alone) does exactly this,
+# making both boundary points score identically regardless of the AR text. This carrier's low score
+# keeps the max attributable to the AR arm, which is the arm this test exists to isolate.
+_AR_BOUNDARY_EN_CARRIER = "Can you help me understand this better?"
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("text_ar", [AR_JUST_BELOW_THRESHOLD, AR_JUST_ABOVE_THRESHOLD])
-def test_ar_threshold_boundary_pair_cached_vs_uncached_verdict_identical(text_ar):
+@pytest.mark.parametrize(
+    "text_ar,expect_fires",
+    [(AR_JUST_BELOW_THRESHOLD, False), (AR_JUST_ABOVE_THRESHOLD, True)],
+)
+def test_ar_threshold_boundary_pair_cached_vs_uncached_verdict_identical(text_ar, expect_fires):
     """SAFETY-CRITICAL boundary evidence (ruling P2-3): the pair above straddles
     S3_THRESHOLD on the real model. For EACH point on the boundary, the cached-vs-uncached
     CRISIS-FIRE VERDICT (score >= S3_THRESHOLD) must be identical — not just the raw score.
     This is the assertion a future safety auditor needs stated directly: caching the AR arm
     must not move a real message from one side of the crisis threshold to the other.
+
+    expect_fires pins the pair actually straddling the boundary as claimed (below=False,
+    above=True) — without this, a broken/dominant EN carrier could make both points collapse
+    onto the same side and this test would still pass on cached==uncached alone, silently
+    proving nothing about the boundary. (This is exactly the failure mode caught empirically
+    while writing this test: a crisis-toned EN carrier scored ~0.83 on its own and dominated
+    check_s3_bilingual's max() over both languages, making both AR points fire identically
+    regardless of the AR text — see _AR_BOUNDARY_EN_CARRIER's comment above.)
 
     Requires the real model (parametrized values are only meaningful at real BGE-M3 scores —
     the non-slow zero-vector stub would put both points at score 0.0, silently vacuous), so
@@ -427,6 +444,12 @@ def test_ar_threshold_boundary_pair_cached_vs_uncached_verdict_identical(text_ar
     reset_query_embedding_cache()
 
     uncached_score = _s3_score_bilingual_uncached(_AR_BOUNDARY_EN_CARRIER, text_ar)
+    assert (uncached_score >= S3_THRESHOLD) == expect_fires, (
+        f"AR boundary probe {text_ar!r} did not land on the expected side of S3_THRESHOLD="
+        f"{S3_THRESHOLD}: score={uncached_score} expect_fires={expect_fires}. The probe pair "
+        f"no longer spans the boundary (or the EN carrier is dominating the max again) — "
+        f"re-probe and update the pair, do not silently accept a same-side pair."
+    )
     # Two live calls: the first populates the cache (cold), the second reads it (warm) —
     # exactly the cache's own cold-miss-then-warm-hit shape, exercised end-to-end through the
     # production entry point rather than the cache primitives directly.
