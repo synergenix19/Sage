@@ -10,6 +10,7 @@ import { CrisisHelpPanel } from './crisis-help-panel'
 import { TestingGuidePanel } from './testing-guide-panel'
 import { LanguageToggle } from '@/components/auth/language-toggle'
 import { useLocaleStore } from '@/lib/stores/locale-store'
+import { newChatHref } from '@/lib/new-chat'
 import { t } from '@/lib/copy'
 
 export function ChatHeader({ session }: { session: ChatSession | null }) {
@@ -22,7 +23,7 @@ export function ChatHeader({ session }: { session: ChatSession | null }) {
   const locale = useLocaleStore((s) => s.locale)
 
   function handleNewChat() {
-    router.push(`/chat?new=${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
+    router.push(newChatHref())
   }
 
   return (
