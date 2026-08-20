@@ -567,12 +567,12 @@ async def test_log_baseline_invoke_breaker_open_fallback_succeeds(resilience_log
 
 @pytest.mark.asyncio
 async def test_log_baseline_invoke_breaker_open_fallback_fails(resilience_log_events):
-    """CHARACTERIZATION (Task 6 step 1 baseline, pre-refactor): when the circuit is open
-    AND the fallback LLM also raises, today NOTHING is logged for the fallback failure —
-    unlike the exhausted-retries path, which logs llm_invoke_fallback_failed (see
-    test_log_baseline_invoke_exhausted_fallback_fails). Task 6 step 2 fixes this
-    symmetry gap by firing the SAME event here; this test is updated in that change to
-    assert the addition — the ONE enumerated delta against this whole baseline suite."""
+    """Task 6's ONE permitted new event (symmetry fix): when the circuit is open AND
+    the fallback LLM also raises, resilient_invoke now logs llm_invoke_fallback_failed
+    — matching the exhausted-retries path, which already logged this event (see
+    test_log_baseline_invoke_exhausted_fallback_fails). Pre-refactor this path logged
+    NOTHING for the fallback failure; that gap is what this test pinned before the
+    refactor, and this is the single enumerated delta against the whole baseline."""
     key = "https://ev-inv-breaker-c.api/test/model"
     _circuit_state[key] = {
         "state": "open", "consecutive_failures": CIRCUIT_BREAKER_THRESHOLD,
@@ -588,8 +588,13 @@ async def test_log_baseline_invoke_breaker_open_fallback_fails(resilience_log_ev
     finally:
         _reset(key)
 
-    assert _shape(_events(resilience_log_events)) == [
+    events = _events(resilience_log_events)
+    assert [e["event"] for e in events] == [
+        "circuit_breaker_short_circuit", "llm_invoke_fallback_failed",
+    ]
+    assert _shape(events) == [
         ("circuit_breaker_short_circuit", frozenset({"event", "node", "circuit_breaker_state"})),
+        ("llm_invoke_fallback_failed", frozenset({"event", "node", "error_type"})),
     ]
 
 
