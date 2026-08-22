@@ -8,6 +8,7 @@ from sage_poc.state import SageState
 from sage_poc.skills.schema import Skill
 from sage_poc.skills import get_skill
 from sage_poc.nodes.criteria_eval import evaluate_completion_criteria
+from sage_poc.rules.normalize import has_arabic
 
 _log = logging.getLogger(__name__)
 
@@ -357,11 +358,8 @@ def _select_examples(examples: list[str], detected_language: str, n: int = 2) ->
     This avoids re-introducing EN->AR contamination on steps with only 1 Arabic example.
     Uses id()-based remainder to survive duplicate example strings across languages.
     """
-    def _is_arabic(text: str) -> bool:
-        return any(0x0600 <= ord(c) <= 0x06FF for c in text)
-
     want_arabic = detected_language == "ar"
-    matched = [ex for ex in examples if _is_arabic(ex) == want_arabic]
+    matched = [ex for ex in examples if has_arabic(ex) == want_arabic]
     matched_ids = set(id(e) for e in matched)
     remainder = [ex for ex in examples if id(ex) not in matched_ids]
     return (matched + remainder)[:n]

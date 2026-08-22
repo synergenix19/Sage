@@ -13,6 +13,7 @@ from sage_poc.gender_marker import detect_gender_marking
 from sage_poc.config import CRISIS_LINE_UAE, CRISIS_CONFIG, CLASSIFIER_MODEL
 from sage_poc.llm import get_classifier
 from sage_poc.rules import engine as rules_engine
+from sage_poc.rules.normalize import ARABIC_CHAR_RE
 from sage_poc.prompts.summarizer import summarise_history
 from sage_poc.audit import write_session_audit, write_identity_substitution_audit, derive_psychoed_weave_state
 
@@ -376,7 +377,6 @@ _BANNED_OPENER_PATTERNS: list[str] = [
 _BANNED_OPENER_RE = re.compile(
     r"(?i)^(" + "|".join(_BANNED_OPENER_PATTERNS) + r")"
 )
-_HAS_ARABIC_RE = re.compile(r"[؀-ۿ]")
 # Arabic-output English-bleed guard (feedback #4). Latin alphabetic runs of length >= 3 that
 # are not known acronyms/brands indicate an untranslated English word in an Arabic reply.
 _LATIN_WORD_RE = re.compile(r"[A-Za-z]{3,}")
@@ -736,7 +736,7 @@ async def _compose_english(state: SageState) -> tuple[str, list, dict]:
             state.get("crisis_state"), session_id,
         )
 
-    _arabic_chars = len(_HAS_ARABIC_RE.findall(response_en))
+    _arabic_chars = len(ARABIC_CHAR_RE.findall(response_en))
     _total_chars = len(response_en.strip())
     _response_en_is_arabic = (
         lang == "ar"
