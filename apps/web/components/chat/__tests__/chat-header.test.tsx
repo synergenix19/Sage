@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import React from 'react'
 
 // --- Setup environment before imports ---
@@ -166,6 +167,103 @@ describe('ChatHeader — session title', () => {
     }
     render(<ChatHeader session={session} />)
     expect(screen.getByText('Anxiety about work')).toBeInTheDocument()
+  })
+})
+
+describe('ChatHeader — panel mutual exclusion', () => {
+  // Old (pre-union-state) implementation used four independent booleans with no
+  // explicit mutual-exclusion calls between the setters, so clicking a second
+  // panel trigger while a panel was open left BOTH panels mounted (a latent
+  // double-open). The `useState<PanelId | null>` union makes only one panel
+  // open at a time by construction. This test pins the union's new,
+  // behavior-CHANGING guarantee — see PR body for the determination.
+  it('opens HistoryPanel and closes it when SettingsPanel is opened next', async () => {
+    render(<ChatHeader session={null} />)
+    fireEvent.click(screen.getByRole('button', { name: /history/i }))
+    await waitFor(() => {
+      expect(screen.getByTestId('history-panel')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /settings/i }))
+    await waitFor(() => {
+      expect(screen.getByTestId('settings-panel')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('history-panel')).not.toBeInTheDocument()
+  })
+
+  it('opens CrisisHelpPanel and closes it when TestingGuidePanel is opened next', async () => {
+    render(<ChatHeader session={null} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Get help now' }))
+    await waitFor(() => {
+      expect(screen.getByTestId('crisis-help-panel')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Testing guide' }))
+    await waitFor(() => {
+      expect(screen.getByTestId('testing-guide-panel')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('crisis-help-panel')).not.toBeInTheDocument()
+  })
+
+  // Arrival direction: the trigger most tied to the crisis affordance is "Get help now"
+  // itself. This pins that the crisis panel always wins on arrival — opening it while
+  // another panel is already open closes that other panel and the help panel mounts,
+  // same as the reverse direction pinned above.
+  it('opens CrisisHelpPanel and closes SettingsPanel when help is opened after settings', async () => {
+    render(<ChatHeader session={null} />)
+    fireEvent.click(screen.getByRole('button', { name: /settings/i }))
+    await waitFor(() => {
+      expect(screen.getByTestId('settings-panel')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Get help now' }))
+    await waitFor(() => {
+      expect(screen.getByTestId('crisis-help-panel')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('settings-panel')).not.toBeInTheDocument()
+  })
+
+  // Keyboard-navigation documentation (MEDIUM review finding).
+  //
+  // No focus trap exists on the main chat surface today. Under the OLD four-boolean
+  // implementation, tabbing out of an open crisis help panel to another header trigger
+  // and activating it left the help panel mounted underneath (the old double-mount kept
+  // it "on top" — reachable or not, it was never displaced). Under the new union state,
+  // the same keyboard sequence DISMISSES the crisis panel: activating any other trigger
+  // — by mouse OR keyboard — always displaces whichever panel is currently open, because
+  // there is exactly one `openPanel` slot.
+  //
+  // This test pins that current, keyboard-reachable behavior precisely: it programmatically
+  // focuses the "Get help now" trigger (data-testid="get-help-now") and activates it with
+  // Enter, then focuses the settings trigger and activates it with Enter, and asserts the
+  // help panel unmounts while the settings panel mounts.
+  //
+  // The displacement is reachable via keyboard ONLY because no focus trap exists at this
+  // base. PR #560 (dialog-semantics draft) adds a focus trap that removes this
+  // reachability — once a panel is open, focus will be confined inside it, so Tab can no
+  // longer reach another header trigger while help is open. When #560 merges, THIS TEST
+  // STILL PASSES (it moves focus programmatically via `.focus()`, not by tabbing through
+  // the DOM), but the user-reachable keyboard path this test documents will be closed.
+  // This comment is the ledger entry: if this test's assertions ever need to change
+  // because #560 (or its successor) altered reachability, that is expected and this note
+  // is the record of why.
+  it('keyboard: Enter on Get help now opens help; Enter on settings after tabbing away closes help and opens settings', async () => {
+    render(<ChatHeader session={null} />)
+
+    const helpTrigger = screen.getByTestId('get-help-now')
+    helpTrigger.focus()
+    await userEvent.keyboard('{Enter}')
+    await waitFor(() => {
+      expect(screen.getByTestId('crisis-help-panel')).toBeInTheDocument()
+    })
+
+    const settingsTrigger = screen.getByRole('button', { name: /settings/i })
+    settingsTrigger.focus()
+    await userEvent.keyboard('{Enter}')
+    await waitFor(() => {
+      expect(screen.getByTestId('settings-panel')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('crisis-help-panel')).not.toBeInTheDocument()
   })
 })
 
