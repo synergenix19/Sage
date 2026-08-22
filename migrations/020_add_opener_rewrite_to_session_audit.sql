@@ -1,0 +1,24 @@
+-- Add opener_rewrite to session_audit (#58 opener-rewrite traceability; P2 Task 7f fix round 1).
+-- output_gate.py's opener-rewrite logic (the LLM-proposes/deterministic-re-check pass that
+-- rewrites or passes through a banned-opener reply) has always computed an opener_rewrite_audit
+-- dict and included it in the node's returned graph state, with a comment claiming it was
+-- "persisted via Step 3b migration" -- but no such migration ever existed, and the column this
+-- migration adds did not exist on session_audit until now. Without it, the very first
+-- write_session_audit(...) INSERT/UPSERT that carries a non-null opener_rewrite key fails with
+-- Postgres error 42703 (undefined_column); _write_session_audit_row's fail-open handling logs
+-- and continues rather than raising, so the failure mode is a SILENTLY DISCARDED audit row, not
+-- a visible error -- the entire turn's audit record is lost, not just the opener_rewrite field.
+-- This migration is a DEPLOY GATE for the fix in refactor/state-cleanup-opener-rewrite-channel
+-- (PR #569): it MUST be applied to the target environment before that PR's audit.py change
+-- (which starts populating opener_rewrite on every turn the rewrite logic runs) is deployed, or
+-- every such turn's audit write fails closed with total row loss on that turn. #569 merges only
+-- after this migration's PR merges, and #569 must not be DEPLOYED until this migration has been
+-- APPLIED to the target database -- see MIGRATIONS.md and PR #569's body for the full ordering.
+-- Existing rows get NULL (no backfill -- historical turns predate this column and never carried
+-- opener-rewrite audit data).
+--   opener_rewrite: {"applied": bool, "model": str, "opener": str, "latency_ms": int,
+--                    "suppressed": str|absent} -- the same shape output_gate.py has always
+--                    built locally; written verbatim (or the shorter suppressed-only shape) as
+--                    jsonb, never re-derived, so the audit row matches exactly what the turn's
+--                    rewrite decision actually was.
+ALTER TABLE session_audit ADD COLUMN IF NOT EXISTS opener_rewrite jsonb;
