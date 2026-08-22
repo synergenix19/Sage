@@ -42,10 +42,8 @@ def make_record_tool(
     def _get_repo():
         if repo_override:
             return repo_override
-        if pool is None:
-            return None
-        from sage_poc.memory.postgres_repository import PostgresMemoryRepository
-        return PostgresMemoryRepository(pool)
+        from sage_poc.memory import get_repository
+        return get_repository(pool=pool)
 
     @tool
     async def record_observation(
