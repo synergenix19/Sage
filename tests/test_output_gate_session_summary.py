@@ -377,3 +377,100 @@ class TestPersistSessionSummaryHelper:
         )
 
         mock_save.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Fix round 2 (M-561): call-path + log-observability parity on the DEFERRED
+# IMPORT FAILURE path specifically (as opposed to "pool is None", already
+# covered by test_no_pool_returns_early above). Simulates `from server import
+# app` raising INSIDE get_repository() -- the failure mode the earlier tests
+# never exercised, and the one where get_repository() swallows the exception
+# and returns None cleanly instead of letting it propagate.
+# ---------------------------------------------------------------------------
+
+class TestPersistSessionSummaryDeferredImportFailureParity:
+    def _run_with_broken_server_import(self, **kwargs):
+        """Run _persist_session_summary with sys.modules["server"] = None, so
+        `from server import app` (inside get_repository()) raises."""
+        import sys
+
+        from sage_poc.nodes.output_gate import _persist_session_summary
+
+        async def _runner():
+            with patch.dict(sys.modules, {"server": None}):
+                await _persist_session_summary(**kwargs)
+
+        asyncio.run(_runner())
+
+    def test_decoupled_flag_write_still_called_when_server_import_fails(self):
+        """SPY-COUNT TEST (fix round 2, item M-561-c). Pins the call-path-parity
+        fix (item a): on the deferred-import-failure path, _write_persisted_
+        clinical_flags must still be CALLED, exactly like baseline (0d47a88a)
+        -- persisted_clinical_flags feeds safety_check at the next session's
+        start (Cardinal Rule 4) and must not be skipped just because the
+        summary-persistence side failed first.
+
+        RED against the pre-fix head (spy=0, get_repository() returns None ->
+        the old bare `if repo is None: return` exited the whole function
+        before ever reaching the decoupled call below). GREEN after the fix
+        (spy=1, matching baseline's spy=1 on this exact path)."""
+        with patch(
+            "sage_poc.nodes.output_gate._write_persisted_clinical_flags",
+            new_callable=AsyncMock,
+        ) as spy:
+            self._run_with_broken_server_import(
+                session_id="sess-deferred-import-fail",
+                user_id="user-deferred-import-fail",
+                summary_text="Some summary",
+                crisis_flags=[],
+                clinical_flags=["substance_use"],
+            )
+
+        spy.assert_awaited_once_with("user-deferred-import-fail", ["substance_use"])
+
+    def test_log_parity_on_deferred_import_failure(self, caplog):
+        """LOG-OBSERVABILITY PARITY (fix round 2, item M-561-b). Baseline logged
+        "Failed to persist session summary for session %s" (with session_id) via
+        an exception path, AND "[output_gate] write_persisted_clinical_flags
+        failed: ..." via the decoupled call's own exception path -- both from
+        the sage_poc.nodes.output_gate logger, since external alerting may key
+        on the exact string + logger. get_repository() now catches the same
+        underlying failure without raising, so both messages must be restored
+        as EXPLICIT log calls, not lost just because there is no live exception
+        to catch anymore."""
+        with caplog.at_level("WARNING"):
+            self._run_with_broken_server_import(
+                session_id="sess-log-parity",
+                user_id="user-log-parity",
+                summary_text="Some summary",
+                crisis_flags=[],
+                clinical_flags=["substance_use"],
+            )
+
+        output_gate_records = [
+            r for r in caplog.records if r.name == "sage_poc.nodes.output_gate"
+        ]
+        messages = [r.getMessage() for r in output_gate_records]
+
+        assert any(
+            "Failed to persist session summary for session sess-log-parity" in m
+            for m in messages
+        ), f"session-summary record (with session_id) missing; got: {messages}"
+        assert any(
+            m.startswith("[output_gate] write_persisted_clinical_flags failed:")
+            for m in messages
+        ), f"write_persisted_clinical_flags-failed record missing; got: {messages}"
+        # Exact count, empirically verified (a temporary debug print inside this test showed
+        # the real caplog.records list before this assertion was tightened): exactly 2
+        # sage_poc.nodes.output_gate records on this path -- matching baseline's 2 log calls
+        # exactly ("Failed to persist session summary for session %s" +
+        # "[output_gate] write_persisted_clinical_flags failed: %s"). get_repository()'s OWN
+        # logger (sage_poc.memory) ALSO fires twice more on this same path (once per
+        # get_repository() call -- it is called once each from _persist_session_summary and
+        # from the decoupled _write_persisted_clinical_flags, and it is not memoized, so it
+        # re-attempts and re-logs on every call) -- 4 total records across both loggers, not
+        # asserted on here since external alerting keys on THIS module's string+logger.
+        assert len(output_gate_records) == 2, (
+            f"expected exactly the 2 output_gate-logger records above, got "
+            f"{len(output_gate_records)}: {messages}"
+        )

@@ -560,6 +560,18 @@ async def _write_persisted_clinical_flags(
         from sage_poc.memory import get_repository  # noqa: PLC0415
         repo = get_repository()
         if repo is None:
+            # Fix round 2 (M-561-a/b): get_repository() swallows a deferred-import/pool
+            # failure internally and returns None -- it never raises, so this is no longer
+            # reached via `except Exception` the way baseline's inline `from server import
+            # app` failure was. Log explicitly here so the distinctive "[output_gate]
+            # write_persisted_clinical_flags failed:" string + this module's logger
+            # (sage_poc.nodes.output_gate, not sage_poc.memory) still fire on this path --
+            # external alerting may key on both, and baseline emitted this exact message on
+            # every failure mode reaching this function, not only exception-raising ones.
+            _log.warning(
+                "[output_gate] write_persisted_clinical_flags failed: no repository "
+                "available (pool unavailable or the server.app lookup failed)"
+            )
             return
         await repo.write_persisted_clinical_flags(user_id, flags_to_persist)
     except Exception as exc:
@@ -581,18 +593,34 @@ async def _persist_session_summary(
         from sage_poc.memory.embedding import get_embedding_async  # noqa: PLC0415
         repo = get_repository()
         if repo is None:
-            return
-        embedding = await get_embedding_async(summary_text)
-        safety_level = (
-            "crisis" if crisis_flags
-            else "clinical" if clinical_flags
-            else "normal"
-        )
-        await repo.save_session_summary(
-            session_id, user_id, summary_text, embedding, safety_level,
-            skills_used=skills_used,
-            mood_score=mood_score,
-        )
+            # Fix round 2 (M-561-a): a bare `return` here (baseline's shape, and this
+            # function's shape before this fix) exits the WHOLE function -- which skips the
+            # decoupled _write_persisted_clinical_flags call below entirely. That call is
+            # deliberately decoupled from summary-persistence success (Cardinal Rule 4:
+            # persisted_clinical_flags feeds safety_check at the next session's start and
+            # must fire regardless of whether the summary write succeeded). Baseline got
+            # away with the early `return` only because ITS `from server import app` lived
+            # directly in this try block, so an import failure there raised an exception
+            # caught by `except Exception` below -- which does NOT return, so baseline fell
+            # through to the decoupled call. get_repository() converts that same failure
+            # into a clean `None` (never raises), so the early `return` here is a REAL
+            # divergence from baseline, not an equivalent refactor -- restructured to guard
+            # only the repo-dependent work, so every path (repo None, embedding failure,
+            # save_session_summary failure) falls through to the decoupled call exactly like
+            # baseline did for the exception-raising cases.
+            _log.warning("Failed to persist session summary for session %s", session_id)
+        else:
+            embedding = await get_embedding_async(summary_text)
+            safety_level = (
+                "crisis" if crisis_flags
+                else "clinical" if clinical_flags
+                else "normal"
+            )
+            await repo.save_session_summary(
+                session_id, user_id, summary_text, embedding, safety_level,
+                skills_used=skills_used,
+                mood_score=mood_score,
+            )
     except Exception:
         _log.warning("Failed to persist session summary for session %s", session_id)
     # Flag persistence is intentionally decoupled from session summary persistence.
