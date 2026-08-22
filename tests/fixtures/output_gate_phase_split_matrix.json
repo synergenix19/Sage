@@ -39,6 +39,7 @@
       "message_en": "I feel like everything is strange and unreal",
       "new_clinical_flags_turn": [],
       "offered_skill_ids": null,
+      "opener_rewrite": null,
       "original_response_hash": null,
       "original_response_text": null,
       "path": [
@@ -162,6 +163,7 @@
       "message_en": "I'm tired and I feel like everything is hard",
       "new_clinical_flags_turn": [],
       "offered_skill_ids": null,
+      "opener_rewrite": null,
       "original_response_hash": null,
       "original_response_text": null,
       "path": [
@@ -284,6 +286,12 @@
       "message_en": "I am exhausted by everything",
       "new_clinical_flags_turn": [],
       "offered_skill_ids": null,
+      "opener_rewrite": {
+        "applied": true,
+        "latency_ms": 0,
+        "model": "openai/gpt-4o-mini",
+        "opener": "It sounds like"
+      },
       "original_response_hash": null,
       "original_response_text": null,
       "path": [
@@ -415,6 +423,7 @@
       "message_en": "I am exhausted by everything",
       "new_clinical_flags_turn": [],
       "offered_skill_ids": null,
+      "opener_rewrite": null,
       "original_response_hash": null,
       "original_response_text": null,
       "path": [
@@ -539,6 +548,7 @@
       "message_en": "I am exhausted by everything",
       "new_clinical_flags_turn": [],
       "offered_skill_ids": null,
+      "opener_rewrite": null,
       "original_response_hash": null,
       "original_response_text": null,
       "path": [
@@ -663,6 +673,7 @@
       "message_en": "I am exhausted by everything",
       "new_clinical_flags_turn": [],
       "offered_skill_ids": null,
+      "opener_rewrite": null,
       "original_response_hash": null,
       "original_response_text": null,
       "path": [
@@ -789,6 +800,7 @@
       "message_en": "I am exhausted by everything",
       "new_clinical_flags_turn": [],
       "offered_skill_ids": null,
+      "opener_rewrite": null,
       "original_response_hash": null,
       "original_response_text": null,
       "path": [
@@ -911,6 +923,7 @@
       "message_en": "why do people get anxious",
       "new_clinical_flags_turn": [],
       "offered_skill_ids": null,
+      "opener_rewrite": null,
       "original_response_hash": null,
       "original_response_text": null,
       "path": [
@@ -1047,6 +1060,7 @@
       "offered_skill_ids": [
         "box_breathing"
       ],
+      "opener_rewrite": null,
       "original_response_hash": null,
       "original_response_text": null,
       "path": [
@@ -1178,6 +1192,7 @@
       "message_en": "I am exhausted by everything",
       "new_clinical_flags_turn": [],
       "offered_skill_ids": null,
+      "opener_rewrite": null,
       "original_response_hash": null,
       "original_response_text": null,
       "path": [
@@ -1302,6 +1317,7 @@
       "message_en": "I am exhausted by everything",
       "new_clinical_flags_turn": [],
       "offered_skill_ids": null,
+      "opener_rewrite": null,
       "original_response_hash": null,
       "original_response_text": null,
       "path": [
@@ -1424,6 +1440,7 @@
       "message_en": "I am exhausted by everything",
       "new_clinical_flags_turn": [],
       "offered_skill_ids": null,
+      "opener_rewrite": null,
       "original_response_hash": null,
       "original_response_text": null,
       "path": [

@@ -96,6 +96,40 @@ def test_classifier_context_hash_survives_the_node_to_node_seam():
     )
 
 
+def test_opener_rewrite_survives_the_node_to_node_seam():
+    """#58 traceability bug: output_gate.py computes opener_rewrite_audit and includes it in
+    output_gate_node's returned dict, but opener_rewrite was never a declared SageState
+    channel -- so LangGraph dropped it in the merge before it ever reached a checkpoint or a
+    later read (the exact SG-2 seam class). Uses the REAL SageState schema; a minimal
+    writer->reader graph reproduces the exact merge. Reading the value into a declared field
+    (step_instruction) proves the DOWNSTREAM node observed it, not just that it appears in
+    the writer's own return."""
+    sentinel = {"applied": True, "model": "OPENER-REWRITE-SENTINEL", "opener": "x", "latency_ms": 1}
+
+    def writer(state):
+        return {"opener_rewrite": sentinel}
+
+    def reader(state):
+        # A downstream node reading the channel -- this is _dispatch_side_effects'
+        # write_session_audit position relative to output_gate's own opener-rewrite logic.
+        return {"step_instruction": state.get("opener_rewrite")}
+
+    g = StateGraph(SageState)
+    g.add_node("writer", writer)
+    g.add_node("reader", reader)
+    g.add_edge(START, "writer")
+    g.add_edge("writer", "reader")
+    g.add_edge("reader", END)
+    out = g.compile().invoke({})
+
+    assert out.get("step_instruction") == sentinel, (
+        "opener_rewrite was DROPPED between nodes — it must be declared in the SageState "
+        "TypedDict (LangGraph drops undeclared keys). This is the #58 opener-rewrite "
+        "traceability bug's exact root cause; see scripts/check_state_channels.py for the "
+        "static gate."
+    )
+
+
 def _graph_edges() -> set[tuple[str, str]]:
     from sage_poc.graph import build_graph
     drawable = build_graph(None).get_graph()
