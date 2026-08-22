@@ -3,14 +3,22 @@ name: unit-gate
 # Deterministic safety-surface coverage. ferry-gate only covers server.py/state.py/
 # skill_ids.py plumbing; this gate covers the routing/skill-selection/executor/composer
 # surfaces (graph.py, nodes/, prompts/, rules/, skills/) that the ferry filter misses.
-# It runs a curated list of suites that are deterministic (no real LLM/DB calls — the
-# LLM is mocked or unused) and currently green, so the gate means something. The whole
-# not-slow suite is NOT runnable here: ~53 tests depend on a live OpenRouter/DB (e.g.
-# test_language, test_wrong_skill_routing) and would be red in CI.
+# It runs every suite tagged @pytest.mark.safety_gate that is deterministic (no real
+# LLM/DB calls — the LLM is mocked or unused) and currently green, so the gate means
+# something. The whole not-slow suite is NOT runnable here: dozens of tests depend on a
+# live OpenRouter/DB (e.g. test_language, test_wrong_skill_routing) and would be red in CI.
 #
-# Existence-filtered: each PR/branch runs whichever curated suites exist on it (the
-# engagement suites do not exist on master yet). New deterministic safety suites should
-# be ADDED to CANDIDATES below so they are covered as they land.
+# MARKER-SELECTED (K1.3, 2026-08-19 keystones stream; owner-approved, stacked on #532/#510/
+# #515): selection used to be a hand-maintained CANDIDATES path list, existence-filtered per
+# branch. That approach could not fail loud when a suite was silently dropped from the list
+# (K1.4's fatal floor exists because of it) and required editing this workflow file to add
+# every new gated test file. Selection is now by marker: a test opts into the gate by
+# carrying `pytestmark = pytest.mark.safety_gate` (module level; append to an existing list
+# where one exists), not by a line in this file. New deterministic safety suites should be
+# tagged with the marker at the point they're written; see #532 for the K1.5 adjudication
+# batch that tagged the last hand-picked backlog before this switch, and each CANDIDATES-era
+# PR (referenced in prior git history of this file) for the per-suite rationale that used to
+# live here — that provenance is preserved in git blame/PR bodies, not duplicated in this file.
 
 on:
   push:
@@ -21,12 +29,12 @@ on:
       - 'pyproject.toml'
       # Corpus is content-as-code: auto-sync ingests it to the prod clinical surface
       # on deploy, so a malformed/mistagged/clinically-wrong chunk must be gated like
-      # code. Pairs with test_corpus_integrity.py in CANDIDATES below.
+      # code. Pairs with test_corpus_integrity.py (safety_gate-marked).
       - 'data/knowledge_corpus/**'
       # Psychoed content is the same content-as-code class as the knowledge corpus above
       # (clinician-editable trigger phrases/blocks/collision table that drive a clinical
       # serving surface): a PR editing ONLY data/psychoed/** must be gated like code.
-      # Pairs with test_psychoed_content_integrity.py in CANDIDATES below (final review
+      # Pairs with test_psychoed_content_integrity.py (safety_gate-marked; final review
       # Important 1/2, 2026-08-05).
       - 'data/psychoed/**'
       # Flags are config-as-code (2026-07-29 signed-flag gate): a PR editing ONLY
@@ -118,7 +126,7 @@ jobs:
         if: steps.detect.outputs.code == 'true'
         run: python scripts/check_disposition_ownership.py
 
-      - name: Run curated deterministic safety-surface suites
+      - name: Run safety_gate-marked deterministic suites
         if: steps.detect.outputs.code == 'true'
         env:
           # Suites mock the LLM or do not call it; a dummy key prevents import-time
@@ -130,180 +138,31 @@ jobs:
           # tests that need real embeddings are excluded here and would fail-loud if run.
           HF_HUB_OFFLINE: "1"
           TRANSFORMERS_OFFLINE: "1"
+          # scripts/prod_smoke/tests is now collected as a whole directory (path root, below)
+          # rather than one named file, so pytest's collection phase imports every module under
+          # it — including scripts/prod_smoke/run.py -> tier_a_safety.py -> cases.py ->
+          # functional_test_production.py, whose fail-closed guard SystemExits if SAGE_API_KEY
+          # is unset. That import-time SystemExit crashes pytest's collector with an
+          # INTERNALERROR (not a normal collection error), which would abort the whole job. A
+          # dummy value only needs to exist, never be valid — no real network call is made
+          # during collection or by any safety_gate-marked test. Found and recorded during K1.3
+          # (2026-08-19); see PR body for the reproduction.
+          SAGE_API_KEY: dummy-ci
         run: |
           set -euo pipefail
-          CANDIDATES="
-            tests/test_corpus_integrity.py
-            tests/test_routing.py
-            tests/test_skill_select.py
-            tests/test_skill_select_offer.py
-            tests/test_skill_select_psychotic.py
-            tests/test_v2_flag_off_byte_identical.py
-            tests/test_v2_per_route_thresholds.py
-            tests/test_v2_abstain.py
-            tests/test_v2_anchor_debias.py
-            tests/test_v2_crisis_guardrail.py
-            tests/test_skill_matching_rules.py
-            tests/test_skill_executor.py
-            tests/test_state_channel_survival.py
-            tests/test_server_helpers.py
-            tests/test_schema_conformance.py
-            tests/test_offer_blurb_doc_conformance.py
-            tests/test_offer_discipline_conformance.py
-            tests/test_crisis_helpline_conformance.py
-            tests/test_intent_route_node.py
-            tests/test_engagement_templates.py
-            tests/test_composer_intensity.py
-            tests/test_freeflow_guardrail.py
-            tests/test_p1_mid_freeflow_shape.py
-            tests/test_declined_skills_signal.py
-            tests/test_nodes.py
-            tests/test_phase2_t1_containment_state.py
-            tests/test_phase2_t2_contain_action.py
-            tests/test_phase2_t3_crisis_supremacy.py
-            tests/test_deploy_build_lock.py
-            tests/test_signed_fields_manifest.py
-            tests/test_conformance_flag_parity.py
-            tests/test_prod_flags_register.py
-            tests/test_health_version_full_readback.py
-            tests/test_classifier_degraded_marker.py
-            tests/test_instrument_helper_only.py
-            scripts/prod_smoke/tests/test_tier_b_credential_guard.py
-            tests/test_harm_to_others_node1_backstop.py
-            tests/test_cardiac_escalation.py
-            tests/test_crisis_availability_consistency.py
-            tests/test_crisis_config_cross_stack.py
-            tests/test_sg2_caveat_firing.py
-            tests/test_medical_screen.py
-            tests/test_medical_screen_wiring.py
-            tests/test_medical_screen_callsite.py
-            tests/test_medical_screen_shadow.py
-            tests/test_medical_screen_audit.py
-            tests/test_medical_screen_serve_resume.py
-            tests/test_screen_response_node.py
-            tests/test_screen_serve_resume_graph.py
-            tests/test_health_version_d1_readback.py
-            tests/test_hr_neutrality_gate.py
-            tests/test_medical_redflag_ar_329.py
-            tests/test_medical_redflag_guard.py
-            tests/test_safety_language_parity.py
-            tests/test_ocd_compulsion_raw_path.py
-            tests/test_ocd_compulsion_ar_330.py
-            tests/test_safety_reads_raw.py
-            tests/test_safety_copy_urgency.py
-            tests/test_rules_safety_hr.py
-            tests/test_hr_distress_parse.py
-            tests/test_hr_copy_variants.py
-            tests/test_hr_terminal.py
-            tests/test_hr_crisis_precedence.py
-            tests/test_hr_routing.py
-            tests/test_hr_audit.py
-            tests/test_psychoed_fixtures_ci.py
-            tests/test_measure_psychoed_families_safety.py
-            tests/test_psychoed_f5_flow.py
-            tests/test_psychoed_f7_integrity.py
-            tests/test_psychoed_graph.py
-            tests/test_psychoed_gate.py
-            tests/test_psychoed_skill_select.py
-            tests/test_psychoed_knowledge_retrieve.py
-            tests/test_psychoed_flag_off.py
-            tests/test_psychoed_mechanism_a.py
-            tests/test_psychoed_store.py
-            tests/test_psychoed_weave_eval.py
-            tests/test_psychoed_classifiers.py
-            tests/test_psychoed_resolver.py
-            tests/test_psychoed_serve.py
-            tests/test_psychoed_carry_forward.py
-            tests/test_psychoed_content_integrity.py
-            tests/test_rules_safety.py
-          "
-          # Psychoed suites added 2026-08-04 (Phase 3 Task 9, closing the fact-sheet §7 gap):
-          # the Phase 2 psychoed suites (graph/gate/skill_select/knowledge_retrieve/flag_off/
-          # mechanism_a/store/weave_eval/classifiers/resolver/serve/carry_forward) were green
-          # and CI-invoked by their own dedicated test files but sat OUTSIDE this required gate
-          # — a suite that exists and passes but isn't watched by the hard gate provides the
-          # same false assurance as the #15 blind spot above. test_psychoed_fixtures_ci.py
-          # (Phase 3 Tasks 1-8's CI-tier driver, F1-F4/F6/F8-F10 corpus families) and
-          # test_psychoed_f5_flow.py / test_psychoed_f7_integrity.py (F5/F7 procedural
-          # families, no corpus rows — see their own module docstrings) join for the same
-          # reason. All 15 verified green in this exact CANDIDATES set (uv run pytest, same
-          # OPENROUTER_API_KEY=dummy-ci / HF_HUB_OFFLINE=1 env this job sets) before wiring —
-          # see task-9-report.md for the flaky-suite characterization that precondition this
-          # addition on (4 psychoed-adjacent tests were failing under a wider LOCAL run before
-          # characterization; none reproduce in THIS curated file set — traced to a real
-          # os.environ leak in tests/test_graph_evidence.py, a file this gate does not run in
-          # this order, plus two genuinely pre-existing, unrelated, non-flaky findings — see
-          # the report; nothing was wired in with known flakiness).
-          # test_measure_psychoed_families_safety.py added same day (Task 9 fix round 1,
-          # review findings): permanent regression guard for two Important review findings in
-          # the flip-tier runner (scripts/bot_behaviour_audit/measure_psychoed_families.py) —
-          # (a) the undefeatable --live + pre-import-key-snapshot gate (proves a planted
-          # parent .env cannot forge a live run), (b) the six-site write_session_audit
-          # patch-coverage static guard (fails loudly if a future terminal-response-node
-          # addition reopens a live-DB-write hole). No live LLM, no API key, no network call.
-          # test_psychoed_content_integrity.py added 2026-08-05 (final-review Important 1/2):
-          # validates the psychoed CLINICAL CONTENT DATA itself (data/psychoed/blocks/**,
-          # trigger_tables/**, manifests, collision table -- schema, em-dash-free served copy,
-          # source citation, per-category coverage). It was in-repo, green (138 tests, no
-          # network/DB), and CI-invoked by its own file, but was missed from Task 9's sweep and
-          # sat outside this required gate -- the same false-assurance gap named above, for the
-          # single most valuable suite to gate given data/psychoed/** is now also a change-
-          # detection path (see the "Corpus is content-as-code" comment on data/psychoed/**
-          # above): without both fixes together, a PR editing ONLY clinical content reported a
-          # green fast-pass and ran neither the gate's Detect step nor this suite.
-          # test_crisis_availability_consistency.py (H4): fail-closed guard that no crisis-copy
-          # string asserts 24/7 / "24 hours" / "متاح كل وقت" adjacent to the 8am-8pm National line.
-          # test_crisis_config_cross_stack.py (H4): MERGE-BLOCKING entry-for-entry parity between
-          # backend CRISIS_RESOURCES and the frontend crisis-config.ts. NOTE: it SKIPS (does not
-          # block) unless the cdai frontend is present at ../cdai relative to this repo root — CI
-          # must checkout the coupled frontend into that path for this gate to actually bite. Until
-          # that checkout is wired it is a no-op skip; it is verified green + negative-checked locally.
-          # test_nodes.py added 2026-06-13: it carries the skill-selection acute-routing
-          # assertions (which skill a presentation routes to) that previously sat OUTSIDE
-          # the gate — the blind spot that let #15 (overwhelm -> dbt_tipp, a C1-violating
-          # production routing defect) stay red invisibly for weeks. A control that does not
-          # watch the surface it exists to protect reads as protection while providing none.
-          # NOTE (updated 2026-08-05, final review Minor 6): #15
-          # (test_selects_grounding_for_overwhelmed_phrasing) was RED when this suite was
-          # wired (2026-06-13); verified GREEN as of this update (162 passed, 0 failed,
-          # full CANDIDATES run). #15's clinically-signed fix has since landed on a separate
-          # master PR. Left here (rather than deleted) as a live record that this suite
-          # watches a surface that has previously gone quietly wrong in production -- do not
-          # silence a future assertion here to make the gate green without the same
-          # clinical-adjudication rigor #15 went through.
-          FILES=""
-          SKIPPED=""
-          for f in $CANDIDATES; do
-            if [ -f "$f" ]; then FILES="$FILES $f"; else SKIPPED="$SKIPPED $f"; fi
-          done
-          # tests/test_rules_safety.py added 2026-08-19 (P0 fix-wave PR-A): it holds the
-          # ONLY regression guards for the az UnboundLocalError fix (PR #483, the pattern-
-          # binding crash that silently dropped 28 SK-AZ crisis patterns). It was in-repo
-          # and green but sat outside this required gate — the same false-assurance class
-          # named throughout this file (a suite that exists and passes but isn't watched
-          # provides no protection). Landed together with dropping the CLI -m override
-          # below: adding this file alone, with the CLI -m still overriding addopts, would
-          # have gone RED (its 2 clinical_decision_pending-marked functions, 5 parametrized
-          # IDs, are not marked slow and would have run-and-failed). Verified: with both
-          # changes together, full CANDIDATES set is 2180 passed / 0 failed / 4 skipped /
-          # 43 deselected (38 pre-existing @slow + these 5 clinical_decision_pending IDs)
-          # / 73 xfailed — collected-ID diff proves nothing else moves. See PR body.
-          echo "Running existence-filtered suites:$FILES"
-          # Visibility guard: a branch that deletes/renames a covered suite silently
-          # drops it from the gate and still goes green. Surface the absent suites as a
-          # GitHub annotation so "the test that would have caught this isn't present on
-          # this branch" is visible, not invisible. Non-fatal by design: the engagement
-          # suites legitimately do not exist on master yet.
-          if [ -n "$SKIPPED" ]; then
-            echo "::warning title=unit-gate skipped suites::Not present on this branch (not run):$SKIPPED"
-          fi
-          # No CLI -m here: pytest resolves a single -m by last-occurrence, so a CLI
-          # -m "not slow" silently OVERRODE pyproject's addopts -m (which is now a strict
-          # superset: "not integration and not clinical_decision_pending and not governance
-          # and not cradle and not slow") rather than combining with it — the gate was
-          # running whatever addopts' three OTHER exclusion lanes would have caught.
-          # Dropping the CLI flag lets the gate inherit addopts in full. Verified by
-          # --collect-only -q test-ID diff (old vs new invocation, same file list): the
-          # new selection is a full superset of the old — nothing the old invocation
-          # collected is deselected here. See PR body for the enumerated deselection list.
-          pytest $FILES -p no:randomly --tb=short
+          # K1.3 (2026-08-19): marker selection replaces the old CANDIDATES path-list loop.
+          # EXPLICIT PATH ROOTS REQUIRED (K1.2 review finding, restated here because it is load-
+          # bearing): pyproject's testpaths=["tests"] silently scopes a bare marker-only
+          # invocation away from anything outside tests/ (drops the credential-guard file under
+          # scripts/prod_smoke/tests) — a false "empty selection" for that file. `tests
+          # scripts/prod_smoke/tests` are both given explicitly so nothing outside testpaths is
+          # silently dropped.
+          #
+          # FULL explicit marker expression (I-2, final-review lesson): CLI `-m` OVERRIDES
+          # addopts' `-m` by last-occurrence, it does not combine with it — so the expression
+          # below restates every one of addopts' exclusion lanes explicitly
+          # (integration/clinical_decision_pending/governance/cradle/slow) in addition to
+          # `safety_gate`, rather than relying on addopts to add them implicitly.
+          pytest tests scripts/prod_smoke/tests \
+            -m "safety_gate and not integration and not clinical_decision_pending and not governance and not cradle and not slow" \
+            -p no:randomly --tb=short
