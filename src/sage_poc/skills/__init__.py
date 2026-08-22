@@ -14,9 +14,9 @@ from pathlib import Path
 
 from sage_poc.skill_ids import SKILL_REGISTRY
 import sage_poc.skills.schema as _schema
-from sage_poc.skills.schema import SKILLS_DIR, Skill, _load_skill_from_path, load_skill
+from sage_poc.skills.schema import Skill, _load_skill_from_path, load_skill
 
-__all__ = ["get_skill", "SKILL_REGISTRY", "SKILLS_DIR", "Skill", "load_skill"]
+__all__ = ["get_skill", "SKILL_REGISTRY", "Skill", "load_skill"]
 
 # Bounded (fix round 1, M3): mtime keying means every on-disk edit mints a NEW cache entry
 # (the old one becomes unreachable, not overwritten). A long-lived watch/hot-reload process
