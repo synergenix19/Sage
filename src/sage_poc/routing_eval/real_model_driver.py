@@ -79,11 +79,20 @@ def configure_mode() -> str:
     instead of at import time. Sets the module-level MODE global and the same os.environ
     defaults as before; raises the same SystemExit on the same validation failures."""
     global MODE
+    # Fix round 1 addendum (self-found while testing the MODE-is-None guards above): reset to
+    # None FIRST and only assign the real value after every validation below has passed. The
+    # original ordering (inherited unchanged from the import-time code, where it never mattered
+    # because a failed import aborted the module load entirely) set MODE to a value BEFORE the
+    # validation checks that could reject it -- a caller that caught the SystemExit from a
+    # failed configure_mode() call would find MODE left at a half-set, UNVALIDATED "V2"/"V1",
+    # not unset. That is a real hazard now that configure_mode() is a normal function a caller
+    # can wrap in try/except, and it is exactly the same "silently proceed as if configured"
+    # class the MODE-is-None guards in positive_control()/run_gate() exist to close.
+    MODE = None
     os.environ.setdefault("SKILL_ROUTING_V2", "0")
     os.environ.setdefault("SKILL_RERANK_ENABLED", "0")
     _V2 = os.environ["SKILL_ROUTING_V2"] == "1"
     _RERANK = os.environ["SKILL_RERANK_ENABLED"] == "1"
-    MODE = "V2" if _V2 else "V1"
     if _V2 != _RERANK:
         raise SystemExit(
             "V1 needs BOTH flags off; V2 needs BOTH on (routing-V2 exemplar set + reranker selector). "
@@ -98,6 +107,7 @@ def configure_mode() -> str:
             raise SystemExit(
                 f"V2 gate is fp32 only; int8 is safety-disqualified. Got SKILL_RERANK_PRECISION={_prec!r}."
             )
+    MODE = "V2" if _V2 else "V1"
     return MODE
 
 
@@ -273,6 +283,19 @@ def positive_control() -> dict | None:
     """CRITICAL pre-trust check for V2: the fp32 cross-encoder head must be loaded (logit
     separation > 3). A headless CrossEncoder load yields ~0 logits = confident-wrong routing with
     NO error. Returns None in V1 (reranker unused). In V2, returns {ok, separation}."""
+    if MODE is None:
+        # Fix round 1: before configure_mode() became explicit (P2 Task 7g), the module-level
+        # env-mutation/validation ran at IMPORT time, so MODE could never be unset by the time
+        # any caller reached this function -- the acceptance gate was unskippable-by-construction.
+        # Making configure_mode() explicit turned that into an opt-in call a caller can forget;
+        # without this guard, `MODE is None` fell through the `if MODE != "V2"` check below as if
+        # it meant V1 (silently skipping the V2 positive-control check it exists to enforce) --
+        # exactly the failure mode this function is CALLED "positive control" to prevent. Restore
+        # unskippable: a forgotten configure_mode() call is a hard stop, not a silent V1 fallback.
+        raise SystemExit(
+            "positive_control() called before configure_mode() -- MODE is unset. Call "
+            "configure_mode() first (real_model_driver.main() already does)."
+        )
     if MODE != "V2":
         return None
     from sage_poc.nodes import skill_rerank_model as rr
@@ -290,6 +313,16 @@ def run_gate(
     exclude_skills: frozenset[str] = DEFAULT_EXCLUDE_SKILLS,
     exclude_expected: frozenset[str] = DEFAULT_EXCLUDE_EXPECTED,
 ) -> dict:
+    if MODE is None:
+        # Fix round 1: same restore-unskippable rationale as positive_control()'s guard above.
+        # Without this, `MODE is None` would fall through `if MODE == "V2" and ...` as falsy
+        # (same as V1), silently skipping the positive-control gate entirely and then reporting
+        # `"mode": None` in the result -- a forgotten configure_mode() call must be a hard stop,
+        # not a run that quietly reports as if it were V1.
+        raise SystemExit(
+            "run_gate() called before configure_mode() -- MODE is unset. Call configure_mode() "
+            "first (real_model_driver.main() already does)."
+        )
     pc = positive_control()
     if MODE == "V2" and not (pc and pc["ok"]):
         raise SystemExit(
