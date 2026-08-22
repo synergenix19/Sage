@@ -1,4 +1,11 @@
-import asyncio
+import asyncio  # noqa: F401 -- load-bearing despite no direct asyncio.* call left in this
+# module (P2 Task 7a converted both of graph.py's create_task sites to observability.spawn_
+# logged, which calls asyncio.create_task from ITS OWN module namespace, not this one).
+# tests/test_cross_task_interactions.py patches `sage_poc.graph.asyncio.create_task` at 5
+# call sites; unittest.mock.patch resolves that dotted path by attribute lookup on the
+# `sage_poc.graph` module object, so removing this import would make `sage_poc.graph` have
+# no `asyncio` attribute at all and those 5 patches would raise AttributeError at patch time,
+# not just fail to intercept anything. Do not remove without first updating that test file.
 import time
 import json
 import logging
@@ -22,6 +29,7 @@ from sage_poc.nodes.derealization_response import derealization_response_node
 from sage_poc.config import CRISIS_LINE_UAE, CRISIS_CONFIG
 from sage_poc.nodes.output_gate import output_gate_node
 from sage_poc.audit import write_session_audit
+from sage_poc.observability import spawn_logged
 from sage_poc.safety.hr_disclosure import hr_disclosure_present
 from sage_poc.safety.derealization_disclosure import derealization_disclosure_present
 # Task 2 (router precedence as data) hoist step: the four routers below each used to
@@ -163,18 +171,18 @@ async def _crisis_response_node(state: SageState) -> dict:
     # level, in that order). The psychoed_* facts are already in state, so **state already carries
     # them into the audit dict; this only patches on the disposition marker.
     _weave_escalation = bool(state.get("psychoed_weave_escalation"))
-    _audit_task = asyncio.create_task(write_session_audit({
-        **state,
-        "path": path,
-        "gate_path": "crisis",
-        "crisis_state": "monitoring",
-        "re_escalation_within_monitoring": is_reescalation,
-        "latency_ms": int((time.monotonic() - _tsa) * 1000) if _tsa is not None else state.get("latency_ms"),
-        **({"psychoed_weave_state": "escalated"} if _weave_escalation else {}),
-    }))
-    _audit_task.add_done_callback(
-        lambda t: _log.warning("[crisis_response] session audit error: %s", t.exception())
-        if not t.cancelled() and t.exception() else None
+    _audit_task = spawn_logged(
+        write_session_audit({
+            **state,
+            "path": path,
+            "gate_path": "crisis",
+            "crisis_state": "monitoring",
+            "re_escalation_within_monitoring": is_reescalation,
+            "latency_ms": int((time.monotonic() - _tsa) * 1000) if _tsa is not None else state.get("latency_ms"),
+            **({"psychoed_weave_state": "escalated"} if _weave_escalation else {}),
+        }),
+        "crisis_response session audit",
+        log=_log,
     )
 
     async def _notify_crisis_review() -> None:
@@ -215,11 +223,7 @@ async def _crisis_response_node(state: SageState) -> dict:
         except Exception as exc:
             _log.warning("[crisis_response] clinician_review_queue write failed: %s", exc)
 
-    _notify_task = asyncio.create_task(_notify_crisis_review())
-    _notify_task.add_done_callback(
-        lambda t: _log.warning("[crisis_response] notify_crisis_review error: %s", t.exception())
-        if not t.cancelled() and t.exception() else None
-    )
+    _notify_task = spawn_logged(_notify_crisis_review(), "crisis_response notify_crisis_review", log=_log)
 
     if _cfg.AUDIT_LOG_ENABLED:
         audit = {
