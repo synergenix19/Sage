@@ -115,6 +115,47 @@ async def _db_probe() -> tuple[bool, str]:
     return ok, detail
 
 
+# Fix round 1, item 10 (owner ruling, 2026-08-22): mechanical deploy-order enforcement for
+# migration 020 (opener_rewrite jsonb on session_audit). PR #571's migration must be APPLIED
+# before this build starts serving traffic: audit.py now writes state["opener_rewrite"] into
+# every audit row that carries it, and without the column the first such INSERT fails Postgres
+# 42703 -- _write_session_audit_row's fail-open handling then silently discards the ENTIRE row
+# (see #571's migration commit message and PR #569's body for the empirical proof, review round
+# fix 1). "020 applied before this serves" must be a boot-time gate the operator cannot forget,
+# not a remembered checklist line -- so it rides alongside the existing #519-class DB+
+# checkpointer assertion on the SAME readiness endpoint, using the SAME probe/cache/timeout
+# discipline as _db_probe above (bounded, cached, never hangs the endpoint, fails CLOSED on any
+# error rather than assuming the column is present).
+_OPENER_REWRITE_COLUMN_PROBE_TTL_SECONDS = 30.0  # schema doesn't change at runtime; cache longer than the DB reachability probe
+_opener_rewrite_column_cache: tuple[float, bool] | None = None
+
+
+async def _opener_rewrite_column_probe() -> bool:
+    """True if session_audit.opener_rewrite exists on the connected database. Fails CLOSED
+    (returns False) on no pool, any query error, or a timeout -- an unknown state must never
+    read as "column present" here, mirroring _db_probe's own fail-closed discipline."""
+    global _opener_rewrite_column_cache
+    now = time.monotonic()
+    if _opener_rewrite_column_cache and (now - _opener_rewrite_column_cache[0]) < _OPENER_REWRITE_COLUMN_PROBE_TTL_SECONDS:
+        return _opener_rewrite_column_cache[1]
+
+    pool = getattr(app.state, "_db_pool", None)
+    if pool is None:
+        exists = False  # no pool -> _db_probe already fails readiness; this probe fails closed too
+    else:
+        try:
+            async with asyncio.timeout(_DB_PROBE_TIMEOUT_SECONDS):
+                async with pool.acquire() as conn:
+                    exists = bool(await conn.fetchval(
+                        "SELECT EXISTS (SELECT 1 FROM information_schema.columns "
+                        "WHERE table_name = 'session_audit' AND column_name = 'opener_rewrite')"
+                    ))
+        except Exception:
+            exists = False
+    _opener_rewrite_column_cache = (now, exists)
+    return exists
+
+
 def _checkpointer_present() -> bool:
     """False is the staging-2026-07-30 shape: graph built with checkpointer=None because
     the database was unreachable at startup. Turns are then served with no persistence
@@ -954,13 +995,25 @@ async def health_ready():
     # this signal, so it must be observable instead.
     db_ok, db_detail = await _db_probe()
     ckpt_ok = _checkpointer_present()
-    if not (db_ok and ckpt_ok):
+    # Fix round 1, item 10: migration 020 (opener_rewrite jsonb on session_audit) must be
+    # applied before this build serves — see _opener_rewrite_column_probe's docstring. Only
+    # probed when the DB is otherwise reachable (db_ok); an unreachable DB already fails
+    # readiness via db_ok above, and this probe would fail closed (False) anyway in that case.
+    opener_rewrite_col_ok = await _opener_rewrite_column_probe() if db_ok else False
+    if not (db_ok and ckpt_ok and opener_rewrite_col_ok):
         raise HTTPException(
             status_code=503,
             detail=(
                 "Database not ready — refusing traffic rather than serving without an audit "
                 f"trail. database={db_detail}; checkpointer="
-                f"{'present' if ckpt_ok else 'ABSENT (graph built with checkpointer=None)'}"
+                f"{'present' if ckpt_ok else 'ABSENT (graph built with checkpointer=None)'}; "
+                "opener_rewrite_column="
+                + (
+                    "present" if opener_rewrite_col_ok
+                    else "MISSING (apply migrations/020_add_opener_rewrite_to_session_audit.sql "
+                         "before deploying this build — session_audit rows carrying an "
+                         "opener_rewrite value would otherwise be silently discarded)"
+                )
             ),
         )
     # Two deploy-gate signals on one 200 (Task 10 two-endpoint gate):

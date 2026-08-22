@@ -20,14 +20,19 @@ import server
 
 
 class _FakeConn:
-    def __init__(self, exc=None, delay=0.0):
-        self._exc, self._delay = exc, delay
+    def __init__(self, exc=None, delay=0.0, column_exists=True):
+        self._exc, self._delay, self._column_exists = exc, delay, column_exists
 
-    async def fetchval(self, *_a, **_k):
+    async def fetchval(self, query="", *_a, **_k):
         if self._delay:
             await asyncio.sleep(self._delay)
         if self._exc:
             raise self._exc
+        # _db_probe's "SELECT 1" and _opener_rewrite_column_probe's information_schema query
+        # both run through this same fake connection; distinguish by query text so a single
+        # _FakeConn can drive both probes independently in one health_ready() call.
+        if "information_schema" in str(query):
+            return self._column_exists
         return 1
 
 
@@ -45,8 +50,8 @@ class _FakeAcquire:
 class _FakePool:
     """asyncpg-shaped pool. delay simulates a hung/saturated pool."""
 
-    def __init__(self, exc=None, delay=0.0):
-        self._conn = _FakeConn(exc, delay)
+    def __init__(self, exc=None, delay=0.0, column_exists=True):
+        self._conn = _FakeConn(exc, delay, column_exists)
         self.acquires = 0
 
     def acquire(self):
@@ -64,8 +69,10 @@ def _reset(monkeypatch):
     """Every test starts warm, with a clean probe cache."""
     monkeypatch.setattr(server, "_bge_ready", True)
     monkeypatch.setattr(server, "_db_probe_cache", None)
+    monkeypatch.setattr(server, "_opener_rewrite_column_cache", None)
     yield
     monkeypatch.setattr(server, "_db_probe_cache", None)
+    monkeypatch.setattr(server, "_opener_rewrite_column_cache", None)
 
 
 def _set_state(monkeypatch, pool, checkpointer="present"):
@@ -152,6 +159,84 @@ async def test_ready_returns_503_when_checkpointer_is_none(monkeypatch):
 def test_checkpointer_present_is_false_when_graph_absent(monkeypatch):
     monkeypatch.setattr(server.app.state, "_graph", None, raising=False)
     assert server._checkpointer_present() is False
+
+
+# ------------------------------------------------ opener_rewrite column (fix round 1, item 10)
+
+@pytest.mark.asyncio
+async def test_ready_returns_200_when_opener_rewrite_column_present(monkeypatch):
+    _set_state(monkeypatch, _FakePool(column_exists=True))
+    out = await server.health_ready()
+    assert out["status"] == "ready"
+
+
+@pytest.mark.asyncio
+async def test_ready_returns_503_when_opener_rewrite_column_missing(monkeypatch):
+    """The mechanical deploy-order gate: migration 020 not applied -> refuse traffic, exactly
+    like the pre-existing DB-unreachable / checkpointer-absent cases above, not a silent
+    audit-row loss discovered later at the first INSERT."""
+    _set_state(monkeypatch, _FakePool(column_exists=False))
+    with pytest.raises(server.HTTPException) as exc:
+        await server.health_ready()
+    assert exc.value.status_code == 503
+
+
+@pytest.mark.asyncio
+async def test_ready_error_names_the_missing_column_and_migration_file(monkeypatch):
+    """Fail-closed wording must name the missing column and the migration file so the
+    operator knows the fix in one read (owner ruling, design constraint b)."""
+    _set_state(monkeypatch, _FakePool(column_exists=False))
+    with pytest.raises(server.HTTPException) as exc:
+        await server.health_ready()
+    detail = str(exc.value.detail)
+    assert "opener_rewrite" in detail
+    assert "020_add_opener_rewrite_to_session_audit.sql" in detail
+
+
+@pytest.mark.asyncio
+async def test_opener_rewrite_column_probe_reports_true_when_present(monkeypatch):
+    _set_state(monkeypatch, _FakePool(column_exists=True))
+    assert await server._opener_rewrite_column_probe() is True
+
+
+@pytest.mark.asyncio
+async def test_opener_rewrite_column_probe_reports_false_when_absent(monkeypatch):
+    _set_state(monkeypatch, _FakePool(column_exists=False))
+    assert await server._opener_rewrite_column_probe() is False
+
+
+@pytest.mark.asyncio
+async def test_opener_rewrite_column_probe_fails_closed_when_pool_absent(monkeypatch):
+    """No pool at all -> the probe must read as ABSENT, never as "unknown, assume present"."""
+    _set_state(monkeypatch, None)
+    assert await server._opener_rewrite_column_probe() is False
+
+
+@pytest.mark.asyncio
+async def test_opener_rewrite_column_probe_fails_closed_on_query_error(monkeypatch):
+    _set_state(monkeypatch, _FakePool(exc=RuntimeError("boom")))
+    assert await server._opener_rewrite_column_probe() is False
+
+
+@pytest.mark.asyncio
+async def test_opener_rewrite_column_probe_result_is_cached_within_its_ttl(monkeypatch):
+    """Same anti-flap discipline as the DB reachability probe: repeated readiness hits must
+    not re-query information_schema on every request."""
+    pool = _FakePool(column_exists=True)
+    _set_state(monkeypatch, pool)
+    for _ in range(5):
+        await server._opener_rewrite_column_probe()
+    assert pool.acquires == 1
+
+
+@pytest.mark.asyncio
+async def test_opener_rewrite_column_probe_zero_behavior_change_when_present(monkeypatch):
+    """Design constraint (d): the success response is byte-identical whether or not this new
+    probe runs, when the column IS present -- no new field, no shape change to /health/ready's
+    200 response."""
+    _set_state(monkeypatch, _FakePool(column_exists=True))
+    out = await server.health_ready()
+    assert set(out.keys()) == {"status", "routing_mode", "reranker_head_control"}
 
 
 # --------------------------------------------------------------------------- anti-flap
