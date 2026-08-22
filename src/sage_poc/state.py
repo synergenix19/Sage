@@ -13,11 +13,10 @@ class SageState(TypedDict):
 
     is_safe: bool
     crisis_flags: list[str]
-    medical_flags: list[str]    # B1/E3: verbatim §1 red-flag phrase ids fired this turn; empty until the interim guard or full detector populates it. Declared channel (LangGraph drops undeclared keys).
     s3_score: Optional[float]    # advisory BGE-M3 cosine similarity; 0 recall adds at 0.8059 per CRADLE sweep
     clinical_flags: list[str]   # substance_use, trauma_indicator, eating_concern, medication_mention
     new_clinical_flags_turn: list[str]  # flags detected THIS turn only; reset each turn in _build_state()
-    medical_flags: list[str]    # E3 medical red-flag channel read by safety_precedence._medical_fired; empty until B1 (medical red-flag screen) writes it. Declared now so B1's write survives the node->node seam (would otherwise be dropped like SG-2's step_mandatory_caveat).
+    medical_flags: list[str]    # B1/E3: verbatim §1 red-flag phrase ids fired this turn; empty until the interim guard or full detector populates it. Read by safety_precedence._medical_fired; empty until B1 (medical red-flag screen) writes it. Declared channel so B1's write survives the node->node seam (would otherwise be dropped like SG-2's step_mandatory_caveat; LangGraph drops undeclared keys).
     third_party_crisis: bool    # user is concerned about someone else's safety, not their own
 
     crisis_state: str              # "none" | "active" | "monitoring" | "resolved"
