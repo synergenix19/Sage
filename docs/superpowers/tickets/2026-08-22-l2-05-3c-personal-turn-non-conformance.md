@@ -106,3 +106,40 @@ needs the native-Khaleeji AR unit).
 - `docs/superpowers/governance/2026-08-18-consolidated-packet-to-vee.md` (the approval boundary)
 - `feat/low-mood-3a-impl` — dark merge only; activation is its own signed request
 - The MARBERT classifier charter (the scoping question above)
+
+## Two R7 prerequisites deferred BY DECISION (owner, 2026-08-22)
+
+Recorded as decisions rather than left as absences — the same treatment as the staging
+deferral, because nobody-chose is the bad state and chosen-deferral is fine.
+
+- **DPO retention review — deferred to pre-launch under the POC posture.** No data
+  sovereignty requirement applies during POC, and a DPO review for internal users testing
+  functionality is premature. Owner TBD at Full Build.
+- **Native-Khaleeji AR unit — not a POC gate.** R7 lists it for *broad Gulf launch* only,
+  and §3a interception is EN-only by design until that unit ships.
+
+## POC-provisional activation path (owner ruling, 2026-08-22)
+
+Activation for **internal POC users** does not block on Vee's signature; certification does.
+The split:
+
+1. Enrichment → harness re-run against the **draft** oracle, labelled **POC-provisional**.
+2. If provisional recall clears ~0.85 and the FPs close, flip for internal POC with the
+   register row moving `HARD-OFF` → `POC-PROVISIONAL`, L2-05 as the acceptance probe.
+3. When Vee signs the v2 oracle, re-run the **same** harness against the signed lists and
+   convert provisional → certified with no work redone.
+
+**The FP bar relaxes to near-zero provisionally, and only provisionally.** The stated
+asymmetry in R6 was "a spurious §3a fires an SI question at a benign user **near the
+still-broken GL-1 card**" — GL-1 is now fixed and verified serving, so half that rationale
+is discharged. What remains is that a false positive asks an unprompted SI question of
+someone who did not signal it: uncomfortable for an internal tester, not dangerous, and
+**not acceptable outside the internal group**. Hence internal-only, and hence the label.
+
+**What does not relax, in POC or anywhere:** the crisis lane. Signed crisis surfaces, canary
+terms, never-disarm counter-sets, and the deterministic SI-answer catch in `safety_check`
+keep their full gates. Internal users are still real people typing real disclosures into a
+mental-health product, and this arc's worst finding — means-access coached past mid-skill —
+happened in exactly this environment. The line: **anything deciding whether someone in
+distress gets a safety response keeps its full gate; everything else may run
+provisional-with-a-label.**
