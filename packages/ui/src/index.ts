@@ -6,4 +6,5 @@ export { Skeleton } from './components/skeleton'
 // (only ResponsivePanel uses it, via a relative import). The component file itself
 // stays; only the dead public barrel export is removed.
 export { ResponsivePanel } from './components/responsive-panel'
+export { useFocusTrap } from './hooks/use-focus-trap'
 export { cn } from './lib/utils'
