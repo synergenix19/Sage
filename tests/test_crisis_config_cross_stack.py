@@ -19,7 +19,14 @@ from pathlib import Path
 
 import pytest
 
-pytestmark = pytest.mark.safety_gate
+# HONEST OUT (owner ruling 2026-08-19, K1.5 special item §3, option c): this suite only runs its
+# assertions when a `../cdai` checkout is present next to this repo, which CI does not provide — it
+# was a no-op skip that read as coverage but verified nothing, "green by construction, never by
+# verification." A gate entry that skips in CI is a gate lying about its own coverage. Removed from
+# the safety_gate marker selection (and from the prior CANDIDATES path list in the same PR) rather
+# than let the skip masquerade as a real check. Revisit as vendor-the-constant (option a) only on an
+# actual cross-stack drift incident — until then this stays an explicit, documented exclusion, not a
+# silent one.
 
 try:  # H4 structured directory (PR #288+).
     from sage_poc.config import CRISIS_RESOURCES as _BACKEND_RESOURCES  # type: ignore
