@@ -16,6 +16,7 @@ from sage_poc.rules import engine as rules_engine
 from sage_poc.rules.normalize import ARABIC_CHAR_RE
 from sage_poc.prompts.summarizer import summarise_history
 from sage_poc.audit import write_session_audit, write_identity_substitution_audit, derive_psychoed_weave_state
+from sage_poc.observability import spawn_logged
 
 _log = logging.getLogger(__name__)
 
@@ -691,7 +692,11 @@ def _pin_contraindication_caveat(
 #      before any of compose's later steps or all of render ran). Deferring either of those two
 #      into this phase would silently change what value they capture -- moving the DECISION of
 #      when-to-write is safe, moving the CAPTURED VALUE is not, so both stay exactly where they were.
-#      Every one of the six asyncio.create_task call sites is otherwise untouched from the original.
+#      Every one of the six asyncio.create_task call sites is otherwise untouched from the original
+#      (P2 Task 7a note: five of the six -- empty-retry audit, summary persist, clinical review,
+#      G1b review, main session audit -- now route through observability.spawn_logged, a mechanical
+#      dedup of the create_task+add_done_callback idiom; the sixth, the identity-substitution PDPL
+#      audit, never had the done-callback half of that idiom and was left as a bare create_task).
 #
 # tests/test_output_gate_phase_split_audit_matrix.py pins the audit-row input AND the returned
 # dict, per state, against a matrix recorded from the pre-extraction node.
@@ -814,12 +819,10 @@ async def _compose_english(state: SageState) -> tuple[str, list, dict]:
         path = path + ["output_gate_fallback_substituted"]
         _log.warning("[output_gate] empty response on retry — substituting vetted fallback")
         if session_id:
-            _empty_audit = asyncio.create_task(
-                write_session_audit({**state, "path": path, "gate_path": gate_path or "standard"})
-            )
-            _empty_audit.add_done_callback(
-                lambda t: _log.warning("[output_gate] empty-retry audit error: %s", t.exception())
-                if not t.cancelled() and t.exception() else None
+            spawn_logged(
+                write_session_audit({**state, "path": path, "gate_path": gate_path or "standard"}),
+                "output_gate empty-retry audit",
+                log=_log,
             )
     # #58: register-preserving opener fix. ALLOWLIST (not blocklist) so the rewrite only ever touches
     # ordinary freeflow replies. scope_refusal/jailbreak keep their clinician-authored copy; crisis
@@ -1197,7 +1200,7 @@ async def _dispatch_side_effects(
         except Exception:
             _log.warning("Summarisation failed at turn %d; keeping prior summary", next_turn)
         if new_summary and session_id and user_id:
-            _task = asyncio.create_task(
+            spawn_logged(
                 _persist_session_summary(
                     session_id, user_id, new_summary,
                     _review_crisis_flags,  # T1 excluded: a warm turn is not a 'crisis' session
@@ -1208,45 +1211,39 @@ async def _dispatch_side_effects(
                         else []
                     ),
                     mood_score=float(state.get("emotional_intensity", 5)),
-                )
-            )
-            _task.add_done_callback(
-                lambda t: _log.warning("[output_gate] summary persist error: %s", t.exception())
-                if not t.cancelled() and t.exception() else None
+                ),
+                "output_gate summary persist",
+                log=_log,
             )
 
     _clinical_flags = state.get("clinical_flags") or []
     # T1 is excluded from crisis review via _review_crisis_flags (disposition table).
     if (_review_crisis_flags or _clinical_flags) and session_id and user_id:
-        _review_task = asyncio.create_task(
-            _log_clinical_review(session_id, user_id, _review_crisis_flags, _clinical_flags)
-        )
-        _review_task.add_done_callback(
-            lambda t: _log.warning("[output_gate] clinical review error: %s", t.exception())
-            if not t.cancelled() and t.exception() else None
+        spawn_logged(
+            _log_clinical_review(session_id, user_id, _review_crisis_flags, _clinical_flags),
+            "output_gate clinical review",
+            log=_log,
         )
 
     # G1b (v7.1): exactly ONE low-severity cumulative-distress flag on the 2nd T1 turn of a
     # session — not the 1st, not the 3rd, never high-severity. t1_count is set in safety_check.
     if _is_t1_turn and state.get("t1_count") == 2 and session_id and user_id:
-        _g1b_task = asyncio.create_task(
+        spawn_logged(
             _log_clinical_review(
                 session_id, user_id, [], [],
                 severity_override="low",
                 reason_override="cumulative warm-tier (T1) distress: 2nd of session",
-            )
-        )
-        _g1b_task.add_done_callback(
-            lambda t: _log.warning("[output_gate] G1b review error: %s", t.exception())
-            if not t.cancelled() and t.exception() else None
+            ),
+            "output_gate G1b review",
+            log=_log,
         )
 
-    _audit_task = asyncio.create_task(write_session_audit(
-        {**state, "path": path, "gate_path": gate_path or "standard", "hr_neutrality_rejected": _hr_neutrality_rejected,
-         "psychoed_gate_action": psychoed_gate_action}))
-    _audit_task.add_done_callback(
-        lambda t: _log.warning("[output_gate] session audit error: %s", t.exception())
-        if not t.cancelled() and t.exception() else None
+    _audit_task = spawn_logged(
+        write_session_audit(
+            {**state, "path": path, "gate_path": gate_path or "standard", "hr_neutrality_rejected": _hr_neutrality_rejected,
+             "psychoed_gate_action": psychoed_gate_action}),
+        "output_gate session audit",
+        log=_log,
     )
 
     result = {

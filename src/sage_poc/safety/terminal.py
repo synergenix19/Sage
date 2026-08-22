@@ -7,16 +7,22 @@ Each of these nodes bypasses output_gate -- the normal latency-stamp and audit-w
 module factors out the two identical pieces (the latency snippet and the fire-and-forget
 audit-task idiom) so a future change to either happens once, at one call site.
 
-Deliberately self-contained: a sibling PR (Task 7a) is separately deduping the same
-fire-and-forget "asyncio.create_task(...) + add_done_callback warn-on-error" idiom into
-observability.spawn_logged, but that PR is unmerged and independent of this one. This module
-does not import from it -- spawn_safety_audit below reproduces the existing idiom
-byte-for-behavior on its own, so this PR stands alone.
+Fix round 3 (P2 Task 7 review, ruling M2 -- one idiom, one implementation): `spawn_safety_audit`
+below originally reimplemented the fire-and-forget "asyncio.create_task(...) + add_done_callback
+warn-on-error" idiom byte-for-behavior on its own, because the sibling PR consolidating that same
+idiom into `observability.spawn_logged` (P2 Task 7a) was unmerged and independent at the time.
+Now that both have landed, `spawn_safety_audit` DELEGATES to `spawn_logged` instead of carrying a
+second copy of the same task-creation/strong-ref/done-callback machinery -- it keeps its own name
+and its own distinct log text ("[%s] session audit error: %s", via `spawn_logged`'s `message`
+parameter) so nothing about the three SAFETY-EXIT terminals' observable behavior changes, but the
+underlying mechanics (including `spawn_logged`'s strong-ref task-set, which now protects these
+terminal audit tasks too) live in exactly one place.
 """
 import asyncio
 import logging
 import time
 
+from sage_poc.observability import spawn_logged
 from sage_poc.state import SageState
 from sage_poc.audit import write_session_audit
 
@@ -39,19 +45,25 @@ def spawn_safety_audit(
     log: logging.Logger,
     log_prefix: str,
 ) -> "asyncio.Task":
-    """Fire-and-forget write_session_audit(...) task, with the same add_done_callback
-    warn-on-error idiom used at every SAFETY-EXIT call site today. write_session_audit
-    takes the FULL state and builds the row internally via _build_session_audit_row
-    (reads fields with .get()); payload_extra is layered over state the same way each
-    site already builds its dict ({**state, "path": ..., "gate_path": ..., ...}) -- this
-    function only factors out the container code around the call, never the audit call's
-    payload semantics."""
-    audit_task = asyncio.create_task(write_session_audit({**state, **payload_extra}))
-    audit_task.add_done_callback(
-        lambda tk: log.warning("[%s] session audit error: %s", log_prefix, tk.exception())
-        if not tk.cancelled() and tk.exception() else None
+    """Fire-and-forget write_session_audit(...) task for the SAFETY-EXIT terminal class.
+    write_session_audit takes the FULL state and builds the row internally via
+    _build_session_audit_row (reads fields with .get()); payload_extra is layered over
+    state the same way each site already builds its dict ({**state, "path": ...,
+    "gate_path": ..., ...}) -- this function only factors out the container code around
+    the call, never the audit call's payload semantics.
+
+    Fix round 3 (ruling M2): delegates to observability.spawn_logged for the actual
+    task-creation/strong-ref/done-callback machinery -- one idiom, one implementation --
+    while keeping this function's own name and its own distinct log text ("[%s] session
+    audit error: %s", not spawn_logged's default "[%s] background task error: %s") via
+    spawn_logged's `message` parameter. Every SAFETY-EXIT terminal's pinned log shape is
+    unchanged; spawn_logged's strong-ref task-set now also protects these audit tasks."""
+    return spawn_logged(
+        write_session_audit({**state, **payload_extra}),
+        log_prefix,
+        log=log,
+        message="[%s] session audit error: %s",
     )
-    return audit_task
 
 
 def safety_exit_result(
