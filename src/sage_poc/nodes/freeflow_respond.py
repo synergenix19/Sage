@@ -64,13 +64,11 @@ async def _get_prior_context(state: SageState) -> str:
         return ""
     try:
         # Deferred imports prevent circular import (server imports sage_poc.graph)
-        from server import app  # noqa: PLC0415
-        from sage_poc.memory.postgres_repository import PostgresMemoryRepository  # noqa: PLC0415
+        from sage_poc.memory import get_repository  # noqa: PLC0415
         from sage_poc.nodes.tools.check_user_history import retrieve_prior_context  # noqa: PLC0415
-        pool = app.state._db_pool
-        if pool is None:
+        repo = get_repository()
+        if repo is None:
             return ""
-        repo = PostgresMemoryRepository(pool)
         return await retrieve_prior_context(
             user_id, state.get("message_en", ""), repo
         )
