@@ -139,9 +139,17 @@ def test_has_arabic_empty_string_false():
     assert has_arabic("") is False
 
 
-def test_has_arabic_none_like_empty_false():
-    # Sites converted from `_ARABIC_RE.search(text or "")` pass falsy text through as "".
-    assert has_arabic("") is False
+def test_has_arabic_none_is_false():
+    # Fix round 1: `has_arabic`'s `text or ""` guard is a real, previously-untested behavior
+    # change relative to 4 of the 5 converted call sites. `_old_composer_is_arabic`,
+    # `_old_output_gate_has_arabic`, `_old_skill_executor_is_arabic`, and
+    # `_old_engine_is_arabic_kw` below all call `re.search`/iterate the string directly with
+    # no falsy-guard, so `None` raised `TypeError` there; `has_arabic(None)` returns `False`
+    # instead. None of the 5 real call sites is known to ever pass `None` (each already
+    # receives a string from its caller), so this widening does not change observed runtime
+    # behavior anywhere today, but it IS a real semantic difference between the old and new
+    # code, and must be asserted explicitly rather than left implicit.
+    assert has_arabic(None) is False
 
 
 def test_has_arabic_arabic_indic_digits_true():
