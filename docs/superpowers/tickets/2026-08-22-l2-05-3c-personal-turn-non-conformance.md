@@ -49,20 +49,57 @@ Approving the instrument that measures a thing is not approving the thing. The p
 authors anticipated the compression and wrote the line; it is repeated here for the same
 reason.
 
-## Scoping question for F5, to be answered before rebuild effort is spent
+## The architecture question is ALREADY ANSWERED — do not re-open it
 
-The §3a detector's failure shape is worth reading before assuming a rebuild is the answer.
-It misses 16 of 39 markers, and the misses are the **low-affect, understated** phrasings —
-"I can't be bothered", "I feel numb", "nothing sounds enjoyable", "I feel disconnected from
-everything". That is **structure, not vocabulary**: the same failure shape as the crisis
-families, where a pattern tier could not see the behavioural-sign class either.
+An earlier draft of this ticket asked whether F5 should be a detector rebuild or whether
+low-mood belongs in the classifier lane as a sixth family. **That question was answered on
+2026-07-10, with measurement behind it, and asking it again would have re-litigated a
+settled decision and spent clinician attention on it.** Recorded here so the next reader
+does not repeat the mistake.
 
-So: **is F5 a detector rebuild, or is low-mood a sixth family for the classifier?** If the
-MARBERT charter's label backbone can absorb low-mood screening, F5 and the classifier build
-are one project rather than two, and rebuilding a pattern detector in parallel with
-chartering a classifier that covers the adjacent problem would be duplicated effort aimed at
-a class neither approach has yet solved. Decide once, deliberately — this belongs on the
-classifier session's first day, **before** rebuild effort is spent, not after.
+`docs/superpowers/governance/2026-07-10-low-mood-3a-final-recommendations.md`:
+
+> **R1 — Detect §3a eligibility via the existing semantic routing + a *scoped* anchor fix.
+> NOT a trained classifier, NOT a keyword detector.**
+
+with the evidence for each rejected alternative:
+
+- a **hand-rolled keyword detector overfit twice** (13% recall on novel phrasings);
+- a **trained-classifier "roadmap" was a measurement artifact** — a mis-warmed probe; the
+  real routing path generalises well;
+- the real gap is **terse canonical markers under-covered in BA's semantic anchors** — "a
+  scoped, measurable fix, not a new ML system", reusing the existing V2 semantic router
+  "rather than a bespoke island".
+
+The MARBERT plan is independently scoped to a different problem — an **SI-vs-distress
+binary** safety classifier (`passive_si` / `distress_not_si` / `cooccurring`) — not
+offer-eligibility routing. Low-mood is not a sixth family of it.
+
+So **F5 is not "rebuild a pattern detector"**. Per the 2026-08-18 packet, the intended
+architecture is *"semantic recall (BA-offerable) + a clinician-owned precision gate"* —
+which is R1 and R2 restated. F5 is the scoped anchor enrichment plus the precision gate.
+
+## Correcting how this ticket first characterised the gate
+
+The 0.590 recall is **not** a simple fail that disqualifies the work, and an earlier draft
+overstated it. R2 is the load-bearing principle:
+
+> an eligibility **miss is fail-safe** — it falls through to today's unscreened path, i.e.
+> current prod, no regression. The dangerous decision is the crisis-firing one, and that
+> stays deterministic and keyword-independent.
+
+So a recall miss degrades to today's behaviour, not to harm, because the crisis-firing
+decision lives on `safety_check`'s deterministic SI-answer catch. And per **R5**, 0.90 is
+the *design* gate while **the flip bar is Vee's clinical risk-acceptance call against
+measured recall** — engineering reports the number, she accepts it or does not.
+
+**The genuinely blocking gate is FP, not recall.** R6 sets **FP = 0 on signed List B**,
+because the asymmetry is real: a spurious §3a fires an SI question at a benign user.
+Current FP is **0.133 (2/15)**. That is the number standing between here and a flip.
+
+**R7's full flip prerequisites, all required:** signed List A/B · recall ≥ Vee's R5 bar ·
+**FP = 0 on List B** · GL-1 helpline fixed · DPO retention review · (broad Gulf launch also
+needs the native-Khaleeji AR unit).
 
 ## Related
 
