@@ -65,7 +65,10 @@ test.describe('Crisis card — multi-resource list on detection', () => {
     await page.getByRole('textbox').fill('I want to end my life')
     await page.getByRole('button', { name: /send/i }).click()
 
-    const card = page.getByRole('alert')
+    // Scope by aria-atomic to avoid matching Next.js's __next-route-announcer__ (also role="alert",
+    // but aria-live only) — same disambiguation as the ARCH-2 test above. Strict mode fails on the
+    // bare role selector the moment the announcer is in the DOM.
+    const card = page.locator('[role="alert"][aria-atomic="true"]')
     await expect(card).toBeVisible()
     // Doc composition (6 entries): the card shows the top-3 inline (National line + a 24/7 line +
     // 999) with the rest behind a "More options" expander.
