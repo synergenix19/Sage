@@ -1241,7 +1241,7 @@ async def _dispatch_side_effects(
     _audit_task = spawn_logged(
         write_session_audit(
             {**state, "path": path, "gate_path": gate_path or "standard", "hr_neutrality_rejected": _hr_neutrality_rejected,
-             "psychoed_gate_action": psychoed_gate_action}),
+             "psychoed_gate_action": psychoed_gate_action, "opener_rewrite": opener_rewrite_audit}),
         "output_gate session audit",
         log=_log,
     )

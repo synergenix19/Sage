@@ -13,11 +13,10 @@ class SageState(TypedDict):
 
     is_safe: bool
     crisis_flags: list[str]
-    medical_flags: list[str]    # B1/E3: verbatim §1 red-flag phrase ids fired this turn; empty until the interim guard or full detector populates it. Declared channel (LangGraph drops undeclared keys).
     s3_score: Optional[float]    # advisory BGE-M3 cosine similarity; 0 recall adds at 0.8059 per CRADLE sweep
     clinical_flags: list[str]   # substance_use, trauma_indicator, eating_concern, medication_mention
     new_clinical_flags_turn: list[str]  # flags detected THIS turn only; reset each turn in _build_state()
-    medical_flags: list[str]    # E3 medical red-flag channel read by safety_precedence._medical_fired; empty until B1 (medical red-flag screen) writes it. Declared now so B1's write survives the node->node seam (would otherwise be dropped like SG-2's step_mandatory_caveat).
+    medical_flags: list[str]    # B1/E3: verbatim §1 red-flag phrase ids fired this turn; empty until the interim guard or full detector populates it. Read by safety_precedence._medical_fired; empty until B1 (medical red-flag screen) writes it. Declared channel so B1's write survives the node->node seam (would otherwise be dropped like SG-2's step_mandatory_caveat; LangGraph drops undeclared keys).
     third_party_crisis: bool    # user is concerned about someone else's safety, not their own
 
     crisis_state: str              # "none" | "active" | "monitoring" | "resolved"
@@ -105,7 +104,7 @@ class SageState(TypedDict):
     cards_knowledge_abstain: bool             # ABSTAIN floor applies: abstain -> no cards
     cards_knowledge_top_similarity: float | None
 
-    gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak", "crisis", "medical", "high_risk", "derealization"]]
+    gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak", "crisis", "medical", "high_risk", "derealization", "screen"]]
 
     response_en: Optional[str]
     response: Optional[str]
@@ -137,6 +136,7 @@ class SageState(TypedDict):
     banned_opener_correction: Optional[str]
     banned_opener_violation: bool          # True if banned opener persisted after retry AND passed through to user (no fallback)
     banned_opener_fallback_used: bool      # True when _VETTED_FALLBACK_RESPONSE substituted after exhausted retry
+    opener_rewrite: Optional[dict]         # #58 traceability: {"applied": bool, "model": str, "opener": str, "latency_ms": int, "suppressed": Optional[str]} or None when the opener-rewrite allowlist gate never ran this turn. Set by output_gate's opener-rewrite logic and included unconditionally in output_gate_node's returned dict every turn it runs. PER-TURN, reset in _build_state() (fix round 1, 2026-08-22 correction: an earlier version of this comment claimed no reset was needed because output_gate "overwrites it fresh whenever it runs" -- that is FALSE for exactly the turns this comment itself names. A turn that bypasses output_gate entirely (crisis/medical/high_risk/derealization/screen terminals) never touches this key, so without the _build_state reset, a stale value from an EARLIER output_gate turn survives via the checkpoint and lands on that LATER terminal's audit row -- e.g. a gate turn's opener-rewrite record appearing on a subsequent medical-emergency row. See server_helpers.py's _build_state and tests/test_state_channel_survival.py for the reset + the pinning test). Declared channel (LangGraph drops undeclared keys between nodes — the SG-2 seam class); was previously computed and returned by output_gate.py but silently dropped because this key was never declared here.
 
     # D1 medical screen (#338) — declared channels (LangGraph drops undeclared keys; declare-before-write,
     # the state-channel lesson). ACCEPTANCE: a contraindication decision must be traceable to its rule +
@@ -144,15 +144,15 @@ class SageState(TypedDict):
     screen_asked: bool                     # the D1 discriminating question was asked this turn (per-turn)
     screen_answer_class: Optional[str]     # clear_no | red_flag | contraindication_disclosed | yes | unclear | no_answer (per-turn audit)
     screen_branch_taken: Optional[str]     # proceed | medical_guard | grounding | abandoned_crisis (per-turn)
-    # #338 SILENT shadow observation (per-turn): the would-be screen decision when D1_SCREEN_SHADOW is on and
-    # enforce is off. Written by apply_screen_at_route, READ by _build_session_audit_row -> the per-turn audit
-    # row. DECLARED here so LangGraph does not drop them between skill_select and output_gate (the SG-2 seam
-    # class). Anonymised class+route only (PDPL-approved 2026-07-17); no message content ever.
     screen_question_text: Optional[str]        # PER-TURN: the signed screen question, set by apply_screen_at_route
                                                # on an ask_screen decision and READ by _route_after_skill_select
                                                # (routes to screen_response) + the terminal. DECLARED because it
                                                # crosses skill_select -> router; the 2026-07-20 enforce-flip
                                                # incident was this exact drop (undeclared -> served freeflow).
+    # #338 SILENT shadow observation (per-turn): the would-be screen decision when D1_SCREEN_SHADOW is on and
+    # enforce is off. Written by apply_screen_at_route, READ by _build_session_audit_row -> the per-turn audit
+    # row. DECLARED here so LangGraph does not drop them between skill_select and output_gate (the SG-2 seam
+    # class). Anonymised class+route only (PDPL-approved 2026-07-17); no message content ever.
     screen_shadow_action: Optional[str]        # ask_screen | proceed | reroute_grounding | to_medical_guard | abandon_crisis
     screen_shadow_answer_class: Optional[str]  # the would-be answer class (None on a fire/ask turn)
     screen_shadow_branch: Optional[str]        # the would-be branch (None on a fire/ask turn)

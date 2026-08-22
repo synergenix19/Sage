@@ -96,6 +96,112 @@ def test_classifier_context_hash_survives_the_node_to_node_seam():
     )
 
 
+def test_opener_rewrite_survives_the_node_to_node_seam():
+    """#58 traceability bug: output_gate.py computes opener_rewrite_audit and includes it in
+    output_gate_node's returned dict, but opener_rewrite was never a declared SageState
+    channel -- so LangGraph dropped it in the merge before it ever reached a checkpoint or a
+    later read (the exact SG-2 seam class). Uses the REAL SageState schema; a minimal
+    writer->reader graph reproduces the exact merge. Reading the value into a declared field
+    (step_instruction) proves the DOWNSTREAM node observed it, not just that it appears in
+    the writer's own return."""
+    sentinel = {"applied": True, "model": "OPENER-REWRITE-SENTINEL", "opener": "x", "latency_ms": 1}
+
+    def writer(state):
+        return {"opener_rewrite": sentinel}
+
+    def reader(state):
+        # A downstream node reading the channel -- this is _dispatch_side_effects'
+        # write_session_audit position relative to output_gate's own opener-rewrite logic.
+        return {"step_instruction": state.get("opener_rewrite")}
+
+    g = StateGraph(SageState)
+    g.add_node("writer", writer)
+    g.add_node("reader", reader)
+    g.add_edge(START, "writer")
+    g.add_edge("writer", "reader")
+    g.add_edge("reader", END)
+    out = g.compile().invoke({})
+
+    assert out.get("step_instruction") == sentinel, (
+        "opener_rewrite was DROPPED between nodes — it must be declared in the SageState "
+        "TypedDict (LangGraph drops undeclared keys). This is the #58 opener-rewrite "
+        "traceability bug's exact root cause; see scripts/check_state_channels.py for the "
+        "static gate."
+    )
+
+
+def test_opener_rewrite_does_not_leak_into_a_later_bypass_turns_audit_row():
+    """Fix round 1 regression pin (2026-08-22 correction to PR #569's original comment).
+
+    opener_rewrite is a PERSISTENT (checkpointed) SageState channel, same as every other
+    declared field not listed in _build_state's own "intentionally absent" docstring. Turn N's
+    output_gate sets it; turn N+1 may take a SAFETY-EXIT bypass path (crisis/medical/high_risk/
+    derealization/screen) that never touches output_gate. Without _build_state's explicit
+    "opener_rewrite": None per-turn reset, LangGraph's default overwrite-reducer merge would
+    carry turn N's value straight through the checkpoint into turn N+1's `{**state, ...}`
+    audit-row build -- a gate turn's opener-rewrite record misattributed to a LATER
+    medical-emergency row it has nothing to do with. This drives the REAL checkpointer, the REAL
+    _build_state(), and the REAL _build_session_audit_row() across two turns -- not a hand-rolled
+    dict -- so it fails the same way the bug would in production if the reset regresses."""
+    from langgraph.checkpoint.memory import MemorySaver
+    from sage_poc.server_helpers import _build_state
+    from sage_poc.audit import _build_session_audit_row
+
+    class _Msg:
+        def __init__(self, content):
+            self.role = "user"
+            self.content = content
+
+    class _Req:
+        def __init__(self, content):
+            self.messages = [_Msg(content)]
+            self.session_id = "opener-rewrite-seam-test"
+            self.user_id = "u-opener-rewrite-seam"
+
+    saver = MemorySaver()
+    thread_cfg = {"configurable": {"thread_id": "opener-rewrite-seam-test"}}
+    stale_sentinel = {
+        "applied": True, "model": "OPENER-REWRITE-STALE-SENTINEL", "opener": "x", "latency_ms": 1,
+    }
+
+    # Turn 1: stands in for output_gate's own opener-rewrite write.
+    def gate_like(state):
+        return {"opener_rewrite": stale_sentinel, "path": state.get("path", []) + ["gate_like"]}
+
+    g1 = StateGraph(SageState)
+    g1.add_node("gate_like", gate_like)
+    g1.add_edge(START, "gate_like")
+    g1.add_edge("gate_like", END)
+    g1.compile(checkpointer=saver).invoke(_build_state(_Req("first turn, triggers the opener rewrite gate")), config=thread_cfg)
+
+    # Turn 2: stands in for a SAFETY-EXIT terminal (e.g. medical_response) that bypasses
+    # output_gate entirely and builds its own audit row via `{**state, ...}`, exactly like
+    # medical_response.py / screen_response.py / high_risk_response.py do.
+    captured_row: dict = {}
+
+    def bypass_medical_like(state):
+        path = state.get("path", []) + ["medical_response"]
+        captured_row.update(_build_session_audit_row({**state, "path": path, "gate_path": "medical"}))
+        return {"gate_path": "medical", "path": path}
+
+    g2 = StateGraph(SageState)
+    g2.add_node("bypass_medical_like", bypass_medical_like)
+    g2.add_edge(START, "bypass_medical_like")
+    g2.add_edge("bypass_medical_like", END)
+    # Turn 2's incoming state is built the SAME way server.py builds every real turn: a fresh
+    # _build_state(req) call (which resets opener_rewrite to None), invoked against the SAME
+    # thread_id, so LangGraph merges it over turn 1's checkpointed state exactly like a real
+    # second turn would.
+    g2.compile(checkpointer=saver).invoke(_build_state(_Req("second turn, a medical emergency bypass turn")), config=thread_cfg)
+
+    assert captured_row.get("opener_rewrite") is None, (
+        "opener_rewrite LEAKED from turn 1's output_gate-like write into turn 2's medical-bypass "
+        "audit row. _build_state must reset this per-turn channel to None on every turn, or a "
+        "stale opener-rewrite record from an earlier gate turn gets misattributed to a later "
+        "SAFETY-EXIT terminal's audit row."
+    )
+
+
 def _graph_edges() -> set[tuple[str, str]]:
     from sage_poc.graph import build_graph
     drawable = build_graph(None).get_graph()

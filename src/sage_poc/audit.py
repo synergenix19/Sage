@@ -321,6 +321,18 @@ def _build_session_audit_row(state: SageState) -> dict:
         row["psychoed_weave_state"] = _psychoed_weave_state
         row["psychoed_template_version"] = _psychoed_serve.get("template_version")
         row["psychoed_gate_action"] = state.get("psychoed_gate_action")
+    # #58 opener-rewrite traceability (flag-independent; same conditional discipline as tiering/
+    # precedence/medical/HR/screen/psychoed above): included ONLY when the opener-rewrite allowlist
+    # gate actually ran this turn (opener_rewrite set, non-empty dict), so a turn where the gate never
+    # fired (banned-opener regex didn't match, or gate_path/crisis/clinical-flags excluded it) stays
+    # byte-identical to master. NOTE (2026-08-20): the nullable `opener_rewrite jsonb` column on
+    # session_audit described by the original plan (docs/superpowers/plans/2026-06-24-banned-opener-
+    # register-preserving-fix.md Task 2 Step 3b) has NOT been found in migrations/ as of this write —
+    # this key may currently have no destination column in the live schema. Flagged as an open item
+    # for owner confirmation before merge; do not assume the column exists without verifying prod
+    # schema first.
+    if state.get("opener_rewrite"):
+        row["opener_rewrite"] = state.get("opener_rewrite")
     return row
 
 

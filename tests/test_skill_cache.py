@@ -227,9 +227,18 @@ def test_crisis_config_derives_only_from_module_level_literals():
     incident this cache's invalidation contract exists to prevent (the 800-HOPE reversal
     was the NUMBER changing, not the skill file). This is a structural (AST) guard, not a
     behavioral one, because the current safety comes from what code is ABSENT (no runtime
-    read) -- there is no runtime behavior to exercise that would prove a negative. It fails
-    loudly, forcing a conscious get_skill.cache_clear()-wiring decision, the day a runtime
-    source lands on this exact chain.
+    read) -- there is no runtime behavior to exercise that would prove a negative.
+
+    What this guard actually matches (`_runtime_source_hits` below): an `ast.Attribute`
+    access whose `.attr` is `environ`, `getenv`, `now`, or `time`, plus a bare `ast.Name`
+    reference to `getenv` -- the four attribute patterns and one bare-call pattern most
+    likely to appear if a runtime source were introduced. It is NOT a general proof that no
+    runtime source exists anywhere in the chain (a differently-named indirection, an
+    aliased import, or a call routed through a helper function would not be caught). The
+    protected invariant is import-time immutability; this guard is a tripwire on the
+    likeliest routes, not a proof. It fails loudly, forcing a conscious
+    get_skill.cache_clear()-wiring decision, the day one of those specific patterns lands
+    on this exact chain.
     """
     import ast
     import inspect
@@ -245,7 +254,9 @@ def test_crisis_config_derives_only_from_module_level_literals():
         for n in ast.walk(node):
             if isinstance(n, ast.Attribute) and n.attr in ("environ", "getenv", "now", "time"):
                 hits.append(n.attr)
-            if isinstance(n, ast.Name) and n.id in ("getenv",):
+            # Bare-name form (e.g. `from os import getenv, environ` then `getenv(...)` /
+            # `environ.get(...)`), which would otherwise evade the ast.Attribute check above.
+            if isinstance(n, ast.Name) and n.id in ("getenv", "environ"):
                 hits.append(n.id)
         return hits
 
