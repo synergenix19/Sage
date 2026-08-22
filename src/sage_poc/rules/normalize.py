@@ -5,17 +5,34 @@ import unicodedata
 # "does this string contain an Arabic character" (skill few-shot selection, retrieval
 # query gating, output-gate translate-out routing, keyword-rule language classification)
 # should use has_arabic() below, or ARABIC_CHAR_RE directly when it needs a count/findall
-# rather than a bool. Six previously independent reimplementations tested this exact
-# Unicode block (U+0600-U+06FF, the Arabic script block) via different code shapes; this
-# is the merge point so future callers do not add a seventh.
+# rather than a bool.
+#
+# CENSUS (corrected 2026-08-22, exhaustive repo sweep, fix round 2 -- an earlier "six ...
+# seventh" count here was stale the moment it was written): 16 independent reimplementations
+# of this exact Unicode block (U+0600-U+06FF, the Arabic script block) across 12 files.
+#   Converted to call this primitive (P2 Task 7c): knowledge/repository.py, prompts/composer.py,
+#   nodes/output_gate.py, nodes/skill_executor.py, rules/engine.py (4 sites in one file) --
+#   5 files, 8 sites.
+#   Known but NOT converted (disclosed, out of this PR's scope, follow-up #20):
+#   scripts/prod_smoke/tier_b_features.py (deliberately skipped -- see PR body, importing this
+#   module breaks that script's standalone/no-app-dependency design), rules/loader.py
+#   (_lint_arabic_regex_rule), nodes/safety_check.py (crisis-path code_switching detector --
+#   deliberately not touched this round), language.py's detect_language() (the graph-wide
+#   ar/en router -- the single most load-bearing duplicate found), scripts/prod_smoke/
+#   hr1_stage1_conformance.py, scripts/check_safety_language_parity.py, and
+#   scripts/verify_arabic_safety.py (2 sites in one file) -- 7 files, 8 sites.
+# This is the merge point; future callers should use it rather than add a 17th.
 ARABIC_CHAR_RE = re.compile(r'[؀-ۿ]')
 
 
-def has_arabic(text: str) -> bool:
+def has_arabic(text: str | None) -> bool:
     """True if text contains at least one character in the Arabic script block
     (U+0600-U+06FF). Presence check only, not a language classifier: mixed-script
     text returns True, and this does not distinguish Arabic from other languages
-    that share the block's punctuation-only characters."""
+    that share the block's punctuation-only characters.
+
+    Accepts None (returns False): a pinned contract, not an incidental side effect of
+    `text or ""` -- see test_has_arabic_none_is_false in tests/test_rules_normalize.py."""
     return bool(ARABIC_CHAR_RE.search(text or ""))
 
 
