@@ -104,7 +104,7 @@ class SageState(TypedDict):
     cards_knowledge_abstain: bool             # ABSTAIN floor applies: abstain -> no cards
     cards_knowledge_top_similarity: float | None
 
-    gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak", "crisis", "medical", "high_risk", "derealization"]]
+    gate_path: Optional[Literal["standard", "scope_refusal", "jailbreak", "crisis", "medical", "high_risk", "derealization", "screen"]]
 
     response_en: Optional[str]
     response: Optional[str]
