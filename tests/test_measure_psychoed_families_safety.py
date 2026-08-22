@@ -13,13 +13,22 @@ scripts/bot_behaviour_audit/measure_psychoed_families.py:
     test session via conftest.py, so an in-process check would not observe a fresh process
     start).
 
-(b) "Audit-write exposure" -- write_session_audit is imported into six distinct module
+(b) "Audit-write exposure" -- write_session_audit is imported into distinct module
     namespaces; the runner's original patch covered only two, leaving four terminal response
     nodes (derealization/medical/high_risk/screen_response) able to POST a real session_audit
-    row during a live run. Fixed by patching all six explicitly and adding a static coverage
-    guard (_assert_audit_patch_coverage_complete) that fails loudly if a future node addition
-    introduces an uncovered seventh site. Tests below exercise that guard directly (both the
-    passing case on real source and synthetic missing/stale cases via monkeypatch).
+    row during a live run. Fixed by patching all sites explicitly and adding a static coverage
+    guard (_assert_audit_patch_coverage_complete) that fails loudly if a future import site
+    appears uncovered. Tests below exercise that guard directly (both the passing case on real
+    source and synthetic missing/stale cases via monkeypatch).
+
+    UPDATE (P2 Task 7b, mechanical dedup sweep): medical_response.py, high_risk_response.py,
+    and screen_response.py no longer import write_session_audit directly -- their identical
+    fire-and-forget idiom was consolidated into sage_poc.safety.terminal (spawn_safety_audit /
+    safety_exit_result), which is now the ONE import site covering all three. The site count
+    dropped from six to four (sage_poc.graph, sage_poc.nodes.output_gate,
+    sage_poc.nodes.derealization_response -- untouched, a Vee-draft file (#490) excluded from
+    that dedup -- and sage_poc.safety.terminal). The coverage GUARANTEE is unchanged: every
+    write_session_audit import site in src/sage_poc/ is still patched before any row is driven.
 
 Also (fix round 3, Task 10 live checkpoint): run_fixture_real omitted `config={'configurable':
 {'thread_id': ...}}` on every graph invocation. build_local_graph() always compiles the graph
@@ -319,15 +328,17 @@ def test_declared_delta_stamp_matches_the_controller_observed_scenario():
 
 
 # ---------------------------------------------------------------------------
-# (b) Six-site audit-capture coverage guard
+# (b) Audit-capture coverage guard (four sites as of P2 Task 7b's terminal-helper dedup;
+# see module docstring update above)
 # ---------------------------------------------------------------------------
 
 def test_discovered_write_session_audit_importers_equals_patch_targets():
-    """The real source tree, scanned right now: exactly the six sites this module patches,
-    no more, no fewer."""
+    """The real source tree, scanned right now: exactly the four sites this module patches,
+    no more, no fewer (P2 Task 7b consolidated medical_response/high_risk_response/
+    screen_response's three separate imports into one, sage_poc.safety.terminal)."""
     discovered = mpf._discover_write_session_audit_importers()
     assert discovered == frozenset(mpf._AUDIT_PATCH_TARGETS)
-    assert len(discovered) == 6, sorted(discovered)
+    assert len(discovered) == 4, sorted(discovered)
 
 
 def test_assert_audit_patch_coverage_complete_passes_on_real_source():
@@ -362,7 +373,7 @@ def test_coverage_guard_fails_loudly_on_a_stale_target(monkeypatch):
     exists. The guard must raise (never silently pass a rotted list)."""
     monkeypatch.setattr(
         mpf, "_discover_write_session_audit_importers",
-        lambda: frozenset(mpf._AUDIT_PATCH_TARGETS) - {"sage_poc.nodes.screen_response.write_session_audit"},
+        lambda: frozenset(mpf._AUDIT_PATCH_TARGETS) - {"sage_poc.safety.terminal.write_session_audit"},
     )
     with pytest.raises(RuntimeError, match="stale"):
         mpf._assert_audit_patch_coverage_complete()

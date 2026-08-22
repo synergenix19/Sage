@@ -23,13 +23,11 @@ ratification-pending status.
 No em dashes (project convention for anything that could reach an LLM prompt or
 user-facing string).
 """
-import asyncio
 import logging
-import time
 
 from sage_poc.state import SageState
 from sage_poc import config as _cfg
-from sage_poc.audit import write_session_audit
+from sage_poc.safety.terminal import spawn_safety_audit, turn_latency_ms
 from sage_poc.crisis_copy import resolve_crisis_placeholders
 from sage_poc.safety.hr_copy import (
     HR_DISTRESS_QUESTION_POOL,
@@ -137,18 +135,17 @@ def _deliver_branch(
 def _write_hr_audit(state: SageState, update: dict, path: list, latency_ms) -> None:
     """Own audit row (medical_response.py precedent): this path bypasses output_gate,
     the normal audit-write point, so without this the turn is unrecorded. Fire-and-
-    forget, mirroring crisis_response/medical_response's task pattern. Carries
-    hr_distress_score / hr_branch when the delivery resolved a branch this turn."""
-    audit_task = asyncio.create_task(write_session_audit({
-        **state,
-        **update,
-        "path": path,
-        "gate_path": "high_risk",
-        "latency_ms": latency_ms,
-    }))
-    audit_task.add_done_callback(
-        lambda tk: _log.warning("[high_risk_response] session audit error: %s", tk.exception())
-        if not tk.cancelled() and tk.exception() else None
+    forget, mirroring crisis_response/medical_response's task pattern (now shared via
+    safety.terminal.spawn_safety_audit). Carries hr_distress_score / hr_branch when the
+    delivery resolved a branch this turn -- and, on every call, whatever other
+    per-branch fields `update` carries (hr_terminal_step, hr_escalate_regardless,
+    hr_referral_delivered, psychotic_referral_delivered, ...), since `update` is layered
+    on top of `state` exactly as before."""
+    spawn_safety_audit(
+        state,
+        {**update, "path": path, "gate_path": "high_risk", "latency_ms": latency_ms},
+        _log,
+        "high_risk_response",
     )
 
 
@@ -156,10 +153,7 @@ async def high_risk_response_node(state: SageState) -> dict:
     path = state["path"] + ["high_risk_response"]
     # Full-turn latency, not node-local (medical_response.py precedent): this path
     # also bypasses output_gate (the normal latency-stamp point).
-    _tsa = state.get("turn_started_at")
-    latency_ms = (
-        int((time.monotonic() - _tsa) * 1000) if _tsa is not None else state.get("latency_ms")
-    )
+    latency_ms = turn_latency_ms(state)
 
     step = state.get("hr_terminal_step")
     message_en = state.get("message_en", "")

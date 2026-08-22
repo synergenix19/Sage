@@ -82,9 +82,13 @@ async def test_medical_response_writes_its_own_audit(monkeypatch):
     # Defect 3: this path bypasses output_gate, so it MUST write its own audit.
     import asyncio
     import sage_poc.nodes.medical_response as mr
+    import sage_poc.safety.terminal as term
     captured = {}
     async def _fake_audit(rec): captured.update(rec)
-    monkeypatch.setattr(mr, "write_session_audit", _fake_audit)
+    # medical_response_node's audit write goes through safety.terminal's shared
+    # spawn_safety_audit (P2 Task 7b dedup) -- patch the actual call site, not
+    # medical_response's own module (it no longer imports write_session_audit directly).
+    monkeypatch.setattr(term, "write_session_audit", _fake_audit)
     await mr.medical_response_node(_state("x") | {"medical_flags": ["crushing"]})
     await asyncio.sleep(0)  # let the fire-and-forget audit task run
     assert captured.get("gate_path") == "medical"
