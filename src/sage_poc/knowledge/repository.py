@@ -1,10 +1,8 @@
 from __future__ import annotations
-import re
 from abc import ABC, abstractmethod
 from sage_poc.knowledge.models import KnowledgeResult
 from sage_poc.knowledge.rewriter import normalize_arabic_query
-
-_ARABIC_RE = re.compile(r"[؀-ۿ]")
+from sage_poc.rules.normalize import has_arabic
 
 
 class KnowledgeRepository(ABC):
@@ -27,7 +25,7 @@ class KnowledgeRepository(ABC):
 
     @staticmethod
     def _contains_arabic(text: str) -> bool:
-        return bool(_ARABIC_RE.search(text or ""))
+        return has_arabic(text)
 
     @classmethod
     def _preprocess_query(cls, query: str) -> str:

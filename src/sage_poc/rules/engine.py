@@ -7,7 +7,7 @@ from sage_poc.rules.schemas import (
     EvalResult, FiredRule,
 )
 from sage_poc.rules.loader import get_rules
-from sage_poc.rules.normalize import normalize_text, normalize_arabic
+from sage_poc.rules.normalize import normalize_text, normalize_arabic, has_arabic
 
 _NEGATION_WORDS = frozenset([
     "don't", "dont", "do not", "not", "never", "no", "cannot", "can't", "cant",
@@ -108,7 +108,7 @@ def _eval_safety(rules: list[SafetyRule], context: dict) -> EvalResult:
             else:
                 # For "any" rules: route Arabic-script patterns to norm_ar, others to norm_en
                 is_arabic_pattern = lang == "ar" or (
-                    lang == "any" and any('؀' <= ch <= 'ۿ' for ch in pattern)
+                    lang == "any" and has_arabic(pattern)
                 )
                 text_to_check = norm_ar if is_arabic_pattern else norm_en
                 matched_surface = "ar" if is_arabic_pattern else "en"
@@ -219,7 +219,7 @@ def _eval_cultural(rules: list[CulturalRule], context: dict) -> EvalResult:
         # trigger_type == "keyword_match" (default)
         matched = False
         for kw in rule.trigger_keywords:
-            is_arabic_kw = any('؀' <= ch <= 'ۿ' for ch in kw)
+            is_arabic_kw = has_arabic(kw)
             if is_arabic_kw:
                 if norm_ar and normalize_arabic(kw) in norm_ar:
                     matched = True
@@ -265,13 +265,13 @@ def _eval_prompt_injection(rules: list[PromptInjectionRule], context: dict) -> E
             en_fired = any(
                 kw.lower() in text_lower
                 for kw in rule.trigger_keywords
-                if not any('؀' <= c <= 'ۿ' for c in kw)
+                if not has_arabic(kw)
             )
             # Arabic keywords matched against original Arabic text
             ar_fired = bool(norm_ar) and any(
                 normalize_arabic(kw) in norm_ar
                 for kw in rule.trigger_keywords
-                if any('؀' <= c <= 'ۿ' for c in kw)
+                if has_arabic(kw)
             )
             fired = en_fired or ar_fired
         elif rule.trigger_type == "flag_present":

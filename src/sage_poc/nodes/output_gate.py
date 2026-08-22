@@ -13,6 +13,7 @@ from sage_poc.gender_marker import detect_gender_marking
 from sage_poc.config import CRISIS_LINE_UAE, CRISIS_CONFIG, CLASSIFIER_MODEL
 from sage_poc.llm import get_classifier
 from sage_poc.rules import engine as rules_engine
+from sage_poc.rules.normalize import ARABIC_CHAR_RE
 from sage_poc.prompts.summarizer import summarise_history
 from sage_poc.audit import write_session_audit, write_identity_substitution_audit, derive_psychoed_weave_state
 
@@ -376,7 +377,6 @@ _BANNED_OPENER_PATTERNS: list[str] = [
 _BANNED_OPENER_RE = re.compile(
     r"(?i)^(" + "|".join(_BANNED_OPENER_PATTERNS) + r")"
 )
-_HAS_ARABIC_RE = re.compile(r"[؀-ۿ]")
 # Arabic-output English-bleed guard (feedback #4). Latin alphabetic runs of length >= 3 that
 # are not known acronyms/brands indicate an untranslated English word in an Arabic reply.
 _LATIN_WORD_RE = re.compile(r"[A-Za-z]{3,}")
@@ -557,12 +557,22 @@ async def _write_persisted_clinical_flags(
     """
     flags_to_persist = [f for f in clinical_flags if _CROSS_SESSION_FLAGS.get(f, False)]
     try:
-        from server import app  # noqa: PLC0415
-        from sage_poc.memory.postgres_repository import PostgresMemoryRepository  # noqa: PLC0415
-        pool = getattr(app.state, "_db_pool", None)
-        if pool is None:
+        from sage_poc.memory import get_repository  # noqa: PLC0415
+        repo = get_repository()
+        if repo is None:
+            # Fix round 2 (M-561-a/b): get_repository() swallows a deferred-import/pool
+            # failure internally and returns None -- it never raises, so this is no longer
+            # reached via `except Exception` the way baseline's inline `from server import
+            # app` failure was. Log explicitly here so the distinctive "[output_gate]
+            # write_persisted_clinical_flags failed:" string + this module's logger
+            # (sage_poc.nodes.output_gate, not sage_poc.memory) still fire on this path --
+            # external alerting may key on both, and baseline emitted this exact message on
+            # every failure mode reaching this function, not only exception-raising ones.
+            _log.warning(
+                "[output_gate] write_persisted_clinical_flags failed: no repository "
+                "available (pool unavailable or the server.app lookup failed)"
+            )
             return
-        repo = PostgresMemoryRepository(pool)
         await repo.write_persisted_clinical_flags(user_id, flags_to_persist)
     except Exception as exc:
         _log.warning("[output_gate] write_persisted_clinical_flags failed: %s", exc)
@@ -579,24 +589,38 @@ async def _persist_session_summary(
 ) -> None:
     """Persist session summary to database. Non-fatal — errors are logged only."""
     try:
-        from server import app  # noqa: PLC0415
-        from sage_poc.memory.postgres_repository import PostgresMemoryRepository  # noqa: PLC0415
+        from sage_poc.memory import get_repository  # noqa: PLC0415
         from sage_poc.memory.embedding import get_embedding_async  # noqa: PLC0415
-        pool = getattr(app.state, "_db_pool", None)
-        if pool is None:
-            return
-        embedding = await get_embedding_async(summary_text)
-        safety_level = (
-            "crisis" if crisis_flags
-            else "clinical" if clinical_flags
-            else "normal"
-        )
-        repo = PostgresMemoryRepository(pool)
-        await repo.save_session_summary(
-            session_id, user_id, summary_text, embedding, safety_level,
-            skills_used=skills_used,
-            mood_score=mood_score,
-        )
+        repo = get_repository()
+        if repo is None:
+            # Fix round 2 (M-561-a): a bare `return` here (baseline's shape, and this
+            # function's shape before this fix) exits the WHOLE function -- which skips the
+            # decoupled _write_persisted_clinical_flags call below entirely. That call is
+            # deliberately decoupled from summary-persistence success (Cardinal Rule 4:
+            # persisted_clinical_flags feeds safety_check at the next session's start and
+            # must fire regardless of whether the summary write succeeded). Baseline got
+            # away with the early `return` only because ITS `from server import app` lived
+            # directly in this try block, so an import failure there raised an exception
+            # caught by `except Exception` below -- which does NOT return, so baseline fell
+            # through to the decoupled call. get_repository() converts that same failure
+            # into a clean `None` (never raises), so the early `return` here is a REAL
+            # divergence from baseline, not an equivalent refactor -- restructured to guard
+            # only the repo-dependent work, so every path (repo None, embedding failure,
+            # save_session_summary failure) falls through to the decoupled call exactly like
+            # baseline did for the exception-raising cases.
+            _log.warning("Failed to persist session summary for session %s", session_id)
+        else:
+            embedding = await get_embedding_async(summary_text)
+            safety_level = (
+                "crisis" if crisis_flags
+                else "clinical" if clinical_flags
+                else "normal"
+            )
+            await repo.save_session_summary(
+                session_id, user_id, summary_text, embedding, safety_level,
+                skills_used=skills_used,
+                mood_score=mood_score,
+            )
     except Exception:
         _log.warning("Failed to persist session summary for session %s", session_id)
     # Flag persistence is intentionally decoupled from session summary persistence.
@@ -712,7 +736,7 @@ async def _compose_english(state: SageState) -> tuple[str, list, dict]:
             state.get("crisis_state"), session_id,
         )
 
-    _arabic_chars = len(_HAS_ARABIC_RE.findall(response_en))
+    _arabic_chars = len(ARABIC_CHAR_RE.findall(response_en))
     _total_chars = len(response_en.strip())
     _response_en_is_arabic = (
         lang == "ar"

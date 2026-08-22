@@ -8,6 +8,7 @@ from sage_poc.state import SageState
 from sage_poc.skills.schema import SkillStep
 from sage_poc.skills import get_skill
 from sage_poc.rules import engine as rules_engine
+from sage_poc.rules.normalize import has_arabic
 from sage_poc import config as _config
 from .loader import get_template, get_intent_template
 from .tokens import count_words, count_words_in_parts
@@ -37,10 +38,6 @@ def _sanitize_assistant_turn(text: str) -> str:
     return text
 
 
-def _is_arabic(text: str) -> bool:
-    return bool(re.search(r"[؀-ۿ]", text))
-
-
 def _select_few_shot_examples(
     examples: list[str],
     language: str,
@@ -51,8 +48,8 @@ def _select_few_shot_examples(
     if len(examples) == 1:
         return [examples[0]]
     if language == "ar":
-        arabic = [e for e in examples if _is_arabic(e)]
-        non_arabic = [e for e in examples if not _is_arabic(e)]
+        arabic = [e for e in examples if has_arabic(e)]
+        non_arabic = [e for e in examples if not has_arabic(e)]
         if not arabic:
             _log.warning("_select_few_shot_examples: language=ar but no Arabic examples in skill step")
         if arabic:
