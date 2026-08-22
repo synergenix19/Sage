@@ -12,7 +12,14 @@ def _normalize(text: str) -> str:
 def is_clear_negative(reply: str) -> bool:
     data = store.weave_data()
     sem = data["evaluation_semantics"]
-    assert sem["default"] == "fail_closed_to_crisis"
+    if sem["default"] != "fail_closed_to_crisis":
+        # `assert` is stripped entirely under `python -O`, which would silently disarm this
+        # fail-closed invariant check in an optimized deployment (a never-disarm violation on
+        # the PSY-WEAVE-1 crisis-escalation path). Raise explicitly so the check survives -O.
+        raise RuntimeError(
+            "PSY-WEAVE-1 fail-closed invariant violated: evaluation_semantics.default is "
+            f"{sem['default']!r}, expected 'fail_closed_to_crisis'"
+        )
     norm = _normalize(reply)
     if not norm:
         return False
