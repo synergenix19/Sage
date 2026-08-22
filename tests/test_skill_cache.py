@@ -254,7 +254,9 @@ def test_crisis_config_derives_only_from_module_level_literals():
         for n in ast.walk(node):
             if isinstance(n, ast.Attribute) and n.attr in ("environ", "getenv", "now", "time"):
                 hits.append(n.attr)
-            if isinstance(n, ast.Name) and n.id in ("getenv",):
+            # Bare-name form (e.g. `from os import getenv, environ` then `getenv(...)` /
+            # `environ.get(...)`), which would otherwise evade the ast.Attribute check above.
+            if isinstance(n, ast.Name) and n.id in ("getenv", "environ"):
                 hits.append(n.id)
         return hits
 
