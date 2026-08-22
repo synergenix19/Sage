@@ -58,6 +58,41 @@ def test_no_arg_returns_none_when_server_import_fails():
         assert get_repository() is None
 
 
+def test_server_import_failure_logs_a_warning(caplog):
+    """Fix round 1: two of the four original call sites (output_gate.py's
+    _write_persisted_clinical_flags / _persist_session_summary) had their OWN try/except
+    around this exact deferred import that logged a warning on failure. get_repository()
+    now swallows the exception internally, so without its own log line that signal would be
+    silently lost -- the clinical-flags feed in particular wants to know when this happens.
+    Asserts the warning fires with the underlying exception's context, not just that the
+    function still returns None (already covered above)."""
+    with caplog.at_level("WARNING", logger="sage_poc.memory"):
+        with patch.dict(sys.modules, {"server": None}):
+            assert get_repository() is None
+
+    assert any(
+        "server" in r.message.lower() and "_db_pool" in r.message
+        for r in caplog.records
+    ), f"expected a WARNING naming the failed server/app.state._db_pool lookup, got: {[r.message for r in caplog.records]}"
+
+
+def test_normal_no_pool_paths_do_not_log_a_warning(caplog):
+    """The three ordinary 'no pool available' shapes (None pool, missing attr, explicit
+    None override) are expected/normal conditions, not failures -- they must stay silent,
+    same as before this fix. Only the deferred-import failure path (above) is new-logged."""
+    mock_app = MagicMock()
+    mock_app.state._db_pool = None
+
+    with caplog.at_level("WARNING", logger="sage_poc.memory"):
+        with _patched_server(mock_app):
+            assert get_repository() is None
+        assert get_repository(pool=None) is None
+
+    assert caplog.records == [], (
+        f"expected no WARNING logs for ordinary no-pool conditions, got: {[r.message for r in caplog.records]}"
+    )
+
+
 def test_explicit_none_pool_returns_none_without_touching_app_state():
     """get_repository(pool=None) short-circuits -- never consults app.state.
 

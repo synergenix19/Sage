@@ -7,6 +7,10 @@ lookup of the ambient asyncpg pool on `app.state._db_pool`, and construction
 of a `PostgresMemoryRepository` around it.
 """
 
+import logging
+
+_log = logging.getLogger(__name__)
+
 _UNSET = object()
 
 
@@ -36,7 +40,18 @@ def get_repository(pool=_UNSET):
         try:
             from server import app  # noqa: PLC0415 — deferred, avoids circular import (server imports sage_poc.graph)
             pool = getattr(app.state, "_db_pool", None)
-        except Exception:
+        except Exception as exc:
+            # Fix round 1: two of the four original pool-dance call sites (output_gate.py's
+            # _write_persisted_clinical_flags / _persist_session_summary) wrapped this exact
+            # deferred-import in their OWN try/except that logged a warning on failure. Because
+            # get_repository() now swallows the exception internally and returns None (never
+            # raises, per this function's contract), the caller's except clause never sees an
+            # exception for THIS failure mode anymore -- the warning would otherwise be silently
+            # lost. The clinical-flags feed in particular wants a signal here: a degraded/absent
+            # pool means cross-session-eligible clinical flags silently stop persisting. Every
+            # site's own degrade-gracefully behavior (return "", return early, no-op) is
+            # unchanged -- this only restores the log line that behavior used to carry.
+            _log.warning("get_repository(): server.app / app.state._db_pool lookup failed: %s", exc)
             return None
 
     if pool is None:
