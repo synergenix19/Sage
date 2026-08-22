@@ -2,6 +2,7 @@ import json, os, sys
 from sage_poc.routing_eval import real_model_driver as drv
 from sage_poc.routing_eval.gate_runner import compute_metrics_by_stratum, harm_gate
 
+drv.configure_mode()
 pc = drv.positive_control()
 if drv.MODE == "V2" and not (pc and pc.get("ok")):
     raise SystemExit(f"POSITIVE CONTROL FAILED separation={pc and pc.get('separation')}")
