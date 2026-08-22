@@ -13,12 +13,10 @@ import { useLocaleStore } from '@/lib/stores/locale-store'
 import { newChatHref } from '@/lib/new-chat'
 import { t } from '@/lib/copy'
 
+type PanelId = 'history' | 'settings' | 'help' | 'guide'
+
 export function ChatHeader({ session }: { session: ChatSession | null }) {
-  const [historyOpen, setHistoryOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [helpOpen, setHelpOpen] = useState(false)
-  // TODO: remove after clinical pilot period ends
-  const [guideOpen, setGuideOpen] = useState(false)
+  const [openPanel, setOpenPanel] = useState<PanelId | null>(null)
   const router = useRouter()
   const locale = useLocaleStore((s) => s.locale)
 
@@ -40,7 +38,7 @@ export function ChatHeader({ session }: { session: ChatSession | null }) {
           {/* Persistent "Get help now" affordance — available every turn, not only on crisis
               detection. Opens the resource list rendered client-side (deterministic + offline). */}
           <button
-            onClick={() => setHelpOpen(true)}
+            onClick={() => setOpenPanel('help')}
             className="flex min-h-[44px] items-center gap-1.5 rounded-full border border-[var(--color-crisis)] px-3 text-xs font-medium text-[var(--color-crisis)] hover:bg-[var(--color-crisis)]/10"
             aria-label={locale === 'ar' ? 'احصل على المساعدة الآن' : 'Get help now'}
             data-testid="get-help-now"
@@ -74,7 +72,7 @@ export function ChatHeader({ session }: { session: ChatSession | null }) {
           </button>
           {/* Clock icon — mobile only, desktop has sidebar history list */}
           <button
-            onClick={() => setHistoryOpen(true)}
+            onClick={() => setOpenPanel('history')}
             className="md:hidden flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full hover:bg-[var(--color-surface-tinted)]"
             aria-label={t('chatHeader.historyAriaLabel', locale)}
           >
@@ -82,7 +80,7 @@ export function ChatHeader({ session }: { session: ChatSession | null }) {
           </button>
           {/* TODO: remove after clinical pilot */}
           <button
-            onClick={() => setGuideOpen(true)}
+            onClick={() => setOpenPanel('guide')}
             className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-base font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-tinted)]"
             aria-label="Testing guide"
             title="Testing guide"
@@ -91,7 +89,7 @@ export function ChatHeader({ session }: { session: ChatSession | null }) {
           </button>
           <LanguageToggle />
           <button
-            onClick={() => setSettingsOpen(true)}
+            onClick={() => setOpenPanel('settings')}
             className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full hover:bg-[var(--color-surface-tinted)]"
             aria-label={t('chatHeader.settingsAriaLabel', locale)}
           >
@@ -99,11 +97,11 @@ export function ChatHeader({ session }: { session: ChatSession | null }) {
           </button>
         </div>
       </header>
-      <HistoryPanel open={historyOpen} onClose={() => setHistoryOpen(false)} />
-      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-      <CrisisHelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} />
+      <HistoryPanel open={openPanel === 'history'} onClose={() => setOpenPanel(null)} />
+      <SettingsPanel open={openPanel === 'settings'} onClose={() => setOpenPanel(null)} />
+      <CrisisHelpPanel open={openPanel === 'help'} onClose={() => setOpenPanel(null)} />
       {/* TODO: remove after clinical pilot */}
-      <TestingGuidePanel open={guideOpen} onClose={() => setGuideOpen(false)} />
+      <TestingGuidePanel open={openPanel === 'guide'} onClose={() => setOpenPanel(null)} />
     </>
   )
 }
