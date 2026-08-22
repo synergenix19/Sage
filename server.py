@@ -21,6 +21,7 @@ from psycopg_pool import AsyncConnectionPool
 from pydantic import BaseModel
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
+from sage_poc.audit import close_audit_client
 from sage_poc.graph import build_graph
 from sage_poc.config import RESPONDER_MODEL, DB_POOL_MAX_SIZE, CHECKPOINT_POOL_MAX_SIZE, CRISIS_TIERING_ENABLED
 from sage_poc.crisis_copy import (
@@ -487,6 +488,7 @@ async def lifespan(app: FastAPI):
             app.state._db_pool = None
             app.state._graph = build_graph(checkpointer=None)
             yield
+            await close_audit_client()
             return
         app.state._db_pool = asyncpg_pool
         saver = AsyncPostgresSaver(saver_pool)
@@ -498,11 +500,13 @@ async def lifespan(app: FastAPI):
         yield
         await saver_pool.close()
         await asyncpg_pool.close()
+        await close_audit_client()
     else:
         _log.warning("[sage/startup] DATABASE_URL not set — running without persistence")
         app.state._db_pool = None
         app.state._graph = build_graph(checkpointer=None)
         yield
+        await close_audit_client()
 
 
 # Single instantiation — must come after lifespan definition
