@@ -234,4 +234,16 @@ def _build_state(req: _RequestLike) -> dict:
         "banned_opener_retry_count": 0,
         "banned_opener_correction": None,
         "banned_opener_fallback_used": False,
+        # Fix round 1 (2026-08-22): PER-TURN reset, same discipline as step_mandatory_caveat /
+        # classifier_context_hash / screen_asked above. opener_rewrite PERSISTS via the LangGraph
+        # checkpoint like every other declared channel not listed in this function's own "intentionally
+        # absent" docstring -- the original PR #569 comment claimed no reset was needed because
+        # output_gate "overwrites it fresh whenever it runs", but that is only true ON a turn that
+        # reaches output_gate. A turn that BYPASSES output_gate entirely (crisis/medical/high_risk/
+        # derealization/screen terminals -- exactly the turns state.py's own comment named) never
+        # touches this key, so without this reset a stale opener_rewrite value from an EARLIER
+        # output_gate turn survives in the checkpoint and gets merged (via `{**state, ...}`) straight
+        # into that later terminal's audit row -- e.g. a gate turn's opener-rewrite record landing on
+        # a SUBSEQUENT medical-emergency audit row it has nothing to do with. Reset here closes that.
+        "opener_rewrite": None,
     }
